@@ -1,12 +1,31 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+function clearSupabaseLocks() {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.includes('lock'))
+      .forEach(k => localStorage.removeItem(k))
+  } catch { }
+}
+
+function createSupabaseClient() {
+  clearSupabaseLocks()
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        lockAcquireTimeout: 10000,
+      },
+    }
+  )
+}
 
 type User = {
   id: string
@@ -22,7 +41,7 @@ type AuthContextType = {
   loading: boolean
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
-  supabase: typeof supabase
+  supabase: SupabaseClient
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,49 +49,63 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signInWithGoogle: async () => {},
   signOut: async () => {},
-  supabase,
+  supabase: null as any,
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const supabaseRef = useRef<SupabaseClient | null>(null)
+
+  if (!supabaseRef.current) {
+    supabaseRef.current = createSupabaseClient()
+  }
+  const supabase = supabaseRef.current
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let mounted = true
+
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return
+      if (error) { setLoading(false); return }
       if (session?.user) {
-        loadUserProfile(session.user.id, session.user)
+        loadUserProfile(session.user.id, session.user).finally(() => {
+          if (mounted) setLoading(false)
+        })
       } else {
         setLoading(false)
       }
     })
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
+      if (!mounted) return
+      if (event === 'SIGNED_IN' && session?.user) {
+        setLoading(true)
         await loadUserProfile(session.user.id, session.user)
-      } else {
+        if (mounted) setLoading(false)
+      } else if (event === 'SIGNED_OUT') {
         setUser(null)
-        setLoading(false)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function loadUserProfile(userId: string, authUser: any) {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
-      if (error || !data) {
-        // Create profile if doesn't exist
+      if (!data) {
         const newProfile = {
           id: userId,
-          email: authUser.email,
+          email: authUser.email || '',
           name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Utilizador',
           avatar: authUser.user_metadata?.avatar_url || '',
           plan: 'free',
@@ -92,23 +125,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       }
     } catch (e) {
-      console.error('Profile load error:', e)
-    } finally {
-      setLoading(false)
+      console.error('loadUserProfile error:', e)
     }
   }
 
   const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+    clearSupabaseLocks()
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
+    if (error) throw error
   }
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.includes('supabase') || k.includes('sb-'))
+        .forEach(k => localStorage.removeItem(k))
+    } catch { }
     setUser(null)
   }
 
@@ -120,4 +159,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext)
-export { supabase }
