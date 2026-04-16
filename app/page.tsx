@@ -6,67 +6,73 @@ export default function Home() {
 
       {/* Top bar */}
       <div style={{ background: 'var(--green)', padding: '8px 0' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--green-mid)', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
             INFORMAÇÃO EDUCACIONAL — NÃO SUBSTITUI ACONSELHAMENTO PROFISSIONAL
           </span>
-          <span style={{ color: 'var(--green-mid)', fontSize: 12, fontFamily: 'var(--font-mono)' }}>
-            Dados: OpenFDA · DrugBank · RxNorm
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+            Dados: OpenFDA · RxNorm · NIH
           </span>
         </div>
       </div>
 
       {/* Header */}
-      <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+      <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--green)', letterSpacing: '-0.02em' }}>
               Phlox
             </span>
-            <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
               Clinical Reference
             </span>
           </div>
-          <nav style={{ display: 'flex', gap: 32 }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
             {[
               { href: '/interactions', label: 'Interações' },
               { href: '/drugs', label: 'Medicamentos' },
+              { href: '/calculators', label: 'Calculadoras' },
               { href: '/study', label: 'Estudantes' },
             ].map(({ href, label }) => (
-              <Link key={href} href={href} style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: 'var(--ink-2)',
-                textDecoration: 'none',
-                letterSpacing: '0.01em',
-              }}>
+              <Link key={href} href={href} style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none' }}>
                 {label}
               </Link>
             ))}
+            <Link href="/login" style={{
+              background: 'var(--green)',
+              color: 'white',
+              textDecoration: 'none',
+              padding: '7px 18px',
+              borderRadius: 4,
+              fontSize: 13,
+              fontWeight: 600,
+            }}>
+              Entrar
+            </Link>
           </nav>
         </div>
       </header>
 
       {/* Hero */}
-      <section style={{ borderBottom: '1px solid var(--border)', padding: '72px 32px' }}>
+      <section style={{ borderBottom: '1px solid var(--border)', padding: '72px 40px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--green-2)', textTransform: 'uppercase', marginBottom: 20 }}>
               Plataforma Farmacológica
             </div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 48, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 24 }}>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 52, lineHeight: 1.1, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 24 }}>
               Informação clínica.<br />
               <em style={{ fontStyle: 'italic', color: 'var(--green-2)' }}>Rigorosa e acessível.</em>
             </h1>
             <p style={{ fontSize: 17, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 36, maxWidth: 440 }}>
               Verifica interações medicamentosas, consulta informação clínica detalhada,
-              e prepara-te para exames de farmacologia. Tudo num só lugar.
+              calcula doses e prepara-te para exames de farmacologia.
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               <Link href="/interactions" style={{
                 background: 'var(--green)',
                 color: 'white',
-                padding: '12px 28px',
+                padding: '13px 28px',
                 borderRadius: 6,
                 fontSize: 14,
                 fontWeight: 600,
@@ -78,7 +84,7 @@ export default function Home() {
               <Link href="/drugs" style={{
                 background: 'transparent',
                 color: 'var(--ink)',
-                padding: '12px 28px',
+                padding: '13px 28px',
                 borderRadius: 6,
                 fontSize: 14,
                 fontWeight: 500,
@@ -90,21 +96,19 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--border)', border: '1px solid var(--border)' }}>
+          {/* Stats grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 4 }}>
             {[
               { value: '20k+', label: 'Medicamentos indexados' },
               { value: '3', label: 'Bases de dados clínicas' },
+              { value: '5', label: 'Ferramentas disponíveis' },
               { value: '100%', label: 'Gratuito' },
-              { value: 'PT · EN · ES', label: 'Línguas disponíveis' },
             ].map(({ value, label }) => (
               <div key={label} style={{ background: 'var(--bg)', padding: '28px 24px' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, color: 'var(--green)', marginBottom: 4 }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, fontWeight: 700, color: 'var(--green)', marginBottom: 4 }}>
                   {value}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', letterSpacing: '0.03em' }}>
-                  {label}
-                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', letterSpacing: '0.03em' }}>{label}</div>
               </div>
             ))}
           </div>
@@ -112,43 +116,47 @@ export default function Home() {
       </section>
 
       {/* Tools */}
-      <section style={{ padding: '64px 32px', background: 'var(--bg-2)' }}>
+      <section style={{ padding: '64px 40px', background: 'var(--bg-2)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 40 }}>
             Ferramentas disponíveis
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
             {[
               {
                 href: '/interactions',
                 code: '01',
                 title: 'Verificador de Interações',
-                desc: 'Analisa interações entre medicamentos, suplementos, plantas medicinais e alimentos. Classificação por gravidade com mecanismo farmacológico detalhado.',
+                desc: 'Analisa interações entre medicamentos, suplementos e plantas medicinais com classificação por gravidade.',
               },
               {
                 href: '/drugs',
                 code: '02',
                 title: 'Base de Dados de Fármacos',
-                desc: 'Consulta informação clínica completa sobre qualquer medicamento. Mecanismo de acção, posologia, efeitos adversos, contraindicações e farmacocinética.',
+                desc: 'Informação clínica completa — mecanismo, posologia, efeitos adversos e contraindicações.',
+              },
+              {
+                href: '/calculators',
+                code: '03',
+                title: 'Calculadoras Clínicas',
+                desc: 'Clearance renal, TFGe, doses pediátricas, conversão de opióides e mais.',
               },
               {
                 href: '/study',
-                code: '03',
+                code: '04',
                 title: 'Plataforma de Estudo',
-                desc: 'Flashcards automáticos, quizzes adaptativos e casos clínicos simulados para estudantes de farmácia, medicina e enfermagem.',
+                desc: 'Flashcards, quizzes e casos clínicos para estudantes de farmácia e medicina.',
               },
             ].map(({ href, code, title, desc }) => (
-              <Link key={href} href={href} style={{ textDecoration: 'none', display: 'block', background: 'var(--bg)', padding: '36px 32px', transition: 'background 0.15s' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '0.15em', marginBottom: 16 }}>
+              <Link key={href} href={href} style={{ textDecoration: 'none', display: 'block', background: 'var(--bg)', padding: '32px 28px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '0.15em', marginBottom: 14 }}>
                   {code}
                 </div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
                   {title}
                 </h3>
-                <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7 }}>
-                  {desc}
-                </p>
-                <div style={{ marginTop: 24, fontSize: 13, color: 'var(--green-2)', fontWeight: 500 }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>{desc}</p>
+                <div style={{ marginTop: 20, fontSize: 12, color: 'var(--green-2)', fontWeight: 500 }}>
                   Aceder →
                 </div>
               </Link>
@@ -157,12 +165,68 @@ export default function Home() {
         </div>
       </section>
 
+      {/* CTA */}
+      <section style={{ padding: '64px 40px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 14, letterSpacing: '-0.01em' }}>
+              Cria uma conta gratuita
+            </h2>
+            <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>
+              Guarda o teu histórico de pesquisas, cria a tua lista de medicamentos pessoais
+              e acede a ferramentas avançadas de estudo.
+            </p>
+            <Link href="/login" style={{
+              display: 'inline-block',
+              background: 'var(--green)',
+              color: 'white',
+              textDecoration: 'none',
+              padding: '12px 28px',
+              borderRadius: 6,
+              fontSize: 14,
+              fontWeight: 600,
+            }}>
+              Criar conta gratuita →
+            </Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              'Histórico de pesquisas guardado',
+              'Lista de medicamentos pessoais com alertas de interações',
+              'Flashcards e quizzes de farmacologia',
+              'Ferramentas avançadas para profissionais (Pro)',
+            ].map(feature => (
+              <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 4 }}>
+                <span style={{ color: 'var(--green-2)', fontSize: 14, flexShrink: 0 }}>✓</span>
+                <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid var(--border)', padding: '32px', background: 'var(--bg)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink-3)', fontWeight: 700 }}>Phlox</span>
-          <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-            Informação educacional · Não substitui aconselhamento médico profissional
+      <footer style={{ borderTop: '1px solid var(--border)', padding: '32px 40px', background: 'var(--bg)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 700, color: 'var(--green)' }}>Phlox</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Clinical Reference</span>
+          </div>
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+            {[
+              { href: '/interactions', label: 'Interações' },
+              { href: '/drugs', label: 'Medicamentos' },
+              { href: '/calculators', label: 'Calculadoras' },
+              { href: '/study', label: 'Estudantes' },
+              { href: '/login', label: 'Entrar' },
+            ].map(({ href, label }) => (
+              <Link key={href} href={href} style={{ fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+                {label}
+              </Link>
+            ))}
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+            Informação educacional · Não substitui aconselhamento profissional
           </span>
         </div>
       </footer>
