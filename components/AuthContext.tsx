@@ -21,7 +21,6 @@ function createSupabaseClient() {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        lockAcquireTimeout: 10000,
       },
     }
   )
