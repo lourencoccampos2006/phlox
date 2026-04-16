@@ -2,20 +2,21 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/components/AuthContext'
+import { useAuth } from '@/components/AuthContext'
 
 export default function AuthCallback() {
   const router = useRouter()
+  const { supabase } = useAuth()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/')
+        router.push('/dashboard')
       } else {
         router.push('/login')
       }
     })
-  }, [router])
+  }, [router, supabase])
 
   return (
     <div style={{
