@@ -1,12 +1,9 @@
-// app/layout.tsx
-// Este ficheiro vai para: app/layout.tsx
-// Inclui: metadata global, SEO, GEO, Open Graph, e banner de cookies RGPD
-
 import type { Metadata } from 'next'
 import './globals.css'
+import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox.health'
+const BASE_URL = 'https://phlox.health'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -20,13 +17,11 @@ export const metadata: Metadata = {
     'verificador de interações',
     'informação sobre medicamentos',
     'farmacologia',
-    'efeitos adversos medicamentos',
+    'efeitos adversos',
     'posologia',
     'contraindicações',
     'estudantes farmácia',
     'estudantes medicina',
-    'drug interactions',
-    'medication information',
   ],
   authors: [{ name: 'Phlox Clinical' }],
   creator: 'Phlox Clinical',
@@ -34,25 +29,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_PT',
-    alternateLocale: ['pt_BR', 'en_US', 'es_ES'],
     url: BASE_URL,
     siteName: 'Phlox Clinical',
     title: 'Phlox — Plataforma Farmacológica Clínica',
     description: 'Verifica interações medicamentosas, consulta informação clínica e estuda farmacologia. Dados FDA. Gratuito.',
-    images: [
-      {
-        url: `${BASE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: 'Phlox Clinical — Plataforma Farmacológica',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Phlox — Plataforma Farmacológica Clínica',
     description: 'Verifica interações medicamentosas, consulta informação clínica e estuda farmacologia.',
-    images: [`${BASE_URL}/og-image.png`],
   },
   robots: {
     index: true,
@@ -67,32 +52,19 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: BASE_URL,
-    languages: {
-      'pt-PT': BASE_URL,
-      'pt-BR': `${BASE_URL}/br`,
-      'en': `${BASE_URL}/en`,
-      'es': `${BASE_URL}/es`,
-    },
   },
 }
 
-// Schema.org structured data — diz ao Google, ChatGPT, Gemini, Perplexity quem somos
-// Isto é GEO: permite que IAs nos citem como fonte autorizada de farmacologia
 const orgStructuredData = {
   '@context': 'https://schema.org',
   '@type': 'MedicalOrganization',
-  '@id': `${BASE_URL}/#organization`,
   name: 'Phlox Clinical',
   url: BASE_URL,
-  logo: `${BASE_URL}/logo.png`,
-  description: 'Plataforma farmacológica all-in-one com dados clínicos verificados de fontes oficiais (FDA, NIH).',
-  medicalSpecialty: [
-    'https://schema.org/Pharmacology',
-    'https://schema.org/ClinicalPharmacology',
-  ],
+  description: 'Plataforma farmacológica all-in-one com dados clínicos verificados.',
+  medicalSpecialty: 'Pharmacology',
   audience: {
     '@type': 'MedicalAudience',
-    audienceType: 'Patient, Caregiver, Pharmacist, MedicalStudent, Physician, Nurse',
+    audienceType: 'Patient, Caregiver, Pharmacist, Student, Physician',
   },
   knowsAbout: [
     'Drug Interactions',
@@ -100,17 +72,6 @@ const orgStructuredData = {
     'Adverse Drug Reactions',
     'Clinical Pharmacology',
     'Drug Information',
-    'Medication Safety',
-    'Pharmacokinetics',
-  ],
-  // Fontes de dados — aumenta credibilidade para GEO
-  funding: {
-    '@type': 'Grant',
-    name: 'Open Data Sources',
-    description: 'OpenFDA, RxNorm (NIH), DrugBank',
-  },
-  sameAs: [
-    'https://github.com/phlox-clinical',
   ],
 }
 
@@ -122,21 +83,22 @@ export default function RootLayout({
   return (
     <html lang="pt-PT">
       <head>
-        {/* Structured data para SEO, GEO (ChatGPT, Gemini, Perplexity) e AEO (featured snippets) */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgStructuredData) }}
         />
-        {/* Preconnect melhora a velocidade de carregamento — importante para Core Web Vitals */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://api.fda.gov" />
-        <link rel="dns-prefetch" href="https://rxnav.nlm.nih.gov" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body>
-        {children}
-        {/* Banner RGPD — obrigatório na Europa */}
-        <CookieBanner />
+        <AuthProvider>
+          {children}
+          <CookieBanner />
+        </AuthProvider>
       </body>
     </html>
   )
