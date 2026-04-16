@@ -1,47 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const query = searchParams.get('q')
-  const limit = searchParams.get('limit') || '10'
+const cache = new Map<string, { result: any; timestamp: number }>()
+const CACHE_TTL = 1000 * 60 * 60 * 6
 
-  if (!query) {
-    return NextResponse.json({ error: 'Query required' }, { status: 400 })
+export async function GET(request: NextRequest) {
+  const q = request.nextUrl.searchParams.get('q')
+  if (!q) return NextResponse.json({ error: 'Query required' }, { status: 400 })
+
+  const term = q.trim().toLowerCase()
+  const cached = cache.get(term)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return NextResponse.json(cached.result)
   }
 
   try {
-    // Busca informação do medicamento na OpenFDA
-    const [labelRes, adverseRes] = await Promise.all([
-      fetch(
-        `https://api.fda.gov/drug/label.json?search=openfda.generic_name:"${encodeURIComponent(query)}"&limit=${limit}`
-      ),
-      fetch(
-        `https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:"${encodeURIComponent(query)}"&count=patient.reaction.reactionmeddrapt.exact&limit=10`
-      )
+    const [labelRes, adverseRes] = await Promise.allSettled([
+      fetch(`https://api.fda.gov/drug/label.json?search=openfda.generic_name:"${encodeURIComponent(term)}"&limit=1`, { signal: AbortSignal.timeout(8000) }),
+      fetch(`https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:"${encodeURIComponent(term)}"&count=patient.reaction.reactionmeddrapt.exact&limit=10`, { signal: AbortSignal.timeout(8000) }),
     ])
 
-    const labelData = labelRes.ok ? await labelRes.json() : null
-    const adverseData = adverseRes.ok ? await adverseRes.json() : null
+    const labelData = labelRes.status === 'fulfilled' && labelRes.value.ok ? await labelRes.value.json() : null
+    const adverseData = adverseRes.status === 'fulfilled' && adverseRes.value.ok ? await adverseRes.value.json() : null
 
     const drug = labelData?.results?.[0]
-
     if (!drug) {
-      return NextResponse.json({ error: 'Drug not found' }, { status: 404 })
+      // Try brand name search
+      const brandRes = await fetch(`https://api.fda.gov/drug/label.json?search=openfda.brand_name:"${encodeURIComponent(term)}"&limit=1`, { signal: AbortSignal.timeout(8000) })
+      const brandData = brandRes.ok ? await brandRes.json() : null
+      const brandDrug = brandData?.results?.[0]
+      if (!brandDrug) return NextResponse.json({ error: 'Medicamento não encontrado' }, { status: 404 })
+
+      const result = formatDrug(brandDrug, adverseData, term)
+      cache.set(term, { result, timestamp: Date.now() })
+      return NextResponse.json(result)
     }
 
-    return NextResponse.json({
-      name: query,
-      brand_names: drug.openfda?.brand_name || [],
-      generic_name: drug.openfda?.generic_name?.[0] || query,
-      manufacturer: drug.openfda?.manufacturer_name?.[0] || 'Unknown',
-      indications: drug.indications_and_usage?.[0] || null,
-      warnings: drug.warnings?.[0] || null,
-      dosage: drug.dosage_and_administration?.[0] || null,
-      contraindications: drug.contraindications?.[0] || null,
-      adverse_reactions: drug.adverse_reactions?.[0] || null,
-      top_adverse_events: adverseData?.results?.slice(0, 10) || [],
-    })
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch drug data' }, { status: 500 })
+    const result = formatDrug(drug, adverseData, term)
+    cache.set(term, { result, timestamp: Date.now() })
+    return NextResponse.json(result)
+
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Erro ao pesquisar. Tenta novamente.' }, { status: 500 })
+  }
+}
+
+function formatDrug(drug: any, adverseData: any, term: string) {
+  return {
+    generic_name: drug.openfda?.generic_name?.[0] || term,
+    brand_names: drug.openfda?.brand_name || [],
+    manufacturer: drug.openfda?.manufacturer_name?.[0] || '',
+    indications: drug.indications_and_usage?.[0] || '',
+    dosage: drug.dosage_and_administration?.[0] || '',
+    contraindications: drug.contraindications?.[0] || '',
+    warnings: drug.warnings?.[0] || drug.warnings_and_cautions?.[0] || '',
+    adverse_reactions: drug.adverse_reactions?.[0] || '',
+    top_adverse_events: adverseData?.results?.slice(0, 10) || [],
   }
 }
