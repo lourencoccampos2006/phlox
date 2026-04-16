@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -12,15 +12,18 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
 
-  if (user) {
-    router.push('/dashboard')
-    return null
-  }
+  useEffect(() => {
+    if (user) router.push('/dashboard')
+  }, [user, router])
 
   const handleGoogleSignIn = async () => {
     setError('')
     setSigningIn(true)
     try {
+      // Limpa localStorage antes de iniciar OAuth para evitar locks
+      Object.keys(localStorage)
+        .filter(k => k.includes('lock') || k.includes('-lock'))
+        .forEach(k => localStorage.removeItem(k))
       await signInWithGoogle()
     } catch (e: any) {
       setError(e.message || 'Erro ao autenticar. Tenta novamente.')
@@ -28,10 +31,17 @@ export default function LoginPage() {
     }
   }
 
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#fafaf9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)' }}>A verificar sessão...</div>
+    </div>
+  )
+
+  if (user) return null
+
   return (
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
       <Header />
-
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
@@ -53,8 +63,25 @@ export default function LoginPage() {
 
               <button
                 onClick={handleGoogleSignIn}
-                disabled={loading || signingIn}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: loading || signingIn ? 'var(--bg-3)' : 'white', border: '1px solid var(--border-2)', borderRadius: 4, padding: '12px 20px', fontSize: 14, fontWeight: 600, color: loading || signingIn ? 'var(--ink-4)' : 'var(--ink)', cursor: loading || signingIn ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', marginBottom: 16 }}
+                disabled={signingIn}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 12,
+                  background: signingIn ? 'var(--bg-3)' : 'white',
+                  border: '1px solid var(--border-2)',
+                  borderRadius: 4,
+                  padding: '12px 20px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: signingIn ? 'var(--ink-4)' : 'var(--ink)',
+                  cursor: signingIn ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  marginBottom: 16,
+                  transition: 'background 0.15s',
+                }}
               >
                 {signingIn ? (
                   <>

@@ -3,27 +3,28 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-function clearSupabaseLocks() {
+// Limpa APENAS locks órfãos, nunca tokens de sessão válidos
+function clearOrphanedLocks() {
+  if (typeof window === 'undefined') return
   try {
-    Object.keys(localStorage)
-      .filter(k => k.includes('lock'))
-      .forEach(k => localStorage.removeItem(k))
+    const lockKeys = Object.keys(localStorage).filter(k =>
+      k.includes('-lock') || k.includes('lock:')
+    )
+    lockKeys.forEach(k => localStorage.removeItem(k))
   } catch { }
 }
 
-function createSupabaseClient() {
-  clearSupabaseLocks()
-  return createClient(
+let supabaseInstance: SupabaseClient | null = null
+
+function getSupabase() {
+  if (supabaseInstance) return supabaseInstance
+  clearOrphanedLocks()
+  supabaseInstance = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    }
+    { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
   )
+  return supabaseInstance
 }
 
 type User = {
@@ -54,36 +55,40 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabaseRef = useRef<SupabaseClient | null>(null)
-
-  if (!supabaseRef.current) {
-    supabaseRef.current = createSupabaseClient()
-  }
-  const supabase = supabaseRef.current
+  const supabase = getSupabase()
+  const initialized = useRef(false)
 
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!mounted) return
-      if (error) { setLoading(false); return }
-      if (session?.user) {
-        loadUserProfile(session.user.id, session.user).finally(() => {
-          if (mounted) setLoading(false)
-        })
-      } else {
-        setLoading(false)
+    async function init() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!mounted) return
+        if (session?.user) {
+          await loadProfile(session.user)
+        }
+      } catch (e) {
+        console.error('Auth init error:', e)
+      } finally {
+        if (mounted) setLoading(false)
       }
-    })
+    }
+
+    init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
       if (event === 'SIGNED_IN' && session?.user) {
         setLoading(true)
-        await loadUserProfile(session.user.id, session.user)
+        await loadProfile(session.user)
         if (mounted) setLoading(false)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
+        setLoading(false)
       }
     })
 
@@ -93,17 +98,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  async function loadUserProfile(userId: string, authUser: any) {
+  async function loadProfile(authUser: any) {
     try {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', authUser.id)
         .single()
 
       if (!data) {
         const newProfile = {
-          id: userId,
+          id: authUser.id,
           email: authUser.email || '',
           name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Utilizador',
           avatar: authUser.user_metadata?.avatar_url || '',
@@ -124,29 +129,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       }
     } catch (e) {
-      console.error('loadUserProfile error:', e)
+      console.error('loadProfile error:', e)
     }
   }
 
   const signInWithGoogle = async () => {
-    clearSupabaseLocks()
+    clearOrphanedLocks()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { access_type: 'offline', prompt: 'consent' },
+        queryParams: { access_type: 'offline', prompt: 'select_account' },
       },
     })
     if (error) throw error
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch { }
+    // Limpa todo o estado do Supabase do localStorage
     try {
       Object.keys(localStorage)
-        .filter(k => k.includes('supabase') || k.includes('sb-'))
+        .filter(k => k.startsWith('sb-') || k.includes('supabase'))
         .forEach(k => localStorage.removeItem(k))
     } catch { }
+    supabaseInstance = null
     setUser(null)
   }
 
