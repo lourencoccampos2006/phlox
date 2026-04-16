@@ -50,9 +50,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  alternates: {
-    canonical: BASE_URL,
-  },
 }
 
 const orgStructuredData = {
@@ -66,20 +63,9 @@ const orgStructuredData = {
     '@type': 'MedicalAudience',
     audienceType: 'Patient, Caregiver, Pharmacist, Student, Physician',
   },
-  knowsAbout: [
-    'Drug Interactions',
-    'Pharmacology',
-    'Adverse Drug Reactions',
-    'Clinical Pharmacology',
-    'Drug Information',
-  ],
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-PT">
       <head>
