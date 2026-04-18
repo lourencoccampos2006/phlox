@@ -24,7 +24,7 @@ function CockcroftGault() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div className="card-grid-2" style={{ marginBottom: 12 }}>
         {[
           { key: 'age', label: 'Idade (anos)', placeholder: 'Ex: 65' },
           { key: 'weight', label: 'Peso (kg)', placeholder: 'Ex: 70' },
@@ -90,7 +90,7 @@ function EGFRCalc() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div className="card-grid-2" style={{ marginBottom: 12 }}>
         {[{ key: 'age', label: 'Idade (anos)', placeholder: 'Ex: 55' }, { key: 'creatinine', label: 'Creatinina (mg/dL)', placeholder: 'Ex: 1.1' }].map(({ key, label, placeholder }) => (
           <div key={key}>
             <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</label>
@@ -144,7 +144,7 @@ function BMICalc() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div className="card-grid-2" style={{ marginBottom: 12 }}>
         {[{ key: 'height', label: 'Altura (cm)', placeholder: 'Ex: 170' }, { key: 'weight', label: 'Peso (kg)', placeholder: 'Ex: 70' }].map(({ key, label, placeholder }) => (
           <div key={key}>
             <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</label>
@@ -183,7 +183,7 @@ function PediatricDose() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div className="card-grid-2" style={{ marginBottom: 12 }}>
         {[{ key: 'drug', label: 'Medicamento', placeholder: 'Ex: Paracetamol' }, { key: 'adultDose', label: 'Dose adulto (mg)', placeholder: 'Ex: 1000' }, { key: 'weight', label: 'Peso criança (kg)', placeholder: 'Ex: 20' }, { key: 'age', label: 'Idade criança (anos)', placeholder: 'Ex: 6' }].map(({ key, label, placeholder }) => (
           <div key={key}>
             <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</label>
@@ -235,7 +235,7 @@ export default function CalculatorsPage() {
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
       <Header />
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
+      <div className="page-container page-body">
         {active && (
           <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', marginBottom: 24, padding: 0 }}>
             ← Voltar
@@ -244,17 +244,19 @@ export default function CalculatorsPage() {
 
         {!active ? (
           <>
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 12 }}>Ferramenta 03</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.01em' }}>Calculadoras Clínicas</h1>
-              <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 560 }}>Ferramentas de cálculo clínico para farmacêuticos, médicos e estudantes. Sem anúncios, sem registo.</p>
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>Ferramenta 03</div>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.01em' }}>Calculadoras Clínicas</h1>
+              <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 560, margin: 0 }}>Ferramentas de cálculo clínico para farmacêuticos, médicos e estudantes. Sem anúncios, sem registo.</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+
+            {/* Cards grid — 2 col mobile, 2 col tablet, usa card-grid-2 */}
+            <div className="card-grid-2" style={{ gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
               {CALCULATORS.map(calc => {
                 const tagStyle = TAG_COLORS[calc.tag] || TAG_COLORS['Geral']
                 return (
                   <button key={calc.id} onClick={() => setActive(calc.id)}
-                    style={{ background: 'white', border: 'none', padding: '24px', cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    style={{ background: 'white', border: 'none', padding: '24px 20px', cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', background: tagStyle.bg, color: tagStyle.color, padding: '3px 8px', borderRadius: 3 }}>{calc.tag}</span>
                     <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', lineHeight: 1.3 }}>{calc.title}</div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{calc.subtitle}</div>
@@ -264,26 +266,28 @@ export default function CalculatorsPage() {
                 )
               })}
             </div>
-            <div style={{ marginTop: 24, padding: '14px 20px', background: 'white', border: '1px solid var(--border)', borderRadius: 6 }}>
+
+            <div style={{ padding: '14px 20px', background: 'white', border: '1px solid var(--border)', borderRadius: 6 }}>
               <p style={{ fontSize: 12, color: 'var(--ink-4)', margin: 0, lineHeight: 1.6, fontFamily: 'var(--font-mono)' }}>
                 ⚠️ Ferramentas de apoio à decisão clínica. Não substituem o julgamento clínico.
               </p>
             </div>
           </>
         ) : (
-          <div style={{ maxWidth: 700 }}>
+          /* Active calculator view — constrained width, centred */
+          <div style={{ maxWidth: 680, margin: '0 auto' }}>
             {ActiveCalc && (() => {
               const calc = CALCULATORS.find(c => c.id === active)!
               const tagStyle = TAG_COLORS[calc.tag] || TAG_COLORS['Geral']
               return (
                 <>
-                  <div style={{ marginBottom: 32, paddingBottom: 28, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ marginBottom: 28, paddingBottom: 24, borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', background: tagStyle.bg, color: tagStyle.color, padding: '3px 8px', borderRadius: 3, display: 'inline-block', marginBottom: 12 }}>{calc.tag}</span>
-                    <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>{calc.title}</h1>
+                    <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.01em' }}>{calc.title}</h1>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginBottom: 8 }}>{calc.subtitle}</div>
                     <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>{calc.description}</p>
                   </div>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '28px' }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '24px 20px' }}>
                     <ActiveCalc />
                   </div>
                 </>

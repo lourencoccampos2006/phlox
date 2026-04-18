@@ -43,10 +43,10 @@ function FlashcardsMode({ drugClass, cards, onBack }: { drugClass: string; cards
 
   if (index >= cards.length) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 40px' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 12 }}>Sessão concluída</div>
+      <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 12 }}>Sessão concluída</div>
         <p style={{ fontSize: 16, color: 'var(--ink-3)', marginBottom: 24 }}>{known.size} de {cards.length} cartões marcados como conhecidos</p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => { setIndex(0); setFlipped(false); setKnown(new Set()) }}
             style={{ background: 'var(--green)', color: 'white', border: 'none', borderRadius: 4, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Repetir</button>
           <button onClick={onBack}
@@ -71,29 +71,29 @@ function FlashcardsMode({ drugClass, cards, onBack }: { drugClass: string; cards
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--ink-3)' }}>{drugClass} · {index + 1} / {cards.length}</div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--green-2)' }}>{known.size} conhecidos</div>
       </div>
-      <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, marginBottom: 32, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, marginBottom: 28, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${progress}%`, background: 'var(--green)', borderRadius: 2, transition: 'width 0.3s' }} />
       </div>
 
       <div onClick={() => setFlipped(!flipped)}
-        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '48px 40px', minHeight: 280, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', marginBottom: 24, position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-        <div style={{ position: 'absolute', top: 16, right: 20, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>
+        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '40px 24px', minHeight: 240, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', marginBottom: 20, position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <div style={{ position: 'absolute', top: 16, right: 16, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>
           {flipped ? 'RESPOSTA' : 'PERGUNTA — clica para revelar'}
         </div>
         {!flipped
-          ? <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', lineHeight: 1.5, maxWidth: 500 }}>{card.front}</p>
-          : <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.8, maxWidth: 560 }}>{card.back}</p>
+          ? <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', lineHeight: 1.5, maxWidth: 500, margin: 0 }}>{card.front}</p>
+          : <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.8, maxWidth: 560, margin: 0 }}>{card.back}</p>
         }
       </div>
 
       {flipped && (
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={() => next(false)}
-            style={{ flex: 1, background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 4, padding: '12px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)' }}>
+            style={{ flex: 1, background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 4, padding: '12px 8px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)' }}>
             Não sei — repetir depois
           </button>
           <button onClick={() => next(true)}
-            style={{ flex: 1, background: 'var(--green)', border: 'none', borderRadius: 4, padding: '12px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'white' }}>
+            style={{ flex: 1, background: 'var(--green)', border: 'none', borderRadius: 4, padding: '12px 8px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'white' }}>
             Sei — próximo →
           </button>
         </div>
@@ -111,11 +111,11 @@ function QuizMode({ drugClass, questions, onBack }: { drugClass: string; questio
   if (index >= questions.length) {
     const pct = Math.round((score / questions.length) * 100)
     return (
-      <div style={{ textAlign: 'center', padding: '60px 40px' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 8 }}>Quiz concluído</div>
+      <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 8 }}>Quiz concluído</div>
         <div style={{ fontSize: 48, fontWeight: 700, color: pct >= 70 ? 'var(--green)' : pct >= 50 ? '#dd6b20' : '#c53030', margin: '16px 0' }}>{pct}%</div>
         <p style={{ fontSize: 16, color: 'var(--ink-3)', marginBottom: 24 }}>{score} respostas correctas em {questions.length} perguntas</p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => { setIndex(0); setSelected(null); setScore(0); setShowExplanation(false) }}
             style={{ background: 'var(--green)', color: 'white', border: 'none', borderRadius: 4, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Repetir</button>
           <button onClick={onBack}
@@ -140,12 +140,12 @@ function QuizMode({ drugClass, questions, onBack }: { drugClass: string; questio
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--ink-3)' }}>{drugClass} · {index + 1} / {questions.length}</div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--green-2)' }}>{score} correctas</div>
       </div>
-      <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, marginBottom: 32, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, marginBottom: 28, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${(index / questions.length) * 100}%`, background: 'var(--green)', borderRadius: 2 }} />
       </div>
 
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '28px 28px 20px', marginBottom: 16 }}>
-        <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', lineHeight: 1.55, margin: '0 0 24px' }}>{q.question}</p>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '24px 20px 20px', marginBottom: 16 }}>
+        <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', lineHeight: 1.55, margin: '0 0 20px' }}>{q.question}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {q.options.map((opt, i) => {
             let bg = 'var(--bg-2)', border = 'var(--border)', color = 'var(--ink-2)'
@@ -156,8 +156,8 @@ function QuizMode({ drugClass, questions, onBack }: { drugClass: string; questio
             }
             return (
               <button key={i} onClick={() => answer(i)}
-                style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: '12px 16px', fontSize: 14, color, cursor: selected === null ? 'pointer' : 'default', textAlign: 'left', fontFamily: 'var(--font-sans)', lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, minWidth: 18 }}>{String.fromCharCode(65 + i)}.</span>
+                style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: '12px 14px', fontSize: 14, color, cursor: selected === null ? 'pointer' : 'default', textAlign: 'left', fontFamily: 'var(--font-sans)', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, minWidth: 18, flexShrink: 0, marginTop: 1 }}>{String.fromCharCode(65 + i)}.</span>
                 {opt}
               </button>
             )
@@ -208,7 +208,7 @@ export default function StudyPage() {
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
       <Header />
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 40px 80px' }}>
+      <div className="page-container page-body">
 
         {mode !== 'home' && (
           <button onClick={() => { setMode('home'); setError('') }}
@@ -230,16 +230,17 @@ export default function StudyPage() {
 
         {!loading && mode === 'home' && (
           <div>
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 12 }}>Ferramenta 04</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Plataforma de Estudo</h1>
-              <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.6 }}>Flashcards e quizzes gerados por IA para estudantes de farmácia, medicina e enfermagem.</p>
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>Ferramenta 04</div>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Plataforma de Estudo</h1>
+              <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>Flashcards e quizzes gerados por IA para estudantes de farmácia, medicina e enfermagem.</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+
+            <div className="card-grid-3">
               {DRUG_CLASSES.map(dc => (
-                <div key={dc} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>{dc}</div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+                <div key={dc} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: 'var(--ink)', lineHeight: 1.4, flex: 1 }}>{dc}</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => startFlashcards(dc)}
                       style={{ flex: 1, background: 'var(--green)', color: 'white', border: 'none', borderRadius: 3, padding: '7px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
                       Flashcards
@@ -255,12 +256,16 @@ export default function StudyPage() {
           </div>
         )}
 
-        {!loading && mode === 'flashcards' && flashcards.length > 0 && (
-          <FlashcardsMode drugClass={selectedClass} cards={flashcards} onBack={() => setMode('home')} />
-        )}
-
-        {!loading && mode === 'quiz' && quiz.length > 0 && (
-          <QuizMode drugClass={selectedClass} questions={quiz} onBack={() => setMode('home')} />
+        {/* Active modes — constrained width */}
+        {!loading && (mode === 'flashcards' || mode === 'quiz') && (
+          <div style={{ maxWidth: 680, margin: '0 auto' }}>
+            {mode === 'flashcards' && flashcards.length > 0 && (
+              <FlashcardsMode drugClass={selectedClass} cards={flashcards} onBack={() => setMode('home')} />
+            )}
+            {mode === 'quiz' && quiz.length > 0 && (
+              <QuizMode drugClass={selectedClass} questions={quiz} onBack={() => setMode('home')} />
+            )}
+          </div>
         )}
       </div>
     </div>
