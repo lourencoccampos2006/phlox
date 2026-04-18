@@ -20,40 +20,47 @@ const SOURCES = [
   { name: 'Groq / Llama 3.3', desc: 'IA de análise clínica — usada apenas quando as bases de dados oficiais não têm dados suficientes', href: 'https://groq.com' },
 ]
 
+const COMMITMENTS = [
+  { title: 'Dados verificados', text: 'Toda a informação clínica provém de bases de dados oficiais — FDA, NIH, e RxNorm. A IA é usada apenas como fallback quando os dados oficiais não cobrem uma combinação específica, e isso é sempre indicado ao utilizador.' },
+  { title: 'Privacidade primeiro', text: 'Não vendemos dados pessoais. O histórico de pesquisas pertence ao utilizador. Os dados de uso são anonimizados e agregados. Compliance total com o RGPD.' },
+  { title: 'Ferramenta, não substituto', text: 'O Phlox é uma ferramenta de apoio à decisão clínica. Nunca substitui a consulta de um médico, farmacêutico ou outro profissional de saúde qualificado. Cada página tem este aviso de forma clara.' },
+  { title: 'Gratuito para o essencial', text: 'As ferramentas core — verificador de interações, base de dados de medicamentos e calculadoras básicas — são e serão sempre gratuitas. Os planos pagos financiam o desenvolvimento de funcionalidades avançadas.' },
+]
+
 export default function AboutPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <Header />
 
       {/* Hero */}
-      <section style={{ borderBottom: '1px solid var(--border)', padding: '72px 40px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--green-2)', textTransform: 'uppercase', marginBottom: 20 }}>
+      <section style={{ borderBottom: '1px solid var(--border)', padding: '48px 0' }}>
+        <div className="page-container" style={{ maxWidth: 760 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--green-2)', textTransform: 'uppercase', marginBottom: 16 }}>
             Sobre o Phlox
           </div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 48, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 24 }}>
-            Informação farmacológica rigorosa,<br />
+          <h1 className="hero-title" style={{ fontFamily: 'var(--font-serif)', lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 20 }}>
+            Informação farmacológica rigorosa,{' '}
             <em style={{ fontStyle: 'italic', color: 'var(--green-2)' }}>acessível a todos.</em>
           </h1>
-          <p style={{ fontSize: 17, color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 16 }}>
-            O Phlox nasceu da frustração de estudantes de farmácia e medicina que precisavam de uma ferramenta 
-            rápida, fiável e gratuita para verificar interações medicamentosas e consultar informação clínica — 
+          <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 16 }}>
+            O Phlox nasceu da frustração de estudantes de farmácia e medicina que precisavam de uma ferramenta
+            rápida, fiável e gratuita para verificar interações medicamentosas e consultar informação clínica —
             sem anúncios intrusivos, sem paywalls para informação básica, sem interfaces confusas.
           </p>
-          <p style={{ fontSize: 17, color: 'var(--ink-3)', lineHeight: 1.8 }}>
-            Construído sobre dados públicos e verificados de agências regulatórias, o Phlox é uma ferramenta 
+          <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.8, margin: 0 }}>
+            Construído sobre dados públicos e verificados de agências regulatórias, o Phlox é uma ferramenta
             de apoio à decisão clínica — nunca um substituto ao julgamento profissional.
           </p>
         </div>
       </section>
 
       {/* Stats */}
-      <section style={{ padding: '48px 40px', background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+      <section style={{ padding: '40px 0', background: 'white', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container">
+          <div className="stats-grid" style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', background: 'var(--border)' }}>
             {STATS.map(({ value, label }) => (
-              <div key={label} style={{ background: 'var(--bg)', padding: '28px 20px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>{value}</div>
+              <div key={label} style={{ background: 'var(--bg)', padding: '24px 16px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>{value}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.4 }}>{label}</div>
               </div>
             ))}
@@ -62,20 +69,20 @@ export default function AboutPage() {
       </section>
 
       {/* Mission */}
-      <section style={{ padding: '64px 40px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 24, letterSpacing: '-0.01em' }}>
+      <section style={{ padding: '48px 0', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container" style={{ maxWidth: 760 }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 24, letterSpacing: '-0.01em' }}>
             O nosso compromisso
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {[
-              { title: 'Dados verificados', text: 'Toda a informação clínica provém de bases de dados oficiais — FDA, NIH, e RxNorm. A IA é usada apenas como fallback quando os dados oficiais não cobrem uma combinação específica, e isso é sempre indicado ao utilizador.' },
-              { title: 'Privacidade primeiro', text: 'Não vendemos dados pessoais. O histórico de pesquisas pertence ao utilizador. Os dados de uso são anonimizados e agregados. Compliance total com o RGPD.' },
-              { title: 'Ferramenta, não substituto', text: 'O Phlox é uma ferramenta de apoio à decisão clínica. Nunca substitui a consulta de um médico, farmacêutico ou outro profissional de saúde qualificado. Cada página tem este aviso de forma clara.' },
-              { title: 'Gratuito para o essencial', text: 'As ferramentas core — verificador de interações, base de dados de medicamentos e calculadoras básicas — são e serão sempre gratuitas. Os planos pagos financiam o desenvolvimento de funcionalidades avançadas.' },
-            ].map(({ title, text }) => (
-              <div key={title} style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 24, padding: '20px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--green-2)', fontWeight: 600, paddingTop: 2 }}>{title}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {COMMITMENTS.map(({ title, text }, i) => (
+              <div key={title} className="two-col" style={{
+                gap: 20,
+                padding: '20px 0',
+                borderBottom: i < COMMITMENTS.length - 1 ? '1px solid var(--border)' : 'none',
+                gridTemplateColumns: undefined, // uses .two-col responsive
+              }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--green-2)', fontWeight: 600 }}>{title}</div>
                 <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>{text}</p>
               </div>
             ))}
@@ -84,22 +91,22 @@ export default function AboutPage() {
       </section>
 
       {/* Data sources */}
-      <section style={{ padding: '64px 40px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+      <section style={{ padding: '48px 0', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container" style={{ maxWidth: 760 }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>
             Fontes de dados
           </h2>
-          <p style={{ fontSize: 15, color: 'var(--ink-4)', marginBottom: 32, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 15, color: 'var(--ink-4)', marginBottom: 28, lineHeight: 1.6 }}>
             Toda a informação clínica provém de fontes públicas, verificadas e reguladas.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
             {SOURCES.map(({ name, desc, href }) => (
-              <div key={name} style={{ background: 'white', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
-                <div>
+              <div key={name} style={{ background: 'white', padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{name}</div>
                   <div style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.5 }}>{desc}</div>
                 </div>
-                <a href={href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', paddingTop: 2 }}>
+                <a href={href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   Ver fonte →
                 </a>
               </div>
@@ -109,12 +116,12 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '64px 40px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
+      <section style={{ padding: '48px 0' }}>
+        <div className="page-container" style={{ textAlign: 'center', maxWidth: 560 }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
             Pronto para começar?
           </h2>
-          <p style={{ fontSize: 15, color: 'var(--ink-4)', marginBottom: 32, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 15, color: 'var(--ink-4)', marginBottom: 28, lineHeight: 1.6 }}>
             As ferramentas core são gratuitas e não precisam de registo.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

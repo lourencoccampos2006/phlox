@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Groq from 'groq-sdk'
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 
 const cache = new Map<string, { result: any; timestamp: number }>()
-const CACHE_TTL = 1000 * 60 * 60 * 6
+const CACHE_TTL = 1000 * 60 * 60 * 6 // 6h
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')
@@ -22,24 +25,26 @@ export async function GET(request: NextRequest) {
     const labelData = labelRes.status === 'fulfilled' && labelRes.value.ok ? await labelRes.value.json() : null
     const adverseData = adverseRes.status === 'fulfilled' && adverseRes.value.ok ? await adverseRes.value.json() : null
 
-    const drug = labelData?.results?.[0]
+    let drug = labelData?.results?.[0]
+
     if (!drug) {
-      // Try brand name search
+      // Fallback: pesquisa por nome comercial
       const brandRes = await fetch(`https://api.fda.gov/drug/label.json?search=openfda.brand_name:"${encodeURIComponent(term)}"&limit=1`, { signal: AbortSignal.timeout(8000) })
       const brandData = brandRes.ok ? await brandRes.json() : null
-      const brandDrug = brandData?.results?.[0]
-      if (!brandDrug) return NextResponse.json({ error: 'Medicamento não encontrado' }, { status: 404 })
-
-      const result = formatDrug(brandDrug, adverseData, term)
-      cache.set(term, { result, timestamp: Date.now() })
-      return NextResponse.json(result)
+      drug = brandData?.results?.[0]
+      if (!drug) return NextResponse.json({ error: 'Medicamento não encontrado' }, { status: 404 })
     }
 
-    const result = formatDrug(drug, adverseData, term)
-    cache.set(term, { result, timestamp: Date.now() })
-    return NextResponse.json(result)
+    const raw = formatDrug(drug, adverseData, term)
+
+    // Traduz as secções clínicas para português
+    const translated = await translateToPortuguese(raw)
+
+    cache.set(term, { result: translated, timestamp: Date.now() })
+    return NextResponse.json(translated)
 
   } catch (error: any) {
+    console.error('Drugs route error:', error?.message)
     return NextResponse.json({ error: 'Erro ao pesquisar. Tenta novamente.' }, { status: 500 })
   }
 }
@@ -55,5 +60,63 @@ function formatDrug(drug: any, adverseData: any, term: string) {
     warnings: drug.warnings?.[0] || drug.warnings_and_cautions?.[0] || '',
     adverse_reactions: drug.adverse_reactions?.[0] || '',
     top_adverse_events: adverseData?.results?.slice(0, 10) || [],
+  }
+}
+
+function truncateForTranslation(text: string, maxChars = 1200): string {
+  if (!text || text.length <= maxChars) return text
+  // Corta no último ponto antes do limite para não cortar a meio de uma frase
+  const cut = text.slice(0, maxChars)
+  const lastDot = cut.lastIndexOf('.')
+  return lastDot > maxChars * 0.7 ? cut.slice(0, lastDot + 1) + ' [...]' : cut + ' [...]'
+}
+
+async function translateToPortuguese(drug: any): Promise<any> {
+  // Campos a traduzir (só os que têm conteúdo)
+  const toTranslate: Record<string, string> = {}
+  for (const key of ['indications', 'dosage', 'contraindications', 'warnings', 'adverse_reactions']) {
+    if (drug[key]) toTranslate[key] = truncateForTranslation(drug[key])
+  }
+
+  if (Object.keys(toTranslate).length === 0) return drug
+
+  try {
+    const prompt = Object.entries(toTranslate)
+      .map(([k, v]) => `### ${k}\n${v}`)
+      .join('\n\n')
+
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `És um tradutor técnico médico-farmacêutico inglês→português europeu (PT-PT).
+Traduz o texto clínico mantendo rigor técnico. Usa terminologia farmacêutica portuguesa correcta.
+Responde APENAS com JSON válido sem markdown, com exactamente as mesmas chaves que recebes:
+{"indications":"...","dosage":"...","contraindications":"...","warnings":"...","adverse_reactions":"..."}
+Inclui apenas as chaves que existem no input. Nunca omitas informação clínica importante.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 3000,
+    })
+
+    const text = completion.choices[0]?.message?.content || ''
+    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const translations = JSON.parse(clean)
+
+    return {
+      ...drug,
+      ...translations,
+      _translated: true,
+    }
+  } catch (e: any) {
+    // Se a tradução falhar, retorna o original em inglês sem quebrar
+    console.warn('Translation failed, returning English:', e?.message)
+    return { ...drug, _translated: false }
   }
 }
