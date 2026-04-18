@@ -21,21 +21,48 @@ const TOOLS = [
     href: '/drugs',
     code: '02',
     title: 'Base de Dados de Fármacos',
-    desc: 'Informação clínica completa — mecanismo de acção, posologia, efeitos adversos, contraindicações. Dados directos da FDA.',
+    desc: 'Informação clínica completa — mecanismo de acção, posologia, efeitos adversos, contraindicações. Dados FDA traduzidos para PT.',
     badge: null,
   },
   {
-    href: '/calculators',
+    href: '/monograph',
     code: '03',
+    title: 'Monografia Clínica IA',
+    desc: 'Monografia farmacológica completa em PT-PT para qualquer fármaco — incluindo biológicos e medicamentos europeus não cobertos pela FDA.',
+    badge: 'Novo',
+    badgeColor: '#166534',
+    badgeBg: '#dcfce7',
+  },
+  {
+    href: '/doses',
+    code: '04',
+    title: 'Posologia por Indicação',
+    desc: 'Escreve uma indicação clínica (ex: pneumonia comunitária, ITU) e obtém fármacos de 1ª linha com doses, duração e alternativas.',
+    badge: 'Novo',
+    badgeColor: '#166534',
+    badgeBg: '#dcfce7',
+  },
+  {
+    href: '/compatibility',
+    code: '05',
+    title: 'Compatibilidade IV',
+    desc: 'Verifica compatibilidade de dois fármacos em linha IV, Y-site ou mistura em soro. Baseado em Trissel\'s e King Guide.',
+    badge: 'Novo',
+    badgeColor: '#166534',
+    badgeBg: '#dcfce7',
+  },
+  {
+    href: '/calculators',
+    code: '06',
     title: 'Calculadoras Clínicas',
-    desc: 'Clearance renal (Cockcroft-Gault), TFGe (CKD-EPI 2021), doses pediátricas, conversão de opióides, IMC.',
+    desc: 'SCORE2, HAS-BLED, conversão de opióides, ajuste de dose renal, peso ideal, Cockcroft-Gault, CKD-EPI, doses pediátricas e mais.',
     badge: 'Profissionais',
     badgeColor: '#1e40af',
     badgeBg: '#dbeafe',
   },
   {
     href: '/study',
-    code: '04',
+    code: '07',
     title: 'Plataforma de Estudo',
     desc: 'Flashcards e quizzes gerados por IA para 12 classes farmacológicas. Para estudantes de farmácia, medicina e enfermagem.',
     badge: 'Estudantes',
@@ -151,7 +178,7 @@ export default function HomePage() {
             <Link href="/about" style={{ fontSize: 13, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Saber mais →</Link>
           </div>
 
-          <div className="tools-grid">
+          <div className="card-grid-3" style={{ gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
             {TOOLS.map(({ href, code, title, desc, badge, badgeColor, badgeBg }) => (
               <Link key={href} href={href} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', background: 'white', padding: '28px 24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -227,7 +254,7 @@ export default function HomePage() {
             </div>
             <div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 12 }}>Ferramentas</div>
-              {[{ href: '/interactions', label: 'Interações' }, { href: '/drugs', label: 'Medicamentos' }, { href: '/calculators', label: 'Calculadoras' }, { href: '/study', label: 'Estudantes' }].map(({ href, label }) => (
+              {[{ href: '/interactions', label: 'Interações' }, { href: '/drugs', label: 'Medicamentos' }, { href: '/monograph', label: 'Monografias' }, { href: '/doses', label: 'Posologia' }, { href: '/compatibility', label: 'Compat. IV' }, { href: '/calculators', label: 'Calculadoras' }, { href: '/study', label: 'Estudo' }].map(({ href, label }) => (
                 <Link key={href} href={href} style={{ display: 'block', fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', marginBottom: 8 }}>{label}</Link>
               ))}
             </div>

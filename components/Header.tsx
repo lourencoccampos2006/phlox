@@ -4,17 +4,24 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useState } from 'react'
 
+const TOOL_LINKS = [
+  { href: '/interactions', label: 'Verificador de Interações', icon: '⚕' },
+  { href: '/drugs', label: 'Base de Dados de Fármacos', icon: '💊' },
+  { href: '/monograph', label: 'Monografia Clínica IA', icon: '📋' },
+  { href: '/doses', label: 'Posologia por Indicação', icon: '📋' },
+  { href: '/compatibility', label: 'Compatibilidade IV', icon: '🧪' },
+  { href: '/calculators', label: 'Calculadoras Clínicas', icon: '🧮' },
+  { href: '/study', label: 'Plataforma de Estudo', icon: '📚' },
+]
+
 const NAV_LINKS = [
-  { href: '/interactions', label: 'Interações' },
-  { href: '/drugs', label: 'Medicamentos' },
-  { href: '/calculators', label: 'Calculadoras' },
-  { href: '/study', label: 'Estudantes' },
   { href: '/pricing', label: 'Preços' },
 ]
 
 export default function Header() {
   const { user, loading, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -42,18 +49,47 @@ export default function Header() {
           </Link>
 
           {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 24 }} className="desktop-nav-items">
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }} className="desktop-nav-items">
+
+            {/* Ferramentas dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setToolsOpen(!toolsOpen)}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 500, color: 'var(--ink-2)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: 4, fontFamily: 'var(--font-sans)' }}
+              >
+                Ferramentas
+                <span style={{ fontSize: 9, color: 'var(--ink-4)', transition: 'transform 0.15s', display: 'inline-block', transform: toolsOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+              </button>
+
+              {toolsOpen && (
+                <>
+                  <div onClick={() => setToolsOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', minWidth: 240, zIndex: 50, overflow: 'hidden' }}>
+                    <div style={{ padding: '6px 0' }}>
+                      {TOOL_LINKS.map(({ href, label, icon }) => (
+                        <Link key={href} href={href} onClick={() => setToolsOpen(false)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, color: 'var(--ink-2)', textDecoration: 'none' }}>
+                          <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             {NAV_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none' }}>
+              <Link key={href} href={href} style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none', padding: '6px 10px' }}>
                 {label}
               </Link>
             ))}
 
             {/* Auth */}
             {loading ? (
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--border)' }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--border)', marginLeft: 8 }} />
             ) : user ? (
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', marginLeft: 4 }}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 10px 5px 5px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
@@ -96,7 +132,7 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <Link href="/login" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '7px 16px', borderRadius: 4, fontSize: 13, fontWeight: 600 }}>
+              <Link href="/login" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '7px 16px', borderRadius: 4, fontSize: 13, fontWeight: 600, marginLeft: 4 }}>
                 Entrar
               </Link>
             )}
@@ -132,26 +168,32 @@ export default function Header() {
         {/* Mobile dropdown menu */}
         {mobileOpen && (
           <div style={{ borderTop: '1px solid var(--border)', background: 'white', padding: '8px 0' }}>
-            {NAV_LINKS.map(({ href, label }) => (
+            <div style={{ padding: '8px 20px 4px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Ferramentas</div>
+            {TOOL_LINKS.map(({ href, label, icon }) => (
               <Link key={href} href={href} onClick={() => setMobileOpen(false)}
-                style={{ display: 'block', padding: '13px 20px', fontSize: 16, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 20px', fontSize: 15, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none', borderBottom: '1px solid var(--bg-3)' }}>
+                <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{icon}</span>
                 {label}
               </Link>
             ))}
+            <Link href="/pricing" onClick={() => setMobileOpen(false)}
+              style={{ display: 'block', padding: '11px 20px', fontSize: 15, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
+              Preços
+            </Link>
             {user ? (
               <>
                 <Link href="/dashboard" onClick={() => setMobileOpen(false)}
-                  style={{ display: 'block', padding: '13px 20px', fontSize: 15, color: 'var(--ink-3)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
+                  style={{ display: 'block', padding: '11px 20px', fontSize: 15, color: 'var(--ink-3)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
                   Dashboard
                 </Link>
                 <button onClick={() => { signOut(); setMobileOpen(false) }}
-                  style={{ width: '100%', textAlign: 'left', padding: '13px 20px', fontSize: 15, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  style={{ width: '100%', textAlign: 'left', padding: '11px 20px', fontSize: 15, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   Terminar sessão
                 </button>
               </>
             ) : (
               <Link href="/login" onClick={() => setMobileOpen(false)}
-                style={{ display: 'block', padding: '13px 20px', fontSize: 15, fontWeight: 600, color: 'var(--green)', textDecoration: 'none' }}>
+                style={{ display: 'block', padding: '11px 20px', fontSize: 15, fontWeight: 600, color: 'var(--green)', textDecoration: 'none' }}>
                 Entrar / Criar conta
               </Link>
             )}
