@@ -5,20 +5,59 @@ import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 
 const SEVERITY: Record<string, { label: string; color: string; bg: string; border: string; barColor: string }> = {
-  GRAVE:         { label: 'GRAVE',                  color: '#7f1d1d', bg: '#fff5f5', border: '#feb2b2', barColor: '#c53030' },
-  MODERADA:      { label: 'MODERADA',               color: '#7c2d12', bg: '#fffaf0', border: '#fbd38d', barColor: '#dd6b20' },
-  LIGEIRA:       { label: 'LIGEIRA',                color: '#5f370e', bg: '#fffff0', border: '#faf089', barColor: '#d69e2e' },
+  GRAVE:         { label: 'GRAVE',                   color: '#7f1d1d', bg: '#fff5f5', border: '#feb2b2', barColor: '#c53030' },
+  MODERADA:      { label: 'MODERADA',                color: '#7c2d12', bg: '#fffaf0', border: '#fbd38d', barColor: '#dd6b20' },
+  LIGEIRA:       { label: 'LIGEIRA',                 color: '#5f370e', bg: '#fffff0', border: '#faf089', barColor: '#d69e2e' },
   SEM_INTERACAO: { label: 'SEM INTERAÇÃO CONHECIDA', color: '#1a4731', bg: '#f0fff4', border: '#9ae6b4', barColor: '#276749' },
 }
 
 const EXAMPLES = [
-  { drugs: ['ibuprofeno', 'varfarina'],        note: 'Hemorragia' },
-  { drugs: ['metformina', 'álcool'],           note: 'Acidose' },
-  { drugs: ['hipericão', 'sertralina'],        note: 'Serotonina' },
-  { drugs: ['aspirina', 'heparina'],           note: 'Anticoag.' },
+  { drugs: ['ibuprofeno', 'varfarina'],         note: 'Hemorragia' },
+  { drugs: ['metformina', 'álcool'],            note: 'Acidose' },
+  { drugs: ['hipericão', 'sertralina'],         note: 'Serotonina' },
+  { drugs: ['aspirina', 'heparina'],            note: 'Anticoag.' },
   { drugs: ['atorvastatina', 'claritromicina'], note: 'Miotoxicidade' },
-  { drugs: ['digoxina', 'amiodarona'],         note: 'Toxicidade' },
+  { drugs: ['digoxina', 'amiodarona'],          note: 'Toxicidade' },
 ]
+
+function ResultSkeleton() {
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }} className="fade-in">
+      {/* Header bar skeleton */}
+      <div style={{ background: 'var(--bg-3)', padding: '16px 20px' }}>
+        <div className="skeleton" style={{ height: 10, width: 180, marginBottom: 10, background: 'rgba(0,0,0,0.08)' }} />
+        <div className="skeleton" style={{ height: 22, width: 120, background: 'rgba(0,0,0,0.1)' }} />
+      </div>
+      <div style={{ padding: '20px' }}>
+        {/* Summary box */}
+        <div style={{ border: '1px solid var(--border)', borderLeft: '4px solid var(--border-2)', borderRadius: 4, padding: '14px 16px', marginBottom: 20 }}>
+          <div className="skeleton" style={{ height: 14, width: '90%', marginBottom: 8 }} />
+          <div className="skeleton" style={{ height: 14, width: '70%' }} />
+        </div>
+        {/* Info rows */}
+        <div style={{ border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 20 }}>
+          {['Mecanismo', 'Consequências', 'Recomendação'].map((_, i) => (
+            <div key={i} className="info-row" style={{ borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ padding: '12px 14px', background: 'var(--bg-2)', borderRight: '1px solid var(--border)' }}>
+                <div className="skeleton" style={{ height: 10, width: 80 }} />
+              </div>
+              <div style={{ padding: '12px 16px' }}>
+                <div className="skeleton" style={{ height: 13, width: '85%', marginBottom: 6 }} />
+                <div className="skeleton" style={{ height: 13, width: '60%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Monitor tags */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[80, 110, 90].map((w, i) => (
+            <div key={i} className="skeleton" style={{ height: 24, width: w, borderRadius: 3 }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function InteractionsPage() {
   const { user, supabase } = useAuth()
@@ -134,7 +173,7 @@ export default function InteractionsPage() {
 
             {/* Examples */}
             <div>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 8 }}>Exemplos</div>
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 8 }}>Exemplos clínicos</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 {EXAMPLES.map(({ drugs: ex, note }) => (
                   <button key={ex.join('+')} onClick={() => { setDrugs(ex); setResult(null) }}
@@ -149,40 +188,34 @@ export default function InteractionsPage() {
 
           {/* RIGHT PANEL */}
           <div>
-            {loading && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
-                <div style={{ background: 'var(--green)', padding: '14px 20px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.12em' }}>A CONSULTAR BASES DE DADOS</div>
-                </div>
-                <div style={{ padding: '20px' }}>
-                  {['RxNorm / NIH', 'OpenFDA', 'IA clínica (fallback)'].map((step, i) => (
-                    <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: i === 0 ? 'var(--green)' : 'var(--border-2)', flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, color: i === 0 ? 'var(--ink)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{step}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Skeleton while loading */}
+            {loading && <ResultSkeleton />}
 
+            {/* Empty state */}
             {!result && !loading && !error && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-3)', marginBottom: 10 }}>Aguarda análise</div>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
-                  Adiciona as substâncias e clica em Analisar.
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '60px 24px', textAlign: 'center' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-light)', border: '1px solid var(--green-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 22 }}>⚕</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-2)', marginBottom: 8 }}>Pronto para analisar</div>
+                <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 260, margin: '0 auto' }}>
+                  Adiciona 2 ou mais substâncias no painel à esquerda e clica em Analisar.
                 </p>
               </div>
             )}
 
+            {/* Error state */}
             {error && (
-              <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 6, padding: '16px 20px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c53030', letterSpacing: '0.1em', marginBottom: 4 }}>ERRO</div>
-                <p style={{ fontSize: 14, color: '#742a2a', margin: 0 }}>{error}</p>
+              <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 6, padding: '20px 24px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c53030', letterSpacing: '0.1em', marginBottom: 6 }}>ERRO</div>
+                <p style={{ fontSize: 14, color: '#742a2a', margin: '0 0 12px' }}>{error}</p>
+                <button onClick={check} style={{ background: 'none', border: '1px solid #feb2b2', borderRadius: 4, padding: '6px 14px', fontSize: 12, color: '#742a2a', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                  Tentar novamente
+                </button>
               </div>
             )}
 
+            {/* Result */}
             {result && sev && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+              <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
                 {/* Severity bar */}
                 <div style={{ background: sev.barColor, padding: '16px 20px' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.15em', marginBottom: 4 }}>GRAVIDADE DA INTERAÇÃO</div>

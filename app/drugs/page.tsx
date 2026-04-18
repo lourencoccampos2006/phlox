@@ -25,6 +25,58 @@ function truncate(text: string, len: number) {
   return text.length > len ? text.slice(0, len).trim() + '…' : text
 }
 
+function DrugSkeleton() {
+  return (
+    <div className="drug-layout fade-in" style={{ alignItems: 'start' }}>
+      {/* Main column */}
+      <div>
+        {/* Drug header skeleton */}
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-3)', padding: '20px 24px' }}>
+            <div className="skeleton" style={{ height: 10, width: 200, marginBottom: 12, background: 'rgba(0,0,0,0.08)' }} />
+            <div className="skeleton" style={{ height: 28, width: 180, background: 'rgba(0,0,0,0.1)' }} />
+          </div>
+          <div className="drug-meta">
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ padding: '12px 16px', borderRight: i < 2 ? '1px solid var(--border)' : 'none', borderTop: '1px solid var(--border)' }}>
+                <div className="skeleton" style={{ height: 9, width: 60, marginBottom: 8 }} />
+                <div className="skeleton" style={{ height: 12, width: 90 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Sections skeleton */}
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+          {SECTIONS.map((s, i) => (
+            <div key={s.key} style={{ padding: '16px 20px', borderBottom: i < SECTIONS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div className="skeleton" style={{ height: 9, width: 140, marginBottom: 10 }} />
+              <div className="skeleton" style={{ height: 13, width: '88%', marginBottom: 6 }} />
+              <div className="skeleton" style={{ height: 13, width: '72%' }} />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Sidebar skeleton */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '20px' }}>
+          <div className="skeleton" style={{ height: 9, width: 100, marginBottom: 14 }} />
+          <div className="skeleton" style={{ height: 36, width: '100%', marginBottom: 8 }} />
+          <div className="skeleton" style={{ height: 11, width: '80%', margin: '0 auto' }} />
+        </div>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '20px' }}>
+          <div className="skeleton" style={{ height: 9, width: 160, marginBottom: 14 }} />
+          {[0,1,2,3,4].map(i => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 4 ? '1px solid var(--bg-3)' : 'none' }}>
+              <div className="skeleton" style={{ height: 11, width: 110 }} />
+              <div className="skeleton" style={{ height: 11, width: 30 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DrugsPage() {
   const { user, supabase } = useAuth()
   const [query, setQuery] = useState('')
@@ -113,16 +165,23 @@ export default function DrugsPage() {
           </div>
         </div>
 
+        {/* Skeleton */}
+        {loading && <DrugSkeleton />}
+
+        {/* Error */}
         {error && (
           <div style={{ background: 'white', border: '1px solid #feb2b2', borderLeft: '4px solid #c53030', borderRadius: 4, padding: '16px 20px', marginBottom: 24 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c53030', letterSpacing: '0.1em', marginBottom: 4 }}>ERRO</div>
-            <p style={{ fontSize: 14, color: '#742a2a', margin: 0 }}>{error}</p>
+            <p style={{ fontSize: 14, color: '#742a2a', margin: '0 0 10px' }}>{error}</p>
+            <p style={{ fontSize: 12, color: 'var(--ink-4)', margin: 0, fontFamily: 'var(--font-mono)' }}>
+              Tenta o nome em inglês: ibuprofen, metformin, amoxicillin, warfarin...
+            </p>
           </div>
         )}
 
+        {/* Result */}
         {result && (
-          <div className="drug-layout" style={{ alignItems: 'start' }}>
-            {/* Main column */}
+          <div className="drug-layout fade-in" style={{ alignItems: 'start' }}>
             <div>
               {/* Drug header */}
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
