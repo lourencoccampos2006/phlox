@@ -146,7 +146,7 @@ export default function DosesPage() {
                   {result.options?.map((opt: any, i: number) => (
                     <div key={i} style={{ padding: '18px 20px', borderBottom: i < result.options.length - 1 ? '1px solid var(--border)' : 'none', background: i === 0 ? 'var(--green-light)' : 'white' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', align: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: i === 0 ? 'var(--green)' : 'var(--bg-3)', color: i === 0 ? 'white' : 'var(--ink-4)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.1em' }}>
                             {i === 0 ? '1ª LINHA' : i === 1 ? '2ª LINHA' : 'ALTERNATIVA'}
                           </span>
