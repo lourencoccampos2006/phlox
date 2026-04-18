@@ -104,7 +104,6 @@ export default function Header() {
 
           {/* Mobile right side */}
           <div style={{ display: 'none', alignItems: 'center', gap: 12 }} className="mobile-right">
-            {/* Mobile auth */}
             {!loading && user && (
               <Link href="/dashboard" style={{ textDecoration: 'none' }}>
                 {user.avatar
@@ -118,7 +117,6 @@ export default function Header() {
                 Entrar
               </Link>
             )}
-            {/* Hamburger */}
             <button onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--ink)', display: 'flex' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -136,15 +134,26 @@ export default function Header() {
           <div style={{ borderTop: '1px solid var(--border)', background: 'white', padding: '8px 0' }}>
             {NAV_LINKS.map(({ href, label }) => (
               <Link key={href} href={href} onClick={() => setMobileOpen(false)}
-                style={{ display: 'block', padding: '12px 20px', fontSize: 16, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
+                style={{ display: 'block', padding: '13px 20px', fontSize: 16, fontWeight: 500, color: 'var(--ink-2)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
                 {label}
               </Link>
             ))}
-            {user && (
-              <button onClick={() => { signOut(); setMobileOpen(false) }}
-                style={{ width: '100%', textAlign: 'left', padding: '12px 20px', fontSize: 15, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                Terminar sessão
-              </button>
+            {user ? (
+              <>
+                <Link href="/dashboard" onClick={() => setMobileOpen(false)}
+                  style={{ display: 'block', padding: '13px 20px', fontSize: 15, color: 'var(--ink-3)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
+                  Dashboard
+                </Link>
+                <button onClick={() => { signOut(); setMobileOpen(false) }}
+                  style={{ width: '100%', textAlign: 'left', padding: '13px 20px', fontSize: 15, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  Terminar sessão
+                </button>
+              </>
+            ) : (
+              <Link href="/login" onClick={() => setMobileOpen(false)}
+                style={{ display: 'block', padding: '13px 20px', fontSize: 15, fontWeight: 600, color: 'var(--green)', textDecoration: 'none' }}>
+                Entrar / Criar conta
+              </Link>
             )}
           </div>
         )}

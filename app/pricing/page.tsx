@@ -89,40 +89,40 @@ export default function PricingPage() {
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
       <Header />
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 40px 80px' }}>
+      <div className="page-container page-body">
 
         {/* Hero */}
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 16 }}>Planos e Preços</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 44, color: 'var(--ink)', marginBottom: 16, letterSpacing: '-0.02em' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 14 }}>Planos e Preços</div>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', marginBottom: 14, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
             Começa grátis.<br />
             <em style={{ color: 'var(--green-2)', fontStyle: 'italic' }}>Cresce quando precisares.</em>
           </h1>
-          <p style={{ fontSize: 17, color: 'var(--ink-3)', maxWidth: 500, margin: '0 auto 32px' }}>
+          <p style={{ fontSize: 16, color: 'var(--ink-3)', maxWidth: 480, margin: '0 auto 28px' }}>
             Ferramentas farmacológicas profissionais acessíveis a toda a gente.
           </p>
 
           {/* Billing toggle */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '4px' }}>
             <button onClick={() => setBilling('monthly')}
-              style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: billing === 'monthly' ? 'var(--green)' : 'transparent', color: billing === 'monthly' ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: billing === 'monthly' ? 'var(--green)' : 'transparent', color: billing === 'monthly' ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               Mensal
             </button>
             <button onClick={() => setBilling('annual')}
-              style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: billing === 'annual' ? 'var(--green)' : 'transparent', color: billing === 'annual' ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: billing === 'annual' ? 'var(--green)' : 'transparent', color: billing === 'annual' ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
               Anual
               <span style={{ background: '#dcfce7', color: '#166534', fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 6px', borderRadius: 3 }}>-20%</span>
             </button>
           </div>
         </div>
 
-        {/* Plans */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--border)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 64 }}>
+        {/* Plans grid — 1 col mobile, 3 col tablet+ */}
+        <div className="plans-grid" style={{ marginBottom: 56 }}>
           {PLANS.map(plan => (
-            <div key={plan.id} style={{ background: plan.highlight ? 'var(--green)' : 'white', padding: '32px 28px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-              {plan.badge && (
-                <div style={{ position: 'absolute', top: 20, right: 20, background: 'white', color: 'var(--green)', fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
-                  {plan.badge}
+            <div key={plan.id} style={{ background: plan.highlight ? 'var(--green)' : 'white', padding: '28px 24px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              {(plan as any).badge && (
+                <div style={{ position: 'absolute', top: 16, right: 16, background: 'white', color: 'var(--green)', fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
+                  {(plan as any).badge}
                 </div>
               )}
 
@@ -131,26 +131,26 @@ export default function PricingPage() {
               </div>
 
               <div style={{ marginBottom: 8 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40, fontWeight: 700, color: plan.highlight ? 'white' : 'var(--ink)' }}>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 700, color: plan.highlight ? 'white' : 'var(--ink)' }}>
                   {plan.price[billing]}
                 </span>
                 {plan.price.monthly !== '0€' && (
                   <span style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.6)' : 'var(--ink-4)', marginLeft: 6 }}>
-                    /mês{billing === 'annual' ? ' (faturado anualmente)' : ''}
+                    /mês{billing === 'annual' ? ' (anual)' : ''}
                   </span>
                 )}
               </div>
 
-              <p style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.75)' : 'var(--ink-3)', lineHeight: 1.6, marginBottom: 24 }}>
+              <p style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.75)' : 'var(--ink-3)', lineHeight: 1.6, marginBottom: 20 }}>
                 {plan.description}
               </p>
 
               {user && user.plan === plan.id ? (
-                <div style={{ padding: '11px', borderRadius: 6, border: `1px solid ${plan.highlight ? 'rgba(255,255,255,0.3)' : 'var(--border)'}`, textAlign: 'center', fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.7)' : 'var(--ink-4)', marginBottom: 28, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ padding: '11px', borderRadius: 6, border: `1px solid ${plan.highlight ? 'rgba(255,255,255,0.3)' : 'var(--border)'}`, textAlign: 'center', fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.7)' : 'var(--ink-4)', marginBottom: 24, fontFamily: 'var(--font-mono)' }}>
                   ✓ Plano actual
                 </div>
               ) : (
-                <Link href={!user ? '/login' : plan.ctaHref} style={{ display: 'block', textAlign: 'center', padding: '11px', borderRadius: 6, fontSize: 14, fontWeight: 600, textDecoration: 'none', marginBottom: 28, background: plan.highlight ? 'white' : 'var(--green)', color: plan.highlight ? 'var(--green)' : 'white' }}>
+                <Link href={!user ? '/login' : plan.ctaHref} style={{ display: 'block', textAlign: 'center', padding: '11px', borderRadius: 6, fontSize: 14, fontWeight: 600, textDecoration: 'none', marginBottom: 24, background: plan.highlight ? 'white' : 'var(--green)', color: plan.highlight ? 'var(--green)' : 'white' }}>
                   {!user && plan.id !== 'free' ? 'Criar conta e começar' : plan.cta}
                 </Link>
               )}
@@ -170,18 +170,18 @@ export default function PricingPage() {
         </div>
 
         {/* FAQ */}
-        <div style={{ maxWidth: 680, margin: '0 auto 64px' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 32, textAlign: 'center', letterSpacing: '-0.01em' }}>Perguntas frequentes</h2>
+        <div style={{ maxWidth: 680, margin: '0 auto 48px' }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 28, textAlign: 'center', letterSpacing: '-0.01em' }}>Perguntas frequentes</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
             {FAQ.map(({ q, a }, i) => (
               <div key={i} style={{ background: 'white' }}>
                 <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 16 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>{q}</span>
+                  style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 16 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }}>{q}</span>
                   <span style={{ color: 'var(--ink-4)', fontSize: 20, flexShrink: 0 }}>{openFaq === i ? '−' : '+'}</span>
                 </button>
                 {openFaq === i && (
-                  <div style={{ padding: '0 24px 18px' }}>
+                  <div style={{ padding: '0 20px 16px' }}>
                     <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>{a}</p>
                   </div>
                 )}
@@ -191,9 +191,9 @@ export default function PricingPage() {
         </div>
 
         {/* Bottom CTA */}
-        <div style={{ textAlign: 'center', padding: '48px', background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 12 }}>Tens dúvidas ou és uma instituição?</h2>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6 }}>Para licenças institucionais, universidades ou clínicas, contacta-nos directamente.</p>
+        <div style={{ textAlign: 'center', padding: '40px 24px', background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 10 }}>Tens dúvidas ou és uma instituição?</h2>
+          <p style={{ fontSize: 15, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6, maxWidth: 480, margin: '0 auto 24px' }}>Para licenças institucionais, universidades ou clínicas, contacta-nos directamente.</p>
           <a href="mailto:hello@phlox.health" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
             hello@phlox.health
           </a>
