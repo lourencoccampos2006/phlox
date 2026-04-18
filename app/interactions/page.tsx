@@ -4,13 +4,7 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 
-const SEVERITY: Record<string, {
-  label: string
-  color: string
-  bg: string
-  border: string
-  barColor: string
-}> = {
+const SEVERITY: Record<string, { label: string; color: string; bg: string; border: string; barColor: string }> = {
   GRAVE: { label: 'GRAVE', color: '#7f1d1d', bg: '#fff5f5', border: '#feb2b2', barColor: '#c53030' },
   MODERADA: { label: 'MODERADA', color: '#7c2d12', bg: '#fffaf0', border: '#fbd38d', barColor: '#dd6b20' },
   LIGEIRA: { label: 'LIGEIRA', color: '#5f370e', bg: '#fffff0', border: '#faf089', barColor: '#d69e2e' },
@@ -26,13 +20,8 @@ const EXAMPLES = [
   { drugs: ['digoxina', 'amiodarona'], note: 'Toxicidade digitálica' },
 ]
 
-const SOURCE_LABELS: Record<string, string> = {
-  rxnorm: 'RxNorm / NIH — base de dados oficial',
-  ai: 'Análise por IA (Llama 3.3) — RxNorm sem dados para esta combinação',
-}
-
 export default function InteractionsPage() {
-  const { user } = useAuth()
+  const { user, supabase } = useAuth()
   const [input, setInput] = useState('')
   const [drugs, setDrugs] = useState<string[]>([])
   const [result, setResult] = useState<any>(null)
@@ -48,16 +37,26 @@ export default function InteractionsPage() {
     }
   }
 
-  const removeDrug = (d: string) => {
-    setDrugs(prev => prev.filter(x => x !== d))
-    setResult(null)
+  const removeDrug = (d: string) => { setDrugs(prev => prev.filter(x => x !== d)); setResult(null) }
+
+  const saveToHistory = async (data: any, drugList: string[]) => {
+    if (!user) return
+    try {
+      await supabase.from('search_history').insert({
+        user_id: user.id,
+        type: 'interaction',
+        query: drugList.join(' + '),
+        result_severity: data.severity || null,
+        result_source: data.source || null,
+      })
+    } catch (e) {
+      console.error('History save error:', e)
+    }
   }
 
   const check = async () => {
     if (drugs.length < 2) return
-    setLoading(true)
-    setError('')
-    setResult(null)
+    setLoading(true); setError(''); setResult(null)
     try {
       const res = await fetch('/api/interactions', {
         method: 'POST',
@@ -67,19 +66,7 @@ export default function InteractionsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setResult(data)
-
-      // Track analytics
-      fetch('/api/analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_type: 'interaction_check',
-          drug_names: drugs,
-          result_severity: data.severity,
-          result_source: data.source,
-          user_id: user?.id || null,
-        }),
-      }).catch(() => {})
+      saveToHistory(data, drugs)
     } catch (e: any) {
       setError(e.message || 'Erro ao analisar. Tenta novamente.')
     } finally {
@@ -92,11 +79,10 @@ export default function InteractionsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
       <Header />
-
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 40, alignItems: 'start' }}>
 
-          {/* LEFT PANEL */}
+          {/* LEFT */}
           <div style={{ position: 'sticky', top: 80 }}>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 8 }}>Ferramenta 01</div>
@@ -104,26 +90,14 @@ export default function InteractionsPage() {
               <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6 }}>Medicamentos, suplementos e plantas medicinais. Dados RxNorm / NIH.</p>
             </div>
 
-            {/* Input */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: 20, marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>
-                Adicionar substância
-              </label>
+              <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>Adicionar substância</label>
               <div style={{ display: 'flex', gap: 8, marginBottom: drugs.length > 0 ? 16 : 0 }}>
-                <input
-                  type="text"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addDrug()}
-                  placeholder="Nome do medicamento..."
-                  style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '8px 12px', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none' }}
-                />
+                <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addDrug()} placeholder="Nome do medicamento..."
+                  style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '8px 12px', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
                 <button onClick={addDrug} disabled={!input.trim()}
-                  style={{ background: input.trim() ? 'var(--green)' : 'var(--bg-3)', color: input.trim() ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 4, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: input.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
-                  +
-                </button>
+                  style={{ background: input.trim() ? 'var(--green)' : 'var(--bg-3)', color: input.trim() ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 4, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: input.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>+</button>
               </div>
-
               {drugs.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {drugs.map((d, i) => (
@@ -141,10 +115,9 @@ export default function InteractionsPage() {
 
             <button onClick={check} disabled={drugs.length < 2 || loading}
               style={{ width: '100%', background: drugs.length >= 2 && !loading ? 'var(--green)' : 'var(--bg-3)', color: drugs.length >= 2 && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, padding: '12px', fontSize: 14, fontWeight: 600, cursor: drugs.length >= 2 && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
-              {loading ? 'A consultar bases de dados...' : drugs.length < 2 ? 'Adiciona 2 ou mais substâncias' : `Analisar ${drugs.length} substâncias`}
+              {loading ? 'A consultar...' : drugs.length < 2 ? 'Adiciona 2 ou mais substâncias' : `Analisar ${drugs.length} substâncias`}
             </button>
 
-            {/* Examples */}
             <div>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>Exemplos clínicos</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -159,7 +132,7 @@ export default function InteractionsPage() {
             </div>
           </div>
 
-          {/* RIGHT PANEL */}
+          {/* RIGHT */}
           <div>
             {loading && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
@@ -180,9 +153,7 @@ export default function InteractionsPage() {
             {!result && !loading && !error && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '60px 40px', textAlign: 'center' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-3)', marginBottom: 12 }}>Aguarda análise</div>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 320, margin: '0 auto' }}>
-                  Adiciona as substâncias no painel esquerdo e clica em Analisar.
-                </p>
+                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 320, margin: '0 auto' }}>Adiciona as substâncias no painel esquerdo e clica em Analisar.</p>
               </div>
             )}
 
@@ -204,22 +175,18 @@ export default function InteractionsPage() {
                       <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'white', fontWeight: 700 }}>{sev.label}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      {result.source && (
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.1em' }}>
-                          {result.source === 'rxnorm' ? 'FONTE: RXNORM / NIH' : 'FONTE: ANÁLISE IA'}
-                          {result.cached && ' · CACHE'}
-                        </div>
-                      )}
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.1em' }}>
+                        {result.source === 'rxnorm' ? 'FONTE: RXNORM / NIH' : 'FONTE: ANÁLISE IA'}
+                        {result.cached && ' · CACHE'}
+                      </div>
                     </div>
                   </div>
                 </div>
-
                 <div style={{ padding: '28px' }}>
                   <div style={{ background: sev.bg, border: `1px solid ${sev.border}`, borderLeft: `4px solid ${sev.barColor}`, borderRadius: 4, padding: '16px 20px', marginBottom: 28 }}>
                     <p style={{ fontSize: 15, color: sev.color, lineHeight: 1.7, fontWeight: 500, margin: 0 }}>{result.summary}</p>
                   </div>
-
-                  <div style={{ display: 'grid', gap: 0, border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 24 }}>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 24 }}>
                     {[
                       { label: 'Mecanismo Farmacológico', value: result.mechanism },
                       { label: 'Consequências Clínicas', value: result.consequences },
@@ -236,7 +203,6 @@ export default function InteractionsPage() {
                       </div>
                     ))}
                   </div>
-
                   {result.monitor?.length > 0 && (
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>Parâmetros a Monitorizar</div>
@@ -247,12 +213,8 @@ export default function InteractionsPage() {
                       </div>
                     </div>
                   )}
-
-                  <div style={{ paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-                      {result.source && `${SOURCE_LABELS[result.source] || result.source} · `}
-                      Informação educacional
-                    </span>
+                  <div style={{ paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                    Informação educacional — não substitui aconselhamento médico ou farmacêutico
                   </div>
                 </div>
               </div>
