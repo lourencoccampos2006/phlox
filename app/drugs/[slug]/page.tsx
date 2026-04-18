@@ -88,35 +88,37 @@ export default async function DrugPage({ params }: { params: Promise<{ slug: str
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       )}
 
+      {/* Minimal header with breadcrumb */}
       <header style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px', height: 56, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 700, color: 'var(--green)' }}>Phlox</span>
-            <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>CLINICAL</span>
+        <div className="page-container" style={{ height: 52, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 700, color: 'var(--green)' }}>Phlox</span>
+            <span style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>CLINICAL</span>
           </Link>
           <span style={{ color: 'var(--border-2)' }}>|</span>
-          <nav aria-label="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <Link href="/drugs" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Medicamentos</Link>
-            <span style={{ color: 'var(--border-2)' }}>›</span>
-            <span style={{ color: 'var(--ink-2)', textTransform: 'capitalize' }}>{drug?.generic_name || name}</span>
+          <nav aria-label="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, minWidth: 0 }}>
+            <Link href="/drugs" style={{ color: 'var(--ink-3)', textDecoration: 'none', flexShrink: 0 }}>Medicamentos</Link>
+            <span style={{ color: 'var(--border-2)', flexShrink: 0 }}>›</span>
+            <span style={{ color: 'var(--ink-2)', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{drug?.generic_name || name}</span>
           </nav>
         </div>
       </header>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
+      <div className="page-container page-body">
         {!drug ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '60px', textAlign: 'center' }}>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 12 }}>Medicamento não encontrado</h1>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '48px 24px', textAlign: 'center' }}>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12 }}>Medicamento não encontrado</h1>
             <p style={{ fontSize: 15, color: 'var(--ink-4)', marginBottom: 24 }}>Não encontrámos "{name}" na base de dados FDA.</p>
             <Link href="/drugs" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: 4, fontSize: 14, fontWeight: 600 }}>Pesquisar outro medicamento</Link>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 28, alignItems: 'start' }}>
+          <div className="drug-layout" style={{ alignItems: 'start' }}>
             <main>
+              {/* Drug header */}
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
-                <div style={{ background: 'var(--green)', padding: '28px 32px' }}>
+                <div style={{ background: 'var(--green)', padding: '24px 24px' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em', marginBottom: 8 }}>DENOMINAÇÃO COMUM INTERNACIONAL</div>
-                  <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'white', fontWeight: 700, textTransform: 'capitalize', letterSpacing: '-0.01em', margin: 0 }}>{drug.generic_name}</h1>
+                  <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: 'white', fontWeight: 700, textTransform: 'capitalize', letterSpacing: '-0.01em', margin: 0, lineHeight: 1.15 }}>{drug.generic_name}</h1>
                   {drug.brand_names.length > 0 && (
                     <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}>NOMES COMERCIAIS:</span>
@@ -126,9 +128,13 @@ export default async function DrugPage({ params }: { params: Promise<{ slug: str
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid var(--border)' }}>
-                  {[{ label: 'Fabricante', value: drug.manufacturer || '—' }, { label: 'Fonte', value: 'OpenFDA (FDA)' }, { label: 'Actualizado', value: new Date().toLocaleDateString('pt-PT') }].map(({ label, value }, i) => (
-                    <div key={label} style={{ padding: '14px 20px', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
+                <div className="drug-meta">
+                  {[
+                    { label: 'Fabricante', value: drug.manufacturer || '—' },
+                    { label: 'Fonte', value: 'OpenFDA (FDA)' },
+                    { label: 'Actualizado', value: new Date().toLocaleDateString('pt-PT') },
+                  ].map(({ label, value }, i) => (
+                    <div key={label} style={{ padding: '12px 16px', borderRight: i < 2 ? '1px solid var(--border)' : 'none', borderTop: '1px solid var(--border)' }}>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
                       <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>{value}</div>
                     </div>
@@ -136,14 +142,15 @@ export default async function DrugPage({ params }: { params: Promise<{ slug: str
                 </div>
               </div>
 
+              {/* Clinical sections */}
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
                 {SECTIONS.map(({ key, label, q }, i) => {
                   const value = drug[key as keyof DrugData] as string
                   if (!value) return null
                   return (
-                    <section key={key} style={{ borderBottom: i < SECTIONS.length - 1 ? '1px solid var(--border)' : 'none', padding: '24px 28px' }}>
-                      <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--green-2)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 6 }}>{label}</h2>
-                      <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 12, fontStyle: 'italic' }}>{q} {drug.generic_name}?</p>
+                    <section key={key} style={{ borderBottom: i < SECTIONS.length - 1 ? '1px solid var(--border)' : 'none', padding: '20px 20px' }}>
+                      <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--green-2)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>{label}</h2>
+                      <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 10, fontStyle: 'italic' }}>{q} {drug.generic_name}?</p>
                       <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.85, margin: 0 }}>{value}</p>
                     </section>
                   )
@@ -157,6 +164,7 @@ export default async function DrugPage({ params }: { params: Promise<{ slug: str
                 <Link href="/interactions" style={{ display: 'block', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 4, padding: '11px 14px', fontSize: 13, fontWeight: 600, textAlign: 'center', marginBottom: 8 }}>Verificar Interações →</Link>
                 <p style={{ fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>Verifica se este medicamento interage com outros</p>
               </div>
+
               {drug.top_adverse_events.length > 0 && (
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '20px', marginBottom: 16 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Efeitos Adversos Reportados</div>
@@ -170,6 +178,7 @@ export default async function DrugPage({ params }: { params: Promise<{ slug: str
                   </div>
                 </div>
               )}
+
               <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '16px' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', marginBottom: 6 }}>AVISO LEGAL</div>
                 <p style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>Informação educacional baseada em dados OpenFDA. Não substitui aconselhamento profissional.</p>

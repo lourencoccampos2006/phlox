@@ -56,8 +56,8 @@ export default function HomePage() {
 
       {/* Announcement bar */}
       <div style={{ background: 'var(--green)', padding: '8px 0' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
+        <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
             ✓ Dados de farmacovigilância FDA · RxNorm/NIH · Completamente gratuito
           </span>
         </div>
@@ -66,72 +66,74 @@ export default function HomePage() {
       <Header />
 
       {/* Hero */}
-      <section style={{ padding: '80px 40px 64px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 420px', gap: 80, alignItems: 'center' }}>
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 20, padding: '4px 12px', marginBottom: 24 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-              <span style={{ fontSize: 12, color: 'var(--green-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>PLATAFORMA FARMACOLÓGICA</span>
-            </div>
+      <section style={{ borderBottom: '1px solid var(--border)', padding: '48px 0 40px' }}>
+        <div className="page-container">
+          <div className="hero-grid">
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 20, padding: '4px 12px', marginBottom: 20 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: 'var(--green-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>PLATAFORMA FARMACOLÓGICA</span>
+              </div>
 
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 54, lineHeight: 1.08, letterSpacing: '-0.025em', color: 'var(--ink)', marginBottom: 24 }}>
-              Farmacologia clínica<br />
-              <em style={{ fontStyle: 'italic', color: 'var(--green-2)' }}>ao teu alcance.</em>
-            </h1>
+              <h1 className="hero-title" style={{ fontFamily: 'var(--font-serif)', lineHeight: 1.08, letterSpacing: '-0.025em', color: 'var(--ink)', marginBottom: 20 }}>
+                Farmacologia clínica<br />
+                <em style={{ fontStyle: 'italic', color: 'var(--green-2)' }}>ao teu alcance.</em>
+              </h1>
 
-            <p style={{ fontSize: 18, color: 'var(--ink-3)', lineHeight: 1.75, marginBottom: 40, maxWidth: 480 }}>
-              Verifica interações medicamentosas, consulta informação clínica detalhada,
-              calcula doses e prepara-te para exames. Gratuito, sem registo obrigatório.
-            </p>
-
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
-              <Link href="/interactions" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--green)', color: 'white', padding: '14px 28px', borderRadius: 6, fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>
-                Verificar interações
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </Link>
-              <Link href="/drugs" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', color: 'var(--ink)', padding: '14px 28px', borderRadius: 6, fontSize: 15, fontWeight: 500, textDecoration: 'none', border: '1px solid var(--border-2)' }}>
-                Pesquisar fármaco
-              </Link>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-              {[
-                { icon: '✓', text: 'Dados FDA e NIH verificados' },
-                { icon: '✓', text: 'RGPD compliant' },
-                { icon: '✓', text: 'Sem anúncios invasivos' },
-              ].map(({ icon, text }) => (
-                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink-4)' }}>
-                  <span style={{ color: 'var(--green-2)', fontWeight: 700 }}>{icon}</span>
-                  {text}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick tool */}
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ background: 'var(--green)', padding: '16px 20px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', marginBottom: 4 }}>VERIFICADOR RÁPIDO</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'white' }}>Verificar Interações</div>
-            </div>
-            <div style={{ padding: '20px' }}>
-              <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.5 }}>
-                Experimenta directamente. Sem registo, sem limites neste momento.
+              <p style={{ fontSize: 17, color: 'var(--ink-3)', lineHeight: 1.75, marginBottom: 32, maxWidth: 480 }}>
+                Verifica interações medicamentosas, consulta informação clínica detalhada,
+                calcula doses e prepara-te para exames. Gratuito, sem registo obrigatório.
               </p>
-              <Link href="/interactions" style={{ display: 'block', background: 'var(--green)', color: 'white', textDecoration: 'none', textAlign: 'center', padding: '12px', borderRadius: 4, fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-                Abrir verificador →
-              </Link>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
+                <Link href="/interactions" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--green)', color: 'white', padding: '13px 24px', borderRadius: 6, fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>
+                  Verificar interações
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </Link>
+                <Link href="/drugs" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', color: 'var(--ink)', padding: '13px 24px', borderRadius: 6, fontSize: 15, fontWeight: 500, textDecoration: 'none', border: '1px solid var(--border-2)' }}>
+                  Pesquisar fármaco
+                </Link>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 {[
-                  { drugs: 'ibuprofeno + varfarina', severity: 'GRAVE', color: '#c53030' },
-                  { drugs: 'metformina + álcool', severity: 'MODERADA', color: '#dd6b20' },
-                  { drugs: 'paracetamol + codeína', severity: 'LIGEIRA', color: '#d69e2e' },
-                ].map(({ drugs, severity, color }) => (
-                  <div key={drugs} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 4 }}>
-                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{drugs}</span>
-                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color, fontWeight: 600 }}>{severity}</span>
+                  { icon: '✓', text: 'Dados FDA e NIH verificados' },
+                  { icon: '✓', text: 'RGPD compliant' },
+                  { icon: '✓', text: 'Sem anúncios invasivos' },
+                ].map(({ icon, text }) => (
+                  <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink-4)' }}>
+                    <span style={{ color: 'var(--green-2)', fontWeight: 700 }}>{icon}</span>
+                    {text}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Quick tool card — hidden on mobile via .hero-card */}
+            <div className="hero-card" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div style={{ background: 'var(--green)', padding: '16px 20px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', marginBottom: 4 }}>VERIFICADOR RÁPIDO</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'white' }}>Verificar Interações</div>
+              </div>
+              <div style={{ padding: '20px' }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.5 }}>
+                  Experimenta directamente. Sem registo, sem limites neste momento.
+                </p>
+                <Link href="/interactions" style={{ display: 'block', background: 'var(--green)', color: 'white', textDecoration: 'none', textAlign: 'center', padding: '12px', borderRadius: 4, fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
+                  Abrir verificador →
+                </Link>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[
+                    { drugs: 'ibuprofeno + varfarina', severity: 'GRAVE', color: '#c53030' },
+                    { drugs: 'metformina + álcool', severity: 'MODERADA', color: '#dd6b20' },
+                    { drugs: 'paracetamol + codeína', severity: 'LIGEIRA', color: '#d69e2e' },
+                  ].map(({ drugs, severity, color }) => (
+                    <div key={drugs} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 4 }}>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{drugs}</span>
+                      <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color, fontWeight: 600 }}>{severity}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -139,20 +141,20 @@ export default function HomePage() {
       </section>
 
       {/* Tools grid */}
-      <section style={{ padding: '64px 40px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
+      <section style={{ padding: '48px 0', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 8 }}>Ferramentas disponíveis</div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Tudo o que precisas</h2>
+              <h2 className="section-title" style={{ fontFamily: 'var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Tudo o que precisas</h2>
             </div>
             <Link href="/about" style={{ fontSize: 13, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Saber mais →</Link>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, background: 'var(--border)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <div className="tools-grid">
             {TOOLS.map(({ href, code, title, desc, badge, badgeColor, badgeBg }) => (
-              <Link key={href} href={href} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', background: 'white', padding: '32px 28px', transition: 'background 0.15s' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <Link key={href} href={href} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', background: 'white', padding: '28px 24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '0.15em' }}>{code}</div>
                   {badge && (
                     <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', background: badgeBg, color: badgeColor, padding: '3px 8px', borderRadius: 20, fontWeight: 600 }}>
@@ -160,7 +162,7 @@ export default function HomePage() {
                     </div>
                   )}
                 </div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{title}</h3>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{title}</h3>
                 <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, margin: '0 0 20px', flex: 1 }}>{desc}</p>
                 <div style={{ fontSize: 13, color: 'var(--green-2)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                   Aceder
@@ -173,12 +175,12 @@ export default function HomePage() {
       </section>
 
       {/* Social proof */}
-      <section style={{ padding: '64px 40px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 40, textAlign: 'center' }}>
+      <section style={{ padding: '48px 0', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container">
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 32, textAlign: 'center' }}>
             O que dizem os utilizadores
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div className="testimonials-grid">
             {SOCIAL_PROOF.map(({ text, role }) => (
               <div key={role} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', gap: 2 }}>
@@ -193,30 +195,32 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '80px 40px' }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 40, color: 'var(--ink)', marginBottom: 16, letterSpacing: '-0.02em' }}>
-            Pronto para começar?
-          </h2>
-          <p style={{ fontSize: 17, color: 'var(--ink-3)', marginBottom: 40, lineHeight: 1.7 }}>
-            As ferramentas core são gratuitas e não precisam de registo. 
-            Cria uma conta para guardar o teu histórico e aceder a funcionalidades avançadas.
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/interactions" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '14px 32px', borderRadius: 6, fontSize: 15, fontWeight: 600 }}>
-              Começar agora — grátis
-            </Link>
-            <Link href="/login" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '14px 32px', borderRadius: 6, fontSize: 15, fontWeight: 500, border: '1px solid var(--border-2)' }}>
-              Criar conta
-            </Link>
+      <section style={{ padding: '64px 0' }}>
+        <div className="page-container">
+          <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', marginBottom: 16, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              Pronto para começar?
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ink-3)', marginBottom: 32, lineHeight: 1.7 }}>
+              As ferramentas core são gratuitas e não precisam de registo.
+              Cria uma conta para guardar o teu histórico e aceder a funcionalidades avançadas.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/interactions" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 6, fontSize: 15, fontWeight: 600 }}>
+                Começar agora — grátis
+              </Link>
+              <Link href="/login" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '13px 28px', borderRadius: 6, fontSize: 15, fontWeight: 500, border: '1px solid var(--border-2)' }}>
+                Criar conta
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid var(--border)', padding: '40px', background: 'white' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 40, marginBottom: 40 }}>
+      <footer style={{ borderTop: '1px solid var(--border)', padding: '40px 0', background: 'white' }}>
+        <div className="page-container">
+          <div className="footer-grid">
             <div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 700, color: 'var(--green)', marginBottom: 8 }}>Phlox</div>
               <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.7 }}>Plataforma farmacológica clínica. Dados FDA e NIH.</p>

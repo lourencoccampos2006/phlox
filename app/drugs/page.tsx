@@ -76,19 +76,29 @@ export default function DrugsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
       <Header />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px' }}>
+      <div className="page-container page-body">
 
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '28px 32px', marginBottom: 32 }}>
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 8 }}>Ferramenta 02</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Base de Dados de Fármacos</h1>
+        {/* Search header */}
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '24px 20px', marginBottom: 24 }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>Ferramenta 02</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.01em' }}>Base de Dados de Fármacos</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5, margin: 0 }}>Dados clínicos da FDA. Introduz o nome DCI em inglês para melhores resultados.</p>
           </div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} placeholder="Nome DCI ou comercial (ex: ibuprofen, metformin...)"
-              style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '10px 16px', fontSize: 15, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
-            <button onClick={() => search()} disabled={!query.trim() || loading}
-              style={{ background: query.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: query.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 4, padding: '10px 28px', fontSize: 14, fontWeight: 600, cursor: query.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && search()}
+              placeholder="Nome DCI ou comercial (ex: ibuprofen, metformin...)"
+              style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '10px 14px', fontSize: 15, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none', minWidth: 0 }}
+            />
+            <button
+              onClick={() => search()}
+              disabled={!query.trim() || loading}
+              style={{ background: query.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: query.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 4, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: query.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
               {loading ? 'A pesquisar...' : 'Pesquisar'}
             </button>
           </div>
@@ -111,12 +121,14 @@ export default function DrugsPage() {
         )}
 
         {result && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24, alignItems: 'start' }}>
+          <div className="drug-layout" style={{ alignItems: 'start' }}>
+            {/* Main column */}
             <div>
+              {/* Drug header */}
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ background: 'var(--green)', padding: '24px 28px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em', marginBottom: 8 }}>DENOMINAÇÃO COMUM INTERNACIONAL</div>
-                  <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'white', fontWeight: 700, textTransform: 'capitalize', letterSpacing: '-0.01em', margin: 0 }}>{result.generic_name}</h2>
+                <div style={{ background: 'var(--green)', padding: '20px 24px' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em', marginBottom: 6 }}>DENOMINAÇÃO COMUM INTERNACIONAL</div>
+                  <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'white', fontWeight: 700, textTransform: 'capitalize', letterSpacing: '-0.01em', margin: 0 }}>{result.generic_name}</h2>
                   {result.brand_names?.length > 0 && (
                     <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>NOMES COMERCIAIS:</span>
@@ -126,9 +138,13 @@ export default function DrugsPage() {
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                  {[{ label: 'Fabricante', value: result.manufacturer || '—' }, { label: 'Fonte', value: 'OpenFDA (FDA / EUA)' }, { label: 'Actualizado', value: new Date().toLocaleDateString('pt-PT') }].map(({ label, value }, i) => (
-                    <div key={label} style={{ padding: '14px 20px', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
+                <div className="drug-meta">
+                  {[
+                    { label: 'Fabricante', value: result.manufacturer || '—' },
+                    { label: 'Fonte', value: 'OpenFDA (FDA / EUA)' },
+                    { label: 'Actualizado', value: new Date().toLocaleDateString('pt-PT') },
+                  ].map(({ label, value }, i) => (
+                    <div key={label} style={{ padding: '12px 16px', borderRight: i < 2 ? '1px solid var(--border)' : 'none', borderTop: '1px solid var(--border)' }}>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
                       <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>{value}</div>
                     </div>
@@ -136,6 +152,7 @@ export default function DrugsPage() {
                 </div>
               </div>
 
+              {/* Sections accordion */}
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
                 {SECTIONS.map(({ key, label }, i) => {
                   const value = result[key]
@@ -143,17 +160,17 @@ export default function DrugsPage() {
                   const isOpen = expanded.has(key)
                   return (
                     <div key={key} style={{ borderBottom: i < SECTIONS.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <button onClick={() => toggle(key)} style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: '16px 24px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 16 }}>
-                        <div>
+                      <button onClick={() => toggle(key)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-2)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 3 }}>{label}</div>
-                          {!isOpen && <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>{truncate(value, 120)}</div>}
+                          {!isOpen && <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{truncate(value, 120)}</div>}
                         </div>
                         <div style={{ width: 24, height: 24, borderRadius: '50%', background: isOpen ? 'var(--green)' : 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isOpen ? 'white' : 'var(--ink-4)', fontSize: 14, flexShrink: 0, fontWeight: 700 }}>
                           {isOpen ? '−' : '+'}
                         </div>
                       </button>
                       {isOpen && (
-                        <div style={{ padding: '0 24px 20px', borderTop: '1px solid var(--bg-3)' }}>
+                        <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--bg-3)' }}>
                           <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.85, margin: '16px 0 0' }}>{value}</p>
                         </div>
                       )}
@@ -163,6 +180,7 @@ export default function DrugsPage() {
               </div>
             </div>
 
+            {/* Sidebar */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '20px' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Acções Rápidas</div>
@@ -172,7 +190,7 @@ export default function DrugsPage() {
 
               {result.top_adverse_events?.length > 0 && (
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '20px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Efeitos Adversos Reportados</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Efeitos Adversos Reportados</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', marginBottom: 12, lineHeight: 1.5 }}>Dados FDA. Por frequência de reporte.</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {result.top_adverse_events.slice(0, 10).map((e: any, i: number) => (
