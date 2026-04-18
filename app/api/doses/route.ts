@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import Groq from 'groq-sdk'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
@@ -6,6 +7,9 @@ const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 12 // 12h
 
 export async function POST(req: NextRequest) {
+  const ip = getIP(req)
+  const rl = checkRateLimit(ip, 15, 60_000)
+  if (!rl.allowed) return rateLimitResponse()
   const body = await req.json().catch(() => null)
   if (!body?.indication) return NextResponse.json({ error: 'Indicação obrigatória' }, { status: 400 })
 
