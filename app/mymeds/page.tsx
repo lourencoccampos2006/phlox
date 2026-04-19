@@ -48,7 +48,7 @@ export default function MyMedsCheckPage() {
   const [error, setError] = useState('')
   const [checkedAt, setCheckedAt] = useState<Date | null>(null)
 
-  const plan = user?.plan || 'free'
+  const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
 
   useEffect(() => {
@@ -261,7 +261,7 @@ export default function MyMedsCheckPage() {
                   </div>
 
                   {/* Pro upsell — PDF report */}
-                  {plan !== 'pro' && plan !== 'clinic' && (
+                  {plan !== 'pro' && plan !== 'clinic' && plan !== 'student' && (
                     <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 2 }}>📄 Exportar relatório PDF</div>

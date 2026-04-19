@@ -40,7 +40,7 @@ type Stage = 'presentation' | 'differential' | 'decision' | 'outcome'
 
 export default function CasesPage() {
   const { user } = useAuth()
-  const plan = user?.plan || 'free'
+  const plan = (user?.plan || 'free') as string
 
   const [customCase, setCustomCase] = useState('')
   const [caseData, setCaseData] = useState<any>(null)

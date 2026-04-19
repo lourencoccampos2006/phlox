@@ -32,7 +32,7 @@ function UpgradeGate() {
 
 export default function ProtocolPage() {
   const { user } = useAuth()
-  const plan = user?.plan || 'free'
+  const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
 
   const [prompt, setPrompt] = useState('')

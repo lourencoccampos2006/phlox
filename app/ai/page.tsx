@@ -197,7 +197,7 @@ function TypingIndicator() {
 
 export default function AIPage() {
   const { user, supabase } = useAuth()
-  const plan = user?.plan || 'free'
+  const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
   const isPro = plan === 'pro' || plan === 'clinic'
 
@@ -224,7 +224,7 @@ export default function AIPage() {
       setPatientCtx({
         meds: medsRes.data || [],
         history: histRes.data || [],
-        plan: user.plan,
+        plan: user.plan as string,
       })
       setCtxLoaded(true)
     })

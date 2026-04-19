@@ -25,7 +25,7 @@ type User = {
   email: string
   name: string
   avatar: string
-  plan: 'free' | 'student' | 'pro'
+  plan: 'free' | 'student' | 'pro' | 'clinic'
   searches_today: number
 }
 

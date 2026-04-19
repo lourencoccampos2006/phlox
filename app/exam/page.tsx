@@ -49,7 +49,7 @@ function formatTime(s: number) {
 
 export default function ExamPage() {
   const { user } = useAuth()
-  const plan = user?.plan || 'free'
+  const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
 
   const [examState, setExamState] = useState<ExamState>('config')
