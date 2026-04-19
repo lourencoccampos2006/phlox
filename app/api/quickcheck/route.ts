@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { aiJSON } from '@/lib/ai'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 4
 
@@ -66,19 +65,7 @@ Responde APENAS com JSON válido sem markdown:
 Máximo 5 findings. Inclui: interações clinicamente relevantes, redundâncias, omissões evidentes, problemas de dose, adequação para perfil do doente se descrito.`
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Analisa esta medicação:\n\n${medications}` }
-      ],
-      temperature: 0.1,
-      max_tokens: 1000,
-    })
-
-    const text = completion.choices[0]?.message?.content || ''
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const result = JSON.parse(clean)
+    const result = await aiJSON<any>(messages, { maxTokens: 1000, temperature: 0.1, preferFast: false })
 
     cache.set(cacheKey, { result, timestamp: Date.now() })
     return NextResponse.json(result)

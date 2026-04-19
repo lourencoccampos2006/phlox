@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
+import { aiJSON } from '@/lib/ai'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 6 // 6h
@@ -85,29 +84,16 @@ async function translateToPortuguese(drug: any): Promise<any> {
       .map(([k, v]) => `### ${k}\n${v}`)
       .join('\n\n')
 
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        {
-          role: 'system',
-          content: `És um tradutor técnico médico-farmacêutico inglês→português europeu (PT-PT).
-Traduz o texto clínico mantendo rigor técnico. Usa terminologia farmacêutica portuguesa correcta.
-Responde APENAS com JSON válido sem markdown, com exactamente as mesmas chaves que recebes:
-{"indications":"...","dosage":"...","contraindications":"...","warnings":"...","adverse_reactions":"..."}
-Inclui apenas as chaves que existem no input. Nunca omitas informação clínica importante.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 3000,
-    })
-
-    const text = completion.choices[0]?.message?.content || ''
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const translations = JSON.parse(clean)
+    const translations = await aiJSON<Record<string, string>>([
+      {
+        role: 'system',
+        content: 'És um tradutor técnico médico-farmacêutico inglês→português europeu (PT-PT). Traduz o texto clínico mantendo rigor técnico. Usa terminologia farmacêutica portuguesa correcta. Responde APENAS com JSON válido sem markdown, com exactamente as mesmas chaves que recebes: {"indications":"...","dosage":"...","contraindications":"...","warnings":"...","adverse_reactions":"..."}. Inclui apenas as chaves que existem no input. Nunca omitas informação clínica importante.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ], { maxTokens: 3000, temperature: 0.1, preferFast: true })
 
     return {
       ...drug,

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+import { aiJSON } from '@/lib/ai'
 
 // Persistent cache using module-level Map (survives within same Worker instance)
 const cache = new Map<string, { result: any; timestamp: number }>()
@@ -39,7 +37,7 @@ const PT_TO_EN: Record<string, string> = {
 }
 
 function sanitize(s: string): string {
-  return s.replace(/[<>'";&\\\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100)
+  return s.replace(/[<>'\";&\\\\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100)
 }
 
 function translate(drug: string): string {
@@ -101,27 +99,24 @@ function mapSev(s: string) {
 }
 
 async function aiAnalysis(drugs: string[]): Promise<any> {
-  const c = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      { role: 'system', content: `Farmacologista clínico. Responde APENAS com JSON válido sem markdown:
-{"severity":"GRAVE"|"MODERADA"|"LIGEIRA"|"SEM_INTERACAO","summary":"1-2 frases PT","mechanism":"mecanismo PT","consequences":"consequências PT","recommendation":"recomendação PT","monitor":["param"],"onset":"início esperado"}` },
-      { role: 'user', content: `Interações entre: ${drugs.join(', ')}` }
-    ],
-    temperature: 0.1, max_tokens: 700,
-  })
-  const text = c.choices[0]?.message?.content || ''
-  return JSON.parse(text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+  return aiJSON([
+    {
+      role: 'system',
+      content: 'Farmacologista clínico. Responde APENAS com JSON válido sem markdown: {"severity":"GRAVE"|"MODERADA"|"LIGEIRA"|"SEM_INTERACAO","summary":"1-2 frases PT","mechanism":"mecanismo PT","consequences":"consequências PT","recommendation":"recomendação PT","monitor":["param"],"onset":"início esperado"}',
+    },
+    {
+      role: 'user',
+      content: `Interações entre: ${drugs.join(', ')}`,
+    },
+  ], { maxTokens: 700, temperature: 0.1 })
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit
   const ip = getIP(req)
   if (!checkRateLimit(ip)) {
     return NextResponse.json({ error: 'Demasiados pedidos. Aguarda um minuto.' }, { status: 429 })
   }
 
-  // Parse and validate
   const body = await req.json().catch(() => null)
   if (!body?.drugs || !Array.isArray(body.drugs)) {
     return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 })
@@ -132,7 +127,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Entre 2 e 10 substâncias' }, { status: 400 })
   }
 
-  // Cache
   const key = [...drugs].sort().join('|').toLowerCase()
   const cached = cache.get(key)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -140,7 +134,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // RxNorm normalization + interactions
     const normalized = (await Promise.allSettled(drugs.map(normalizeRxNorm)))
       .filter(r => r.status === 'fulfilled' && r.value).map(r => (r as any).value)
     const rxcuis = normalized.map((d: any) => d.rxcui)
@@ -183,6 +176,6 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('Interactions error:', err?.message)
     if (err?.status === 429) return NextResponse.json({ error: 'Serviço temporariamente indisponível. Tenta em breve.' }, { status: 503 })
-    return NextResponse.json({ error: 'Erro ao analisar. Tenta novamente.' }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Erro ao analisar. Tenta novamente.' }, { status: 500 })
   }
 }

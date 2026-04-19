@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
+import { aiComplete } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
@@ -65,33 +64,21 @@ FORMATO:
   ]
 
   try {
-    // Run thinking and response in parallel for speed
+    // Run thinking and main response (thinking is optional, never blocks)
     const [thinkingRes, responseRes] = await Promise.allSettled([
-      // Thinking trace
-      groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: thinkingMessages,
-        temperature: 0.1,
-        max_tokens: 150,
-      }),
-      // Main response
-      groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.slice(-10).map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        ],
-        temperature: 0.2,
-        max_tokens: 600,
-      }),
+      aiComplete(thinkingMessages, { maxTokens: 150, temperature: 0.1, preferFast: true }),
+      aiComplete([
+        { role: 'system', content: systemPrompt },
+        ...messages.slice(-10).map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ], { maxTokens: 600, temperature: 0.2 }),
     ])
 
     const thinking = thinkingRes.status === 'fulfilled'
-      ? thinkingRes.value.choices[0]?.message?.content?.trim()
+      ? thinkingRes.value.text.trim()
       : undefined
 
-    if (responseRes.status === 'rejected') throw new Error('Groq failed')
-    const response = responseRes.value.choices[0]?.message?.content?.trim() || ''
+    if (responseRes.status === 'rejected') throw new Error('Serviço de IA indisponível. Tenta novamente.')
+    const response = responseRes.value.text.trim() || ''
 
     // Detect sources used in response
     const sources: string[] = []

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-import Groq from 'groq-sdk'
+import { aiJSON } from '@/lib/ai'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 48 // 48h — compatibilidade muda pouco
 
@@ -26,39 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        {
-          role: 'system',
-          content: `És um farmacêutico hospitalar especialista em compatibilidade de fármacos IV.
-Baseia-te em Trissel's Handbook of Injectable Drugs, King Guide to Parenteral Admixtures, e publicações científicas.
-Responde APENAS com JSON válido sem markdown:
-{
-  "status": "COMPATIVEL" | "INCOMPATIVEL" | "CONDICIONAL" | "DESCONHECIDO",
-  "summary": "Resumo claro em 1-2 frases em português europeu",
-  "mechanism": "Mecanismo de incompatibilidade se aplicável (opcional)",
-  "conditions": "Condições para compatibilidade se CONDICIONAL (opcional)",
-  "concentration_limits": "Limites de concentração se relevantes (opcional)",
-  "time_limit": "Estabilidade temporal se relevante (opcional)",
-  "alternative": "Alternativa recomendada se INCOMPATIVEL (opcional)",
-  "source": "Trissel's / King Guide / Literatura"
-}
-Status CONDICIONAL = compatível apenas em certas concentrações, tempo ou solução.
-Status DESCONHECIDO = dados publicados insuficientes — indica isso claramente no summary.`
-        },
-        {
-          role: 'user',
-          content: `Compatibilidade IV de ${drug1} com ${drug2} em ${solution}. Incluindo Y-site e mistura directa.`
-        }
-      ],
-      temperature: 0.1,
-      max_tokens: 500,
-    })
-
-    const text = completion.choices[0]?.message?.content || ''
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const result = JSON.parse(clean)
+    const result = await aiJSON<any>(messages, { maxTokens: 500, temperature: 0.1, preferFast: true })
 
     cache.set(cacheKey, { result, timestamp: Date.now() })
     return NextResponse.json(result)
