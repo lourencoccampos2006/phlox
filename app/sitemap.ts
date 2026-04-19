@@ -93,6 +93,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/terms`,               lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
   ]
 
+  const interactionPages: MetadataRoute.Sitemap = [
+    { url: `${BASE_URL}/interactions/ibuprofeno-e-varfarina`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/metformina-e-alcool`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/aspirina-e-heparina`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/sertralina-e-hipericao`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/atorvastatina-e-claritromicina`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/digoxina-e-amiodarona`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/paracetamol-e-codeina`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/tramadol-e-diazepam`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/omeprazol-e-clopidogrel`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/rivaroxabano-e-aspirina`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/lorazepam-e-alcool`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/varfarina-e-omeprazol`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/sertralina-e-tramadol`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/claritromicina-e-estatinas`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/amiodarona-e-varfarina`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+    { url: `${BASE_URL}/interactions/clopidogrel-e-omeprazol`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.75 },
+  ]
+
   const drugPages: MetadataRoute.Sitemap = TOP_DRUGS.map(drug => ({
     url: `${BASE_URL}/drugs/${drug}`,
     lastModified: now,
@@ -100,5 +119,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...staticPages, ...drugPages]
+  return [...staticPages, ...interactionPages, ...drugPages]
 }

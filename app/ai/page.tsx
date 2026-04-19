@@ -140,13 +140,9 @@ function MessageBubble({ msg }: { msg: Message }) {
 
         {/* Main response */}
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 16px 16px 16px', padding: '14px 16px' }}>
-          <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}
-            dangerouslySetInnerHTML={{ __html: msg.content
-              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              .replace(/\*(.*?)\*/g, '<em>$1</em>')
-              .replace(/^(#{1,3})\s(.+)$/gm, (_, h, t) => `<div style="font-family:var(--font-serif);font-size:${h.length===1?'17':h.length===2?'15':'14'}px;font-weight:700;color:var(--ink);margin:12px 0 6px">${t}</div>`)
-              .replace(/^-\s(.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0"><span style="color:var(--green-2);flex-shrink:0">•</span><span>$1</span></div>')
-            }} />
+          <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+            {msg.content}
+          </div>
         </div>
 
         {/* Sources */}
