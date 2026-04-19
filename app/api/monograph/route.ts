@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 48 // 48h
@@ -21,9 +21,33 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await aiJSON<any>(messages, { maxTokens: 2500, temperature: 0.15, preferFast: false })
+    const result = await aiJSON<any>([
+      {
+        role: 'system',
+        content: `És um farmacologista clínico a criar monografias farmacológicas rigorosas em português europeu (PT-PT).
+Responde APENAS com JSON válido sem markdown:
+{
+  "name": "nome DCI correcto em PT-PT",
+  "class": "classe farmacológica",
+  "atc": "código ATC",
+  "sections": [
+    { "title": "Mecanismo de Acção", "content": "..." },
+    { "title": "Indicações", "content": "..." },
+    { "title": "Posologia", "content": "..." },
+    { "title": "Farmacocinética", "content": "..." },
+    { "title": "Efeitos Adversos", "content": "..." },
+    { "title": "Contraindicações", "content": "..." },
+    { "title": "Interações Relevantes", "content": "..." },
+    { "title": "Monitorização", "content": "..." },
+    { "title": "Gravidez e Aleitamento", "content": "..." },
+    { "title": "Observações Clínicas", "content": "..." }
+  ]
+}`,
+      },
+      { role: 'user', content: `Monografia clínica completa de: ${drug}` },
+    ], { maxTokens: 2500, temperature: 0.15 })
 
-    cache.set(cacheKey, { result, timestamp: Date.now() })
+        cache.set(cacheKey, { result, timestamp: Date.now() })
     return NextResponse.json(result)
 
   } catch (err: any) {

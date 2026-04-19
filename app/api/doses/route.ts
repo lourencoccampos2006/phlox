@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 12 // 12h
@@ -21,9 +21,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await aiJSON<any>(messages, { maxTokens: 800, temperature: 0.1, preferFast: false })
+    const result = await aiJSON<any>([
+      {
+        role: 'system',
+        content: `És um farmacologista clínico a criar resumos de posologia baseados em guidelines (DGS, IDSA, NICE, ESC, KDIGO, UpToDate).
+Responde APENAS com JSON válido sem markdown:
+{
+  "indication": "nome da indicação formatado",
+  "context": "contexto clínico breve",
+  "options": [
+    { "drug": "Nome DCI", "dose": "Dose completa", "duration": "Duração", "notes": "Notas", "allergy_note": false }
+  ],
+  "monitoring": "Parâmetros a monitorizar (opcional)"
+}
+Inclui 2-4 opções por ordem de preferência. Usa nomes DCI em português europeu.`,
+      },
+      { role: 'user', content: `Posologia para: ${indication}` },
+    ], { maxTokens: 800, temperature: 0.1 })
 
-    cache.set(cacheKey, { result, timestamp: Date.now() })
+        cache.set(cacheKey, { result, timestamp: Date.now() })
     return NextResponse.json(result)
 
   } catch (err: any) {

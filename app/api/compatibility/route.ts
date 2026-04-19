@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 48 // 48h — compatibilidade muda pouco
@@ -25,9 +25,26 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await aiJSON<any>(messages, { maxTokens: 500, temperature: 0.1, preferFast: true })
+    const result = await aiJSON<any>([
+      {
+        role: 'system',
+        content: `És um farmacêutico hospitalar especialista em compatibilidade de fármacos IV. Baseia-te em Trissel's Handbook of Injectable Drugs, King Guide to Parenteral Admixtures, e publicações científicas.
+Responde APENAS com JSON válido sem markdown:
+{
+  "status": "COMPATIVEL" | "INCOMPATIVEL" | "CONDICIONAL" | "DESCONHECIDO",
+  "summary": "Resumo claro em 1-2 frases em português europeu",
+  "mechanism": "Mecanismo de incompatibilidade se aplicável (opcional)",
+  "conditions": "Condições para compatibilidade se CONDICIONAL (opcional)",
+  "concentration_limits": "Limites de concentração se relevantes (opcional)",
+  "time_limit": "Estabilidade temporal se relevante (opcional)",
+  "alternative": "Alternativa recomendada se INCOMPATIVEL (opcional)",
+  "source": "Trissel's / King Guide / Literatura"
+}`,
+      },
+      { role: 'user', content: `Compatibilidade IV de ${drug1} com ${drug2} em ${solution}.` },
+    ], { maxTokens: 500, temperature: 0.1 })
 
-    cache.set(cacheKey, { result, timestamp: Date.now() })
+        cache.set(cacheKey, { result, timestamp: Date.now() })
     return NextResponse.json(result)
 
   } catch (err: any) {

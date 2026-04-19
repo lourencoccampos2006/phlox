@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 4
@@ -65,9 +65,12 @@ Responde APENAS com JSON válido sem markdown:
 Máximo 5 findings. Inclui: interações clinicamente relevantes, redundâncias, omissões evidentes, problemas de dose, adequação para perfil do doente se descrito.`
 
   try {
-    const result = await aiJSON<any>(messages, { maxTokens: 1000, temperature: 0.1, preferFast: false })
+    const result = await aiJSON<any>([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Analisa esta medicação:\n\n${medications}` },
+    ], { maxTokens: 1000, temperature: 0.1 })
 
-    cache.set(cacheKey, { result, timestamp: Date.now() })
+        cache.set(cacheKey, { result, timestamp: Date.now() })
     return NextResponse.json(result)
 
   } catch (err: any) {
