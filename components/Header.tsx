@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 const TOOL_LINKS = [
+  { href: '/ai', label: 'Phlox AI — Farmacologista Clínico', icon: '🧠' },
+  { href: '/quickcheck', label: 'Análise Rápida de Medicação', icon: '🔍' },
+  { href: '/dilutions', label: 'Diluições e Perfusões IV', icon: '💉' },
   { href: '/interactions', label: 'Verificador de Interações', icon: '⚕' },
   { href: '/drugs', label: 'Base de Dados de Fármacos', icon: '💊' },
   { href: '/monograph', label: 'Monografia Clínica IA', icon: '📋' },
@@ -12,6 +15,11 @@ const TOOL_LINKS = [
   { href: '/compatibility', label: 'Compatibilidade IV', icon: '🧪' },
   { href: '/calculators', label: 'Calculadoras Clínicas', icon: '🧮' },
   { href: '/study', label: 'Plataforma de Estudo', icon: '📚' },
+  { href: '/exam', label: 'Modo Exame', icon: '🏆' },
+  { href: '/mymeds', label: 'A Minha Medicação', icon: '💊' },
+  { href: '/cases', label: 'Casos Clínicos', icon: '🏥' },
+  { href: '/protocol', label: 'Protocolo Terapêutico', icon: '📋' },
+  { href: '/safety', label: 'Segurança do Medicamento', icon: '🛡️' },
 ]
 
 const NAV_LINKS = [
