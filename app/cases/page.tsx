@@ -39,7 +39,7 @@ function UpgradeGate({ plan }: { plan: string }) {
 type Stage = 'presentation' | 'differential' | 'decision' | 'outcome'
 
 export default function CasesPage() {
-  const { user } = useAuth()
+  const { user, supabase } = useAuth()
   const plan = (user?.plan || 'free') as string
 
   const [customCase, setCustomCase] = useState('')
@@ -57,9 +57,16 @@ export default function CasesPage() {
     setLoading(true); setError(''); setCaseData(null)
     setStage('presentation'); setSelectedDx(null); setSelectedTx(null); setRevealed(false)
     try {
+      // Get Supabase session token for plan verification
+      const { data: sessionData } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sessionData.session?.access_token) {
+        headers['Authorization'] = `Bearer ${sessionData.session.access_token}`
+      }
+
       const res = await fetch('/api/cases', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ prompt: q }),
       })
       const data = await res.json()

@@ -269,9 +269,16 @@ export default function AIPage() {
     setIsTyping(true)
 
     try {
+      // Get Supabase session token for plan verification
+      const { data: sessionData } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sessionData.session?.access_token) {
+        headers['Authorization'] = `Bearer ${sessionData.session.access_token}`
+      }
+
       const res = await fetch('/api/ai', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
           patientContext: patientCtx,

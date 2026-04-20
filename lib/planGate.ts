@@ -1,55 +1,28 @@
 // lib/planGate.ts
-// Verifica o plano do utilizador e aplica limites nas API routes
-// Usa o JWT do Supabase para identificar o utilizador sem chamada extra à DB
+// Verifica o plano do utilizador nas API routes
+// Supabase guarda o token em cookies com o nome sb-<project-ref>-auth-token
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export type Plan = 'free' | 'student' | 'pro' | 'clinic'
 
-export interface PlanCheck {
-  allowed: boolean
-  plan: Plan
-  reason?: string
-  upgradeUrl?: string
-}
-
-// Limites diários por plano (por tipo de pesquisa)
-export const PLAN_LIMITS: Record<Plan, Record<string, number>> = {
-  free:    { interactions: 10, drugs: 15, doses: 5,  monograph: 5,  compatibility: 5,  safety: 5,  cases: 0,  protocol: 0  },
-  student: { interactions: -1, drugs: -1, doses: -1, monograph: -1, compatibility: -1, safety: -1, cases: -1, protocol: 0  },
-  pro:     { interactions: -1, drugs: -1, doses: -1, monograph: -1, compatibility: -1, safety: -1, cases: -1, protocol: -1 },
-  clinic:  { interactions: -1, drugs: -1, doses: -1, monograph: -1, compatibility: -1, safety: -1, cases: -1, protocol: -1 },
-}
-
-// Que plano mínimo é necessário para cada feature
-export const FEATURE_PLAN: Record<string, Plan> = {
-  cases:    'student',
-  protocol: 'pro',
-  export:   'pro',
-}
-
-export function planGateResponse(feature: string, currentPlan: Plan): NextResponse {
-  const requiredPlan = FEATURE_PLAN[feature] || 'student'
-  const messages: Record<Plan, string> = {
-    student: 'Esta funcionalidade requer o plano Student (3,99€/mês).',
-    pro:     'Esta funcionalidade requer o plano Pro (12,99€/mês).',
-    clinic:  'Esta funcionalidade requer o plano Clinic.',
-    free:    '',
-  }
+export function planGateResponse(feature: string, currentPlan: Plan | string): NextResponse {
+  const isPro = feature === 'protocol'
   return NextResponse.json({
-    error: messages[requiredPlan],
+    error: isPro
+      ? 'Esta funcionalidade requer o plano Pro (12,99€/mês).'
+      : 'Esta funcionalidade requer o plano Student (3,99€/mês).',
     upgrade_required: true,
-    required_plan: requiredPlan,
+    required_plan: isPro ? 'pro' : 'student',
     current_plan: currentPlan,
     upgrade_url: '/pricing',
   }, { status: 403 })
 }
 
-export function limitReachedResponse(feature: string, limit: number, plan: Plan): NextResponse {
-  const nextPlan = plan === 'free' ? 'student' : 'pro'
+export function limitReachedResponse(feature: string, limit: number, plan: string): NextResponse {
   return NextResponse.json({
-    error: `Limite diário atingido (${limit} ${feature}/dia no plano ${plan === 'free' ? 'Gratuito' : plan}). Faz upgrade para continuar.`,
+    error: `Limite diário atingido (${limit}/dia no plano ${plan === 'free' ? 'Gratuito' : plan}). Faz upgrade para continuar.`,
     limit_reached: true,
     daily_limit: limit,
     current_plan: plan,
@@ -57,53 +30,67 @@ export function limitReachedResponse(feature: string, limit: number, plan: Plan)
   }, { status: 429 })
 }
 
-// Obtém o plano do utilizador a partir do JWT (sem chamada extra à DB)
+function extractToken(req: NextRequest): string | null {
+  const authHeader = req.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7)
+
+  const cookieHeader = req.headers.get('cookie') || ''
+  if (!cookieHeader) return null
+
+  const patterns = [
+    /sb-[^=]+-auth-token=([^;]+)/,
+    /supabase-auth-token=([^;]+)/,
+    /sb-access-token=([^;]+)/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = cookieHeader.match(pattern)
+    if (match) {
+      try {
+        const decoded = decodeURIComponent(match[1])
+        if (decoded.split('.').length === 3) return decoded
+        const parsed = JSON.parse(decoded)
+        if (Array.isArray(parsed) && parsed[0]) return parsed[0]
+        if (parsed?.access_token) return parsed.access_token
+      } catch { }
+    }
+  }
+  return null
+}
+
 export async function getUserPlan(req: NextRequest): Promise<{ userId: string | null; plan: Plan }> {
   try {
-    const authHeader = req.headers.get('authorization')
-    const cookieHeader = req.headers.get('cookie') || ''
-
-    // Tenta obter o token do header ou do cookie
-    let token: string | null = null
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.slice(7)
-    } else {
-      // Supabase guarda em cookie sb-<project>-auth-token
-      const match = cookieHeader.match(/phlox-auth[^=]*=([^;]+)/)
-      if (match) {
-        try {
-          const parsed = JSON.parse(decodeURIComponent(match[1]))
-          token = parsed?.access_token || null
-        } catch { }
-      }
-    }
-
+    const token = extractToken(req)
     if (!token) return { userId: null, plan: 'free' }
 
-    // Decode JWT payload (sem verificação — confiamos no Supabase para isso)
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const userId = payload.sub
+    const parts = token.split('.')
+    if (parts.length !== 3) return { userId: null, plan: 'free' }
 
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    const userId = payload.sub
     if (!userId) return { userId: null, plan: 'free' }
 
-    // Busca o plano na base de dados
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return { userId: null, plan: 'free' }
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     )
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('plan')
       .eq('id', userId)
       .single()
 
-    return {
-      userId,
-      plan: (data?.plan as Plan) || 'free',
-    }
-  } catch {
+    if (error || !data) return { userId, plan: 'free' }
+    return { userId, plan: (data.plan as Plan) || 'free' }
+
+  } catch (err) {
+    console.error('getUserPlan error:', err)
     return { userId: null, plan: 'free' }
   }
 }

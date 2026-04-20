@@ -31,7 +31,7 @@ function UpgradeGate() {
 }
 
 export default function ProtocolPage() {
-  const { user } = useAuth()
+  const { user, supabase } = useAuth()
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
 
@@ -45,9 +45,16 @@ export default function ProtocolPage() {
     if (!term) return
     setLoading(true); setError(''); setResult(null)
     try {
+      // Get Supabase session token for plan verification
+      const { data: sessionData } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sessionData.session?.access_token) {
+        headers['Authorization'] = `Bearer ${sessionData.session.access_token}`
+      }
+
       const res = await fetch('/api/protocol', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ patient: term }),
       })
       const data = await res.json()
