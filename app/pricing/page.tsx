@@ -15,6 +15,8 @@ const PLANS = [
     ctaHref: '/login',
     highlight: false,
     features: [
+      { text: 'Verificador de Medicamento (qualquer fármaco)', ok: true },
+      { text: 'Interpretação de análises clínicas', ok: false },
       { text: 'Análise Rápida de Medicação (limitada)', ok: true },
       { text: 'Diluições e Perfusões IV (completo)', ok: true },
       { text: 'Verificador de interações — 10/dia', ok: true },
@@ -40,6 +42,8 @@ const PLANS = [
     badge: 'Mais popular',
     features: [
       { text: 'Tudo do Gratuito, sem limites diários', ok: true },
+      { text: 'Verificador + contexto da tua medicação pessoal', ok: true },
+      { text: 'Interpretação de análises clínicas', ok: true },
       { text: 'Análise Rápida de Medicação ilimitada', ok: true },
       { text: 'Histórico de pesquisas guardado', ok: true },
       { text: 'Lista de medicamentos pessoais', ok: true },
@@ -63,6 +67,9 @@ const PLANS = [
     highlight: false,
     features: [
       { text: 'Tudo do Student + Phlox AI Pro', ok: true },
+      { text: 'Simulador de Estratégia Terapêutica', ok: true },
+      { text: 'Briefing Clínico de Consulta (preparação em 15s)', ok: true },
+      { text: 'Revisão Clínica de Medicação com PDF', ok: true },
       { text: 'Protocolo terapêutico IA (guidelines ESC/ADA/NICE)', ok: true },
       { text: 'Ajuste de dose renal/hepática ilimitado', ok: true },
       { text: 'Export PDF de relatórios de interações', ok: true },
@@ -88,6 +95,7 @@ const VALUE_PROPS = [
     title: 'Para estudantes',
     subtitle: 'Passa nos exames com mais confiança',
     points: [
+      'Interpretação de análises clínicas — o que está fora do normal, porquê, e o que perguntar ao médico',
       'Casos clínicos com o mesmo nível dos exames de Farmacologia Clínica',
       'Flashcards e quizzes para 24 classes — antipsicóticos, anticoagulantes, antibióticos...',
       'Monografias completas de qualquer fármaco em PT, incluindo os mais recentes',
@@ -100,6 +108,7 @@ const VALUE_PROPS = [
     title: 'Para profissionais',
     subtitle: 'Decisões clínicas em segundos',
     points: [
+      'Briefing de consulta em 15s — red flags, perguntas, monitorização',
       'Protocolo terapêutico baseado em guidelines para o teu doente específico',
       'Compatibilidade IV — Trissel\'s e King Guide na palma da mão',
       'Ajuste de dose renal para qualquer medicamento com TFG',

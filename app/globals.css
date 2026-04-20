@@ -1,37 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ink:        #1a1a1a;
-  --ink-2:      #2d2d2d;
-  --ink-3:      #555;
-  --ink-4:      #888;
-  --bg:         #fafaf9;
-  --bg-2:       #f5f5f3;
-  --bg-3:       #ededeb;
-  --border:     #e8e8e5;
-  --border-2:   #d4d4d0;
-  --green:      #14532d;
-  --green-2:    #166534;
-  --green-light:#f0fdf4;
-  --green-mid:  #bbf7d0;
-  --font-serif: 'Libre Baskerville', Georgia, serif;
-  --font-sans:  'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-mono:  'DM Mono', 'Courier New', monospace;
-  --shadow:     0 2px 8px rgba(0,0,0,0.06);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,0.1);
+  --ink:        #0f0f0f;
+  --ink-2:      #1c1c1c;
+  --ink-3:      #4a4a4a;
+  --ink-4:      #8a8a8a;
+  --ink-5:      #b8b8b8;
+  --bg:         #ffffff;
+  --bg-2:       #f8f8f7;
+  --bg-3:       #f0f0ee;
+  --bg-4:       #e8e8e5;
+  --border:     #e5e5e2;
+  --border-2:   #d0d0cc;
+  --green:      #0d7a4e;
+  --green-2:    #0a6640;
+  --green-3:    #086035;
+  --green-light:#f0fdf6;
+  --green-mid:  #a7f3d0;
+  --green-glow: rgba(13,122,78,0.08);
+  --blue:       #0066cc;
+  --blue-light: #eff6ff;
+  --red:        #dc2626;
+  --red-light:  #fef2f2;
+  --amber:      #d97706;
+  --amber-light:#fffbeb;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Courier New', monospace;
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.04);
+  --shadow:     0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+  --shadow-xl:  0 20px 60px rgba(0,0,0,0.12);
+  --radius-sm:  4px;
+  --radius:     8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
 }
 
-html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
-}
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-sans);
@@ -40,245 +50,92 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent horizontal scroll */
   overflow-x: hidden;
   width: 100%;
+  letter-spacing: -0.01em;
 }
 
-/* Prevent any element from causing horizontal scroll */
-* {
-  max-width: 100%;
-}
+* { max-width: 100%; }
+img, video, iframe { max-width: 100%; height: auto; }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
+::selection { background: var(--green-mid); color: var(--ink); }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 10px; }
 
-img, video, iframe {
-  max-width: 100%;
-  height: auto;
-}
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+@keyframes fadeUp  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Focus */
-:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
-}
+.fade-in { animation: fadeUp 0.22s ease forwards; }
 
-/* Selection */
-::selection {
-  background: var(--green-mid);
-  color: var(--ink);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-2); }
-::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
-
-/* Animations */
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
-
-/* Skeleton loader */
 .skeleton {
   background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-2) 50%, var(--bg-3) 75%);
-  background-size: 600px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 4px;
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--radius-sm);
 }
 
-/* Fade in animation for content appearing */
-.fade-in {
-  animation: fadeIn 0.2s ease-out;
-}
+.page-container  { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+.page-body       { padding: 28px 20px 80px; }
+.two-col             { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.interactions-layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.drug-layout         { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.card-grid-2         { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.card-grid-3         { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.card-grid-4         { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.tools-grid          { display: grid; grid-template-columns: 1fr; gap: 1px; background: var(--border); }
+.stats-grid          { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); }
+.testimonials-grid   { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.footer-grid         { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+.dashboard-layout    { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.add-med-form        { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.plans-grid          { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.info-row            { display: grid; grid-template-columns: 1fr; }
+.drug-meta           { display: grid; grid-template-columns: 1fr 1fr; }
+.hero-grid           { display: grid; grid-template-columns: 1fr; gap: 48px; align-items: center; }
+.hero-card           { display: none; }
+.sticky-panel        { position: static; }
+.hero-title          { font-size: 34px !important; line-height: 1.06 !important; letter-spacing: -0.03em !important; }
+.section-title       { font-size: 22px !important; }
 
-/* ============================
-   MOBILE-FIRST RESPONSIVE
-   ============================ */
-
-/* All pages: constrain content width and add padding */
-.page-container {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* Page padding top/bottom */
-.page-body {
-  padding: 24px 20px 60px;
-}
-
-/* Two column layout: stacks on mobile */
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-/* Interactions two-panel layout */
-.interactions-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-/* Drug page layout */
-.drug-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-/* Grid of cards */
-.card-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.card-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.card-grid-4 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-/* Tool cards in homepage */
-.tools-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Stats row */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
-  background: var(--border);
-}
-
-/* Social proof */
-.testimonials-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-/* Footer grid */
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  margin-bottom: 32px;
-}
-
-/* Dashboard layout */
-.dashboard-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-/* Add med form */
-.add-med-form {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-/* Plan comparison */
-.plans-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Table-like info rows */
-.info-row {
-  display: grid;
-  grid-template-columns: 1fr;
-}
-
-/* Drug meta bar */
-.drug-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-/* Sticky panel - not sticky on mobile */
-.sticky-panel {
-  position: static;
-}
-
-/* Hero section */
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 40px;
-  align-items: center;
-}
-
-.hero-card {
-  display: none; /* Hide quick tool card on mobile */
-}
-
-/* Text sizes for mobile */
-.hero-title { font-size: 36px !important; }
-.section-title { font-size: 24px !important; }
-
-/* Tablet and up: 768px */
 @media (min-width: 768px) {
-  .page-body { padding: 32px 32px 80px; }
-
-  .two-col { grid-template-columns: 1fr 280px; }
-  .drug-layout { grid-template-columns: 1fr 260px; }
+  .page-body           { padding: 36px 32px 80px; }
+  .two-col             { grid-template-columns: 1fr 280px; }
+  .drug-layout         { grid-template-columns: 1fr 260px; }
   .interactions-layout { grid-template-columns: 300px 1fr; }
-  .card-grid-2 { grid-template-columns: repeat(2, 1fr); }
-  .card-grid-3 { grid-template-columns: repeat(2, 1fr); }
-  .tools-grid { grid-template-columns: repeat(2, 1fr); }
-  .testimonials-grid { grid-template-columns: repeat(2, 1fr); }
-  .footer-grid { grid-template-columns: repeat(3, 1fr); }
-  .dashboard-layout { grid-template-columns: 200px 1fr; }
-  .add-med-form { grid-template-columns: 1fr 120px auto; }
-  .plans-grid { grid-template-columns: repeat(3, 1fr); }
-  .info-row { grid-template-columns: 160px 1fr; }
-  .hero-title { font-size: 44px !important; }
-  .sticky-panel { position: sticky; top: 80px; }
-  .hero-card { display: block; }
+  .card-grid-2         { grid-template-columns: repeat(2, 1fr); }
+  .card-grid-3         { grid-template-columns: repeat(2, 1fr); }
+  .tools-grid          { grid-template-columns: repeat(2, 1fr); }
+  .testimonials-grid   { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid         { grid-template-columns: repeat(3, 1fr); }
+  .dashboard-layout    { grid-template-columns: 200px 1fr; }
+  .add-med-form        { grid-template-columns: 1fr 120px auto; }
+  .plans-grid          { grid-template-columns: repeat(3, 1fr); gap: 0; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+  .info-row            { grid-template-columns: 160px 1fr; }
+  .hero-title          { font-size: 46px !important; }
+  .section-title       { font-size: 28px !important; }
+  .sticky-panel        { position: sticky; top: 68px; }
+  .hero-card           { display: block; }
 }
 
-/* Desktop: 1024px */
 @media (min-width: 1024px) {
-  .page-container { padding: 0 40px; }
-  .page-body { padding: 40px 40px 80px; }
-
-  .two-col { grid-template-columns: 1fr 300px; }
-  .drug-layout { grid-template-columns: 1fr 300px; }
-  .interactions-layout { grid-template-columns: 340px 1fr; }
-  .card-grid-3 { grid-template-columns: repeat(3, 1fr); }
-  .card-grid-4 { grid-template-columns: repeat(4, 1fr); }
-  .footer-grid { grid-template-columns: repeat(4, 1fr); }
-  .dashboard-layout { grid-template-columns: 220px 1fr; }
-  .add-med-form { grid-template-columns: 1fr 130px 160px auto; }
-  .testimonials-grid { grid-template-columns: repeat(3, 1fr); }
-  .hero-grid { grid-template-columns: 1fr 420px; gap: 80px; }
-  .hero-title { font-size: 54px !important; }
-  .section-title { font-size: 32px !important; }
-  .info-row { grid-template-columns: 180px 1fr; }
-  .drug-meta { grid-template-columns: repeat(3, 1fr); }
-  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  .page-container      { padding: 0 48px; }
+  .page-body           { padding: 44px 48px 100px; }
+  .two-col             { grid-template-columns: 1fr 300px; }
+  .drug-layout         { grid-template-columns: 1fr 300px; }
+  .interactions-layout { grid-template-columns: 360px 1fr; }
+  .card-grid-3         { grid-template-columns: repeat(3, 1fr); }
+  .card-grid-4         { grid-template-columns: repeat(4, 1fr); }
+  .footer-grid         { grid-template-columns: repeat(4, 1fr); }
+  .dashboard-layout    { grid-template-columns: 220px 1fr; }
+  .add-med-form        { grid-template-columns: 1fr 130px 160px auto; }
+  .testimonials-grid   { grid-template-columns: repeat(3, 1fr); }
+  .hero-grid           { grid-template-columns: 1fr 440px; gap: 80px; }
+  .hero-title          { font-size: 58px !important; }
+  .section-title       { font-size: 34px !important; }
+  .info-row            { grid-template-columns: 180px 1fr; }
+  .drug-meta           { grid-template-columns: repeat(3, 1fr); }
+  .stats-grid          { grid-template-columns: repeat(4, 1fr); }
 }

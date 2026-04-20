@@ -9,6 +9,24 @@ export const metadata: Metadata = {
 
 const TOOLS = [
   {
+    href: '/labs',
+    code: '🌟',
+    title: 'O teu médico explica em 10 min. O Phlox explica tudo.',
+    desc: 'Cola os resultados das tuas análises clínicas. Recebe uma interpretação completa — o que está fora do normal, o que significa, e as perguntas certas para levar ao médico.',
+    badge: 'A ferramenta que faltava',
+    badgeColor: '#7c3aed',
+    badgeBg: '#ede9fe',
+  },
+  {
+    href: '/scanner',
+    code: '🌟',
+    title: 'Posso tomar este medicamento?',
+    desc: 'Escreve qualquer medicamento. Sabe o que é, como tomar, o que evitar — e se é seguro com a tua medicação pessoal. Para toda a gente, sem excepção.',
+    badge: 'O mais popular',
+    badgeColor: '#166534',
+    badgeBg: '#dcfce7',
+  },
+  {
     href: '/quickcheck',
     code: '🔍',
     title: 'Análise Rápida de Medicação',
@@ -109,6 +127,33 @@ const TOOLS = [
     badge: 'Student',
     badgeColor: '#7c3aed',
     badgeBg: '#ede9fe',
+  },
+  {
+    href: '/briefing',
+    code: '⭐',
+    title: 'Briefing Clínico de Consulta',
+    desc: 'Cola os medicamentos e o motivo da consulta. Em 15 segundos: red flags, interações críticas, o que perguntar, o que monitorizar. Para médicos, farmacêuticos e internos.',
+    badge: 'Pro exclusivo',
+    badgeColor: '#1e40af',
+    badgeBg: '#dbeafe',
+  },
+  {
+    href: '/med-review',
+    code: '⭐',
+    title: 'Revisão Clínica de Medicação',
+    desc: 'O farmacêutico clínico que devias ter. Analisa o teu perfil completo de medicação, identifica riscos, recomenda exames e gera um relatório PDF para levar ao médico.',
+    badge: 'Pro exclusivo',
+    badgeColor: '#1e40af',
+    badgeBg: '#dbeafe',
+  },
+  {
+    href: '/strategy',
+    code: '⭐',
+    title: 'Simulador de Estratégia Terapêutica',
+    desc: 'Define um objectivo clínico e o perfil do doente. Recebe 3–5 estratégias alternativas com evidência A/B/C, trade-offs e score de adequação personalizado.',
+    badge: 'Pro — Novo',
+    badgeColor: '#1e40af',
+    badgeBg: '#dbeafe',
   },
   {
     href: '/protocol',
