@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase admin client (bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!  // service role — NOT the anon key
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 async function verifyStripeSignature(body: string, signature: string, secret: string): Promise<boolean> {
   // Stripe uses HMAC-SHA256 to sign webhooks
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       const userId = obj.metadata?.user_id
       const plan = obj.metadata?.plan
       if (userId && plan) {
-        await supabase.from('profiles').update({ plan }).eq('id', userId)
+        await getSupabase().from('profiles').update({ plan }).eq('id', userId)
         console.log(`Upgraded user ${userId} to ${plan}`)
       }
       break
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
       const plan = obj.metadata?.plan
       const status = obj.status
       if (userId && plan && status === 'active') {
-        await supabase.from('profiles').update({ plan }).eq('id', userId)
+        await getSupabase().from('profiles').update({ plan }).eq('id', userId)
       }
       break
     }
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.deleted': {
       const userId = obj.metadata?.user_id
       if (userId) {
-        await supabase.from('profiles').update({ plan: 'free' }).eq('id', userId)
+        await getSupabase().from('profiles').update({ plan: 'free' }).eq('id', userId)
         console.log(`Downgraded user ${userId} to free`)
       }
       break
