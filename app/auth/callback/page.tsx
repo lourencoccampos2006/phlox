@@ -41,7 +41,7 @@ export default function AuthCallback() {
       // Já tem sessão activa (raro mas possível)
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        router.replace('/dashboard')
+        router.replace('/onboarding')
         return
       }
 
@@ -52,7 +52,7 @@ export default function AuthCallback() {
           console.error('Code exchange error:', exchangeError.message)
           router.replace('/login')
         } else {
-          router.replace('/dashboard')
+          router.replace('/onboarding')
         }
         return
       }
