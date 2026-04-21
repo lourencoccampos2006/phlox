@@ -187,6 +187,12 @@ export default function Header() {
           {/* Desktop nav */}
           <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-start', marginLeft: 16 }}>
             <ToolsDropdown />
+            <Link href="/blog"
+              style={{ padding: '7px 11px', fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 8, letterSpacing: '-0.01em', transition: 'background 0.12s, color 0.12s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-2)'; e.currentTarget.style.color = 'var(--ink)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-3)' }}>
+              Blog
+            </Link>
             <Link href="/api-docs"
               style={{ padding: '7px 11px', fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 8, letterSpacing: '-0.01em', transition: 'background 0.12s, color 0.12s' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-2)'; e.currentTarget.style.color = 'var(--ink)' }}
@@ -261,6 +267,12 @@ export default function Header() {
             </div>
           ))}
           <div style={{ padding: '12px 20px', borderTop: '2px solid var(--border)' }}>
+            <Link href="/blog"
+              style={{ padding: '7px 11px', fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 8, letterSpacing: '-0.01em', transition: 'background 0.12s, color 0.12s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-2)'; e.currentTarget.style.color = 'var(--ink)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-3)' }}>
+              Blog
+            </Link>
             <Link href="/api-docs"
               style={{ padding: '7px 11px', fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 8, letterSpacing: '-0.01em', transition: 'background 0.12s, color 0.12s' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-2)'; e.currentTarget.style.color = 'var(--ink)' }}
