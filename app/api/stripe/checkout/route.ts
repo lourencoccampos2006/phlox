@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(req: NextRequest) {
-  const { priceId, planKey, userId, email } = await req.json().catch(() => ({}))
+// Resolve price IDs server-side — env vars only exist here, not on client
+const PRICE_MAP: Record<string, string | undefined> = {
+  student_monthly: process.env.STRIPE_STUDENT_MONTHLY,
+  student_annual:  process.env.STRIPE_STUDENT_ANNUAL,
+  pro_monthly:     process.env.STRIPE_PRO_MONTHLY,
+  pro_annual:      process.env.STRIPE_PRO_ANNUAL,
+}
 
-  if (!priceId || !userId || !email) {
+export async function POST(req: NextRequest) {
+  const { priceId: priceKey, planKey, userId, email } = await req.json().catch(() => ({}))
+
+  if (!priceKey || !userId || !email) {
     return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (!stripeKey) {
     return NextResponse.json({ error: 'Stripe não configurado. Contacta hello@phlox.health' }, { status: 503 })
+  }
+
+  const priceId = PRICE_MAP[priceKey]
+  if (!priceId) {
+    return NextResponse.json({ error: 'Plano inválido ou Price ID não configurado no Cloudflare.' }, { status: 400 })
   }
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox.health'

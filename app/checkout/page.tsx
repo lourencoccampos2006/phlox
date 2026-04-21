@@ -10,8 +10,8 @@ import Link from 'next/link'
 const PLANS = {
   student: {
     name: 'Student',
-    monthly: { price: '3,99€', priceId: process.env.NEXT_PUBLIC_STRIPE_STUDENT_MONTHLY || '' },
-    annual:  { price: '38,28€', priceId: process.env.NEXT_PUBLIC_STRIPE_STUDENT_ANNUAL  || '' },
+    monthly: { price: '3,99€', priceId: 'student_monthly' },
+    annual:  { price: '38,28€', priceId: 'student_annual' },
     features: [
       'Tudo do plano Gratuito sem limites',
       'Interpretação de análises clínicas',
@@ -27,8 +27,8 @@ const PLANS = {
   },
   pro: {
     name: 'Pro',
-    monthly: { price: '12,99€', priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY || '' },
-    annual:  { price: '124,68€', priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL || '' },
+    monthly: { price: '12,99€', priceId: 'pro_monthly' },
+    annual:  { price: '124,68€', priceId: 'pro_annual' },
     features: [
       'Tudo do plano Student',
       'Simulador de Estratégia Terapêutica',
