@@ -13,6 +13,7 @@ const POSTS = [
     title: 'Posso tomar ibuprofeno com varfarina?',
     desc: 'Uma das interações mais perigosas e mais comuns em Portugal. O que acontece, por que acontece, e o que podes tomar em alternativa.',
     tag: 'Interações',
+    tagBg: '#fff5f5', tagColor: '#dc2626',
     date: '2026-04-01',
     readTime: '4 min',
   },
@@ -21,6 +22,7 @@ const POSTS = [
     title: 'Tomar omeprazol todos os dias faz mal?',
     desc: 'Milhões de portugueses tomam omeprazol diariamente. O que diz a evidência sobre o uso prolongado, os riscos reais, e quando deve ser revisto.',
     tag: 'Medicamentos',
+    tagBg: '#eff6ff', tagColor: '#1e40af',
     date: '2026-04-05',
     readTime: '5 min',
   },
@@ -29,6 +31,7 @@ const POSTS = [
     title: 'Metformina e álcool: o que realmente acontece',
     desc: 'Um copo de vinho ao jantar com metformina — é perigoso? A resposta honesta, com o mecanismo explicado em linguagem simples.',
     tag: 'Interações',
+    tagBg: '#fff5f5', tagColor: '#dc2626',
     date: '2026-04-10',
     readTime: '3 min',
   },
@@ -37,6 +40,7 @@ const POSTS = [
     title: 'Défice de vitamina D: sintomas, diagnóstico e suplementação',
     desc: 'Em Portugal, mais de 70% da população tem défice de vitamina D. Como interpretar os teus valores nas análises e quando e como suplementar.',
     tag: 'Análises',
+    tagBg: '#f0fdf4', tagColor: '#16a34a',
     date: '2026-04-14',
     readTime: '6 min',
   },
@@ -45,16 +49,11 @@ const POSTS = [
     title: 'Devo tomar probiótico com o antibiótico?',
     desc: 'A resposta que o teu médico não teve tempo de te dar. Evidência actual, qual comprar, e quando tomar em relação ao antibiótico.',
     tag: 'Medicamentos',
+    tagBg: '#eff6ff', tagColor: '#1e40af',
     date: '2026-04-18',
     readTime: '4 min',
   },
 ]
-
-const TAG_STYLE: Record<string, { bg: string; color: string }> = {
-  'Interações': { bg: '#fff5f5', color: '#dc2626' },
-  'Medicamentos': { bg: '#eff6ff', color: '#1e40af' },
-  'Análises': { bg: '#f0fdf4', color: '#16a34a' },
-}
 
 export default function BlogPage() {
   return (
@@ -69,7 +68,7 @@ export default function BlogPage() {
             <em style={{ color: 'var(--green)', fontStyle: 'italic' }}>Sem filtros.</em>
           </h1>
           <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.75, maxWidth: 520 }}>
-            Respostas honestas às perguntas que toda a gente faz ao médico mas não tem tempo de receber. Escrito por farmacologistas, verificado com dados.
+            Respostas honestas às perguntas que toda a gente faz ao médico mas não tem tempo de receber.
           </p>
         </div>
       </section>
@@ -77,25 +76,23 @@ export default function BlogPage() {
       <section style={{ padding: '48px 0 80px' }}>
         <div className="page-container" style={{ maxWidth: 760 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            {POSTS.map((post, i) => {
-              const ts = TAG_STYLE[post.tag] || { bg: 'var(--bg-2)', color: 'var(--ink-4)' }
-              return (
-                <Link key={post.slug} href={`/blog/${post.slug}`}
-                  style={{ display: 'flex', flexDirection: 'column', padding: '24px 28px', background: 'white', textDecoration: 'none', transition: 'background 0.12s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, background: ts.bg, color: ts.color, padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em' }}>{post.tag}</span>
-                    <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{post.date} · {post.readTime}</span>
-                  </div>
-                  <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{post.title}</h2>
-                  <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>{post.desc}</p>
-                </Link>
-              )
-            })}
+            {POSTS.map(post => (
+              <Link key={post.slug} href={`/blog/${post.slug}`}
+                style={{ display: 'flex', flexDirection: 'column', padding: '24px 28px', background: 'white', textDecoration: 'none' }}
+                className="blog-post-link">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, background: post.tagBg, color: post.tagColor, padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em' }}>{post.tag}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{post.date} · {post.readTime}</span>
+                </div>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{post.title}</h2>
+                <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>{post.desc}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
+
+      <style>{`.blog-post-link:hover { background: var(--bg-2) !important; }`}</style>
     </div>
   )
 }
