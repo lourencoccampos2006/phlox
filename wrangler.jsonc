@@ -1,5 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  "vars": {
+    "STRIPE_STUDENT_MONTHLY": "price_1TOL3xBq0eVzwb9ftyDEzSjz",
+    "STRIPE_STUDENT_ANNUAL": "price_1TOL5OBq0eVzwb9fkDCd4FDh",
+    "STRIPE_PRO_MONTHLY": "price_1TOL6FBq0eVzwb9fluopYZ4A",
+    "STRIPE_PRO_ANNUAL": "price_1TOL7ABq0eVzwb9fSdomK2I9",
+    "NEXT_PUBLIC_BASE_URL": "https://phlox.lourencoccampos2006.workers.dev/"
+  },
   "main": ".open-next/worker.js",
   "name": "phlox",
   "compatibility_date": "2026-04-16",
