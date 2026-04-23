@@ -37,6 +37,7 @@ const TOOL_GROUPS = [
   {
     label: 'Pro — Decisão Clínica',
     tools: [
+      { href: '/nursing',      label: 'Guia de Administração',      sub: 'IV · SC · IM — preparação e técnica' },
       { href: '/ai',          label: 'Phlox AI',                   sub: 'Farmacologista clínico IA' },
       { href: '/strategy',    label: 'Simulador de Estratégias',   sub: 'Alternativas com evidência A/B/C' },
       { href: '/protocol',    label: 'Protocolo Terapêutico',      sub: 'ESC · ADA · NICE · DGS' },

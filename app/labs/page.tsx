@@ -1,6 +1,35 @@
 'use client'
 
 import { useState, useRef } from 'react'
+
+// PDF.js via CDN — loaded dynamically to avoid SSR issues
+async function extractPdfText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    script.onload = async () => {
+      try {
+        const pdfjsLib = (window as any).pdfjsLib
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+        const arrayBuffer = await file.arrayBuffer()
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        let text = ''
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i)
+          const content = await page.getTextContent()
+          text += content.items.map((item: any) => item.str).join(' ') + '\n'
+        }
+        resolve(text.trim())
+      } catch (e) { reject(e) }
+    }
+    script.onerror = () => reject(new Error('Falha ao carregar PDF.js'))
+    if (!(window as any).pdfjsLib) {
+      document.head.appendChild(script)
+    } else {
+      script.onload!(new Event('load'))
+    }
+  })
+}
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
@@ -294,13 +323,26 @@ export default function LabsPage() {
 
       let labText = text
 
-      // If file, extract text client-side
+      // Extract text from file client-side
       if (file && !text.trim()) {
-        labText = await new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onload = e => resolve(e.target?.result as string || '')
-          reader.readAsText(file)
-        })
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          try {
+            labText = await extractPdfText(file)
+            if (!labText.trim()) {
+              throw new Error('O PDF não contém texto extraível. Tenta copiar o texto manualmente.')
+            }
+          } catch (e: any) {
+            setError(e.message || 'Erro ao ler o PDF. Tenta copiar o texto manualmente.')
+            setLoading(false)
+            return
+          }
+        } else {
+          labText = await new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = e => resolve(e.target?.result as string || '')
+            reader.readAsText(file)
+          })
+        }
       }
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -381,7 +423,7 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
               {(['text', 'file'] as const).map(m => (
                 <button key={m} onClick={() => setInputMode(m)}
                   style={{ flex: 1, background: inputMode === m ? 'var(--green)' : 'transparent', color: inputMode === m ? 'white' : 'var(--ink-3)', border: 'none', borderRadius: 4, padding: '7px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {m === 'text' ? '📋 Colar texto' : '📄 Ficheiro .txt'}
+                  {m === 'text' ? '📋 Colar texto' : '📄 PDF ou ficheiro'}
                 </button>
               ))}
             </div>
@@ -408,9 +450,9 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
                     {file ? file.name : 'Clica para seleccionar ficheiro'}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Ficheiro .txt com os resultados</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>PDF, .txt — as tuas análises do laboratório</div>
                 </div>
-                <input ref={fileRef} type="file" accept=".txt,.csv" style={{ display: 'none' }}
+                <input ref={fileRef} type="file" accept=".pdf,.txt,.csv" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }} />
               </div>
             )}

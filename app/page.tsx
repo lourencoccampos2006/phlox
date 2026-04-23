@@ -51,6 +51,27 @@ const TOOLS = [
     new: false,
   },
   {
+    href: '/otc',
+    title: 'Guia de Automedicação',
+    desc: 'O que comprar na farmácia sem receita para cada sintoma — com doses, contraindicações e quando ir ao médico.',
+    plan: null,
+    new: true,
+  },
+  {
+    href: '/prescription',
+    title: 'Explicador de Receita',
+    desc: 'Cola o texto ou tira foto da receita. Explicamos em linguagem simples o que é, como tomar e o que vigiar.',
+    plan: null,
+    new: true,
+  },
+  {
+    href: '/nursing',
+    title: 'Guia de Administração IV · SC · IM',
+    desc: 'Preparação, técnica e monitorização para administração intravenosa, subcutânea e intramuscular.',
+    plan: null,
+    new: true,
+  },
+  {
     href: '/study',
     title: 'Plataforma de Estudo',
     desc: 'Flashcards e quizzes gerados por IA para 24 classes farmacológicas, com mecanismo e farmacocinética.',
