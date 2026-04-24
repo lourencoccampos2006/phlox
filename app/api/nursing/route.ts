@@ -8,64 +8,117 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const body = await req.json().catch(() => null)
-  if (!body?.drug || !body?.via) {
-    return NextResponse.json({ error: 'Medicamento e via obrigatórios' }, { status: 400 })
+  if (!body?.drugs || !body?.via) {
+    return NextResponse.json({ error: 'Fármaco(s) e via obrigatórios' }, { status: 400 })
   }
 
-  const drug = String(body.drug).trim().slice(0, 100)
+  const drugs: string[] = Array.isArray(body.drugs)
+    ? body.drugs.map(String).slice(0, 5)
+    : [String(body.drugs)]
   const via: 'IV' | 'SC' | 'IM' = body.via
-  const dose = String(body.dose || '').trim().slice(0, 50)
+  const dose = String(body.dose || '').trim().slice(0, 100)
+  const isCompatibilityQuery = drugs.length > 1
 
   if (!['IV', 'SC', 'IM'].includes(via)) {
-    return NextResponse.json({ error: 'Via inválida. Use IV, SC ou IM.' }, { status: 400 })
+    return NextResponse.json({ error: 'Via inválida.' }, { status: 400 })
   }
 
-  try {
-    const result = await aiJSON<any>([
-      {
-        role: 'system',
-        content: `És um farmacêutico clínico hospitalar especialista em farmacotecnia e administração de medicamentos. Responde em português europeu (PT-PT).
+  // Deterministic seed for consistent answers
+  const cacheKey = JSON.stringify({ drugs: drugs.map(d => d.toLowerCase()).sort(), via, dose })
 
-Dado um medicamento e uma via de administração, fornece o protocolo clínico completo para administração.
+  try {
+    if (isCompatibilityQuery) {
+      // ─── COMPATIBILITY MODE: 2+ drugs same route ─────────────────────────
+      const result = await aiJSON<any>([
+        {
+          role: 'system',
+          content: `És um farmacêutico clínico hospitalar especialista em farmacotecnia. Responde SEMPRE em português europeu (PT-PT).
+
+A questão é sobre compatibilidade de ${via === 'IV' ? 'fármacos na mesma linha/cateter IV' : `fármacos administrados pelo mesmo local de injecção ${via}`}.
 
 Responde APENAS com JSON válido sem markdown:
 {
-  "drug": "nome do medicamento conforme pedido",
+  "drugs": ["lista dos fármacos"],
   "via": "${via}",
-  "compatible": true | false,
-  "preparation": "instruções de preparação detalhadas — diluente, volume, ordem de adição",
-  "concentration": "concentração final (ex: '1mg/mL', '5mg/50mL') — null se não aplicável",
-  "volume_max": "volume máximo por administração/local — null se não aplicável",
-  "rate": "ritmo de administração (ex: 'infundir em 60 min', 'bolus lento 5 min') — null se SC/IM simples",
-  "sites": ["locais de injecção para SC/IM — null para IV"],
-  "technique": [
-    "Passo 1: ...",
-    "Passo 2: ...",
-    "..." 
-  ],
-  "stability": "estabilidade após reconstituição/abertura — temperatura, luz, duração",
-  "contraindications": ["contraindicações específicas desta via para este fármaco"],
-  "monitoring": ["parâmetro a monitorizar após administração"],
-  "special_notes": ["notas clínicas importantes que um enfermeiro não pode ignorar"],
-  "alternatives": "alternativa de via se esta for contraindicada — null se não aplicável"
+  "compatible": true | false | "condicional",
+  "verdict": "frase directa: compatíveis / incompatíveis / condicionalmente compatíveis nesta via",
+  "evidence_source": "fonte da informação (ex: Trissel's, King Guide, ASHP, estudo específico)",
+  "physical_compatibility": "compatibilidade física — precipitação, turvação, alteração de cor",
+  "chemical_compatibility": "estabilidade química — degradação, interacção",
+  "conditions_if_conditional": "condições necessárias se compatibilidade condicional (concentrações, diluentes, tempo) — null se não aplicável",
+  "incompatibility_mechanism": "mecanismo da incompatibilidade se existir — null se compatíveis",
+  "alternatives": ["alternativa prática se incompatíveis — linha separada, timing diferente, etc"],
+  "clinical_notes": ["nota clinicamente relevante para o farmacêutico/enfermeiro sénior — nada básico"],
+  "time_window": "se compatíveis, durante quanto tempo e em que condições"
 }
 
-Regras:
-- Se o fármaco não pode ser dado por ${via}: compatible: false, explica porquê em preparation e indica alternativa
-- Sê específico sobre: diluentes compatíveis (SF, G5%, água ppi), concentrações máximas, ritmos de perfusão
-- Para SC: menciona rotação de locais, ângulo (45-90°), volume máximo por local (geralmente 1-2mL)
-- Para IM: menciona músculo preferencial (deltoide, vasto externo, glúteo), ângulo 90°, técnica Z se necessário
-- Para IV bolus: velocidade máxima, necessidade de filtro, incompatibilidades comuns
-- Inclui sempre: o que observar no doente nos primeiros 15-30 min
-- Usa linguagem técnica mas clara — destinada a enfermeiros`,
-      },
-      {
-        role: 'user',
-        content: `Guia de administração ${via} para: ${drug}${dose ? ` (dose: ${dose})` : ''}`,
-      },
-    ], { maxTokens: 1500, temperature: 0.1 })
+REGRAS CRÍTICAS:
+- Se incompatíveis por via ${via}: diz claramente e explica o mecanismo
+- NÃO incluas passos de técnica de administração — o utilizador é profissional
+- NÃO expliques o que é um cateter, como dar uma injecção, ou outros conceitos básicos
+- Sê conservador: se a evidência for limitada, diz "dados limitados — contactar farmácia"
+- Para SC especificamente: verifica se ambos os fármacos são adequados para perfusão subcutânea contínua (infusão SC) vs bolus SC — são questões distintas`
+        },
+        {
+          role: 'user',
+          content: `Compatibilidade via ${via}: ${drugs.join(' + ')}${dose ? ` (${dose})` : ''}`
+        }
+      ], { maxTokens: 900, temperature: 0.0 })
+      return NextResponse.json({ mode: 'compatibility', ...result })
 
-    return NextResponse.json(result)
+    } else {
+      // ─── SINGLE DRUG MODE: clinically relevant info only ─────────────────
+      const drug = drugs[0]
+      const result = await aiJSON<any>([
+        {
+          role: 'system',
+          content: `És um farmacêutico clínico hospitalar. O utilizador é um enfermeiro ou farmacêutico experiente. Responde SEMPRE em português europeu (PT-PT).
+
+Fornece APENAS a informação clinicamente relevante que um profissional precisa de verificar — não o que já sabe de treino básico.
+
+Responde APENAS com JSON válido sem markdown:
+{
+  "drug": "nome do fármaco",
+  "via": "${via}",
+  "suitable_for_via": true | false,
+  "unsuitable_reason": "motivo se não adequado — null se adequado",
+  "concentration_limits": {
+    "min": "concentração mínima se relevante",
+    "max": "concentração máxima — CRÍTICO para prevenir flebite/necrose",
+    "recommended": "concentração recomendada para esta via"
+  },
+  "diluents_compatible": ["SF 0.9%", "G5%", etc — apenas os validados, não todos os possíveis],
+  "diluents_incompatible": ["diluentes a EVITAR — ex: Ringer Lactato com cefalosporinas"],
+  "rate_critical_info": "informação CRÍTICA sobre ritmo — apenas se existir risco de toxicidade por velocidade (ex: vancomicina, fenitoína, potássio). null se não relevante",
+  "stability_reconstituted": "estabilidade após reconstituição — temperatura, luz, duração",
+  "stability_diluted": "estabilidade após diluição final",
+  "incompatible_drugs_common": ["fármacos comuns incompatíveis nesta via — os que aparecem frequentemente juntos"],
+  "special_warnings": ["aviso farmacológico relevante para esta via específica — ex: extravasamento, fotossensibilidade, filtro obrigatório"],
+  "sc_specific": ${via === 'SC' ? `{
+    "max_volume_per_site": "volume máximo por local",
+    "suitable_for_csci": true | false,
+    "csci_notes": "notas sobre infusão SC contínua (CSCI) se aplicável"
+  }` : 'null'},
+  "ph_range": "pH da solução — relevante para compatibilidade",
+  "osmolarity": "osmolaridade se relevante para via periférica vs central"
+}
+
+REGRAS:
+- NÃO incluas: técnica de punção, localização de veias, como preencher seringa, higiene das mãos, asepsia — o utilizador já sabe
+- NÃO repitas informação da bula que qualquer enfermeiro já conhece
+- INCLUI: o que pode correr mal especificamente com este fármaco nesta via
+- Para IV: foca em incompatibilidades físico-químicas, concentração máxima, ritmo crítico
+- Para SC: foca em volume máximo, adequação CSCI, compatibilidade em seringa driver
+- Para IM: foca em volume máximo por local, necessidade técnica Z, profundidade — apenas se relevante clinicamente`
+        },
+        {
+          role: 'user',
+          content: `Via ${via}: ${drug}${dose ? ` — dose ${dose}` : ''}`
+        }
+      ], { maxTokens: 900, temperature: 0.0 })
+      return NextResponse.json({ mode: 'single', ...result })
+    }
+
   } catch (err: any) {
     console.error('Nursing error:', err?.message)
     return NextResponse.json({ error: err.message || 'Erro. Tenta novamente.' }, { status: 500 })
