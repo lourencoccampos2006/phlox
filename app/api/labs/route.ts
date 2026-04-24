@@ -8,8 +8,7 @@ export async function POST(req: NextRequest) {
   const rl = checkRateLimit(ip, 5, 60_000)
   if (!rl.allowed) return rateLimitResponse()
 
-  const { plan, userId } = await getUserPlan(req)
-  if (plan === 'free') return planGateResponse('cases', plan)
+  const { userId } = await getUserPlan(req)
 
   const body = await req.json().catch(() => null)
   if (!body?.lab_text || String(body.lab_text).trim().length < 20) {

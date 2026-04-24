@@ -303,7 +303,7 @@ function ReportView({ report }: { report: LabReport }) {
 export default function LabsPage() {
   const { user, supabase } = useAuth()
   const plan = (user?.plan || 'free') as string
-  const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
+  const isStudent = true // Labs is free for everyone
 
   const [text, setText] = useState('')
   const [file, setFile] = useState<File | null>(null)

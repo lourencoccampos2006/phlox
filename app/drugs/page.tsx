@@ -1,5 +1,7 @@
 'use client'
 
+import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -80,6 +82,7 @@ function DrugSkeleton() {
 export default function DrugsPage() {
   const { user, supabase } = useAuth()
   const [query, setQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -98,6 +101,18 @@ export default function DrugsPage() {
     } catch (e) {
       console.error('History save error:', e)
     }
+  }
+
+  const handleInput = (val: string) => {
+    setQuery(val)
+    setSuggestions(val.length >= 2 ? suggestDrugs(val) : [])
+  }
+
+  const handleSearch = (term: string) => {
+    const resolved = resolveDrugName(term)
+    const finalTerm = resolved ? resolved.dci : term
+    setSuggestions([])
+    search(finalTerm)
   }
 
   const search = async (q?: string) => {
@@ -141,7 +156,7 @@ export default function DrugsPage() {
             <input
               type="text"
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => handleInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && search()}
               placeholder="Nome DCI ou comercial (ex: ibuprofen, metformin...)"
               style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '10px 14px', fontSize: 15, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none', minWidth: 0 }}
