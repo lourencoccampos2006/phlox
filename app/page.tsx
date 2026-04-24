@@ -155,8 +155,7 @@ export default function HomePage() {
                   {seg.tools.map(({ href, icon, label, desc }) => (
                     <Link key={href} href={href}
                       style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 18px', background: 'white', textDecoration: 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                      className="tool-link">
                       <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{icon}</span>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 3 }}>{label}</div>
@@ -261,6 +260,7 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+    <style>{'.tool-link:hover { background: var(--bg-2) !important; } .footer-link:hover { color: rgba(255,255,255,0.7) !important; }'}</style>
     </div>
   )
 }
