@@ -1,11 +1,23 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
 
+// Cria o cliente uma vez, fora do componente, ao nível do módulo
+// Isto garante que é o mesmo cliente em toda a app independentemente de renders
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: true,
+      storageKey: 'phlox-auth',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+    },
+  }
 )
 
 type User = {
@@ -13,7 +25,7 @@ type User = {
   email: string
   name: string
   avatar: string
-  plan: 'free' | 'student' | 'pro'
+  plan: 'free' | 'student' | 'pro' | 'clinic'
   searches_today: number
 }
 
@@ -22,7 +34,7 @@ type AuthContextType = {
   loading: boolean
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
-  supabase: typeof supabase
+  supabase: SupabaseClient
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -38,49 +50,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
+    let mounted = true
+
+    // Recupera sessão existente do localStorage
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
       if (session?.user) {
-        loadUserProfile(session.user.id, session.user)
+        loadProfile(session.user).finally(() => {
+          if (mounted) setLoading(false)
+        })
       } else {
         setLoading(false)
       }
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await loadUserProfile(session.user.id, session.user)
-      } else {
+    // Escuta mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        loadProfile(session.user)
+      } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setLoading(false)
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Token refrescado automaticamente — não precisa de recarregar perfil
+        setLoading(false)
+      } else if (event === 'INITIAL_SESSION') {
+        if (!session) setLoading(false)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadUserProfile(userId: string, authUser: any) {
+  async function loadProfile(authUser: any) {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', authUser.id)
         .single()
 
-      if (error || !data) {
-        // Create profile if doesn't exist
+      if (error && error.code !== 'PGRST116') {
+        console.error('Profile error:', error.message)
+      }
+
+      if (!data) {
+        // Cria perfil novo
         const newProfile = {
-          id: userId,
-          email: authUser.email,
+          id: authUser.id,
+          email: authUser.email || '',
           name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Utilizador',
           avatar: authUser.user_metadata?.avatar_url || '',
-          plan: 'free',
+          plan: 'free' as const,
           searches_today: 0,
           created_at: new Date().toISOString(),
         }
-        await supabase.from('profiles').insert(newProfile)
-        setUser({ ...newProfile, plan: 'free' as const })
+        const { error: insertError } = await supabase.from('profiles').insert(newProfile)
+        if (insertError) console.error('Profile insert error:', insertError.message)
+        setUser(newProfile)
       } else {
         setUser({
           id: data.id,
@@ -91,25 +123,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           searches_today: data.searches_today || 0,
         })
       }
-    } catch (e) {
-      console.error('Profile load error:', e)
+    } catch (e: any) {
+      console.error('loadProfile error:', e?.message)
     } finally {
       setLoading(false)
     }
   }
 
   const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
       },
     })
+    if (error) throw error
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    setLoading(true)
+    const { error } = await supabase.auth.signOut()
+    if (error) console.error('SignOut error:', error.message)
     setUser(null)
+    setLoading(false)
   }
 
   return (
@@ -120,4 +160,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext)
-export { supabase }
