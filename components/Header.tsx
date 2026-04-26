@@ -311,9 +311,9 @@ export default function Header() {
         position: 'sticky', top: 0, zIndex: 100,
         background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
-        isolation: 'isolate',
+        overflow: 'visible',
       }}>
-        <div className="page-container" style={{ height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div className="page-container" style={{ height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, overflow: 'visible' }}>
 
           {/* ── Logo ──────────────────────────────────── */}
           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>

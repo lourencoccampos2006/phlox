@@ -97,7 +97,7 @@ export default function QuickCheckPage() {
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder={'Metformina 1000mg 2x/dia\nAtovastatina 20mg\nRamipril 5mg\nOmeprazol 20mg\n...'}
+              placeholder={'Brufen 400mg 2x/dia (ou ibuprofeno)\nZocor 20mg (ou sinvastatina)\nRamipril 5mg\nOmeprazol 20mg\n\nPodes usar nomes de caixas ou nomes científicos.'}
               rows={6}
               style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 6, padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, color: 'var(--ink)' }}
             />

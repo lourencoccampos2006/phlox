@@ -150,25 +150,38 @@ export default function DrugsPage() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>Ferramenta 02</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.01em' }}>Base de Dados de Fármacos</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5, margin: 0 }}>Dados clínicos da FDA. Introduz o nome DCI em inglês para melhores resultados.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5, margin: 0 }}>Dados clínicos da FDA. Pesquisa pelo nome da caixa ou pelo nome científico.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <input
               type="text"
               value={query}
               onChange={e => handleInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && search()}
-              placeholder="Nome DCI ou comercial (ex: ibuprofen, metformin...)"
+              onKeyDown={e => e.key === 'Enter' && handleSearch(query)}
+              placeholder="Ex: brufen, voltaren, metformina, ibuprofeno..."
               style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '10px 14px', fontSize: 15, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none', minWidth: 0 }}
             />
             <button
-              onClick={() => search()}
+              onClick={() => handleSearch(query)}
               disabled={!query.trim() || loading}
               style={{ background: query.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: query.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 4, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: query.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0 }}
             >
               {loading ? 'A pesquisar...' : 'Pesquisar'}
             </button>
           </div>
+          {suggestions.length > 0 && (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+              {suggestions.map(s => (
+                <button key={s.dci} onClick={() => { setQuery(s.display); setSuggestions([]); handleSearch(s.dci) }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', background: 'white', border: 'none', borderBottom: '1px solid var(--bg-3)', cursor: 'pointer', textAlign: 'left', gap: 8 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                  <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>{s.display}</span>
+                  {s.isBrand && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>→ {s.dci}</span>}
+                </button>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', marginRight: 4 }}>EXEMPLOS:</span>
             {EXAMPLES.map(({ name, pt }) => (

@@ -8,45 +8,33 @@ import { useState } from 'react'
 
 const PERSONAS = [
   {
-    id: 'everyone',
-    label: 'Para toda a gente',
-    sub: 'Sem formação clínica. Basta saber o nome do medicamento.',
+    id: 'everyday',
+    label: 'Uso pessoal',
+    sub: 'Para quem toma medicamentos, cuida de um familiar, ou quer perceber melhor o que o médico receitou.',
     accent: 'var(--green)',
     tools: [
       {
+        href: '/prescription',
+        label: 'Perceber a minha receita',
+        desc: 'O médico receitou e não ficaste com resposta para as tuas dúvidas? Tira uma foto à receita ou cola o texto. Explicamos em linguagem simples o que é cada medicamento, como tomar, e quando ligar ao médico.',
+        tag: null,
+      },
+      {
         href: '/labs',
-        label: 'Interpretação de Análises',
-        desc: 'Cola os resultados em texto ou faz upload do PDF. Recebe uma interpretação completa — o que está fora do normal, o que significa, e as perguntas certas para levar ao médico.',
-        tag: 'Novo',
+        label: 'Perceber as minhas análises',
+        desc: 'Recebeste os resultados mas não percebeste tudo o que te disseram? Cola os valores ou faz upload do PDF. Dizemos o que está fora do normal, o que significa, e o que perguntar na próxima consulta.',
+        tag: null,
       },
       {
         href: '/interactions',
-        label: 'Verificador de Interações',
-        desc: 'Escreve o nome da caixa — Brufen, Voltaren, Xarelto. Reconhecemos automaticamente. Analisamos interações com gravidade, mecanismo e recomendação.',
+        label: 'Este medicamento é seguro com o que tomo?',
+        desc: 'Escreve o nome que está na caixa — Brufen, Voltaren, Xarelto. Verificamos se é seguro com os outros medicamentos que tomas.',
         tag: null,
       },
       {
         href: '/otc',
-        label: 'Guia de Automedicação',
-        desc: 'Diz o sintoma. Recebe o que comprar na farmácia sem receita, com doses concretas, alertas de contraindicações, e quando ir ao médico.',
-        tag: null,
-      },
-      {
-        href: '/prescription',
-        label: 'Explicador de Receita',
-        desc: 'Tira foto à receita ou cola o texto. Explicamos em português simples para que serve cada medicamento, como tomar exactamente, e o que vigiar.',
-        tag: null,
-      },
-      {
-        href: '/drugs',
-        label: 'Base de Dados de Fármacos',
-        desc: 'Mais de 10.000 medicamentos com informação clínica completa em português europeu — mecanismo, posologia, efeitos adversos, contraindicações.',
-        tag: null,
-      },
-      {
-        href: '/safety',
-        label: 'Segurança do Medicamento',
-        desc: 'Condução, gravidez, amamentação, álcool, idosos e critérios Beers. Perfil de segurança completo para qualquer fármaco.',
+        label: 'O que comprar na farmácia sem receita',
+        desc: 'Tens dor de cabeça, febre, tosse ou azia? Diz o sintoma e dizemos o que comprar, quanto tomar, e quando ir mesmo ao médico.',
         tag: null,
       },
     ],
@@ -54,31 +42,31 @@ const PERSONAS = [
   {
     id: 'students',
     label: 'Estudantes',
-    sub: 'Medicina, farmácia, enfermagem. Para passar nos exames e sobreviver ao estágio.',
+    sub: 'Medicina, farmácia, enfermagem. Para perceber, estudar e passar nos exames.',
     accent: '#7c3aed',
     tools: [
       {
-        href: '/study',
-        label: 'Flashcards e Quizzes',
-        desc: 'Flashcards e quizzes gerados por IA para 24 classes farmacológicas. Mecanismo, farmacocinética, efeitos adversos — tudo o que sai nos exames.',
+        href: '/disease',
+        label: 'Fármacos por diagnóstico',
+        desc: 'Pesquisa pela doença — hipertensão, diabetes, depressão. Recebe a 1ª e 2ª linha com doses, racional clínico e dicas para o exame.',
         tag: null,
       },
       {
-        href: '/exam',
-        label: 'Modo Exame',
-        desc: 'Simulação real de exame com timer, banco cumulativo de questões, score por classe, e análise detalhada dos pontos fracos.',
+        href: '/compare',
+        label: 'Comparar dois fármacos',
+        desc: 'Metoprolol vs bisoprolol? Sertralina vs escitalopram? Compara mecanismo, eficácia, segurança e quando preferir cada um — linha a linha.',
+        tag: null,
+      },
+      {
+        href: '/study',
+        label: 'Flashcards e quizzes',
+        desc: 'Flashcards e perguntas de escolha múltipla para 24 classes farmacológicas, gerados por IA com base no que realmente sai nos exames.',
         tag: null,
       },
       {
         href: '/cases',
-        label: 'Casos Clínicos',
-        desc: 'Cenários clínicos com diagnóstico diferencial interactivo e decisão terapêutica guiada. Com feedback completo de um farmacologista clínico.',
-        tag: null,
-      },
-      {
-        href: '/mymeds',
-        label: 'A Minha Medicação',
-        desc: 'Regista os teus medicamentos e verifica interações em contexto. O teu perfil farmacológico pessoal, sempre disponível.',
+        label: 'Casos clínicos',
+        desc: 'Cenários reais com diagnóstico diferencial e decisão terapêutica. Pratica o raciocínio antes de chegar ao estágio.',
         tag: null,
       },
     ],
@@ -92,38 +80,26 @@ const PERSONAS = [
       {
         href: '/ai',
         label: 'Phlox AI',
-        desc: 'Farmacologista clínico virtual com acesso ao teu perfil e histórico. Responde a questões complexas com raciocínio transparente e citações.',
+        desc: 'Farmacologista clínico virtual. Responde a questões complexas, analisa o perfil do doente e fundamenta cada resposta com evidência.',
         tag: 'Pro',
       },
       {
         href: '/nursing',
-        label: 'Farmacotecnia IV · SC · IM',
-        desc: 'Compatibilidades de linha, concentrações máximas, estabilidade após diluição, e protocolos de administração subcutânea e intramuscular.',
+        label: 'Compatibilidades IV · SC · IM',
+        desc: 'Concentrações máximas, diluentes validados, estabilidade e compatibilidade de dois fármacos na mesma via — sem tutoriais básicos.',
         tag: null,
       },
       {
         href: '/strategy',
-        label: 'Simulador de Estratégias Terapêuticas',
-        desc: 'Define o objectivo clínico e o perfil do doente. Recebe 3–5 estratégias com evidência A/B/C, score de adequação e trade-offs.',
+        label: 'Estratégias terapêuticas',
+        desc: 'Define o objectivo clínico e o perfil do doente. Recebe alternativas com evidência A/B/C, score de adequação e trade-offs.',
         tag: 'Pro',
       },
       {
         href: '/protocol',
-        label: 'Protocolo Terapêutico',
-        desc: 'Contexto clínico → protocolo faseado baseado nas guidelines mais recentes ESC, ADA, NICE e DGS. Em português.',
+        label: 'Protocolo terapêutico',
+        desc: 'Contexto clínico → protocolo faseado baseado nas guidelines mais recentes ESC, ADA, NICE e DGS, em português.',
         tag: 'Pro',
-      },
-      {
-        href: '/med-review',
-        label: 'Revisão Clínica de Medicação',
-        desc: 'Análise completa do perfil farmacológico do doente — interações, duplicações, critérios Beers, monitorização laboratorial, e relatório PDF.',
-        tag: 'Pro',
-      },
-      {
-        href: '/calculators',
-        label: 'Calculadoras Clínicas',
-        desc: 'SCORE2, HAS-BLED, CKD-EPI, Cockcroft-Gault, conversão de opióides, ajuste renal, peso ideal. Todas validadas clinicamente.',
-        tag: null,
       },
     ],
   },
@@ -131,20 +107,20 @@ const PERSONAS = [
 
 const DIFFERENTIATORS = [
   {
-    label: 'Português europeu nativo',
-    desc: 'Tudo em PT-PT. Não uma tradução automática — escrito de raiz, com a terminologia clínica correcta usada em Portugal.',
+    label: 'Em português, sem jargão',
+    desc: 'Tudo explicado como se o teu médico ou farmacêutico tivesse tempo para responder a todas as perguntas. Sem termos técnicos desnecessários.',
   },
   {
-    label: 'Nomes comerciais reconhecidos',
-    desc: 'Pesquisa por Brufen, Voltaren ou Xarelto. A plataforma resolve automaticamente para a substância activa e processa a verificação.',
+    label: 'Escreve o nome da caixa',
+    desc: 'Não precisas de saber o nome científico. Escreve Brufen, Voltaren ou Xarelto e nós percebemos. Como deve ser.',
   },
   {
-    label: 'Dados regulados e verificados',
-    desc: 'OpenFDA, RxNorm, NIH. Não é IA a inventar — é informação de fontes reguladas, interpretada com inteligência artificial transparente.',
+    label: 'Informação verificada',
+    desc: 'Os dados vêm de fontes reguladas — FDA, NIH, RxNorm. A IA interpreta e explica, mas os factos são sempre verificados.',
   },
   {
-    label: 'Grátis de verdade',
-    desc: 'As ferramentas essenciais funcionam sem registo. Os planos pagos adicionam capacidades — não bloqueiam o que já existe.',
+    label: 'Grátis, sem truques',
+    desc: 'As ferramentas principais são grátis e funcionam sem criar conta. Quando criares conta, tens ainda mais. Sem subscriptions forçadas.',
   },
 ]
 
@@ -203,7 +179,7 @@ export default function HomePage() {
                 marginBottom: 36, maxWidth: 500,
                 fontWeight: 400,
               }}>
-                Do doente que quer perceber a sua medicação ao especialista que precisa de uma decisão rápida. Dados FDA e NIH. Sem compromissos.
+                Percebe a tua receita. Interpreta as tuas análises. Verifica se os teus medicamentos são seguros entre si. Tudo grátis, tudo em português.
               </p>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 }}>
@@ -214,7 +190,7 @@ export default function HomePage() {
                   fontSize: 14, fontWeight: 700, textDecoration: 'none',
                   letterSpacing: '0.02em', textTransform: 'uppercase',
                 }}>
-                  Verificar interações
+                  Perceber a minha receita
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <path d="M5 12h14M12 5l7 7-7 7"/>
                   </svg>
@@ -227,7 +203,7 @@ export default function HomePage() {
                   border: '1.5px solid var(--border-2)',
                   letterSpacing: '0.02em', textTransform: 'uppercase',
                 }}>
-                  Interpretar análises
+                  Verificar interações
                 </Link>
               </div>
 
