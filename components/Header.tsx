@@ -4,203 +4,136 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 
-// ─── Tool registry — grouped for mega-menu ──────────────────────────────────
+// ─── Tool registry ────────────────────────────────────────────────────────────
 
-const TOOL_GROUPS = [
+const GROUPS = [
   {
-    id: 'everyone',
     heading: 'Para toda a gente',
-    items: [
-      { href: '/labs',         label: 'Análises Clínicas',      detail: 'PDF ou texto → interpretação completa' },
-      { href: '/interactions', label: 'Verificar Interações',   detail: 'Nomes comerciais PT · RxNorm · NIH' },
-      { href: '/otc',          label: 'Automedicação',          detail: 'O que comprar sem receita, com doses' },
-      { href: '/prescription', label: 'Explicador de Receita',  detail: 'Foto ou texto da receita em PT simples' },
-      { href: '/drugs',        label: 'Base de Dados FDA',      detail: '10.000+ fármacos em português' },
-      { href: '/safety',       label: 'Segurança',              detail: 'Conduzir · gravidez · álcool · idosos' },
-      { href: '/quickcheck',   label: 'Análise Rápida',         detail: 'Lista completa de medicamentos' },
+    color: '#0d6e42',
+    tools: [
+      { href: '/prescription', label: 'Perceber a Receita',        sub: 'Foto ou texto → explicação simples' },
+      { href: '/labs',         label: 'Perceber as Análises',      sub: 'PDF ou texto → o que está fora do normal' },
+      { href: '/interactions', label: 'Verificar Interações',      sub: 'Brufen, Voltaren, Xarelto — reconhecemos' },
+      { href: '/otc',          label: 'O Que Comprar sem Receita', sub: 'Sintoma → o que levar da farmácia' },
+      { href: '/drugs',        label: 'Base de Dados de Fármacos', sub: '10.000+ medicamentos em PT' },
+      { href: '/safety',       label: 'Segurança',                 sub: 'Conduzir · gravidez · álcool · idosos' },
+      { href: '/quickcheck',   label: 'Análise Rápida',            sub: 'Lista completa de medicamentos' },
     ],
   },
   {
-    id: 'students',
     heading: 'Estudantes',
-    items: [
-      { href: '/study',    label: 'Flashcards e Quizzes',  detail: '24 classes farmacológicas por IA' },
-      { href: '/exam',     label: 'Modo Exame',             detail: 'Simulação com timer e análise de erros' },
-      { href: '/cases',    label: 'Casos Clínicos',         detail: 'Raciocínio clínico guiado' },
-      { href: '/compare',  label: 'Comparar Fármacos',      detail: 'A vs B — mecanismo, eficácia, exame' },
-      { href: '/disease',  label: 'Fármacos por Doença',    detail: '1ª e 2ª linha por diagnóstico' },
-      { href: '/mymeds',   label: 'A Minha Medicação',      detail: 'Perfil farmacológico e interações' },
+    color: '#7c3aed',
+    tools: [
+      { href: '/study',   label: 'Flashcards e Quizzes',  sub: '24 classes farmacológicas' },
+      { href: '/exam',    label: 'Modo Exame',             sub: 'Simulação com timer e análise' },
+      { href: '/cases',   label: 'Casos Clínicos',         sub: 'Raciocínio clínico guiado' },
+      { href: '/compare', label: 'Comparar Fármacos',      sub: 'A vs B — linha a linha + exame' },
+      { href: '/disease', label: 'Fármacos por Doença',   sub: '1ª e 2ª linha com doses + exame' },
+      { href: '/mymeds',  label: 'A Minha Medicação',      sub: 'Perfil pessoal e interações' },
     ],
   },
   {
-    id: 'clinical',
-    heading: 'Decisão clínica',
-    items: [
-      { href: '/ai',          label: 'Phlox AI',                detail: 'Farmacologista clínico virtual' },
-      { href: '/strategy',    label: 'Estratégias',             detail: 'Alternativas com evidência A/B/C' },
-      { href: '/protocol',    label: 'Protocolo Terapêutico',   detail: 'ESC · ADA · NICE · DGS' },
-      { href: '/briefing',    label: 'Briefing de Consulta',    detail: 'Preparação em 15 segundos' },
-      { href: '/med-review',  label: 'Revisão de Medicação',    detail: 'Análise clínica + PDF' },
+    heading: 'Decisão Clínica',
+    color: '#1d4ed8',
+    tools: [
+      { href: '/ai',        label: 'Phlox AI',               sub: 'Farmacologista clínico IA' },
+      { href: '/strategy',  label: 'Estratégias',            sub: 'Alternativas com evidência A/B/C' },
+      { href: '/protocol',  label: 'Protocolo Terapêutico',  sub: 'ESC · ADA · NICE · DGS' },
+      { href: '/briefing',  label: 'Briefing de Consulta',   sub: 'Preparação em 15 segundos' },
+      { href: '/med-review',label: 'Revisão de Medicação',   sub: 'Análise clínica + PDF' },
     ],
   },
   {
-    id: 'reference',
-    heading: 'Referência clínica',
-    items: [
-      { href: '/nursing',      label: 'IV · SC · IM',          detail: 'Compatibilidades e farmacotecnia' },
-      { href: '/calculators',  label: 'Calculadoras',          detail: 'SCORE2 · CKD-EPI · Cockcroft' },
-      { href: '/monograph',    label: 'Monografia',            detail: 'Qualquer fármaco, completo' },
-      { href: '/doses',        label: 'Posologia',             detail: 'Por indicação e guideline' },
-      { href: '/compatibility',label: 'Compatibilidade IV',    detail: "Trissel's e King Guide" },
-      { href: '/dilutions',    label: 'Diluições IV',          detail: 'Velocidades e estabilidade' },
+    heading: 'Referência Clínica',
+    color: '#0f766e',
+    tools: [
+      { href: '/nursing',      label: 'IV · SC · IM',        sub: 'Compatibilidades e farmacotecnia' },
+      { href: '/calculators',  label: 'Calculadoras',        sub: 'SCORE2 · CKD-EPI · Cockcroft' },
+      { href: '/monograph',    label: 'Monografia',          sub: 'Qualquer fármaco, completo' },
+      { href: '/doses',        label: 'Posologia',           sub: 'Por indicação e guideline' },
+      { href: '/compatibility',label: 'Compatibilidade IV',  sub: "Trissel's e King Guide" },
+      { href: '/dilutions',    label: 'Diluições IV',        sub: 'Velocidades e estabilidade' },
     ],
   },
 ]
 
-// ─── Mega-menu panel ─────────────────────────────────────────────────────────
+// Flat list for mobile
+const ALL_TOOLS = GROUPS.flatMap(g => g.tools)
+
+// ─── Mega menu — full-width bar below header ──────────────────────────────────
 
 function MegaMenu({ onClose }: { onClose: () => void }) {
   return (
-    <div style={{
-      position: 'absolute',
-      top: 'calc(100% + 1px)',
-      left: '50%',
-      transform: 'translateX(-40%)',
-      background: 'white',
-      border: '1px solid var(--border)',
-      borderTop: '3px solid var(--green)',
-      borderRadius: '0 0 12px 12px',
-      boxShadow: '0 24px 64px rgba(0,0,0,0.13), 0 4px 16px rgba(0,0,0,0.06)',
-      display: 'grid',
-      gridTemplateColumns: 'repeat(4, 195px)',
-      gap: '0',
-      zIndex: 300,
-      overflow: 'hidden',
-    }}>
-      {TOOL_GROUPS.map((group, gi) => (
-        <div key={group.id} style={{
-          borderRight: gi < TOOL_GROUPS.length - 1 ? '1px solid var(--border)' : 'none',
-          padding: '20px 0',
-        }}>
-          <div style={{
-            fontSize: 9,
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 500,
-            color: 'var(--ink-5)',
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            padding: '0 20px 12px',
-          }}>
-            {group.heading}
+    <div
+      style={{
+        position: 'fixed',
+        top: 62,
+        left: 0,
+        right: 0,
+        zIndex: 200,
+        background: 'white',
+        borderBottom: '1px solid var(--border)',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
+      }}
+    >
+      <div style={{ maxWidth: 1160, margin: '0 auto', padding: '24px 52px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 24px' }}>
+        {GROUPS.map((group, gi) => (
+          <div key={group.heading} style={{ borderRight: gi < GROUPS.length - 1 ? '1px solid var(--border)' : 'none', paddingRight: gi < GROUPS.length - 1 ? 24 : 0 }}>
+            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: group.color, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 12, height: 2, background: group.color, borderRadius: 1 }} />
+              {group.heading}
+            </div>
+            {group.tools.map(({ href, label, sub }) => (
+              <Link key={href} href={href} onClick={onClose}
+                style={{ display: 'block', padding: '7px 0', textDecoration: 'none', borderBottom: '1px solid transparent' }}
+                className="mega-link"
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 1 }}>{label}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
+              </Link>
+            ))}
           </div>
-          {group.items.map(({ href, label, detail }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              style={{
-                display: 'block',
-                padding: '10px 20px',
-                textDecoration: 'none',
-                borderBottom: '1px solid transparent',
-                transition: 'background 0.1s',
-              }}
-              className="mega-item"
-            >
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 2 }}>
-                {label}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.4 }}>
-                {detail}
-              </div>
-            </Link>
-          ))}
-        </div>
-      ))}
+        ))}
+      </div>
+      {/* Close on outside click */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, top: 62, zIndex: -1 }} />
     </div>
   )
 }
 
-// ─── User dropdown ───────────────────────────────────────────────────────────
+// ─── User menu ────────────────────────────────────────────────────────────────
 
-function UserDropdown({ user, signOut }: { user: any; signOut: () => void }) {
+function UserMenu({ user, signOut }: { user: any; signOut: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
   }, [])
 
-  const planLabels: Record<string, string> = {
-    free: 'Plano Gratuito', student: 'Plano Student', pro: 'Plano Pro', clinic: 'Plano Clinic',
-  }
+  const PLAN_COLORS: Record<string, string> = { free: 'var(--ink-4)', student: '#7c3aed', pro: '#1d4ed8', clinic: 'var(--green)' }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: 'var(--bg-2)', border: '1px solid var(--border)',
-          borderRadius: 32, padding: '5px 12px 5px 6px',
-          cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
-        }}
-        className="user-btn"
-      >
+      <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px 4px 4px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 32, cursor: 'pointer', transition: 'all 0.15s' }} className="user-btn">
         {user.avatar
-          ? <img src={user.avatar} alt="" style={{ width: 26, height: 26, borderRadius: '50%', display: 'block', flexShrink: 0 }} />
-          : (
-            <div style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: 'var(--green)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700, flexShrink: 0,
-            }}>
-              {(user.name?.[0] || 'U').toUpperCase()}
-            </div>
-          )
+          ? <img src={user.avatar} alt="" style={{ width: 26, height: 26, borderRadius: '50%' }} />
+          : <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700 }}>{(user.name?.[0] || 'U').toUpperCase()}</div>
         }
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '-0.01em', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {user.name?.split(' ')[0] || 'Conta'}
-        </span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name?.split(' ')[0] || 'Conta'}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
-
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-          background: 'white', border: '1px solid var(--border)',
-          borderRadius: 12, boxShadow: 'var(--shadow-lg)',
-          minWidth: 220, overflow: 'hidden', zIndex: 300,
-        }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
-            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--green)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>
-              {planLabels[user.plan || 'free']}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.email}
-            </div>
+        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'white', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 16px 48px rgba(0,0,0,0.12)', minWidth: 200, overflow: 'hidden', zIndex: 300 }}>
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
+            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: PLAN_COLORS[user.plan || 'free'], letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>{user.plan || 'free'}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
           </div>
-          {[
-            { href: '/dashboard', label: 'Dashboard' },
-            { href: '/dashboard?tab=meds', label: 'Os meus medicamentos' },
-            { href: '/pricing', label: 'Gerir plano' },
-          ].map(({ href, label }) => (
-            <Link key={href} href={href} onClick={() => setOpen(false)}
-              style={{ display: 'block', padding: '11px 16px', fontSize: 14, color: 'var(--ink-2)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}
-              className="dropdown-item"
-            >
-              {label}
-            </Link>
+          {[{ href: '/dashboard', label: 'Dashboard' }, { href: '/pricing', label: 'Ver planos' }].map(({ href, label }) => (
+            <Link key={href} href={href} onClick={() => setOpen(false)} style={{ display: 'block', padding: '10px 14px', fontSize: 14, color: 'var(--ink-2)', textDecoration: 'none' }} className="dropdown-item">{label}</Link>
           ))}
-          <button
-            onClick={() => { signOut(); setOpen(false) }}
-            style={{ width: '100%', textAlign: 'left', padding: '11px 16px', fontSize: 14, color: 'var(--ink-4)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}
-            className="dropdown-item"
-          >
+          <button onClick={() => { signOut(); setOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 14, color: 'var(--ink-4)', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }} className="dropdown-item">
             Terminar sessão
           </button>
         </div>
@@ -209,30 +142,22 @@ function UserDropdown({ user, signOut }: { user: any; signOut: () => void }) {
   )
 }
 
-// ─── Mobile drawer ───────────────────────────────────────────────────────────
+// ─── Mobile drawer ────────────────────────────────────────────────────────────
 
 function MobileDrawer({ open, onClose, user, signOut }: { open: boolean; onClose: () => void; user: any; signOut: () => void }) {
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
-
   if (!open) return null
 
   return (
     <>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, top: 58, background: 'rgba(0,0,0,0.4)', zIndex: 149, backdropFilter: 'blur(2px)' }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, top: 62, background: 'rgba(0,0,0,0.45)', zIndex: 149 }} />
+      <div style={{ position: 'fixed', top: 62, right: 0, bottom: 0, width: 'min(360px, 100vw)', background: 'white', borderLeft: '1px solid var(--border)', boxShadow: '-20px 0 60px rgba(0,0,0,0.15)', zIndex: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Drawer */}
-      <div style={{
-        position: 'fixed', top: 58, right: 0, bottom: 0, width: 'min(340px, 100vw)',
-        background: 'white', borderLeft: '1px solid var(--border)',
-        boxShadow: '-20px 0 60px rgba(0,0,0,0.15)',
-        zIndex: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column',
-      }}>
-        {/* User section at top of drawer */}
-        {user && (
+        {/* User block */}
+        {user ? (
           <div style={{ padding: '16px 20px', borderBottom: '2px solid var(--border)', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', gap: 12 }}>
             {user.avatar
               ? <img src={user.avatar} alt="" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
@@ -240,15 +165,13 @@ function MobileDrawer({ open, onClose, user, signOut }: { open: boolean; onClose
             }
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name || 'Utilizador'}</div>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--green)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>{user.plan || 'free'}</div>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--green)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{user.plan || 'free'}</div>
             </div>
-            <Link href="/dashboard" onClick={onClose} style={{ fontSize: 12, color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 600, flexShrink: 0 }}>Dashboard →</Link>
+            <Link href="/dashboard" onClick={onClose} style={{ fontSize: 11, color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Dashboard →</Link>
           </div>
-        )}
-
-        {!user && (
-          <div style={{ padding: '16px 20px', borderBottom: '2px solid var(--border)', display: 'flex', gap: 8 }}>
-            <Link href="/login" onClick={onClose} style={{ flex: 1, display: 'block', textAlign: 'center', padding: '10px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+        ) : (
+          <div style={{ padding: '14px 20px', borderBottom: '2px solid var(--border)' }}>
+            <Link href="/login" onClick={onClose} style={{ display: 'block', textAlign: 'center', padding: '11px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
               Entrar / Criar conta
             </Link>
           </div>
@@ -256,158 +179,93 @@ function MobileDrawer({ open, onClose, user, signOut }: { open: boolean; onClose
 
         {/* Tools by group */}
         <div style={{ flex: 1 }}>
-          {TOOL_GROUPS.map((group, gi) => (
-            <div key={group.id} style={{ borderBottom: gi < TOOL_GROUPS.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ padding: '14px 20px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 500 }}>
+          {GROUPS.map((group, gi) => (
+            <div key={group.heading} style={{ borderBottom: gi < GROUPS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ padding: '12px 20px 6px', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: group.color, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 10, height: 2, background: group.color, borderRadius: 1 }} />
                 {group.heading}
               </div>
-              {group.items.map(({ href, label, detail }) => (
+              {group.tools.map(({ href, label, sub }) => (
                 <Link key={href} href={href} onClick={onClose}
-                  style={{ display: 'flex', flexDirection: 'column', padding: '12px 20px', textDecoration: 'none', borderBottom: '1px solid var(--bg-3)' }}
-                  className="drawer-item"
-                >
-                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{detail}</span>
+                  style={{ display: 'flex', flexDirection: 'column', padding: '10px 20px', textDecoration: 'none', borderBottom: '1px solid var(--bg-3)' }}
+                  className="drawer-item">
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{sub}</span>
                 </Link>
               ))}
             </div>
           ))}
         </div>
 
-        {/* Bottom actions */}
+        {/* Bottom */}
         <div style={{ padding: '16px 20px', borderTop: '2px solid var(--border)', background: 'var(--bg-2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Link href="/pricing" onClick={onClose} style={{ display: 'block', padding: '11px 16px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 14, fontWeight: 600, textAlign: 'center', letterSpacing: '-0.01em' }}>
+          <Link href="/pricing" onClick={onClose} style={{ display: 'block', padding: '11px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: 'center', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             Ver planos de preço
           </Link>
-          <Link href="/blog" onClick={onClose} style={{ display: 'block', padding: '11px 16px', background: 'transparent', color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 7, fontSize: 14, fontWeight: 500, textAlign: 'center', border: '1px solid var(--border)' }}>
-            Blog
-          </Link>
-          {user && (
-            <button onClick={() => { signOut(); onClose() }} style={{ padding: '11px 16px', background: 'transparent', color: 'var(--ink-4)', border: 'none', borderRadius: 7, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-              Terminar sessão
-            </button>
-          )}
+          {user && <button onClick={() => { signOut(); onClose() }} style={{ padding: '10px', background: 'transparent', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Terminar sessão</button>}
         </div>
       </div>
     </>
   )
 }
 
-// ─── Main Header ─────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Header() {
   const { user, loading, signOut } = useAuth()
   const [megaOpen, setMegaOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const megaTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const megaRef = useRef<HTMLDivElement>(null)
-
-  const openMega = () => { if (megaTimer.current) clearTimeout(megaTimer.current); setMegaOpen(true) }
-  const closeMega = () => { megaTimer.current = setTimeout(() => setMegaOpen(false), 120) }
 
   return (
     <>
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'var(--bg)',
-        borderBottom: '1px solid var(--border)',
-        overflow: 'visible',
-      }}>
-        <div className="page-container" style={{ height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, overflow: 'visible' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'white', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 52px', height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
-          {/* ── Logo ──────────────────────────────────── */}
+          {/* Logo */}
           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-              <rect width="30" height="30" rx="6" fill="var(--green)"/>
-              <path d="M15 7v16M8 15h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-              <circle cx="15" cy="15" r="9.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="6" fill="var(--green)"/>
+              <path d="M14 6v16M7 14h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 17, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.04em' }}>PHLOX</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--ink-4)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 1 }} className="logo-sub">CLINICAL</span>
+            <div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1 }}>PHLOX</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--ink-4)', letterSpacing: '0.16em', lineHeight: 1, marginTop: 2 }}>CLINICAL</div>
             </div>
           </Link>
 
-          {/* ── Desktop nav ───────────────────────────── */}
-          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 1, marginLeft: 20 }}>
-
-            {/* Ferramentas mega trigger */}
-            <div ref={megaRef} style={{ position: 'relative' }} onMouseEnter={openMega} onMouseLeave={closeMega}>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '8px 14px', background: 'transparent', border: 'none',
-                cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                color: megaOpen ? 'var(--green)' : 'var(--ink-3)',
-                fontFamily: 'var(--font-sans)', letterSpacing: '0.01em',
-                textTransform: 'uppercase', transition: 'color 0.15s',
-                borderBottom: `2px solid ${megaOpen ? 'var(--green)' : 'transparent'}`,
-                borderRadius: 0,
-              }}>
-                Ferramentas
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                  style={{ transform: megaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
-                  <path d="M6 9l6 6 6-6"/>
-                </svg>
-              </button>
-              {megaOpen && (
-                <>
-                  <div style={{ position: 'absolute', top: '100%', left: -30, right: -30, height: 8 }} onMouseEnter={openMega} onMouseLeave={closeMega} />
-                  <div onMouseEnter={openMega} onMouseLeave={closeMega}>
-                    <MegaMenu onClose={() => setMegaOpen(false)} />
-                  </div>
-                </>
-              )}
-            </div>
-
+          {/* Desktop nav */}
+          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 0, flex: 1, marginLeft: 24 }}>
+            <button
+              onClick={() => setMegaOpen(!megaOpen)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: megaOpen ? 'var(--bg-2)' : 'transparent', border: 'none', borderBottom: `2px solid ${megaOpen ? 'var(--ink)' : 'transparent'}`, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: megaOpen ? 'var(--ink)' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'all 0.15s', borderRadius: 0 }}
+            >
+              Ferramentas
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: megaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+            </button>
             {[{ href: '/pricing', label: 'Preços' }, { href: '/blog', label: 'Blog' }].map(({ href, label }) => (
-              <Link key={href} href={href} style={{
-                padding: '8px 14px', fontSize: 13, fontWeight: 600,
-                color: 'var(--ink-3)', textDecoration: 'none',
-                letterSpacing: '0.01em', textTransform: 'uppercase',
-                borderBottom: '2px solid transparent',
-                transition: 'color 0.15s, border-color 0.15s',
-              }} className="nav-link">
+              <Link key={href} href={href} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', borderBottom: '2px solid transparent', transition: 'color 0.15s, border-color 0.15s' }} className="nav-link">
                 {label}
               </Link>
             ))}
           </nav>
 
-          {/* ── Desktop auth ──────────────────────────── */}
-          <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Desktop auth */}
+          <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!loading && !user && (
               <>
-                <Link href="/login" style={{
-                  padding: '7px 14px', fontSize: 13, fontWeight: 600,
-                  color: 'var(--ink-3)', textDecoration: 'none',
-                  letterSpacing: '0.01em', textTransform: 'uppercase',
-                }} className="nav-link">
-                  Entrar
-                </Link>
-                <Link href="/login" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'var(--ink)', color: 'white',
-                  padding: '8px 18px', borderRadius: 7,
-                  fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                  letterSpacing: '0.02em', textTransform: 'uppercase',
-                  transition: 'background 0.15s, transform 0.15s',
-                }} className="cta-btn">
+                <Link href="/login" style={{ padding: '7px 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'color 0.15s' }} className="nav-link">Entrar</Link>
+                <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--ink)', color: 'white', padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', transition: 'background 0.15s' }} className="cta-btn">
                   Começar grátis
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </Link>
               </>
             )}
-            {!loading && user && <UserDropdown user={user} signOut={signOut} />}
+            {!loading && user && <UserMenu user={user} signOut={signOut} />}
           </div>
 
-          {/* ── Mobile controls ───────────────────────── */}
+          {/* Mobile controls */}
           <div className="mobile-controls" style={{ display: 'none', alignItems: 'center', gap: 10 }}>
-            {/* Account access — always visible on mobile */}
             {!loading && !user && (
-              <Link href="/login" style={{
-                padding: '6px 14px', background: 'var(--ink)', color: 'white',
-                textDecoration: 'none', borderRadius: 7,
-                fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
-              }}>
+              <Link href="/login" style={{ padding: '7px 14px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                 Entrar
               </Link>
             )}
@@ -417,58 +275,37 @@ export default function Header() {
                   ? <img src={user.avatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%' }} />
                   : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12, fontWeight: 700 }}>{(user.name?.[0] || 'U').toUpperCase()}</div>
                 }
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', letterSpacing: '-0.01em', maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.name?.split(' ')[0]}
-                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name?.split(' ')[0]}</span>
               </Link>
             )}
-
-            {/* Menu button */}
-            <button
-              onClick={() => setDrawerOpen(!drawerOpen)}
-              aria-label={drawerOpen ? 'Fechar menu' : 'Abrir menu'}
-              style={{
-                width: 38, height: 38, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 4,
-                background: drawerOpen ? 'var(--ink)' : 'var(--bg-2)',
-                border: '1px solid var(--border)', borderRadius: 7,
-                cursor: 'pointer', padding: 0, transition: 'background 0.15s',
-              }}
-            >
-              {drawerOpen ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              ) : (
-                <>
-                  <span style={{ width: 18, height: 2, background: 'var(--ink)', borderRadius: 2, display: 'block' }} />
-                  <span style={{ width: 14, height: 2, background: 'var(--ink)', borderRadius: 2, display: 'block', alignSelf: 'flex-start', marginLeft: 10 }} />
-                  <span style={{ width: 18, height: 2, background: 'var(--ink)', borderRadius: 2, display: 'block' }} />
-                </>
-              )}
+            <button onClick={() => setDrawerOpen(!drawerOpen)} aria-label="Menu"
+              style={{ width: 38, height: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: drawerOpen ? 'var(--ink)' : 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', padding: 0, transition: 'background 0.15s' }}>
+              {drawerOpen
+                ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                : <>
+                    <span style={{ width: 17, height: 2, background: 'var(--ink)', borderRadius: 2, display: 'block' }} />
+                    <span style={{ width: 13, height: 2, background: 'var(--ink)', borderRadius: 2, display: 'block', alignSelf: 'flex-start', marginLeft: 10 }} />
+                    <span style={{ width: 17, height: 2, background: 'var(--ink)', borderRadius: 2, display: 'block' }} />
+                  </>
+              }
             </button>
           </div>
         </div>
       </header>
 
+      {megaOpen && <MegaMenu onClose={() => setMegaOpen(false)} />}
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} signOut={signOut} />
 
       <style>{`
-        @media (min-width: 769px) {
-          .desktop-nav { display: flex !important; }
-          .mobile-controls { display: none !important; }
-          .logo-sub { display: block !important; }
-        }
-        @media (max-width: 768px) {
-          .desktop-nav { display: none !important; }
-          .mobile-controls { display: flex !important; }
-        }
-        .mega-item:hover { background: var(--bg-2) !important; }
-        .dropdown-item:hover { background: var(--bg-2) !important; }
+        @media (min-width: 769px) { .desktop-nav { display: flex !important; } .mobile-controls { display: none !important; } }
+        @media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-controls { display: flex !important; } }
+        @media (max-width: 640px) { header > div { padding: 0 16px !important; } }
+        .mega-link:hover { background: var(--bg-2) !important; border-radius: 6px !important; padding-left: 6px !important; }
         .drawer-item:hover { background: var(--bg-2) !important; }
+        .dropdown-item:hover { background: var(--bg-2) !important; }
         .nav-link:hover { color: var(--ink) !important; border-bottom-color: var(--border-2) !important; }
         .user-btn:hover { background: var(--bg-3) !important; border-color: var(--border-2) !important; }
-        .cta-btn:hover { background: var(--green) !important; transform: translateY(-1px); }
+        .cta-btn:hover { background: var(--green) !important; }
       `}</style>
     </>
   )
