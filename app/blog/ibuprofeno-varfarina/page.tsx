@@ -1,6 +1,7 @@
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { Metadata } from 'next'
+import AdBanner from '@/components/AdBanner'
 
 export const metadata: Metadata = {
   title: 'Posso tomar ibuprofeno com varfarina? — Phlox',

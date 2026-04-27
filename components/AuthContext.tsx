@@ -27,6 +27,8 @@ type User = {
   avatar: string
   plan: 'free' | 'student' | 'pro' | 'clinic'
   searches_today: number
+  profile_type: 'personal' | 'student' | 'professional' | null
+  profile_sub: string | null
 }
 
 type AuthContextType = {
@@ -107,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Utilizador',
           avatar: authUser.user_metadata?.avatar_url || '',
           plan: 'free' as const,
+          profile_type: null,
+          profile_sub: null,
           searches_today: 0,
           created_at: new Date().toISOString(),
         }
@@ -120,6 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: data.name,
           avatar: data.avatar || '',
           plan: data.plan || 'free',
+          profile_type: data.profile_type || null,
+          profile_sub: data.profile_sub || null,
           searches_today: data.searches_today || 0,
         })
       }
