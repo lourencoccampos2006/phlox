@@ -62,7 +62,7 @@ async function callGemini(
   }))
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,12 +105,12 @@ export async function aiComplete(
     ? [
         async () => ({ text: await callGroq(messages, 'llama-3.1-8b-instant', maxTokens, temperature), provider: 'Groq', model: 'llama-3.1-8b-instant' }),
         async () => ({ text: await callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature), provider: 'Groq', model: 'llama-3.3-70b-versatile' }),
-        async () => ({ text: await callGemini(messages, maxTokens, temperature), provider: 'Gemini', model: 'gemini-2.5-flash-preview-04-17' }),
+        async () => ({ text: await callGemini(messages, maxTokens, temperature), provider: 'Gemini', model: 'gemini-2.5-flash' }),
       ]
     : [
         async () => ({ text: await callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature), provider: 'Groq', model: 'llama-3.3-70b-versatile' }),
         async () => ({ text: await callGroq(messages, 'llama-3.1-8b-instant', maxTokens, temperature), provider: 'Groq', model: 'llama-3.1-8b-instant' }),
-        async () => ({ text: await callGemini(messages, maxTokens, temperature), provider: 'Gemini', model: 'gemini-2.5-flash-preview-04-17' }),
+        async () => ({ text: await callGemini(messages, maxTokens, temperature), provider: 'Gemini', model: 'gemini-2.5-flash' }),
       ]
 
   let lastError: Error | null = null
@@ -159,7 +159,7 @@ export async function callGeminiVision(
   if (!apiKey) throw new Error('GEMINI_API_KEY não configurado. Adiciona a variável no Cloudflare.')
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
