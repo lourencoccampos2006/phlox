@@ -76,11 +76,29 @@ export default function OTCPage() {
       const { data: sd } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
-      const res = await fetch('/api/otc', { method: 'POST', headers,
-        body: JSON.stringify({ image: base64, mimeType, symptom: 'analisa a imagem e descreve o sintoma visível' }) })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setResult(data)
+      
+      // Step 1: Identify symptom from image
+      const visionRes = await fetch('/api/vision', {
+        method: 'POST', headers,
+        body: JSON.stringify({ image: base64, mimeType: mimeType || 'image/jpeg', mode: 'symptom' })
+      })
+      const visionData = await visionRes.json()
+      if (!visionRes.ok) throw new Error(visionData.error)
+      
+      const symptomDesc = visionData.possible_symptom || visionData.description
+      if (!symptomDesc) throw new Error('Não foi possível identificar um sintoma na imagem.')
+      
+      // Pre-fill the symptom field and search
+      setSymptom(symptomDesc)
+      
+      // Step 2: Get OTC recommendation for identified symptom
+      const otcRes = await fetch('/api/otc', {
+        method: 'POST', headers,
+        body: JSON.stringify({ symptom: symptomDesc, context: visionData.description })
+      })
+      const otcData = await otcRes.json()
+      if (!otcRes.ok) throw new Error(otcData.error)
+      setResult(otcData)
     } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
     finally { setPhotoLoading(false) }
   }

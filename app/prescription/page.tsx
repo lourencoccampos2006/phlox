@@ -46,7 +46,6 @@ export default function PrescriptionPage() {
   const handleImage = async (file: File) => {
     setLoading(true); setError('')
     try {
-      // Convert to base64
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => resolve((reader.result as string).split(',')[1])
@@ -56,7 +55,28 @@ export default function PrescriptionPage() {
       const { data: sd } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
-      const res = await fetch('/api/prescription', { method: 'POST', headers, body: JSON.stringify({ image: base64, mimeType: file.type }) })
+      
+      // Step 1: Use vision API to extract medication info from image
+      const visionRes = await fetch('/api/vision', {
+        method: 'POST', headers,
+        body: JSON.stringify({ image: base64, mimeType: file.type || 'image/jpeg', mode: 'prescription' })
+      })
+      const visionData = await visionRes.json()
+      if (!visionRes.ok) throw new Error(visionData.error)
+      
+      if (!visionData.medications || visionData.medications.length === 0) {
+        throw new Error('Não foram identificados medicamentos na imagem. Tenta uma foto mais nítida ou cola o texto.')
+      }
+      
+      // Step 2: Send identified medications text to prescription API for full explanation
+      const prescriptionText = visionData.medications
+        .map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.instructions ? ' — ' + m.instructions : ''}`)
+        .join('\n')
+      
+      const res = await fetch('/api/prescription', {
+        method: 'POST', headers,
+        body: JSON.stringify({ prescription: prescriptionText })
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setResult(data)

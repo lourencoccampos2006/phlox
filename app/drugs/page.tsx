@@ -91,21 +91,23 @@ export default function DrugsPage() {
   const handleDrugPhoto = async (base64: string, mimeType: string) => {
     setPhotoLoading(true); setError('')
     try {
-      const geminiKey = process.env.NEXT_PUBLIC_GEMINI_HINT || ''
-      // Send to a dedicated endpoint that uses Gemini vision to identify the drug
-      const res = await fetch('/api/drugs/identify', {
+      const res = await fetch('/api/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, mimeType })
+        body: JSON.stringify({ image: base64, mimeType: mimeType || 'image/jpeg', mode: 'drug_id' })
       })
       const data = await res.json()
-      if (data.drug_name) {
-        setQuery(data.drug_name)
-        handleSearch(data.drug_name)
+      if (!res.ok) throw new Error(data.error)
+      
+      // Use drug_name (English generic) or brand_name to search
+      const searchTerm = data.drug_name || data.brand_name
+      if (searchTerm) {
+        setQuery(searchTerm)
+        handleSearch(searchTerm)
       } else {
-        setError('Não foi possível identificar o medicamento. Tenta pesquisar pelo nome.')
+        setError('Não foi possível identificar o medicamento na imagem. Tenta uma foto mais nítida da caixa ou do rótulo.')
       }
-    } catch (e: any) { setError('Erro ao processar foto.') }
+    } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
     finally { setPhotoLoading(false) }
   }
   const [error, setError] = useState('')

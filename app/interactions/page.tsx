@@ -66,14 +66,25 @@ export default function InteractionsPage() {
       const { data: sd } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
-      const res = await fetch('/api/interactions', { method: 'POST', headers,
-        body: JSON.stringify({ image: base64, mimeType, drugs: [] }) })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      // If drugs were identified from image, add them
-      if (data.identified_drugs?.length) {
-        setDrugs(data.identified_drugs)
+      
+      // Use central vision API to identify drugs from image
+      const visionRes = await fetch('/api/vision', {
+        method: 'POST', headers,
+        body: JSON.stringify({ image: base64, mimeType: mimeType || 'image/jpeg', mode: 'drug_list' })
+      })
+      const visionData = await visionRes.json()
+      if (!visionRes.ok) throw new Error(visionData.error)
+      
+      const identified = visionData.drugs || []
+      if (identified.length === 0) {
+        setError('Não foram identificados medicamentos na imagem. Tenta uma foto mais nítida da caixa ou do blister.')
+        return
       }
+      // Add identified drugs to the list
+      const existing = new Set(drugs.map(d => d.toLowerCase()))
+      const toAdd = identified.filter((d: string) => !existing.has(d.toLowerCase())).slice(0, 5)
+      if (toAdd.length > 0) setDrugs(prev => [...prev, ...toAdd].slice(0, 10))
+      else setError('Os medicamentos da imagem já estão na lista.')
     } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
     finally { setPhotoLoading(false) }
   }
