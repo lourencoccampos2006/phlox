@@ -24,7 +24,7 @@ const EXAMPLES = [
 
 // ─── Photo capture component ─────────────────────────────────────────────────
 function PhotoCapture({ onCapture, loading = false }: {
-  onCapture: (base64: string, mimeType: string) => void
+  onCapture: (file: File) => void
   loading?: boolean
 }) {
   const ref = useRef<HTMLInputElement>(null)
@@ -35,7 +35,7 @@ function PhotoCapture({ onCapture, loading = false }: {
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
-    onCapture(base64, file.type || 'image/jpeg')
+    onCapture(file)
   }
   return (
     <div>
@@ -51,6 +51,38 @@ function PhotoCapture({ onCapture, loading = false }: {
 }
 
 
+
+// Compress image before sending — reduces phone photos from 3-5MB to ~150KB
+async function compressImageFile(file: File, maxDim = 1024, quality = 0.85): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      const canvas = document.createElement("canvas")
+      canvas.width = width; canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) { reject(new Error("Canvas error")); return }
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error("Compression failed")); return }
+        const reader = new FileReader()
+        reader.onload = () => resolve({ base64: (reader.result as string).split(",")[1], mimeType: "image/jpeg" })
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      }, "image/jpeg", quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível carregar a imagem")) }
+    img.src = url
+  })
+}
+
+
 export default function InteractionsPage() {
   const { user, supabase } = useAuth()
   const [input, setInput] = useState('')
@@ -60,31 +92,28 @@ export default function InteractionsPage() {
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
 
-  const handlePhoto = async (base64: string, mimeType: string) => {
+  const handlePhoto = async (file: File) => {
     setPhotoLoading(true); setError('')
     try {
+      const compressed = await compressImageFile(file)
       const { data: sd } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
-      
-      // Use central vision API to identify drugs from image
       const visionRes = await fetch('/api/vision', {
         method: 'POST', headers,
-        body: JSON.stringify({ image: base64, mimeType: mimeType || 'image/jpeg', mode: 'drug_list' })
+        body: JSON.stringify({ image: compressed.base64, mimeType: compressed.mimeType, mode: 'drug_list' })
       })
       const visionData = await visionRes.json()
       if (!visionRes.ok) throw new Error(visionData.error)
-      
-      const identified = visionData.drugs || []
+      const identified: string[] = visionData.drugs || []
       if (identified.length === 0) {
-        setError('Não foram identificados medicamentos na imagem. Tenta uma foto mais nítida da caixa ou do blister.')
+        setError('Não foram identificados medicamentos. Tenta uma foto mais nítida da frente da caixa.')
         return
       }
-      // Add identified drugs to the list
-      const existing = new Set(drugs.map(d => d.toLowerCase()))
+      const existing = new Set(drugs.map((d: string) => d.toLowerCase()))
       const toAdd = identified.filter((d: string) => !existing.has(d.toLowerCase())).slice(0, 5)
-      if (toAdd.length > 0) setDrugs(prev => [...prev, ...toAdd].slice(0, 10))
-      else setError('Os medicamentos da imagem já estão na lista.')
+      if (toAdd.length > 0) setDrugs((prev: string[]) => [...prev, ...toAdd].slice(0, 10))
+      else setError('Os medicamentos da foto já estão na lista.')
     } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
     finally { setPhotoLoading(false) }
   }

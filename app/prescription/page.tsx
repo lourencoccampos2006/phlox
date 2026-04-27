@@ -19,6 +19,38 @@ interface RxExplained {
   questions_for_doctor: string[]
 }
 
+
+// Compress image before sending — reduces phone photos from 3-5MB to ~150KB
+async function compressImageFile(file: File, maxDim = 1024, quality = 0.85): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      const canvas = document.createElement("canvas")
+      canvas.width = width; canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) { reject(new Error("Canvas error")); return }
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error("Compression failed")); return }
+        const reader = new FileReader()
+        reader.onload = () => resolve({ base64: (reader.result as string).split(",")[1], mimeType: "image/jpeg" })
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      }, "image/jpeg", quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível carregar a imagem")) }
+    img.src = url
+  })
+}
+
+
 export default function PrescriptionPage() {
   const { user, supabase } = useAuth()
   const [text, setText] = useState('')
@@ -46,32 +78,28 @@ export default function PrescriptionPage() {
   const handleImage = async (file: File) => {
     setLoading(true); setError('')
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve((reader.result as string).split(',')[1])
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      // Compress first: phone photos are 3-5MB, we need < 1MB for Gemini
+      const compressed = await compressImageFile(file)
       const { data: sd } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
       
-      // Step 1: Use vision API to extract medication info from image
+      // Vision API identifies medications from image
       const visionRes = await fetch('/api/vision', {
         method: 'POST', headers,
-        body: JSON.stringify({ image: base64, mimeType: file.type || 'image/jpeg', mode: 'prescription' })
+        body: JSON.stringify({ image: compressed.base64, mimeType: compressed.mimeType, mode: 'prescription' })
       })
       const visionData = await visionRes.json()
       if (!visionRes.ok) throw new Error(visionData.error)
       
       if (!visionData.medications || visionData.medications.length === 0) {
-        throw new Error('Não foram identificados medicamentos na imagem. Tenta uma foto mais nítida ou cola o texto.')
+        throw new Error('Não foram identificados medicamentos na imagem. Tenta uma foto mais nítida, com boa iluminação, da frente da caixa ou da receita.')
       }
       
-      // Step 2: Send identified medications text to prescription API for full explanation
+      // Build text description and send to prescription API for full PT explanation
       const prescriptionText = visionData.medications
-        .map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.instructions ? ' — ' + m.instructions : ''}`)
-        .join('\n')
+        .map((m: any) => [m.name, m.dose, m.instructions].filter(Boolean).join(' '))
+        .join('')
       
       const res = await fetch('/api/prescription', {
         method: 'POST', headers,

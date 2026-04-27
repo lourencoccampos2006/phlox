@@ -30,7 +30,7 @@ const SYMPTOM_EXAMPLES = [
 ]
 
 function PhotoCapture({ onCapture, loading = false }: {
-  onCapture: (base64: string, mimeType: string) => void
+  onCapture: (file: File) => void
   loading?: boolean
 }) {
   const ref = useRef<HTMLInputElement>(null)
@@ -41,7 +41,7 @@ function PhotoCapture({ onCapture, loading = false }: {
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
-    onCapture(base64, file.type || 'image/jpeg')
+    onCapture(file)
   }
   return (
     <div>
@@ -61,6 +61,38 @@ function PhotoCapture({ onCapture, loading = false }: {
 }
 
 
+
+// Compress image before sending — reduces phone photos from 3-5MB to ~150KB
+async function compressImageFile(file: File, maxDim = 1024, quality = 0.85): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      const canvas = document.createElement("canvas")
+      canvas.width = width; canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) { reject(new Error("Canvas error")); return }
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error("Compression failed")); return }
+        const reader = new FileReader()
+        reader.onload = () => resolve({ base64: (reader.result as string).split(",")[1], mimeType: "image/jpeg" })
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      }, "image/jpeg", quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível carregar a imagem")) }
+    img.src = url
+  })
+}
+
+
 export default function OTCPage() {
   const { user, supabase } = useAuth()
   const [symptom, setSymptom] = useState('')
@@ -70,31 +102,25 @@ export default function OTCPage() {
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
 
-  const handlePhoto = async (base64: string, mimeType: string) => {
+  const handlePhoto = async (file: File) => {
     setPhotoLoading(true); setError('')
     try {
+      const compressed = await compressImageFile(file)
       const { data: sd } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
-      
-      // Step 1: Identify symptom from image
       const visionRes = await fetch('/api/vision', {
         method: 'POST', headers,
-        body: JSON.stringify({ image: base64, mimeType: mimeType || 'image/jpeg', mode: 'symptom' })
+        body: JSON.stringify({ image: compressed.base64, mimeType: compressed.mimeType, mode: 'symptom' })
       })
       const visionData = await visionRes.json()
       if (!visionRes.ok) throw new Error(visionData.error)
-      
       const symptomDesc = visionData.possible_symptom || visionData.description
-      if (!symptomDesc) throw new Error('Não foi possível identificar um sintoma na imagem.')
-      
-      // Pre-fill the symptom field and search
+      if (!symptomDesc) throw new Error('Não foi possível identificar um sintoma. Tenta uma foto mais clara.')
       setSymptom(symptomDesc)
-      
-      // Step 2: Get OTC recommendation for identified symptom
       const otcRes = await fetch('/api/otc', {
         method: 'POST', headers,
-        body: JSON.stringify({ symptom: symptomDesc, context: visionData.description })
+        body: JSON.stringify({ symptom: symptomDesc, context: visionData.description || '' })
       })
       const otcData = await otcRes.json()
       if (!otcRes.ok) throw new Error(otcData.error)

@@ -1,168 +1,235 @@
-// /app/api/vision/route.ts
-// Central vision endpoint - handles ALL image analysis for Phlox
-// Supports: prescription, drug_id, symptom, lab_results
-
 import { NextRequest, NextResponse } from 'next/server'
 
 type VisionMode = 'prescription' | 'drug_id' | 'symptom' | 'lab_results' | 'drug_list'
 
 const PROMPTS: Record<VisionMode, string> = {
-  prescription: `You are analyzing a medical prescription or medication packaging image. 
-Extract ALL medication information visible. 
-Respond with ONLY valid JSON (no markdown, no explanation, just the JSON object):
+  prescription: `Analyze this medical prescription or medication packaging image.
+Extract ALL medication information visible.
+Return ONLY valid JSON with no markdown, no explanation:
 {
   "medications": [
     {
       "name": "medication name as shown",
-      "active": "active ingredient if identifiable",
-      "dose": "dose visible",
+      "active": "active ingredient",
+      "dose": "dose if visible",
       "instructions": "dosing instructions if visible"
     }
   ],
-  "confidence": "high|medium|low",
-  "notes": "any other relevant clinical information visible"
+  "confidence": "high",
+  "notes": "any other relevant information"
 }
-If no medications are visible, return: {"medications": [], "confidence": "low", "notes": "No medications identified"}`,
+If nothing visible: {"medications": [], "confidence": "low", "notes": "No medications found"}`,
 
   drug_id: `Identify the medication in this image (box, blister, label, or pill).
-Respond with ONLY valid JSON (no markdown):
+Return ONLY valid JSON with no markdown:
 {
-  "drug_name": "generic/INN name in English (e.g. ibuprofen)",
-  "brand_name": "brand name if visible (e.g. Brufen)",
+  "drug_name": "generic/INN name in English e.g. ibuprofen",
+  "brand_name": "brand name if visible e.g. Brufen",
   "dose": "dose if visible",
-  "confidence": "high|medium|low"
+  "confidence": "high"
 }
-If no medication is identifiable, return: {"drug_name": null, "brand_name": null, "dose": null, "confidence": "low"}`,
+If not identifiable: {"drug_name": null, "brand_name": null, "dose": null, "confidence": "low"}`,
 
-  symptom: `Describe what you see in this medical/health image in Portuguese (European Portuguese).
-Focus on: visible symptoms, skin conditions, wounds, rashes, swelling, or any health-relevant observations.
-Respond with ONLY valid JSON (no markdown):
+  symptom: `Describe the health-related content of this image in European Portuguese.
+Return ONLY valid JSON with no markdown:
 {
-  "description": "clear description in Portuguese of what is visible",
-  "possible_symptom": "the most likely medical symptom this represents",
-  "severity_hint": "mild|moderate|severe|unknown",
-  "see_doctor_urgently": true or false
+  "description": "what is visible in Portuguese",
+  "possible_symptom": "most likely medical symptom",
+  "severity_hint": "mild",
+  "see_doctor_urgently": false
 }`,
 
-  lab_results: `This image shows laboratory test results. Extract all values.
-Respond with ONLY valid JSON (no markdown):
+  lab_results: `Extract laboratory test results from this image.
+Return ONLY valid JSON with no markdown:
 {
-  "values": [
-    {"test": "test name", "value": "result", "unit": "unit", "reference": "reference range if visible", "status": "normal|high|low|unknown"}
-  ],
+  "values": [{"test": "name", "value": "result", "unit": "unit", "reference": "range", "status": "normal"}],
   "date": "date if visible",
-  "lab_name": "laboratory name if visible"
+  "lab_name": "lab name if visible"
 }`,
 
   drug_list: `List ALL medication names visible in this image.
-Respond with ONLY valid JSON (no markdown):
+Return ONLY valid JSON with no markdown:
 {
-  "drugs": ["drug1 in English", "drug2 in English"],
-  "confidence": "high|medium|low"
+  "drugs": ["drug1 generic name in English", "drug2"],
+  "confidence": "high"
 }`
-}
-
-async function callGemini(imageBase64: string, mimeType: string, prompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY não configurado. Adiciona nas variáveis do Cloudflare.')
-
-  const body = {
-    contents: [{
-      role: 'user',
-      parts: [
-        { text: prompt },
-        { inline_data: { mime_type: mimeType, data: imageBase64 } }
-      ]
-    }],
-    generationConfig: {
-      maxOutputTokens: 1500,
-      temperature: 0.0
-    }
-  }
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30000)
-    }
-  )
-
-  if (res.status === 429) throw new Error('Serviço sobrecarregado. Tenta daqui a 30 segundos.')
-  if (res.status === 403) throw new Error('Chave API inválida. Verifica GEMINI_API_KEY no Cloudflare.')
-  if (res.status === 400) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`Imagem inválida: ${err?.error?.message || 'formato não suportado. Tenta JPG ou PNG.'}`)
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`Erro Gemini ${res.status}: ${err?.error?.message || 'tenta novamente'}`)
-  }
-
-  const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-  if (!text) {
-    // Check for safety blocks
-    const finishReason = data.candidates?.[0]?.finishReason
-    if (finishReason === 'SAFETY') throw new Error('Imagem bloqueada por filtros de segurança. Tenta outra foto.')
-    throw new Error('Resposta vazia. Tenta com uma foto mais nítida e bem iluminada.')
-  }
-
-  return text
-}
-
-function extractJSON(text: string): any {
-  // Remove markdown code blocks
-  let clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
-  
-  // Try direct parse first
-  try {
-    return JSON.parse(clean)
-  } catch {}
-  
-  // Find JSON object
-  const objMatch = clean.match(/\{[\s\S]*\}/)
-  if (objMatch) {
-    try { return JSON.parse(objMatch[0]) } catch {}
-  }
-  
-  // Find JSON array
-  const arrMatch = clean.match(/\[[\s\S]*\]/)
-  if (arrMatch) {
-    try { return JSON.parse(arrMatch[0]) } catch {}
-  }
-  
-  throw new Error('Não foi possível interpretar a resposta. Tenta com uma foto mais nítida.')
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null)
-    
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'GEMINI_API_KEY não configurado. Vai ao Cloudflare → Workers & Pages → o teu worker → Settings → Variables e adiciona GEMINI_API_KEY.' },
+        { status: 503 }
+      )
+    }
+
+    // Parse body — check size first
+    const contentLength = req.headers.get('content-length')
+    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'Imagem demasiado grande. A imagem deve ser comprimida antes de enviar (máx. ~2MB).' },
+        { status: 413 }
+      )
+    }
+
+    let body: any
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Pedido inválido — não é JSON válido' }, { status: 400 })
+    }
+
     if (!body?.image) {
-      return NextResponse.json({ error: 'Imagem obrigatória (campo "image" em base64)' }, { status: 400 })
+      return NextResponse.json({ error: 'Campo "image" obrigatório (base64)' }, { status: 400 })
     }
-    
+
     const mode: VisionMode = body.mode || 'drug_id'
-    const mimeType = body.mimeType || 'image/jpeg'
-    
+    const mimeType: string = body.mimeType || 'image/jpeg'
+
     if (!PROMPTS[mode]) {
-      return NextResponse.json({ error: `Modo inválido: ${mode}` }, { status: 400 })
+      return NextResponse.json({ error: `Modo "${mode}" inválido` }, { status: 400 })
     }
-    
-    const rawText = await callGemini(body.image, mimeType, PROMPTS[mode])
-    const result = extractJSON(rawText)
-    
-    return NextResponse.json({ ...result, mode, success: true })
-    
+
+    // Log image size for debugging
+    const imageSizeKB = Math.round((body.image.length * 3) / 4 / 1024)
+    console.log(`Vision request: mode=${mode}, imageSize=${imageSizeKB}KB, mime=${mimeType}`)
+
+    if (imageSizeKB > 8000) {
+      return NextResponse.json(
+        { error: `Imagem demasiado grande (${imageSizeKB}KB). Comprime a foto antes de enviar.` },
+        { status: 413 }
+      )
+    }
+
+    // Build Gemini request
+    const geminiBody = {
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: PROMPTS[mode] },
+          { inline_data: { mime_type: mimeType, data: body.image } }
+        ]
+      }],
+      generationConfig: {
+        maxOutputTokens: 1500,
+        temperature: 0.0,
+        responseMimeType: 'application/json'
+      }
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+
+    let geminiRes: Response
+    try {
+      geminiRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geminiBody),
+        signal: AbortSignal.timeout(45000)
+      })
+    } catch (fetchErr: any) {
+      console.error('Gemini fetch error:', fetchErr?.message)
+      if (fetchErr?.name === 'TimeoutError') {
+        return NextResponse.json({ error: 'Tempo limite excedido. Tenta com uma imagem mais pequena.' }, { status: 504 })
+      }
+      return NextResponse.json({ error: `Erro de ligação ao Gemini: ${fetchErr?.message}` }, { status: 502 })
+    }
+
+    // Parse Gemini response
+    const geminiData = await geminiRes.json().catch(() => null)
+
+    if (!geminiRes.ok) {
+      const errorMsg = geminiData?.error?.message || `HTTP ${geminiRes.status}`
+      const errorStatus = geminiData?.error?.status || ''
+
+      console.error(`Gemini error: ${geminiRes.status} ${errorStatus} - ${errorMsg}`)
+
+      if (geminiRes.status === 429) {
+        return NextResponse.json(
+          { error: `Quota Gemini excedida: ${errorMsg}. Verifica em aistudio.google.com se a tua chave tem quota disponível.` },
+          { status: 429 }
+        )
+      }
+      if (geminiRes.status === 400) {
+        return NextResponse.json(
+          { error: `Imagem rejeitada pelo Gemini: ${errorMsg}. Tenta uma foto diferente (JPG ou PNG, bem iluminada).` },
+          { status: 400 }
+        )
+      }
+      if (geminiRes.status === 403) {
+        return NextResponse.json(
+          { error: `Chave API inválida ou sem permissões. Verifica GEMINI_API_KEY no Cloudflare.` },
+          { status: 403 }
+        )
+      }
+      return NextResponse.json(
+        { error: `Gemini retornou erro ${geminiRes.status}: ${errorMsg}` },
+        { status: 500 }
+      )
+    }
+
+    // Check for safety blocks
+    const candidate = geminiData?.candidates?.[0]
+    if (candidate?.finishReason === 'SAFETY') {
+      return NextResponse.json(
+        { error: 'Imagem bloqueada por filtros de segurança do Gemini. Tenta outra foto.' },
+        { status: 400 }
+      )
+    }
+    if (candidate?.finishReason === 'RECITATION') {
+      return NextResponse.json(
+        { error: 'Resposta bloqueada por direitos de autor. Tenta outra foto.' },
+        { status: 400 }
+      )
+    }
+
+    const rawText = candidate?.content?.parts?.[0]?.text || ''
+    if (!rawText) {
+      return NextResponse.json(
+        { error: 'Gemini devolveu resposta vazia. Tenta com uma foto mais nítida e bem iluminada.' },
+        { status: 500 }
+      )
+    }
+
+    // Parse JSON from response
+    let parsed: any
+    try {
+      // Try direct parse first (when responseMimeType: application/json is honoured)
+      parsed = JSON.parse(rawText)
+    } catch {
+      // Fallback: extract JSON from text
+      const clean = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+      const objMatch = clean.match(/\{[\s\S]*\}/)
+      const arrMatch = clean.match(/\[[\s\S]*\]/)
+      const match = objMatch || arrMatch
+      if (match) {
+        try {
+          parsed = JSON.parse(match[0])
+        } catch {
+          console.error('JSON parse failed. Raw response:', rawText.slice(0, 500))
+          return NextResponse.json(
+            { error: 'Não foi possível interpretar a resposta. Tenta com uma foto mais nítida.' },
+            { status: 500 }
+          )
+        }
+      } else {
+        console.error('No JSON in response:', rawText.slice(0, 500))
+        return NextResponse.json(
+          { error: `Resposta inesperada do Gemini: "${rawText.slice(0, 100)}". Tenta novamente.` },
+          { status: 500 }
+        )
+      }
+    }
+
+    return NextResponse.json({ ...parsed, mode, success: true, imageSizeKB })
+
   } catch (err: any) {
-    console.error('Vision route error:', err?.message)
+    console.error('Vision route unexpected error:', err?.message, err?.stack)
     return NextResponse.json(
-      { error: err.message || 'Erro ao processar imagem. Tenta novamente.' },
-      { status: err.message?.includes('configurado') ? 503 : 500 }
+      { error: `Erro inesperado: ${err?.message || 'tenta novamente'}` },
+      { status: 500 }
     )
   }
 }

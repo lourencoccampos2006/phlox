@@ -80,6 +80,38 @@ function DrugSkeleton() {
 }
 
 
+
+// Compress image before sending — reduces phone photos from 3-5MB to ~150KB
+async function compressImageFile(file: File, maxDim = 1024, quality = 0.85): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      const canvas = document.createElement("canvas")
+      canvas.width = width; canvas.height = height
+      const ctx = canvas.getContext("2d")
+      if (!ctx) { reject(new Error("Canvas error")); return }
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error("Compression failed")); return }
+        const reader = new FileReader()
+        reader.onload = () => resolve({ base64: (reader.result as string).split(",")[1], mimeType: "image/jpeg" })
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      }, "image/jpeg", quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível carregar a imagem")) }
+    img.src = url
+  })
+}
+
+
 export default function DrugsPage() {
   const { user, supabase } = useAuth()
   const [query, setQuery] = useState('')
@@ -88,25 +120,20 @@ export default function DrugsPage() {
   const [loading, setLoading] = useState(false)
   const [photoLoading, setPhotoLoading] = useState(false)
 
-  const handleDrugPhoto = async (base64: string, mimeType: string) => {
+  const handleDrugPhoto = async (file: File) => {
     setPhotoLoading(true); setError('')
     try {
+      const compressed = await compressImageFile(file)
       const res = await fetch('/api/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, mimeType: mimeType || 'image/jpeg', mode: 'drug_id' })
+        body: JSON.stringify({ image: compressed.base64, mimeType: compressed.mimeType, mode: 'drug_id' })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      
-      // Use drug_name (English generic) or brand_name to search
       const searchTerm = data.drug_name || data.brand_name
-      if (searchTerm) {
-        setQuery(searchTerm)
-        handleSearch(searchTerm)
-      } else {
-        setError('Não foi possível identificar o medicamento na imagem. Tenta uma foto mais nítida da caixa ou do rótulo.')
-      }
+      if (searchTerm) { setQuery(searchTerm); handleSearch(searchTerm) }
+      else setError('Não foi possível identificar o medicamento. Tenta uma foto mais nítida da frente da caixa.')
     } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
     finally { setPhotoLoading(false) }
   }
@@ -207,14 +234,7 @@ export default function DrugsPage() {
               {photoLoading ? 'A identificar medicamento...' : 'Tirar foto à caixa para identificar'}
             </button>
             <input id="drug-photo-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) {
-                const reader = new FileReader()
-                reader.onload = () => {
-                  const base64 = (reader.result as string).split(',')[1]
-                  handleDrugPhoto(base64, f.type || 'image/jpeg')
-                }
-                reader.readAsDataURL(f)
-              }}} />
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleDrugPhoto(f) }} />
           </div>
           {suggestions.length > 0 && (
             <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
