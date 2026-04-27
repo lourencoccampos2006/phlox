@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiJSON } from '@/lib/ai'
+import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
 
 // Persistent cache using module-level Map (survives within same Worker instance)
 const cache = new Map<string, { result: any; timestamp: number }>()

@@ -146,3 +146,70 @@ export async function aiJSON<T>(
     .trim()
   return JSON.parse(clean) as T
 }
+
+// ─── Gemini Vision: image analysis ───────────────────────────────────────────
+
+export async function callGeminiVision(
+  prompt: string,
+  imageBase64: string,
+  mimeType: string,
+  opts: { maxTokens?: number; temperature?: number } = {}
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error('GEMINI_API_KEY não configurado. Adiciona a variável no Cloudflare.')
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: imageBase64 } },
+          ],
+        }],
+        generationConfig: {
+          maxOutputTokens: opts.maxTokens || 1500,
+          temperature: opts.temperature ?? 0.1,
+        },
+      }),
+      signal: AbortSignal.timeout(30000),
+    }
+  )
+
+  if (res.status === 429) throw new Error('Serviço temporariamente sobrecarregado. Tenta daqui a pouco.')
+  if (res.status === 400) {
+    const errData = await res.json().catch(() => ({}))
+    throw new Error(`Imagem inválida: ${errData?.error?.message || 'formato não suportado'}`)
+  }
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}))
+    throw new Error(`Erro Gemini ${res.status}: ${errData?.error?.message || 'tenta novamente'}`)
+  }
+
+  const data = await res.json()
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  if (!text) throw new Error('Resposta vazia do serviço de visão. Tenta uma foto com melhor iluminação.')
+  return text
+}
+
+export async function callGeminiVisionJSON<T>(
+  prompt: string,
+  imageBase64: string,
+  mimeType: string,
+  opts: { maxTokens?: number } = {}
+): Promise<T> {
+  const text = await callGeminiVision(prompt, imageBase64, mimeType, opts)
+  const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+  // Find JSON object or array in response
+  const match = clean.match(/[\[{][\s\S]*[\]\}]/)
+  if (!match) throw new Error('Não foi possível interpretar a imagem. Tenta com uma foto mais nítida.')
+  try {
+    return JSON.parse(match[0]) as T
+  } catch {
+    throw new Error('Erro ao processar resposta. Tenta novamente.')
+  }
+}

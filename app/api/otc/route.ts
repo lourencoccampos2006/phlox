@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiJSON } from '@/lib/ai'
+import { aiJSON, callGeminiVision } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
@@ -8,10 +8,26 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const body = await req.json().catch(() => null)
-  if (!body?.symptom) return NextResponse.json({ error: 'Sintoma obrigatório' }, { status: 400 })
+  if (!body?.symptom && !body?.image) return NextResponse.json({ error: 'Sintoma ou imagem obrigatório' }, { status: 400 })
 
-  const symptom = String(body.symptom).trim().slice(0, 200)
-  const context = String(body.context || '').trim().slice(0, 300)
+  const symptom = String(body?.symptom || '').trim().slice(0, 200)
+  const context = String(body?.context || '').trim().slice(0, 300)
+  const image = body?.image as string | undefined
+  const mimeType = String(body?.mimeType || 'image/jpeg')
+
+  // If image provided, use Gemini to describe the symptom first
+  let effectiveSymptom = symptom
+  if (image && !symptom) {
+    try {
+      const description = await callGeminiVision(
+        'Descreve em português o que vês nesta imagem relacionado com saúde — sintoma visível, erupção, ferida, medicamento, etc. Sê conciso (1-2 frases).',
+        image, mimeType, { maxTokens: 150 }
+      )
+      effectiveSymptom = description.trim()
+    } catch (e) {
+      effectiveSymptom = 'sintoma não identificado'
+    }
+  }
 
   try {
     const result = await aiJSON<any>([

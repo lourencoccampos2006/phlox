@@ -79,34 +79,6 @@ function DrugSkeleton() {
   )
 }
 
-function PhotoCapture({ onCapture, loading = false }: {
-  onCapture: (base64: string, mimeType: string) => void
-  loading?: boolean
-}) {
-  const ref = useRef<HTMLInputElement>(null)
-  const handleFile = async (file: File) => {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve((reader.result as string).split(',')[1])
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-    onCapture(base64, file.type || 'image/jpeg')
-  }
-  return (
-    <button onClick={() => !loading && ref.current?.click()}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', border: '1.5px solid var(--border-2)', borderRadius: 6, background: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 13, color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-        <circle cx="12" cy="13" r="4"/>
-      </svg>
-      {loading ? 'A identificar...' : 'Foto da caixa'}
-      <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
-    </button>
-  )
-}
-
 
 export default function DrugsPage() {
   const { user, supabase } = useAuth()
@@ -212,7 +184,6 @@ export default function DrugsPage() {
               placeholder="Ex: brufen, voltaren, metformina, ibuprofeno..."
               style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '10px 14px', fontSize: 15, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none', minWidth: 0 }}
             />
-            <PhotoCapture onCapture={handleDrugPhoto} loading={photoLoading} />
             <button
               onClick={() => handleSearch(query)}
               disabled={!query.trim() || loading}
@@ -220,6 +191,28 @@ export default function DrugsPage() {
             >
               {loading ? 'A pesquisar...' : 'Pesquisar'}
             </button>
+          </div>
+          {/* Photo capture — below search box */}
+          <div style={{ marginBottom: 10 }}>
+            <button
+              onClick={() => { const el = document.getElementById('drug-photo-input'); if (el) el.click() }}
+              disabled={photoLoading}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '9px', border: '1.5px dashed var(--border-2)', borderRadius: 7, background: 'white', cursor: photoLoading ? 'not-allowed' : 'pointer', fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              {photoLoading ? 'A identificar medicamento...' : 'Tirar foto à caixa para identificar'}
+            </button>
+            <input id="drug-photo-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) {
+                const reader = new FileReader()
+                reader.onload = () => {
+                  const base64 = (reader.result as string).split(',')[1]
+                  handleDrugPhoto(base64, f.type || 'image/jpeg')
+                }
+                reader.readAsDataURL(f)
+              }}} />
           </div>
           {suggestions.length > 0 && (
             <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>

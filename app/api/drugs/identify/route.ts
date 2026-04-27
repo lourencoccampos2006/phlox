@@ -1,44 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { callGeminiVisionJSON } from '@/lib/ai'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  const ip = getIP(req)
+  const rl = checkRateLimit(ip, 20, 60_000)
+  if (!rl.allowed) return rateLimitResponse()
+
   const body = await req.json().catch(() => null)
   if (!body?.image) return NextResponse.json({ error: 'Imagem obrigatória' }, { status: 400 })
 
-  const geminiKey = process.env.GEMINI_API_KEY
-  if (!geminiKey) return NextResponse.json({ error: 'Serviço de visão não disponível' }, { status: 503 })
+  const mimeType = String(body.mimeType || 'image/jpeg')
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                text: `Analisa esta imagem de um medicamento. Identifica o nome do medicamento principal visível (nome da caixa, blister, ou rótulo).
-Responde APENAS com JSON sem markdown:
+    const result = await callGeminiVisionJSON<{
+      drug_name: string | null
+      brand_name: string | null
+      confidence: 'high' | 'medium' | 'low'
+    }>(
+      `Analisa esta imagem de um medicamento — pode ser uma caixa, blister, rótulo, ou comprimido.
+
+Identifica o medicamento principal visível. Responde APENAS com JSON sem markdown:
 {
-  "drug_name": "nome do medicamento em inglês (DCI/genérico se possível) — ex: ibuprofen, metformin, omeprazole",
-  "brand_name": "nome comercial se visível — ex: Brufen, Voltaren",
+  "drug_name": "nome em inglês DCI/genérico (ex: ibuprofen, metformin) — null se não identificado",
+  "brand_name": "nome comercial visível (ex: Brufen, Voltaren) — null se não visível",
   "confidence": "high" | "medium" | "low"
-}
-Se não conseguires identificar nenhum medicamento, responde: {"drug_name": null, "brand_name": null, "confidence": "low"}`
-              },
-              { inline_data: { mime_type: body.mimeType || 'image/jpeg', data: body.image } }
-            ]
-          }],
-          generationConfig: { temperature: 0.0, maxOutputTokens: 200 }
-        })
-      }
+}`,
+      body.image,
+      mimeType,
+      { maxTokens: 200 }
     )
-    const geminiData = await res.json()
-    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
-    const clean = text.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(clean)
-    return NextResponse.json(parsed)
-  } catch (e: any) {
-    return NextResponse.json({ drug_name: null, error: e.message }, { status: 500 })
+
+    return NextResponse.json(result)
+  } catch (err: any) {
+    console.error('Drug identify error:', err?.message)
+    return NextResponse.json({ drug_name: null, brand_name: null, confidence: 'low', error: err.message }, { status: 500 })
   }
 }
