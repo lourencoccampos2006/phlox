@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
 
   const profile = String(body.profile).trim()
   const destination = String(body.destination || '').trim()
+  const own_vaccines = String(body.own_vaccines || '').trim()
 
   const PROFILE_LABELS: Record<string, string> = {
     adult: 'Adulto saudável (18-64 anos)',
@@ -66,7 +67,7 @@ Regras:
       },
       {
         role: 'user',
-        content: `Perfil: ${PROFILE_LABELS[profile] || profile}${destination ? `. Destino de viagem: ${destination}` : ''}`,
+        content: `Perfil: ${PROFILE_LABELS[profile] || profile}${destination ? `. Destino de viagem: ${destination}` : ''}${own_vaccines ? `\n\nVacinas já tomadas pelo utilizador: ${own_vaccines}` : ''}. Tem em conta as vacinas que o utilizador já tomou ao fazer as recomendações.`,
       },
     ], { maxTokens: 1200, temperature: 0.1 })
 

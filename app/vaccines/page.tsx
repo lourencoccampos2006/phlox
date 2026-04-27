@@ -42,7 +42,11 @@ export default function VaccinesPage() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
       const res = await fetch('/api/vaccines', { method: 'POST', headers,
-        body: JSON.stringify({ profile, destination: destination.trim() }) })
+        body: JSON.stringify({ 
+          profile, 
+          destination: destination.trim(),
+          own_vaccines: (document.getElementById('own-vaccines') as HTMLTextAreaElement)?.value?.trim() || ''
+        }) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setResult(data)
@@ -96,6 +100,16 @@ export default function VaccinesPage() {
                 </div>
               </div>
             )}
+
+            {/* Own vaccines */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '14px', marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                Vacinas que já tomei (opcional)
+              </label>
+              <textarea id="own-vaccines" rows={3}
+                placeholder="Ex: COVID-19 (2022), gripe (2024), tétano (2020)..."
+                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 6, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
+            </div>
 
             <button onClick={check} disabled={loading}
               style={{ width: '100%', background: !loading ? 'var(--ink)' : 'var(--bg-3)', color: !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, padding: '13px', fontSize: 13, fontWeight: 700, cursor: !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
