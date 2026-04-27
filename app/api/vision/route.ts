@@ -55,6 +55,46 @@ Return ONLY valid JSON with no markdown:
 }`
 }
 
+// ─── OpenAI GPT-4o Vision fallback ───────────────────────────────────────────
+async function tryOpenAIVision(imageBase64: string, mimeType: string, prompt: string): Promise<any | null> {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) return null
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', // cheaper than gpt-4o, still excellent for OCR/drug id
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail: 'low' } }
+          ]
+        }]
+      }),
+      signal: AbortSignal.timeout(30000)
+    })
+
+    if (!res.ok) return null
+
+    const data = await res.json()
+    const text = data.choices?.[0]?.message?.content || ''
+    if (!text) return null
+
+    // Extract JSON
+    const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+    const match = clean.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    return JSON.parse(match[0])
+  } catch {
+    return null
+  }
+}
+
+
 export async function POST(req: NextRequest) {
   try {
     const apiKey = process.env.GEMINI_API_KEY
@@ -119,7 +159,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${apiKey}`
 
     let geminiRes: Response
     try {
@@ -147,8 +187,11 @@ export async function POST(req: NextRequest) {
       console.error(`Gemini error: ${geminiRes.status} ${errorStatus} - ${errorMsg}`)
 
       if (geminiRes.status === 429) {
+        // Try OpenAI GPT-4o as fallback
+        const openaiResult = await tryOpenAIVision(body.image, mimeType, PROMPTS[mode])
+        if (openaiResult) return NextResponse.json({ ...openaiResult, mode, success: true, provider: 'openai' })
         return NextResponse.json(
-          { error: `Quota Gemini excedida: ${errorMsg}. Verifica em aistudio.google.com se a tua chave tem quota disponível.` },
+          { error: 'Quota de visão esgotada (Gemini e OpenAI). Usa a opção de texto manual enquanto regularizas.' },
           { status: 429 }
         )
       }
