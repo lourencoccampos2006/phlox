@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
@@ -22,6 +22,35 @@ const EXAMPLES = [
   { drugs: ['digoxina', 'amiodarona'],         note: 'Toxicidade' },
 ]
 
+// ─── Photo capture component ─────────────────────────────────────────────────
+function PhotoCapture({ onCapture, loading = false }: {
+  onCapture: (base64: string, mimeType: string) => void
+  loading?: boolean
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const handleFile = async (file: File) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve((reader.result as string).split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    onCapture(base64, file.type || 'image/jpeg')
+  }
+  return (
+    <div>
+      <div onClick={() => !loading && ref.current?.click()}
+        style={{ border: '2px dashed var(--border-2)', borderRadius: 8, padding: '14px', textAlign: 'center', cursor: loading ? 'not-allowed' : 'pointer', background: 'var(--bg-2)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 2 }}>{loading ? 'A processar...' : '📷 Foto da caixa / blister'}</div>
+        <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>Tira foto à caixa e identificamos o medicamento</div>
+      </div>
+      <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+    </div>
+  )
+}
+
+
 export default function InteractionsPage() {
   const { user, supabase } = useAuth()
   const [input, setInput] = useState('')
@@ -29,6 +58,26 @@ export default function InteractionsPage() {
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [photoLoading, setPhotoLoading] = useState(false)
+
+  const handlePhoto = async (base64: string, mimeType: string) => {
+    setPhotoLoading(true); setError('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
+      const res = await fetch('/api/interactions', { method: 'POST', headers,
+        body: JSON.stringify({ image: base64, mimeType, drugs: [] }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      // If drugs were identified from image, add them
+      if (data.identified_drugs?.length) {
+        setDrugs(data.identified_drugs)
+      }
+    } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
+    finally { setPhotoLoading(false) }
+  }
+
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
 
   const handleInput = (val: string) => {
@@ -135,6 +184,9 @@ export default function InteractionsPage() {
                 </button>
               </div>
 
+              <div style={{ marginTop: 8 }}>
+                <PhotoCapture onCapture={handlePhoto} loading={photoLoading} />
+              </div>
               {suggestions.length > 0 && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', boxShadow: 'var(--shadow-md)', zIndex: 50, overflow: 'hidden' }}>
                   {suggestions.map(s => (

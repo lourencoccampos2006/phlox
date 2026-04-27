@@ -2,7 +2,7 @@
 
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
@@ -79,12 +79,63 @@ function DrugSkeleton() {
   )
 }
 
+function PhotoCapture({ onCapture, loading = false }: {
+  onCapture: (base64: string, mimeType: string) => void
+  loading?: boolean
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const handleFile = async (file: File) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve((reader.result as string).split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    onCapture(base64, file.type || 'image/jpeg')
+  }
+  return (
+    <button onClick={() => !loading && ref.current?.click()}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', border: '1.5px solid var(--border-2)', borderRadius: 6, background: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 13, color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      {loading ? 'A identificar...' : 'Foto da caixa'}
+      <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+    </button>
+  )
+}
+
+
 export default function DrugsPage() {
   const { user, supabase } = useAuth()
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [photoLoading, setPhotoLoading] = useState(false)
+
+  const handleDrugPhoto = async (base64: string, mimeType: string) => {
+    setPhotoLoading(true); setError('')
+    try {
+      const geminiKey = process.env.NEXT_PUBLIC_GEMINI_HINT || ''
+      // Send to a dedicated endpoint that uses Gemini vision to identify the drug
+      const res = await fetch('/api/drugs/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, mimeType })
+      })
+      const data = await res.json()
+      if (data.drug_name) {
+        setQuery(data.drug_name)
+        handleSearch(data.drug_name)
+      } else {
+        setError('Não foi possível identificar o medicamento. Tenta pesquisar pelo nome.')
+      }
+    } catch (e: any) { setError('Erro ao processar foto.') }
+    finally { setPhotoLoading(false) }
+  }
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
@@ -161,6 +212,7 @@ export default function DrugsPage() {
               placeholder="Ex: brufen, voltaren, metformina, ibuprofeno..."
               style={{ flex: 1, border: '1px solid var(--border-2)', borderRadius: 4, padding: '10px 14px', fontSize: 15, color: 'var(--ink)', fontFamily: 'var(--font-sans)', outline: 'none', minWidth: 0 }}
             />
+            <PhotoCapture onCapture={handleDrugPhoto} loading={photoLoading} />
             <button
               onClick={() => handleSearch(query)}
               disabled={!query.trim() || loading}

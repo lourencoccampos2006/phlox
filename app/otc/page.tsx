@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 
@@ -29,6 +29,38 @@ const SYMPTOM_EXAMPLES = [
   'Dor menstrual', 'Herpes labial', 'Candidíase vaginal', 'Pé de atleta',
 ]
 
+function PhotoCapture({ onCapture, loading = false }: {
+  onCapture: (base64: string, mimeType: string) => void
+  loading?: boolean
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const handleFile = async (file: File) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve((reader.result as string).split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    onCapture(base64, file.type || 'image/jpeg')
+  }
+  return (
+    <div>
+      <div onClick={() => !loading && ref.current?.click()}
+        style={{ border: '2px dashed var(--border-2)', borderRadius: 8, padding: '14px', textAlign: 'center', cursor: loading ? 'not-allowed' : 'pointer', background: 'var(--bg-2)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 2 }}>
+          {loading ? 'A analisar...' : '📷 Foto do sintoma / produto'}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
+          Foto de erupção, embalagem, ferida, etc.
+        </div>
+      </div>
+      <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+    </div>
+  )
+}
+
+
 export default function OTCPage() {
   const { user, supabase } = useAuth()
   const [symptom, setSymptom] = useState('')
@@ -36,6 +68,22 @@ export default function OTCPage() {
   const [result, setResult] = useState<OTCResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [photoLoading, setPhotoLoading] = useState(false)
+
+  const handlePhoto = async (base64: string, mimeType: string) => {
+    setPhotoLoading(true); setError('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
+      const res = await fetch('/api/otc', { method: 'POST', headers,
+        body: JSON.stringify({ image: base64, mimeType, symptom: 'analisa a imagem e descreve o sintoma visível' }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setResult(data)
+    } catch (e: any) { setError(e.message || 'Erro ao processar foto.') }
+    finally { setPhotoLoading(false) }
+  }
 
   const search = async (sym?: string) => {
     const s = (sym ?? symptom).trim()
@@ -82,6 +130,9 @@ export default function OTCPage() {
                 style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 6, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', lineHeight: 1.5 }} />
             </div>
 
+            <div style={{ marginBottom: 10 }}>
+              <PhotoCapture onCapture={handlePhoto} loading={photoLoading} />
+            </div>
             <button onClick={() => search()} disabled={!symptom.trim() || loading}
               style={{ width: '100%', background: symptom.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: symptom.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, padding: '13px', fontSize: 14, fontWeight: 600, cursor: symptom.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', marginBottom: 20, letterSpacing: '-0.01em' }}>
               {loading ? 'A pesquisar...' : 'Ver recomendações →'}

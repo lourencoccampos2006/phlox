@@ -40,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/otc`,                       lastModified: now, changeFrequency: 'weekly',  priority: 0.9 },
     { url: `${BASE_URL}/prescription`,              lastModified: now, changeFrequency: 'weekly',  priority: 0.9 },
     { url: `${BASE_URL}/nursing`,                   lastModified: now, changeFrequency: 'weekly',  priority: 0.88 },
+    { url: `${BASE_URL}/vaccines`,                lastModified: now, changeFrequency: 'weekly',  priority: 0.88 },
     { url: `${BASE_URL}/safety`,                      lastModified: now, changeFrequency: 'weekly',  priority: 0.9 },
     { url: `${BASE_URL}/monograph`,                   lastModified: now, changeFrequency: 'weekly',  priority: 0.9 },
     { url: `${BASE_URL}/doses`,                       lastModified: now, changeFrequency: 'weekly',  priority: 0.88 },
