@@ -172,12 +172,12 @@ function PersonalDashboard() {
   }
 
   const QUICK_ACTIONS = [
-    { label: 'Perceber a minha receita', sub: 'Foto ou texto', href: '/prescription', accent: 'var(--green)' },
-    { label: 'Verificar interações', sub: `${meds.length} medicamentos no perfil`, href: '/interactions', accent: 'var(--green)' },
-    { label: 'Perceber análises', sub: 'PDF ou cola os valores', href: '/labs', accent: 'var(--green)' },
-    { label: 'O que comprar sem receita', sub: 'Guia de automedicação', href: '/otc', accent: 'var(--green)' },
-    { label: 'Segurança do medicamento', sub: 'Conduzir, gravidez, álcool', href: '/safety', accent: 'var(--green)' },
-    { label: 'Verificar vacinas', sub: 'Calendário e viagens', href: '/vaccines', accent: 'var(--green)' },
+    { label: 'Verificar interações', sub: `${meds.length > 0 ? meds.length + ' medicamentos no perfil' : 'Escreve os nomes das caixas'}`, href: '/interactions', badge: 'Grátis' },
+    { label: 'Tradutor de Bula', sub: 'Cola o texto ou escreve o nome', href: '/bula', badge: 'Grátis' },
+    { label: 'Dose Pediátrica', sub: 'Peso + medicamento = dose exacta', href: '/dose-crianca', badge: 'Grátis' },
+    { label: 'Perceber Análises', sub: 'PDF ou cola os valores', href: '/labs', badge: undefined },
+    { label: 'Preparar Consulta', sub: 'Perguntas certas para o médico', href: '/consult-prep', badge: undefined },
+    { label: 'O que comprar sem receita', sub: 'Guia de automedicação', href: '/otc', badge: undefined },
   ]
 
   const tabStyle = (t: string) => ({
@@ -232,12 +232,15 @@ function PersonalDashboard() {
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>O que precisas hoje?</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 8 }}>
-                {QUICK_ACTIONS.map(({ label, sub, href }) => (
+                {QUICK_ACTIONS.map(({ label, sub, href, badge }) => (
                   <Link key={href} href={href}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 12, transition: 'border-color 0.15s' }}
                     className="quick-action">
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 2 }}>{label}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
+                        {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>{badge}</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
                     </div>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

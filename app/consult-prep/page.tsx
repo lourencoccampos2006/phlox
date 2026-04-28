@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import ProfileSelector from '@/components/ProfileSelector'
+import type { ActiveProfile } from '@/lib/profileContext'
 
 interface ConsultPrep {
   questions_for_doctor: { question: string; why: string; priority: 'alta' | 'normal' }[]
@@ -41,6 +43,18 @@ export default function ConsultPrepPage() {
     load()
   }, [user, supabase])
 
+  const handleProfileSelect = async (profile: ActiveProfile) => {
+    if (!user) return
+    if (profile.type === 'self') {
+      const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id)
+      setMeds((data || []).map((m: any) => m.name))
+    } else {
+      const { data } = await supabase.from('family_profile_meds').select('name').eq('profile_id', profile.id).limit(20)
+      setMeds((data || []).map((m: any) => m.name))
+      setRecentSymptoms([])
+    }
+  }
+
   const prepare = async () => {
     if (!topic.trim()) return
     setLoading(true); setError(''); setResult(null)
@@ -74,6 +88,13 @@ export default function ConsultPrepPage() {
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, marginBottom: 6 }}>Preparar a Consulta</h1>
               <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>As perguntas certas para fazer ao médico, com base na tua medicação e sintomas recentes.</p>
             </div>
+
+            {/* Profile selector */}
+            {user && (
+              <div style={{ marginBottom: 12 }}>
+                <ProfileSelector onChange={handleProfileSelect} />
+              </div>
+            )}
 
             {/* Context from profile */}
             {(meds.length > 0 || recentSymptoms.length > 0) && (

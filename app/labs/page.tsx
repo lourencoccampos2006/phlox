@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+// ─── NOVO: ProfileSelector para pré-carregar contexto clínico do perfil ───
 
 // PDF.js via CDN — loaded dynamically to avoid SSR issues
 async function extractPdfText(file: File): Promise<string> {
@@ -33,6 +34,8 @@ async function extractPdfText(file: File): Promise<string> {
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import ProfileSelector from '@/components/ProfileSelector'
+import type { ActiveProfile } from '@/lib/profileContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -312,6 +315,22 @@ export default function LabsPage() {
   const [error, setError] = useState('')
   const [inputMode, setInputMode] = useState<'text' | 'file'>('text')
   const fileRef = useRef<HTMLInputElement>(null)
+  const [profileCtxNote, setProfileCtxNote] = useState('')
+
+  const handleProfileSelect = async (profile: ActiveProfile) => {
+    if (profile.type === 'self') { setProfileCtxNote(''); return }
+    const [{ data: fp }, { data: fpMeds }] = await Promise.all([
+      supabase.from('family_profiles').select('name, age, conditions, allergies').eq('id', profile.id).single(),
+      supabase.from('family_profile_meds').select('name').eq('profile_id', profile.id).limit(10),
+    ])
+    if (!fp) return
+    const parts: string[] = []
+    if (fp.age) parts.push(`${fp.age} anos`)
+    if (fp.conditions) parts.push(`condições: ${fp.conditions}`)
+    if (fp.allergies) parts.push(`alergias: ${fp.allergies}`)
+    if (fpMeds?.length) parts.push(`medicação: ${fpMeds.map((m: any) => m.name).join(', ')}`)
+    setProfileCtxNote(parts.length ? `Doente — ${fp.name}: ${parts.join(' · ')}` : '')
+  }
 
   const analyse = async () => {
     if (!text.trim() && !file) return
@@ -322,13 +341,15 @@ export default function LabsPage() {
       const token = sessionData.session?.access_token
 
       let labText = text
+      if (profileCtxNote) labText = `${profileCtxNote}\n\n${labText}`
 
       // Extract text from file client-side
       if (file && !text.trim()) {
+        let extracted = ''
         if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
           try {
-            labText = await extractPdfText(file)
-            if (!labText.trim()) {
+            extracted = await extractPdfText(file)
+            if (!extracted.trim()) {
               throw new Error('O PDF não contém texto extraível. Tenta copiar o texto manualmente.')
             }
           } catch (e: any) {
@@ -337,12 +358,13 @@ export default function LabsPage() {
             return
           }
         } else {
-          labText = await new Promise((resolve) => {
+          extracted = await new Promise((resolve) => {
             const reader = new FileReader()
             reader.onload = e => resolve(e.target?.result as string || '')
             reader.readAsText(file)
           })
         }
+        labText = profileCtxNote ? `${profileCtxNote}\n\n${extracted}` : extracted
       }
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -417,6 +439,18 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
                 Cola os resultados das tuas análises clínicas. Recebe uma interpretação completa em linguagem humana.
               </p>
             </div>
+
+            {/* Profile selector */}
+            {user && (
+              <div style={{ marginBottom: 12 }}>
+                <ProfileSelector onChange={handleProfileSelect} />
+              </div>
+            )}
+            {profileCtxNote && (
+              <div style={{ background: '#ede9fe', border: '1px solid #ddd6fe', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#5b21b6', fontFamily: 'var(--font-mono)' }}>
+                {profileCtxNote}
+              </div>
+            )}
 
             {/* Input mode toggle */}
             <div style={{ display: 'flex', background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: 4, gap: 4, marginBottom: 12 }}>

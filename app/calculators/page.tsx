@@ -1,13 +1,34 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '@/components/Header'
+import { useAuth } from '@/components/AuthContext'
+import ProfileSelector from '@/components/ProfileSelector'
+import type { ActiveProfile } from '@/lib/profileContext'
+
+interface ProfileValues {
+  age?: string
+  weight?: string
+  creatinine?: string
+  sex?: string
+}
 
 // ─── CALCULATORS ────────────────────────────────────────────────────────────
 
-function CockcroftGault() {
+function CockcroftGault({ profileValues }: { profileValues?: ProfileValues }) {
   const [form, setForm] = useState({ age: '', weight: '', creatinine: '', sex: 'male' })
   const [result, setResult] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!profileValues) return
+    setResult(null)
+    setForm(p => ({
+      age: profileValues.age ?? p.age,
+      weight: profileValues.weight ?? p.weight,
+      creatinine: profileValues.creatinine ?? p.creatinine,
+      sex: profileValues.sex ?? p.sex,
+    }))
+  }, [profileValues])
 
   const calc = () => {
     const age = parseFloat(form.age), weight = parseFloat(form.weight), cr = parseFloat(form.creatinine)
@@ -59,9 +80,19 @@ function CockcroftGault() {
   )
 }
 
-function EGFRCalc() {
+function EGFRCalc({ profileValues }: { profileValues?: ProfileValues }) {
   const [form, setForm] = useState({ age: '', creatinine: '', sex: 'male' })
   const [result, setResult] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!profileValues) return
+    setResult(null)
+    setForm(p => ({
+      age: profileValues.age ?? p.age,
+      creatinine: profileValues.creatinine ?? p.creatinine,
+      sex: profileValues.sex ?? p.sex,
+    }))
+  }, [profileValues])
 
   const calc = () => {
     const age = parseFloat(form.age), cr = parseFloat(form.creatinine)
@@ -571,8 +602,22 @@ const TAG_COLORS: Record<string, { bg: string; color: string }> = {
 }
 
 export default function CalculatorsPage() {
+  const { user, supabase } = useAuth()
   const [active, setActive] = useState<string | null>(null)
+  const [profileValues, setProfileValues] = useState<ProfileValues | undefined>(undefined)
   const ActiveCalc = active ? CALCULATORS.find(c => c.id === active)?.component : null
+
+  const handleProfileSelect = async (profile: ActiveProfile) => {
+    if (profile.type === 'self') { setProfileValues(undefined); return }
+    const { data } = await supabase.from('family_profiles').select('age, weight, creatinine, sex').eq('id', profile.id).single()
+    if (!data) return
+    setProfileValues({
+      age: data.age?.toString() ?? undefined,
+      weight: data.weight?.toString() ?? undefined,
+      creatinine: data.creatinine?.toString() ?? undefined,
+      sex: data.sex === 'F' ? 'female' : 'male',
+    })
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
@@ -594,6 +639,11 @@ export default function CalculatorsPage() {
                 {CALCULATORS.length} ferramentas de cálculo clínico. Sem anúncios, sem registo obrigatório.
               </p>
             </div>
+            {user && (
+              <div style={{ marginBottom: 20 }}>
+                <ProfileSelector onChange={handleProfileSelect} />
+              </div>
+            )}
 
             <div className="card-grid-2" style={{ gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
               {CALCULATORS.map(calc => {
@@ -631,7 +681,13 @@ export default function CalculatorsPage() {
                     <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>{calc.description}</p>
                   </div>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '24px 20px' }}>
-                    <ActiveCalc />
+                    {(active === 'cockcroft') ? (
+                      <CockcroftGault profileValues={profileValues} />
+                    ) : (active === 'egfr') ? (
+                      <EGFRCalc profileValues={profileValues} />
+                    ) : (
+                      <ActiveCalc />
+                    )}
                   </div>
                 </>
               )
