@@ -140,13 +140,15 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
             </div>
             {/* Botões de acção */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <Link href={`/ai?profile=${profile.id}`} style={{ padding: '8px 14px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
-                Analisar com AI
+              <Link href={`/ai?profile=${profile.id}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+                <svg width="11" height="11" viewBox="0 0 28 28" fill="none"><path d="M14 6v16M7 14h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/></svg>
+                Consultar Phlox AI
               </Link>
-              <Link href={`/interactions?profile=${profile.id}`} style={{ padding: '8px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+              <Link href={`/interactions?profile=${profile.id}`} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 Interações
               </Link>
-              <Link href={`/consult-prep?profile=${profile.id}`} style={{ padding: '8px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+              <Link href={`/consult-prep?profile=${profile.id}`} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 Preparar consulta
               </Link>
             </div>
@@ -165,6 +167,25 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
         {/* VISÃO GERAL */}
         {tab === 'overview' && (
           <div style={{ maxWidth: 680 }}>
+            {/* AI CTA banner */}
+            <Link href={`/ai?profile=${profile.id}`}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 22px', background: 'var(--ink)', borderRadius: 12, textDecoration: 'none', marginBottom: 16 }}
+              className="ai-banner">
+              <div>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5 }}>Phlox AI · Contexto carregado</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'white', letterSpacing: '-0.01em' }}>
+                  Consultar sobre {profile.name}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
+                  Medicação, diagnósticos e função renal já carregados
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'white', color: 'var(--ink)', padding: '9px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
+                Abrir AI
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </div>
+            </Link>
+
             {/* Dados clínicos */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 14 }}>
               <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
@@ -299,7 +320,10 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
         )}
       </div>
 
-      <style>{`.remove-btn:hover { color: var(--red) !important; }`}</style>
+      <style>{`
+        .remove-btn:hover { color: var(--red) !important; }
+        .ai-banner:hover { background: #1a1a2e !important; }
+      `}</style>
     </div>
   )
 }
