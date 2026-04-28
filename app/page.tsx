@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/AuthContext'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ const TOOLS_BY_USE = [
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const { user } = useAuth()
   const router = useRouter()
   const [aiQuery, setAiQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('Uso diário')
@@ -153,6 +155,85 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ══ PARA QUEM É — section for unauthenticated visitors ═══════════════ */}
+      {!user && (
+        <section style={{ padding: '52px 0', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
+          <div className="page-container">
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Para quem é</div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px, 3.5vw, 30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em' }}>
+                Escolhe o teu ponto de entrada
+              </h2>
+            </div>
+            <div className="card-grid-4" style={{ gap: 12 }}>
+              {[
+                {
+                  mode: 'professional',
+                  icon: '🏥',
+                  title: 'Profissional de Saúde',
+                  desc: 'Médico, farmacêutico ou enfermeiro. Co-piloto clínico com contexto do doente, protocolos e evidência.',
+                  color: '#1d4ed8',
+                  bg: '#eff6ff',
+                  border: '#bfdbfe',
+                  tags: ['Protocolos ESC/ADA', 'Perfil de doente', 'Ajuste de dose'],
+                },
+                {
+                  mode: 'caregiver',
+                  icon: '👨‍👩‍👧',
+                  title: 'Cuidador',
+                  desc: 'Cuidas de um filho, pai ou familiar. Doses pediátricas, tradução de bulas e perfis para cada pessoa.',
+                  color: '#d97706',
+                  bg: '#fffbeb',
+                  border: '#fde68a',
+                  tags: ['Dose pediátrica', 'Perfis familiares', 'Tradutor de bula'],
+                },
+                {
+                  mode: 'personal',
+                  icon: '👤',
+                  title: 'Uso Pessoal',
+                  desc: 'Queres perceber a tua medicação, verificar interações ou preparar uma consulta.',
+                  color: 'var(--green-2)',
+                  bg: 'var(--green-light)',
+                  border: 'var(--green-mid)',
+                  tags: ['Verificar interações', 'Preparar consulta', 'Perceber análises'],
+                },
+                {
+                  mode: 'student',
+                  icon: '📚',
+                  title: 'Estudante',
+                  desc: 'Medicina, farmácia ou enfermagem. Tutor socrático, casos clínicos e modo exame com feedback.',
+                  color: '#7c3aed',
+                  bg: '#f5f3ff',
+                  border: '#ddd6fe',
+                  tags: ['Tutor socrático', 'Casos clínicos', 'Modo exame'],
+                },
+              ].map(({ mode, icon, title, desc, color, bg, border, tags }) => (
+                <Link key={mode} href={`/onboarding?mode=${mode}`}
+                  style={{ display: 'flex', flexDirection: 'column', padding: '20px', background: 'white', border: `1.5px solid var(--border)`, borderRadius: 12, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                  className="profile-entry-card">
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: bg, border: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 14 }}>
+                    {icon}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 6 }}>{title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.6, flex: 1, marginBottom: 14 }}>{desc}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 14 }}>
+                    {tags.map(tag => (
+                      <span key={tag} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color, background: bg, border: `1px solid ${border}`, borderRadius: 3, padding: '2px 7px', fontWeight: 700, letterSpacing: '0.02em' }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color, fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Começar
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ══ PHLOX AI — featured section ═════════════════════════════════════ */}
       <section style={{ padding: '56px 0', background: 'var(--ink)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -356,6 +437,7 @@ export default function HomePage() {
         .path-card:hover { border-color: var(--green) !important; }
         .tool-item:hover { background: var(--bg-2) !important; }
         .ai-cta:hover { background: rgba(255,255,255,0.14) !important; }
+        .profile-entry-card:hover { border-color: var(--ink) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important; }
       `}</style>
     </div>
   )

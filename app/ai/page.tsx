@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
@@ -14,21 +15,34 @@ interface Message {
   role: Role
   content: string
   timestamp: Date
-  thinking?: string       // raciocínio visível
-  sources?: string[]      // fontes consultadas
-  actions?: Action[]      // acções sugeridas
+  thinking?: string
+  sources?: string[]
+  actions?: Action[]
 }
 
 interface Action {
   label: string
   href?: string
-  prompt?: string         // enviar automaticamente como próxima mensagem
+  prompt?: string
+}
+
+interface FamilyProfileCtx {
+  id: string
+  name: string
+  relation?: string
+  age?: number
+  sex?: string
+  weight?: number
+  creatinine?: number
+  conditions?: string
+  allergies?: string
 }
 
 interface PatientContext {
   meds: { name: string; dose?: string; frequency?: string }[]
   history: { query: string; type: string; result_severity?: string }[]
   plan: string
+  familyProfile?: FamilyProfileCtx
 }
 
 // ─── Suggested Prompts ───────────────────────────────────────────────────────
@@ -49,11 +63,16 @@ const PRO_PROMPTS = [
   'Que interações devo vigiar neste doente polimedicado?',
 ]
 
+const FAMILY_PROMPTS = [
+  'Há interações entre os medicamentos deste perfil?',
+  'A medicação é adequada para a idade?',
+  'Que efeitos adversos devo vigiar?',
+  'Preciso de ajuste de dose com esta função renal?',
+]
+
 // ─── Upgrade Gate ─────────────────────────────────────────────────────────────
 
-function UpgradeGate({ plan }: { plan: string }) {
-  const isLoggedIn = plan !== 'free' || plan === 'free' // always show if not logged in
-
+function UpgradeGate() {
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
       <div style={{ maxWidth: 480, textAlign: 'center' }}>
@@ -69,14 +88,12 @@ function UpgradeGate({ plan }: { plan: string }) {
         <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 28, fontFamily: 'var(--font-mono)' }}>
           Disponível no plano Student (3,99€/mês).
         </p>
-
-        {/* Feature preview */}
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', marginBottom: 28, textAlign: 'left' }}>
           {[
             { icon: '💬', text: 'Chat conversacional com memória do teu doente' },
             { icon: '🔍', text: 'Raciocínio clínico transparente — vês como pensa' },
             { icon: '💊', text: 'Integrado com os teus medicamentos pessoais' },
-            { icon: '📚', text: 'Consulta RxNorm, FDA e guidelines em tempo real' },
+            { icon: '👨‍👩‍👧', text: 'Suporte a perfis familiares — consulta para qualquer familiar' },
             { icon: '🏥', text: 'Respostas ao nível de um farmacologista clínico' },
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
@@ -85,7 +102,6 @@ function UpgradeGate({ plan }: { plan: string }) {
             </div>
           ))}
         </div>
-
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
             Desbloquear Phlox AI →
@@ -117,13 +133,10 @@ function MessageBubble({ msg }: { msg: Message }) {
 
   return (
     <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-start' }}>
-      {/* Avatar */}
       <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, marginTop: 2 }}>
         ⚕
       </div>
-
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Thinking toggle */}
         {msg.thinking && (
           <button onClick={() => setShowThinking(!showThinking)}
             style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 10px', fontSize: 11, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-mono)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -131,21 +144,16 @@ function MessageBubble({ msg }: { msg: Message }) {
             Raciocínio clínico
           </button>
         )}
-
         {showThinking && msg.thinking && (
           <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '12px 14px', marginBottom: 10, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, fontFamily: 'var(--font-mono)' }}>
             {msg.thinking}
           </div>
         )}
-
-        {/* Main response */}
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 16px 16px 16px', padding: '14px 16px' }}>
           <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
             {msg.content}
           </div>
         </div>
-
-        {/* Sources */}
         {msg.sources && msg.sources.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
             {msg.sources.map(s => (
@@ -155,21 +163,18 @@ function MessageBubble({ msg }: { msg: Message }) {
             ))}
           </div>
         )}
-
-        {/* Action buttons */}
         {msg.actions && msg.actions.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-            {msg.actions.map(action => (
+            {msg.actions.map(action =>
               action.href ? (
                 <Link key={action.label} href={action.href}
                   style={{ fontSize: 12, background: 'var(--green-light)', color: 'var(--green-2)', textDecoration: 'none', border: '1px solid var(--green-mid)', borderRadius: 4, padding: '5px 12px', fontWeight: 600 }}>
                   {action.label} →
                 </Link>
               ) : null
-            ))}
+            )}
           </div>
         )}
-
         <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 6 }}>
           {msg.timestamp.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -193,30 +198,36 @@ function TypingIndicator() {
   )
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// ─── Inner chat component (needs useSearchParams → must be inside Suspense) ───
 
-export default function AIPage() {
+function AIChat() {
   const { user, supabase } = useAuth()
+  const searchParams = useSearchParams()
+  const profileId = searchParams.get('profile')   // UUID or 'self' or null
+  const initialQuery = searchParams.get('q')       // pre-filled question from homepage
+
   const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
   const isPro = plan === 'pro' || plan === 'clinic'
+  const isFamilyProfile = !!profileId && profileId !== 'self'
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [patientCtx, setPatientCtx] = useState<PatientContext | null>(null)
   const [ctxLoaded, setCtxLoaded] = useState(false)
+  const [familyProfile, setFamilyProfile] = useState<FamilyProfileCtx | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const initialQuerySent = useRef(false)
 
-  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  // Load patient context
+  // Load personal context (skip when viewing a family profile)
   useEffect(() => {
-    if (!user || !isStudent) return
+    if (!user || !isStudent || isFamilyProfile) return
     Promise.all([
       supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', user.id).limit(20),
       supabase.from('search_history').select('query, type, result_severity').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
@@ -228,30 +239,83 @@ export default function AIPage() {
       })
       setCtxLoaded(true)
     })
-  }, [user, isStudent, supabase])
+  }, [user, isStudent, isFamilyProfile, supabase])
+
+  // Load family profile context
+  useEffect(() => {
+    if (!user || !isStudent || !isFamilyProfile || !profileId) return
+    Promise.all([
+      supabase.from('family_profiles').select('*').eq('id', profileId).eq('user_id', user.id).single(),
+      supabase.from('family_profile_meds').select('name, dose, frequency').eq('profile_id', profileId).limit(20),
+    ]).then(([profileRes, medsRes]) => {
+      if (!profileRes.data) return
+      const fp: FamilyProfileCtx = profileRes.data
+      setFamilyProfile(fp)
+      setPatientCtx({
+        meds: medsRes.data || [],
+        history: [],
+        plan: user.plan as string,
+        familyProfile: fp,
+      })
+      setCtxLoaded(true)
+    })
+  }, [user, isStudent, isFamilyProfile, profileId, supabase])
 
   // Welcome message after context loads
   useEffect(() => {
     if (!ctxLoaded || !patientCtx || messages.length > 0) return
 
-    const hasMeds = patientCtx.meds.length > 0
-    const greeting = hasMeds
-      ? `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nVejo que tens **${patientCtx.meds.length} medicamento${patientCtx.meds.length !== 1 ? 's' : ''}** registado${patientCtx.meds.length !== 1 ? 's' : ''}: ${patientCtx.meds.slice(0, 3).map(m => m.name).join(', ')}${patientCtx.meds.length > 3 ? ` e mais ${patientCtx.meds.length - 3}` : ''}.\n\nPosso ajudar-te a verificar interações, esclarecer dúvidas farmacológicas, ou analisar a tua medicação completa. O que precisas?`
-      : `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nAinda não tens medicamentos registados no teu perfil. Podes adicioná-los no [Dashboard](/dashboard?tab=meds) para que eu possa analisar a tua medicação completa.\n\nMas podes também fazer-me perguntas directamente — sobre qualquer medicamento, interação, ou dúvida clínica.`
+    let greeting: string
+    let actions: Action[]
+    let sources: string[] | undefined
+
+    if (familyProfile) {
+      const fp = familyProfile
+      const hasMeds = patientCtx.meds.length > 0
+      const parts: string[] = []
+      if (fp.age) parts.push(`${fp.age} anos`)
+      if (fp.sex) parts.push(fp.sex === 'F' ? 'sexo feminino' : 'sexo masculino')
+      if (fp.conditions) parts.push(fp.conditions)
+      if (fp.allergies) parts.push(`alergias: ${fp.allergies}`)
+
+      greeting = `A consultar o perfil de **${fp.name}**${parts.length > 0 ? ` (${parts.join(', ')})` : ''}.\n\n${hasMeds ? `Medicação registada: ${patientCtx.meds.map(m => m.name).join(', ')}.\n\n` : 'Sem medicação registada neste perfil.\n\n'}Como posso ajudar?`
+      sources = [`Perfil: ${fp.name}`]
+      actions = hasMeds ? [
+        { label: `Analisar medicação de ${fp.name}`, prompt: `Analisa a medicação de ${fp.name} (${patientCtx.meds.map(m => m.name).join(', ')}) e diz-me se há interações, doses inadequadas para a idade ou outros problemas.` },
+      ] : [
+        { label: 'Adicionar medicação ao perfil', href: `/perfil/${profileId}` },
+      ]
+    } else {
+      const hasMeds = patientCtx.meds.length > 0
+      greeting = hasMeds
+        ? `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nVejo que tens **${patientCtx.meds.length} medicamento${patientCtx.meds.length !== 1 ? 's' : ''}** registado${patientCtx.meds.length !== 1 ? 's' : ''}: ${patientCtx.meds.slice(0, 3).map(m => m.name).join(', ')}${patientCtx.meds.length > 3 ? ` e mais ${patientCtx.meds.length - 3}` : ''}.\n\nPosso ajudar-te a verificar interações, esclarecer dúvidas farmacológicas, ou analisar a tua medicação completa. O que precisas?`
+        : `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nAinda não tens medicamentos registados no teu perfil. Podes adicioná-los no [Dashboard](/dashboard?tab=meds) para que eu possa analisar a tua medicação completa.\n\nMas podes também fazer-me perguntas directamente — sobre qualquer medicamento, interação, ou dúvida clínica.`
+      sources = hasMeds ? ['Perfil do utilizador'] : undefined
+      actions = hasMeds ? [
+        { label: 'Analisar toda a minha medicação', prompt: `Analisa todos os meus medicamentos (${patientCtx.meds.map(m => m.name).join(', ')}) e diz-me se há interações, redundâncias ou problemas que devo saber.` },
+      ] : [
+        { label: 'Adicionar medicamentos', href: '/dashboard?tab=meds' },
+      ]
+    }
 
     setMessages([{
       id: 'welcome',
       role: 'assistant',
       content: greeting,
       timestamp: new Date(),
-      sources: hasMeds ? ['Perfil do utilizador'] : undefined,
-      actions: hasMeds ? [
-        { label: 'Analisar toda a minha medicação', prompt: `Analisa todos os meus medicamentos (${patientCtx.meds.map(m => m.name).join(', ')}) e diz-me se há interações, redundâncias ou problemas que devo saber.` },
-      ] : [
-        { label: 'Adicionar medicamentos', href: '/dashboard?tab=meds' },
-      ],
+      sources,
+      actions,
     }])
-  }, [ctxLoaded, patientCtx, user, messages.length])
+  }, [ctxLoaded, patientCtx, familyProfile, user, messages.length, profileId])
+
+  // Auto-send ?q= param after welcome message appears
+  useEffect(() => {
+    if (!initialQuery || initialQuerySent.current || messages.length !== 1) return
+    initialQuerySent.current = true
+    const timer = setTimeout(() => sendMessage(initialQuery), 300)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length, initialQuery])
 
   const sendMessage = useCallback(async (content?: string) => {
     const text = (content ?? input).trim()
@@ -269,7 +333,6 @@ export default function AIPage() {
     setIsTyping(true)
 
     try {
-      // Get Supabase session token for plan verification
       const { data: sessionData } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sessionData.session?.access_token) {
@@ -288,7 +351,7 @@ export default function AIPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
-      const assistantMsg: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.response,
@@ -296,12 +359,9 @@ export default function AIPage() {
         thinking: data.thinking,
         sources: data.sources,
         actions: data.actions,
-      }
+      }])
 
-      setMessages(prev => [...prev, assistantMsg])
-
-      // Save to history
-      if (user) {
+      if (user && !familyProfile) {
         supabase.from('search_history').insert({
           user_id: user.id,
           type: 'interaction',
@@ -310,7 +370,7 @@ export default function AIPage() {
           result_source: 'ai-chat',
         }).then(() => {})
       }
-    } catch (e: any) {
+    } catch {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -321,7 +381,7 @@ export default function AIPage() {
       setIsTyping(false)
       inputRef.current?.focus()
     }
-  }, [input, isTyping, messages, patientCtx, user, supabase])
+  }, [input, isTyping, messages, patientCtx, user, familyProfile, supabase])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -330,12 +390,18 @@ export default function AIPage() {
     }
   }
 
+  const suggestionsToShow = familyProfile
+    ? FAMILY_PROMPTS
+    : isPro
+    ? [...SUGGESTED_PROMPTS.slice(0, 4), ...PRO_PROMPTS.slice(0, 2)]
+    : SUGGESTED_PROMPTS
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
       <Header />
 
       {!isStudent ? (
-        <UpgradeGate plan={plan} />
+        <UpgradeGate />
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 800, width: '100%', margin: '0 auto', padding: '0 20px' }}>
 
@@ -344,8 +410,19 @@ export default function AIPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Phlox AI</div>
-                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Farmacologista clínico · {patientCtx?.meds.length || 0} medicamentos no perfil</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  Phlox AI
+                  {familyProfile && (
+                    <span style={{ fontSize: 11, background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe', borderRadius: 20, padding: '2px 10px', fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+                      {familyProfile.name}
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                  {familyProfile
+                    ? `Perfil familiar · ${patientCtx?.meds.length || 0} medicamentos`
+                    : `Farmacologista clínico · ${patientCtx?.meds.length || 0} medicamentos no perfil`}
+                </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -355,10 +432,23 @@ export default function AIPage() {
                   Nova conversa
                 </button>
               )}
-              <Link href="/dashboard?tab=meds"
-                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
-                Editar medicamentos
-              </Link>
+              {familyProfile ? (
+                <Link href={`/perfil/${profileId}`}
+                  style={{ background: 'none', border: '1px solid #ddd6fe', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: '#6d28d9', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+                  Ver perfil
+                </Link>
+              ) : (
+                <Link href="/dashboard?tab=meds"
+                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+                  Editar medicamentos
+                </Link>
+              )}
+              {familyProfile && (
+                <Link href="/ai"
+                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
+                  Meu perfil
+                </Link>
+              )}
             </div>
           </div>
 
@@ -369,7 +459,7 @@ export default function AIPage() {
                 <div style={{ fontSize: 32, marginBottom: 12 }}>⚕️</div>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-2)', marginBottom: 20 }}>Como posso ajudar?</div>
                 <div className="card-grid-2" style={{ gap: 8, textAlign: 'left', maxWidth: 600, margin: '0 auto' }}>
-                  {(isPro ? [...SUGGESTED_PROMPTS.slice(0,4), ...PRO_PROMPTS.slice(0,2)] : SUGGESTED_PROMPTS).map(p => (
+                  {suggestionsToShow.map(p => (
                     <button key={p} onClick={() => sendMessage(p)}
                       style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 14px', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4, fontFamily: 'var(--font-sans)' }}>
                       {p}
@@ -380,8 +470,7 @@ export default function AIPage() {
             )}
 
             {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
-            {/* Action prompts inside messages */}
-            {messages.length > 0 && messages[messages.length-1].actions?.map(action =>
+            {messages.length > 0 && messages[messages.length - 1].actions?.map(action =>
               action.prompt ? (
                 <div key={action.label} style={{ paddingLeft: 42, marginTop: -12, marginBottom: 16 }}>
                   <button onClick={() => sendMessage(action.prompt!)}
@@ -397,10 +486,12 @@ export default function AIPage() {
 
           {/* Input */}
           <div style={{ padding: '16px 0 20px', borderTop: '1px solid var(--border)' }}>
-            {/* Quick suggestions while chatting */}
             {messages.length > 0 && messages.length < 4 && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                {['Posso tomar com álcool?', 'Quais os efeitos adversos?', 'É seguro na gravidez?', 'Qual a dose correcta?'].map(s => (
+                {(familyProfile
+                  ? ['Há contra-indicações com a idade?', 'Quais os efeitos adversos a vigiar?', 'Precisa de ajuste de dose?', 'É seguro tomar tudo junto?']
+                  : ['Posso tomar com álcool?', 'Quais os efeitos adversos?', 'É seguro na gravidez?', 'Qual a dose correcta?']
+                ).map(s => (
                   <button key={s} onClick={() => sendMessage(s)}
                     style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 12px', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
                     {s}
@@ -415,7 +506,7 @@ export default function AIPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Pergunta ao teu farmacologista clínico..."
+                placeholder={familyProfile ? `Pergunta sobre ${familyProfile.name}...` : 'Pergunta ao teu farmacologista clínico...'}
                 rows={1}
                 style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', lineHeight: 1.5, maxHeight: 120, overflow: 'auto' }}
               />
@@ -437,5 +528,23 @@ export default function AIPage() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
       `}</style>
     </div>
+  )
+}
+
+// ─── Page export (Suspense required for useSearchParams) ─────────────────────
+
+export default function AIPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
+        <Header />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', animation: 'pulse 2s infinite' }} />
+        </div>
+        <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      </div>
+    }>
+      <AIChat />
+    </Suspense>
   )
 }

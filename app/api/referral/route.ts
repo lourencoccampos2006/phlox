@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 // GET /api/referral — get or create referral code for the user
 export async function GET(req: NextRequest) {
+  const supabase = getSupabase()
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
@@ -36,6 +39,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/referral — redeem a referral code (called during/after signup)
 export async function POST(req: NextRequest) {
+  const supabase = getSupabase()
   const { code, newUserId } = await req.json().catch(() => ({}))
   if (!code || !newUserId) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
 
