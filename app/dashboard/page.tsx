@@ -12,6 +12,128 @@ import ReferralSection from '@/components/ReferralSection'
 interface Med { id: string; name: string; dose?: string; frequency?: string; created_at: string }
 interface Patient { id: string; name: string; age?: number; conditions?: string; meds_count: number; last_updated: string; alerts?: number }
 interface StudyStats { total_cards: number; streak: number; weak_topics: string[]; next_review: string }
+// ─── NOVO: tipo para perfis familiares no dashboard ───
+interface FamilyProfile { id: string; name: string; relation?: string; age?: number; meds_count?: number }
+
+// ─── NOVO: secção Os Meus Perfis (partilhada pelos 3 dashboards) ──────────────
+
+function FamilyProfilesSection({ accentColor = 'var(--green)' }: { accentColor?: string }) {
+  const { user, supabase } = useAuth()
+  const [profiles, setProfiles] = useState<FamilyProfile[]>([])
+  const [medsCount, setMedsCount] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
+
+  const plan = (user?.plan || 'free') as string
+  // Limites de perfis familiares visíveis
+  const LIMIT_LABELS: Record<string, string> = { free: '2 perfis', student: '3 perfis', pro: 'ilimitado', clinic: 'ilimitado' }
+  const LIMIT_NUMS: Record<string, number> = { free: 2, student: 3, pro: Infinity, clinic: Infinity }
+  const limit = LIMIT_NUMS[plan] ?? 2
+  const atLimit = isFinite(limit) && profiles.length >= limit
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('family_profiles')
+      .select('id, name, relation, age')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .then(async ({ data }) => {
+        const ps = data || []
+        setProfiles(ps)
+        // Contar meds por perfil
+        if (ps.length > 0) {
+          const { data: meds } = await supabase
+            .from('family_profile_meds')
+            .select('profile_id')
+            .eq('user_id', user.id)
+          const counts: Record<string, number> = {}
+          ;(meds || []).forEach((m: { profile_id: string }) => {
+            counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
+          })
+          setMedsCount(counts)
+        }
+        setLoading(false)
+      })
+  }, [user, supabase])
+
+  if (loading) return <div className="skeleton" style={{ height: 80, borderRadius: 10, marginBottom: 16 }} />
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          Os Meus Perfis
+        </div>
+        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>
+          {LIMIT_LABELS[plan]}
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
+        {/* Card próprio */}
+        <Link href="/dashboard" style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px', background: 'white', border: `2px solid ${accentColor}`, borderRadius: 10, textDecoration: 'none', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Eu</div>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Perfil pessoal</div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            <Link href="/ai" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: accentColor, textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>AI →</Link>
+            <span style={{ color: 'var(--border)' }}>|</span>
+            <Link href="/interactions" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Interações</Link>
+          </div>
+        </Link>
+
+        {/* Cards familiares */}
+        {profiles.map(p => (
+          <Link key={p.id} href={`/perfil/${p.id}`}
+            style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 6, transition: 'border-color 0.15s' }}
+            className="family-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e9d5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#7c3aed', flexShrink: 0 }}>
+                {p.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                {p.relation && <div style={{ fontSize: 10, color: 'var(--ink-5)' }}>{p.relation}</div>}
+              </div>
+              {(medsCount[p.id] || 0) > 0 && (
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7c3aed', background: '#e9d5ff', border: '1px solid #d8b4fe', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>
+                  {medsCount[p.id]} med.
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+              <Link href={`/ai?profile=${p.id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: '#7c3aed', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>AI →</Link>
+              <span style={{ color: 'var(--border)' }}>|</span>
+              <Link href={`/interactions?profile=${p.id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Interações</Link>
+            </div>
+          </Link>
+        ))}
+
+        {/* Botão novo perfil (se não atingiu limite) */}
+        {!atLimit ? (
+          <Link href="/perfis"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--bg-2)', border: '1.5px dashed var(--border)', borderRadius: 10, textDecoration: 'none', gap: 4, minHeight: 80, transition: 'border-color 0.15s, background 0.15s' }}
+            className="add-profile-card">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Novo perfil</div>
+          </Link>
+        ) : (
+          <Link href="/pricing"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: '#fffbeb', border: '1.5px dashed #fde68a', borderRadius: 10, textDecoration: 'none', gap: 4, minHeight: 80 }}>
+            <div style={{ fontSize: 11, color: '#d97706', fontFamily: 'var(--font-mono)', fontWeight: 700, textAlign: 'center' }}>Limite atingido</div>
+            <div style={{ fontSize: 10, color: '#d97706', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>Upgrade →</div>
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ─── Personal Dashboard ───────────────────────────────────────────────────────
 
@@ -103,6 +225,9 @@ function PersonalDashboard() {
         {/* HOME TAB */}
         {tab === 'home' && (
           <div>
+            {/* ─── NOVO: Os Meus Perfis ─── */}
+            <FamilyProfilesSection accentColor="var(--green)" />
+
             {/* Quick actions */}
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>O que precisas hoje?</div>
@@ -239,6 +364,8 @@ function PersonalDashboard() {
         .quick-action:hover { border-color: var(--green) !important; }
         .remove-btn:hover { color: var(--red) !important; }
         .signout-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
+        .family-card:hover { border-color: #7c3aed !important; }
+        .add-profile-card:hover { border-color: var(--green) !important; background: var(--green-light) !important; }
       `}</style>
     </div>
   )
@@ -324,6 +451,9 @@ function StudentDashboard() {
         {/* STUDY TAB */}
         {tab === 'study' && (
           <div>
+            {/* ─── NOVO: Os Meus Perfis ─── */}
+            <FamilyProfilesSection accentColor="#7c3aed" />
+
             {/* Progress by class */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -579,6 +709,9 @@ function ProDashboard() {
         {/* PATIENTS TAB */}
         {tab === 'patients' && (
           <div>
+            {/* ─── NOVO: Os Meus Perfis (pessoais/familiares) ─── */}
+            <FamilyProfilesSection accentColor="#1d4ed8" />
+
             {!isPro ? (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 14, letterSpacing: '-0.01em' }}>Gestão de Doentes</div>

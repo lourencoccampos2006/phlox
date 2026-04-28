@@ -3,11 +3,16 @@
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 // ─── Tool registry ────────────────────────────────────────────────────────────
 
+// ─── NOVO: item "Os Meus Perfis" só visível para cuidadores ───
+const PERFIS_TOOL = { href: '/perfis', label: 'Os Meus Perfis', sub: 'Gerir familiares e medicação de cada um' }
+
 const GROUPS = [
   {
+    id: 'geral',
     heading: 'Para toda a gente',
     color: '#0d6e42',
     tools: [
@@ -25,6 +30,7 @@ const GROUPS = [
     ],
   },
   {
+    id: 'student',
     heading: 'Estudantes',
     color: '#7c3aed',
     tools: [
@@ -38,6 +44,7 @@ const GROUPS = [
     ],
   },
   {
+    id: 'clinical',
     heading: 'Decisão Clínica',
     color: '#1d4ed8',
     tools: [
@@ -49,6 +56,7 @@ const GROUPS = [
     ],
   },
   {
+    id: 'reference',
     heading: 'Referência Clínica',
     color: '#0f766e',
     tools: [
@@ -62,12 +70,37 @@ const GROUPS = [
   },
 ]
 
+// ─── NOVO: reordenar grupos e injectar "Os Meus Perfis" por experience_mode ───
+function getOrderedGroups(experienceMode: string | undefined) {
+  const base = [...GROUPS]
+  // Adicionar "Os Meus Perfis" como primeiro item no grupo geral para cuidadores
+  const geralGroup = base.find(g => g.id === 'geral')!
+  const geralTools = experienceMode === 'caregiver'
+    ? [PERFIS_TOOL, ...geralGroup.tools]
+    : geralGroup.tools
+
+  const patched = base.map(g => g.id === 'geral' ? { ...g, tools: geralTools } : g)
+
+  if (experienceMode === 'student') {
+    // Estudantes primeiro
+    const [geral, student, clinical, reference] = patched
+    return [student, geral, clinical, reference]
+  }
+  if (experienceMode === 'clinical') {
+    // Decisão Clínica primeiro
+    const [geral, student, clinical, reference] = patched
+    return [clinical, reference, geral, student]
+  }
+  return patched
+}
+
 // Flat list for mobile
 const ALL_TOOLS = GROUPS.flatMap(g => g.tools)
 
 // ─── Mega menu — full-width bar below header ──────────────────────────────────
 
-function MegaMenu({ onClose }: { onClose: () => void }) {
+// ─── NOVO: recebe grupos já ordenados por experience_mode ───
+function MegaMenu({ onClose, groups }: { onClose: () => void; groups: typeof GROUPS }) {
   return (
     <div
       style={{
@@ -82,8 +115,8 @@ function MegaMenu({ onClose }: { onClose: () => void }) {
       }}
     >
       <div style={{ maxWidth: 1160, margin: '0 auto', padding: '24px 52px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0 24px' }}>
-        {GROUPS.map((group, gi) => (
-          <div key={group.heading} style={{ borderRight: gi < GROUPS.length - 1 ? '1px solid var(--border)' : 'none', paddingRight: gi < GROUPS.length - 1 ? 24 : 0 }}>
+        {groups.map((group, gi) => (
+          <div key={group.heading} style={{ borderRight: gi < groups.length - 1 ? '1px solid var(--border)' : 'none', paddingRight: gi < groups.length - 1 ? 24 : 0 }}>
             <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: group.color, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 12, height: 2, background: group.color, borderRadius: 1 }} />
               {group.heading}
@@ -220,6 +253,15 @@ export default function Header() {
   const { user, loading, signOut } = useAuth()
   const [megaOpen, setMegaOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // ─── NOVO: indicador do perfil activo ───
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
+
+  useEffect(() => {
+    setActiveProfileState(getActiveProfile())
+  }, [])
+
+  // Grupos reordenados conforme o perfil do utilizador
+  const orderedGroups = getOrderedGroups(user?.experience_mode)
 
   return (
     <>
@@ -256,6 +298,18 @@ export default function Header() {
 
           {/* Desktop auth */}
           <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* ─── NOVO: badge de perfil activo ─── */}
+            {!loading && user && activeProfile?.type === 'family' && (
+              <Link href={`/perfil/${activeProfile.id}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px 4px 6px', background: '#e9d5ff', border: '1px solid #d8b4fe', borderRadius: 20, textDecoration: 'none', cursor: 'pointer' }}>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                  {activeProfile.name.charAt(0).toUpperCase()}
+                </div>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7c3aed', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {activeProfile.name}
+                </span>
+              </Link>
+            )}
             {!loading && !user && (
               <>
                 <Link href="/login" style={{ padding: '7px 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'color 0.15s' }} className="nav-link">Entrar</Link>
@@ -298,7 +352,7 @@ export default function Header() {
         </div>
       </header>
 
-      {megaOpen && <MegaMenu onClose={() => setMegaOpen(false)} />}
+      {megaOpen && <MegaMenu onClose={() => setMegaOpen(false)} groups={orderedGroups} />}
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} signOut={signOut} />
 
       <style>{`
