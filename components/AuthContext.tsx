@@ -29,6 +29,9 @@ type User = {
   searches_today: number
   profile_type: 'personal' | 'student' | 'professional' | null
   profile_sub: string | null
+  // ─── NOVO: campos do Sprint 1 ───
+  experience_mode: 'clinical' | 'caregiver' | 'personal' | 'student'
+  onboarded: boolean
 }
 
 type AuthContextType = {
@@ -112,6 +115,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile_type: null,
           profile_sub: null,
           searches_today: 0,
+          // ─── NOVO: defaults dos campos Sprint 1 ───
+          experience_mode: 'personal' as const,
+          onboarded: false,
           created_at: new Date().toISOString(),
         }
         const { error: insertError } = await supabase.from('profiles').insert(newProfile)
@@ -127,6 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile_type: data.profile_type || null,
           profile_sub: data.profile_sub || null,
           searches_today: data.searches_today || 0,
+          // ─── NOVO: ler campos Sprint 1 do Supabase ───
+          experience_mode: data.experience_mode || 'personal',
+          onboarded: data.onboarded || false,
         })
       }
     } catch (e: any) {

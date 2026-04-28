@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 
-type ProfileType = 'personal' | 'student' | 'professional'
+// ─── NOVO: adicionado 'caregiver' como 4º tipo de perfil ───
+type ProfileType = 'personal' | 'student' | 'professional' | 'caregiver'
 type PersonalSub = 'myself' | 'family' | 'both'
 type ProfSub = 'doctor' | 'pharmacist' | 'nurse' | 'other'
 type StudentSub = 'medicine' | 'pharmacy' | 'nursing' | 'other'
+type CaregiverSub = 'parent' | 'child' | 'spouse' | 'other'
 
 const STEPS = ['perfil', 'detalhe', 'pronto']
 
@@ -29,14 +31,24 @@ export default function OnboardingPage() {
     }, 200)
   }
 
+  // ─── NOVO: mapeamento profile → experience_mode ───
+  function getExperienceMode(): string {
+    if (profile === 'professional') return 'clinical'
+    if (profile === 'caregiver') return 'caregiver'
+    if (profile === 'student') return 'student'
+    if (profile === 'personal' && (sub === 'family' || sub === 'both')) return 'caregiver'
+    return 'personal'
+  }
+
   const finish = async () => {
     if (!user) return
     setSaving(true)
     try {
       await supabase.from('profiles').update({
         onboarded: true,
-        profile_type: profile,
+        profile_type: profile === 'caregiver' ? 'personal' : profile,
         profile_sub: sub,
+        experience_mode: getExperienceMode(),
       }).eq('id', user.id)
     } catch {}
     const dest = profile === 'professional' ? '/dashboard?mode=pro'
@@ -49,11 +61,21 @@ export default function OnboardingPage() {
     {
       id: 'personal' as ProfileType,
       label: 'Uso pessoal',
-      desc: 'Giro a minha medicação ou a de um familiar',
+      desc: 'Giro a minha própria medicação',
       accent: 'var(--green)',
       bg: 'var(--green-light)',
       border: 'var(--green-mid)',
-      features: ['Perfis familiares', 'Diário de sintomas', 'Alertas de renovação', 'Verificação de interações'],
+      features: ['Diário de sintomas', 'Alertas de renovação', 'Verificação de interações', 'Guia de automedicação'],
+    },
+    // ─── NOVO: perfil Cuidador ───
+    {
+      id: 'caregiver' as ProfileType,
+      label: 'Cuidador familiar',
+      desc: 'Cuido de um familiar — pais, filhos, cônjuge',
+      accent: '#d97706',
+      bg: '#fffbeb',
+      border: '#fde68a',
+      features: ['Perfis por familiar', 'Medicação de cada um', 'Interações cruzadas', 'Consultas preparadas'],
     },
     {
       id: 'student' as ProfileType,
@@ -81,6 +103,14 @@ export default function OnboardingPage() {
     { id: 'both', label: 'Para mim e família', desc: 'Múltiplos perfis de medicação' },
   ]
 
+  // ─── NOVO: subs do Cuidador ───
+  const CAREGIVER_SUBS = [
+    { id: 'parent', label: 'Pai ou mãe', desc: 'Cuido da medicação dos meus pais' },
+    { id: 'child', label: 'Filho ou filha', desc: 'Cuido da medicação dos meus filhos' },
+    { id: 'spouse', label: 'Cônjuge ou parceiro', desc: 'Cuido da medicação do meu cônjuge' },
+    { id: 'other', label: 'Outro familiar', desc: 'Avós, irmãos, ou outro familiar próximo' },
+  ]
+
   const STUDENT_SUBS = [
     { id: 'medicine', label: 'Medicina', desc: 'Curso de medicina' },
     { id: 'pharmacy', label: 'Farmácia', desc: 'Curso de farmácia' },
@@ -96,7 +126,10 @@ export default function OnboardingPage() {
   ]
 
   const currentProfile = PROFILES.find(p => p.id === profile)
-  const subs = profile === 'personal' ? PERSONAL_SUBS : profile === 'student' ? STUDENT_SUBS : PROF_SUBS
+  const subs = profile === 'personal' ? PERSONAL_SUBS
+    : profile === 'caregiver' ? CAREGIVER_SUBS
+    : profile === 'student' ? STUDENT_SUBS
+    : PROF_SUBS
 
   return (
     <div style={{
@@ -169,7 +202,10 @@ export default function OnboardingPage() {
                   {currentProfile?.label}
                 </div>
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.02em' }}>
-                  {profile === 'personal' ? 'Para quem é a medicação?' : profile === 'student' ? 'Que curso estás a fazer?' : 'Qual é a tua especialidade?'}
+                  {profile === 'personal' ? 'Para quem é a medicação?'
+                    : profile === 'caregiver' ? 'De quem cuidas principalmente?'
+                    : profile === 'student' ? 'Que curso estás a fazer?'
+                    : 'Qual é a tua especialidade?'}
                 </h2>
                 <p style={{ fontSize: 14, color: 'var(--ink-4)' }}>
                   Isto ajuda-nos a personalizar as ferramentas e os exemplos.
@@ -208,6 +244,8 @@ export default function OnboardingPage() {
               <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 32, maxWidth: 400, margin: '0 auto 32px' }}>
                 {profile === 'personal'
                   ? 'O teu espaço pessoal está pronto. Começa por adicionar os teus medicamentos e criar perfis familiares.'
+                  : profile === 'caregiver'
+                  ? 'O teu espaço de cuidador está pronto. Cria um perfil para cada familiar e regista a medicação de cada um.'
                   : profile === 'student'
                   ? 'O teu modo de estudo está configurado. O Phlox AI é o teu tutor — começa por fazer uma pergunta sobre farmacologia.'
                   : 'O teu espaço clínico está pronto. Cria o primeiro perfil de doente e o co-piloto IA tem imediatamente contexto para ajudar.'
@@ -220,6 +258,16 @@ export default function OnboardingPage() {
                   ['Perceber as minhas análises', '/labs'],
                 ].map(([label, href]) => (
                   <button key={href} onClick={() => { finish(); }} style={{ padding: '13px', background: label.includes('medicação') ? 'var(--ink)' : 'white', color: label.includes('medicação') ? 'white' : 'var(--ink)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
+                    {label}
+                  </button>
+                ))}
+                {/* ─── NOVO: botões do Cuidador ─── */}
+                {profile === 'caregiver' && [
+                  ['Criar perfil familiar', '/perfis'],
+                  ['Verificar interações', '/interactions'],
+                  ['Perceber análises', '/labs'],
+                ].map(([label, href]) => (
+                  <button key={href} onClick={() => finish()} style={{ padding: '13px', background: label.includes('perfil') ? '#d97706' : 'white', color: label.includes('perfil') ? 'white' : 'var(--ink)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
                     {label}
                   </button>
                 ))}
