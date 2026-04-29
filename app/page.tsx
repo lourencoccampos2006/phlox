@@ -201,28 +201,46 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="card-grid-3" style={{ gap: 10, maxWidth: 820, margin: '0 auto' }}>
+          {/* Quick entry chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 4 }}>
             {[
-              { icon: '👤', title: 'Para mim e a minha família', sub: 'Percebe medicação, verifica interações, perfis familiares', href: '/interactions', color: 'var(--green)' },
-              { icon: '📚', title: 'Para estudar', sub: 'Medicina, farmácia, enfermagem — tutor + exames', href: '/study', color: '#7c3aed' },
-              { icon: '🏥', title: 'Para profissionais', sub: 'Co-piloto clínico com contexto real de doente', href: '/dashboard', color: '#1d4ed8' },
-            ].map(({ icon, title, sub, href, color }) => (
+              { icon: '👤', label: 'Uso pessoal', href: '/interactions', color: 'var(--green)' },
+              { icon: '👨‍👩‍👧', label: 'Cuidadores', href: '/perfis', color: '#b45309' },
+              { icon: '📚', label: 'Estudantes', href: '/study', color: '#7c3aed' },
+              { icon: '🏥', label: 'Profissionais', href: '/dashboard', color: '#1d4ed8' },
+            ].map(({ icon, label, href, color }) => (
               <Link key={href} href={href}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '18px 20px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 12, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-                className="path-card">
-                <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>{icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 4 }}>{title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, marginBottom: 10 }}>{sub}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color, fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                    Entrar <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </div>
-                </div>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 15px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 24, textDecoration: 'none', fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', transition: 'border-color 0.15s, color 0.15s' }}
+                className="entry-chip">
+                <span>{icon}</span>
+                {label}
               </Link>
             ))}
           </div>
         </div>
       </section>
+
+      {/* ══ STATS BAR ════════════════════════════════════════════════════════ */}
+      <div style={{ background: 'var(--ink)', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="page-container">
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', flexWrap: 'wrap' }}>
+            {[
+              { value: '12.000+', label: 'Medicamentos' },
+              { value: 'FDA · RxNorm · NIH', label: 'Fontes científicas' },
+              { value: 'PT-PT nativo', label: 'Não traduzido' },
+              { value: 'Sem registo', label: 'Ferramentas básicas' },
+            ].map(({ value, label }, i, arr) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'stretch' }}>
+                <div style={{ padding: '0 24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{value}</div>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.38)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
+                </div>
+                {i < arr.length - 1 && <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', alignSelf: 'stretch' }} />}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* ══ FREE TOOLS ════════════════════════════════════════════════════════ */}
       <section style={{ padding: '72px 0', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
@@ -610,6 +628,7 @@ export default function HomePage() {
         .ai-cta:hover { background: rgba(255,255,255,0.14) !important; }
         .profile-entry-card:hover { border-color: var(--ink) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important; }
         .free-tool-card:hover { border-color: var(--ink-4) !important; box-shadow: 0 8px 28px rgba(0,0,0,0.1) !important; }
+        .entry-chip:hover { border-color: var(--ink) !important; color: var(--ink) !important; }
         .tool-cta:hover { opacity: 0.88 !important; }
         .cta-primary:hover { opacity: 0.9 !important; }
         .cta-secondary:hover { border-color: rgba(255,255,255,0.4) !important; color: rgba(255,255,255,0.8) !important; }

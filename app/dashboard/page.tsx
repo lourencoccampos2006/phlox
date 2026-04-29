@@ -225,25 +225,48 @@ function PersonalDashboard() {
         {/* HOME TAB */}
         {tab === 'home' && (
           <div>
-            {/* ─── NOVO: Os Meus Perfis ─── */}
+            {/* Stats row */}
+            {!loading && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+                {[
+                  { value: String(meds.length), label: meds.length === 1 ? 'Medicamento' : 'Medicamentos', color: 'var(--green)', href: undefined as string | undefined, action: () => setTab('meds') },
+                  { value: plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), label: 'Plano actual', color: plan === 'free' ? 'var(--ink-4)' : plan === 'student' ? '#7c3aed' : '#1d4ed8', href: plan === 'free' ? '/pricing' : undefined, action: undefined as (() => void) | undefined },
+                  { value: meds.length >= 2 ? '!' : '✓', label: meds.length >= 2 ? 'Verificar interações' : 'Sem alertas', color: meds.length >= 2 ? '#d97706' : 'var(--green)', href: '/interactions', action: undefined as (() => void) | undefined },
+                ].map(({ value, label, color, href, action }) => {
+                  const content = (
+                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: href || action ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
+                      onClick={action}
+                      className={href || action ? 'stat-card' : ''}>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 6 }}>{label}</div>
+                    </div>
+                  )
+                  return href
+                    ? <Link key={label} href={href} style={{ textDecoration: 'none' }}>{content}</Link>
+                    : <div key={label}>{content}</div>
+                })}
+              </div>
+            )}
+
+            {/* ─── Os Meus Perfis ─── */}
             <FamilyProfilesSection accentColor="var(--green)" />
 
             {/* Quick actions */}
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>O que precisas hoje?</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
                 {QUICK_ACTIONS.map(({ label, sub, href, badge }) => (
                   <Link key={href} href={href}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 12, transition: 'border-color 0.15s' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
                     className="quick-action">
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
                         {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>{badge}</span>}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </Link>
                 ))}
               </div>
@@ -364,7 +387,8 @@ function PersonalDashboard() {
       </div>
 
       <style>{`
-        .quick-action:hover { border-color: var(--green) !important; }
+        .quick-action:hover { border-color: var(--green) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
+        .stat-card:hover { border-color: var(--border-2) !important; }
         .remove-btn:hover { color: var(--red) !important; }
         .signout-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
         .family-card:hover { border-color: #7c3aed !important; }
@@ -935,25 +959,39 @@ function DashboardRouter() {
 
   const dash = getDashboard()
 
+  const MODE_CONFIG = [
+    { mode: 'personal', label: 'Pessoal', icon: '👤', color: 'var(--green)', desc: 'A minha medicação e família' },
+    { mode: 'student',  label: 'Estudo',  icon: '📚', color: '#7c3aed',       desc: 'Farmacologia e casos clínicos' },
+    { mode: 'pro',      label: 'Clínico', icon: '🏥', color: '#1d4ed8',       desc: 'Co-piloto e doentes' },
+  ]
+
   return (
     <>
-      {/* Dashboard switcher — small bar at top for easy switching */}
-      <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 50, display: 'flex', gap: 6, background: 'white', border: '1px solid var(--border)', borderRadius: 24, padding: '5px', boxShadow: 'var(--shadow-lg)' }}>
-        {[
-          { mode: 'personal', label: 'Pessoal', color: 'var(--green)' },
-          { mode: 'student', label: 'Estudo', color: '#7c3aed' },
-          { mode: 'pro', label: 'Clínico', color: '#1d4ed8' },
-        ].map(({ mode, label, color }) => (
-          <Link key={mode} href={`/dashboard?mode=${mode}`}
-            style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase', background: dash === mode ? color : 'transparent', color: dash === mode ? 'white' : 'var(--ink-4)', transition: 'all 0.15s' }}>
-            {label}
-          </Link>
-        ))}
+      {/* ── Sticky mode bar ── */}
+      <div style={{ position: 'sticky', top: 60, zIndex: 90, background: 'var(--ink)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="page-container" style={{ display: 'flex', gap: 0 }}>
+          {MODE_CONFIG.map(({ mode, label, icon, color, desc }) => (
+            <Link key={mode} href={`/dashboard?mode=${mode}`}
+              style={{ display: 'flex', flexDirection: 'column', padding: '10px 20px', textDecoration: 'none', borderBottom: `2px solid ${dash === mode ? color : 'transparent'}`, transition: 'all 0.15s', flexShrink: 0 }}
+              className={`mode-tab mode-tab-${mode} ${dash === mode ? 'mode-tab-active' : ''}`}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13 }}>{icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', color: dash === mode ? 'white' : 'rgba(255,255,255,0.4)', transition: 'color 0.15s' }}>{label}</span>
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', marginTop: 1, letterSpacing: '0.02em', display: 'none' }} className="mode-tab-desc">{desc}</div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {dash === 'pro' && <ProDashboard />}
       {dash === 'student' && <StudentDashboard />}
       {dash === 'personal' && <PersonalDashboard />}
+
+      <style>{`
+        @media (min-width: 640px) { .mode-tab-desc { display: block !important; } .mode-tab { padding: 10px 24px !important; } }
+        .mode-tab:hover .mode-tab-desc { color: rgba(255,255,255,0.45) !important; }
+      `}</style>
     </>
   )
 }

@@ -227,7 +227,7 @@ function AIChat() {
 
   // Load personal context (skip when viewing a family profile)
   useEffect(() => {
-    if (!user || !isStudent || isFamilyProfile) return
+    if (!user || isFamilyProfile) return
     Promise.all([
       supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', user.id).limit(20),
       supabase.from('search_history').select('query, type, result_severity').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
@@ -239,11 +239,11 @@ function AIChat() {
       })
       setCtxLoaded(true)
     })
-  }, [user, isStudent, isFamilyProfile, supabase])
+  }, [user, isFamilyProfile, supabase])
 
   // Load family profile context
   useEffect(() => {
-    if (!user || !isStudent || !isFamilyProfile || !profileId) return
+    if (!user || !isFamilyProfile || !profileId) return
     Promise.all([
       supabase.from('family_profiles').select('*').eq('id', profileId).eq('user_id', user.id).single(),
       supabase.from('family_profile_meds').select('name, dose, frequency').eq('profile_id', profileId).limit(20),
@@ -259,7 +259,7 @@ function AIChat() {
       })
       setCtxLoaded(true)
     })
-  }, [user, isStudent, isFamilyProfile, profileId, supabase])
+  }, [user, isFamilyProfile, profileId, supabase])
 
   // Welcome message after context loads
   useEffect(() => {
@@ -406,17 +406,13 @@ function AIChat() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 800, width: '100%', margin: '0 auto', padding: '0 20px' }}>
 
           {/* Top bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   Phlox AI
-                  {familyProfile && (
-                    <span style={{ fontSize: 11, background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe', borderRadius: 20, padding: '2px 10px', fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
-                      {familyProfile.name}
-                    </span>
-                  )}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                   {familyProfile
@@ -450,6 +446,13 @@ function AIChat() {
                 </Link>
               )}
             </div>
+            </div>
+            {familyProfile && (
+              <div style={{ marginTop: 10, padding: '7px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 6, fontSize: 12, color: '#7c3aed', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
+                A conversar sobre: {familyProfile.name}
+              </div>
+            )}
           </div>
 
           {/* Messages */}

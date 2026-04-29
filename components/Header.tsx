@@ -286,26 +286,32 @@ export default function Header() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', flex: 1, marginLeft: 20 }}>
+          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', flex: 1, marginLeft: 12, gap: 4 }}>
             {/* Ferramentas trigger */}
             <button
               onClick={() => setMegaOpen(!megaOpen)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', background: megaOpen ? 'var(--bg-2)' : 'transparent', border: 'none', borderBottom: `2px solid ${megaOpen ? 'var(--green)' : 'transparent'}`, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: megaOpen ? 'var(--ink)' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textTransform: 'uppercase', transition: 'all 0.15s', borderRadius: 0 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: megaOpen ? 'var(--bg-2)' : 'transparent', border: '1px solid', borderColor: megaOpen ? 'var(--border-2)' : 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: megaOpen ? 'var(--ink)' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'all 0.15s', borderRadius: 7, flexShrink: 0 }}>
               Ferramentas
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: megaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
             </button>
 
-            {/* Quick links */}
-            {[
-              { href: '/ai',       label: 'Phlox AI' },
-              { href: '/pricing',  label: 'Preços' },
-            ].map(({ href, label }) => (
-              <Link key={href} href={href}
-                style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.01em', textTransform: 'uppercase', borderBottom: '2px solid transparent', transition: 'color 0.15s, border-color 0.15s' }}
-                className="nav-link">
-                {label}
-              </Link>
-            ))}
+            {/* Search/AI trigger */}
+            <Link href="/ai"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 320, padding: '7px 12px', background: 'var(--bg-2)', border: '1.5px solid var(--border)', borderRadius: 28, textDecoration: 'none', fontSize: 12.5, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+              className="search-bar-trigger">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <span style={{ flex: 1 }}>Faz uma pergunta...</span>
+              <kbd style={{ fontSize: 9, fontFamily: 'var(--font-mono)', background: 'white', border: '1px solid var(--border)', padding: '2px 5px', borderRadius: 3, letterSpacing: '0.02em', flexShrink: 0, color: 'var(--ink-5)' }}>⌘K</kbd>
+            </Link>
+
+            {/* Preços */}
+            <Link href="/pricing"
+              style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'color 0.15s', flexShrink: 0 }}
+              className="nav-link">
+              Preços
+            </Link>
           </nav>
 
           {/* Desktop auth + profile badge */}
@@ -377,6 +383,7 @@ export default function Header() {
         @media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-controls { display: flex !important; } }
         @media (max-width: 640px) { header > div { padding: 0 16px !important; } }
         .mega-link:hover { background: var(--bg-2) !important; padding-left: 8px !important; }
+        .search-bar-trigger:hover { border-color: var(--border-2) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
         .drawer-item:hover { background: var(--bg-2) !important; }
         .dropdown-item:hover { background: var(--bg-2) !important; }
         .nav-link:hover { color: var(--ink) !important; border-bottom-color: var(--border-2) !important; }
