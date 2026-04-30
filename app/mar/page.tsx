@@ -7,6 +7,7 @@ import Link from 'next/link'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+
 interface Patient {
   id: string
   name: string
