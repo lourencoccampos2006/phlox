@@ -10,8 +10,130 @@ import ReferralSection from '@/components/ReferralSection'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Med { id: string; name: string; dose?: string; frequency?: string; created_at: string }
-interface Patient { id: string; name: string; age?: number; conditions?: string; meds_count: number; last_updated: string; alerts?: number }
+interface Patient { id: string; name: string; age?: number; conditions?: string; meds_count?: number; updated_at?: string; last_updated?: string; alerts?: number }
 interface StudyStats { total_cards: number; streak: number; weak_topics: string[]; next_review: string }
+// ─── NOVO: tipo para perfis familiares no dashboard ───
+interface FamilyProfile { id: string; name: string; relation?: string; age?: number; meds_count?: number }
+
+// ─── NOVO: secção Os Meus Perfis (partilhada pelos 3 dashboards) ──────────────
+
+function FamilyProfilesSection({ accentColor = 'var(--green)' }: { accentColor?: string }) {
+  const { user, supabase } = useAuth()
+  const [profiles, setProfiles] = useState<FamilyProfile[]>([])
+  const [medsCount, setMedsCount] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
+
+  const plan = (user?.plan || 'free') as string
+  // Limites de perfis familiares visíveis
+  const LIMIT_LABELS: Record<string, string> = { free: '2 perfis', student: '3 perfis', pro: 'ilimitado', clinic: 'ilimitado' }
+  const LIMIT_NUMS: Record<string, number> = { free: 2, student: 3, pro: Infinity, clinic: Infinity }
+  const limit = LIMIT_NUMS[plan] ?? 2
+  const atLimit = isFinite(limit) && profiles.length >= limit
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('family_profiles')
+      .select('id, name, relation, age')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .then(async ({ data }) => {
+        const ps = data || []
+        setProfiles(ps)
+        // Contar meds por perfil
+        if (ps.length > 0) {
+          const { data: meds } = await supabase
+            .from('family_profile_meds')
+            .select('profile_id')
+            .eq('user_id', user.id)
+          const counts: Record<string, number> = {}
+          ;(meds || []).forEach((m: { profile_id: string }) => {
+            counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
+          })
+          setMedsCount(counts)
+        }
+        setLoading(false)
+      })
+  }, [user, supabase])
+
+  if (loading) return <div className="skeleton" style={{ height: 80, borderRadius: 10, marginBottom: 16 }} />
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          Os Meus Perfis
+        </div>
+        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>
+          {LIMIT_LABELS[plan]}
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
+        {/* Card próprio */}
+        <Link href="/dashboard" style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px', background: 'white', border: `2px solid ${accentColor}`, borderRadius: 10, textDecoration: 'none', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Eu</div>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Perfil pessoal</div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            <Link href="/ai" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: accentColor, textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>AI →</Link>
+            <span style={{ color: 'var(--border)' }}>|</span>
+            <Link href="/interactions" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Interações</Link>
+          </div>
+        </Link>
+
+        {/* Cards familiares */}
+        {profiles.map(p => (
+          <Link key={p.id} href={`/perfil/${p.id}`}
+            style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 6, transition: 'border-color 0.15s' }}
+            className="family-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e9d5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#7c3aed', flexShrink: 0 }}>
+                {p.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                {p.relation && <div style={{ fontSize: 10, color: 'var(--ink-5)' }}>{p.relation}</div>}
+              </div>
+              {(medsCount[p.id] || 0) > 0 && (
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7c3aed', background: '#e9d5ff', border: '1px solid #d8b4fe', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>
+                  {medsCount[p.id]} med.
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+              <Link href={`/ai?profile=${p.id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: '#7c3aed', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>AI →</Link>
+              <span style={{ color: 'var(--border)' }}>|</span>
+              <Link href={`/interactions?profile=${p.id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Interações</Link>
+            </div>
+          </Link>
+        ))}
+
+        {/* Botão novo perfil (se não atingiu limite) */}
+        {!atLimit ? (
+          <Link href="/perfis"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--bg-2)', border: '1.5px dashed var(--border)', borderRadius: 10, textDecoration: 'none', gap: 4, minHeight: 80, transition: 'border-color 0.15s, background 0.15s' }}
+            className="add-profile-card">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Novo perfil</div>
+          </Link>
+        ) : (
+          <Link href="/pricing"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: '#fffbeb', border: '1.5px dashed #fde68a', borderRadius: 10, textDecoration: 'none', gap: 4, minHeight: 80 }}>
+            <div style={{ fontSize: 11, color: '#d97706', fontFamily: 'var(--font-mono)', fontWeight: 700, textAlign: 'center' }}>Limite atingido</div>
+            <div style={{ fontSize: 10, color: '#d97706', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>Upgrade →</div>
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ─── Personal Dashboard ───────────────────────────────────────────────────────
 
@@ -50,12 +172,12 @@ function PersonalDashboard() {
   }
 
   const QUICK_ACTIONS = [
-    { label: 'Perceber a minha receita', sub: 'Foto ou texto', href: '/prescription', accent: 'var(--green)' },
-    { label: 'Verificar interações', sub: `${meds.length} medicamentos no perfil`, href: '/interactions', accent: 'var(--green)' },
-    { label: 'Perceber análises', sub: 'PDF ou cola os valores', href: '/labs', accent: 'var(--green)' },
-    { label: 'O que comprar sem receita', sub: 'Guia de automedicação', href: '/otc', accent: 'var(--green)' },
-    { label: 'Segurança do medicamento', sub: 'Conduzir, gravidez, álcool', href: '/safety', accent: 'var(--green)' },
-    { label: 'Verificar vacinas', sub: 'Calendário e viagens', href: '/vaccines', accent: 'var(--green)' },
+    { label: 'Verificar interações', sub: `${meds.length > 0 ? meds.length + ' medicamentos no perfil' : 'Escreve os nomes das caixas'}`, href: '/interactions', badge: 'Grátis' },
+    { label: 'Tradutor de Bula', sub: 'Cola o texto ou escreve o nome', href: '/bula', badge: 'Grátis' },
+    { label: 'Dose Pediátrica', sub: 'Peso + medicamento = dose exacta', href: '/dose-crianca', badge: 'Grátis' },
+    { label: 'Perceber Análises', sub: 'PDF ou cola os valores', href: '/labs', badge: undefined },
+    { label: 'Preparar Consulta', sub: 'Perguntas certas para o médico', href: '/consult-prep', badge: undefined },
+    { label: 'O que comprar sem receita', sub: 'Guia de automedicação', href: '/otc', badge: undefined },
   ]
 
   const tabStyle = (t: string) => ({
@@ -103,19 +225,48 @@ function PersonalDashboard() {
         {/* HOME TAB */}
         {tab === 'home' && (
           <div>
+            {/* Stats row */}
+            {!loading && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+                {[
+                  { value: String(meds.length), label: meds.length === 1 ? 'Medicamento' : 'Medicamentos', color: 'var(--green)', href: undefined as string | undefined, action: () => setTab('meds') },
+                  { value: plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), label: 'Plano actual', color: plan === 'free' ? 'var(--ink-4)' : plan === 'student' ? '#7c3aed' : '#1d4ed8', href: plan === 'free' ? '/pricing' : undefined, action: undefined as (() => void) | undefined },
+                  { value: meds.length >= 2 ? '!' : '✓', label: meds.length >= 2 ? 'Verificar interações' : 'Sem alertas', color: meds.length >= 2 ? '#d97706' : 'var(--green)', href: '/interactions', action: undefined as (() => void) | undefined },
+                ].map(({ value, label, color, href, action }) => {
+                  const content = (
+                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: href || action ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
+                      onClick={action}
+                      className={href || action ? 'stat-card' : ''}>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 6 }}>{label}</div>
+                    </div>
+                  )
+                  return href
+                    ? <Link key={label} href={href} style={{ textDecoration: 'none' }}>{content}</Link>
+                    : <div key={label}>{content}</div>
+                })}
+              </div>
+            )}
+
+            {/* ─── Os Meus Perfis ─── */}
+            <FamilyProfilesSection accentColor="var(--green)" />
+
             {/* Quick actions */}
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>O que precisas hoje?</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 8 }}>
-                {QUICK_ACTIONS.map(({ label, sub, href }) => (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
+                {QUICK_ACTIONS.map(({ label, sub, href, badge }) => (
                   <Link key={href} href={href}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 12, transition: 'border-color 0.15s' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
                     className="quick-action">
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 2 }}>{label}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
+                        {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>{badge}</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </Link>
                 ))}
               </div>
@@ -236,9 +387,12 @@ function PersonalDashboard() {
       </div>
 
       <style>{`
-        .quick-action:hover { border-color: var(--green) !important; }
+        .quick-action:hover { border-color: var(--green) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
+        .stat-card:hover { border-color: var(--border-2) !important; }
         .remove-btn:hover { color: var(--red) !important; }
         .signout-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
+        .family-card:hover { border-color: #7c3aed !important; }
+        .add-profile-card:hover { border-color: var(--green) !important; background: var(--green-light) !important; }
       `}</style>
     </div>
   )
@@ -324,6 +478,9 @@ function StudentDashboard() {
         {/* STUDY TAB */}
         {tab === 'study' && (
           <div>
+            {/* ─── NOVO: Os Meus Perfis ─── */}
+            <FamilyProfilesSection accentColor="#7c3aed" />
+
             {/* Progress by class */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -495,7 +652,7 @@ function ProDashboard() {
 
   const loadPatients = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase.from('patients').select('*').eq('user_id', user.id).order('last_updated', { ascending: false })
+    const { data } = await supabase.from('patients').select('*').eq('user_id', user.id).order('updated_at', { ascending: false })
     setPatients(data || [])
     setLoading(false)
   }, [user, supabase])
@@ -505,14 +662,13 @@ function ProDashboard() {
   const addPatient = async () => {
     if (!newPatient.name.trim() || !user) return
     setAdding(true)
-    const { data } = await supabase.from('patients').insert({
+    const { data, error } = await supabase.from('patients').insert({
       user_id: user.id,
       name: newPatient.name.trim(),
       age: newPatient.age ? parseInt(newPatient.age) : null,
       conditions: newPatient.conditions.trim() || null,
-      meds_count: 0,
-      last_updated: new Date().toISOString(),
     }).select().single()
+    if (error) console.error('addPatient error:', error.message)
     if (data) setPatients(p => [data, ...p])
     setNewPatient({ name: '', age: '', conditions: '' })
     setShowAddForm(false)
@@ -579,6 +735,9 @@ function ProDashboard() {
         {/* PATIENTS TAB */}
         {tab === 'patients' && (
           <div>
+            {/* ─── NOVO: Os Meus Perfis (pessoais/familiares) ─── */}
+            <FamilyProfilesSection accentColor="#1d4ed8" />
+
             {!isPro ? (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 14, letterSpacing: '-0.01em' }}>Gestão de Doentes</div>
@@ -799,25 +958,39 @@ function DashboardRouter() {
 
   const dash = getDashboard()
 
+  const MODE_CONFIG = [
+    { mode: 'personal', label: 'Pessoal', icon: '👤', color: 'var(--green)', desc: 'A minha medicação e família' },
+    { mode: 'student',  label: 'Estudo',  icon: '📚', color: '#7c3aed',       desc: 'Farmacologia e casos clínicos' },
+    { mode: 'pro',      label: 'Clínico', icon: '🏥', color: '#1d4ed8',       desc: 'Co-piloto e doentes' },
+  ]
+
   return (
     <>
-      {/* Dashboard switcher — small bar at top for easy switching */}
-      <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 50, display: 'flex', gap: 6, background: 'white', border: '1px solid var(--border)', borderRadius: 24, padding: '5px', boxShadow: 'var(--shadow-lg)' }}>
-        {[
-          { mode: 'personal', label: 'Pessoal', color: 'var(--green)' },
-          { mode: 'student', label: 'Estudo', color: '#7c3aed' },
-          { mode: 'pro', label: 'Clínico', color: '#1d4ed8' },
-        ].map(({ mode, label, color }) => (
-          <Link key={mode} href={`/dashboard?mode=${mode}`}
-            style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase', background: dash === mode ? color : 'transparent', color: dash === mode ? 'white' : 'var(--ink-4)', transition: 'all 0.15s' }}>
-            {label}
-          </Link>
-        ))}
+      {/* ── Sticky mode bar ── */}
+      <div style={{ position: 'sticky', top: 60, zIndex: 90, background: 'var(--ink)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="page-container" style={{ display: 'flex', gap: 0 }}>
+          {MODE_CONFIG.map(({ mode, label, icon, color, desc }) => (
+            <Link key={mode} href={`/dashboard?mode=${mode}`}
+              style={{ display: 'flex', flexDirection: 'column', padding: '10px 20px', textDecoration: 'none', borderBottom: `2px solid ${dash === mode ? color : 'transparent'}`, transition: 'all 0.15s', flexShrink: 0 }}
+              className={`mode-tab mode-tab-${mode} ${dash === mode ? 'mode-tab-active' : ''}`}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13 }}>{icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', color: dash === mode ? 'white' : 'rgba(255,255,255,0.4)', transition: 'color 0.15s' }}>{label}</span>
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', marginTop: 1, letterSpacing: '0.02em', display: 'none' }} className="mode-tab-desc">{desc}</div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {dash === 'pro' && <ProDashboard />}
       {dash === 'student' && <StudentDashboard />}
       {dash === 'personal' && <PersonalDashboard />}
+
+      <style>{`
+        @media (min-width: 640px) { .mode-tab-desc { display: block !important; } .mode-tab { padding: 10px 24px !important; } }
+        .mode-tab:hover .mode-tab-desc { color: rgba(255,255,255,0.45) !important; }
+      `}</style>
     </>
   )
 }

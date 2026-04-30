@@ -57,7 +57,7 @@ export default function DiaryPage() {
   const load = useCallback(async () => {
     if (!user) return
     const [{ data: entriesData }, { data: medsData }] = await Promise.all([
-      supabase.from('diary_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(60),
+      supabase.from('diary_entries').select('*').eq('user_id', user.id).order('entry_date', { ascending: false }).limit(60),
       supabase.from('personal_meds').select('name').eq('user_id', user.id),
     ])
     setEntries(entriesData || [])
@@ -79,6 +79,7 @@ export default function DiaryPage() {
     const entry = {
       user_id: user.id,
       date: today,
+      entry_date: today,
       wellbeing,
       symptoms: selectedSymptoms,
       notes: notes.trim(),

@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const { plan, userId } = await getUserPlan(req)
-  if (plan === 'free') return planGateResponse('cases', plan)
+  // Free plan: limited to 5 messages per session (handled by rate limit)
+  // All plans can use AI - Pro gets clinical patient context
 
   const body = await req.json().catch(() => null)
   if (!body?.messages || !Array.isArray(body.messages)) {
@@ -22,8 +23,31 @@ export async function POST(req: NextRequest) {
 
   // Build patient context string
   let patientStr = ''
+  
+  // Clinical patient context (Pro ?patient= param)
+  if (patientContext?.clinicalPatient) {
+    const pat = patientContext.clinicalPatient
+    patientStr += `\n\nCONTEXTO CLÍNICO DO DOENTE: ${pat.name}`
+    if (pat.age) patientStr += ` | ${pat.age} anos`
+    if (pat.sex) patientStr += ` | ${pat.sex === 'M' ? 'Masculino' : 'Feminino'}`
+    if (pat.conditions) patientStr += `\nDiagnósticos: ${pat.conditions}`
+    if (pat.allergies) patientStr += `\nAlergias: ${pat.allergies}`
+    if (pat.crCl) patientStr += `\nFunção renal: CrCl ${pat.crCl} mL/min (${pat.crCl < 30 ? 'DRC severa — ajustar doses' : pat.crCl < 60 ? 'DRC moderada — atenção às doses' : 'normal'})`
+    if (pat.weight) patientStr += ` | Peso: ${pat.weight}kg`
+  }
+  
+  // Family profile context (?profile= param)
+  if (patientContext?.familyProfile) {
+    const fp = patientContext.familyProfile
+    patientStr += `\n\nPERFIL FAMILIAR: ${fp.name}`
+    if (fp.age) patientStr += ` | ${fp.age} anos`
+    if (fp.conditions) patientStr += `\nCondições: ${fp.conditions}`
+    if (fp.allergies) patientStr += `\nAlergias: ${fp.allergies}`
+    if (fp.crCl) patientStr += `\nCrCl: ${fp.crCl} mL/min`
+  }
+  
   if (patientContext?.meds?.length > 0) {
-    patientStr += `\n\nMEDICAMENTOS DO UTILIZADOR:\n${patientContext.meds.map((m: any) => `- ${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? `, ${m.frequency}` : ''}`).join('\n')}`
+    patientStr += `\n\nMEDICAÇÃO ACTUAL:\n${patientContext.meds.map((m: any) => `- ${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? `, ${m.frequency}` : ''}${m.indication ? ` (${m.indication})` : ''}`).join('\n')}`
   }
   if (patientContext?.history?.length > 0) {
     const recentSearches = patientContext.history.slice(0, 5)
