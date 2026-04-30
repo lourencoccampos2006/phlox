@@ -31,4 +31,8 @@ export function setActiveProfile(profile: ActiveProfile | null): void {
 
 export function clearActiveProfile(): void {
   setActiveProfile(null)
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc

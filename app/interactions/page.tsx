@@ -5,6 +5,8 @@ import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
+import ProfileSelector from '@/components/ProfileSelector'
+import type { ActiveProfile } from '@/lib/profileContext'
 
 const SEVERITY: Record<string, { label: string; color: string; bg: string; border: string; barColor: string }> = {
   GRAVE:         { label: 'GRAVE',                  color: '#7f1d1d', bg: '#fff5f5', border: '#feb2b2', barColor: '#c53030' },
@@ -153,6 +155,21 @@ export default function InteractionsPage() {
     setResult(null)
   }
 
+  const handleProfileSelect = async (profile: ActiveProfile) => {
+    if (!user) return
+    setDrugs([])
+    setResult(null)
+    let names: string[] = []
+    if (profile.type === 'self') {
+      const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id).limit(10)
+      names = (data || []).map((m: any) => m.name)
+    } else {
+      const { data } = await supabase.from('family_profile_meds').select('name').eq('profile_id', profile.id).limit(10)
+      names = (data || []).map((m: any) => m.name)
+    }
+    if (names.length > 0) setDrugs(names)
+  }
+
   const saveHistory = async (data: any, drugList: string[]) => {
     if (!user) return
     try {
@@ -202,6 +219,13 @@ export default function InteractionsPage() {
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Verificador de Interações</h1>
               <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>Medicamentos, suplementos e plantas. Dados RxNorm/NIH.</p>
             </div>
+
+            {/* Profile selector — pre-fills drugs from profile */}
+            {user && (
+              <div style={{ marginBottom: 12 }}>
+                <ProfileSelector onChange={handleProfileSelect} />
+              </div>
+            )}
 
             {/* Input */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '16px', marginBottom: 12 }}>

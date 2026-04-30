@@ -1,10 +1,17 @@
 'use client'
 
+<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { suggestDrugs } from '@/lib/drugNames'
+=======
+import { useState } from 'react'
+import Header from '@/components/Header'
+import Link from 'next/link'
+import { useAuth } from '@/components/AuthContext'
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,11 +59,19 @@ const TYPE_LABELS: Record<MonitorAlert['type'], string> = {
 
 const TYPE_ICONS: Record<MonitorAlert['type'], string> = {
   interaction:      '⚡',
+<<<<<<< HEAD
   renal:            'K',
   beers:            'B',
   duplication:      'D',
   monitoring:       'M',
   contraindication: 'C',
+=======
+  renal:            '🫘',
+  beers:            '👴',
+  duplication:      '🔁',
+  monitoring:       '📊',
+  contraindication: '🚫',
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 }
 
 const SEV_COLOR: Record<MonitorAlert['severity'], { bg: string; border: string; text: string; dot: string }> = {
@@ -102,10 +117,17 @@ function UpgradeGate() {
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', marginBottom: 28, textAlign: 'left' }}>
           {[
             { icon: '⚡', text: 'Interacções farmacodinâmicas e farmacocinéticas' },
+<<<<<<< HEAD
             { icon: 'K', text: 'Ajuste de dose em insuficiência renal (KDIGO)' },
             { icon: 'B', text: 'Critérios Beers AGS 2023 para idosos' },
             { icon: 'D', text: 'Detecção de duplicação terapêutica' },
             { icon: 'M', text: 'Alertas de monitorização prioritários' },
+=======
+            { icon: '🫘', text: 'Ajuste de dose em insuficiência renal (KDIGO)' },
+            { icon: '👴', text: 'Critérios Beers AGS 2023 para idosos' },
+            { icon: '🔁', text: 'Detecção de duplicação terapêutica' },
+            { icon: '📊', text: 'Alertas de monitorização prioritários' },
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
           ].map(({ icon, text }) => (
             <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
@@ -208,12 +230,19 @@ function AlertCard({ alert }: { alert: MonitorAlert }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MonitorPage() {
+<<<<<<< HEAD
   const { user, supabase } = useAuth()
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
 
   const [patients, setPatients] = useState<Array<{id:string; name:string; age?:number; conditions?:string}>>([])
   const [selectedPatient, setSelectedPatient] = useState<string>('')
+=======
+  const { user } = useAuth()
+  const plan = (user?.plan || 'free') as string
+  const isPro = plan === 'pro' || plan === 'clinic'
+
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
   const [meds, setMeds] = useState<MedRow[]>([newRow(), newRow()])
   const [ctx, setCtx] = useState<PatientCtx>({ age: '', sex: '', weight: '', creatinine: '', conditions: '', allergies: '' })
   const [result, setResult] = useState<MonitorResult | null>(null)
@@ -221,6 +250,7 @@ export default function MonitorPage() {
   const [error, setError] = useState('')
   const [showCtx, setShowCtx] = useState(false)
 
+<<<<<<< HEAD
   // Load patients from database
   useEffect(() => {
     if (!user || !isPro) return
@@ -251,6 +281,8 @@ export default function MonitorPage() {
     else setMeds([newRow(), newRow()])
   }
 
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
   const updateMed = (id: string, field: keyof MedRow, value: string) =>
     setMeds(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m))
 
@@ -266,11 +298,17 @@ export default function MonitorPage() {
     setResult(null)
 
     try {
+<<<<<<< HEAD
       const { data: sessionData } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (sessionData?.session?.access_token) {
         headers['Authorization'] = `Bearer ${sessionData.session.access_token}`
       }
+=======
+      const { data: sessionData } = await (window as any).__supabase?.auth.getSession() || {}
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      // token is sent via cookie automatically
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
       const patient_context = {
         age: ctx.age ? parseInt(ctx.age) : undefined,
@@ -331,6 +369,7 @@ export default function MonitorPage() {
             </p>
           </div>
 
+<<<<<<< HEAD
           {/* Patient quick-load */}
           {patients.length > 0 && (
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', marginBottom: 20, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -350,6 +389,8 @@ export default function MonitorPage() {
             </div>
           )}
 
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
           <div className="two-col" style={{ gap: 24, alignItems: 'flex-start' }}>
 
             {/* ── Left: inputs ── */}
@@ -570,4 +611,8 @@ export default function MonitorPage() {
       `}</style>
     </div>
   )
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
