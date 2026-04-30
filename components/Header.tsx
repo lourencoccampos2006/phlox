@@ -7,6 +7,7 @@ import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 // ─── Tool registry ─────────────────────────────────────────────────────────────
 
+
 const GROUPS = [
   {
     id: 'geral',
