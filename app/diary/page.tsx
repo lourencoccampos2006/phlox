@@ -51,6 +51,7 @@ export default function DiaryPage() {
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [meds, setMeds] = useState<string[]>([])
 
+  
   const today = new Date().toISOString().split('T')[0]
   const todayEntry = entries.find(e => e.date === today)
 
