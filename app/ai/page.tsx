@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthContext'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+
 type Role = 'user' | 'assistant' | 'system'
 
 interface Message {
