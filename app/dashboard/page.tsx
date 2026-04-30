@@ -9,6 +9,7 @@ import ReferralSection from ‘@/components/ReferralSection’
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+
 interface Med { id: string; name: string; dose?: string; frequency?: string; created_at: string }
 interface Patient { id: string; name: string; age?: number; conditions?: string; meds_count?: number; updated_at?: string; last_updated?: string; alerts?: number }
 interface StudyStats { total_cards: number; streak: number; weak_topics: string[]; next_review: string }
