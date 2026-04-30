@@ -2,6 +2,7 @@
 // Gere o perfil activo no localStorage para pré-preencher ferramentas.
 // Chave: 'phlox-active-profile'
 
+
 export interface ActiveProfile {
   id: string | 'self'
   name: string
