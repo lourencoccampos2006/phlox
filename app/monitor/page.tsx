@@ -15,6 +15,7 @@ import { useAuth } from '@/components/AuthContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+  
 interface MedRow {
   id: string
   name: string
