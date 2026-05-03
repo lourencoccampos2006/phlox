@@ -7,6 +7,7 @@ import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 // ─── Tool registry ─────────────────────────────────────────────────────────────
 
+
 const GROUPS = [
   {
     id: 'geral',
@@ -59,6 +60,11 @@ const GROUPS = [
     tools: [
       { href: '/strategy',     label: 'Estratégias Terapêuticas', sub: 'Alternativas com evidência A/B/C' },
       { href: '/protocol',     label: 'Protocolo Terapêutico',    sub: 'ESC · ADA · NICE · DGS' },
+<<<<<<< HEAD
+      { href: '/mar',          label: 'Registo de Administração',  sub: 'MAR por turno · obrigatório lares', badge: 'Pro' },
+      { href: '/importar',     label: 'Importar Medicamentos',     sub: 'Sifarma · SClinico · qualquer lista', badge: 'Pro' },
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
       { href: '/briefing',     label: 'Briefing de Consulta',     sub: 'Preparação em 15 segundos' },
       { href: '/med-review',   label: 'Revisão de Medicação',     sub: 'Análise clínica + PDF' },
       { href: '/nursing',      label: 'IV · SC · IM',             sub: 'Compatibilidades e farmacotecnia' },
@@ -266,7 +272,11 @@ export default function Header() {
     setActiveProfileState(getActiveProfile())
   }, [])
 
+<<<<<<< HEAD
+  const orderedGroups = getOrderedGroups((user as any)?.experience_mode)
+=======
   const orderedGroups = getOrderedGroups(user?.experience_mode)
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
   return (
     <>

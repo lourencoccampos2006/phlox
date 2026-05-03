@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 
+
 interface Patient {
   id: string
   name: string
@@ -18,9 +19,10 @@ interface Patient {
   conditions: string | null
   allergies: string | null
   notes: string | null
-  meds_count: number
-  alerts: number
-  last_updated: string
+  meds_count?: number
+  alerts?: number
+  last_updated?: string
+  updated_at?: string
 }
 
 interface PatientMed {
@@ -89,7 +91,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     }).select().single()
     if (data) {
       setMeds(p => [data, ...p])
-      await supabase.from('patients').update({ meds_count: meds.length + 1, last_updated: new Date().toISOString() }).eq('id', patientId)
+      // updated_at is handled automatically by trigger
     }
     setNewMed({ name: '', dose: '', frequency: '', indication: '' })
     setSuggestions([])
@@ -115,7 +117,8 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       const data = await res.json()
       if (res.ok && data.alerts) {
         setAlerts(data.alerts)
-        await supabase.from('patients').update({ alerts: data.alerts.filter((a: Alert) => a.severity === 'grave').length }).eq('id', patientId)
+        const graveCount = data.alerts.filter((a: Alert) => a.severity === 'grave').length
+        await supabase.from('patients').update({ alerts: graveCount }).eq('id', patientId)
       }
     } catch {}
     setAnalyzing(false)
@@ -123,7 +126,9 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
 
   const saveEdit = async () => {
     if (!patientId) return
-    await supabase.from('patients').update({ ...editData, last_updated: new Date().toISOString() }).eq('id', patientId)
+    // Remove read-only fields before update
+    const { meds_count: _mc, alerts: _al, last_updated: _lu, updated_at: _ua, ...updateFields } = editData as any
+    await supabase.from('patients').update(updateFields).eq('id', patientId)
     setPatient(p => p ? { ...p, ...editData } : p)
     setEditing(false)
   }

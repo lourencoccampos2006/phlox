@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthContext'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+
 type Role = 'user' | 'assistant' | 'system'
 
 interface Message {
@@ -39,10 +40,24 @@ interface FamilyProfileCtx {
 }
 
 interface PatientContext {
-  meds: { name: string; dose?: string; frequency?: string }[]
+  meds: { name: string; dose?: string; frequency?: string; indication?: string }[]
   history: { query: string; type: string; result_severity?: string }[]
   plan: string
   familyProfile?: FamilyProfileCtx
+<<<<<<< HEAD
+  clinicalPatient?: {
+    id: string
+    name: string
+    age?: number | null
+    sex?: string | null
+    conditions?: string | null
+    allergies?: string | null
+    creatinine?: number | null
+    weight?: number | null
+    crCl?: number | null
+  }
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 }
 
 // ─── Suggested Prompts ───────────────────────────────────────────────────────
@@ -203,13 +218,22 @@ function TypingIndicator() {
 function AIChat() {
   const { user, supabase } = useAuth()
   const searchParams = useSearchParams()
+<<<<<<< HEAD
+  const profileId = searchParams.get('profile')   // UUID or 'self' or null (family profiles)
+  const patientId  = searchParams.get('patient')   // UUID (Pro clinical patients)
+=======
   const profileId = searchParams.get('profile')   // UUID or 'self' or null
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
   const initialQuery = searchParams.get('q')       // pre-filled question from homepage
 
   const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
   const isPro = plan === 'pro' || plan === 'clinic'
   const isFamilyProfile = !!profileId && profileId !== 'self'
+<<<<<<< HEAD
+  const isClinicalPatient = !!patientId
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -217,6 +241,10 @@ function AIChat() {
   const [patientCtx, setPatientCtx] = useState<PatientContext | null>(null)
   const [ctxLoaded, setCtxLoaded] = useState(false)
   const [familyProfile, setFamilyProfile] = useState<FamilyProfileCtx | null>(null)
+<<<<<<< HEAD
+  const [clinicalPatient, setClinicalPatient] = useState<PatientContext['clinicalPatient'] | null>(null)
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const initialQuerySent = useRef(false)
@@ -227,7 +255,11 @@ function AIChat() {
 
   // Load personal context (skip when viewing a family profile)
   useEffect(() => {
+<<<<<<< HEAD
+    if (!user || isFamilyProfile || isClinicalPatient) return
+=======
     if (!user || isFamilyProfile) return
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
     Promise.all([
       supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', user.id).limit(20),
       supabase.from('search_history').select('query, type, result_severity').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
@@ -260,6 +292,33 @@ function AIChat() {
       setCtxLoaded(true)
     })
   }, [user, isFamilyProfile, profileId, supabase])
+<<<<<<< HEAD
+
+  // Load clinical patient context (Pro ?patient= param)
+  useEffect(() => {
+    if (!user || !isClinicalPatient || !patientId) return
+    Promise.all([
+      supabase.from('patients').select('*').eq('id', patientId).eq('user_id', user.id).single(),
+      supabase.from('patient_meds').select('name, dose, frequency, indication').eq('patient_id', patientId).eq('active', true).limit(30),
+    ]).then(([patRes, medsRes]) => {
+      if (!patRes.data) { setCtxLoaded(true); return }
+      const pat = patRes.data
+      setClinicalPatient(pat)
+      // CrCl calculation
+      const crCl = pat.age && pat.weight && pat.creatinine && pat.sex
+        ? Math.round(((140 - pat.age) * pat.weight * (pat.sex === 'F' ? 0.85 : 1)) / (72 * pat.creatinine))
+        : null
+      setPatientCtx({
+        meds: medsRes.data || [],
+        history: [],
+        plan: user.plan as string,
+        clinicalPatient: { ...pat, crCl },
+      })
+      setCtxLoaded(true)
+    })
+  }, [user, isClinicalPatient, patientId, supabase])
+=======
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
   // Welcome message after context loads
   useEffect(() => {
@@ -269,7 +328,30 @@ function AIChat() {
     let actions: Action[]
     let sources: string[] | undefined
 
+<<<<<<< HEAD
+    if (clinicalPatient) {
+      // Clinical patient context (Pro ?patient= param from patients/[id] page)
+      const pat = clinicalPatient
+      const hasMeds = patientCtx.meds.length > 0
+      const crClStr = pat.crCl ? ` | CrCl: **${pat.crCl} mL/min**${pat.crCl < 30 ? ' ⚠ DRC severa' : pat.crCl < 60 ? ' — ajuste renal necessário' : ''}` : ''
+      
+      greeting = `Co-piloto activado para **${pat.name}**${pat.age ? ` (${pat.age} anos` : ''}${pat.sex ? `, ${pat.sex}` : ''}${pat.age ? ')' : ''}.${crClStr}
+      
+${pat.conditions ? `**Diagnósticos:** ${pat.conditions}\n` : ''}${pat.allergies ? `**Alergias:** ${pat.allergies}\n` : ''}
+${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).join(', ')}\n\nO que analisas?` : 'Sem medicação registada. Adiciona medicamentos no perfil do doente.'}`
+      
+      sources = [`Doente: ${pat.name}`, 'Dados clínicos']
+      actions = hasMeds ? [
+        { label: 'Analisar interações', prompt: `Analisa todas as interações medicamentosas na medicação actual de ${pat.name}: ${patientCtx.meds.map((m: any) => m.name).join(', ')}. Inclui gravidade e recomendações.` },
+        { label: 'Verificar doses renais', prompt: `${pat.crCl ? `Com CrCl de ${pat.crCl} mL/min, que` : 'Que'} ajustes de dose são necessários para ${pat.name} com a medicação: ${patientCtx.meds.map((m: any) => m.name).join(', ')}?` },
+        { label: 'Ver perfil completo', href: `/patients/${pat.id}` },
+      ] : [
+        { label: 'Adicionar medicação', href: `/patients/${pat.id}` },
+      ]
+    } else if (familyProfile) {
+=======
     if (familyProfile) {
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
       const fp = familyProfile
       const hasMeds = patientCtx.meds.length > 0
       const parts: string[] = []
@@ -550,4 +632,8 @@ export default function AIPage() {
       <AIChat />
     </Suspense>
   )
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
