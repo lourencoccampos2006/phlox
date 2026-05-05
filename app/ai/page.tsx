@@ -8,7 +8,6 @@ import { useAuth } from '@/components/AuthContext'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-
 type Role = 'user' | 'assistant' | 'system'
 
 interface Message {
@@ -44,7 +43,6 @@ interface PatientContext {
   history: { query: string; type: string; result_severity?: string }[]
   plan: string
   familyProfile?: FamilyProfileCtx
-<<<<<<< HEAD
   clinicalPatient?: {
     id: string
     name: string
@@ -56,8 +54,6 @@ interface PatientContext {
     weight?: number | null
     crCl?: number | null
   }
-=======
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 }
 
 // ─── Suggested Prompts ───────────────────────────────────────────────────────
@@ -218,22 +214,15 @@ function TypingIndicator() {
 function AIChat() {
   const { user, supabase } = useAuth()
   const searchParams = useSearchParams()
-<<<<<<< HEAD
   const profileId = searchParams.get('profile')   // UUID or 'self' or null (family profiles)
   const patientId  = searchParams.get('patient')   // UUID (Pro clinical patients)
-=======
-  const profileId = searchParams.get('profile')   // UUID or 'self' or null
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
   const initialQuery = searchParams.get('q')       // pre-filled question from homepage
 
   const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
   const isPro = plan === 'pro' || plan === 'clinic'
   const isFamilyProfile = !!profileId && profileId !== 'self'
-<<<<<<< HEAD
   const isClinicalPatient = !!patientId
-=======
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -241,10 +230,7 @@ function AIChat() {
   const [patientCtx, setPatientCtx] = useState<PatientContext | null>(null)
   const [ctxLoaded, setCtxLoaded] = useState(false)
   const [familyProfile, setFamilyProfile] = useState<FamilyProfileCtx | null>(null)
-<<<<<<< HEAD
   const [clinicalPatient, setClinicalPatient] = useState<PatientContext['clinicalPatient'] | null>(null)
-=======
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const initialQuerySent = useRef(false)
@@ -255,11 +241,7 @@ function AIChat() {
 
   // Load personal context (skip when viewing a family profile)
   useEffect(() => {
-<<<<<<< HEAD
     if (!user || isFamilyProfile || isClinicalPatient) return
-=======
-    if (!user || isFamilyProfile) return
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
     Promise.all([
       supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', user.id).limit(20),
       supabase.from('search_history').select('query, type, result_severity').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10),
@@ -292,7 +274,6 @@ function AIChat() {
       setCtxLoaded(true)
     })
   }, [user, isFamilyProfile, profileId, supabase])
-<<<<<<< HEAD
 
   // Load clinical patient context (Pro ?patient= param)
   useEffect(() => {
@@ -317,8 +298,6 @@ function AIChat() {
       setCtxLoaded(true)
     })
   }, [user, isClinicalPatient, patientId, supabase])
-=======
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
 
   // Welcome message after context loads
   useEffect(() => {
@@ -328,7 +307,6 @@ function AIChat() {
     let actions: Action[]
     let sources: string[] | undefined
 
-<<<<<<< HEAD
     if (clinicalPatient) {
       // Clinical patient context (Pro ?patient= param from patients/[id] page)
       const pat = clinicalPatient
@@ -349,9 +327,6 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
         { label: 'Adicionar medicação', href: `/patients/${pat.id}` },
       ]
     } else if (familyProfile) {
-=======
-    if (familyProfile) {
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
       const fp = familyProfile
       const hasMeds = patientCtx.meds.length > 0
       const parts: string[] = []
@@ -632,8 +607,4 @@ export default function AIPage() {
       <AIChat />
     </Suspense>
   )
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 6bb00fe3dd6ec37df4b42229e2900012910cf0dc
