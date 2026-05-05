@@ -925,26 +925,153 @@ function ProDashboard() {
 
 // ─── Main router ──────────────────────────────────────────────────────────────
 
+// ─── NOVO: CaregiverDashboard ─────────────────────────────────────────────────
+
+function CaregiverDashboard() {
+  const { user, supabase } = useAuth()
+  const plan = (user?.plan || 'free') as string
+  const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
+  const [tab, setTab] = useState<'home' | 'perfis' | 'account'>('home')
+
+  const tabStyle = (t: string) => ({
+    padding: '10px 16px', background: 'none', border: 'none',
+    borderBottom: `2px solid ${tab === t ? '#b45309' : 'transparent'}`,
+    cursor: 'pointer', fontSize: 12, fontWeight: 700,
+    color: tab === t ? '#b45309' : 'var(--ink-4)',
+    fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
+    textTransform: 'uppercase' as const, marginBottom: -1,
+    transition: 'color 0.15s, border-color 0.15s', whiteSpace: 'nowrap' as const,
+  })
+
+  const QUICK_ACTIONS = [
+    { label: 'Tradutor de Bula', sub: 'Linguagem simples para qualquer bula', href: '/bula', badge: 'Grátis', color: '#1d4ed8' },
+    { label: 'Dose para Criança', sub: 'Dose certa por peso com alertas', href: '/dose-crianca', badge: 'Grátis', color: '#b45309' },
+    { label: 'Verificar Interações', sub: 'Qualquer combinação de medicamentos', href: '/interactions', badge: 'Grátis', color: '#0d6e42' },
+    { label: 'Perceber a Receita', sub: 'Foto ou texto → explicação simples', href: '/prescription', color: '#0d6e42' },
+    { label: 'Perceber as Análises', sub: 'O que está fora do normal', href: '/labs', color: '#0d6e42' },
+    { label: 'Preparar Consulta', sub: 'Perguntas certas para o médico', href: '/consult-prep', color: '#374151' },
+  ]
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
+      <Header />
+      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
+        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
+                Olá, {firstName}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 3 }}>
+                Geres a medicação da tua família
+              </div>
+            </div>
+            {plan === 'free' && (
+              <Link href="/pricing" style={{ fontSize: 11, color: '#b45309', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, border: '1px solid #fde68a', background: '#fffbeb', padding: '5px 10px', borderRadius: 5, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
+                Upgrade
+              </Link>
+            )}
+          </div>
+          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
+            {[['home', 'Início'], ['perfis', 'Os Meus Perfis'], ['account', 'Conta']].map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="page-container page-body">
+        {tab === 'home' && (
+          <div>
+            <FamilyProfilesSection accentColor="#b45309" />
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas para a família</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 8 }}>
+                {QUICK_ACTIONS.map(({ label, sub, href, badge, color }) => (
+                  <Link key={href} href={href}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 12, transition: 'border-color 0.15s' }}
+                    className="quick-action">
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
+                        {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color, background: color === '#0d6e42' ? '#d1fae5' : color === '#1d4ed8' ? '#dbeafe' : '#fde68a', border: `1px solid ${color === '#0d6e42' ? '#a7f3d0' : color === '#1d4ed8' ? '#bfdbfe' : '#fcd34d'}`, borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{badge}</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <Link href="/ai" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 22px', background: '#0f172a', borderRadius: 10, textDecoration: 'none', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Phlox AI — pergunta sobre qualquer familiar</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Conhece os medicamentos de cada perfil e responde com contexto real.</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </Link>
+          </div>
+        )}
+        {tab === 'perfis' && (
+          <div>
+            <FamilyProfilesSection accentColor="#b45309" />
+            <div style={{ marginTop: 12 }}>
+              <Link href="/perfis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#b45309', textDecoration: 'none', fontWeight: 700, fontFamily: 'var(--font-mono)', border: '1px solid #fde68a', background: '#fffbeb', padding: '8px 14px', borderRadius: 7 }}>
+                Gerir todos os perfis →
+              </Link>
+            </div>
+          </div>
+        )}
+        {tab === 'account' && (
+          <div style={{ maxWidth: 480 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{user?.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{user?.email}</div>
+              </div>
+              <div style={{ padding: '16px 20px' }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Plano actual</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', textTransform: 'capitalize' }}>{user?.plan || 'Gratuito'}</span>
+                  <Link href="/pricing" style={{ fontSize: 12, color: '#b45309', textDecoration: 'none', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>Mudar plano →</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── NOVO: DashboardRouter actualizado com experience_mode ────────────────────
+
 function DashboardRouter() {
   const { user, loading } = useAuth()
   const sp = useSearchParams()
   const router = useRouter()
 
   const modeParam = sp.get('mode')
-  const profileType = (user as any)?.profile_type || modeParam || 'personal'
-  const plan = (user?.plan || 'free') as string
 
-  // Determine dashboard to show
-  const getDashboard = () => {
-    // URL param overrides
-    if (modeParam === 'pro' || modeParam === 'professional') return 'pro'
+  // ─── NOVO: usa experience_mode como fonte principal ───
+  const getDashboard = (): 'clinical' | 'student' | 'caregiver' | 'personal' => {
+    const experienceMode = (user as any)?.experience_mode
+    // URL param overrides (para compatibilidade com links existentes)
+    if (modeParam === 'pro' || modeParam === 'professional' || modeParam === 'clinical') return 'clinical'
     if (modeParam === 'student') return 'student'
+    if (modeParam === 'caregiver') return 'caregiver'
     if (modeParam === 'personal') return 'personal'
-    // Profile type from onboarding
-    if (profileType === 'professional') return 'pro'
+    // experience_mode do perfil
+    if (experienceMode === 'clinical') return 'clinical'
+    if (experienceMode === 'student') return 'student'
+    if (experienceMode === 'caregiver') return 'caregiver'
+    if (experienceMode === 'personal') return 'personal'
+    // Fallback por profile_type (compatibilidade)
+    const profileType = (user as any)?.profile_type
+    if (profileType === 'professional') return 'clinical'
     if (profileType === 'student') return 'student'
-    // Plan-based fallback
-    if (plan === 'pro' || plan === 'clinic') return 'pro'
+    const plan = user?.plan || 'free'
+    if (plan === 'pro' || plan === 'clinic') return 'clinical'
     return 'personal'
   }
 
@@ -956,41 +1083,20 @@ function DashboardRouter() {
 
   if (!user) { router.push('/login'); return null }
 
-  const dash = getDashboard()
+  // ─── NOVO: redirecionar para onboarding se não fez onboarding ───
+  if (!(user as any)?.onboarded && !(user as any)?.experience_mode) {
+    router.push('/onboarding')
+    return null
+  }
 
-  const MODE_CONFIG = [
-    { mode: 'personal', label: 'Pessoal', icon: '👤', color: 'var(--green)', desc: 'A minha medicação e família' },
-    { mode: 'student',  label: 'Estudo',  icon: '📚', color: '#7c3aed',       desc: 'Farmacologia e casos clínicos' },
-    { mode: 'pro',      label: 'Clínico', icon: '🏥', color: '#1d4ed8',       desc: 'Co-piloto e doentes' },
-  ]
+  const dash = getDashboard()
 
   return (
     <>
-      {/* ── Sticky mode bar ── */}
-      <div style={{ position: 'sticky', top: 60, zIndex: 90, background: 'var(--ink)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="page-container" style={{ display: 'flex', gap: 0 }}>
-          {MODE_CONFIG.map(({ mode, label, icon, color, desc }) => (
-            <Link key={mode} href={`/dashboard?mode=${mode}`}
-              style={{ display: 'flex', flexDirection: 'column', padding: '10px 20px', textDecoration: 'none', borderBottom: `2px solid ${dash === mode ? color : 'transparent'}`, transition: 'all 0.15s', flexShrink: 0 }}
-              className={`mode-tab mode-tab-${mode} ${dash === mode ? 'mode-tab-active' : ''}`}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 13 }}>{icon}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', color: dash === mode ? 'white' : 'rgba(255,255,255,0.4)', transition: 'color 0.15s' }}>{label}</span>
-              </div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', marginTop: 1, letterSpacing: '0.02em', display: 'none' }} className="mode-tab-desc">{desc}</div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {dash === 'pro' && <ProDashboard />}
+      {dash === 'clinical' && <ProDashboard />}
       {dash === 'student' && <StudentDashboard />}
+      {dash === 'caregiver' && <CaregiverDashboard />}
       {dash === 'personal' && <PersonalDashboard />}
-
-      <style>{`
-        @media (min-width: 640px) { .mode-tab-desc { display: block !important; } .mode-tab { padding: 10px 24px !important; } }
-        .mode-tab:hover .mode-tab-desc { color: rgba(255,255,255,0.45) !important; }
-      `}</style>
     </>
   )
 }

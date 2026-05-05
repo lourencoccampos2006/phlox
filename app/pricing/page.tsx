@@ -5,225 +5,256 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 
+type Billing = 'monthly' | 'annual'
+
 const PLANS = [
   {
     id: 'free',
     name: 'Gratuito',
     price: { monthly: '0€', annual: '0€' },
-    description: 'Para experimentar as ferramentas essenciais.',
+    description: 'Para famílias e cuidadores que querem começar.',
     cta: 'Começar grátis',
     ctaHref: '/login',
     highlight: false,
+    modes: ['caregiver', 'personal'],
     features: [
-      { text: 'Verificador de Medicamento (qualquer fármaco)', ok: true },
-      { text: 'Interpretação de análises clínicas', ok: false },
-      { text: 'Análise Rápida de Medicação (limitada)', ok: true },
-      { text: 'Diluições e Perfusões IV (completo)', ok: true },
-      { text: 'Verificador de interações — 10/dia', ok: true },
+      { text: 'Tradutor de Bula (ilimitado)', ok: true },
+      { text: 'Dose Pediátrica (ilimitado)', ok: true },
+      { text: 'Verificador de Interações — 10/dia', ok: true },
+      { text: '2 Perfis familiares', ok: true },
       { text: 'Base de dados FDA — 15 pesquisas/dia', ok: true },
-      { text: 'Calculadoras clínicas (todas)', ok: true },
-      { text: 'Segurança do medicamento — 5/dia', ok: true },
-      { text: 'Posologia por indicação — 5/dia', ok: true },
-      { text: 'Compatibilidade IV — 5/dia', ok: true },
-      { text: 'Histórico de pesquisas', ok: false },
-      { text: 'Monografias IA ilimitadas', ok: false },
-      { text: 'Casos clínicos interactivos', ok: false },
+      { text: 'Calculadoras clínicas', ok: true },
+      { text: 'Phlox AI', ok: false },
+      { text: 'Histórico guardado', ok: false },
       { text: 'Sem anúncios', ok: false },
     ],
   },
   {
     id: 'student',
     name: 'Student',
-    price: { monthly: '3,99€', annual: '3,19€' },
-    description: 'Para estudantes de farmácia, medicina e enfermagem que levam os exames a sério.',
+    price: { monthly: '3,99€', annual: '2,99€' },
+    description: 'Para estudantes de farmácia, medicina, enfermagem e nutrição.',
     cta: 'Começar Student',
     ctaHref: '/checkout?plan=student',
-    highlight: true,
-    badge: 'Mais popular',
+    highlight: false,
+    badge: 'Para estudantes',
+    badgeColor: '#7c3aed',
+    modes: ['student'],
     features: [
       { text: 'Tudo do Gratuito, sem limites diários', ok: true },
-      { text: 'Verificador + contexto da tua medicação pessoal', ok: true },
-      { text: 'Interpretação de análises clínicas', ok: true },
-      { text: 'Análise Rápida de Medicação ilimitada', ok: true },
-      { text: 'Histórico de pesquisas guardado', ok: true },
-      { text: 'Lista de medicamentos pessoais', ok: true },
-      { text: 'Monografias IA ilimitadas', ok: true },
+      { text: '5 Perfis familiares', ok: true },
+      { text: 'Phlox AI Tutor — socrático, modo estudo', ok: true },
       { text: 'Flashcards — 24 classes farmacológicas', ok: true },
       { text: 'Quizzes com score e feedback', ok: true },
-      { text: 'Phlox AI — Farmacologista Clínico IA', ok: true },
       { text: 'Casos clínicos interactivos', ok: true },
+      { text: 'Turno virtual com doentes gerados por IA', ok: true },
+      { text: 'Modo exame com análise de erros', ok: true },
+      { text: 'Histórico de pesquisas guardado', ok: true },
       { text: 'Sem anúncios', ok: true },
-      { text: 'Protocolo terapêutico IA', ok: false },
-      { text: 'Export PDF de relatórios', ok: false },
     ],
   },
   {
     id: 'pro',
-    name: 'Pro',
-    price: { monthly: '12,99€', annual: '10,39€' },
-    description: 'Para farmacêuticos, médicos e profissionais que usam a plataforma no dia a dia clínico.',
+    name: 'Pro Individual',
+    price: { monthly: '14,99€', annual: '11,99€' },
+    description: 'Para profissionais em uso individual ou freelance.',
     cta: 'Começar Pro',
     ctaHref: '/checkout?plan=pro',
-    highlight: false,
+    highlight: true,
+    badge: 'Mais completo',
+    badgeColor: '#0d6e42',
+    modes: ['clinical', 'personal', 'caregiver'],
     features: [
-      { text: 'Tudo do Student + Phlox AI Pro', ok: true },
-      { text: 'Simulador de Estratégia Terapêutica', ok: true },
-      { text: 'Briefing Clínico de Consulta (preparação em 15s)', ok: true },
-      { text: 'Revisão Clínica de Medicação com PDF', ok: true },
-      { text: 'Protocolo terapêutico IA (guidelines ESC/ADA/NICE)', ok: true },
-      { text: 'Ajuste de dose renal/hepática ilimitado', ok: true },
-      { text: 'Export PDF de relatórios de interações', ok: true },
-      { text: 'Histórico ilimitado', ok: true },
-      { text: 'API access (em breve)', ok: true },
-      { text: 'Suporte prioritário', ok: true },
+      { text: 'Tudo do Student', ok: true },
+      { text: 'Perfis ilimitados', ok: true },
+      { text: 'Phlox AI Clínico Pro — protocolo, análise, dictation', ok: true },
+      { text: 'Gestão de doentes/utentes ilimitados', ok: true },
+      { text: 'Briefing de Consulta em 15s', ok: true },
+      { text: 'Revisão de Medicação com PDF', ok: true },
+      { text: 'Protocolo Terapêutico IA (ESC/ADA/NICE/DGS)', ok: true },
+      { text: 'MAR digital por turno', ok: true },
+      { text: 'Importar medicamentos (Sifarma · SClínico)', ok: true },
+      { text: 'Export PDF de relatórios', ok: true },
     ],
   },
 ]
+
+const INSTITUTIONAL = {
+  name: 'Institucional',
+  price: 'Desde 89€/mês',
+  priceSub: 'por localização · faturação anual',
+  description: 'Para farmácias, clínicas, lares e hospitais. A unidade de subscrição é a instituição — toda a equipa incluída.',
+  cta: 'Falar com a equipa',
+  ctaHref: 'mailto:hello@phlox-clinical.com?subject=Licença Institucional Phlox',
+  features: [
+    'Tudo do Pro para até 10 membros da equipa',
+    'Dashboard multi-utilizador com hierarquias',
+    'Atribuição de doentes a profissionais',
+    'MAR digital multi-turno com auditoria',
+    'Importação Sifarma / SClínico / CSV',
+    'Onboarding dedicado da equipa',
+    'Suporte prioritário com SLA',
+    'Faturação centralizada mensal ou anual',
+    'Gestão de stock (em breve)',
+    'API de integração (em breve)',
+  ],
+  types: [
+    { icon: '💊', name: 'Farmácias', price: '89€/mês' },
+    { icon: '🏥', name: 'Clínicas', price: '25€/utilizador/mês' },
+    { icon: '🏠', name: 'Lares / IPSS', price: '149€/mês' },
+    { icon: '🏨', name: 'Hospitais', price: 'Contactar' },
+  ],
+}
 
 const FAQ = [
   { q: 'Posso cancelar a qualquer momento?', a: 'Sim. Sem contratos. Cancelas quando quiseres e manténs acesso até ao fim do período pago.' },
-  { q: 'Os casos clínicos são mesmo bons?', a: 'São gerados por IA com base em cenários clínicos reais, com diagnóstico diferencial e decisão terapêutica guiada. Cada caso tem feedback detalhado com a justificação clínica completa.' },
-  { q: 'A informação farmacológica é fiável?', a: 'Os dados primários vêm de OpenFDA, RxNorm/NIH. A IA (Llama 3.3) é usada para tradução, monografias e ferramentas avançadas — sempre com aviso claro. Confirma sempre com fontes primárias.' },
-  { q: 'Existe desconto para estudantes?', a: 'O plano Student já é o preço especial para estudantes. No plano anual tens 20% adicional. Para licenças institucionais (faculdade, clínica), contacta-nos.' },
-  { q: 'O que é o Protocolo Terapêutico?', a: 'Descreves o contexto do teu doente (idade, comorbilidades, analíticas) e recebes um protocolo terapêutico completo com fármacos, doses, alvos e follow-up baseado nas guidelines mais recentes (ESC, ADA, NICE, DGS).' },
-]
-
-// Value props para cada segmento
-const VALUE_PROPS = [
-  {
-    icon: '🎓',
-    title: 'Para estudantes',
-    subtitle: 'Passa nos exames com mais confiança',
-    points: [
-      'Interpretação de análises clínicas — o que está fora do normal, porquê, e o que perguntar ao médico',
-      'Casos clínicos com o mesmo nível dos exames de Farmacologia Clínica',
-      'Flashcards e quizzes para 24 classes — antipsicóticos, anticoagulantes, antibióticos...',
-      'Monografias completas de qualquer fármaco em PT, incluindo os mais recentes',
-    ],
-    plan: 'Student — 3,99€/mês',
-    href: '/checkout?plan=student',
-  },
-  {
-    icon: '⚕️',
-    title: 'Para profissionais',
-    subtitle: 'Decisões clínicas em segundos',
-    points: [
-      'Briefing de consulta em 15s — red flags, perguntas, monitorização',
-      'Protocolo terapêutico baseado em guidelines para o teu doente específico',
-      'Compatibilidade IV — Trissel\'s e King Guide na palma da mão',
-      'Ajuste de dose renal para qualquer medicamento com TFG',
-    ],
-    plan: 'Pro — 12,99€/mês',
-    href: '/checkout?plan=pro',
-  },
+  { q: 'Como funciona o plano Institucional?', a: 'A farmácia ou clínica subscreve como instituição e toda a equipa tem acesso. Um owner gere os membros, planos e faturação. Não é necessário que cada profissional tenha a sua própria conta paga.' },
+  { q: 'A informação farmacológica é fiável?', a: 'Os dados primários vêm de OpenFDA, RxNorm/NIH e INFARMED. A IA (Llama 3.3 via Groq + Gemini 2.5) é usada para análise e geração de conteúdo — sempre com aviso claro. Confirma sempre com fontes primárias.' },
+  { q: 'Existe desconto para estudantes?', a: 'O plano Student já é o preço especial. No plano anual tens mais 25% de desconto. Para licenças de faculdade, contacta-nos.' },
+  { q: 'Posso mudar de plano a qualquer altura?', a: 'Sim. Podes fazer upgrade ou downgrade a qualquer momento. O crédito proporcional é aplicado automaticamente.' },
 ]
 
 export default function PricingPage() {
   const { user } = useAuth()
-  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
+  const [billing, setBilling] = useState<Billing>('annual')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
+  const experienceMode = (user as any)?.experience_mode || null
+
+  // ─── Determinar plano em destaque por modo ────────────────────────────────
+  const highlightPlan = experienceMode === 'student' ? 'student'
+    : experienceMode === 'clinical' ? 'pro'
+    : experienceMode === 'caregiver' ? 'free'
+    : 'pro'
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <Header />
 
       <div className="page-container page-body">
 
-        {/* Hero */}
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 14 }}>Planos e Preços</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', marginBottom: 14, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-            Começa grátis.<br />
-            <em style={{ color: 'var(--green-2)', fontStyle: 'italic' }}>Cresce quando precisares.</em>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px, 4vw, 38px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 12 }}>
+            Preços simples, valor real
           </h1>
-          <p style={{ fontSize: 16, color: 'var(--ink-3)', maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
-            As ferramentas essenciais são sempre gratuitas. Os planos pagos desbloqueiam funcionalidades que fazem a diferença real — em estudos e na clínica.
+          <p style={{ fontSize: 16, color: 'var(--ink-3)', marginBottom: 28 }}>
+            Começa grátis. Faz upgrade quando precisares de mais.
           </p>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '4px' }}>
-            <button onClick={() => setBilling('monthly')}
-              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: billing === 'monthly' ? 'var(--green)' : 'transparent', color: billing === 'monthly' ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-              Mensal
-            </button>
-            <button onClick={() => setBilling('annual')}
-              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: billing === 'annual' ? 'var(--green)' : 'transparent', color: billing === 'annual' ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              Anual
-              <span style={{ background: '#dcfce7', color: '#166534', fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 6px', borderRadius: 3 }}>-20%</span>
-            </button>
+
+          {/* Billing toggle */}
+          <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 4, gap: 4 }}>
+            {(['monthly', 'annual'] as Billing[]).map(b => (
+              <button key={b} onClick={() => setBilling(b)}
+                style={{ padding: '8px 20px', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', background: billing === b ? 'var(--ink)' : 'transparent', color: billing === b ? 'white' : 'var(--ink-3)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {b === 'monthly' ? 'Mensal' : 'Anual'}
+                {b === 'annual' && <span style={{ fontSize: 10, background: '#d1fae5', color: '#0d6e42', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>−25%</span>}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Plans */}
-        <div className="plans-grid" style={{ marginBottom: 64 }}>
-          {PLANS.map(plan => (
-            <div key={plan.id} style={{ background: plan.highlight ? 'var(--green)' : 'white', padding: '28px 24px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-              {(plan as any).badge && (
-                <div style={{ position: 'absolute', top: 16, right: 16, background: 'white', color: 'var(--green)', fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>
-                  {(plan as any).badge}
-                </div>
-              )}
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: plan.highlight ? 'rgba(255,255,255,0.6)' : 'var(--ink-4)', marginBottom: 10 }}>
-                {plan.name}
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 700, color: plan.highlight ? 'white' : 'var(--ink)' }}>
-                  {plan.price[billing]}
-                </span>
-                {plan.price.monthly !== '0€' && (
-                  <span style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.6)' : 'var(--ink-4)', marginLeft: 6 }}>
-                    /mês{billing === 'annual' ? ' (anual)' : ''}
-                  </span>
+        {/* Planos B2C */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: 48 }}>
+          {PLANS.map(plan => {
+            const isHighlighted = plan.id === highlightPlan
+            return (
+              <div key={plan.id}
+                style={{ background: isHighlighted ? 'var(--ink)' : 'white', border: `1.5px solid ${isHighlighted ? 'transparent' : 'var(--border)'}`, borderRadius: 14, padding: '28px 24px', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: isHighlighted ? '0 8px 32px rgba(0,0,0,0.15)' : 'none' }}>
+                {plan.badge && (
+                  <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: plan.badgeColor, color: 'white', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', padding: '3px 12px', borderRadius: 20, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    {plan.badge}
+                  </div>
                 )}
-              </div>
-              <p style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.75)' : 'var(--ink-3)', lineHeight: 1.6, marginBottom: 20 }}>
-                {plan.description}
-              </p>
-              {user && user.plan === plan.id ? (
-                <div style={{ padding: '11px', borderRadius: 6, border: `1px solid ${plan.highlight ? 'rgba(255,255,255,0.3)' : 'var(--border)'}`, textAlign: 'center', fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.7)' : 'var(--ink-4)', marginBottom: 24, fontFamily: 'var(--font-mono)' }}>
-                  ✓ Plano actual
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: isHighlighted ? 'rgba(255,255,255,0.5)' : 'var(--ink-4)', marginBottom: 8 }}>
+                  {plan.name}
                 </div>
-              ) : (
-                <Link href={!user ? '/login' : plan.ctaHref} style={{ display: 'block', textAlign: 'center', padding: '11px', borderRadius: 6, fontSize: 14, fontWeight: 600, textDecoration: 'none', marginBottom: 24, background: plan.highlight ? 'white' : 'var(--green)', color: plan.highlight ? 'var(--green)' : 'white' }}>
-                  {!user && plan.id !== 'free' ? 'Criar conta e começar' : plan.cta}
-                </Link>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 'auto' }}>
-                {plan.features.map(({ text, ok }) => (
-                  <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, opacity: ok ? 1 : 0.35 }}>
-                    <span style={{ fontSize: 13, color: plan.highlight ? (ok ? '#86efac' : 'rgba(255,255,255,0.3)') : (ok ? 'var(--green-2)' : 'var(--ink-4)'), flexShrink: 0, marginTop: 1 }}>
-                      {ok ? '✓' : '—'}
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 38, fontWeight: 700, color: isHighlighted ? 'white' : 'var(--ink)' }}>
+                    {plan.price[billing]}
+                  </span>
+                  {plan.price.monthly !== '0€' && (
+                    <span style={{ fontSize: 13, color: isHighlighted ? 'rgba(255,255,255,0.5)' : 'var(--ink-4)', marginLeft: 6 }}>
+                      /mês{billing === 'annual' ? ' (anual)' : ''}
                     </span>
-                    <span style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)', lineHeight: 1.5 }}>{text}</span>
+                  )}
+                </div>
+                <p style={{ fontSize: 13, color: isHighlighted ? 'rgba(255,255,255,0.7)' : 'var(--ink-3)', lineHeight: 1.6, marginBottom: 20 }}>
+                  {plan.description}
+                </p>
+                {user && user.plan === plan.id ? (
+                  <div style={{ padding: '11px', borderRadius: 6, border: `1px solid ${isHighlighted ? 'rgba(255,255,255,0.2)' : 'var(--border)'}`, textAlign: 'center', fontSize: 13, color: isHighlighted ? 'rgba(255,255,255,0.6)' : 'var(--ink-4)', marginBottom: 24, fontFamily: 'var(--font-mono)' }}>
+                    ✓ Plano actual
+                  </div>
+                ) : (
+                  <Link href={!user ? '/login' : plan.ctaHref}
+                    style={{ display: 'block', textAlign: 'center', padding: '11px', borderRadius: 6, fontSize: 14, fontWeight: 600, textDecoration: 'none', marginBottom: 24, background: isHighlighted ? 'white' : 'var(--green)', color: isHighlighted ? 'var(--ink)' : 'white' }}>
+                    {!user && plan.id !== 'free' ? 'Criar conta e começar' : plan.cta}
+                  </Link>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 'auto' }}>
+                  {plan.features.map(({ text, ok }) => (
+                    <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, opacity: ok ? 1 : 0.3 }}>
+                      <span style={{ fontSize: 13, color: isHighlighted ? (ok ? '#86efac' : 'rgba(255,255,255,0.3)') : (ok ? 'var(--green-2)' : 'var(--ink-4)'), flexShrink: 0, marginTop: 1 }}>
+                        {ok ? '✓' : '—'}
+                      </span>
+                      <span style={{ fontSize: 13, color: isHighlighted ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)', lineHeight: 1.5 }}>{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Plano Institucional */}
+        <div id="institucional" style={{ background: '#0f172a', borderRadius: 16, padding: '40px', marginBottom: 48 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1d4ed8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 12, height: 2, background: '#1d4ed8', borderRadius: 1 }} />
+                Plano Institucional
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px, 3vw, 30px)', color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 8 }}>
+                Para farmácias, clínicas, lares e hospitais
+              </h2>
+              <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 28 }}>
+                A instituição subscreve, toda a equipa usa. Multi-utilizador, MAR digital, importação de sistemas, auditoria completa. O padrão da indústria em Portugal.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 28 }}>
+                {INSTITUTIONAL.types.map(t => (
+                  <div key={t.name} style={{ background: '#1e293b', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{t.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', marginBottom: 2 }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: '#1d4ed8', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{t.price}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <a href={INSTITUTIONAL.ctaHref}
+                  style={{ background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
+                  Falar com a equipa →
+                </a>
+                <Link href="/about"
+                  style={{ background: 'transparent', color: '#94a3b8', textDecoration: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: '1px solid #1e293b' }}>
+                  Saber mais
+                </Link>
+              </div>
+            </div>
+
+            <div style={{ minWidth: 240 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Incluído em todas as licenças</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {INSTITUTIONAL.features.map(f => (
+                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ color: '#1d4ed8', fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
+                    <span style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{f}</span>
                   </div>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Value props by segment */}
-        <div style={{ marginBottom: 64 }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 28, textAlign: 'center', letterSpacing: '-0.01em' }}>
-            O que muda com o upgrade
-          </h2>
-          <div className="card-grid-2">
-            {VALUE_PROPS.map(vp => (
-              <div key={vp.title} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '28px 24px' }}>
-                <div style={{ fontSize: 28, marginBottom: 12 }}>{vp.icon}</div>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 4 }}>{vp.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20, fontStyle: 'italic' }}>{vp.subtitle}</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-                  {vp.points.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <span style={{ color: 'var(--green-2)', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>✓</span>
-                      <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6 }}>{p}</span>
-                    </div>
-                  ))}
-                </div>
-                <Link href={vp.href} style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600 }}>
-                  {vp.plan} →
-                </Link>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -248,16 +279,6 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Institutional CTA */}
-        <div style={{ textAlign: 'center', padding: '40px 24px', background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 10 }}>Faculdade, clínica ou farmácia?</h2>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6, maxWidth: 440, margin: '0 auto 24px' }}>
-            Licenças institucionais com desconto, onboarding dedicado e facturação centralizada. Para hospitais, faculdades de farmácia e grupos de clínicas.
-          </p>
-          <a href="mailto:hello@phlox.health?subject=Licença institucional" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
-            Falar sobre licença institucional →
-          </a>
-        </div>
       </div>
     </div>
   )

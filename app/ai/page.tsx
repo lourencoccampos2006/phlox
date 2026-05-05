@@ -402,6 +402,8 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
           patientContext: patientCtx,
+          // ─── NOVO: enviar experience_mode para persona da AI ───
+          experienceMode: (user as any)?.experience_mode || 'personal',
         }),
       })
 

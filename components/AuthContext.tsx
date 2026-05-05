@@ -29,9 +29,12 @@ type User = {
   searches_today: number
   profile_type: 'personal' | 'student' | 'professional' | null
   profile_sub: string | null
-  // ─── NOVO: campos do Sprint 1 ───
+  // ─── NOVO: campos de experiência e organização ───
   experience_mode: 'clinical' | 'caregiver' | 'personal' | 'student'
+  context_secondary: 'clinical' | 'caregiver' | 'personal' | 'student' | null
   onboarded: boolean
+  org_id: string | null
+  org_role: 'owner' | 'admin' | 'member' | null
 }
 
 type AuthContextType = {
@@ -115,9 +118,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile_type: null,
           profile_sub: null,
           searches_today: 0,
-          // ─── NOVO: defaults dos campos Sprint 1 ───
+          // ─── NOVO: defaults dos campos experiência e organização ───
           experience_mode: 'personal' as const,
+          context_secondary: null,
           onboarded: false,
+          org_id: null,
+          org_role: null,
           created_at: new Date().toISOString(),
         }
         const { error: insertError } = await supabase.from('profiles').insert(newProfile)
@@ -133,9 +139,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile_type: data.profile_type || null,
           profile_sub: data.profile_sub || null,
           searches_today: data.searches_today || 0,
-          // ─── NOVO: ler campos Sprint 1 do Supabase ───
+          // ─── NOVO: ler campos experiência e organização do Supabase ───
           experience_mode: data.experience_mode || 'personal',
+          context_secondary: data.context_secondary || null,
           onboarded: data.onboarded || false,
+          org_id: data.org_id || null,
+          org_role: data.org_role || null,
         })
       }
     } catch (e: any) {
