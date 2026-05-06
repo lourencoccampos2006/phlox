@@ -1,59 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
-import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
-
-const cache = new Map<string, { result: any; timestamp: number }>()
-const CACHE_TTL = 1000 * 60 * 60 * 6
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
-  const rl = checkRateLimit(ip, 10, 60_000)
-  if (!rl.allowed) return rateLimitResponse()
-
-  // Plan gate — Student+
+  if (!checkRateLimit(ip, 15, 60_000).allowed) return rateLimitResponse()
   const { plan } = await getUserPlan(req)
-  if (plan === 'free') return planGateResponse('cases', plan)
+  if (plan === 'free') return planGateResponse('student', 'Casos Clínicos')
 
   const body = await req.json().catch(() => null)
-  if (!body?.prompt) return NextResponse.json({ error: 'Caso clínico obrigatório' }, { status: 400 })
+  if (!body?.prompt) return NextResponse.json({ error: 'Caso obrigatório' }, { status: 400 })
 
-  const prompt = String(body.prompt).trim().slice(0, 500)
-  const cacheKey = prompt.toLowerCase().slice(0, 100)
-
-  const cached = cache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json(cached.result)
+  const domainCtx: Record<string, string> = {
+    farmacologia: 'farmacologia clínica — foca em decisão terapêutica, interações, posologia, evidência',
+    medicina_interna: 'medicina interna — foca em diagnóstico, fisiopatologia, guidelines terapêuticas',
+    emergencia: 'medicina de emergência — foca em reconhecimento, algoritmos ACLS/ATLS, tratamento imediato',
+    cirurgia: 'cirurgia geral — foca em indicações, técnica, complicações e cuidados peri-operatórios',
+    pediatria: 'pediatria — considera especificidades pediátricas, doses por peso, desenvolvimento',
+    gineco_obstetricia: 'ginecologia e obstetrícia — considera gravidez, paridade, contracepção, oncologia ginecológica',
+    enfermagem: 'enfermagem clínica — foca em cuidados, técnicas, avaliação e intervenções de enfermagem',
+    nutricao: 'nutrição clínica — foca em avaliação nutricional, necessidades e suporte nutricional',
   }
+  const ctx = domainCtx[body.domain || 'farmacologia'] || domainCtx.farmacologia
 
-  try {
-    const result = await aiJSON<any>([
-      {
-        role: 'system',
-        content: `És um professor de farmacologia clínica a criar casos clínicos interactivos em português europeu (PT-PT).
-Responde APENAS com JSON válido sem markdown:
+  const result = await aiJSON<any>([
+    {
+      role: 'system',
+      content: `És um clínico especialista e professor de ${ctx}. Crias casos clínicos pedagógicos e realistas. Responde APENAS com JSON válido, sem markdown, em português PT-PT.
+
+JSON esperado:
 {
-  "title": "título conciso do caso",
-  "presentation": "apresentação clínica detalhada do caso — dados do doente, história, analíticas relevantes, medicação actual. 3-4 parágrafos.",
-  "differential_options": ["opção A", "opção B", "opção C", "opção D"],
-  "correct_dx": "opção correcta (deve ser exactamente igual a uma das differential_options)",
-  "dx_hint": "dica discreta quando a resposta ao diagnóstico está errada",
-  "therapy_options": [
-    { "option": "descrição da opção terapêutica", "correct": true }
+  "title": "título breve do caso",
+  "presentation": "apresentação clínica detalhada e realista (3-5 frases)",
+  "vitals": { "TA": "130/80", "FC": "88", "SpO2": "96%", "Temp": "37.2°C" },
+  "question": "questão clínica específica a responder",
+  "differential_diagnosis": [
+    { "diagnosis": "diagnóstico 1", "rationale": "justificação breve" },
+    { "diagnosis": "diagnóstico 2", "rationale": "justificação breve" },
+    { "diagnosis": "diagnóstico 3", "rationale": "justificação breve" }
   ],
-  "explanation": "explicação clínica completa e detalhada da decisão correcta. 3-5 parágrafos.",
-  "key_learning": ["ponto de aprendizagem 1", "ponto 2", "ponto 3"]
-}
-Inclui 4 opções de diagnóstico diferencial e 4 opções terapêuticas (apenas 1 correcta cada).`,
-      },
-      { role: 'user', content: `Cria um caso clínico interactivo baseado em: ${prompt}` },
-    ], { maxTokens: 2000, temperature: 0.4 })
-
-    cache.set(cacheKey, { result, timestamp: Date.now() })
-    return NextResponse.json(result)
-
-  } catch (err: any) {
-    console.error('Cases route error:', err?.message)
-    return NextResponse.json({ error: 'Erro ao gerar caso. Tenta novamente.' }, { status: 500 })
+  "treatment_options": [
+    { "option": "opção terapêutica 1", "detail": "detalhe clínico" },
+    { "option": "opção terapêutica 2", "detail": "detalhe clínico" },
+    { "option": "opção terapêutica 3", "detail": "detalhe clínico" }
+  ],
+  "outcome": {
+    "correct_diagnosis": "diagnóstico correcto do differential",
+    "best_treatment": "opção terapêutica óptima",
+    "diagnosis_feedback": "explicação do diagnóstico correcto com fundamentação",
+    "treatment_feedback": "explicação da abordagem óptima com evidência",
+    "key_learning_points": ["ponto 1", "ponto 2", "ponto 3"]
   }
+}
+
+Regras:
+- vitals: inclui apenas os relevantes para o caso (pode não incluir todos)
+- differential: 3-4 opções plausíveis, apenas uma correcta
+- treatment_options: 3 opções, apenas uma é óptima
+- key_learning_points: 3-4 pontos práticos que ficam para sempre
+- Nível universitário avançado, realista, específico para Portugal`,
+    },
+    { role: 'user', content: `Cria um caso clínico baseado neste cenário: ${body.prompt}` },
+  ], { maxTokens: 2500, temperature: 0.5 })
+
+  return NextResponse.json(result)
 }

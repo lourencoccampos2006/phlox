@@ -12,13 +12,19 @@ const EXAM_CONFIGS = [
   { id: 'weak', label: 'Pontos fracos',              questions: 15, time: 900,  difficulty: 'Personalizado', desc: '15 min' },
 ]
 
-const ALL_CLASSES = [
-  'Beta-bloqueadores', 'IECA / ARA-II', 'Estatinas', 'Anticoagulantes',
-  'Benzodiazepinas', 'ISRS / IRSN', 'Antipsicóticos', 'Antiepilépticos',
-  'Antibióticos Beta-lactâmicos', 'Fluoroquinolonas', 'Opióides',
-  'Antidiabéticos orais', 'Inibidores da Bomba de Protões', 'Corticosteróides',
-  'Diuréticos', 'Broncodilatadores',
+const ALL_DOMAINS = [
+  { id: 'farmacologia',       label: 'Farmacologia Clínica', icon: '💊', color: '#0d6e42',
+    topics: ['Beta-bloqueadores','IECA / ARA-II','Estatinas','Anticoagulantes','Antidiabéticos orais','Antibióticos Beta-lactâmicos','Opióides','Benzodiazepinas','ISRS / IRSN'] },
+  { id: 'medicina_interna',   label: 'Medicina Interna',     icon: '🫀', color: '#dc2626',
+    topics: ['Insuficiência Cardíaca','Fibrilhação Auricular','DM Tipo 2','Hipertensão','DPOC','Pneumonia'] },
+  { id: 'emergencia',         label: 'Emergência',           icon: '🚨', color: '#b45309',
+    topics: ['Paragem Cardiorrespiratória','Choque Séptico','AVC Isquémico','Choque Anafilático'] },
+  { id: 'cirurgia',           label: 'Cirurgia',             icon: '🔪', color: '#1d4ed8',
+    topics: ['Apendicite Aguda','Oclusão Intestinal','Peri-operatório'] },
+  { id: 'pediatria',          label: 'Pediatria',            icon: '👶', color: '#7c3aed',
+    topics: ['Febre Pediátrica','Asma Pediátrica','Antibioterapia Pediátrica'] },
 ]
+const ALL_CLASSES = ALL_DOMAINS.flatMap(d => d.topics)
 
 function UpgradeGate() {
   return (
@@ -53,6 +59,7 @@ export default function ExamPage() {
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
 
   const [examState, setExamState] = useState<ExamState>('config')
+  const [selectedDomainId, setSelectedDomainId] = useState<string|null>(null)
   const [config, setConfig] = useState(EXAM_CONFIGS[1])
   const [selectedClasses, setSelectedClasses] = useState<string[]>([])
   const [questions, setQuestions] = useState<Question[]>([])

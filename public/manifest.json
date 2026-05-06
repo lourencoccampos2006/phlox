@@ -1,0 +1,20 @@
+{
+  "name": "Phlox Clinical",
+  "short_name": "Phlox",
+  "description": "Farmacologia clínica em português. Para profissionais, estudantes e famílias.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d6e42",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ],
+  "categories": ["health", "medical", "education"],
+  "lang": "pt-PT",
+  "shortcuts": [
+    { "name": "Verificar Interações", "url": "/interactions", "description": "Verificar interações medicamentosas" },
+    { "name": "Phlox AI", "url": "/ai", "description": "Assistente farmacológico IA" },
+    { "name": "Casos Clínicos", "url": "/cases", "description": "Casos clínicos interactivos" }
+  ]
+}
