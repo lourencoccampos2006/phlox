@@ -35,24 +35,28 @@ Dado um perfil de utilizador, fornece as recomendações de vacinação baseadas
 Responde APENAS com JSON válido sem markdown:
 {
   "profile": "descrição do perfil",
-  "up_to_date": [
-    {
-      "vaccine": "nome da vacina",
-      "status": "descrição breve do calendário (ex: 'Reforço de 10 em 10 anos')"
-    }
-  ],
   "due_now": [
     {
       "vaccine": "nome da vacina",
-      "why": "porquê é recomendada para este perfil agora",
-      "urgency": "alta" | "normal" | "baixa"
+      "why": "porquê é recomendada agora para este perfil, com base no PNV ou guidelines",
+      "urgency": "alta | normal | baixa",
+      "where": "onde administrar (ex: Centro de Saúde, Farmácia, Centro de Vacinação)"
+    }
+  ],
+  "up_to_date": [
+    {
+      "vaccine": "nome da vacina do calendário regular",
+      "schedule": "periodicidade (ex: 'Reforço de 10 em 10 anos', 'Anual em Outubro')"
     }
   ],
   ${destination ? `"travel_specific": {
     "destination": "${destination}",
-    "vaccines": ["lista de vacinas recomendadas para este destino"]
+    "vaccines": [
+      { "name": "nome da vacina", "notes": "nota específica (ex: 2 doses, 6 meses antes)" }
+    ]
   },` : '"travel_specific": null,'}
-  "general_advice": "conselho geral sobre vacinação para este perfil"
+  "next_appointment": "recomendação de quando marcar próxima consulta/vacinação",
+  "general_advice": "conselho geral sobre imunização para este perfil"
 }
 
 Regras:
@@ -67,7 +71,7 @@ Regras:
       },
       {
         role: 'user',
-        content: `Perfil: ${PROFILE_LABELS[profile] || profile}${destination ? `. Destino de viagem: ${destination}` : ''}${own_vaccines ? `\n\nVacinas já tomadas pelo utilizador: ${own_vaccines}` : ''}. Tem em conta as vacinas que o utilizador já tomou ao fazer as recomendações.`,
+        content: `Perfil: ${PROFILE_LABELS[profile] || profile}${body.age ? ` (${body.age} anos)` : ""}${body.profile_name ? ` — ${body.profile_name}` : ""}${destination ? `. Destino de viagem: ${destination}` : ''}${own_vaccines ? `\n\nVacinas já tomadas pelo utilizador: ${own_vaccines}` : ''}. Tem em conta as vacinas que o utilizador já tomou ao fazer as recomendações.`,
       },
     ], { maxTokens: 1200, temperature: 0.1 })
 

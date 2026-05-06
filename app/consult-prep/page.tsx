@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
+import { getActiveProfile } from '@/lib/profileContext'
 
 interface ConsultPrep {
   questions_for_doctor: { question: string; why: string; priority: 'alta' | 'normal' }[]
@@ -74,6 +75,20 @@ export default function ConsultPrepPage() {
   }
 
   const printPrep = () => window.print()
+  const [copied, setCopied] = useState(false)
+  const copyToClipboard = () => {
+    if (!result) return
+    const lines = [
+      `Consulta${doctor ? ` com ${doctor}` : ''}${consultDate ? ` — ${consultDate}` : ''}`,
+      '',
+      ...result.questions_for_doctor.map((q: any, i: number) => `${i+1}. ${q.question}`),
+      ...(result.medication_concerns?.length ? ['', 'Preocupações:', ...result.medication_concerns.map((c: string) => `• ${c}`)] : []),
+      ...(result.labs_to_request?.length ? ['', 'Análises a pedir:', ...result.labs_to_request.map((l: string) => `• ${l}`)] : []),
+    ]
+    navigator.clipboard.writeText(lines.join('\n'))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
@@ -175,7 +190,15 @@ export default function ConsultPrepPage() {
                     </div>
                     <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'white', fontStyle: 'italic', fontWeight: 400 }}>{topic}</div>
                   </div>
-                  <button onClick={printPrep}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              {result && (
+                <button onClick={copyToClipboard}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: copied ? 'var(--green-light)' : 'white', border: `1.5px solid ${copied ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: copied ? 'var(--green-2)' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', transition: 'all 0.2s' }}>
+                  {copied ? '✓ Copiado!' : '📋 Copiar texto'}
+                </button>
+              )}
+            </div>
+            <button onClick={printPrep}
                     style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, padding: '7px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                     Imprimir
                   </button>

@@ -49,6 +49,15 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       ],
     },
     {
+      id: 'clinical-watcher',
+      heading: 'Monitorização',
+      color: '#0d6e42',
+      tools: [
+        { href: '/monitor',      label: 'Phlox Watcher',           sub: 'Alertas FDA · EMA · INFARMED' },
+        { href: '/organizacao',  label: 'A Minha Organização',     sub: 'Equipa · faturação · acessos' },
+      ],
+    },
+    {
       id: 'clinical-ref',
       heading: 'Referência',
       color: '#374151',
@@ -74,6 +83,14 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/shift',    label: 'Turno Virtual',         sub: '3 doentes · score · feedback IA' },
         { href: '/compare',  label: 'Comparar Fármacos',     sub: 'A vs B — linha a linha' },
         { href: '/disease',  label: 'Fármacos por Doença',   sub: '1ª e 2ª linha com doses' },
+      ],
+    },
+    {
+      id: 'student-progress',
+      heading: 'Progresso',
+      color: '#7c3aed',
+      tools: [
+        { href: '/progresso',    label: 'O Meu Progresso',         sub: 'XP · streak · pontos fracos' },
       ],
     },
     {
@@ -113,9 +130,11 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/labs',         label: 'Perceber as Análises',     sub: 'O que está fora do normal' },
         { href: '/vaccines',     label: 'Vacinas em Dia?',          sub: 'Calendário PT · viagens' },
         { href: '/otc',          label: 'Automedicação',            sub: 'Sintoma → o que comprar' },
-        { href: '/consult-prep', label: 'Preparar Consulta',        sub: 'Perguntas certas para o médico' },
-        { href: '/safety',       label: 'Segurança',                sub: 'Idosos · gravidez · conduzir' },
+        { href: '/consult-prep',  label: 'Preparar Consulta',       sub: 'Perguntas certas para o médico' },
+        { href: '/nota-entrega',  label: 'Nota de Entrega',          sub: 'Para quando não estás presente' },
+        { href: '/safety',        label: 'Segurança',                sub: 'Idosos · gravidez · conduzir' },
         { href: '/calendario-meds', label: 'Calendário de Toma',   sub: 'Horários semanais · para imprimir' },
+        { href: '/monitor',         label: 'Phlox Watcher',         sub: 'Alertas de segurança automáticos' },
       ],
     },
   ],

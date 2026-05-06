@@ -185,6 +185,7 @@ export default function MARPage() {
     const existing = getRecord(medId)
     const record = {
       patient_id: selectedPatient,
+      user_id: user.id,  // ─── CORRIGIDO: necessário para RLS ───
       med_id: medId,
       shift,
       date,

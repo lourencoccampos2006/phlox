@@ -185,7 +185,7 @@ function UserMenu({ user, signOut, supabase }: { user: any; signOut: () => void;
 
 // ─── Mobile drawer ─────────────────────────────────────────────────────────────
 
-function MobileDrawer({ open, onClose, user, signOut }: { open: boolean; onClose: () => void; user: any; signOut: () => void }) {
+function MobileDrawer({ open, onClose, user, signOut, supabase }: { open: boolean; onClose: () => void; user: any; signOut: () => void; supabase: any }) {
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -246,9 +246,19 @@ function MobileDrawer({ open, onClose, user, signOut }: { open: boolean; onClose
                   const isActive = (user as any).experience_mode === m
                   return (
                     <button key={m} onClick={async () => {
-                      // Import supabase from auth context is not available here — use window reload pattern
-                      const res = await fetch('/api/profiles/mode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: m }) })
-                      if (res.ok) { onClose(); window.location.reload() }
+                      // ─── usa supabase directamente via session ───
+                      try {
+                        const { data: sd } = await supabase.auth.getSession()
+                        if (sd.session?.access_token) {
+                          await fetch('/api/profiles/mode', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session.access_token}` },
+                            body: JSON.stringify({ mode: m })
+                          })
+                        }
+                      } catch {}
+                      onClose()
+                      window.location.reload()
                     }}
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 10px', border: `1px solid ${isActive ? mm.border : 'var(--border)'}`, borderRadius: 7, background: isActive ? mm.bg : 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: mm.color, flexShrink: 0 }} />
@@ -352,7 +362,7 @@ export default function Header() {
       </header>
 
       {megaOpen && <MegaMenu onClose={() => setMegaOpen(false)} mode={mode} />}
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} signOut={signOut} />
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} signOut={signOut} supabase={supabase} />
 
       <style>{`
         @media (min-width: 769px) { .desktop-nav { display: flex !important; } .mobile-controls { display: none !important; } }

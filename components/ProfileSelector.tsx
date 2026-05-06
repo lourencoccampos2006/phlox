@@ -12,7 +12,11 @@ interface FamilyProfile {
   id: string
   name: string
   relation?: string
-  age?: number
+  age?: number | null
+  sex?: string | null
+  weight?: number | null
+  conditions?: string | null
+  allergies?: string | null
 }
 
 interface ProfileSelectorProps {
@@ -36,7 +40,7 @@ export default function ProfileSelector({ onChange }: ProfileSelectorProps) {
 
     supabase
       .from('family_profiles')
-      .select('id, name, relation, age')
+      .select('id, name, relation, age, sex, weight, conditions, allergies')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
       .then(({ data }) => {
@@ -172,7 +176,14 @@ export default function ProfileSelector({ onChange }: ProfileSelectorProps) {
               </div>
               {profiles.map(p => {
                 const isActive = active?.id === p.id
-                const fp: ActiveProfile = { id: p.id, name: p.name, type: 'family' }
+                const fp: ActiveProfile = {
+                    id: p.id, name: p.name, type: 'family',
+                    age: p.age ?? null,
+                    sex: p.sex ?? null,
+                    weight: p.weight ?? null,
+                    conditions: p.conditions ?? null,
+                    allergies: p.allergies ?? null,
+                  }
                 return (
                   <button
                     key={p.id}

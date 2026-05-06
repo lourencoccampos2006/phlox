@@ -1083,8 +1083,8 @@ function DashboardRouter() {
 
   if (!user) { router.push('/login'); return null }
 
-  // ─── NOVO: redirecionar para onboarding se não fez onboarding ───
-  if (!(user as any)?.onboarded && !(user as any)?.experience_mode) {
+  // ─── redirecionar para onboarding se nunca completou ───
+  if ((user as any)?.onboarded !== true) {
     router.push('/onboarding')
     return null
   }
