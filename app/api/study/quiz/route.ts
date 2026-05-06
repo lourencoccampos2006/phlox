@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     ], { maxTokens: 3000, temperature: 0.4 })
 
     cache.set(cacheKey, result)
-    if (cache.size > 200) cache.delete(cache.keys().next().value)
+    if (cache.size > 200) { const first = cache.keys().next().value; if (first) cache.delete(first) }
 
     return NextResponse.json(result)
   } catch (error: any) {

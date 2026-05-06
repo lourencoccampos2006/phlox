@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     cache.set(cacheKey, result)
     // Cache for 1 hour max (prevent memory leak)
-    if (cache.size > 200) cache.delete(cache.keys().next().value)
+    if (cache.size > 200) { const first = cache.keys().next().value; if (first) cache.delete(first) }
 
     return NextResponse.json(result)
   } catch (error: any) {
