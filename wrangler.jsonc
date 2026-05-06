@@ -23,9 +23,7 @@
       "service": "phlox"
     }
   ],
-  "images": {
-    "binding": "IMAGES"
-  },
+  
   "observability": {
     "enabled": true
   }
