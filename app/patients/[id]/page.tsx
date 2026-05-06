@@ -82,13 +82,15 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     setAdding(true)
     const resolved = resolveDrugName(newMed.name)
     const finalName = resolved ? resolved.dci : newMed.name.trim()
-    const { data } = await supabase.from('patient_meds').insert({
+    const { data, error } = await supabase.from('patient_meds').insert({
       patient_id: patientId,
+      user_id: user!.id,  // ─── CORRIGIDO: user_id era omitido, causando erro RLS ───
       name: finalName,
       dose: newMed.dose || null,
       frequency: newMed.frequency || null,
       indication: newMed.indication || null,
     }).select().single()
+    if (error) console.error('addMed error:', error.message)
     if (data) {
       setMeds(p => [data, ...p])
       // updated_at is handled automatically by trigger

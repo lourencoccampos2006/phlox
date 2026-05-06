@@ -12,7 +12,16 @@ function AuthRedirect() {
   const { user, loading } = useAuth()
   const router = useRouter()
   useEffect(() => {
-    if (!loading && user) router.replace('/dashboard')
+    if (!loading && user) {
+      // ─── NOVO: se não fez onboarding, vai para lá primeiro ───
+      const onboarded = (user as any)?.onboarded
+      const hasMode = (user as any)?.experience_mode
+      if (!onboarded && !hasMode) {
+        router.replace('/onboarding')
+      } else {
+        router.replace('/dashboard')
+      }
+    }
   }, [user, loading, router])
   return null
 }

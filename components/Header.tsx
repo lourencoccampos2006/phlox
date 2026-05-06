@@ -236,6 +236,29 @@ function MobileDrawer({ open, onClose, user, signOut }: { open: boolean; onClose
           ))}
         </div>
         <div style={{ padding: '16px 20px', borderTop: '2px solid var(--border)', background: 'var(--bg-2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* ─── NOVO: Mode switcher no mobile ─── */}
+          {user && (
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Mudar modo</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {(['clinical','caregiver','personal','student'] as const).map(m => {
+                  const mm = MODE_META[m]
+                  const isActive = (user as any).experience_mode === m
+                  return (
+                    <button key={m} onClick={async () => {
+                      // Import supabase from auth context is not available here — use window reload pattern
+                      const res = await fetch('/api/profiles/mode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: m }) })
+                      if (res.ok) { onClose(); window.location.reload() }
+                    }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 10px', border: `1px solid ${isActive ? mm.border : 'var(--border)'}`, borderRadius: 7, background: isActive ? mm.bg : 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: mm.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? mm.color : 'var(--ink-3)' }}>{mm.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <Link href="/pricing" onClick={onClose} style={{ display: 'block', padding: '12px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: 'center', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Ver planos</Link>
           {user && <button onClick={() => { signOut(); onClose() }} style={{ padding: '10px', background: 'transparent', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Terminar sessão</button>}
         </div>

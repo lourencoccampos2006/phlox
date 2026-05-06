@@ -115,6 +115,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/otc',          label: 'Automedicação',            sub: 'Sintoma → o que comprar' },
         { href: '/consult-prep', label: 'Preparar Consulta',        sub: 'Perguntas certas para o médico' },
         { href: '/safety',       label: 'Segurança',                sub: 'Idosos · gravidez · conduzir' },
+        { href: '/calendario-meds', label: 'Calendário de Toma',   sub: 'Horários semanais · para imprimir' },
       ],
     },
   ],
