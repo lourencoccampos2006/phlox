@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile } from '@/lib/profileContext'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
@@ -30,7 +32,7 @@ const EXAMPLES = [
 ]
 
 export default function GenericsPage() {
-  const { supabase } = useAuth()
+  const { user, supabase } = useAuth()
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
   const [result, setResult] = useState<GenericResult | null>(null)
@@ -71,6 +73,15 @@ export default function GenericsPage() {
 
           {/* LEFT */}
           <div className="sticky-panel">
+            {/* ─── NOVO: ProfileSelector ─── */}
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={p => {
+                  // pré-preenche contexto com dados do perfil activo
+                }} />
+              </div>
+            )}
+
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Poupança</div>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, marginBottom: 6 }}>Verificador de Genéricos</h1>

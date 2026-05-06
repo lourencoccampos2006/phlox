@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile } from '@/lib/profileContext'
 import { useAuth } from '@/components/AuthContext'
 
 interface OTCResult {
@@ -154,6 +156,15 @@ export default function OTCPage() {
 
           {/* LEFT */}
           <div className="sticky-panel">
+            {/* ─── NOVO: ProfileSelector ─── */}
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={p => {
+                  // pré-preenche contexto com dados do perfil activo
+                }} />
+              </div>
+            )}
+
             <div style={{ marginBottom: 20 }}>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Guia de Automedicação</h1>
               <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>O que comprar na farmácia sem receita, para cada sintoma.</p>

@@ -285,7 +285,7 @@ export default function HomePage() {
               <Link key={h} href={h} style={{ fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none' }}>{l}</Link>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>© 2025 Phlox Clinical</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>© 2026 Phlox Clinical</div>
         </div>
       </footer>
 

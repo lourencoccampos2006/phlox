@@ -404,20 +404,43 @@ function StudentDashboard() {
   const { user, supabase, signOut } = useAuth()
   const [tab, setTab] = useState<'study' | 'ai' | 'tools' | 'account'>('study')
   const [stats, setStats] = useState<StudyStats>({ total_cards: 0, streak: 0, weak_topics: [], next_review: '' })
+
+  // ─── Carregar stats reais ───
+  useEffect(() => {
+    if (!user) return
+    supabase.from('study_sessions').select('date, type').eq('user_id', user.id)
+      .order('date', { ascending: false }).limit(200)
+      .then(({ data }) => {
+        if (!data) return
+        const dates = [...new Set(data.map((s: any) => s.date?.split('T')[0]))].sort().reverse()
+        let streak = 0
+        for (let i = 0; i < dates.length; i++) {
+          const d = new Date(); d.setDate(d.getDate() - i)
+          if (dates[i] === d.toISOString().split('T')[0]) streak++
+          else break
+        }
+        setStats(prev => ({ ...prev, streak, total_cards: data.filter((s: any) => s.type === 'flashcard').length }))
+      }, (_err: any) => { /* ignore */ })
+  }, [user, supabase])
   const plan = (user?.plan || 'free') as string
   const firstName = user?.name?.split(' ')[0] || 'Estudante'
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
 
-  const CLASSES = [
-    { name: 'Cardiovascular', progress: 73, color: '#ef4444' },
-    { name: 'Psiquiatria', progress: 31, color: '#8b5cf6' },
-    { name: 'Endocrinologia', progress: 58, color: '#f59e0b' },
-    { name: 'Anti-infecciosos', progress: 82, color: '#10b981' },
-    { name: 'Respiratório', progress: 45, color: '#3b82f6' },
-    { name: 'Gastrointestinal', progress: 67, color: '#f97316' },
-    { name: 'SNC e Analgesia', progress: 29, color: '#6366f1' },
-    { name: 'Reumatologia', progress: 15, color: '#ec4899' },
-  ]
+  // ─── Classes com progresso demo enquanto não há dados reais ───
+  const CLASSES_COLORS: Record<string, string> = {
+    'Cardiovascular': '#ef4444', 'Psiquiatria': '#8b5cf6',
+    'Endocrinologia': '#f59e0b', 'Anti-infecciosos': '#10b981',
+    'Respiratório': '#3b82f6', 'Gastrointestinal': '#f97316',
+    'SNC e Analgesia': '#6366f1', 'Reumatologia': '#ec4899',
+    'Antibióticos': '#10b981', 'Analgésicos': '#f59e0b',
+  }
+  const CLASSES = stats.weak_topics?.length
+    ? (stats.weak_topics || []).map((t: any) => ({ name: t.topic, progress: t.score, color: CLASSES_COLORS[t.topic] || '#7c3aed' }))
+    : [
+      { name: 'Cardiovascular', progress: 0, color: '#ef4444' },
+      { name: 'Anti-infecciosos', progress: 0, color: '#10b981' },
+      { name: 'SNC e Analgesia', progress: 0, color: '#6366f1' },
+    ]
 
   const STUDY_TOOLS = [
     { href: '/study', label: 'Flashcards e Quizzes', sub: '24 classes farmacológicas', plan: null },
@@ -455,13 +478,13 @@ function StudentDashboard() {
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', fontStyle: 'italic' }}>7</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', fontStyle: 'italic' }}>{stats.streak || 0}</div>
                 <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>dias streak</div>
               </div>
               <div style={{ width: 1, height: 32, background: 'var(--border)' }} />
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', fontStyle: 'italic' }}>340</div>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>XP ganho</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', fontStyle: 'italic' }}>{stats.total_cards || 0}</div>
+                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>flashcards</div>
               </div>
             </div>
           </div>

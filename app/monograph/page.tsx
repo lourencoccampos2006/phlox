@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 
 const EXAMPLES = [
@@ -102,6 +103,12 @@ export default function MonographPage() {
 
           {/* LEFT */}
           <div className="sticky-panel">
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={() => {}} />
+              </div>
+            )}
+
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>Ferramenta 07</div>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Monografia Clínica</h1>

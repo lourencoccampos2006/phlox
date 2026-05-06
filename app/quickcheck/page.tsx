@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile } from '@/lib/profileContext'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 
@@ -32,6 +34,21 @@ export default function QuickCheckPage() {
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [activeProfile, setActiveProfileState] = useState<any>(null)
+
+  // ─── Carregar meds do perfil activo ───
+  const { supabase } = useAuth()
+  const handleProfileChange = async (p: any) => {
+    setActiveProfileState(p)
+    if (!supabase) return
+    const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
+    const col   = p.id === 'self' ? 'user_id' : 'profile_id'
+    const { data } = await supabase.from(table).select('name, dose, frequency').eq(col, p.id === 'self' ? user?.id : p.id)
+    if (data?.length) {
+      setInput(data.map((m: any) => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` ${m.frequency}` : ''}`).join('\n'))
+    }
+  }
 
   const analyse = async (text?: string) => {
     const meds = (text ?? input).trim()

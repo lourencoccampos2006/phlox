@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 
@@ -265,6 +266,12 @@ export default function StrategyPage() {
 
             {/* LEFT */}
             <div className="sticky-panel">
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={() => {}} />
+              </div>
+            )}
+
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 20, padding: '3px 12px', marginBottom: 10 }}>
                   <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1e40af', fontWeight: 700 }}>PRO</span>

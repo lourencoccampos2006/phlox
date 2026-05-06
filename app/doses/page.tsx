@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile } from '@/lib/profileContext'
 import { useAuth } from '@/components/AuthContext'
 
 const EXAMPLES = [
@@ -75,6 +77,15 @@ export default function DosesPage() {
 
           {/* LEFT */}
           <div className="sticky-panel">
+            {/* ─── NOVO: ProfileSelector ─── */}
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={p => {
+                  // pré-preenche contexto com dados do perfil activo
+                }} />
+              </div>
+            )}
+
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>Ferramenta 05</div>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Posologia por Indicação</h1>

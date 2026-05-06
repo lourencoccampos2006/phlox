@@ -28,11 +28,13 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       color: '#1d4ed8',
       tools: [
         { href: '/patients',     label: 'Doentes / Utentes',        sub: 'Gestão completa com alertas' },
+        { href: '/rounds',       label: 'Phlox Rounds',              sub: 'Ronda farmacêutica · PCNE · relatório', badge: 'Pro' },
         { href: '/ai',           label: 'Phlox AI Clínico',         sub: 'Co-piloto farmacológico IA' },
         { href: '/mar',          label: 'Registo de Administração', sub: 'MAR por turno · lares e clínicas', badge: 'Pro' },
         { href: '/importar',     label: 'Importar Medicamentos',    sub: 'Sifarma · SClínico · lista', badge: 'Pro' },
-        { href: '/briefing',     label: 'Briefing de Consulta',     sub: 'Preparação em 15 segundos' },
-        { href: '/med-review',   label: 'Revisão de Medicação',     sub: 'Análise clínica + PDF' },
+        { href: '/briefing',       label: 'Briefing de Consulta',       sub: 'Preparação em 15 segundos' },
+        { href: '/med-review',     label: 'Revisão de Medicação',       sub: 'Análise clínica + PDF' },
+        { href: '/reconciliacao',  label: 'Reconciliação Medicamentosa', sub: 'Antes vs depois · discrepâncias', badge: 'Pro' },
       ],
     },
     {
@@ -77,7 +79,9 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       heading: 'Estudo',
       color: '#7c3aed',
       tools: [
-        { href: '/study',    label: 'Flashcards e Quizzes',  sub: 'Farmacologia · Clínica · Emergência' },
+        { href: '/study',    label: 'Plataforma de Estudo',  sub: '10 áreas · 200+ tópicos · SRS' },
+        { href: '/tutor',    label: 'Phlox AI Tutor',        sub: 'Tutoria socrática · avaliação real', badge: 'Novo' },
+        { href: '/ficha',    label: 'Ficha com Mnemónica',   sub: 'Mecanismo · efeitos · quiz' },
         { href: '/exam',     label: 'Modo Exame',            sub: 'Timer + análise de erros' },
         { href: '/cases',    label: 'Casos Clínicos',        sub: 'Raciocínio guiado · todos os níveis' },
         { href: '/shift',    label: 'Turno Virtual',         sub: '3 doentes · score · feedback IA' },

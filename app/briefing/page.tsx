@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import ProfileSelector from '@/components/ProfileSelector'
 
 // ─── Exemplos ─────────────────────────────────────────────────────────────────
 
@@ -281,6 +282,21 @@ export default function BriefingPage() {
 
             {/* LEFT */}
             <div className="sticky-panel">
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={async p => {
+                  if (!supabase) return
+                  const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
+                  const col = p.id === 'self' ? 'user_id' : 'profile_id'
+                  const id = p.id === 'self' ? user?.id : p.id
+                  const { data } = await supabase.from(table).select('name, dose, frequency').eq(col, id)
+                  if (data?.length) {
+                    setMeds(data.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}`).join('\n'))
+                  }
+                }} />
+              </div>
+            )}
+
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: 'inline-block', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 20, padding: '3px 12px', marginBottom: 10 }}>
                   <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1e40af', fontWeight: 700 }}>PRO</span>

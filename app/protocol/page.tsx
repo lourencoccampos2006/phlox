@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 
@@ -78,6 +79,19 @@ export default function ProtocolPage() {
 
           {/* LEFT */}
           <div className="sticky-panel">
+            {user && (
+              <div style={{ marginBottom: 10 }}>
+                <ProfileSelector onChange={async p => {
+                  if (!supabase) return
+                  const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
+                  const col = p.id === 'self' ? 'user_id' : 'profile_id'
+                  const id = p.id === 'self' ? (user as any)?.id : p.id
+                  const { data } = await supabase.from(table).select('name, dose, frequency, indication').eq(col, id)
+                  if (data?.length) { setPrompt(data.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.indication ? ' — ' + m.indication : ''}`).join('\n')) }
+                }} />
+              </div>
+            )}
+
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1e40af', letterSpacing: '0.08em', fontWeight: 700 }}>PRO</span>

@@ -94,34 +94,63 @@ export default function ProgressoPage() {
 
   useEffect(() => {
     if (!user) return
-    // Carregar estatísticas reais do Supabase
-    // Por agora, usamos dados demo enquanto a tabela de tracking é construída
-    setStats({
-      xp_total: 1240,
-      streak_days: 5,
-      flashcards_reviewed: 248,
-      quizzes_completed: 34,
-      cases_solved: 12,
-      shifts_completed: 3,
-      weak_topics: [
-        { topic: 'Anticoagulantes orais directos', score: 42, last_seen: '3 dias' },
-        { topic: 'Síndrome de Stevens-Johnson', score: 38, last_seen: '1 semana' },
-        { topic: 'Interações dos antimicóticos', score: 55, last_seen: '5 dias' },
-      ],
-      class_performance: [
-        { class: 'Antibióticos', correct: 45, total: 60 },
-        { class: 'Antihipertensores', correct: 38, total: 50 },
-        { class: 'Anticoagulantes', correct: 21, total: 40 },
-        { class: 'Antidiabéticos', correct: 32, total: 45 },
-        { class: 'Analgésicos', correct: 28, total: 35 },
-        { class: 'Cardiovascular', correct: 19, total: 30 },
-      ],
-      activity: Array.from({ length: 30 }, (_, i) => ({
-        date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
-        count: Math.random() > 0.4 ? Math.floor(Math.random() * 20) + 1 : 0,
-      })),
-    })
-    setLoading(false)
+    // ─── Carregar dados reais do Supabase ───────────────────────────────────
+    Promise.all([
+      supabase.from('study_sessions').select('*').eq('user_id', user.id),
+      supabase.from('quiz_results').select('*').eq('user_id', user.id),
+    ]).then(([{ data: sessions }, { data: quizzes }]) => {
+      const sess = sessions || []
+      const quiz = quizzes || []
+
+      // Calcular streak
+      const dates = [...new Set(sess.map((s: any) => s.date?.split('T')[0]))].sort().reverse()
+      let streak = 0
+      for (let i = 0; i < dates.length; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i)
+        if (dates[i] === d.toISOString().split('T')[0]) streak++
+        else break
+      }
+
+      // Performance por classe dos quizzes
+      const classMap: Record<string, { correct: number; total: number }> = {}
+      quiz.forEach((q: any) => {
+        if (!q.drug_class) return
+        if (!classMap[q.drug_class]) classMap[q.drug_class] = { correct: 0, total: 0 }
+        classMap[q.drug_class].total++
+        if (q.correct) classMap[q.drug_class].correct++
+      })
+
+      // Actividade por dia
+      const actMap: Record<string, number> = {}
+      sess.forEach((s: any) => {
+        const d = s.date?.split('T')[0]; if (d) actMap[d] = (actMap[d] || 0) + 1
+      })
+
+      setStats({
+        xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0),
+        streak_days: streak,
+        flashcards_reviewed: sess.filter((s: any) => s.type === 'flashcard').length,
+        quizzes_completed: quiz.length,
+        cases_solved: sess.filter((s: any) => s.type === 'case').length,
+        shifts_completed: sess.filter((s: any) => s.type === 'shift').length,
+        weak_topics: Object.entries(classMap)
+          .filter(([, v]) => v.total > 0 && (v.correct / v.total) < 0.65)
+          .sort((a, b) => (a[1].correct/a[1].total) - (b[1].correct/b[1].total))
+          .slice(0, 3)
+          .map(([topic, v]) => ({ topic, score: Math.round((v.correct/v.total)*100), last_seen: '—' })),
+        class_performance: Object.entries(classMap)
+          .filter(([, v]) => v.total >= 3)
+          .map(([cls, v]) => ({ class: cls, correct: v.correct, total: v.total })),
+        activity: Array.from({ length: 84 }, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - (83 - i))
+          const key = d.toISOString().split('T')[0]
+          return { date: key, count: actMap[key] || 0 }
+        }),
+      })
+    }).catch(() => {
+      // Se as tabelas não existem ainda, mostra estado vazio
+      setStats({ xp_total:0, streak_days:0, flashcards_reviewed:0, quizzes_completed:0, cases_solved:0, shifts_completed:0, weak_topics:[], class_performance:[], activity:[] })
+    }).finally(() => setLoading(false))
   }, [user, supabase])
 
   const xpLevel = stats ? Math.floor(stats.xp_total / 500) + 1 : 1
