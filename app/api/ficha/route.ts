@@ -62,7 +62,7 @@ Regras:
 - clinical_pearl: algo surpreendente que os livros normalmente não destacam`,
     },
     { role: 'user', content: `Cria a ficha completa de: ${drug}` },
-  ], { maxTokens: 3000, temperature: 0.3 })
+  ], { maxTokens: 2000, temperature: 0.3 })
 
   return NextResponse.json(result)
 }

@@ -26,16 +26,7 @@ Situação: ${consultBody}`,
     },
   ], { maxTokens: 300, temperature: 0.2 })
 
-  const suggestion =
-    typeof result === 'string'
-      ? result
-      : typeof result === 'object' && result !== null
-        ? ('text' in result && typeof (result as { text?: unknown }).text === 'string'
-            ? (result as { text: string }).text
-            : 'content' in result && typeof (result as { content?: unknown }).content === 'string'
-              ? (result as { content: string }).content
-              : '')
-        : ''
-
-  return NextResponse.json({ suggestion })
+  return NextResponse.json({
+    suggestion: (result as { content?: string; text?: string }).content ?? (result as { text?: string }).text ?? '',
+  })
 }

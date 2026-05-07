@@ -63,7 +63,7 @@ Evidence A = RCTs, meta-análises. B = estudos observacionais, sub-análises. C 
         role: 'user',
         content: `Objectivo: ${goal}${patient ? `\n\nPerfil do doente: ${patient}` : ''}`,
       },
-    ], { maxTokens: 2800, temperature: 0.15 })
+    ], { maxTokens: 1800, temperature: 0.15 })
 
     return NextResponse.json(result)
   } catch (err: any) {

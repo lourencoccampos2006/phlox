@@ -106,7 +106,7 @@ Se não há alertas relevantes responde com alerts:[], score:100 e um summary ad
         role: 'user',
         content: `Medicação: ${medsStr}${patientStr ? `\n\nContexto do doente: ${patientStr}` : ''}`,
       },
-    ], { maxTokens: 2000, temperature: 0.0 })
+    ], { maxTokens: 2000, temperature: 0.0, preferFast: true })
 
     // Validate + sanitise output
     const alerts: MonitorAlert[] = (result.alerts || [])

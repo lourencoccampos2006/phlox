@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         role: 'user',
         content: `Cria 10 perguntas de exame sobre "${drugClass}" no contexto de ${ctx}.`,
       },
-    ], { maxTokens: 3000, temperature: 0.4 })
+    ], { maxTokens: 2000, temperature: 0.4 })
 
     cache.set(cacheKey, result)
     if (cache.size > 200) { const first = cache.keys().next().value; if (first) cache.delete(first) }

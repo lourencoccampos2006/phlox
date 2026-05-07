@@ -65,7 +65,7 @@ Regras:
 - Para patologias com múltiplas fases (ex: IC: estável vs descompensada), foca na fase mais comum/importante para estudo`,
       },
       { role: 'user', content: `Tratamento farmacológico: ${disease}${context ? ` — contexto: ${context}` : ''}` },
-    ], { maxTokens: 2000, temperature: 0.1 })
+    ], { maxTokens: 2000, temperature: 0.1, preferFast: true })
 
     return NextResponse.json(result)
   } catch (err: any) {

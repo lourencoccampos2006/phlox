@@ -108,7 +108,7 @@ ${conditions ? `Diagnósticos/Condições: ${conditions}` : ''}
 Medicação:
 ${medications}`,
     },
-  ], { maxTokens: 4000, temperature: 0.2 })
+  ], { maxTokens: 2500, temperature: 0.2 })
 
   return NextResponse.json(result)
 }

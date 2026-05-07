@@ -293,6 +293,33 @@ export default function TimelinePage() {
       })
     })
 
+    // ─── Doentes (patient_meds) para modo clínico ────────────────────────────
+    if (isSelf) {
+      const { data: patients } = await supabase
+        .from('patients')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .limit(20)
+
+      for (const patient of (patients || [])) {
+        const { data: pmeds } = await supabase
+          .from('patient_meds')
+          .select('id, name, dose, frequency, created_at')
+          .eq('patient_id', patient.id)
+          .gte('created_at', since)
+
+        ;(pmeds || []).forEach((m: any) => {
+          allEvents.push({
+            id: `pmed_${m.id}`, date: m.created_at, type: 'med_added',
+            title: `${m.name}${m.dose ? ' ' + m.dose : ''}`,
+            detail: m.frequency || undefined,
+            source: 'meds', severity: 'positive',
+            profileName: patient.name,
+          })
+        })
+      }
+    }
+
     // ─── Sort all events by date descending ───────────────────────────────
     allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     setEvents(allEvents)

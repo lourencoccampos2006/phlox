@@ -48,7 +48,7 @@ Regras:
       role: 'user',
       content: `Lista ANTES do internamento:\n${body.before}\n\nLista DEPOIS (nota de alta / prescrição actual):\n${body.after}${body.context ? `\n\nContexto clínico: ${body.context}` : ''}`,
     },
-  ], { maxTokens: 2000, temperature: 0.2 })
+  ], { maxTokens: 2000, temperature: 0.2, preferFast: true })
 
   return NextResponse.json(result)
 }

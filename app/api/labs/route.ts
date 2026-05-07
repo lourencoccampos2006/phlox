@@ -78,7 +78,7 @@ Regras críticas:
         role: 'user',
         content: `Interpreta estes resultados de análises clínicas:\n\n${labText}`,
       },
-    ], { maxTokens: 3000, temperature: 0.1 })
+    ], { maxTokens: 2000, temperature: 0.1 })
 
     return NextResponse.json(result)
 
