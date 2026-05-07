@@ -326,6 +326,7 @@ export default function Header() {
             </Link>
 
             <Link href="/pricing" style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, color: isClinical ? '#64748b' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Preços</Link>
+            <Link href="/institucional" style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, color: isClinical ? '#64748b' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Institucional</Link>
           </nav>
 
           <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

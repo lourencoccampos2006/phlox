@@ -171,6 +171,15 @@ function ActiveChallenge({ ch, onComplete }: { ch: Challenge; onComplete: (score
   const [selected, setSelected] = useState<number | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [timeSpent, setTimeSpent] = useState(0)
+
+  // Guard: if case_data is malformed, show error
+  if (!ch.case_data?.options?.length || !ch.case_data?.presentation) {
+    return (
+      <div style={{ padding: 24, background: 'white', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
+        Erro ao carregar caso. Tenta gerar um novo.
+      </div>
+    )
+  }
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -285,7 +294,13 @@ export default function ArenaPage() {
         supabase.from('arena_attempts').select('challenge_id, score, time_seconds, arena_challenges(domain)').eq('user_id', user.id),
       ])
 
-      const parsed = (ch || []).map((c: any) => ({ ...c, case_data: typeof c.case_data === 'string' ? JSON.parse(c.case_data) : c.case_data }))
+      const parsed = (ch || []).map((c: any) => {
+        try {
+          return { ...c, case_data: typeof c.case_data === 'string' ? JSON.parse(c.case_data) : c.case_data }
+        } catch {
+          return { ...c, case_data: c.case_data || {} }
+        }
+      })
       setChallenges(parsed)
       setAttemptedIds(new Set((myAttempts || []).map((a: any) => a.challenge_id)))
 
@@ -346,11 +361,20 @@ export default function ArenaPage() {
         body: JSON.stringify({ domain, difficulty: diff }),
       })
       const data = await res.json()
-      if (data.id) {
-        const newCh: Challenge = { ...data, case_data: typeof data.case_data === 'string' ? JSON.parse(data.case_data) : data.case_data }
-        setChallenges(prev => [newCh, ...prev])
-        setActive(newCh)
+      if (!res.ok) throw new Error(data.error || 'Erro ao gerar caso')
+      // case_data may be the raw AI result (object) or a JSON string
+      const caseData = data.case_data
+        ? (typeof data.case_data === 'string' ? JSON.parse(data.case_data) : data.case_data)
+        : data  // API returned the result directly without wrapping
+      const newCh: Challenge = {
+        id: data.id || crypto.randomUUID(),
+        title: caseData.title || data.title || 'Caso clínico',
+        domain: data.domain,
+        difficulty: data.difficulty,
+        case_data: caseData,
       }
+      setChallenges(prev => [newCh, ...prev])
+      setActive(newCh)
     } catch {}
     setGenerating(false)
   }

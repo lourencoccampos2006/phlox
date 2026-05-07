@@ -66,7 +66,7 @@ const PLANS = [
   {
     id: 'clinic', name: 'Institucional', price: { monthly: '89€', annual: '69€' },
     desc: 'Farmácias · Hospitais · Clínicas · Lares',
-    cta: 'Falar com a equipa', href: 'mailto:hello@phlox-clinical.com', highlight: false,
+    cta: 'Saber mais →', href: '/institucional', highlight: false,
     badge: 'Por instituição', badgeColor: '#1d4ed8', color: '#1d4ed8',
     features: [
       'Tudo do Pro — para toda a equipa',

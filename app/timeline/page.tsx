@@ -11,7 +11,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/Header'
-import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile } from '@/lib/profileContext'
 import Link from 'next/link'
@@ -203,9 +202,13 @@ export default function TimelinePage() {
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
   const [profileName, setProfileName] = useState<string>('')
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
+  const [activeProfileType, setActiveProfileType] = useState<'self' | 'family' | 'patient'>('self')
+  const [patients, setPatients] = useState<{ id: string; name: string }[]>([])
+  const [familyProfiles, setFamilyProfiles] = useState<{ id: string; name: string }[]>([])
   const [dateRange, setDateRange] = useState<'1m' | '3m' | '6m' | '1y' | 'all'>('6m')
 
   const load = useCallback(async (profileId?: string | null) => {
+    // Note: uses activeProfileType from closure
     if (!user) return
     setLoading(true)
     const allEvents: TimelineEvent[] = []
@@ -223,8 +226,9 @@ export default function TimelinePage() {
 
     // ─── Medicamentos pessoais ─────────────────────────────────────────────
     const isSelf = !profileId || profileId === 'self'
-    const medTable = isSelf ? 'personal_meds' : 'family_profile_meds'
-    const medCol   = isSelf ? 'user_id' : 'profile_id'
+    const isPatient = activeProfileType === 'patient'
+    const medTable = isPatient ? 'patient_meds' : (isSelf ? 'personal_meds' : 'family_profile_meds')
+    const medCol   = isPatient ? 'patient_id' : (isSelf ? 'user_id' : 'profile_id')
     const medId    = isSelf ? user.id : profileId
 
     if (medId) {
@@ -328,6 +332,13 @@ export default function TimelinePage() {
 
   useEffect(() => { load(activeProfileId) }, [load, activeProfileId, dateRange])
 
+  // Load selectable profiles on mount
+  useEffect(() => {
+    if (!user) return
+    supabase.from('patients').select('id, name').eq('user_id', user.id).order('name').then(({ data }) => setPatients(data || []))
+    supabase.from('family_profiles').select('id, name').eq('user_id', user.id).order('name').then(({ data }) => setFamilyProfiles(data || []))
+  }, [user, supabase])
+
   // ─── AI Correlations ──────────────────────────────────────────────────────
 
   const analyseCorrelations = async () => {
@@ -352,9 +363,10 @@ export default function TimelinePage() {
     setAnalysing(false)
   }
 
-  const handleProfileChange = (p: any) => {
-    setActiveProfileId(p.id === 'self' ? null : p.id)
-    setProfileName(p.name || '')
+  const handleProfileChange = (id: string, name: string, type: 'self' | 'family' | 'patient') => {
+    setActiveProfileId(id === 'self' ? null : id)
+    setActiveProfileType(type)
+    setProfileName(name)
     setCorrelations([])
   }
 
@@ -407,8 +419,35 @@ export default function TimelinePage() {
           {/* Controls */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             {user && (
-              <div style={{ minWidth: 200 }}>
-                <ProfileSelector onChange={handleProfileChange} />
+              <div style={{ position: 'relative' }}>
+                <select
+                  onChange={e => {
+                    const val = e.target.value
+                    if (val === 'self') {
+                      handleProfileChange('self', user.name || 'Eu', 'self')
+                    } else if (val.startsWith('fam:')) {
+                      const id = val.slice(4)
+                      const fp = familyProfiles.find(f => f.id === id)
+                      if (fp) handleProfileChange(fp.id, fp.name, 'family')
+                    } else if (val.startsWith('pat:')) {
+                      const id = val.slice(4)
+                      const pt = patients.find(p => p.id === id)
+                      if (pt) handleProfileChange(pt.id, pt.name, 'patient')
+                    }
+                  }}
+                  style={{ background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155', borderRadius: 7, padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono)', outline: 'none', cursor: 'pointer', minWidth: 200 }}>
+                  <option value="self">{user.name || 'Eu'} (pessoal)</option>
+                  {familyProfiles.length > 0 && (
+                    <optgroup label="Família">
+                      {familyProfiles.map(fp => <option key={fp.id} value={`fam:${fp.id}`}>{fp.name}</option>)}
+                    </optgroup>
+                  )}
+                  {patients.length > 0 && (
+                    <optgroup label="Doentes">
+                      {patients.map(p => <option key={p.id} value={`pat:${p.id}`}>{p.name}</option>)}
+                    </optgroup>
+                  )}
+                </select>
               </div>
             )}
             {/* Date range */}
