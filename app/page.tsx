@@ -2,298 +2,367 @@
 
 import Link from 'next/link'
 import Header from '@/components/Header'
-import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-// ─── Redirecionar utilizadores autenticados para o dashboard ──────────────────
 function AuthRedirect() {
   const { user, loading } = useAuth()
   const router = useRouter()
   useEffect(() => {
     if (!loading && user) {
-      // ─── onboarded é o único critério seguro ───
-      // experience_mode tem default 'personal' então nunca é null/falsy
       const onboarded = (user as any)?.onboarded === true
-      if (!onboarded) {
-        router.replace('/onboarding')
-      } else {
-        router.replace('/dashboard')
-      }
+      router.replace(onboarded ? '/dashboard' : '/onboarding')
     }
   }, [user, loading, router])
   return null
 }
 
-// ─── Quatro entradas por persona ──────────────────────────────────────────────
-const PERSONAS = [
+// ─── Feature showcase data ────────────────────────────────────────────────────
+
+const PRO_FEATURES = [
   {
-    mode: 'clinical',
-    icon: '⚕️',
-    title: 'Profissional de Saúde',
-    sub: 'Farmácia · Clínica · Hospital · Lar',
-    desc: 'Centro de operações clínico. Gestão de doentes, protocolos, MAR digital, e co-piloto IA para decisão terapêutica.',
-    cta: 'Começar como profissional',
-    color: '#1d4ed8',
-    bg: '#eff6ff',
-    border: '#bfdbfe',
-    features: ['Doentes e utentes ilimitados', 'Phlox AI Clínico', 'Protocolos ESC/ADA/NICE', 'MAR digital por turno'],
+    icon: '🏥', title: 'Phlox Ward', tag: 'Pro · Institucional',
+    desc: 'Ficha clínica colaborativa em tempo real. Toda a equipa no mesmo doente — notas, alertas, decisões, parâmetros. Passagem de turno gerada por AI em 1 clique.',
+    color: '#1d4ed8', href: '/teams',
+    highlights: ['8 tipos de mensagem clínica', 'Passagem de turno automática', 'Multi-utilizador com papéis', 'Histórico auditável'],
   },
   {
-    mode: 'caregiver',
-    icon: '👨‍👩‍👧',
-    title: 'Cuidador Familiar',
-    sub: 'Cuido dos meus pais, filhos ou cônjuge',
-    desc: 'Gestão simples da medicação de cada familiar. Alertas de interações, tradutor de bula, e resposta a qualquer dúvida.',
-    cta: 'Começar para a família',
-    color: '#b45309',
-    bg: '#fffbeb',
-    border: '#fde68a',
-    features: ['Perfis familiares', 'Tradutor de Bula grátis', 'Dose pediátrica grátis', 'Phlox AI para cada familiar'],
+    icon: '🔗', title: 'Phlox Connect', tag: 'Pro · Institucional',
+    desc: 'A comunicação clínica inter-profissional que ainda não existe em Portugal. Farmacêutico → Médico, dentro do contexto do doente, auditável e estruturado.',
+    color: '#0d6e42', href: '/connect',
+    highlights: ['Farmacêutico ↔ Médico ↔ Enfermeiro', 'Contexto clínico do doente', 'Análise AI automática', 'Aceite/Rejeição documentada'],
   },
   {
-    mode: 'personal',
-    icon: '👤',
-    title: 'Uso Pessoal',
-    sub: 'Giro a minha própria medicação',
-    desc: 'Os teus medicamentos organizados. Verifica interações, percebe receitas e análises, e tem respostas sobre a tua saúde.',
-    cta: 'Começar para mim',
-    color: '#0d6e42',
-    bg: '#f0fdf5',
-    border: '#bbf7d0',
-    features: ['Os meus medicamentos', 'Verificar interações', 'Perceber receitas', 'Perceber análises'],
-  },
-  {
-    mode: 'student',
-    icon: '🎓',
-    title: 'Estudante',
-    sub: 'Medicina · Farmácia · Enfermagem',
-    desc: 'Flashcards, casos clínicos, turno virtual, modo exame. Tudo o que precisas para passar nos exames e raciocinar clinicamente.',
-    cta: 'Começar a estudar',
-    color: '#7c3aed',
-    bg: '#faf5ff',
-    border: '#e9d5ff',
-    features: ['Flashcards 24 classes', 'Casos clínicos interactivos', 'Turno virtual com IA', 'Modo exame com análise'],
+    icon: '⚖️', title: 'Phlox Rounds', tag: 'Pro · Institucional',
+    desc: 'Ronda farmacêutica digital. Lista de doentes por score de risco, alertas automáticos, registo PCNE v9.1, e relatório mensal de actividade para acreditação.',
+    color: '#7c3aed', href: '/rounds',
+    highlights: ['Score de risco 0-100', 'PCNE v9.1 completo', 'Relatório mensal automático', 'Para acreditação hospitalar'],
   },
 ]
 
-// ─── Ferramentas gratuitas ─────────────────────────────────────────────────────
+const STUDENT_FEATURES = [
+  {
+    icon: '🏆', title: 'Phlox Arena', tag: 'Student',
+    desc: 'Sistema de ligas de conhecimento clínico. Bronze → Diamante. Casos de todas as áreas da saúde, gerados por AI, com timer e XP. Compete com estudantes de todo o mundo.',
+    color: '#7c3aed', href: '/arena',
+    highlights: ['5 ligas: Bronze → Diamante', 'Casos de 10 áreas da saúde', 'XP com bónus de velocidade', 'Ranking global'],
+  },
+  {
+    icon: '🩺', title: 'Phlox OSCE', tag: 'Student',
+    desc: 'Simulação de OSCE para 6 cursos de saúde. A AI faz de doente em tempo real. Tu fazes de profissional. Checklist + diagnóstico + feedback estação por estação como num exame real.',
+    color: '#dc2626', href: '/osce',
+    highlights: ['Medicina · Farmácia · Enfermagem', 'Nutrição · Fisioterapia · Dentária', 'AI faz de doente em tempo real', 'Feedback por item como examinador'],
+  },
+  {
+    icon: '🐝', title: 'Phlox Hive', tag: 'Student',
+    desc: 'A inteligência colectiva dos estudantes de saúde. Vê onde toda a gente erra mais, identifica os teus pontos cegos vs a comunidade, e estuda exactamente o que falta.',
+    color: '#d97706', href: '/hive',
+    highlights: ['Dados agregados da comunidade', 'Os teus pontos cegos vs a média', 'Tópicos mais difíceis em tempo real', 'Guia de estudo inteligente'],
+  },
+]
+
 const FREE_TOOLS = [
-  {
-    href: '/interactions',
-    badge: 'Grátis · Sem conta',
-    title: 'Verificar Interações',
-    desc: 'Escreve dois ou mais medicamentos. Analisamos o risco, explicamos o mecanismo e dizemos o que fazer.',
-    example: 'Brufen 400mg + Xarelto 20mg → Risco hemorrágico aumentado',
-    color: '#0d6e42',
-    bg: '#f0fdf5',
-    border: '#bbf7d0',
-  },
-  {
-    href: '/bula',
-    badge: 'Grátis · Sem conta',
-    title: 'Tradutor de Bula',
-    desc: 'Cola o texto técnico de qualquer bula — traduzimos para linguagem simples em 5 pontos práticos.',
-    example: '"inibidor da recaptação de serotonina" → Antidepressivo que aumenta dois mensageiros no cérebro',
-    color: '#1d4ed8',
-    bg: '#eff6ff',
-    border: '#bfdbfe',
-  },
-  {
-    href: '/dose-crianca',
-    badge: 'Grátis · Sem conta',
-    title: 'Dose Pediátrica',
-    desc: 'Peso da criança + medicamento = dose exacta com alertas de segurança. Para pais e profissionais.',
-    example: 'Amoxicilina · 15kg → 250mg a cada 8h · máx 3000mg/dia',
-    color: '#b45309',
-    bg: '#fffbeb',
-    border: '#fde68a',
-  },
+  { icon: '⚡', label: 'Verificar Interações', href: '/interactions', desc: 'Qualquer combinação de medicamentos' },
+  { icon: '📋', label: 'Tradutor de Bula', href: '/bula', desc: 'Texto técnico em linguagem simples' },
+  { icon: '👶', label: 'Dose Pediátrica', href: '/dose-crianca', desc: 'Peso + medicamento = dose certa' },
+]
+
+const STATS = [
+  { value: '35+', label: 'ferramentas clínicas' },
+  { value: '10', label: 'domínios de saúde' },
+  { value: '6', label: 'cursos suportados' },
+  { value: '100%', label: 'grátis para começar' },
 ]
 
 export default function HomePage() {
-  const router = useRouter()
-  const [aiQuery, setAiQuery] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleAiSubmit = () => {
-    if (!aiQuery.trim()) return
-    router.push(`/ai?q=${encodeURIComponent(aiQuery.trim())}`)
-  }
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', fontFamily: 'var(--font-sans)' }}>
       <AuthRedirect />
       <Header />
 
-      {/* ══ HERO ═════════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '72px 0 56px' }}>
-        <div className="page-container">
-          <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center', marginBottom: 52 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28, padding: '5px 14px 5px 10px', background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 24 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', animation: 'pulse 2s infinite' }} />
-              <span style={{ fontSize: 11, color: 'var(--green-2)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', fontWeight: 500 }}>
-                Phlox Clinical · Farmacologia clínica em português
+      {/* ─── HERO ──────────────────────────────────────────────────────────── */}
+      <section style={{ background: '#0f172a', padding: '80px 0 0', overflow: 'hidden', position: 'relative' }}>
+        {/* Background grid */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none' }} />
+
+        <div className="page-container" style={{ position: 'relative' }}>
+          <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center', marginBottom: 56 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1e293b', border: '1px solid #334155', borderRadius: 20, padding: '6px 14px', marginBottom: 28 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                Disponível agora · Portugal e Mundo
               </span>
             </div>
 
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px, 5vw, 48px)', color: 'var(--ink)', marginBottom: 20, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              A plataforma de farmacologia<br />
-              <em style={{ color: 'var(--green)' }}>que se adapta a ti.</em>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px, 5vw, 60px)', color: '#f8fafc', fontWeight: 400, lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: 20 }}>
+              A plataforma clínica que<br />
+              <span style={{ color: '#22c55e' }}>a saúde em Portugal</span><br />
+              estava a espera
             </h1>
 
-            <p style={{ fontSize: 17, color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 36, maxWidth: 500, margin: '0 auto 36px' }}>
-              Para profissionais de saúde, estudantes, cuidadores e famílias. Cada experiência completamente diferente — cada uma exactamente certa.
+            <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: '#64748b', lineHeight: 1.8, maxWidth: 580, margin: '0 auto 36px' }}>
+              Para profissionais que querem ferramentas reais. Para estudantes que querem competir a sério. Para famílias que merecem compreender a sua medicação.
             </p>
 
-            {/* AI input */}
-            <div style={{ background: 'white', border: '2px solid var(--ink)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.08)', maxWidth: 600, margin: '0 auto 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '4px 4px 4px 18px', gap: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input ref={inputRef} value={aiQuery} onChange={e => setAiQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAiSubmit()}
-                  placeholder="Posso tomar brufen com o meu anticoagulante?"
-                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', padding: '12px 0' }} />
-                <button onClick={handleAiSubmit} disabled={!aiQuery.trim()}
-                  style={{ background: aiQuery.trim() ? 'var(--ink)' : 'var(--bg-3)', color: aiQuery.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: aiQuery.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', flexShrink: 0, transition: 'all 0.15s' }}>
-                  Perguntar →
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
+              <Link href="/login" style={{ padding: '14px 32px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 15, fontWeight: 800, letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
+                className="cta-primary">
+                Começar grátis →
+              </Link>
+              <Link href="/interactions" style={{ padding: '14px 24px', background: 'transparent', color: '#94a3b8', textDecoration: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, border: '1px solid #334155', transition: 'all 0.15s' }}
+                className="cta-secondary">
+                Experimentar sem conta ↗
+              </Link>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {['Posso tomar brufen com o meu anticoagulante?', 'Qual a dose de paracetamol para uma criança de 12kg?', 'Há genérico mais barato para o Xarelto?'].map(s => (
-                <button key={s} onClick={() => { setAiQuery(s); router.push(`/ai?q=${encodeURIComponent(s)}`) }}
-                  style={{ fontSize: 11, color: 'var(--ink-4)', background: 'white', border: '1px solid var(--border)', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}
-                  className="suggestion-chip">
-                  {s}
-                </button>
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: '#1e293b', borderRadius: 10, overflow: 'hidden', maxWidth: 560, margin: '0 auto 0' }}>
+              {STATS.map(s => (
+                <div key={s.label} style={{ background: '#0f172a', padding: '18px 12px', textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: '#f8fafc', marginBottom: 3 }}>{s.value}</div>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1.3 }}>{s.label}</div>
+                </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ══ QUATRO ENTRADAS ══════════════════════════════════════════════════ */}
-      <section style={{ padding: '64px 0', background: 'var(--bg)' }}>
-        <div className="page-container">
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Para quem és?</div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px, 3vw, 32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
-              O Phlox adapta-se completamente ao teu perfil
-            </h2>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12 }}>
-            {PERSONAS.map(p => (
-              <Link key={p.mode} href={`/onboarding?mode=${p.mode}`}
-                style={{ display: 'flex', flexDirection: 'column', padding: '24px', background: 'white', border: `1px solid ${p.border}`, borderRadius: 14, textDecoration: 'none', transition: 'all 0.2s', gap: 0 }}
-                className="persona-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <span style={{ fontSize: 24 }}>{p.icon}</span>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{p.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{p.sub}</div>
-                  </div>
-                </div>
-                <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 16 }}>{p.desc}</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 20 }}>
-                  {p.features.map(f => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--ink-3)' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={p.color} strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                      {f}
+          {/* Dashboard preview mockup */}
+          <div style={{ background: '#1e293b', borderRadius: '12px 12px 0 0', border: '1px solid #334155', borderBottom: 'none', padding: '16px 20px', maxWidth: 880, margin: '0 auto', position: 'relative' }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+              {['#ff5f57','#ffbd2e','#28c840'].map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12, minHeight: 200 }}>
+              {/* Sidebar */}
+              <div style={{ background: '#0f172a', borderRadius: 8, padding: 12 }}>
+                {['🏥 Phlox Ward', '🔗 Connect', '⚖️ Rounds', '⚕️ Doentes', '💊 MAR'].map((item, i) => (
+                  <div key={i} style={{ padding: '7px 10px', borderRadius: 5, background: i === 0 ? '#1e293b' : 'transparent', fontSize: 11, color: i === 0 ? '#f8fafc' : '#475569', marginBottom: 3, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 6 }}>{item}</div>
+                ))}
+              </div>
+              {/* Main */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ background: '#0f172a', borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: 11, color: '#475569', fontFamily: 'var(--font-mono)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Feed — Manuel Cardoso</div>
+                  {[
+                    { color: '#dc2626', icon: '🚨', text: 'Alerta: TA 180/100 — requer atenção', role: 'Enfermeiro · há 12m' },
+                    { color: '#0d6e42', icon: '⚕️', text: 'Decisão: Ajuste para Ramipril 10mg', role: 'Médico · há 45m' },
+                    { color: '#1d4ed8', icon: '📊', text: 'Parâmetro: Creatinina 1.8 mg/dL', role: 'Farmacêutico · há 2h' },
+                  ].map((m, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '7px 0', borderBottom: i < 2 ? '1px solid #1e293b' : 'none' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: m.color, marginTop: 5, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, color: '#f1f5f9', lineHeight: 1.4 }}>{m.icon} {m.text}</div>
+                        <div style={{ fontSize: 10, color: '#475569', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{m.role}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: p.color }}>{p.cta}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={p.color} strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ FERRAMENTAS GRATUITAS ════════════════════════════════════════════ */}
-      <section style={{ padding: '64px 0', background: 'white', borderTop: '1px solid var(--border)' }}>
-        <div className="page-container">
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 20, padding: '4px 12px', marginBottom: 14 }}>
-              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Grátis · Sem conta obrigatória</span>
+              </div>
             </div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(20px, 3vw, 28px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
-              Começa agora, sem criar conta
-            </h2>
           </div>
+        </div>
+      </section>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 12, maxWidth: 1000, margin: '0 auto' }}>
-            {FREE_TOOLS.map(tool => (
-              <Link key={tool.href} href={tool.href}
-                style={{ display: 'block', padding: '24px', background: tool.bg, border: `1px solid ${tool.border}`, borderRadius: 12, textDecoration: 'none', transition: 'all 0.2s' }}
-                className="free-tool-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: tool.color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tool.badge}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={tool.color} strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 8 }}>{tool.title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 14 }}>{tool.desc}</p>
-                <div style={{ background: 'rgba(255,255,255,0.7)', border: `1px solid ${tool.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>
-                  {tool.example}
-                </div>
+      {/* ─── FREE TOOLS BAR ────────────────────────────────────────────────── */}
+      <section style={{ background: '#f0fdf5', borderBottom: '1px solid #bbf7d0', padding: '18px 0' }}>
+        <div className="page-container">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>Grátis · Sem conta:</span>
+            {FREE_TOOLS.map(t => (
+              <Link key={t.href} href={t.href}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', background: 'white', border: '1px solid #bbf7d0', borderRadius: 20, textDecoration: 'none', fontSize: 13, color: '#0d6e42', fontWeight: 600, transition: 'all 0.15s' }}
+                className="free-tool-chip">
+                <span>{t.icon}</span>{t.label}
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ══ CTA INSTITUCIONAL ════════════════════════════════════════════════ */}
-      <section style={{ padding: '64px 0', background: '#0f172a' }}>
+      {/* ─── PRO / INSTITUCIONAL ───────────────────────────────────────────── */}
+      <section style={{ padding: '80px 0', background: 'white' }}>
         <div className="page-container">
-          <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 16 }}>Para instituições</div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px, 3vw, 34px)', color: '#f8fafc', fontWeight: 400, marginBottom: 16, letterSpacing: '-0.01em' }}>
-              O Phlox como plataforma da tua farmácia, clínica ou lar
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#1d4ed8', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 14 }}>Pro e Institucional</div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,42px)', color: '#0f172a', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 14 }}>
+              Feito para o trabalho.<br />Não para o fim-de-semana.
             </h2>
-            <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.8, marginBottom: 36 }}>
-              Licença institucional para toda a equipa. Multi-utilizador, MAR digital, importação de sistemas (Sifarma, SClínico), gestão de doentes com hierarquias e auditoria completa.
+            <p style={{ fontSize: 16, color: '#64748b', lineHeight: 1.7, maxWidth: 520, margin: '0 auto' }}>
+              Farmácias, hospitais, clínicas, lares — as ferramentas que substituem o papel, o fax, e o WhatsApp clínico. A sério.
             </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/pricing#institucional"
-                style={{ background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, letterSpacing: '0.02em' }}>
-                Ver plano institucional →
-              </Link>
-              <a href="mailto:hello@phlox-clinical.com?subject=Demonstração institucional"
-                style={{ background: 'transparent', color: '#94a3b8', textDecoration: 'none', padding: '13px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: '1px solid #1e293b' }}>
-                Agendar demonstração
-              </a>
-            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 16 }}>
+            {PRO_FEATURES.map(f => (
+              <div key={f.title} style={{ border: `1px solid #e2e8f0`, borderRadius: 14, overflow: 'hidden', transition: 'all 0.2s' }} className="feature-card">
+                <div style={{ background: f.color, padding: '24px 24px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <span style={{ fontSize: 28 }}>{f.icon}</span>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'white', fontWeight: 400 }}>{f.title}</div>
+                      <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{f.tag}</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, margin: 0 }}>{f.desc}</p>
+                </div>
+                <div style={{ padding: '18px 24px', background: '#f8fafc' }}>
+                  {f.highlights.map((h, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: `${f.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="8" height="8" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke={f.color} strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                      </div>
+                      <span style={{ fontSize: 13, color: '#374151' }}>{h}</span>
+                    </div>
+                  ))}
+                  <Link href={f.href}
+                    style={{ display: 'block', marginTop: 14, padding: '10px', background: f.color, color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, textAlign: 'center', transition: 'opacity 0.15s' }}>
+                    Ver {f.title} →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 28 }}>
+            <Link href="/pricing" style={{ fontSize: 14, color: '#1d4ed8', textDecoration: 'none', fontWeight: 700 }}>
+              Ver todos os planos Pro e Institucional →
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Footer minimalista */}
-      <footer style={{ background: 'white', borderTop: '1px solid var(--border)', padding: '24px 0' }}>
-        <div className="page-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <svg width="18" height="18" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="var(--green)"/><path d="M14 6v16M7 14h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/></svg>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>PHLOX CLINICAL</span>
+      {/* ─── STUDENT ───────────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 0', background: '#0f172a', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(124,58,237,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(220,38,38,0.1) 0%, transparent 50%)', pointerEvents: 'none' }} />
+        <div className="page-container" style={{ position: 'relative' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#a78bfa', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 14 }}>Student</div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,42px)', color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 14 }}>
+              Para estudantes que<br />
+              <span style={{ color: '#a78bfa' }}>querem ser os melhores.</span>
+            </h2>
+            <p style={{ fontSize: 16, color: '#475569', lineHeight: 1.7, maxWidth: 520, margin: '0 auto' }}>
+              Arena com ligas. OSCE com AI. Inteligência colectiva da comunidade. O estudo em saúde como nunca foi feito.
+            </p>
           </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            {[['Preços', '/pricing'], ['Blog', '/blog'], ['Privacidade', '/privacy'], ['Termos', '/terms'], ['API', '/api-docs']].map(([l, h]) => (
-              <Link key={h} href={h} style={{ fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none' }}>{l}</Link>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,300px),1fr))', gap: 14 }}>
+            {STUDENT_FEATURES.map(f => (
+              <div key={f.title} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 14, overflow: 'hidden', transition: 'all 0.2s' }} className="feature-card-dark">
+                <div style={{ padding: '20px 22px 16px', borderBottom: '1px solid #334155' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <span style={{ fontSize: 26 }}>{f.icon}</span>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: '#f8fafc', fontWeight: 400 }}>{f.title}</div>
+                      <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: f.color, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>{f.tag}</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.7, margin: 0 }}>{f.desc}</p>
+                </div>
+                <div style={{ padding: '14px 22px' }}>
+                  {f.highlights.map((h, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
+                      <span style={{ color: f.color, flexShrink: 0, marginTop: 1, fontWeight: 700 }}>→</span>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>{h}</span>
+                    </div>
+                  ))}
+                  <Link href={f.href}
+                    style={{ display: 'block', marginTop: 12, padding: '9px', background: `${f.color}20`, color: f.color, textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, textAlign: 'center', border: `1px solid ${f.color}40`, transition: 'all 0.15s' }}>
+                    Entrar em {f.title} →
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>© 2026 Phlox Clinical</div>
         </div>
-      </footer>
+      </section>
+
+      {/* ─── PERSONAS ──────────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 0', background: 'white' }}>
+        <div className="page-container">
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3vw,36px)', color: '#0f172a', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 12 }}>
+              Para todos os que trabalham com saúde
+            </h2>
+            <p style={{ fontSize: 15, color: '#64748b', maxWidth: 460, margin: '0 auto' }}>Uma plataforma, quatro experiências completamente diferentes.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,240px),1fr))', gap: 12 }}>
+            {[
+              { icon: '⚕️', title: 'Profissional', sub: 'Farmácia · Hospital · Clínica', color: '#1d4ed8', href: '/login?mode=clinical', tools: ['Phlox Ward', 'Phlox Connect', 'Phlox Rounds', 'MAR Digital', 'Phlox AI Clínico'] },
+              { icon: '🎓', title: 'Estudante', sub: 'Medicina · Farmácia · Enfermagem · +3', color: '#7c3aed', href: '/login?mode=student', tools: ['Phlox Arena', 'Phlox OSCE', 'Phlox Hive', 'Turno Virtual', 'Modo Exame'] },
+              { icon: '👨‍👩‍👧', title: 'Cuidador', sub: 'Família · Pais · Filhos', color: '#b45309', href: '/login?mode=caregiver', tools: ['Perfis familiares', 'Phlox Care Plan', 'Nota de Entrega', 'Calendário de Toma', 'Phlox AI'] },
+              { icon: '👤', title: 'Pessoal', sub: 'A minha saúde', color: '#0d6e42', href: '/login?mode=personal', tools: ['Os meus medicamentos', 'Monitor de Adesão', 'Phlox Timeline', 'Perceber análises', 'Phlox AI'] },
+            ].map(p => (
+              <Link key={p.title} href={p.href} style={{ display: 'flex', flexDirection: 'column', padding: '22px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, textDecoration: 'none', transition: 'all 0.15s' }} className="persona-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 28 }}>{p.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: p.color }}>{p.title}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{p.sub}</div>
+                  </div>
+                </div>
+                {p.tools.map((t, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#64748b', padding: '4px 0', borderBottom: i < p.tools.length - 1 ? '1px solid #e2e8f0' : 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                    {t}
+                  </div>
+                ))}
+                <div style={{ marginTop: 14, fontSize: 13, fontWeight: 700, color: p.color }}>Começar como {p.title.toLowerCase()} →</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── SOCIAL PROOF / TRUST ──────────────────────────────────────────── */}
+      <section style={{ padding: '60px 0', background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+        <div className="page-container" style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 32 }}>
+            Fontes de informação
+          </div>
+          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 40, alignItems: 'center' }}>
+            {['FDA · OpenFDA', 'INFARMED', 'EMA', 'RxNorm / NIH', 'ESC · ADA · NICE · DGS'].map(s => (
+              <span key={s} style={{ fontSize: 13, color: '#64748b', fontFamily: 'var(--font-mono)', padding: '6px 14px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 20 }}>{s}</span>
+            ))}
+          </div>
+          <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
+            A IA é usada para síntese e raciocínio — nunca como fonte primária. Toda a informação crítica é verificável nas fontes originais.
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FINAL CTA ─────────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 0', background: '#0f172a' }}>
+        <div className="page-container" style={{ textAlign: 'center', maxWidth: 620 }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,4vw,44px)', color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16 }}>
+            Começa hoje.<br />É grátis.
+          </h2>
+          <p style={{ fontSize: 16, color: '#64748b', marginBottom: 32, lineHeight: 1.7 }}>
+            Três ferramentas sem conta. Upgrade quando quiseres. Cancela quando quiseres.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/login" style={{ padding: '15px 36px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 16, fontWeight: 800, transition: 'all 0.15s' }} className="cta-primary">
+              Criar conta grátis →
+            </Link>
+            <Link href="/pricing" style={{ padding: '15px 24px', background: 'transparent', color: '#64748b', textDecoration: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, border: '1px solid #334155' }}>
+              Ver planos e preços
+            </Link>
+          </div>
+          <div style={{ marginTop: 20, fontSize: 12, color: '#334155', fontFamily: 'var(--font-mono)' }}>
+            © 2026 Phlox Clinical · Feito em Portugal
+          </div>
+        </div>
+      </section>
 
       <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .persona-card:hover { border-color: currentColor; box-shadow: 0 8px 32px rgba(0,0,0,0.06); transform: translateY(-2px); }
-        .free-tool-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-1px); }
-        .suggestion-chip:hover { background: var(--bg-2) !important; color: var(--ink) !important; border-color: var(--border-2) !important; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .cta-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(34,197,94,0.3) }
+        .free-tool-chip:hover { background: #f0fdf5 !important; transform: translateY(-1px) }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.08) }
+        .feature-card-dark:hover { border-color: #475569 !important; transform: translateY(-3px) }
+        .persona-card:hover { border-color: #cbd5e1 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-2px) }
+        .cta-secondary:hover { border-color: #475569 !important; color: #f8fafc !important }
       `}</style>
     </div>
   )

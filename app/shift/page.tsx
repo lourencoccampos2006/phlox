@@ -55,12 +55,25 @@ interface ShiftResult {
 }
 
 const SPECIALTIES = [
-  { id: 'cardiology', label: 'Cardiologia', desc: 'HTA, IC, arritmias, SCA' },
-  { id: 'endocrinology', label: 'Endocrinologia', desc: 'DM, tiróide, dislipidemia' },
-  { id: 'infectious', label: 'Infecciologia', desc: 'Antibioterapia, pneumonias, ITU' },
-  { id: 'neurology', label: 'Neurologia', desc: 'Epilepsia, Parkinson, demência' },
-  { id: 'psychiatry', label: 'Psiquiatria', desc: 'Depressão, bipolar, ansiedade' },
-  { id: 'mixed', label: 'Misto', desc: 'Várias especialidades — mais difícil' },
+  // Medicina
+  { id: 'cardiology',      label: 'Cardiologia',      desc: 'HTA, IC, arritmias, SCA', icon: '🫀' },
+  { id: 'endocrinology',   label: 'Endocrinologia',   desc: 'DM, tiróide, dislipidemia', icon: '⚗️' },
+  { id: 'infectious',      label: 'Infecciologia',    desc: 'Antibioterapia, pneumonias, ITU', icon: '🦠' },
+  { id: 'neurology',       label: 'Neurologia',       desc: 'Epilepsia, Parkinson, AVC', icon: '🧠' },
+  { id: 'nephrology',      label: 'Nefrologia',       desc: 'DRC, distúrbios hidroelectrolíticos', icon: '🫘' },
+  { id: 'pulmonology',     label: 'Pneumologia',      desc: 'DPOC, asma, pneumonias', icon: '🫁' },
+  { id: 'gastro',          label: 'Gastrenterologia', desc: 'DII, cirrose, pancreatite', icon: '🧫' },
+  // Urgência e Cirurgia
+  { id: 'emergency',       label: 'Urgência',         desc: 'Algoritmos ABCDE, choque, PCR', icon: '🚨' },
+  { id: 'surgery',         label: 'Cirurgia',         desc: 'Abdómen agudo, peri-op', icon: '🔪' },
+  // Outras especialidades
+  { id: 'pediatrics',      label: 'Pediatria',        desc: 'Especificidades pediátricas', icon: '👶' },
+  { id: 'obstetrics',      label: 'Obstetrícia',      desc: 'Gravidez, complicações, parto', icon: '🤰' },
+  { id: 'psychiatry',      label: 'Psiquiatria',      desc: 'Depressão, bipolar, ansiedade', icon: '💊' },
+  { id: 'geriatrics',      label: 'Geriatria',        desc: 'Polimedicação, critérios Beers', icon: '👴' },
+  { id: 'nursing',         label: 'Enfermagem',       desc: 'Avaliação, técnicas, escalas', icon: '💉' },
+  { id: 'pharmacy',        label: 'Farmácia Clínica', desc: 'Revisão, reconciliação, PCNE', icon: '⚕️' },
+  { id: 'mixed',           label: 'Misto',            desc: 'Várias especialidades — mais difícil', icon: '🏥' },
 ]
 
 const DIFFICULTIES = [
