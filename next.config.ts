@@ -1,10 +1,18 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Expõe a base URL ao cliente (necessário para sitemap e SEO)
   env: {
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox.health',
   },
+
+  // ─── Excluir pacotes pesados do bundle do servidor ────────────────────────
+  // @vercel/og + resvg.wasm + yoga.wasm = ~2.2 MB não utilizados
+  serverExternalPackages: [
+    '@vercel/og',
+    'resvg-js',
+    'yoga-wasm-web',
+    '@resvg/resvg-js',
+  ],
 
   async headers() {
     return [
@@ -19,26 +27,17 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         ],
       },
-      // Cache agressivo para assets estáticos
       {
         source: '/(.*)\\.(ico|png|jpg|jpeg|svg|webp|woff|woff2)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
-      // API routes: sem cache (dados em tempo real)
       {
         source: '/api/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store' },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
       },
-      // Páginas de medicamentos: cache de 24h no CDN
       {
         source: '/drugs/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, s-maxage=86400, stale-while-revalidate=3600' },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'public, s-maxage=86400, stale-while-revalidate=3600' }],
       },
     ]
   },

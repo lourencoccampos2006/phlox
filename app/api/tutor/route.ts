@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Groq from 'groq-sdk'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-import Groq from 'groq-sdk'
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+// Uses fetch directly — no SDK needed, saves ~1MB from bundle
 
 type Phase = 'intro' | 'exploration' | 'deepening' | 'consolidation' | 'complete'
 type MsgType = 'question' | 'feedback_good' | 'feedback_correct' | 'hint' | 'explanation' | 'summary'
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+})
 
 function getPhase(exchanges: number): Phase {
   if (exchanges === 0) return 'intro'
