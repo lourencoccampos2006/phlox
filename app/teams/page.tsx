@@ -240,7 +240,7 @@ function HandoverPanel({ patients, messages, myName, myRole, supabase, user, org
         patients_summary: data.patients_summary,
         general_notes: data.general_notes || notes,
         completed: false,
-      }).catch(() => {})
+      }).catch((_e: any) => {})
     }
 
     setHandover(data)
@@ -354,7 +354,7 @@ export default function WardPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Load messages for selected patient
+  // Load messages + real-time subscription for selected patient
   const loadMessages = useCallback(async (patient: Patient) => {
     if (!user) return
     // Get or create channel
@@ -374,11 +374,34 @@ export default function WardPage() {
     if (!channelId) return
     const { data: msgs } = await supabase.from('channel_messages').select('*').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(100)
     setMessages(prev => ({ ...prev, [patient.id]: msgs || [] }))
+    return channelId
   }, [user, supabase, channels, orgId])
 
   useEffect(() => {
-    if (selectedPatient) loadMessages(selectedPatient)
-  }, [selectedPatient, loadMessages])
+    if (!selectedPatient) return
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null
+    loadMessages(selectedPatient).then(channelId => {
+      if (!channelId) return
+      // Subscribe to real-time updates
+      realtimeChannel = supabase
+        .channel(`ward-${channelId}`)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'channel_messages',
+          filter: `channel_id=eq.${channelId}`
+        }, (payload) => {
+          const newMsg = payload.new as WardMessage
+          setMessages(prev => {
+            const existing = prev[selectedPatient.id] || []
+            if (existing.find(m => m.id === newMsg.id)) return prev
+            return { ...prev, [selectedPatient.id]: [...existing, newMsg] }
+          })
+        })
+        .subscribe()
+    })
+    return () => {
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel)
+    }
+  }, [selectedPatient?.id, supabase])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

@@ -205,11 +205,15 @@ export default function OSCEPage() {
       setPhase('feedback')
       // Save to Supabase
       if (user) {
-        await supabase.from('study_sessions').insert({
+        const { error: studySessionError } = await supabase.from('study_sessions').insert({
           user_id: user.id, type: 'case', drug_class: `OSCE: ${station.title}`,
           xp_earned: Math.round((data.percentage / 100) * 50),
           metadata: { osce: true, course, station_type: stationType, score: data.percentage },
         })
+
+        if (studySessionError) {
+          // ignore save errors for optional analytics write
+        }
       }
     } catch {}
     setLoading(false)

@@ -92,6 +92,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       heading: 'Gerir a Família',
       color: '#b45309',
       tools: [
+        { href: '/registo',         label: 'Registo de Saúde',         sub: 'Análises · vacinas · vitais · documentos' },
         { href: '/perfis',         label: 'Perfis Familiares',        sub: 'Medicação de cada familiar' },
         { href: '/plano',          label: 'Care Plan',                sub: 'Guia de cuidado farmacológico' },
         { href: '/consulta',       label: 'Preparar Consulta',        sub: 'Briefing para o médico · registo' },
@@ -125,6 +126,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       heading: 'A Minha Saúde',
       color: '#0d6e42',
       tools: [
+        { href: '/registo',       label: 'Registo de Saúde',            sub: 'Análises · vacinas · vitais · documentos' },
         { href: '/mymeds',       label: 'Os Meus Medicamentos',       sub: 'Lista · interações · alertas' },
         { href: '/plano',        label: 'Care Plan',                  sub: 'O meu guia personalizado' },
         { href: '/consulta',     label: 'Preparar Consulta',          sub: 'Briefing para o médico' },

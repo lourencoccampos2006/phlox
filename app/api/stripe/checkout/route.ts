@@ -3,10 +3,34 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { priceId: priceKey, planKey, userId, email } = body
-
-    if (!priceKey || !userId || !email) {
-      return NextResponse.json({ error: 'Dados inválidos: faltam campos obrigatórios.' }, { status: 400 })
+    // Support both old (userId+email in body) and new (token-based) format
+    const { priceId: priceKey, plan: planKey, billing } = body
+    
+    // Get user from token
+    const authHeader = req.headers.get('authorization') || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+    
+    if (!priceKey) {
+      return NextResponse.json({ error: 'Dados inválidos: priceId obrigatório.' }, { status: 400 })
+    }
+    
+    // Get user info from Supabase
+    let userId = body.userId
+    let email = body.email
+    if (!userId && token) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      )
+      const { data: { user } } = await sb.auth.getUser()
+      userId = user?.id
+      email = user?.email
+    }
+    
+    if (!userId || !email) {
+      return NextResponse.json({ error: 'Autenticação necessária.' }, { status: 401 })
     }
 
     const stripeKey = process.env.STRIPE_SECRET_KEY
