@@ -3,7 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-clinical.com'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-clinical.vercel.app'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

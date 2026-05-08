@@ -17,11 +17,12 @@ function MegaMenu({ onClose, mode }: { onClose: () => void; mode: ExperienceMode
     ]},
     { id: 'family', heading: 'Para Famílias', color: '#b45309', tools: [
       { href: '/perfis', label: 'Perfis Familiares', sub: 'Medicação de cada familiar' },
+      { href: '/registo', label: 'Registo de Saúde', sub: 'Análises · vacinas · vitais · documentos' },
+      { href: '/importar', label: 'Importar Dados', sub: 'MySNS · PDF · receitas · análises' },
       { href: '/prescription', label: 'Perceber a Receita', sub: 'Foto ou texto → explicação simples' },
       { href: '/labs', label: 'Perceber as Análises', sub: 'PDF ou texto → o que importa' },
       { href: '/vaccines', label: 'Vacinas em Dia?', sub: 'Calendário PT · viagens' },
       { href: '/otc', label: 'Automedicação', sub: 'Sintoma → o que comprar' },
-      { href: '/consult-prep', label: 'Preparar Consulta', sub: 'Perguntas certas para o médico' },
     ]},
     { id: 'student-preview', heading: 'Para Estudantes', color: '#7c3aed', tools: [
       { href: '/study', label: 'Flashcards e Quizzes', sub: 'Farmacologia e clínica médica' },
@@ -145,6 +146,8 @@ function UserMenu({ user, signOut, supabase }: { user: any; signOut: () => void;
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/registo', label: 'Registo de Saúde' },
+    { href: '/importar', label: 'Importar' },
     ...(user.experience_mode === 'caregiver' ? [{ href: '/perfis', label: 'Perfis Familiares' }] : []),
     ...(user.experience_mode === 'clinical' ? [{ href: '/patients', label: 'Doentes / Utentes' }] : []),
     ...(user.experience_mode === 'personal' ? [{ href: '/mymeds', label: 'Os Meus Meds' }] : []),

@@ -55,7 +55,9 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox.health'
+    // Detect base URL from request - works on Vercel, Cloudflare, any platform
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0,3).join('/') || process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-clinical.com'
+    const BASE_URL = origin.replace(/\/$/, '')
 
     const params = new URLSearchParams({
       mode: 'subscription',
