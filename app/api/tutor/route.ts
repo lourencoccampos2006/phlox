@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-// Uses fetch directly — no SDK needed, saves ~1MB from bundle
 
 type Phase = 'intro' | 'exploration' | 'deepening' | 'consolidation' | 'complete'
 type MsgType = 'question' | 'feedback_good' | 'feedback_correct' | 'hint' | 'explanation' | 'summary'
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-})
 
 function getPhase(exchanges: number): Phase {
   if (exchanges === 0) return 'intro'
@@ -88,23 +82,34 @@ Tópico desta sessão: "${topic}" (domínio: ${domain || 'farmacologia'})`
       userContent = `Inicia uma sessão socrática sobre "${topic}". Começa com uma pergunta que active o conhecimento prévio do estudante.`
     } else {
       const historyStr = (messages as any[])
-        .slice(-8) // last 8 messages for context
+        .slice(-8)
         .map((m: any) => `${m.role === 'tutor' ? 'TUTOR' : 'ESTUDANTE'}: ${m.content}`)
         .join('\n')
       userContent = `Histórico:\n${historyStr}\n\nÚltima resposta do estudante: "${studentAnswer}"\n\nResponde como tutor socrático para a fase ${phase}.`
     }
 
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userContent },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
+    // Call Groq API directly via fetch — no SDK needed
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
     })
 
-    const raw = completion.choices[0].message.content || ''
+    if (!groqRes.ok) throw new Error(`Groq error: ${groqRes.status}`)
+    const groqData = await groqRes.json()
+    const raw = groqData.choices?.[0]?.message?.content || ''
+
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Resposta inválida')
 
