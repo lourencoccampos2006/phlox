@@ -2,17 +2,8 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox.health',
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-clinical.com',
   },
-
-  // ─── Excluir pacotes pesados do bundle do servidor ────────────────────────
-  // @vercel/og + resvg.wasm + yoga.wasm = ~2.2 MB não utilizados
-  serverExternalPackages: [
-    '@vercel/og',
-    'resvg-js',
-    'yoga-wasm-web',
-    '@resvg/resvg-js',
-  ],
 
   async headers() {
     return [
@@ -22,9 +13,8 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options',  value: 'nosniff' },
           { key: 'X-Frame-Options',          value: 'DENY' },
           { key: 'X-XSS-Protection',         value: '1; mode=block' },
-          { key: 'Referrer-Policy',           value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy',        value: 'camera=(), microphone=(), geolocation=(), payment=()' },
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=(), payment=()' },
         ],
       },
       {
@@ -34,10 +24,6 @@ const nextConfig: NextConfig = {
       {
         source: '/api/(.*)',
         headers: [{ key: 'Cache-Control', value: 'no-store' }],
-      },
-      {
-        source: '/drugs/(.*)',
-        headers: [{ key: 'Cache-Control', value: 'public, s-maxage=86400, stale-while-revalidate=3600' }],
       },
     ]
   },

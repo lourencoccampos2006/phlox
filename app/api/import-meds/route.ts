@@ -14,12 +14,14 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const { plan } = await getUserPlan(req)
-  if (plan === 'free' || plan === 'student') return planGateResponse('protocol', plan)
+  // All plans can import their own medications
 
   const body = await req.json().catch(() => null)
   if (!body?.text?.trim()) {
     return NextResponse.json({ error: 'Texto obrigatório' }, { status: 400 })
   }
+
+  const { mode } = body
 
   try {
     const result = await aiJSON<{

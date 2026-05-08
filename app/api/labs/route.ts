@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   const { userId } = await getUserPlan(req)
 
   const body = await req.json().catch(() => null)
+  const mode = body?.mode || 'labs'
   if (!body?.lab_text || String(body.lab_text).trim().length < 20) {
     return NextResponse.json({ error: 'Resultados de análises obrigatórios' }, { status: 400 })
   }
