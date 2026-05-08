@@ -7,14 +7,8 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 function AuthRedirect() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-  useEffect(() => {
-    if (!loading && user) {
-      const onboarded = (user as any)?.onboarded === true
-      router.replace(onboarded ? '/dashboard' : '/onboarding')
-    }
-  }, [user, loading, router])
+  // Don't auto-redirect from homepage - let logged-in users see it
+  // They can navigate to dashboard via the header
   return null
 }
 
