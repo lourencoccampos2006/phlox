@@ -530,6 +530,23 @@ export default function RoundsPage() {
     const accepted = monthInterventions.filter(i => i.accepted === true).length
     const total = monthInterventions.length
 
+    // Generate with AI for better formatting
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/rounds/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ month: reportMonth, interventions: monthInterventions }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setReport(data.report)
+        setLoading(false)
+        return
+      }
+    } catch {}
+
+    // Fallback to static report
     const reportText = `RELATÓRIO DE ACTIVIDADE FARMACÊUTICA — ${reportMonth}
 Farmacêutico: ${pharmacist}
 

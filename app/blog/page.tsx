@@ -9,6 +9,16 @@ export const metadata: Metadata = {
 
 const ARTICLES = [
   {
+    slug: 'dose-paracetamol-crianca',
+    category: 'Pediatria',
+    date: '10 Jan 2026',
+    readTime: '5 min',
+    title: 'Dose de Paracetamol para Crianças: Guia Completo por Peso',
+    excerpt: 'A dose correcta de paracetamol depende do peso, não da idade. Tabela completa com xarope, supositórios e comprimidos, alertas de segurança e quando ir ao médico.',
+    tags: ['Pediatria', 'Paracetamol', 'Febre'],
+    color: '#0d6e42',
+  },
+  {
     slug: 'ibuprofeno-varfarina',
     category: 'Interações',
     date: '15 Jan 2026',

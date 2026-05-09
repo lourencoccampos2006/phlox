@@ -148,6 +148,7 @@ function UserMenu({ user, signOut, supabase }: { user: any; signOut: () => void;
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/registo', label: 'Registo de Saúde' },
     { href: '/importar', label: 'Importar' },
+    { href: '/settings', label: 'Definições' },
     ...(user.experience_mode === 'caregiver' ? [{ href: '/perfis', label: 'Perfis Familiares' }] : []),
     ...(user.experience_mode === 'clinical' ? [{ href: '/patients', label: 'Doentes / Utentes' }] : []),
     ...(user.experience_mode === 'personal' ? [{ href: '/mymeds', label: 'Os Meus Meds' }] : []),
