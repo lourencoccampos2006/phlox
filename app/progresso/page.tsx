@@ -15,6 +15,8 @@ interface StudyStats {
   quizzes_completed: number
   cases_solved: number
   shifts_completed: number
+  arena_correct: number
+  arena_attempts: number
   weak_topics: { topic: string; score: number; last_seen: string }[]
   class_performance: { class: string; correct: number; total: number }[]
   activity: { date: string; count: number }[]
@@ -96,11 +98,17 @@ export default function ProgressoPage() {
     if (!user) return
     // ─── Carregar dados reais do Supabase ───────────────────────────────────
     Promise.all([
-      supabase.from('study_sessions').select('*').eq('user_id', user.id),
+      supabase.from('study_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200),
       supabase.from('quiz_results').select('*').eq('user_id', user.id),
-    ]).then(([{ data: sessions }, { data: quizzes }]) => {
+    ]).then(async ([{ data: sessions }, { data: quizzes }]) => {
       const sess = sessions || []
       const quiz = quizzes || []
+
+      // Load arena XP
+      const { data: arenaData } = await supabase.from('arena_attempts')
+        .select('score, domain, completed_at').eq('user_id', user.id)
+      const arenaXp = (arenaData || []).reduce((sum: number, a: any) => sum + (a.score || 0), 0)
+      const arenaCorrect = (arenaData || []).filter((a: any) => (a.score || 0) > 0).length
 
       // Calcular streak
       const dates = [...new Set(sess.map((s: any) => s.date?.split('T')[0]))].sort().reverse()
@@ -127,7 +135,9 @@ export default function ProgressoPage() {
       })
 
       setStats({
-        xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0),
+        xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0) + (arenaXp || 0),
+        arena_correct: arenaCorrect || 0,
+        arena_attempts: (arenaData || []).length,
         streak_days: streak,
         flashcards_reviewed: sess.filter((s: any) => s.type === 'flashcard').length,
         quizzes_completed: quiz.length,
@@ -149,7 +159,19 @@ export default function ProgressoPage() {
       })
     }).catch(() => {
       // Se as tabelas não existem ainda, mostra estado vazio
-      setStats({ xp_total:0, streak_days:0, flashcards_reviewed:0, quizzes_completed:0, cases_solved:0, shifts_completed:0, weak_topics:[], class_performance:[], activity:[] })
+      setStats({
+        xp_total: 0,
+        arena_correct: 0,
+        arena_attempts: 0,
+        streak_days: 0,
+        flashcards_reviewed: 0,
+        quizzes_completed: 0,
+        cases_solved: 0,
+        shifts_completed: 0,
+        weak_topics: [],
+        class_performance: [],
+        activity: [],
+      })
     }).finally(() => setLoading(false))
   }, [user, supabase])
 
