@@ -175,8 +175,45 @@ export default function RegistoPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const text = await file.text()
-    await importLabs(text)
+    try {
+      let text = ''
+      if (file.type === 'application/pdf') {
+        // For PDFs, read as base64 and send to AI for extraction
+        const buffer = await file.arrayBuffer()
+        const bytes = new Uint8Array(buffer)
+        let binary = ''
+        bytes.forEach(b => binary += String.fromCharCode(b))
+        const base64 = btoa(binary)
+        // Send to labs API with pdf flag
+        const { data: sd } = await supabase.auth.getSession()
+        const res = await fetch('/api/labs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+          body: JSON.stringify({ pdf_base64: base64, mode: 'labs', source: section === 'labs' ? 'pdf' : 'import' }),
+        })
+        const data = await res.json()
+        if (data.values?.length) {
+          const pid = selectedProfile?.id === 'self' ? null : selectedProfile?.id
+          await supabase.from('lab_records').insert({
+            user_id: user?.id, profile_id: pid || null,
+            profile_name: selectedProfile?.name || null,
+            date: data.date || new Date().toISOString().split('T')[0],
+            lab_name: data.lab_name || file.name.replace('.pdf', ''),
+            values: data.values, ai_summary: data.summary || null,
+            flags: data.flags || [], source: 'pdf',
+          })
+          await load()
+        }
+        e.target.value = ''
+        setImporting(false)
+        return
+      } else {
+        text = await file.text()
+      }
+      await importLabs(text)
+    } catch (err) {
+      console.error('File upload error:', err)
+    }
     e.target.value = ''
   }
 

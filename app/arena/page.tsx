@@ -333,19 +333,32 @@ export default function ArenaPage() {
   const handleComplete = async (xp: number, correct: boolean, time: number) => {
     if (!active || !user) return
     try {
-      await supabase.from('arena_attempts').upsert({
+      // Try to save attempt - challenge_id FK was removed so local challenges work too
+      const { error } = await supabase.from('arena_attempts').insert({
         challenge_id: active.id,
         user_id: user.id,
         score: xp,
         time_seconds: time,
         domain: active.domain,
         completed_at: new Date().toISOString(),
-      }, { onConflict: 'challenge_id,user_id' })
+      })
+      if (error) {
+        // If duplicate (already attempted), try update instead
+        if (error.code === '23505') {
+          await supabase.from('arena_attempts').update({ score: Math.max(xp, 0) })
+            .eq('challenge_id', active.id).eq('user_id', user.id)
+        } else {
+          console.error('Arena save error:', error)
+        }
+      }
       if (xp > 0) setXpToast(xp)
       setAttemptedIds(prev => new Set([...prev, active.id]))
-      await loadData()
+      // Small delay then reload stats
+      setTimeout(() => loadData(), 500)
     } catch (e) {
       console.error('Save attempt error:', e)
+      // Still update UI even if save failed
+      setAttemptedIds(prev => new Set([...prev, active.id]))
     }
     setActive(null)
   }

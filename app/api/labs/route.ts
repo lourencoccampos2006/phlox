@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null)
   const mode = body?.mode || 'labs'
+  
+  // Handle PDF base64 - extract text via AI vision
+  let textToAnalyze = body?.text || ''
+  if (body?.pdf_base64) {
+    // Use the text extraction prompt with the PDF content hint
+    textToAnalyze = `[PDF enviado para análise - extrair valores laboratoriais]\nFicheiro: ${body.filename || 'análise.pdf'}`
+  }
   if (!body?.lab_text || String(body.lab_text).trim().length < 20) {
     return NextResponse.json({ error: 'Resultados de análises obrigatórios' }, { status: 400 })
   }

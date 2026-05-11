@@ -405,22 +405,36 @@ function StudentDashboard() {
   const [tab, setTab] = useState<'study' | 'ai' | 'tools' | 'account'>('study')
   const [stats, setStats] = useState<StudyStats>({ total_cards: 0, streak: 0, weak_topics: [], next_review: '' })
 
+  const [arenaXp, setArenaXp] = useState(0)
+  const [arenaCorrect, setArenaCorrect] = useState(0)
+  const [arenaTotal, setArenaTotal] = useState(0)
+
   // ─── Carregar stats reais ───
   useEffect(() => {
     if (!user) return
-    supabase.from('study_sessions').select('date, type').eq('user_id', user.id)
-      .order('date', { ascending: false }).limit(200)
-      .then(({ data }) => {
-        if (!data) return
-        const dates = [...new Set(data.map((s: any) => s.date?.split('T')[0]))].sort().reverse()
+    const loadStats = async () => {
+      const [{ data: sessions }, { data: arenaData }] = await Promise.all([
+        supabase.from('study_sessions').select('date, type').eq('user_id', user.id)
+          .order('date', { ascending: false }).limit(200),
+        supabase.from('arena_attempts').select('score').eq('user_id', user.id),
+      ])
+      if (sessions) {
+        const dates = [...new Set(sessions.map((s: any) => s.date?.split('T')[0]))].sort().reverse() as string[]
         let streak = 0
         for (let i = 0; i < dates.length; i++) {
           const d = new Date(); d.setDate(d.getDate() - i)
           if (dates[i] === d.toISOString().split('T')[0]) streak++
           else break
         }
-        setStats(prev => ({ ...prev, streak, total_cards: data.filter((s: any) => s.type === 'flashcard').length }))
-      }, (_err: any) => { /* ignore */ })
+        setStats(prev => ({ ...prev, streak, total_cards: sessions.filter((s: any) => s.type === 'flashcard').length }))
+      }
+      if (arenaData) {
+        setArenaXp(arenaData.reduce((sum: number, a: any) => sum + (a.score || 0), 0))
+        setArenaCorrect(arenaData.filter((a: any) => (a.score || 0) > 0).length)
+        setArenaTotal(arenaData.length)
+      }
+    }
+    loadStats()
   }, [user, supabase])
   const plan = (user?.plan || 'free') as string
   const firstName = user?.name?.split(' ')[0] || 'Estudante'
