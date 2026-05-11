@@ -1,176 +1,117 @@
-import Header from '@/components/Header'
+// app/blog/page.tsx — Índice do blog com artigos SEO
 import Link from 'next/link'
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Blog Phlox Clinical — Farmacologia e Clínica em Português',
-  description: 'Artigos sobre farmacologia clínica, interações medicamentosas, guidelines e decisão terapêutica. Em português, para profissionais e estudantes de saúde.',
+  title: 'Blog de Farmacologia Clínica — Phlox Clinical',
+  description: 'Artigos sobre interações medicamentosas, doses pediátricas, segurança na medicação e saúde em Portugal. Baseados em fontes INFARMED, FDA e EMA.',
 }
 
 const ARTICLES = [
   {
-    slug: 'dose-paracetamol-crianca',
-    category: 'Pediatria',
-    date: '10 Jan 2026',
-    readTime: '5 min',
-    title: 'Dose de Paracetamol para Crianças: Guia Completo por Peso',
-    excerpt: 'A dose correcta de paracetamol depende do peso, não da idade. Tabela completa com xarope, supositórios e comprimidos, alertas de segurança e quando ir ao médico.',
-    tags: ['Pediatria', 'Paracetamol', 'Febre'],
-    color: '#0d6e42',
-  },
-  {
-    slug: 'ibuprofeno-varfarina',
-    category: 'Interações',
-    date: '15 Jan 2026',
-    readTime: '4 min',
-    title: 'Ibuprofeno + Varfarina: uma combinação que mata',
-    excerpt: 'A combinação de AINEs com anticoagulantes orais é uma das causas mais comuns de hemorragia iatrogénica. O que acontece a nível molecular, e o que fazer quando um doente anticoagulado pede algo para a dor.',
-    tags: ['Anticoagulantes', 'AINEs', 'Hemorragia'],
+    slug: 'interacoes-comuns-a-evitar',
+    title: 'As 10 Interações Medicamentosas Mais Comuns em Portugal (e como as evitar)',
+    desc: 'Varfarina + AINEs, estatinas + antibióticos, metformina + contraste — as combinações que todo o profissional precisa de saber.',
+    tag: 'Interações', date: '2026-01-15', readTime: '8 min',
     color: '#dc2626',
   },
   {
-    slug: 'metformina-quando-parar',
-    category: 'Decisão Clínica',
-    date: '3 Fev 2026',
-    readTime: '5 min',
-    title: 'Metformina: quando parar e quando é seguro continuar',
-    excerpt: 'A atualização do RCM da metformina em 2025 redefiniu os limiares de TFG para uso seguro. O que mudou, o que ficou igual, e como aplicar na prática clínica.',
-    tags: ['Metformina', 'DRC', 'Diabetes'],
+    slug: 'dose-paracetamol-crianca',
+    title: 'Dose de Paracetamol para Crianças — Tabela por Peso 2026',
+    desc: 'Tabela completa por peso e idade, calculadora gratuita, e quando ir ao médico urgentemente.',
+    tag: 'Pediatria', date: '2025-12-10', readTime: '5 min',
+    color: '#b45309',
+  },
+  {
+    slug: 'ibuprofeno-varfarina',
+    title: 'Posso Tomar Ibuprofeno com Varfarina?',
+    desc: 'A combinação mais perigosa dos domicílios portugueses. Mecanismo, risco real e alternativas seguras.',
+    tag: 'Interações', date: '2025-11-22', readTime: '6 min',
+    color: '#dc2626',
+  },
+  {
+    slug: 'metformina-alcool',
+    title: 'Metformina e Álcool — O Que Realmente Acontece',
+    desc: 'Risco de acidose láctica, quanto é demasiado, e o que dizer ao doente diabético que quer beber socialmente.',
+    tag: 'Diabetes', date: '2026-02-01', readTime: '7 min',
     color: '#0d6e42',
   },
   {
-    slug: 'criterios-beers-2024',
-    category: 'Geriatria',
-    date: '20 Fev 2026',
-    readTime: '7 min',
-    title: 'Critérios de Beers 2024: o que mudou para a prática',
-    excerpt: 'A American Geriatrics Society actualizou os critérios de Beers. Novos fármacos na lista, alguns saíram, e a evidência por trás de cada decisão. Guia prático para farmacêuticos e médicos.',
-    tags: ['Geriatria', 'Polimedicação', 'Beers'],
+    slug: 'antibioticos-em-gravidez',
+    title: 'Antibióticos na Gravidez — Guia Completo por Categoria',
+    desc: 'Quais são seguros, quais são proibidos, e quando o benefício supera o risco. Com tabela por classe e trimestre.',
+    tag: 'Gravidez', date: '2026-02-15', readTime: '10 min',
     color: '#7c3aed',
   },
   {
-    slug: 'amiodarona-interacoes',
-    category: 'Cardiologia',
-    date: '8 Mar 2026',
-    readTime: '6 min',
-    title: 'Amiodarona: a rainha das interações medicamentosas',
-    excerpt: 'A amiodarona inibe múltiplas isoenzimas CYP450 e é transportada pela P-gp. Resultado: interage com quase tudo. Um guia completo para não cometer erros na prescrição concomitante.',
-    tags: ['Amiodarona', 'CYP450', 'Arritmias'],
+    slug: 'hipericao-medicamentos',
+    title: 'Hipericão (Erva de São João) — As Interações que Ninguém Conta',
+    desc: 'O suplemento natural mais perigoso em Portugal. Anticonceptivos, antidepressivos, anticoagulantes — tudo interagiria.',
+    tag: 'Suplementos', date: '2026-01-28', readTime: '6 min',
+    color: '#d97706',
+  },
+  {
+    slug: 'medicamentos-idosos-lista-beers',
+    title: 'Medicamentos a Evitar em Idosos — Critérios Beers 2024',
+    desc: 'A lista actualizada dos medicamentos potencialmente inapropriados em pessoas com mais de 65 anos. Com alternativas.',
+    tag: 'Geriatria', date: '2026-03-01', readTime: '9 min',
     color: '#1d4ed8',
   },
   {
-    slug: 'antibioticos-resistencia-portugal',
-    category: 'Anti-infecciosos',
-    date: '22 Mar 2026',
-    readTime: '8 min',
-    title: 'Resistência aos antibióticos em Portugal: o estado actual',
-    excerpt: 'Portugal tem uma das taxas mais altas de resistência à ciprofloxacina e ampicilina na Europa. O que os dados do ECDC dizem e como isso deve influenciar a prescrição empírica.',
-    tags: ['Antibióticos', 'Resistência', 'ECDC'],
-    color: '#065f46',
-  },
-  {
-    slug: 'dose-pediatrica-erros',
-    category: 'Pediatria',
-    date: '10 Abr 2026',
-    readTime: '5 min',
-    title: 'Os 5 erros mais comuns na dose pediátrica (e como evitá-los)',
-    excerpt: 'Confundir mg/kg com mg/kg/dia é o erro mais comum. Mas há outros: doses máximas ignoradas, formulações inadequadas, e arredondamentos perigosos. Casos reais e soluções práticas.',
-    tags: ['Pediatria', 'Segurança', 'Dosagem'],
-    color: '#b45309',
+    slug: 'ajuste-dose-insuficiencia-renal',
+    title: 'Como Ajustar a Dose na Insuficiência Renal — Guia Prático',
+    desc: 'Fórmulas de Cockcroft-Gault e CKD-EPI, os fármacos que mais requerem ajuste, e como calcular rapidamente.',
+    tag: 'Renal', date: '2026-02-20', readTime: '8 min',
+    color: '#0891b2',
   },
 ]
 
-const CATEGORIES = ['Todos', 'Interações', 'Decisão Clínica', 'Geriatria', 'Cardiologia', 'Anti-infecciosos', 'Pediatria']
+const TAG_COLORS: Record<string, { bg: string; color: string }> = {
+  'Interações':  { bg: '#fee2e2', color: '#dc2626' },
+  'Pediatria':   { bg: '#fffbeb', color: '#b45309' },
+  'Diabetes':    { bg: '#f0fdf5', color: '#0d6e42' },
+  'Gravidez':    { bg: '#faf5ff', color: '#7c3aed' },
+  'Suplementos': { bg: '#fefce8', color: '#d97706' },
+  'Geriatria':   { bg: '#eff6ff', color: '#1d4ed8' },
+  'Renal':       { bg: '#ecfeff', color: '#0891b2' },
+}
 
-export default function BlogPage() {
+export default function BlogIndexPage() {
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
-
-      {/* Header */}
-      <div style={{ background:'white', borderBottom:'1px solid var(--border)', padding:'48px 0 32px' }}>
-        <div className="page-container" style={{ maxWidth:760, margin:'0 auto' }}>
-          <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12 }}>Phlox Blog</div>
-          <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(24px,4vw,40px)', color:'var(--ink)', fontWeight:400, letterSpacing:'-0.02em', marginBottom:12 }}>
-            Farmacologia clínica.<br />Em português.
-          </h1>
-          <p style={{ fontSize:15, color:'var(--ink-3)', lineHeight:1.8 }}>
-            Artigos sobre interações, guidelines, decisão terapêutica e farmacologia aplicada. Para profissionais e estudantes.
-          </p>
-        </div>
+    <div className="page-container page-body">
+      <div style={{ marginBottom: 40 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 12 }}>Farmacologia em português</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,4vw,42px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.025em', marginBottom: 14 }}>Blog Clínico Phlox</h1>
+        <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.7, maxWidth: 560 }}>Artigos de farmacologia clínica baseados em evidência, em português europeu. Para profissionais, estudantes e cuidadores.</p>
       </div>
 
-      <div className="page-container page-body" style={{ maxWidth:760, margin:'0 auto' }}>
-
-        {/* Featured */}
-        <Link href={`/blog/${ARTICLES[0].slug}`}
-          style={{ display:'block', background:'white', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', textDecoration:'none', marginBottom:20, transition:'box-shadow 0.15s' }}
-          className="article-card">
-          <div style={{ background:ARTICLES[0].color, padding:'32px 28px 24px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
-              <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'rgba(255,255,255,0.7)', letterSpacing:'0.12em', textTransform:'uppercase', background:'rgba(255,255,255,0.15)', padding:'3px 8px', borderRadius:3 }}>
-                {ARTICLES[0].category}
-              </span>
-              <span style={{ fontSize:10, color:'rgba(255,255,255,0.5)', fontFamily:'var(--font-mono)' }}>{ARTICLES[0].readTime}</span>
-            </div>
-            <h2 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(18px,3vw,26px)', color:'white', fontWeight:400, letterSpacing:'-0.01em', lineHeight:1.3 }}>
-              {ARTICLES[0].title}
-            </h2>
-          </div>
-          <div style={{ padding:'20px 28px 24px' }}>
-            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:14 }}>{ARTICLES[0].excerpt}</p>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                {ARTICLES[0].tags.map(t => (
-                  <span key={t} style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', background:'var(--bg-2)', border:'1px solid var(--border)', padding:'2px 7px', borderRadius:3 }}>{t}</span>
-                ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%,340px),1fr))', gap: 16 }}>
+        {ARTICLES.map(a => {
+          const tc = TAG_COLORS[a.tag] || { bg: 'var(--bg-2)', color: 'var(--ink-3)' }
+          return (
+            <Link key={a.slug} href={`/blog/${a.slug}`}
+              style={{ display: 'flex', flexDirection: 'column', background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', textDecoration: 'none', transition: 'transform 0.12s, box-shadow 0.12s', borderTop: `3px solid ${a.color}` }}
+              className="blog-card">
+              <div style={{ padding: '22px 22px 18px', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: tc.color, background: tc.bg, padding: '2px 8px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{a.tag}</span>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>{a.readTime}</span>
+                </div>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, lineHeight: 1.35, marginBottom: 10, letterSpacing: '-0.01em' }}>{a.title}</h2>
+                <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>{a.desc}</p>
               </div>
-              <span style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{ARTICLES[0].date}</span>
-            </div>
-          </div>
-        </Link>
-
-        {/* Grid */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap:12 }}>
-          {ARTICLES.slice(1).map(article => (
-            <Link key={article.slug} href={`/blog/${article.slug}`}
-              style={{ display:'flex', flexDirection:'column', background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', textDecoration:'none', transition:'box-shadow 0.15s' }}
-              className="article-card">
-              <div style={{ height:6, background:article.color }} />
-              <div style={{ padding:'18px 20px 20px', flex:1, display:'flex', flexDirection:'column' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                  <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:article.color, letterSpacing:'0.1em', textTransform:'uppercase' }}>{article.category}</span>
-                  <span style={{ fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginLeft:'auto' }}>{article.readTime}</span>
-                </div>
-                <h3 style={{ fontFamily:'var(--font-serif)', fontSize:17, color:'var(--ink)', fontWeight:400, letterSpacing:'-0.01em', lineHeight:1.4, marginBottom:10 }}>{article.title}</h3>
-                <p style={{ fontSize:13, color:'var(--ink-4)', lineHeight:1.6, flex:1, marginBottom:14 }}>{article.excerpt.slice(0,120)}...</p>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-                    {article.tags.slice(0,2).map(t => (
-                      <span key={t} style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', background:'var(--bg-2)', border:'1px solid var(--border)', padding:'1px 6px', borderRadius:3 }}>{t}</span>
-                    ))}
-                  </div>
-                  <span style={{ fontSize:10, color:'var(--ink-5)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{article.date}</span>
-                </div>
+              <div style={{ padding: '12px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)' }}>
+                  {new Date(a.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: a.color }}>Ler →</span>
               </div>
             </Link>
-          ))}
-        </div>
-
-        <div style={{ marginTop:32, padding:'24px', background:'white', border:'1px solid var(--border)', borderRadius:10, textAlign:'center' }}>
-          <div style={{ fontSize:14, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Receber novos artigos</div>
-          <p style={{ fontSize:13, color:'var(--ink-4)', marginBottom:16 }}>Um artigo por semana sobre farmacologia clínica aplicada.</p>
-          <div style={{ display:'flex', gap:8, maxWidth:400, margin:'0 auto' }}>
-            <input type="email" placeholder="o.teu@email.com"
-              style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:7, padding:'10px 13px', fontSize:13, fontFamily:'var(--font-sans)', outline:'none' }} />
-            <button style={{ padding:'10px 18px', background:'var(--ink)', color:'white', border:'none', borderRadius:7, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)', whiteSpace:'nowrap' }}>
-              Subscrever
-            </button>
-          </div>
-        </div>
+          )
+        })}
       </div>
 
-      <style>{`.article-card:hover{box-shadow:0 8px 32px rgba(0,0,0,0.08)!important}`}</style>
+      <style>{`.blog-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.07); }`}</style>
     </div>
   )
 }
