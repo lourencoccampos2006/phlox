@@ -26,17 +26,5 @@ export async function POST(req: NextRequest) {
     },
   ], { maxTokens: 200, temperature: 0.7 })
 
-  const aiResult = result as {
-    text?: string
-    content?: string
-    message?: { content?: string }
-  }
-
-  const response =
-    aiResult.text ??
-    aiResult.content ??
-    aiResult.message?.content ??
-    ''
-
-  return NextResponse.json({ response })
+  return NextResponse.json({ response: result.text })
 }

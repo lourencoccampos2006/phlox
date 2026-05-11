@@ -56,5 +56,5 @@ Formato de texto limpo, estruturado com headers e secções claras.`,
     },
   ], { maxTokens: 1500, temperature: 0.2 })
 
-  return NextResponse.json({ report: (result as any).content ?? (result as any).text ?? JSON.stringify(result) })
+  return NextResponse.json({ report: result.text })
 }

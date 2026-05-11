@@ -20,6 +20,7 @@ type UserRole = 'pharmacist' | 'physician' | 'nurse' | 'intern' | 'other'
 interface Professional {
   id: string
   display_name: string
+  connect_handle: string
   professional_role: UserRole
   institution: string | null
   speciality: string | null
@@ -112,15 +113,18 @@ function ProfessionalDirectory({ onSelect }: { onSelect: (p: Professional) => vo
   const search = useCallback(async () => {
     setLoading(true)
     let q = supabase.from('profiles')
-      .select('id, display_name, professional_role, institution, speciality')
+      .select('id, display_name, connect_handle, professional_role, institution, speciality')
       .eq('connect_visible', true)
-      .not('display_name', 'is', null)
+      .not('connect_handle', 'is', null)
 
     if (role !== 'all') q = q.eq('professional_role', role)
-    if (query.trim()) q = q.ilike('display_name', `%${query.trim()}%`)
+    if (query.trim()) {
+      // Search by handle, display_name, or institution
+      q = q.or(`connect_handle.ilike.%${query.trim().toLowerCase()}%,display_name.ilike.%${query.trim()}%,institution.ilike.%${query.trim()}%`)
+    }
 
     const { data } = await q.limit(20)
-    setResults((data || []).filter((p: any) => p.display_name))
+    setResults((data || []).filter((p: any) => p.connect_handle))
     setLoading(false)
   }, [supabase, query, role])
 
@@ -160,7 +164,7 @@ function ProfessionalDirectory({ onSelect }: { onSelect: (p: Professional) => vo
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: 'white', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--bg-3)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
             className="dir-item">
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>
-              {p.display_name.charAt(0).toUpperCase()}
+              {(p.display_name || p.connect_handle).charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.display_name}</div>
@@ -395,7 +399,7 @@ function NewConsultForm({ myRole, myName, supabase, onSubmit, onCancel }: {
         { role: 'system', content: 'Es um farmacologista clínico. Analisa a situação em 2-3 frases com evidência. PT-PT.' },
         { role: 'user', content: `${form.consult_type}: ${form.body}. Meds: ${form.medications}` }
       ], { maxTokens: 250, temperature: 0.2 })
-      setAiSuggestion((result as { content?: string }).content ?? '')
+      setAiSuggestion(result.text)
     } catch {}
     setAnalysing(false)
   }

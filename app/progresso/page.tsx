@@ -15,8 +15,6 @@ interface StudyStats {
   quizzes_completed: number
   cases_solved: number
   shifts_completed: number
-  arena_correct: number
-  arena_attempts: number
   weak_topics: { topic: string; score: number; last_seen: string }[]
   class_performance: { class: string; correct: number; total: number }[]
   activity: { date: string; count: number }[]
@@ -96,83 +94,83 @@ export default function ProgressoPage() {
 
   useEffect(() => {
     if (!user) return
-    // ─── Carregar dados reais do Supabase ───────────────────────────────────
-    Promise.all([
-      supabase.from('study_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200),
-      supabase.from('quiz_results').select('*').eq('user_id', user.id),
-    ]).then(async ([{ data: sessions }, { data: quizzes }]) => {
-      const sess = sessions || []
-      const quiz = quizzes || []
+    const load = async () => {
+      setLoading(true)
+      try {
+        const [
+          { data: sessions },
+          { data: quizzes },
+          { data: arenaData },
+        ] = await Promise.all([
+          supabase.from('study_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200),
+          supabase.from('quiz_results').select('*').eq('user_id', user.id),
+          supabase.from('arena_attempts').select('score, domain, completed_at').eq('user_id', user.id),
+        ])
 
-      // Load arena XP
-      const { data: arenaData } = await supabase.from('arena_attempts')
-        .select('score, domain, completed_at').eq('user_id', user.id)
-      const arenaXp = (arenaData || []).reduce((sum: number, a: any) => sum + (a.score || 0), 0)
-      const arenaCorrect = (arenaData || []).filter((a: any) => (a.score || 0) > 0).length
+        const sess = sessions || []
+        const quiz = quizzes || []
+        const arena = arenaData || []
 
-      // Calcular streak
-      const dates = [...new Set(sess.map((s: any) => s.date?.split('T')[0]))].sort().reverse()
-      let streak = 0
-      for (let i = 0; i < dates.length; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i)
-        if (dates[i] === d.toISOString().split('T')[0]) streak++
-        else break
-      }
+        const arenaXp = arena.reduce((sum: number, a: any) => sum + (a.score || 0), 0)
+        const arenaCorrect = arena.filter((a: any) => (a.score || 0) > 0).length
 
-      // Performance por classe dos quizzes
-      const classMap: Record<string, { correct: number; total: number }> = {}
-      quiz.forEach((q: any) => {
-        if (!q.drug_class) return
-        if (!classMap[q.drug_class]) classMap[q.drug_class] = { correct: 0, total: 0 }
-        classMap[q.drug_class].total++
-        if (q.correct) classMap[q.drug_class].correct++
-      })
+        // Streak
+        const dates = [...new Set(sess.map((s: any) => s.date?.split('T')[0]))].sort().reverse() as string[]
+        let streak = 0
+        for (let i = 0; i < dates.length; i++) {
+          const d = new Date(); d.setDate(d.getDate() - i)
+          if (dates[i] === d.toISOString().split('T')[0]) streak++
+          else break
+        }
 
-      // Actividade por dia
-      const actMap: Record<string, number> = {}
-      sess.forEach((s: any) => {
-        const d = s.date?.split('T')[0]; if (d) actMap[d] = (actMap[d] || 0) + 1
-      })
+        // Performance por classe
+        const classMap: Record<string, { correct: number; total: number }> = {}
+        quiz.forEach((q: any) => {
+          if (!q.drug_class) return
+          if (!classMap[q.drug_class]) classMap[q.drug_class] = { correct: 0, total: 0 }
+          classMap[q.drug_class].total++
+          if (q.correct) classMap[q.drug_class].correct++
+        })
 
-      setStats({
-        xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0) + (arenaXp || 0),
-        arena_correct: arenaCorrect || 0,
-        arena_attempts: (arenaData || []).length,
-        streak_days: streak,
-        flashcards_reviewed: sess.filter((s: any) => s.type === 'flashcard').length,
-        quizzes_completed: quiz.length,
-        cases_solved: sess.filter((s: any) => s.type === 'case').length,
-        shifts_completed: sess.filter((s: any) => s.type === 'shift').length,
-        weak_topics: Object.entries(classMap)
-          .filter(([, v]) => v.total > 0 && (v.correct / v.total) < 0.65)
-          .sort((a, b) => (a[1].correct/a[1].total) - (b[1].correct/b[1].total))
-          .slice(0, 3)
-          .map(([topic, v]) => ({ topic, score: Math.round((v.correct/v.total)*100), last_seen: '—' })),
-        class_performance: Object.entries(classMap)
-          .filter(([, v]) => v.total >= 3)
-          .map(([cls, v]) => ({ class: cls, correct: v.correct, total: v.total })),
-        activity: Array.from({ length: 84 }, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() - (83 - i))
+        // Actividade por dia
+        const actMap: Record<string, number> = {}
+        sess.forEach((s: any) => {
+          const d = s.date?.split('T')[0]; if (d) actMap[d] = (actMap[d] || 0) + 1
+        })
+        const last14 = Array.from({ length: 14 }, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - (13 - i))
           const key = d.toISOString().split('T')[0]
           return { date: key, count: actMap[key] || 0 }
-        }),
-      })
-    }).catch(() => {
-      // Se as tabelas não existem ainda, mostra estado vazio
-      setStats({
-        xp_total: 0,
-        arena_correct: 0,
-        arena_attempts: 0,
-        streak_days: 0,
-        flashcards_reviewed: 0,
-        quizzes_completed: 0,
-        cases_solved: 0,
-        shifts_completed: 0,
-        weak_topics: [],
-        class_performance: [],
-        activity: [],
-      })
-    }).finally(() => setLoading(false))
+        })
+
+        setStats({
+          xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0) + arenaXp,
+          arena_correct: arenaCorrect,
+          arena_attempts: arena.length,
+          streak_days: streak,
+          flashcards_reviewed: sess.filter((s: any) => s.type === 'flashcard').length,
+          quizzes_completed: quiz.length,
+          cases_solved: sess.filter((s: any) => s.type === 'case').length,
+          shifts_completed: sess.filter((s: any) => s.type === 'shift').length,
+          weak_topics: Object.entries(classMap)
+            .filter(([, v]) => v.total > 0 && (v.correct / v.total) < 0.65)
+            .map(([topic, v]) => ({ topic, rate: Math.round((v.correct / v.total) * 100) }))
+            .sort((a, b) => a.rate - b.rate)
+            .slice(0, 5),
+          class_performance: Object.entries(classMap)
+            .filter(([, v]) => v.total >= 2)
+            .map(([cls, v]) => ({ cls, rate: Math.round((v.correct / v.total) * 100), total: v.total }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 8),
+          activity: last14,
+        } as any)
+      } catch {
+        setStats({ xp_total:0, streak_days:0, flashcards_reviewed:0, quizzes_completed:0, cases_solved:0, shifts_completed:0, weak_topics:[], class_performance:[], activity:[] })
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [user, supabase])
 
   const xpLevel = stats ? Math.floor(stats.xp_total / 500) + 1 : 1
@@ -232,6 +230,7 @@ export default function ProgressoPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
               {[
                 { label: 'XP Total', value: stats.xp_total.toLocaleString(), icon: '⚡', color: '#7c3aed', bg: '#faf5ff' },
+                { label: 'Arena correctas', value: `${(stats as any).arena_correct||0}/${(stats as any).arena_attempts||0}`, icon: '🏆', color: '#d97706', bg: '#fffbeb' },
                 { label: 'Streak', value: `${stats.streak_days} dias`, icon: '🔥', color: '#b45309', bg: '#fffbeb' },
                 { label: 'Flashcards', value: stats.flashcards_reviewed, icon: '🃏', color: '#0d6e42', bg: '#f0fdf5' },
                 { label: 'Casos resolvidos', value: stats.cases_solved, icon: '🩺', color: '#1d4ed8', bg: '#eff6ff' },

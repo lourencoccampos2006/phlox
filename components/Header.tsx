@@ -273,6 +273,22 @@ function MobileDrawer({ open, onClose, user, signOut, supabase }: { open: boolea
               </div>
             </div>
           )}
+          {/* Quick access links always visible on mobile */}
+          {user && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 4 }}>
+              {[
+                { href: '/registo',    label: 'Registo de Saúde' },
+                { href: '/importar',   label: 'Importar Dados' },
+                { href: '/settings',   label: 'Definições' },
+                { href: '/progresso',  label: 'Progresso' },
+              ].map(item => (
+                <Link key={item.href} href={item.href} onClick={onClose}
+                  style={{ padding: '9px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, textDecoration: 'none', fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', textAlign: 'center', display: 'block' }}>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
           <Link href="/pricing" onClick={onClose} style={{ display: 'block', padding: '12px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: 'center', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Ver planos</Link>
           {user && <button onClick={() => { signOut(); onClose() }} style={{ padding: '10px', background: 'transparent', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Terminar sessão</button>}
         </div>

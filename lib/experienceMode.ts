@@ -30,6 +30,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       tools: [
         { href: '/teams',          label: 'Phlox Ward',               sub: 'Ficha colaborativa · passagem de turno', badge: 'Pro' },
         { href: '/connect',        label: 'Phlox Connect',            sub: 'Comunicação inter-profissional', badge: 'Pro' },
+        { href: '/grand-round',    label: 'Grand Round',              sub: 'Casos clínicos da comunidade', badge: 'Novo' },
         { href: '/rounds',         label: 'Phlox Rounds',             sub: 'Ronda farmacêutica · PCNE', badge: 'Pro' },
         { href: '/consulta',       label: 'Phlox Consulta',           sub: 'Copiloto de consulta bidirecional' },
         { href: '/patients',       label: 'Doentes / Utentes',        sub: 'Gestão completa com alertas' },
@@ -65,6 +66,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/arena',    label: 'Phlox Arena',          sub: 'Ligas Bronze → Diamante · casos AI', badge: 'Novo' },
         { href: '/osce',     label: 'Phlox OSCE',           sub: 'Simulação de OSCE · AI como doente', badge: 'Novo' },
         { href: '/hive',     label: 'Phlox Hive',           sub: 'O que a comunidade mais erra', badge: 'Novo' },
+        { href: '/grand-round', label: 'Grand Round',          sub: 'Casos reais · debate · aprender', badge: 'Novo' },
         { href: '/shift',    label: 'Turno Virtual',        sub: 'Doentes gerados por AI · score' },
         { href: '/exam',     label: 'Modo Exame',           sub: 'Timer · formato nacional · análise' },
         { href: '/cases',    label: 'Casos Clínicos',       sub: 'Todas as áreas · raciocínio guiado' },

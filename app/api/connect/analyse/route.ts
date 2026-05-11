@@ -26,7 +26,5 @@ Situação: ${consultBody}`,
     },
   ], { maxTokens: 300, temperature: 0.2 })
 
-  return NextResponse.json({
-    suggestion: (result as { content?: string; text?: string }).content ?? (result as { text?: string }).text ?? '',
-  })
+  return NextResponse.json({ suggestion: result.text })
 }
