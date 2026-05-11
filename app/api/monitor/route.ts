@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const { plan } = await getUserPlan(req)
-  if (plan === 'free' || plan === 'student') return planGateResponse('protocol', plan)
+  if (plan === 'free' || plan === 'student') return planGateResponse('pro', 'Phlox Watcher')
 
   const body = await req.json().catch(() => null)
   if (!body?.medications || !Array.isArray(body.medications) || body.medications.length === 0) {

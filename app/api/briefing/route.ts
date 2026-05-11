@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const { plan } = await getUserPlan(req)
-  if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('protocol', plan)
+  if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('pro', 'Briefing de Consulta')
 
   const body = await req.json().catch(() => null)
   if (!body?.medications) {
