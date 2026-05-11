@@ -1,11 +1,22 @@
 export default function Loading() {
   return (
-    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTop: '3px solid var(--green)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>A CARREGAR</div>
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        {/* Phlox logo mark animado */}
+        <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style={{ animation: 'phlox-pulse 1.4s ease-in-out infinite' }}>
+          <rect width="28" height="28" rx="6" fill="var(--green)" opacity="0.15"/>
+          <path d="M14 6v16M7 14h14" stroke="var(--green)" strokeWidth="2.2" strokeLinecap="round"/>
+        </svg>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          A carregar
+        </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes phlox-pulse {
+          0%, 100% { opacity: 0.4; transform: scale(0.95); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   )
 }

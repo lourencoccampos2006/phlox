@@ -4,12 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 
-// ─── NOVO: adicionado 'caregiver' como 4º tipo de perfil ───
 type ProfileType = 'personal' | 'student' | 'professional' | 'caregiver'
-type PersonalSub = 'myself' | 'family' | 'both'
-type ProfSub = 'doctor' | 'pharmacist' | 'nurse' | 'other'
-type StudentSub = 'medicine' | 'pharmacy' | 'nursing' | 'other'
-type CaregiverSub = 'parent' | 'child' | 'spouse' | 'other'
 
 const STEPS = ['perfil', 'detalhe', 'pronto']
 
@@ -22,16 +17,20 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [animating, setAnimating] = useState(false)
 
+  useEffect(() => {
+    if (!user) router.push('/login')
+    else if ((user as any)?.onboarded === true) router.push('/dashboard')
+  }, [user, router])
+
   const next = (p?: ProfileType) => {
     setAnimating(true)
     setTimeout(() => {
       if (p) setProfile(p)
       setStep(s => s + 1)
       setAnimating(false)
-    }, 200)
+    }, 180)
   }
 
-  // ─── NOVO: mapeamento profile → experience_mode ───
   function getExperienceMode(): string {
     if (profile === 'professional') return 'clinical'
     if (profile === 'caregiver') return 'caregiver'
@@ -40,8 +39,8 @@ export default function OnboardingPage() {
     return 'personal'
   }
 
-  const finish = async () => {
-    if (!user) return
+  const finish = async (dest?: string) => {
+    if (!user || saving) return
     setSaving(true)
     try {
       await supabase.from('profiles').update({
@@ -50,86 +49,104 @@ export default function OnboardingPage() {
         profile_sub: sub,
         experience_mode: getExperienceMode(),
       }).eq('id', user.id)
-    } catch {}
-    const dest = profile === 'professional' ? '/dashboard?mode=pro'
-      : profile === 'student' ? '/dashboard?mode=student'
-      : '/dashboard?mode=personal'
-    router.push(dest)
+    } catch (_e: any) {}
+    const fallback = profile === 'professional' ? '/dashboard'
+      : profile === 'student' ? '/dashboard'
+      : '/dashboard'
+    router.push(dest || fallback)
   }
 
   const PROFILES = [
     {
       id: 'personal' as ProfileType,
       label: 'Uso pessoal',
-      desc: 'Giro a minha própria medicação',
-      accent: 'var(--green)',
-      bg: 'var(--green-light)',
-      border: 'var(--green-mid)',
-      features: ['Diário de sintomas', 'Alertas de renovação', 'Verificação de interações', 'Guia de automedicação'],
+      desc: 'Giro a minha própria saúde e medicação',
+      accent: '#0d6e42',
+      bg: '#f0fdf5',
+      border: '#bbf7d0',
+      pills: ['Medicação pessoal', 'Interações', 'Care Plan', 'Timeline'],
     },
-    // ─── NOVO: perfil Cuidador ───
     {
       id: 'caregiver' as ProfileType,
       label: 'Cuidador familiar',
-      desc: 'Cuido de um familiar — pais, filhos, cônjuge',
-      accent: '#d97706',
+      desc: 'Cuido da medicação de um familiar',
+      accent: '#b45309',
       bg: '#fffbeb',
       border: '#fde68a',
-      features: ['Perfis por familiar', 'Medicação de cada um', 'Interações cruzadas', 'Consultas preparadas'],
+      pills: ['Perfis familiares', 'Calendário de tomas', 'Alertas', 'Consultas'],
     },
     {
       id: 'student' as ProfileType,
-      label: 'Estudante',
+      label: 'Estudante de saúde',
       desc: 'Medicina, farmácia, enfermagem ou nutrição',
       accent: '#7c3aed',
       bg: '#faf5ff',
       border: '#e9d5ff',
-      features: ['Tutor IA socrático', 'Progressão por classe', 'Banco de erros', 'Simulador de prescrição'],
+      pills: ['Arena de ligas', 'OSCE', 'AI Tutor', 'Flashcards'],
     },
     {
       id: 'professional' as ProfileType,
       label: 'Profissional de saúde',
-      desc: 'Médico, farmacêutico, enfermeiro ou técnico',
+      desc: 'Farmacêutico, médico, enfermeiro ou técnico',
       accent: '#1d4ed8',
       bg: '#eff6ff',
       border: '#bfdbfe',
-      features: ['Gestão de doentes', 'Co-piloto clínico IA', 'Validador de prescrição', 'Relatórios PDF'],
+      pills: ['Ward colaborativo', 'Co-piloto IA', 'Rounds PCNE', 'Connect'],
     },
   ]
 
-  const PERSONAL_SUBS = [
-    { id: 'myself', label: 'Para mim próprio', desc: 'Giro a minha própria medicação' },
-    { id: 'family', label: 'Para um familiar', desc: 'Cuido da medicação de outra pessoa' },
-    { id: 'both', label: 'Para mim e família', desc: 'Múltiplos perfis de medicação' },
-  ]
+  const SUBS: Record<ProfileType, { id: string; label: string; desc: string }[]> = {
+    personal: [
+      { id: 'myself', label: 'Para mim próprio', desc: 'Giro a minha própria medicação' },
+      { id: 'family', label: 'Para um familiar', desc: 'Cuido da medicação de outra pessoa' },
+      { id: 'both', label: 'Para mim e família', desc: 'Múltiplos perfis de medicação' },
+    ],
+    caregiver: [
+      { id: 'parent', label: 'Pai ou mãe', desc: 'Cuido da medicação dos meus pais' },
+      { id: 'child', label: 'Filho ou filha', desc: 'Cuido da medicação dos meus filhos' },
+      { id: 'spouse', label: 'Cônjuge ou parceiro', desc: 'Cuido da medicação do meu cônjuge' },
+      { id: 'other', label: 'Outro familiar', desc: 'Avós, irmãos ou outro familiar próximo' },
+    ],
+    student: [
+      { id: 'medicine', label: 'Medicina', desc: 'Curso de medicina' },
+      { id: 'pharmacy', label: 'Farmácia', desc: 'Curso de farmácia' },
+      { id: 'nursing', label: 'Enfermagem', desc: 'Curso de enfermagem' },
+      { id: 'other', label: 'Outro', desc: 'Nutrição, fisioterapia, dentária ou outra' },
+    ],
+    professional: [
+      { id: 'pharmacist', label: 'Farmacêutico', desc: 'Comunitário ou hospitalar' },
+      { id: 'doctor', label: 'Médico', desc: 'Clínica geral, especialidade ou hospital' },
+      { id: 'nurse', label: 'Enfermeiro', desc: 'Hospital, clínica ou cuidados domiciliários' },
+      { id: 'other', label: 'Outro profissional', desc: 'Técnico, nutricionista ou outra área' },
+    ],
+  }
 
-  // ─── NOVO: subs do Cuidador ───
-  const CAREGIVER_SUBS = [
-    { id: 'parent', label: 'Pai ou mãe', desc: 'Cuido da medicação dos meus pais' },
-    { id: 'child', label: 'Filho ou filha', desc: 'Cuido da medicação dos meus filhos' },
-    { id: 'spouse', label: 'Cônjuge ou parceiro', desc: 'Cuido da medicação do meu cônjuge' },
-    { id: 'other', label: 'Outro familiar', desc: 'Avós, irmãos, ou outro familiar próximo' },
-  ]
-
-  const STUDENT_SUBS = [
-    { id: 'medicine', label: 'Medicina', desc: 'Curso de medicina' },
-    { id: 'pharmacy', label: 'Farmácia', desc: 'Curso de farmácia' },
-    { id: 'nursing', label: 'Enfermagem', desc: 'Curso de enfermagem' },
-    { id: 'other', label: 'Outro', desc: 'Outra área de saúde' },
-  ]
-
-  const PROF_SUBS = [
-    { id: 'doctor', label: 'Médico', desc: 'Clínica geral, especialidade ou hospital' },
-    { id: 'pharmacist', label: 'Farmacêutico', desc: 'Comunitário ou hospitalar' },
-    { id: 'nurse', label: 'Enfermeiro', desc: 'Hospital, clínica ou cuidados domiciliários' },
-    { id: 'other', label: 'Outro profissional', desc: 'Técnico, nutricionista ou outra área' },
-  ]
+  const FINISH_ACTIONS: Record<ProfileType, { label: string; href: string; primary: boolean }[]> = {
+    personal: [
+      { label: 'Adicionar os meus medicamentos', href: '/mymeds', primary: true },
+      { label: 'Verificar interações', href: '/interactions', primary: false },
+      { label: 'Explorar o dashboard', href: '/dashboard', primary: false },
+    ],
+    caregiver: [
+      { label: 'Criar perfil familiar', href: '/perfis', primary: true },
+      { label: 'Verificar interações', href: '/interactions', primary: false },
+      { label: 'Explorar o dashboard', href: '/dashboard', primary: false },
+    ],
+    student: [
+      { label: 'Entrar na Arena', href: '/arena', primary: true },
+      { label: 'Falar com o AI Tutor', href: '/ai', primary: false },
+      { label: 'Começar flashcards', href: '/study', primary: false },
+    ],
+    professional: [
+      { label: 'Criar primeiro doente', href: '/patients', primary: true },
+      { label: 'Abrir co-piloto IA', href: '/ai', primary: false },
+      { label: 'Ver ferramentas clínicas', href: '/dashboard', primary: false },
+    ],
+  }
 
   const currentProfile = PROFILES.find(p => p.id === profile)
-  const subs = profile === 'personal' ? PERSONAL_SUBS
-    : profile === 'caregiver' ? CAREGIVER_SUBS
-    : profile === 'student' ? STUDENT_SUBS
-    : PROF_SUBS
+  const subs = profile ? SUBS[profile] : []
+  const finishActions = profile ? FINISH_ACTIONS[profile] : []
 
   return (
     <div style={{
@@ -144,149 +161,176 @@ export default function OnboardingPage() {
       <div style={{ width: '100%', maxWidth: 560 }}>
 
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <svg width="36" height="36" viewBox="0 0 28 28" fill="none" style={{ marginBottom: 12 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <svg width="34" height="34" viewBox="0 0 28 28" fill="none" style={{ marginBottom: 10 }}>
             <rect width="28" height="28" rx="6" fill="var(--green)"/>
             <path d="M14 6v16M7 14h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
           </svg>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em' }}>PHLOX CLINICAL</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1 }}>PHLOX</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--ink-5)', letterSpacing: '0.2em', marginTop: 3 }}>CLINICAL</div>
         </div>
 
-        {/* Progress */}
+        {/* Progress bar */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 40 }}>
           {STEPS.map((s, i) => (
-            <div key={s} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= step ? 'var(--green)' : 'var(--border)', transition: 'background 0.3s' }} />
+            <div key={s} style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: i <= step ? (currentProfile?.accent || 'var(--green)') : 'var(--border)',
+              transition: 'background 0.3s',
+            }} />
           ))}
         </div>
 
-        <div style={{ opacity: animating ? 0 : 1, transform: animating ? 'translateY(8px)' : 'none', transition: 'opacity 0.2s, transform 0.2s' }}>
+        <div style={{
+          opacity: animating ? 0 : 1,
+          transform: animating ? 'translateY(10px)' : 'none',
+          transition: 'opacity 0.18s, transform 0.18s',
+        }}>
 
-          {/* STEP 0: Choose profile */}
+          {/* STEP 0 — escolher perfil */}
           {step === 0 && (
             <div>
               <div style={{ marginBottom: 32, textAlign: 'center' }}>
-                <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.02em' }}>
+                <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                   Bem-vindo{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
                 </h1>
-                <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.65 }}>
                   Como vais usar o Phlox? A plataforma adapta-se completamente ao teu perfil.
                 </p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {PROFILES.map(p => (
-                  <button key={p.id} onClick={() => { next(p.id) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 22px', background: 'white', border: `2px solid var(--border)`, borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s, background 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = p.accent; e.currentTarget.style.background = p.bg }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'white' }}>
+                  <button key={p.id} onClick={() => next(p.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 18,
+                      padding: '18px 22px',
+                      background: 'white',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                      transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
+                      width: '100%',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = p.accent
+                      e.currentTarget.style.background = p.bg
+                      e.currentTarget.style.boxShadow = 'var(--shadow-xs)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'white'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}>
+                    {/* Accent dot */}
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: p.accent, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.01em' }}>{p.label}</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5, marginBottom: 12 }}>{p.desc}</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {p.features.map(f => (
-                          <span key={f} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: p.accent, background: p.bg, border: `1px solid ${p.border}`, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.04em' }}>{f}</span>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, letterSpacing: '-0.01em' }}>{p.label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, marginBottom: 10 }}>{p.desc}</div>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {p.pills.map(f => (
+                          <span key={f} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: p.accent, background: p.bg, border: `1px solid ${p.border}`, padding: '2px 7px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{f}</span>
                         ))}
                       </div>
                     </div>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* STEP 1: Detail */}
+          {/* STEP 1 — detalhe */}
           {step === 1 && profile && (
             <div>
               <div style={{ marginBottom: 32, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: currentProfile?.accent, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: currentProfile?.accent, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
                   {currentProfile?.label}
                 </div>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.02em' }}>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                   {profile === 'personal' ? 'Para quem é a medicação?'
                     : profile === 'caregiver' ? 'De quem cuidas principalmente?'
                     : profile === 'student' ? 'Que curso estás a fazer?'
-                    : 'Qual é a tua especialidade?'}
+                    : 'Qual é a tua função?'}
                 </h2>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)' }}>
-                  Isto ajuda-nos a personalizar as ferramentas e os exemplos.
+                <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6 }}>
+                  Isto personaliza os exemplos e sugestões do AI.
                 </p>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                 {subs.map(s => (
                   <button key={s.id} onClick={() => setSub(s.id)}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: sub === s.id ? currentProfile?.bg : 'white', border: `2px solid ${sub === s.id ? (currentProfile?.accent || 'var(--green)') : 'var(--border)'}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '14px 18px',
+                      background: sub === s.id ? currentProfile?.bg : 'white',
+                      border: `1.5px solid ${sub === s.id ? (currentProfile?.accent || 'var(--green)') : 'var(--border)'}`,
+                      borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                      transition: 'all 0.15s', width: '100%',
+                    }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{s.label}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{s.desc}</div>
                     </div>
                     {sub === s.id && (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentProfile?.accent} strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={currentProfile?.accent} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5"/></svg>
                     )}
                   </button>
                 ))}
               </div>
-              <button onClick={() => next()} disabled={!sub}
-                style={{ width: '100%', padding: '14px', background: sub ? 'var(--ink)' : 'var(--bg-3)', color: sub ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: sub ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'background 0.15s' }}>
-                Continuar →
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => { setStep(0); setSub(null); setProfile(null) }}
+                  style={{ padding: '13px 18px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>
+                  ← Voltar
+                </button>
+                <button onClick={() => next()} disabled={!sub}
+                  style={{ flex: 1, padding: '13px', background: sub ? (currentProfile?.accent || 'var(--ink)') : 'var(--bg-3)', color: sub ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: sub ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', textTransform: 'uppercase', transition: 'background 0.15s' }}>
+                  Continuar
+                </button>
+              </div>
             </div>
           )}
 
-          {/* STEP 2: Ready */}
+          {/* STEP 2 — pronto */}
           {step === 2 && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: currentProfile?.bg, border: `2px solid ${currentProfile?.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={currentProfile?.accent} strokeWidth="2" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+              {/* Check circle */}
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: currentProfile?.bg, border: `2px solid ${currentProfile?.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', animation: 'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards' }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={currentProfile?.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
               </div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, marginBottom: 14, letterSpacing: '-0.02em' }}>
+
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, marginBottom: 14, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 Pronto, {user?.name?.split(' ')[0] || 'bem-vindo'}!
               </h2>
-              <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 32, maxWidth: 400, margin: '0 auto 32px' }}>
+
+              <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 32, maxWidth: 400, margin: '0 auto 32px' }}>
                 {profile === 'personal'
-                  ? 'O teu espaço pessoal está pronto. Começa por adicionar os teus medicamentos e criar perfis familiares.'
+                  ? 'O teu espaço pessoal está configurado. Começa por adicionar os teus medicamentos.'
                   : profile === 'caregiver'
-                  ? 'O teu espaço de cuidador está pronto. Cria um perfil para cada familiar e regista a medicação de cada um.'
+                  ? 'O teu espaço de cuidador está pronto. Cria um perfil para cada familiar.'
                   : profile === 'student'
-                  ? 'O teu modo de estudo está configurado. O Phlox AI é o teu tutor — começa por fazer uma pergunta sobre farmacologia.'
-                  : 'O teu espaço clínico está pronto. Cria o primeiro perfil de doente e o co-piloto IA tem imediatamente contexto para ajudar.'
+                  ? 'Modo estudo activado. Entra na Arena ou faz uma pergunta ao AI Tutor.'
+                  : 'Espaço clínico pronto. Cria o primeiro doente e o co-piloto IA tem contexto imediato.'
                 }
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400, margin: '0 auto' }}>
-                {profile === 'personal' && [
-                  ['Adicionar a minha medicação', '/mymeds'],
-                  ['Verificar interações', '/interactions'],
-                  ['Perceber as minhas análises', '/labs'],
-                ].map(([label, href]) => (
-                  <button key={href} onClick={() => { finish(); }} style={{ padding: '13px', background: label.includes('medicação') ? 'var(--ink)' : 'white', color: label.includes('medicação') ? 'white' : 'var(--ink)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                    {label}
-                  </button>
-                ))}
-                {/* ─── NOVO: botões do Cuidador ─── */}
-                {profile === 'caregiver' && [
-                  ['Criar perfil familiar', '/perfis'],
-                  ['Verificar interações', '/interactions'],
-                  ['Perceber análises', '/labs'],
-                ].map(([label, href]) => (
-                  <button key={href} onClick={() => finish()} style={{ padding: '13px', background: label.includes('perfil') ? '#d97706' : 'white', color: label.includes('perfil') ? 'white' : 'var(--ink)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                    {label}
-                  </button>
-                ))}
-                {profile === 'student' && [
-                  ['Falar com o Phlox AI', '/ai'],
-                  ['Ver o meu progresso', '/dashboard'],
-                  ['Começar flashcards', '/study'],
-                ].map(([label, href]) => (
-                  <button key={href} onClick={() => finish()} style={{ padding: '13px', background: label.includes('AI') ? '#7c3aed' : 'white', color: label.includes('AI') ? 'white' : 'var(--ink)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                    {label}
-                  </button>
-                ))}
-                {profile === 'professional' && [
-                  ['Criar primeiro doente', '/dashboard?tab=patients'],
-                  ['Abrir co-piloto IA', '/ai'],
-                  ['Ver ferramentas clínicas', '/dashboard'],
-                ].map(([label, href]) => (
-                  <button key={href} onClick={() => finish()} style={{ padding: '13px', background: label.includes('doente') ? '#1d4ed8' : 'white', color: label.includes('doente') ? 'white' : 'var(--ink)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                    {label}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 380, margin: '0 auto' }}>
+                {finishActions.map(({ label, href, primary }) => (
+                  <button key={href}
+                    onClick={() => finish(href)}
+                    disabled={saving}
+                    style={{
+                      padding: '13px',
+                      background: primary ? (currentProfile?.accent || 'var(--ink)') : 'white',
+                      color: primary ? 'white' : 'var(--ink-2)',
+                      border: primary ? 'none' : '1.5px solid var(--border)',
+                      borderRadius: 9, fontSize: 14, fontWeight: primary ? 700 : 600,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em',
+                      transition: 'opacity 0.15s',
+                      opacity: saving ? 0.6 : 1,
+                    }}>
+                    {saving && primary ? 'A guardar...' : label}
                   </button>
                 ))}
               </div>
@@ -295,12 +339,18 @@ export default function OnboardingPage() {
 
         </div>
 
+        {/* Skip */}
         <div style={{ marginTop: 28, textAlign: 'center' }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
-            Saltar onboarding →
+          <button onClick={() => finish('/dashboard')}
+            style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+            Saltar e ir ao dashboard →
           </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   )
 }

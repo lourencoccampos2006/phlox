@@ -43,9 +43,9 @@ interface HotStreak {
 }
 
 const DOMAIN_META: Record<string, { label: string; icon: string; color: string }> = {
-  farmacologia:       { label: 'Farmacologia',      icon: '💊', color: '#0d6e42' },
+  farmacologia:       { label: 'Farmacologia',      icon: 'Rx', color: '#0d6e42' },
   medicina_interna:   { label: 'Medicina Interna',  icon: '🫀', color: '#dc2626' },
-  emergencia:         { label: 'Emergência',        icon: '🚨', color: '#b45309' },
+  emergencia:         { label: 'Emergência',        icon: 'Ur', color: '#b45309' },
   cirurgia:           { label: 'Cirurgia',          icon: '🔪', color: '#1d4ed8' },
   pediatria:          { label: 'Pediatria',         icon: '👶', color: '#7c3aed' },
   gineco_obstetricia: { label: 'Gineco-Obs',        icon: '🤰', color: '#be185d' },
@@ -70,7 +70,7 @@ function ErrorRateBar({ rate, myRate }: { rate: number; myRate?: number }) {
 }
 
 function InsightCard({ insight, isHighlighted }: { insight: HiveInsight; isHighlighted?: boolean }) {
-  const d = DOMAIN_META[insight.domain] || { label: insight.domain, icon: '🏥', color: '#374151' }
+  const d = DOMAIN_META[insight.domain] || { label: insight.domain, icon: '--', color: '#374151' }
   const diff = insight.my_rate !== undefined ? insight.my_rate - insight.error_rate : null
   const trendIcon = insight.trend === 'rising' ? '📈' : insight.trend === 'falling' ? '📉' : '➡️'
 
@@ -182,7 +182,7 @@ export default function HivePage() {
           const myRate = d.myTotal > 0 ? Math.round((d.myWrong / d.myTotal) * 100) : undefined
           return {
             topic, domain,
-            domain_icon: DOMAIN_META[domain]?.icon || '🏥',
+            domain_icon: DOMAIN_META[domain]?.icon || '--',
             error_rate: errorRate,
             total_attempts: d.total,
             difficulty_score: errorRate,
@@ -342,7 +342,7 @@ export default function HivePage() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {weakSpots.map((ws, i) => {
-                        const d = DOMAIN_META[ws.domain] || { label: ws.domain, icon: '🏥', color: '#374151' }
+                        const d = DOMAIN_META[ws.domain] || { label: ws.domain, icon: '--', color: '#374151' }
                         return (
                           <div key={i} style={{ background: 'white', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
                             <span style={{ fontSize: 24, flexShrink: 0 }}>{d.icon}</span>

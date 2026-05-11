@@ -108,7 +108,12 @@ export default function PatientsPage() {
 
         {!isPro ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-            <div style={{ fontSize: 32, marginBottom: 16 }}>🏥</div>
+            <div style={{ marginBottom: 16 }}>
+            <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="6" fill="#1d4ed8" opacity="0.12"/>
+              <path d="M14 6v16M7 14h14" stroke="#1d4ed8" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+          </div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 12 }}>Gestão de Doentes</div>
             <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 24 }}>
               Cria perfis clínicos para os teus doentes com medicação, diagnósticos e função renal. O Phlox AI responde com contexto real de cada doente.

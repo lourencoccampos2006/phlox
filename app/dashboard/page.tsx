@@ -32,28 +32,29 @@ function FamilyProfilesSection({ accentColor = 'var(--green)' }: { accentColor?:
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('family_profiles')
-      .select('id, name, relation, age')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
-      .then(async ({ data }) => {
-        const ps = data || []
-        setProfiles(ps)
-        // Contar meds por perfil
-        if (ps.length > 0) {
-          const { data: meds } = await supabase
-            .from('family_profile_meds')
-            .select('profile_id')
-            .eq('user_id', user.id)
-          const counts: Record<string, number> = {}
-          ;(meds || []).forEach((m: { profile_id: string }) => {
-            counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
-          })
-          setMedsCount(counts)
-        }
-        setLoading(false)
-      })
+    const loadProfiles = async () => {
+      const { data } = await supabase
+        .from('family_profiles')
+        .select('id, name, relation, age')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+      const ps = data || []
+      setProfiles(ps)
+      // Contar meds por perfil
+      if (ps.length > 0) {
+        const { data: meds } = await supabase
+          .from('family_profile_meds')
+          .select('profile_id')
+          .eq('user_id', user.id)
+        const counts: Record<string, number> = {}
+        ;(meds || []).forEach((m: { profile_id: string }) => {
+          counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
+        })
+        setMedsCount(counts)
+      }
+      setLoading(false)
+    }
+    loadProfiles().catch((_e: any) => setLoading(false))
   }, [user, supabase])
 
   if (loading) return <div className="skeleton" style={{ height: 80, borderRadius: 10, marginBottom: 16 }} />

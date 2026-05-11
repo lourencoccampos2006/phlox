@@ -43,7 +43,7 @@ const PLANS = [
     ],
   },
   {
-    id: 'pro', name: 'Pro', price: { monthly: '14,99€', annual: '11,99€' },
+    id: 'pro', name: 'Pro', price: { monthly: '12,99€', annual: '9,99€' },
     desc: 'Para profissionais individuais.',
     cta: 'Começar Pro', href: '/checkout?plan=pro', highlight: true,
     badge: 'Mais popular', badgeColor: '#0d6e42', color: '#0d6e42',
@@ -206,7 +206,7 @@ export default function PricingPage() {
             { q: 'Posso cancelar quando quiser?', a: 'Sim. Sem fidelização, sem períodos de aviso. Cancelas quando quiseres e mantens o acesso até ao fim do período pago.' },
             { q: 'O plano grátis fica sempre grátis?', a: 'Sim. O plano grátis inclui sempre o Tradutor de Bula, a Dose Pediátrica, e o Verificador de Interações. Sem prazo limite.' },
             { q: 'Como funciona o Institucional?', a: 'Um único pagamento por instituição, utilizadores ilimitados. Faturação centralizada. Onboarding dedicado. Contacta-nos para demo.' },
-            { q: 'Têm desconto para estudantes?', a: 'O plano Student é 3,99€/mês — o preço mais baixo possível para cobrir os custos de AI. Sem desconto adicional, mas podes pagar anualmente para ter 25% off.' },
+            { q: 'Têm desconto para estudantes?', a: 'O plano Student é 3,99€/mês — o preço mais baixo possível para cobrir os custos de AI. Sem desconto adicional, mas podes pagar anualmente para ter cerca de 25% de desconto.' },
           ].map(item => (
             <div key={item.q} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '18px 20px' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{item.q}</div>

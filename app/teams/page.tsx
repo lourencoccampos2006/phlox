@@ -33,19 +33,19 @@ interface Handover {
 
 const MSG_TYPE = {
   note:     { label: 'Nota',          icon: '📝', color: '#374151',  bg: 'var(--bg-2)',  border: 'var(--border)' },
-  alert:    { label: 'Alerta',         icon: '🚨', color: '#991b1b',  bg: '#fee2e2',      border: '#fca5a5' },
+  alert:    { label: 'Alerta',         icon: 'alert',    color: '#991b1b',  bg: '#fee2e2',      border: '#fca5a5' },
   handover: { label: 'Passagem',       icon: '🔄', color: '#1d4ed8',  bg: '#eff6ff',      border: '#bfdbfe' },
-  decision: { label: 'Decisão',        icon: '⚕️', color: '#0d6e42',  bg: '#f0fdf5',      border: '#bbf7d0' },
-  question: { label: 'Pergunta',       icon: '❓', color: '#7c3aed',  bg: '#faf5ff',      border: '#e9d5ff' },
+  decision: { label: 'Decisão',        icon: 'decision', color: '#0d6e42',  bg: '#f0fdf5',      border: '#bbf7d0' },
+  question: { label: 'Pergunta',       icon: 'question', color: '#7c3aed',  bg: '#faf5ff',      border: '#e9d5ff' },
   answer:   { label: 'Resposta',       icon: '💬', color: '#7c3aed',  bg: '#faf5ff',      border: '#e9d5ff' },
   vital:    { label: 'Parâmetro',      icon: '📊', color: '#0891b2',  bg: '#ecfeff',      border: '#a5f3fc' },
   task:     { label: 'Tarefa',         icon: '✅', color: '#65a30d',  bg: '#f7fee7',      border: '#d9f99d' },
 }
 
 const ROLE_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  'Médico':          { color: '#1d4ed8', bg: '#eff6ff', label: '⚕️ Médico' },
-  'Farmacêutico':    { color: '#0d6e42', bg: '#f0fdf5', label: '💊 Farmacêutico' },
-  'Enfermeiro':      { color: '#7c3aed', bg: '#faf5ff', label: '💉 Enfermeiro' },
+  'Médico':          { color: '#1d4ed8', bg: '#eff6ff', label: 'Médico' },
+  'Farmacêutico':    { color: '#0d6e42', bg: '#f0fdf5', label: 'Farmacêutico' },
+  'Enfermeiro':      { color: '#7c3aed', bg: '#faf5ff', label: 'Enfermeiro' },
   'Interno':         { color: '#d97706', bg: '#fffbeb', label: '🎓 Interno' },
   'Auxiliar':        { color: '#374151', bg: 'var(--bg-2)', label: '👤 Auxiliar' },
   'Fisioterapeuta':  { color: '#0891b2', bg: '#ecfeff', label: '🏃 Fisioterapeuta' },
@@ -140,11 +140,11 @@ function ComposeBar({ onSend, replyTo, onCancelReply }: {
 
   const QUICK_TYPES: { type: WardMessage['type']; icon: string; label: string }[] = [
     { type: 'note',     icon: '📝', label: 'Nota' },
-    { type: 'alert',    icon: '🚨', label: 'Alerta' },
-    { type: 'decision', icon: '⚕️', label: 'Decisão' },
+    { type: 'alert',    icon: 'alert',    label: 'Alerta' },
+    { type: 'decision', icon: 'decision', label: 'Decisão' },
     { type: 'vital',    icon: '📊', label: 'Parâmetro' },
     { type: 'task',     icon: '✅', label: 'Tarefa' },
-    { type: 'question', icon: '❓', label: 'Pergunta' },
+    { type: 'question', icon: 'question', label: 'Pergunta' },
   ]
 
   const handleSend = async () => {
@@ -455,7 +455,12 @@ export default function WardPage() {
       <Header />
       <div className="page-container page-body" style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 28px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 14 }}>🏥</div>
+          <div style={{ marginBottom: 16 }}>
+            <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="6" fill="#1d4ed8" opacity="0.1"/>
+              <path d="M14 6v16M7 14h14" stroke="#1d4ed8" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+          </div>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 12 }}>Phlox Ward</div>
           <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 24 }}>
             Ficha clínica colaborativa multi-utilizador. A equipa inteira colabora no mesmo doente — notas, alertas, decisões, passagem de turno. Pro e Institucional.
@@ -549,7 +554,12 @@ export default function WardPage() {
           {!selectedPatient ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--ink-4)' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🏥</div>
+                <div style={{ marginBottom: 10 }}>
+                  <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
+                    <rect width="28" height="28" rx="6" fill="#1d4ed8" opacity="0.1"/>
+                    <path d="M14 6v16M7 14h14" stroke="#1d4ed8" strokeWidth="2.2" strokeLinecap="round"/>
+                  </svg>
+                </div>
                 <div style={{ fontSize: 14 }}>Selecciona um doente</div>
               </div>
             </div>

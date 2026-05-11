@@ -95,7 +95,7 @@ export default function QuickCheckPage() {
             <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: 4, gap: 4 }}>
               {([
                 { id: 'simple', label: '🧑 Linguagem simples', desc: 'Para doentes e familiares' },
-                { id: 'technical', label: '⚕️ Técnico', desc: 'Para profissionais de saúde' },
+                { id: 'technical', label: 'Técnico', desc: 'Para profissionais de saúde' },
               ] as const).map(({ id, label, desc }) => (
                 <button key={id} onClick={() => setMode(id)}
                   style={{ background: mode === id ? 'var(--green)' : 'transparent', color: mode === id ? 'white' : 'var(--ink-3)', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -242,7 +242,7 @@ export default function QuickCheckPage() {
               )}
 
               <div style={{ padding: '12px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
-                ⚕️ Análise gerada por IA com base em dados RxNorm/NIH. Informação educacional — confirma sempre com o teu médico ou farmacêutico.
+                Análise gerada por IA com base em dados RxNorm/NIH. Informação educacional — confirma sempre com o teu médico ou farmacêutico.
               </div>
             </div>
           )}

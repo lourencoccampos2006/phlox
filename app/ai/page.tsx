@@ -87,7 +87,7 @@ function UpgradeGate() {
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
       <div style={{ maxWidth: 480, textAlign: 'center' }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-light)', border: '2px solid var(--green-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 32 }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--green-light)', border: '2px solid var(--green-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
           🧠
         </div>
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
@@ -101,14 +101,14 @@ function UpgradeGate() {
         </p>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', marginBottom: 28, textAlign: 'left' }}>
           {[
-            { icon: '💬', text: 'Chat conversacional com memória do teu doente' },
-            { icon: '🔍', text: 'Raciocínio clínico transparente — vês como pensa' },
-            { icon: '💊', text: 'Integrado com os teus medicamentos pessoais' },
-            { icon: '👨‍👩‍👧', text: 'Suporte a perfis familiares — consulta para qualquer familiar' },
-            { icon: '🏥', text: 'Respostas ao nível de um farmacologista clínico' },
-          ].map(({ icon, text }) => (
-            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+            { text: 'Chat conversacional com memória do teu doente' },
+            { text: 'Raciocínio clínico transparente — vês como pensa' },
+            { text: 'Integrado com os teus medicamentos pessoais' },
+            { text: 'Suporte a perfis familiares — consulta para qualquer familiar' },
+            { text: 'Respostas ao nível de um farmacologista clínico' },
+          ].map(({ text }) => (
+            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
               <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>{text}</span>
             </div>
           ))}
@@ -144,8 +144,8 @@ function MessageBubble({ msg }: { msg: Message }) {
 
   return (
     <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-start' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, marginTop: 2 }}>
-        ⚕
+      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         {msg.thinking && (
@@ -199,7 +199,9 @@ function MessageBubble({ msg }: { msg: Message }) {
 function TypingIndicator() {
   return (
     <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-start' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>⚕</div>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
+      </div>
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 16px 16px 16px', padding: '14px 16px', display: 'flex', gap: 5, alignItems: 'center' }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />
@@ -518,7 +520,12 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', minHeight: 0 }}>
             {messages.length === 0 && ctxLoaded && (
               <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>⚕️</div>
+                <div style={{ marginBottom: 16 }}>
+                  <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+                    <rect width="28" height="28" rx="6" fill="var(--green)" opacity="0.15"/>
+                    <path d="M14 6v16M7 14h14" stroke="var(--green)" strokeWidth="2.2" strokeLinecap="round"/>
+                  </svg>
+                </div>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-2)', marginBottom: 20 }}>Como posso ajudar?</div>
                 <div className="card-grid-2" style={{ gap: 8, textAlign: 'left', maxWidth: 600, margin: '0 auto' }}>
                   {suggestionsToShow.map(p => (

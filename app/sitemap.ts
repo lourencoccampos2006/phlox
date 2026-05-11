@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox.health'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-pi.vercel.app'
 
 const TOP_DRUGS = [
   'ibuprofen','acetaminophen','aspirin','naproxen','diclofenac','meloxicam',
@@ -69,6 +69,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/about`,                       lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE_URL}/privacy`,                     lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${BASE_URL}/terms`,                       lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
+    { url: \`\${BASE_URL}/bula\`,                         lastModified: now, changeFrequency: 'weekly',  priority: 0.95 },
+    { url: \`\${BASE_URL}/dose-crianca\`,                 lastModified: now, changeFrequency: 'weekly',  priority: 0.95 },
+    { url: \`\${BASE_URL}/blog/dose-paracetamol-crianca\`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: \`\${BASE_URL}/institucional\`,                lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
   ]
 
   const interactionPages: MetadataRoute.Sitemap = INTERACTION_PAIRS.map(pair => ({

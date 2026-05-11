@@ -7,9 +7,9 @@ import { useAuth } from '@/components/AuthContext'
 
 // ─── Domínios de casos — todos os cursos de saúde ─────────────────────────────
 const DOMAINS = [
-  { id: 'farmacologia',       label: 'Farmacologia Clínica', icon: '💊', color: '#0d6e42' },
-  { id: 'medicina_interna',   label: 'Medicina Interna',     icon: '🫀', color: '#dc2626' },
-  { id: 'emergencia',         label: 'Emergência',           icon: '🚨', color: '#b45309' },
+  { id: 'farmacologia',       label: 'Farmacologia Clínica', icon: 'Rx', color: '#0d6e42' },
+  { id: 'medicina_interna',   label: 'Medicina Interna',     icon: 'Mi', color: '#dc2626' },
+  { id: 'emergencia',         label: 'Emergência',           icon: 'Ur', color: '#b45309' },
   { id: 'cirurgia',           label: 'Cirurgia',             icon: '🔪', color: '#1d4ed8' },
   { id: 'pediatria',          label: 'Pediatria',            icon: '👶', color: '#7c3aed' },
   { id: 'gineco_obstetricia', label: 'Gineco-Obstetrícia',   icon: '🤰', color: '#be185d' },

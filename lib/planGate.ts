@@ -1,28 +1,42 @@
 // lib/planGate.ts
 // Verifica o plano do utilizador nas API routes
-// Supabase guarda o token em cookies com o nome sb-<project-ref>-auth-token
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export type Plan = 'free' | 'student' | 'pro' | 'clinic'
 
-export function planGateResponse(feature: string, currentPlan: Plan | string): NextResponse {
-  const isPro = feature === 'protocol'
+// ─── Mensagens de upgrade por plano requerido ─────────────────────────────────
+const UPGRADE_MESSAGES: Record<Plan, string> = {
+  free:    'Esta funcionalidade está disponível no plano Grátis.',
+  student: 'Esta funcionalidade requer o plano Student (3,99€/mês).',
+  pro:     'Esta funcionalidade requer o plano Pro (12,99€/mês).',
+  clinic:  'Esta funcionalidade requer o plano Institucional.',
+}
+
+// ─── planGateResponse ─────────────────────────────────────────────────────────
+// requiredPlan: plano mínimo necessário para aceder à feature
+// featureName: nome legível da feature (para a mensagem de erro)
+export function planGateResponse(requiredPlan: Plan, featureName: string): NextResponse {
   return NextResponse.json({
-    error: isPro
-      ? 'Esta funcionalidade requer o plano Pro (12,99€/mês).'
-      : 'Esta funcionalidade requer o plano Student (3,99€/mês).',
+    error: `${featureName} requer o plano ${
+      requiredPlan === 'student' ? 'Student (3,99€/mês)' :
+      requiredPlan === 'pro'     ? 'Pro (12,99€/mês)' :
+      requiredPlan === 'clinic'  ? 'Institucional (89€/mês)' :
+      requiredPlan
+    }.`,
     upgrade_required: true,
-    required_plan: isPro ? 'pro' : 'student',
-    current_plan: currentPlan,
+    required_plan: requiredPlan,
     upgrade_url: '/pricing',
   }, { status: 403 })
 }
 
+// ─── limitReachedResponse ─────────────────────────────────────────────────────
 export function limitReachedResponse(feature: string, limit: number, plan: string): NextResponse {
   return NextResponse.json({
-    error: `Limite diário atingido (${limit}/dia no plano ${plan === 'free' ? 'Gratuito' : plan}). Faz upgrade para continuar.`,
+    error: `Limite diário atingido (${limit}/dia no plano ${
+      plan === 'free' ? 'Gratuito' : plan.charAt(0).toUpperCase() + plan.slice(1)
+    }). Faz upgrade para continuar sem limites.`,
     limit_reached: true,
     daily_limit: limit,
     current_plan: plan,
@@ -30,6 +44,7 @@ export function limitReachedResponse(feature: string, limit: number, plan: strin
   }, { status: 429 })
 }
 
+// ─── extractToken ─────────────────────────────────────────────────────────────
 function extractToken(req: NextRequest): string | null {
   const authHeader = req.headers.get('authorization')
   if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7)
@@ -52,12 +67,13 @@ function extractToken(req: NextRequest): string | null {
         const parsed = JSON.parse(decoded)
         if (Array.isArray(parsed) && parsed[0]) return parsed[0]
         if (parsed?.access_token) return parsed.access_token
-      } catch { }
+      } catch (_e: any) { /* continue */ }
     }
   }
   return null
 }
 
+// ─── getUserPlan ──────────────────────────────────────────────────────────────
 export async function getUserPlan(req: NextRequest): Promise<{ userId: string | null; plan: Plan }> {
   try {
     const token = extractToken(req)
@@ -70,6 +86,7 @@ export async function getUserPlan(req: NextRequest): Promise<{ userId: string | 
     const userId = payload.sub
     if (!userId) return { userId: null, plan: 'free' }
 
+    // Token expirado
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       return { userId: null, plan: 'free' }
     }
@@ -93,4 +110,12 @@ export async function getUserPlan(req: NextRequest): Promise<{ userId: string | 
     console.error('getUserPlan error:', err)
     return { userId: null, plan: 'free' }
   }
+}
+
+// ─── isPlanSufficient ─────────────────────────────────────────────────────────
+// Verifica se o plano actual é suficiente para o plano requerido
+const PLAN_RANK: Record<Plan, number> = { free: 0, student: 1, pro: 2, clinic: 3 }
+
+export function isPlanSufficient(currentPlan: Plan, requiredPlan: Plan): boolean {
+  return PLAN_RANK[currentPlan] >= PLAN_RANK[requiredPlan]
 }

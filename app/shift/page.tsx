@@ -56,24 +56,24 @@ interface ShiftResult {
 
 const SPECIALTIES = [
   // Medicina
-  { id: 'cardiology',      label: 'Cardiologia',      desc: 'HTA, IC, arritmias, SCA', icon: '🫀' },
+  { id: 'cardiology',      label: 'Cardiologia',      desc: 'HTA, IC, arritmias, SCA', icon: 'Ca' },
   { id: 'endocrinology',   label: 'Endocrinologia',   desc: 'DM, tiróide, dislipidemia', icon: '⚗️' },
   { id: 'infectious',      label: 'Infecciologia',    desc: 'Antibioterapia, pneumonias, ITU', icon: '🦠' },
-  { id: 'neurology',       label: 'Neurologia',       desc: 'Epilepsia, Parkinson, AVC', icon: '🧠' },
+  { id: 'neurology',       label: 'Neurologia',       desc: 'Epilepsia, Parkinson, AVC', icon: 'Ne' },
   { id: 'nephrology',      label: 'Nefrologia',       desc: 'DRC, distúrbios hidroelectrolíticos', icon: '🫘' },
   { id: 'pulmonology',     label: 'Pneumologia',      desc: 'DPOC, asma, pneumonias', icon: '🫁' },
   { id: 'gastro',          label: 'Gastrenterologia', desc: 'DII, cirrose, pancreatite', icon: '🧫' },
   // Urgência e Cirurgia
-  { id: 'emergency',       label: 'Urgência',         desc: 'Algoritmos ABCDE, choque, PCR', icon: '🚨' },
-  { id: 'surgery',         label: 'Cirurgia',         desc: 'Abdómen agudo, peri-op', icon: '🔪' },
+  { id: 'emergency',       label: 'Urgência',         desc: 'Algoritmos ABCDE, choque, PCR', icon: 'Ur' },
+  { id: 'surgery',         label: 'Cirurgia',         desc: 'Abdómen agudo, peri-op', icon: 'Cx' },
   // Outras especialidades
-  { id: 'pediatrics',      label: 'Pediatria',        desc: 'Especificidades pediátricas', icon: '👶' },
+  { id: 'pediatrics',      label: 'Pediatria',        desc: 'Especificidades pediátricas', icon: 'Pe' },
   { id: 'obstetrics',      label: 'Obstetrícia',      desc: 'Gravidez, complicações, parto', icon: '🤰' },
-  { id: 'psychiatry',      label: 'Psiquiatria',      desc: 'Depressão, bipolar, ansiedade', icon: '💊' },
+  { id: 'psychiatry',      label: 'Psiquiatria',      desc: 'Depressão, bipolar, ansiedade', icon: 'Ps' },
   { id: 'geriatrics',      label: 'Geriatria',        desc: 'Polimedicação, critérios Beers', icon: '👴' },
-  { id: 'nursing',         label: 'Enfermagem',       desc: 'Avaliação, técnicas, escalas', icon: '💉' },
-  { id: 'pharmacy',        label: 'Farmácia Clínica', desc: 'Revisão, reconciliação, PCNE', icon: '⚕️' },
-  { id: 'mixed',           label: 'Misto',            desc: 'Várias especialidades — mais difícil', icon: '🏥' },
+  { id: 'nursing',         label: 'Enfermagem',       desc: 'Avaliação, técnicas, escalas', icon: 'En' },
+  { id: 'pharmacy',        label: 'Farmácia Clínica', desc: 'Revisão, reconciliação, PCNE', icon: 'Rx' },
+  { id: 'mixed',           label: 'Misto',            desc: 'Várias especialidades — mais difícil', icon: 'Mi' },
 ]
 
 const DIFFICULTIES = [

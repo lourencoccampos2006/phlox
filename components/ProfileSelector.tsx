@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import { getActiveProfile, setActiveProfile, ActiveProfile } from '@/lib/profileContext'
+import { getActiveProfile, setActiveProfile, ActiveProfile } from '../lib/profileContext'
 
 interface FamilyProfile {
   id: string

@@ -18,7 +18,7 @@ interface Alert {
 }
 
 const SEV = {
-  grave:    { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', dot:'#dc2626', label:'GRAVE',    icon:'🚨' },
+  grave:    { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', dot:'#dc2626', label:'GRAVE',    icon:'grave' },
   moderada: { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', dot:'#d97706', label:'MODERADA', icon:'⚠️' },
   info:     { bg:'#eff6ff', border:'#bfdbfe', color:'#1d4ed8', dot:'#3b82f6', label:'INFO',     icon:'ℹ️' },
 }
@@ -215,7 +215,7 @@ export default function MyMedsPage() {
                   return (
                     <div key={med.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom:i<meds.length-1?'1px solid var(--bg-3)':'none' }}>
                       <div style={{ width:36, height:36, borderRadius:'50%', background:hasGrave?'#fee2e2':'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
-                        💊
+                        
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>

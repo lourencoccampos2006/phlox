@@ -22,10 +22,10 @@ interface Alert {
 interface WatchedMed { id: string; name: string; profile: string }
 
 const SEV = {
-  critical: { label:'CRÍTICO', bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', dot:'#dc2626', icon:'🚨' },
-  high:     { label:'ALTO',    bg:'#fef9c3', border:'#fde68a', color:'#854d0e', dot:'#d97706', icon:'⚠️' },
-  medium:   { label:'MÉDIO',   bg:'#eff6ff', border:'#bfdbfe', color:'#1d4ed8', dot:'#3b82f6', icon:'📋' },
-  low:      { label:'INFO',    bg:'#f0fdf5', border:'#bbf7d0', color:'#14532d', dot:'#16a34a', icon:'ℹ️' },
+  critical: { label:'CRÍTICO', bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', dot:'#dc2626', icon:'critical' },
+  high:     { label:'ALTO',    bg:'#fef9c3', border:'#fde68a', color:'#854d0e', dot:'#d97706', icon:'high' },
+  medium:   { label:'MÉDIO',   bg:'#eff6ff', border:'#bfdbfe', color:'#1d4ed8', dot:'#3b82f6', icon:'medium' },
+  low:      { label:'INFO',    bg:'#f0fdf5', border:'#bbf7d0', color:'#14532d', dot:'#16a34a', icon:'low' },
 }
 const TYPE = {
   fda_recall:      { label:'Retirada FDA',      icon:'🇺🇸' },

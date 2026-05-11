@@ -3,8 +3,8 @@
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
-import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
-import { ROUTE_GROUPS, MODE_META, type ExperienceMode } from '@/lib/experienceMode'
+import { getActiveProfile, type ActiveProfile } from '../lib/profileContext'
+import { ROUTE_GROUPS, MODE_META, type ExperienceMode } from '../lib/experienceMode'
 
 // ─── Mega menu ─────────────────────────────────────────────────────────────────
 

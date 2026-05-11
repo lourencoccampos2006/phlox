@@ -13,15 +13,15 @@ const EXAM_CONFIGS = [
 ]
 
 const ALL_DOMAINS = [
-  { id: 'farmacologia',       label: 'Farmacologia Clínica', icon: '💊', color: '#0d6e42',
+  { id: 'farmacologia',       label: 'Farmacologia Clínica', icon: 'Rx', color: '#0d6e42',
     topics: ['Beta-bloqueadores','IECA / ARA-II','Estatinas','Anticoagulantes','Antidiabéticos orais','Antibióticos Beta-lactâmicos','Opióides','Benzodiazepinas','ISRS / IRSN'] },
-  { id: 'medicina_interna',   label: 'Medicina Interna',     icon: '🫀', color: '#dc2626',
+  { id: 'medicina_interna',   label: 'Medicina Interna',     icon: 'Mi', color: '#dc2626',
     topics: ['Insuficiência Cardíaca','Fibrilhação Auricular','DM Tipo 2','Hipertensão','DPOC','Pneumonia'] },
-  { id: 'emergencia',         label: 'Emergência',           icon: '🚨', color: '#b45309',
+  { id: 'emergencia',         label: 'Emergência',           icon: 'Ur', color: '#b45309',
     topics: ['Paragem Cardiorrespiratória','Choque Séptico','AVC Isquémico','Choque Anafilático'] },
-  { id: 'cirurgia',           label: 'Cirurgia',             icon: '🔪', color: '#1d4ed8',
+  { id: 'cirurgia',           label: 'Cirurgia',             icon: 'Cx', color: '#1d4ed8',
     topics: ['Apendicite Aguda','Oclusão Intestinal','Peri-operatório'] },
-  { id: 'pediatria',          label: 'Pediatria',            icon: '👶', color: '#7c3aed',
+  { id: 'pediatria',          label: 'Pediatria',            icon: 'Pe', color: '#7c3aed',
     topics: ['Febre Pediátrica','Asma Pediátrica','Antibioterapia Pediátrica'] },
 ]
 const ALL_CLASSES = ALL_DOMAINS.flatMap(d => d.topics)

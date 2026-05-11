@@ -32,11 +32,11 @@ interface MyStats {
 // ─── League system ────────────────────────────────────────────────────────────
 
 const LEAGUES = [
-  { id:'bronze',   label:'Bronze',   icon:'🥉', color:'#92400e', bg:'#fef3c7', border:'#fde68a', min:0,    desc:'A tua jornada começa aqui' },
-  { id:'silver',   label:'Prata',    icon:'🥈', color:'#6b7280', bg:'#f3f4f6', border:'#d1d5db', min:200,  desc:'Base sólida de conhecimento' },
-  { id:'gold',     label:'Ouro',     icon:'🥇', color:'#d97706', bg:'#fffbeb', border:'#fde68a', min:500,  desc:'Raciocínio clínico consistente' },
-  { id:'platinum', label:'Platina',  icon:'💎', color:'#0891b2', bg:'#ecfeff', border:'#a5f3fc', min:1000, desc:'Diagnóstico diferencial avançado' },
-  { id:'diamond',  label:'Diamante', icon:'🔷', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff', min:2000, desc:'Nível de especialista' },
+  { id:'bronze',   label:'Bronze',   icon:'B',  color:'#92400e', bg:'#fef3c7', border:'#fde68a', min:0,    desc:'A tua jornada começa aqui' },
+  { id:'silver',   label:'Prata',    icon:'P',  color:'#6b7280', bg:'#f3f4f6', border:'#d1d5db', min:200,  desc:'Base sólida de conhecimento' },
+  { id:'gold',     label:'Ouro',     icon:'O',  color:'#d97706', bg:'#fffbeb', border:'#fde68a', min:500,  desc:'Raciocínio clínico consistente' },
+  { id:'platinum', label:'Platina',  icon:'Pt', color:'#0891b2', bg:'#ecfeff', border:'#a5f3fc', min:1000, desc:'Diagnóstico diferencial avançado' },
+  { id:'diamond',  label:'Diamante', icon:'D',  color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff', min:2000, desc:'Nível de especialista' },
 ]
 const DIFF = {
   facil:        { label:'Fácil',        color:'#0d6e42', bg:'#d1fae5', xp:10,  time:60  },
@@ -45,14 +45,14 @@ const DIFF = {
   especialista: { label:'Especialista', color:'#7c3aed', bg:'#faf5ff', xp:50,  time:150 },
 }
 const DOMAINS = [
-  { id:'all',                label:'Todas',        icon:'🏥' },
-  { id:'farmacologia',       label:'Farmacologia', icon:'💊' },
-  { id:'medicina_interna',   label:'Medicina',     icon:'🫀' },
-  { id:'emergencia',         label:'Emergência',   icon:'🚨' },
-  { id:'cirurgia',           label:'Cirurgia',     icon:'🔪' },
-  { id:'pediatria',          label:'Pediatria',    icon:'👶' },
-  { id:'enfermagem',         label:'Enfermagem',   icon:'💉' },
-  { id:'nutricao',           label:'Nutrição',     icon:'🥗' },
+  { id:'all',                label:'Todas',        icon:'Td' },
+  { id:'farmacologia',       label:'Farmacologia', icon:'Rx' },
+  { id:'medicina_interna',   label:'Medicina',     icon:'Mi' },
+  { id:'emergencia',         label:'Emergência',   icon:'Ur' },
+  { id:'cirurgia',           label:'Cirurgia',     icon:'Cx' },
+  { id:'pediatria',          label:'Pediatria',    icon:'Pe' },
+  { id:'enfermagem',         label:'Enfermagem',   icon:'En' },
+  { id:'nutricao',           label:'Nutrição',     icon:'Nu' },
 ]
 
 function getLeague(xp: number) {

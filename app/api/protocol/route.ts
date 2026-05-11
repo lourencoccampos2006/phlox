@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const { plan } = await getUserPlan(req)
-  if (plan === 'free' || plan === 'student') return planGateResponse('protocol', plan)
+  if (plan === 'free' || plan === 'student') return planGateResponse('pro', 'Protocolo Terapêutico')
 
   const body = await req.json().catch(() => null)
   if (!body?.patient) return NextResponse.json({ error: 'Contexto do doente obrigatório' }, { status: 400 })
