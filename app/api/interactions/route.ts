@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
 
-// Persistent cache using module-level Map (survives within same Worker instance)
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 24 // 24h
 
-// Rate limiting per IP
 const rateLimitMap = new Map<string, { count: number; reset: number }>()
-const RATE_LIMIT = 20
+const RATE_LIMIT = 25
 const RATE_WINDOW = 60 * 1000
 
 const PT_TO_EN: Record<string, string> = {
@@ -34,10 +32,37 @@ const PT_TO_EN: Record<string, string> = {
   'erva de são joão': 'hypericum perforatum', 'alho': 'garlic', 'álcool': 'alcohol',
   'cafeína': 'caffeine', 'toranja': 'grapefruit', 'magnésio': 'magnesium',
   'vitamina k': 'vitamin k', 'vitamina d': 'vitamin d',
+  'esomeprazol': 'esomeprazole', 'rabeprazol': 'rabeprazole', 'venlafaxina': 'venlafaxine',
+  'duloxetina': 'duloxetine', 'paroxetina': 'paroxetine', 'escitalopram': 'escitalopram',
+  'citalopram': 'citalopram', 'mirtazapina': 'mirtazapine', 'bupropion': 'bupropion',
+  'clonazepam': 'clonazepam', 'zolpidem': 'zolpidem', 'melatonina': 'melatonin',
+  'metildopa': 'methyldopa', 'hidralazina': 'hydralazine', 'nifedipina': 'nifedipine',
+  'verapamilo': 'verapamil', 'diltiazem': 'diltiazem', 'propranolol': 'propranolol',
+  'carvedilol': 'carvedilol', 'nebivolol': 'nebivolol', 'perindopril': 'perindopril',
+  'enalapril': 'enalapril', 'losartan': 'losartan', 'valsartan': 'valsartan',
+  'telmisartan': 'telmisartan', 'irbesartan': 'irbesartan', 'candesartan': 'candesartan',
+  'sacubitril': 'sacubitril', 'empagliflozina': 'empagliflozin', 'dapagliflozina': 'dapagliflozin',
+  'sitagliptina': 'sitagliptin', 'liraglutido': 'liraglutide', 'semaglutido': 'semaglutide',
+  'glibenclamida': 'glibenclamide', 'glimepirida': 'glimepiride', 'pioglitazona': 'pioglitazone',
+  'fenofibrato': 'fenofibrate', 'ezetimibe': 'ezetimibe', 'colestipol': 'colestipol',
+  'alopurinol': 'allopurinol', 'febuxostate': 'febuxostat', 'colchicina': 'colchicine',
+  'metotrexato': 'methotrexate', 'hidroxicloroquina': 'hydroxychloroquine',
+  'leflunomida': 'leflunomide', 'sulfassalazina': 'sulfasalazine',
+  'fluconazol': 'fluconazole', 'itraconazol': 'itraconazole', 'voriconazol': 'voriconazole',
+  'aciclovir': 'acyclovir', 'valaciclovir': 'valacyclovir', 'oseltamivir': 'oseltamivir',
+  'cotrimoxazol': 'trimethoprim-sulfamethoxazole', 'doxiciclina': 'doxycycline',
+  'tetraciclina': 'tetracycline', 'clindamicina': 'clindamycin', 'vancomicina': 'vancomycin',
+  'gentamicina': 'gentamicin', 'amicacina': 'amikacin', 'linezolide': 'linezolid',
+  'meropenem': 'meropenem', 'imipenem': 'imipenem', 'piperacilina': 'piperacillin',
+  'ceftriaxona': 'ceftriaxone', 'cefuroxima': 'cefuroxime', 'cefalexina': 'cephalexin',
+  'amoxicilina-clavulanato': 'amoxicillin-clavulanate', 'nitrofurantoína': 'nitrofurantoin',
+  'fosfomicina': 'fosfomycin', 'rivastignina': 'rivastigmine', 'donepezilo': 'donepezil',
+  'memantina': 'memantine', 'levodopa': 'levodopa', 'pramipexole': 'pramipexole',
+  'ropinirol': 'ropinirole', 'rasagilina': 'rasagiline', 'selegilina': 'selegiline',
 }
 
 function sanitize(s: string): string {
-  return s.replace(/[<>'\";&\\\\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100)
+  return s.replace(/[<>'";&\\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100)
 }
 
 function translate(drug: string): string {
@@ -51,10 +76,7 @@ function getIP(req: NextRequest): string {
 function checkRateLimit(ip: string): boolean {
   const now = Date.now()
   const record = rateLimitMap.get(ip)
-  if (!record || now > record.reset) {
-    rateLimitMap.set(ip, { count: 1, reset: now + RATE_WINDOW })
-    return true
-  }
+  if (!record || now > record.reset) { rateLimitMap.set(ip, { count: 1, reset: now + RATE_WINDOW }); return true }
   if (record.count >= RATE_LIMIT) return false
   record.count++
   return true
@@ -71,7 +93,7 @@ async function normalizeRxNorm(drug: string): Promise<{ rxcui: string; name: str
       const data = await res.json()
       const rxcui = data?.idGroup?.rxnormId?.[0] || data?.approximateGroup?.candidate?.[0]?.rxcui
       if (rxcui) return { rxcui, name: data?.approximateGroup?.candidate?.[0]?.name || name }
-    } catch { }
+    } catch (_e: any) { }
   }
   return null
 }
@@ -87,7 +109,7 @@ async function rxnormInteractions(rxcuis: string[]): Promise<any[]> {
         for (const p of t.interactionPair || [])
           out.push({ severity: p.severity || 'unknown', description: p.description || '' })
     return out
-  } catch { return [] }
+  } catch (_e: any) { return [] }
 }
 
 function mapSev(s: string) {
@@ -98,17 +120,48 @@ function mapSev(s: string) {
   return 'SEM_INTERACAO'
 }
 
+// ─── AI Analysis — muito mais rica que antes ─────────────────────────────────
 async function aiAnalysis(drugs: string[]): Promise<any> {
   return aiJSON([
     {
       role: 'system',
-      content: 'Farmacologista clínico. Responde APENAS com JSON válido sem markdown: {"severity":"GRAVE"|"MODERADA"|"LIGEIRA"|"SEM_INTERACAO","summary":"1-2 frases PT","mechanism":"mecanismo PT","consequences":"consequências PT","recommendation":"recomendação PT","monitor":["param"],"onset":"início esperado"}',
+      content: `És um farmacologista clínico especialista em interações medicamentosas. Analisas combinações de fármacos com rigor clínico e respondes em português europeu (PT-PT).
+
+Responde APENAS com JSON válido sem markdown:
+{
+  "severity": "GRAVE"|"MODERADA"|"LIGEIRA"|"SEM_INTERACAO",
+  "summary": "descrição clara da interação principal em 1-2 frases",
+  "mechanism": "mecanismo farmacológico detalhado (ex: inibição do CYP3A4, efeito aditivo sobre QT, competição de ligação à albumina)",
+  "cyp450": {
+    "involved": true|false,
+    "enzymes": ["CYP3A4", "CYP2C9"],
+    "type": "inibição"|"indução"|"substrato"|null,
+    "clinical_relevance": "descrição clínica se envolvido"
+  },
+  "consequences": "consequências clínicas concretas — o que pode acontecer ao doente",
+  "onset": "início esperado da interação (ex: 'Imediata', '2-5 dias', '1-2 semanas')",
+  "risk_factors": ["factor que aumenta o risco (ex: 'Insuficiência renal', 'Idade > 65 anos', 'Dose elevada')"],
+  "recommendation": "recomendação clínica concreta e accionável",
+  "alternatives": ["alternativa terapêutica segura se aplicável"],
+  "monitor": ["parâmetro a monitorizar (ex: 'INR semanalmente', 'Creatinina', 'ECG — intervalo QTc')"],
+  "patient_info": "explicação simples para o doente em linguagem acessível (sem jargão técnico)",
+  "references": ["guideline ou fonte de suporte (ex: 'FDA Drug Interaction Database', 'INFARMED', 'Lexicomp')"]
+}
+
+Regras:
+- GRAVE: combinações que causam toxicidade séria, morte, ou são contra-indicadas (ex: ISRS + IMAO, varfarina + AINEs, estatinas + fibratos)
+- MODERADA: requerem monitorização apertada ou ajuste de dose
+- LIGEIRA: relevância clínica baixa mas documentada
+- SEM_INTERACAO: não há interação clinicamente relevante conhecida
+- Cita mecanismos CYP450 quando relevantes (é o que os profissionais mais precisam)
+- Alternativas devem ser concretas (nome do fármaco)
+- patient_info deve ser em linguagem simples mesmo para GRAVE`,
     },
     {
       role: 'user',
-      content: `Interações entre: ${drugs.join(', ')}`,
+      content: `Analisa as interações medicamentosas entre: ${drugs.join(', ')}`,
     },
-  ], { maxTokens: 700, temperature: 0.1 })
+  ], { maxTokens: 1200, temperature: 0.05 })
 }
 
 export async function POST(req: NextRequest) {
@@ -122,9 +175,7 @@ export async function POST(req: NextRequest) {
   // ── IMAGE MODE: identify drugs from photo ────────────────────────────────
   if (body?.image) {
     const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) {
-      return NextResponse.json({ error: 'GEMINI_API_KEY não configurado no Cloudflare.' }, { status: 503 })
-    }
+    if (!geminiKey) return NextResponse.json({ error: 'Serviço de visão não configurado.' }, { status: 503 })
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -132,13 +183,10 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [
-                { text: 'List all medication names visible in this image. Return ONLY a JSON object, no markdown, no explanation: {"drugs": ["name1", "name2"]}. Use generic/INN names in English if possible.' },
-                { inline_data: { mime_type: body.mimeType || 'image/jpeg', data: body.image } }
-              ]
-            }],
+            contents: [{ role: 'user', parts: [
+              { text: 'List all medication names visible in this image. Return ONLY a JSON object, no markdown: {"drugs": ["name1", "name2"]}. Use INN/generic names in Portuguese when possible.' },
+              { inline_data: { mime_type: body.mimeType || 'image/jpeg', data: body.image } }
+            ]}],
             generationConfig: { maxOutputTokens: 200, temperature: 0.0 }
           })
         }
@@ -154,7 +202,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── TEXT MODE: normal drug interaction check ──────────────────────────────
+  // ── TEXT MODE ──────────────────────────────────────────────────────────────
   if (!body?.drugs || !Array.isArray(body.drugs)) {
     return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 })
   }
@@ -171,48 +219,98 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const normalized = (await Promise.allSettled(drugs.map(normalizeRxNorm)))
-      .filter(r => r.status === 'fulfilled' && r.value).map(r => (r as any).value)
-    const rxcuis = normalized.map((d: any) => d.rxcui)
+    // Corre RxNorm + AI em paralelo para velocidade
+    const [normalizedResult, aiResult] = await Promise.allSettled([
+      Promise.allSettled(drugs.map(normalizeRxNorm)),
+      aiAnalysis(drugs),
+    ])
 
-    let interactions: any[] = []
-    if (rxcuis.length >= 2) interactions = await rxnormInteractions(rxcuis)
+    let rxnormData: any[] = []
+    if (normalizedResult.status === 'fulfilled') {
+      const normalized = normalizedResult.value.filter(r => r.status === 'fulfilled' && r.value).map(r => (r as any).value)
+      const rxcuis = normalized.map((d: any) => d.rxcui)
+      if (rxcuis.length >= 2) {
+        rxnormData = await rxnormInteractions(rxcuis).catch(() => [])
+      }
+    }
 
     let result: any
 
-    if (interactions.length > 0) {
+    if (aiResult.status === 'fulfilled' && aiResult.value) {
+      // AI resultado é a base principal — mais rico e em PT
+      const ai = aiResult.value
+
+      // Se RxNorm encontrou interações graves, usa a severidade mais alta
+      if (rxnormData.length > 0) {
+        const order = ['GRAVE', 'MODERADA', 'LIGEIRA', 'SEM_INTERACAO']
+        const rxSev = rxnormData.reduce((p: any, c: any) => order.indexOf(mapSev(c.severity)) < order.indexOf(mapSev(p.severity)) ? c : p, rxnormData[0])
+        const rxSeverity = mapSev(rxSev.severity)
+        // Usa a severidade mais conservadora (maior risco) das duas fontes
+        if (order.indexOf(rxSeverity) < order.indexOf(ai.severity || 'SEM_INTERACAO')) {
+          ai.severity = rxSeverity
+          ai.rxnorm_note = rxSev.description
+        }
+      }
+
+      result = {
+        severity: ai.severity || 'SEM_INTERACAO',
+        summary: ai.summary || '',
+        mechanism: ai.mechanism || '',
+        cyp450: ai.cyp450 || null,
+        consequences: ai.consequences || '',
+        onset: ai.onset || '',
+        risk_factors: ai.risk_factors || [],
+        recommendation: ai.recommendation || '',
+        alternatives: ai.alternatives || [],
+        monitor: ai.monitor || [],
+        patient_info: ai.patient_info || '',
+        references: ai.references || [],
+        source: 'ai_enhanced',
+        drugs,
+      }
+    } else if (rxnormData.length > 0) {
+      // Fallback: só RxNorm
       const order = ['GRAVE', 'MODERADA', 'LIGEIRA', 'SEM_INTERACAO']
-      const worst = interactions.reduce((p, c) =>
-        order.indexOf(mapSev(c.severity)) < order.indexOf(mapSev(p.severity)) ? c : p
-      )
+      const worst = rxnormData.reduce((p, c) => order.indexOf(mapSev(c.severity)) < order.indexOf(mapSev(p.severity)) ? c : p)
       const severity = mapSev(worst.severity)
       result = {
         severity,
         summary: worst.description,
-        mechanism: `Interação identificada pela base de dados RxNorm/NIH. ${interactions.length} par(es) encontrado(s).`,
-        consequences: interactions.slice(0, 2).map((i: any) => i.description).join(' '),
+        mechanism: `Interação identificada pela base de dados RxNorm/NIH. ${rxnormData.length} par(es) identificado(s).`,
+        consequences: rxnormData.slice(0, 2).map((i: any) => i.description).join(' '),
         recommendation: severity === 'GRAVE'
-          ? 'Combinação potencialmente perigosa. Consulte um médico ou farmacêutico antes de usar.'
+          ? 'Combinação potencialmente perigosa. Consulta um médico ou farmacêutico antes de usar.'
           : severity === 'MODERADA'
-          ? 'Use com precaução. Monitorize sintomas e consulte um profissional de saúde.'
-          : 'Interação de baixo risco. Informe sempre o seu médico sobre toda a medicação.',
+          ? 'Usa com precaução. Monitoriza sintomas e consulta um profissional de saúde.'
+          : 'Interação de baixo risco. Informa sempre o teu médico sobre toda a medicação.',
         monitor: drugs,
         source: 'rxnorm',
-        interactions_count: interactions.length,
-        drugs_normalized: normalized.map((d: any) => d.name),
+        drugs,
       }
     } else {
-      result = await aiAnalysis(drugs)
-      result.source = 'ai'
-      result.drugs_normalized = normalized.map((d: any) => d.name)
+      // Nenhuma interação encontrada
+      result = {
+        severity: 'SEM_INTERACAO',
+        summary: 'Não foram encontradas interações clinicamente significativas conhecidas entre estes medicamentos.',
+        mechanism: 'Sem mecanismo de interação documentado nas bases de dados consultadas.',
+        recommendation: 'Continua a informar sempre o médico e farmacêutico sobre toda a tua medicação, incluindo suplementos e plantas medicinais.',
+        patient_info: 'Não encontrámos interações entre estes medicamentos. Isso não significa que a combinação seja segura para o teu caso específico — o teu farmacêutico ou médico é a melhor fonte de informação.',
+        monitor: [],
+        alternatives: [],
+        references: ['RxNorm/NIH', 'Groq AI Analysis'],
+        source: 'none_found',
+        drugs,
+      }
     }
 
+    // Cache o resultado
     cache.set(key, { result, timestamp: Date.now() })
+    if (cache.size > 500) { const first = cache.keys().next().value; if (first) cache.delete(first) }
+
     return NextResponse.json(result)
 
   } catch (err: any) {
     console.error('Interactions error:', err?.message)
-    if (err?.status === 429) return NextResponse.json({ error: 'Serviço temporariamente indisponível. Tenta em breve.' }, { status: 503 })
-    return NextResponse.json({ error: err.message || 'Erro ao analisar. Tenta novamente.' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao analisar interações. Tenta novamente.' }, { status: 500 })
   }
 }
