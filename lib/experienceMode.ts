@@ -48,6 +48,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/protocol',      label: 'Protocolo Terapêutico',     sub: 'ESC · ADA · NICE · DGS' },
         { href: '/monitor',       label: 'Phlox Watcher',             sub: 'Alertas FDA · EMA · INFARMED' },
         { href: '/migrar',         label: 'Phlox Migração',            sub: 'Sifarma · SClínico · Excel · PDF', badge: 'Novo' },
+        { href: '/dashboard-institucional', label: 'Dashboard Institucional', sub: 'Métricas · equipa · relatórios', badge: 'Novo' },
         { href: '/grand-round',   label: 'Grand Round',               sub: 'Casos clínicos da comunidade' },
       ],
     },
@@ -63,10 +64,9 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/osce',        label: 'Phlox OSCE',           sub: 'Simulação de OSCE · AI como doente', badge: 'Novo' },
         { href: '/hive',        label: 'Phlox Hive',           sub: 'O que a comunidade mais erra' },
         { href: '/grand-round', label: 'Grand Round',          sub: 'Casos reais · debate · aprender' },
-        { href: '/shift',       label: 'Turno Virtual',        sub: 'Doentes gerados por AI · score' },
+        { href: '/simulador',   label: 'Simulador Clínico',    sub: 'Caso · Turno · Evolutivo — 3 modos', badge: 'Novo' },
         { href: '/exam',        label: 'Modo Exame',           sub: 'Timer · formato nacional · análise' },
-        { href: '/cases',       label: 'Casos Clínicos',       sub: 'Todas as áreas · raciocínio guiado' },
-        { href: '/decisao',     label: 'Phlox Decisão',        sub: 'Caso clínico que evolui com as tuas decisões', badge: 'Novo' },
+
       ],
     },
     {
@@ -132,6 +132,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/timeline',      label: 'Timeline',                    sub: 'Evolução da minha saúde' },
         { href: '/diary',         label: 'Diário de Sintomas',          sub: 'Registo diário · análise' },
         { href: '/ai',            label: 'Phlox AI',                    sub: 'Qualquer dúvida sobre medicação' },
+        { href: '/registo',       label: 'Análise integrada de saúde',   sub: 'Análises + medicação + vitais → insights' },
       ],
     },
     {

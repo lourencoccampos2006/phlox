@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import HealthInsights from '@/components/HealthInsights'
 
 type Section = 'labs' | 'vaccines' | 'vitals' | 'documents'
 type Profile = { id: string; name: string; type: 'self' | 'family' | 'patient' }
@@ -181,12 +182,8 @@ export default function RegistoPage() {
         // For PDFs, read as base64 and send to AI for extraction
         const buffer = await file.arrayBuffer()
         const bytes = new Uint8Array(buffer)
-        // Chunked btoa to avoid call stack overflow on large PDFs
         let binary = ''
-        const chunkSize = 8192
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
-        }
+        bytes.forEach(b => binary += String.fromCharCode(b))
         const base64 = btoa(binary)
         // Send to labs API with pdf flag
         const { data: sd } = await supabase.auth.getSession()
@@ -196,7 +193,6 @@ export default function RegistoPage() {
           body: JSON.stringify({ pdf_base64: base64, mode: 'labs', source: section === 'labs' ? 'pdf' : 'import' }),
         })
         const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Erro ao processar PDF')
         if (data.values?.length) {
           const pid = selectedProfile?.id === 'self' ? null : selectedProfile?.id
           await supabase.from('lab_records').insert({
@@ -204,12 +200,10 @@ export default function RegistoPage() {
             profile_name: selectedProfile?.name || null,
             date: data.date || new Date().toISOString().split('T')[0],
             lab_name: data.lab_name || file.name.replace('.pdf', ''),
-            values: data.values, ai_summary: data.summary || data.ai_summary || null,
+            values: data.values, ai_summary: data.summary || null,
             flags: data.flags || [], source: 'pdf',
           })
           await load()
-        } else if (data.error) {
-          throw new Error(data.error)
         }
         e.target.value = ''
         setImporting(false)
@@ -218,14 +212,10 @@ export default function RegistoPage() {
         text = await file.text()
       }
       await importLabs(text)
-    } catch (err: any) {
+    } catch (err) {
       console.error('File upload error:', err)
-      setImporting(false)
-      // Show error to user if there's an error state setter
-      alert(err?.message || 'Erro ao importar ficheiro. Tenta copiar e colar o texto das análises.')
     }
     e.target.value = ''
-    setImporting(false)
   }
 
   const saveVital = async () => {
@@ -336,6 +326,17 @@ export default function RegistoPage() {
         {/* ── LABS ────────────────────────────────────────────────────────── */}
         {section === 'labs' && (
           <div>
+            {/* Análise integrada — aparece quando há análises ou medicação */}
+            {labs.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <HealthInsights
+                  profileId={selectedProfile?.id === 'self' ? null : selectedProfile?.id}
+                  trigger="labs"
+                  compact
+                />
+              </div>
+            )}
+
             {/* Import actions */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               <input ref={fileRef} type="file" accept=".txt,.pdf,.csv" style={{ display: 'none' }} onChange={handleFileUpload} />
@@ -371,11 +372,24 @@ export default function RegistoPage() {
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginTop: 2 }}>
                       {new Date(lab.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
                       {lab.profile_name && <span> · {lab.profile_name}</span>}
+                      {labs.length > 1 && labs.indexOf(lab) === 0 && (
+                        <span style={{ marginLeft: 6, color: 'var(--green)', fontWeight: 700 }}>· Mais recente</span>
+                      )}
                     </div>
                   </div>
-                  {lab.flags && lab.flags.length > 0 && (
-                    <div className="badge badge-red">{lab.flags.length} valor{lab.flags.length > 1 ? 'es' : ''} alterado{lab.flags.length > 1 ? 's' : ''}</div>
-                  )}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {lab.flags && lab.flags.length > 0 && (
+                      <div className="badge badge-red">{lab.flags.length} valor{lab.flags.length > 1 ? 'es' : ''} alterado{lab.flags.length > 1 ? 's' : ''}</div>
+                    )}
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById(`lab-detail-${lab.id}`)
+                        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'
+                      }}
+                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                      detalhes
+                    </button>
+                  </div>
                 </div>
 
                 {lab.ai_summary && (

@@ -358,41 +358,61 @@ export default function WardPage() {
   useEffect(() => { load() }, [load])
 
   // Load messages + real-time subscription for selected patient
-  const loadMessages = useCallback(async (patient: Patient) => {
-    if (!user) return
-    // Get or create channel
-    let channelId = channels[patient.id]
-    if (channelId) { channelIdRef.current = channelId }
+  const loadMessages = useCallback(async (patient: Patient): Promise<string | undefined> => {
+    if (!user) return undefined
+    // Always query DB fresh — never rely on stale 'channels' state
+    const { data: existing } = await supabase
+      .from('patient_channels')
+      .select('id')
+      .eq('patient_id', patient.id)
+      .maybeSingle()
+
+    let channelId: string | undefined = existing?.id
+
     if (!channelId) {
-      const { data: existing } = await supabase.from('patient_channels').select('id').eq('patient_id', patient.id).maybeSingle()
-      if (existing) {
-        channelId = existing.id
-      } else {
-        const { data: newChannel } = await supabase.from('patient_channels').insert({
-          patient_id: patient.id, org_id: orgId || '00000000-0000-0000-0000-000000000000'
-        }).select().single()
-        channelId = newChannel?.id
+      const { data: newChannel, error: chErr } = await supabase
+        .from('patient_channels')
+        .insert({ patient_id: patient.id, org_id: orgId || '00000000-0000-0000-0000-000000000000' })
+        .select()
+        .single()
+      if (chErr) {
+        console.error('Ward channel create error:', chErr)
+        setSendError(`Erro ao criar canal: ${chErr.message}`)
+        return undefined
       }
-      if (channelId) { setChannels(prev => ({ ...prev, [patient.id]: channelId! })); channelIdRef.current = channelId }
+      channelId = newChannel?.id
     }
-    if (!channelId) return
-    const { data: msgs } = await supabase.from('channel_messages').select('*').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(100)
+
+    if (!channelId) return undefined
+
+    // Update ref and state synchronously
+    channelIdRef.current = channelId
+    setChannels(prev => ({ ...prev, [patient.id]: channelId! }))
+
+    const { data: msgs } = await supabase
+      .from('channel_messages')
+      .select('*')
+      .eq('channel_id', channelId)
+      .order('created_at', { ascending: true })
+      .limit(200)
     setMessages(prev => ({ ...prev, [patient.id]: msgs || [] }))
     return channelId
-  }, [user, supabase, channels, orgId])
+  }, [user, supabase, orgId])
 
   useEffect(() => {
     if (!selectedPatient) return
+    // Reset ref when patient changes
+    channelIdRef.current = null
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null
+
     loadMessages(selectedPatient).then(channelId => {
       if (!channelId) return
-      // Subscribe to real-time updates
       realtimeChannel = supabase
         .channel(`ward-${channelId}`)
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'channel_messages',
           filter: `channel_id=eq.${channelId}`
-        }, (payload) => {
+        }, (payload: any) => {
           const newMsg = payload.new as WardMessage
           setMessages(prev => {
             const existing = prev[selectedPatient.id] || []
@@ -405,7 +425,7 @@ export default function WardPage() {
     return () => {
       if (realtimeChannel) supabase.removeChannel(realtimeChannel)
     }
-  }, [selectedPatient?.id, supabase])
+  }, [selectedPatient?.id, supabase, loadMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

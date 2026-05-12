@@ -65,7 +65,7 @@ const TA_STYLE: React.CSSProperties = { width: '100%', border: '1.5px solid var(
 const LBL_STYLE: React.CSSProperties = { display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }
 
 export default function CartaPage() {
-  const { user } = useAuth()
+  const { user, supabase } = useAuth()
   const [form, setForm] = useState<CartaForm>(EMPTY_FORM)
   const [carta, setCarta] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -81,7 +81,7 @@ export default function CartaPage() {
   const generate = async () => {
     setLoading(true); setError(''); setCarta(null)
     try {
-      const { data: sd } = await (user as any)?.supabase?.auth?.getSession() || {}
+      const { data: sd } = await supabase.auth.getSession()
       const token = sd?.session?.access_token
 
       const res = await fetch('/api/carta', {

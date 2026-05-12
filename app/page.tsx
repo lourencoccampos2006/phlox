@@ -518,15 +518,19 @@ export default function HomePage() {
         .hero-cta-primary:hover { background: #16a34a !important; transform: translateY(-2px); }
         .hero-cta-secondary:hover { border-color: #374151 !important; color: #d1d5db !important; }
         .free-tool-link:hover { color: var(--green) !important; background: var(--bg) !important; }
-        .pro-tool-row:hover { padding-left: 8px; }
-        .pro-tool-row:hover .pro-tool-detail { display: block !important; }
+        .pro-tool-row:hover { background: var(--bg) !important; }
         .student-card:hover { border-color: rgba(124,58,237,0.4) !important; transform: translateY(-3px); }
         .persona-tile:hover { background: var(--bg) !important; }
-        @media(max-width: 768px) {
-          .hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
-          .pro-tool-row { flex-wrap: wrap; gap: 12px; }
-        }
         @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @media(max-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
+        }
+        @media(max-width: 768px) {
+          .free-tools-bar { display: none !important; }
+          .pro-tool-row { padding: 20px 0 !important; }
+          .pro-tool-row-num { display: none !important; }
+          .pro-tool-row-detail-col { flex: 1 !important; }
+        }
       `}</style>
     </div>
   )

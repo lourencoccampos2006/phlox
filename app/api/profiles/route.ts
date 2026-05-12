@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   const { name, relation, age, sex, weight, height, creatinine, conditions, allergies, notes } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Nome obrigatório' }, { status: 400 })
@@ -98,8 +99,8 @@ export async function POST(req: NextRequest) {
     .from('family_profiles')
     .insert({
       user_id: userId,
-      name: name.trim(),
-      relation: relation || null,
+      name: name.trim().slice(0, 100),
+      relation: relation ? String(relation).slice(0, 50) : null,
       age: age || null,
       sex: sex || null,
       weight: weight || null,
@@ -124,7 +125,8 @@ export async function PUT(req: NextRequest) {
   const token = extractToken(req)!
   const supabase = makeSupabase(token)
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   const { id, name, relation, age, sex, weight, height, creatinine, conditions, allergies, notes } = body
 
   if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
@@ -133,8 +135,8 @@ export async function PUT(req: NextRequest) {
   const { data, error } = await supabase
     .from('family_profiles')
     .update({
-      name: name.trim(),
-      relation: relation || null,
+      name: name.trim().slice(0, 100),
+      relation: relation ? String(relation).slice(0, 50) : null,
       age: age || null,
       sex: sex || null,
       weight: weight || null,
