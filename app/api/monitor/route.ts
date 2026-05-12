@@ -1,133 +1,141 @@
+// app/api/monitor/route.ts — REESCRITO
+// Fix: agora busca TODOS os medicamentos — pessoais + familiares + doentes Pro/Clinic
+
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
+import { createClient } from '@supabase/supabase-js'
 
-interface MedInput {
-  name: string
-  dose?: string
-  frequency?: string
-}
-
-interface PatientCtx {
-  age?: number
-  sex?: 'M' | 'F'
-  weight?: number
-  creatinine?: number
-  conditions?: string
-  allergies?: string
-}
-
-interface MonitorAlert {
-  type: 'interaction' | 'renal' | 'beers' | 'duplication' | 'monitoring' | 'contraindication'
-  severity: 'critical' | 'major' | 'moderate' | 'minor'
-  drugs_involved: string[]
-  message: string
-  action: string
-  evidence: string
-}
-
-interface MonitorResult {
-  alerts: MonitorAlert[]
-  score: number
-  summary: string
-}
+interface MedInput { name: string; dose?: string; frequency?: string; source?: string }
+interface PatientCtx { age?: number; sex?: 'M'|'F'; conditions?: string }
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
   const rl = checkRateLimit(ip, 5, 60_000)
   if (!rl.allowed) return rateLimitResponse()
 
-  const { plan } = await getUserPlan(req)
-  if (plan === 'free' || plan === 'student') return planGateResponse('pro', 'Phlox Watcher')
+  const { plan, userId } = await getUserPlan(req)
+  if (plan === 'free') return planGateResponse('student', 'Phlox Watcher')
 
   const body = await req.json().catch(() => null)
-  if (!body?.medications || !Array.isArray(body.medications) || body.medications.length === 0) {
-    return NextResponse.json({ error: 'Lista de medicamentos obrigatória.' }, { status: 400 })
+
+  // Se o frontend enviou medicamentos explicitamente, usa esses
+  // Se não, vai buscar TODOS ao Supabase (modo automático)
+  let meds: MedInput[] = []
+  const ctx: PatientCtx = body?.patient_context || {}
+
+  if (body?.medications && Array.isArray(body.medications) && body.medications.length > 0) {
+    meds = (body.medications as MedInput[]).slice(0, 30).map((m: MedInput) => ({
+      name: String(m.name || '').trim().slice(0, 80),
+      dose: m.dose ? String(m.dose).trim().slice(0, 40) : undefined,
+      frequency: m.frequency ? String(m.frequency).trim().slice(0, 40) : undefined,
+      source: m.source || 'manual',
+    })).filter(m => m.name)
+  } else if (userId) {
+    // Modo automático: buscar TODOS os medicamentos do utilizador
+    const authHeader = req.headers.get('authorization') || ''
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const [
+      { data: personal },
+      { data: family },
+      { data: patients },
+    ] = await Promise.all([
+      // Medicamentos pessoais
+      supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', userId),
+      // Medicamentos familiares
+      supabase.from('family_profile_meds').select('name, dose, frequency, family_profiles(name)').eq('user_id', userId),
+      // Medicamentos de doentes (Pro/Clinic)
+      plan === 'pro' || plan === 'clinic'
+        ? supabase.from('patient_meds').select('name, dose, frequency, patients(name)').eq('user_id', userId)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    const allMeds: MedInput[] = [
+      ...(personal || []).map((m: any) => ({ name: m.name, dose: m.dose, frequency: m.frequency, source: 'pessoal' })),
+      ...(family || []).map((m: any) => ({ name: m.name, dose: m.dose, frequency: m.frequency, source: `familiar: ${(m.family_profiles as any)?.name || 'Familiar'}` })),
+      ...((patients || []) as any[]).map((m: any) => ({ name: m.name, dose: m.dose, frequency: m.frequency, source: `doente: ${(m.patients as any)?.name || 'Doente'}` })),
+    ]
+
+    // Deduplica por nome
+    const seen = new Set<string>()
+    meds = allMeds.filter(m => { const k = m.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true }).slice(0, 30)
   }
 
-  const meds: MedInput[] = (body.medications as MedInput[]).slice(0, 20).map((m: MedInput) => ({
-    name: String(m.name || '').trim().slice(0, 80),
-    dose: m.dose ? String(m.dose).trim().slice(0, 40) : undefined,
-    frequency: m.frequency ? String(m.frequency).trim().slice(0, 40) : undefined,
-  })).filter(m => m.name)
+  if (meds.length === 0) {
+    return NextResponse.json({
+      alerts: [],
+      score: 0,
+      summary: 'Sem medicamentos registados para monitorizar. Adiciona a tua medicação em "Os Meus Medicamentos" para activar o Phlox Watcher.',
+      meds_monitored: 0,
+    })
+  }
 
-  if (meds.length === 0) return NextResponse.json({ error: 'Nenhum medicamento válido.' }, { status: 400 })
+  const medList = meds.map(m => {
+    let s = `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` ${m.frequency}` : ''}`
+    if (m.source) s += ` [${m.source}]`
+    return s
+  }).join('\n')
 
-  const ctx: PatientCtx = body.patient_context || {}
   const patientStr = [
     ctx.age ? `${ctx.age} anos` : null,
     ctx.sex ? (ctx.sex === 'F' ? 'sexo feminino' : 'sexo masculino') : null,
-    ctx.weight ? `${ctx.weight} kg` : null,
-    ctx.creatinine ? `creatinina ${ctx.creatinine} µmol/L` : null,
-    ctx.conditions ? `comorbilidades: ${String(ctx.conditions).slice(0, 200)}` : null,
-    ctx.allergies ? `alergias: ${String(ctx.allergies).slice(0, 100)}` : null,
+    ctx.conditions || null,
   ].filter(Boolean).join(', ')
 
-  const medsStr = meds.map(m =>
-    `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` (${m.frequency})` : ''}`
-  ).join(', ')
-
   try {
-    const result = await aiJSON<MonitorResult>([
+    const result = await aiJSON<any>([
       {
         role: 'system',
-        content: `És um farmacologista clínico especialista em polimedicação. Analisa listas de medicamentos e identifica problemas clínicos relevantes em PT-PT (português europeu).
+        content: `És um farmacologista clínico a monitorizar a segurança farmacoterapêutica de todos os medicamentos de um doente ou utilizador.
+Analisa TODA a medicação listada, incluindo medicamentos de diferentes perfis (pessoal, familiar, doente).
 
-Responde APENAS com JSON válido sem markdown:
+Responde APENAS com JSON válido:
 {
   "alerts": [
     {
-      "type": "interaction|renal|beers|duplication|monitoring|contraindication",
-      "severity": "critical|major|moderate|minor",
-      "drugs_involved": ["nome1", "nome2"],
-      "message": "descrição clínica clara do problema (1-2 frases)",
-      "action": "acção recomendada concreta (1 frase)",
-      "evidence": "fonte/guideline de suporte (ex: FDA, KDIGO 2022, Critérios Beers 2023)"
+      "type": "interaction"|"renal"|"beers"|"duplication"|"monitoring"|"contraindication"|"high_risk",
+      "severity": "critical"|"high"|"moderate"|"low",
+      "drugs_involved": ["fármaco1", "fármaco2"],
+      "source_profiles": ["pessoal", "familiar: Nome"],
+      "message": "descrição clara da preocupação em PT-PT",
+      "action": "acção concreta recomendada",
+      "evidence": "fonte ou guideline"
     }
   ],
   "score": 0-100,
-  "summary": "resumo clínico global em 2-3 frases"
+  "summary": "resumo do estado geral da medicação em 1-2 frases",
+  "meds_monitored": número_de_medicamentos_analisados,
+  "next_check_days": número_de_dias_até_próxima_verificação_recomendada
 }
 
-Tipos de alertas a verificar:
-- interaction: interacções farmacodinâmicas e farmacocinéticas (inibição/indução CYP, prolongamento QT, hipotensão aditiva, nefrotoxicidade, etc.)
-- renal: ajuste de dose necessário com disfunção renal (usa creatinina/TFG se disponível)
-- beers: medicamentos potencialmente inapropriados em idosos (Critérios Beers AGS 2023)
-- duplication: duplicação terapêutica ou farmacológica
-- monitoring: parâmetros que devem ser monitorizados com urgência
-- contraindication: contra-indicações absolutas ou relativas ao contexto do doente
+Score:
+- 90-100: sem preocupações significativas
+- 70-89: preocupações menores, monitorizar
+- 50-69: problemas moderados, acção recomendada
+- 0-49: problemas graves ou críticos
 
-Score: 100 = perfil completamente seguro, 0 = múltiplos problemas críticos.
-Máximo 8 alertas. Prioriza os mais clinicamente relevantes.
-Se não há alertas relevantes responde com alerts:[], score:100 e um summary adequado.`,
+Verifica sistematicamente:
+1. Interações entre TODOS os medicamentos (incluindo entre perfis diferentes)
+2. Medicamentos de alto risco: varfarina, digoxina, insulina, opióides, anticoagulantes
+3. Critérios Beers em idosos (se idade ≥65 indicada)
+4. Duplicações terapêuticas (mesma classe, especialmente entre perfis)
+5. Medicamentos que requerem monitorização analítica regular`,
       },
       {
         role: 'user',
-        content: `Medicação: ${medsStr}${patientStr ? `\n\nContexto do doente: ${patientStr}` : ''}`,
+        content: `Medicação a monitorizar (${meds.length} fármacos):\n${medList}${patientStr ? `\n\nContexto do doente: ${patientStr}` : ''}`,
       },
-    ], { maxTokens: 2000, temperature: 0.0, preferFast: true })
+    ], { maxTokens: 2000, temperature: 0.05 })
 
-    // Validate + sanitise output
-    const alerts: MonitorAlert[] = (result.alerts || [])
-      .slice(0, 8)
-      .filter((a: MonitorAlert) =>
-        a.message && a.action && Array.isArray(a.drugs_involved) &&
-        ['critical', 'major', 'moderate', 'minor'].includes(a.severity)
-      )
-
-    const score = typeof result.score === 'number'
-      ? Math.max(0, Math.min(100, Math.round(result.score)))
-      : 100
-
-    return NextResponse.json({
-      alerts,
-      score,
-      summary: String(result.summary || '').slice(0, 400),
-    })
-
+    return NextResponse.json({ ...result, meds_monitored: meds.length })
   } catch (err: any) {
     console.error('Monitor route error:', err?.message)
-    return NextResponse.json({ error: 'Erro na análise. Tenta novamente.' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro ao analisar. Tenta novamente.' }, { status: 500 })
   }
 }

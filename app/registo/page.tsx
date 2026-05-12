@@ -181,8 +181,12 @@ export default function RegistoPage() {
         // For PDFs, read as base64 and send to AI for extraction
         const buffer = await file.arrayBuffer()
         const bytes = new Uint8Array(buffer)
+        // Chunked btoa to avoid call stack overflow on large PDFs
         let binary = ''
-        bytes.forEach(b => binary += String.fromCharCode(b))
+        const chunkSize = 8192
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+        }
         const base64 = btoa(binary)
         // Send to labs API with pdf flag
         const { data: sd } = await supabase.auth.getSession()
@@ -192,6 +196,7 @@ export default function RegistoPage() {
           body: JSON.stringify({ pdf_base64: base64, mode: 'labs', source: section === 'labs' ? 'pdf' : 'import' }),
         })
         const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Erro ao processar PDF')
         if (data.values?.length) {
           const pid = selectedProfile?.id === 'self' ? null : selectedProfile?.id
           await supabase.from('lab_records').insert({
@@ -199,10 +204,12 @@ export default function RegistoPage() {
             profile_name: selectedProfile?.name || null,
             date: data.date || new Date().toISOString().split('T')[0],
             lab_name: data.lab_name || file.name.replace('.pdf', ''),
-            values: data.values, ai_summary: data.summary || null,
+            values: data.values, ai_summary: data.summary || data.ai_summary || null,
             flags: data.flags || [], source: 'pdf',
           })
           await load()
+        } else if (data.error) {
+          throw new Error(data.error)
         }
         e.target.value = ''
         setImporting(false)
@@ -211,10 +218,14 @@ export default function RegistoPage() {
         text = await file.text()
       }
       await importLabs(text)
-    } catch (err) {
+    } catch (err: any) {
       console.error('File upload error:', err)
+      setImporting(false)
+      // Show error to user if there's an error state setter
+      alert(err?.message || 'Erro ao importar ficheiro. Tenta copiar e colar o texto das análises.')
     }
     e.target.value = ''
+    setImporting(false)
   }
 
   const saveVital = async () => {

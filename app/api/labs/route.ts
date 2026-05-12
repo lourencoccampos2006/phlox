@@ -1,7 +1,11 @@
+// app/api/labs/route.ts — REESCRITO
+// Fix: aceitar text, lab_text E pdf_base64 (todos os campos que o frontend usa)
+// Fix: o frontend usa 'text' mas a rota esperava 'lab_text' — unificado
+
 import { NextRequest, NextResponse } from 'next/server'
-import { aiJSON } from '@/lib/ai'
+import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-import { getUserPlan, planGateResponse } from '@/lib/planGate'
+import { getUserPlan } from '@/lib/planGate'
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
@@ -11,19 +15,65 @@ export async function POST(req: NextRequest) {
   const { userId } = await getUserPlan(req)
 
   const body = await req.json().catch(() => null)
-  const mode = body?.mode || 'labs'
-  
-  // Handle PDF base64 - extract text via AI vision
-  let textToAnalyze = body?.text || ''
-  if (body?.pdf_base64) {
-    // Use the text extraction prompt with the PDF content hint
-    textToAnalyze = `[PDF enviado para análise - extrair valores laboratoriais]\nFicheiro: ${body.filename || 'análise.pdf'}`
-  }
-  if (!body?.lab_text || String(body.lab_text).trim().length < 20) {
-    return NextResponse.json({ error: 'Resultados de análises obrigatórios' }, { status: 400 })
+  if (!body) return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 })
+
+  // ── Aceitar qualquer dos campos de texto que o frontend possa enviar ─────────
+  let labText: string = body.text || body.lab_text || body.raw_text || ''
+
+  // ── PDF via base64 ────────────────────────────────────────────────────────────
+  if (body.pdf_base64) {
+    // Usar Gemini Vision para extrair texto do PDF
+    const geminiKey = process.env.GEMINI_API_KEY
+    if (!geminiKey) {
+      // Fallback: tentar interpretar como text placeholder
+      labText = `[PDF de análises clínicas — a interpretar]`
+    } else {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                role: 'user',
+                parts: [
+                  {
+                    text: `Este é um PDF de análises clínicas laboratoriais. Extrai TODOS os valores analíticos que encontras.
+Para cada parâmetro, extrai: nome, valor, unidade e intervalo de referência se disponível.
+Inclui também: data da colheita, laboratório, nome do doente se visível.
+Responde APENAS com o texto bruto dos resultados, em formato lista clara. Não analises — apenas extrai.`
+                  },
+                  {
+                    inline_data: {
+                      mime_type: 'application/pdf',
+                      data: body.pdf_base64
+                    }
+                  }
+                ]
+              }],
+              generationConfig: { maxOutputTokens: 2000, temperature: 0.0 }
+            })
+          }
+        )
+        const gd = await geminiRes.json()
+        const extracted = gd.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        if (extracted.trim().length > 20) {
+          labText = extracted
+        } else {
+          return NextResponse.json({ error: 'Não foi possível extrair texto do PDF. Tenta copiar e colar o texto directamente.' }, { status: 422 })
+        }
+      } catch (_e: any) {
+        return NextResponse.json({ error: 'Erro ao processar o PDF. Tenta copiar e colar o texto das análises.' }, { status: 500 })
+      }
+    }
   }
 
-  const labText = String(body.lab_text).trim().slice(0, 5000)
+  if (!labText || labText.trim().length < 10) {
+    return NextResponse.json({ error: 'Resultados de análises obrigatórios. Cola o texto ou faz upload do PDF.' }, { status: 400 })
+  }
+
+  const cleanedText = labText.trim().slice(0, 8000)
 
   try {
     const result = await aiJSON<any>([
@@ -31,67 +81,56 @@ export async function POST(req: NextRequest) {
         role: 'system',
         content: `És um médico internista e farmacologista clínico a interpretar resultados de análises clínicas para o doente — não para outro médico.
 
-O teu objectivo é: dado um conjunto de resultados de análises, produzir uma interpretação completa, honesta e útil em português europeu (PT-PT) que o doente possa realmente compreender e usar.
+O teu objectivo: dado um conjunto de resultados de análises, produzir uma interpretação completa, honesta e útil em português europeu (PT-PT) que o doente possa compreender e usar.
 
 Responde APENAS com JSON válido sem markdown:
 {
-  "patient_summary": "perfil clínico inferido dos resultados em 1 frase (ex: 'Adulto com pré-diabetes, défice de vitamina D e dislipidemia ligeira')",
-  "collection_date": "data se encontrada no texto — opcional",
-  "overall_status": "TUDO_NORMAL" | "ATENÇÃO" | "CONSULTA_RECOMENDADA" | "CONSULTA_URGENTE",
+  "patient_summary": "perfil clínico inferido dos resultados em 1 frase",
+  "lab_name": "nome do laboratório se encontrado no texto",
+  "date": "data da colheita se encontrada (formato YYYY-MM-DD)",
+  "collection_date": "data legível se encontrada",
+  "overall_status": "TUDO_NORMAL"|"ATENÇÃO"|"CONSULTA_RECOMENDADA"|"CONSULTA_URGENTE",
   "values": [
     {
       "name": "nome do parâmetro em português",
       "value": "valor encontrado",
       "unit": "unidade",
-      "reference": "intervalo de referência",
-      "status": "NORMAL" | "ALTO" | "BAIXO" | "CRITICO_ALTO" | "CRITICO_BAIXO",
-      "interpretation": "o que este valor significa para esta pessoa em linguagem simples — 1-2 frases directas, sem jargão médico",
-      "clinical_significance": "BAIXA" | "MEDIA" | "ALTA" | "CRITICA",
-      "drug_connection": "se houver medicamentos mencionados que possam explicar o valor — opcional",
+      "reference": "intervalo de referência se disponível",
+      "status": "NORMAL"|"ALTO"|"BAIXO"|"CRITICO_ALTO"|"CRITICO_BAIXO",
+      "interpretation": "o que este valor significa para esta pessoa — 1-2 frases directas, sem jargão",
+      "clinical_significance": "BAIXA"|"MEDIA"|"ALTA"|"CRITICA",
+      "drug_connection": "medicamentos que possam explicar o valor — opcional",
       "follow_up": "quando repetir ou o que fazer — opcional"
     }
   ],
-  "key_findings": [
-    "achado 1 mais importante em linguagem completamente simples — 1 frase directa",
-    "achado 2",
-    "achado 3"
-  ],
-  "questions_for_doctor": [
-    "Pergunta exacta e específica que o doente deve fazer ao médico na próxima consulta"
-  ],
-  "lifestyle_suggestions": [
-    "Sugestão prática que o doente pode implementar já — dieta, exercício, estilo de vida"
-  ],
+  "flags": ["parâmetro fora do normal em formato curto — ex: 'Hemoglobina baixa'"],
+  "key_findings": ["achado importante em linguagem simples — 1 frase directa"],
+  "questions_for_doctor": ["pergunta específica que o doente deve fazer ao médico"],
+  "lifestyle_suggestions": ["sugestão prática que o doente pode implementar"],
   "drug_interactions_found": [
-    {
-      "drug": "medicamento que pode afectar estes resultados",
-      "affected_value": "parâmetro afectado",
-      "explanation": "explicação clara da relação"
-    }
+    { "drug": "medicamento", "affected_value": "parâmetro", "explanation": "relação clara" }
   ],
-  "when_to_repeat": "recomendação de quando fazer as próximas análises",
-  "reassurance": "se os resultados forem maioritariamente normais, uma mensagem tranquilizadora honesta — opcional"
+  "when_to_repeat": "quando fazer próximas análises",
+  "summary": "resumo em 2-3 frases para o doente",
+  "reassurance": "mensagem tranquilizadora se resultados maioritariamente normais — opcional"
 }
 
-Regras críticas:
-- CRITICO_ALTO/CRITICO_BAIXO = requer atenção médica imediata (ex: K+ > 6.5, hemoglobina < 7, glicemia > 500)
-- Sê sempre honesto — se algo é preocupante, diz claramente mas sem alarmismo desnecessário
-- As interpretações devem ser específicas ao valor, não genéricas ("pode indicar anemia" é mau, "a tua hemoglobina está ligeiramente abaixo do normal, o que pode causar cansaço mais facilmente" é bom)
-- key_findings máximo 5, apenas o mais relevante
-- questions_for_doctor: perguntas que o médico de família vai achar úteis e específicas, não genéricas
-- lifestyle_suggestions: apenas acções concretas e baseadas nos resultados específicos deste doente
-- Se não reconheceres um parâmetro, inclui-o com status NORMAL e interpretação "Parâmetro especializado — discute com o teu médico"`,
+Regras:
+- CRITICO: requer atenção médica imediata (K+ > 6.5, Hb < 7, glicemia > 500, troponina elevada)
+- Interpretações específicas ao valor — não genéricas
+- key_findings máximo 5
+- Se o texto for de PDF e tiver ruído/erros OCR, interpreta o melhor que conseguires`,
       },
       {
         role: 'user',
-        content: `Interpreta estes resultados de análises clínicas:\n\n${labText}`,
+        content: `Interpreta estes resultados de análises clínicas:\n\n${cleanedText}`,
       },
-    ], { maxTokens: 2000, temperature: 0.1 })
+    ], { maxTokens: 2500, temperature: 0.05 })
 
     return NextResponse.json(result)
 
   } catch (err: any) {
-    console.error('Labs error:', err?.message)
-    return NextResponse.json({ error: err.message || 'Erro ao interpretar. Tenta novamente.' }, { status: 500 })
+    console.error('Labs route error:', err?.message)
+    return NextResponse.json({ error: 'Erro ao interpretar análises. Tenta novamente.' }, { status: 500 })
   }
 }

@@ -1,457 +1,532 @@
 'use client'
 
+// app/page.tsx — Homepage Phlox Clinical
+// Design: editorial, sem clichês de IA, sem grids quadriculados
+// Inspiração: revistas médicas de qualidade, anuários de design editorial europeu
+
 import Link from 'next/link'
 import Header from '@/components/Header'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
-const Icon = ({ d, size = 20 }: { d: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-)
+// ─── Scroll reveal hook ───────────────────────────────────────────────────────
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect() } }, { threshold })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, inView }
+}
 
-// ─── Interactive demo component ───────────────────────────────────────────────
-function InteractionDemo() {
-  const DEMOS = [
-    {
-      drugs: ['Varfarina', 'Ibuprofeno'],
+function Reveal({ children, delay = 0, style = {} }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
+  const { ref, inView } = useInView()
+  return (
+    <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? 'none' : 'translateY(24px)', transition: `opacity 0.7s ${delay}s cubic-bezier(0.16,1,0.3,1), transform 0.7s ${delay}s cubic-bezier(0.16,1,0.3,1)`, ...style }}>
+      {children}
+    </div>
+  )
+}
+
+// ─── Ferramenta destaque interactiva ─────────────────────────────────────────
+const TOOL_DEMOS = [
+  {
+    id: 'interactions',
+    label: 'Interações medicamentosas',
+    href: '/interactions',
+    input: 'Varfarina 5mg + Ibuprofeno 400mg',
+    output: {
       severity: 'GRAVE',
-      color: '#991b1b', bg: '#fee2e2', border: '#fca5a5',
-      summary: 'Risco de hemorragia grave. O ibuprofeno inibe a COX-1 plaquetária e potencia o efeito anticoagulante da varfarina, aumentando o INR.',
-      mechanism: 'Inibição COX-1 + deslocamento da ligação à albumina',
+      color: '#991b1b',
+      bg: '#fee2e2',
+      border: '#fca5a5',
+      text: 'Risco de hemorragia grave. O ibuprofeno inibe a COX-1 plaquetária e potencia o efeito anticoagulante da varfarina.',
+      cyp: 'CYP2C9 · deslocamento da ligação à albumina',
       alt: 'Paracetamol (com monitorização de INR)',
     },
-    {
-      drugs: ['Sertralina', 'Tramadol'],
-      severity: 'GRAVE',
-      color: '#7c2d12', bg: '#fff7ed', border: '#fed7aa',
-      summary: 'Risco de síndrome serotoninérgica. Ambos aumentam a serotonina central. Pode causar hipertermia, clonus, agitação e instabilidade autonómica.',
-      mechanism: 'Efeito aditivo serotoninérgico (ISRS + agonismo 5-HT)',
-      alt: 'Paracetamol ou AINE tópico para a dor',
+  },
+  {
+    id: 'ward',
+    label: 'Passagem de turno',
+    href: '/teams',
+    input: '3 doentes · turno da manhã',
+    output: {
+      severity: 'IA',
+      color: '#1d4ed8',
+      bg: '#eff6ff',
+      border: '#bfdbfe',
+      text: 'Doente 1 — Risco CRÍTICO. Varfarina + INR 4.2 + AINEs prescritos. Intervenção farmacêutica necessária antes da próxima ronda.',
+      cyp: 'Passagem gerada em 8 segundos',
+      alt: 'Pronto para imprimir e assinar',
     },
-    {
-      drugs: ['Atorvastatina', 'Claritromicina'],
-      severity: 'MODERADA',
-      color: '#92400e', bg: '#fffbeb', border: '#fde68a',
-      summary: 'A claritromicina inibe o CYP3A4, aumentando os níveis de atorvastatina até 4×. Risco de miopatia e rabdomiólise.',
-      mechanism: 'Inibição CYP3A4 → aumento da AUC da estatina',
-      alt: 'Suspender estatina durante o antibiótico ou usar rosuvastatina',
+  },
+  {
+    id: 'arena',
+    label: 'Caso clínico Arena',
+    href: '/arena',
+    input: 'Farmacologia · Nível Médio · 90s',
+    output: {
+      severity: '+20 XP',
+      color: '#7c3aed',
+      bg: '#faf5ff',
+      border: '#e9d5ff',
+      text: 'Mulher 58a, DM2 + IC-FEr (FE 35%) + DRC G3b. Qual o antidiabético de 1ª linha?',
+      cyp: 'Empagliflozina — evidência de mortalidade CV e renal',
+      alt: 'Correcto em 34s · +26 XP com bónus',
     },
-  ]
+  },
+]
 
+function LiveDemo() {
   const [active, setActive] = useState(0)
-  const demo = DEMOS[active]
+  const [animating, setAnimating] = useState(false)
+
+  const switchTool = (idx: number) => {
+    if (idx === active) return
+    setAnimating(true)
+    setTimeout(() => { setActive(idx); setAnimating(false) }, 160)
+  }
+
+  const demo = TOOL_DEMOS[active]
 
   return (
-    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, overflow: 'hidden', maxWidth: 520, width: '100%' }}>
-      {/* Header */}
-      <div style={{ padding: '14px 18px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 5 }}>
-          {[0,1,2].map(i => <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#22c55e' }} />)}
-        </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#475569', letterSpacing: '0.12em' }}>phlox — verificador de interações</span>
+    <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 16, overflow: 'hidden', fontFamily: 'var(--font-sans)' }}>
+      {/* Tab bar */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #1f2937', overflowX: 'auto' }}>
+        {TOOL_DEMOS.map((t, i) => (
+          <button key={t.id} onClick={() => switchTool(i)}
+            style={{ padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: active === i ? 700 : 400, color: active === i ? '#f9fafb' : '#6b7280', whiteSpace: 'nowrap', borderBottom: `2px solid ${active === i ? '#22c55e' : 'transparent'}`, transition: 'all 0.15s', fontFamily: 'var(--font-sans)' }}>
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Drug pills selector */}
-      <div style={{ padding: '14px 18px', borderBottom: '1px solid #334155' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#475569', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Exemplo</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {DEMOS.map((d, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active === i ? '#334155' : 'transparent'}`, background: active === i ? '#334155' : 'transparent', color: active === i ? '#f8fafc' : '#64748b', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: active === i ? 700 : 400, transition: 'all 0.1s' }}>
-              {d.drugs.join(' + ')}
-            </button>
-          ))}
-        </div>
+      {/* Input */}
+      <div style={{ padding: '14px 18px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0, animation: 'pulse-green 2s infinite' }} />
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#9ca3af' }}>{demo.input}</span>
       </div>
 
-      {/* Result */}
-      <div style={{ padding: '18px' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          {demo.drugs.map(d => (
-            <span key={d} style={{ padding: '4px 12px', background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 13, color: '#f8fafc', fontWeight: 600 }}>{d}</span>
-          ))}
-        </div>
-
-        <div style={{ background: demo.bg, border: `1px solid ${demo.border}`, borderLeft: `3px solid ${demo.color}`, borderRadius: 7, padding: '12px 14px', marginBottom: 12 }}>
+      {/* Output */}
+      <div style={{ padding: '16px 18px', opacity: animating ? 0 : 1, transform: animating ? 'translateY(6px)' : 'none', transition: 'opacity 0.16s, transform 0.16s' }}>
+        <div style={{ background: demo.output.bg, border: `1px solid ${demo.output.border}`, borderLeft: `3px solid ${demo.output.color}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: demo.color, letterSpacing: '0.1em', textTransform: 'uppercase', background: `${demo.color}20`, padding: '2px 8px', borderRadius: 3 }}>{demo.severity}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: demo.output.color, background: `${demo.output.color}15`, padding: '2px 8px', borderRadius: 3, letterSpacing: '0.1em' }}>{demo.output.severity}</span>
           </div>
-          <p style={{ fontSize: 13, color: demo.color, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>{demo.summary}</p>
+          <p style={{ fontSize: 13, color: demo.output.color, lineHeight: 1.65, margin: 0, fontWeight: 500 }}>{demo.output.text}</p>
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div style={{ padding: '10px 12px', background: '#0f172a', borderRadius: 7, border: '1px solid #1e293b' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#475569', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Mecanismo CYP450</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>{demo.mechanism}</div>
+          <div style={{ background: '#0d1117', border: '1px solid #1f2937', borderRadius: 7, padding: '10px 12px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Mecanismo</div>
+            <div style={{ fontSize: 11, color: '#9ca3af' }}>{demo.output.cyp}</div>
           </div>
-          <div style={{ padding: '10px 12px', background: '#0f172a', borderRadius: 7, border: '1px solid #1e293b' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#22c55e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Alternativa</div>
-            <div style={{ fontSize: 12, color: '#4ade80', lineHeight: 1.5 }}>{demo.alt}</div>
+          <div style={{ background: '#0d1117', border: '1px solid #1f2937', borderRadius: 7, padding: '10px 12px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Alternativa</div>
+            <div style={{ fontSize: 11, color: '#4ade80' }}>{demo.output.alt}</div>
           </div>
+        </div>
+        <div style={{ marginTop: 12, textAlign: 'right' }}>
+          <Link href={demo.href} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#22c55e', textDecoration: 'none', fontWeight: 700 }}>
+            Experimentar →
+          </Link>
         </div>
       </div>
     </div>
   )
 }
 
-// ─── Trust bar numbers ────────────────────────────────────────────────────────
-const STATS = [
-  { value: '35+', label: 'ferramentas clínicas' },
-  { value: '15', label: 'calculadoras validadas' },
-  { value: '5', label: 'ligas de competição' },
-  { value: '6', label: 'cursos simulados' },
-]
+// ─── Número animado ───────────────────────────────────────────────────────────
+function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const { ref, inView } = useInView()
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (!inView) return
+    const duration = 1200
+    const start = Date.now()
+    const tick = () => {
+      const elapsed = Date.now() - start
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(eased * value))
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [inView, value])
+  return <span ref={ref}>{display}{suffix}</span>
+}
 
-// ─── Feature comparison vs alternatives ──────────────────────────────────────
-const COMPARISON_ROWS = [
-  { feature: 'OSCE com AI como doente',         phlox: true,  uptodate: false, mims: false },
-  { feature: 'Ligas de conhecimento clínico',   phlox: true,  uptodate: false, mims: false },
-  { feature: 'Ward colaborativo multi-equipa',  phlox: true,  uptodate: false, mims: false },
-  { feature: 'Comunicação inter-profissional',  phlox: true,  uptodate: false, mims: false },
-  { feature: 'Passagem de turno AI',            phlox: true,  uptodate: false, mims: false },
-  { feature: 'Interações medicamentosas',       phlox: true,  uptodate: true,  mims: true  },
-  { feature: 'Mecanismo CYP450 detalhado',      phlox: true,  uptodate: true,  mims: false },
-  { feature: 'Em português europeu',            phlox: true,  uptodate: false, mims: false },
-  { feature: 'Preço para estudantes (mês)',     phlox: '3,99€', uptodate: '45€', mims: '12€' },
-]
-
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-const TESTIMONIALS = [
-  {
-    quote: 'O Ward substituiu o WhatsApp da equipa. Tudo documentado, auditável, com passagem de turno em 30 segundos.',
-    name: 'A.M.', role: 'Farmacêutica Hospitalar', location: 'Lisboa',
-    color: '#1d4ed8',
-  },
-  {
-    quote: 'Passei de Bronze a Ouro na Arena em 3 semanas. Os casos são mais difíceis que os exames reais — e isso é bom.',
-    name: 'R.S.', role: 'Estudante de Medicina, 4.º ano', location: 'Porto',
-    color: '#7c3aed',
-  },
-  {
-    quote: 'Os meus pais têm 6 medicamentos cada. Finalmente percebo o que tomam e porquê. O Care Plan impresso foi à consulta.',
-    name: 'C.L.', role: 'Cuidador familiar', location: 'Braga',
-    color: '#b45309',
-  },
-]
-
-// ─── Audience sections ────────────────────────────────────────────────────────
-const AUDIENCES = [
-  {
-    id: 'profissional',
-    tag: 'Para profissionais',
-    title: 'O co-piloto clínico\nque faltava.',
-    sub: 'Ward + Connect + Rounds + AI. A alternativa moderna ao papel, ao fax e ao WhatsApp de grupo.',
-    color: '#1d4ed8',
-    bg: '#eff6ff',
-    href: '/login?mode=clinical',
-    cta: 'Ver ferramentas Pro',
-    points: [
-      { title: 'Phlox Ward', desc: 'Ficha clínica colaborativa em tempo real. Toda a equipa no mesmo doente.' },
-      { title: 'Passagem de turno AI', desc: 'Gerada em 1 clique. Com alertas, decisões, e tarefas abertas por doente.' },
-      { title: 'Phlox Rounds + PCNE', desc: 'Ronda farmacêutica digital. Score de risco automático. Relatório para acreditação.' },
-      { title: 'Phlox Connect', desc: 'Farmacêutico comunica directamente com médico. Documentado e auditável.' },
-    ],
-  },
-  {
-    id: 'estudante',
-    tag: 'Para estudantes',
-    title: 'Estuda como\num profissional.',
-    sub: 'Arena, OSCE, Hive, Tutor AI, Flashcards SRS. Medicina, Farmácia, Enfermagem, Nutrição, Fisioterapia, Dentária.',
-    color: '#7c3aed',
-    bg: '#faf5ff',
-    href: '/login?mode=student',
-    cta: 'Ver ferramentas Student',
-    points: [
-      { title: 'Phlox Arena', desc: '5 ligas, Bronze a Diamante. Casos em 10 domínios. XP e ranking global.' },
-      { title: 'Phlox OSCE', desc: 'A AI responde como doente. Checklist, timer e feedback item a item como examinador.' },
-      { title: 'Phlox Hive', desc: 'Inteligência colectiva. Os pontos cegos da comunidade + os teus especificamente.' },
-      { title: 'AI Tutor Socrático', desc: '4 fases de deepening. Aprende por raciocínio, não por memorização.' },
-    ],
-  },
-  {
-    id: 'familia',
-    tag: 'Para famílias',
-    title: 'A medicação\nda tua família,\nfinalmente organizada.',
-    sub: 'Perfis familiares, calendário de tomas, monitor de adesão, care plan imprimível. Para quem cuida.',
-    color: '#b45309',
-    bg: '#fffbeb',
-    href: '/login?mode=caregiver',
-    cta: 'Criar conta grátis',
-    points: [
-      { title: 'Perfis familiares', desc: 'Um perfil por pessoa. Medicação, condições, alergias. Partilhável com o médico.' },
-      { title: 'Verificador de interações', desc: 'Verifica a medicação completa de um familiar em segundos.' },
-      { title: 'Care Plan imprimível', desc: 'Uma página A4 com toda a medicação e instruções. Para levar à consulta.' },
-      { title: 'Monitor de adesão', desc: 'Registo de tomas, padrões de não-adesão, e razões. Com sugestões personalizadas.' },
-    ],
-  },
-]
-
-export default function HomePage() {
-  const [demoActive, setDemoActive] = useState(false)
-
+// ─── Linha horizontal com texto ───────────────────────────────────────────────
+function Rule({ children }: { children?: React.ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+      {children && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.18em', textTransform: 'uppercase', flexShrink: 0 }}>{children}</span>}
+      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+    </div>
+  )
+}
+
+// ─── Profissional feature card ────────────────────────────────────────────────
+const PRO_TOOLS = [
+  { title: 'Phlox Ward', color: '#1d4ed8', href: '/teams', desc: 'Ficha clínica colaborativa em tempo real. Toda a equipa no mesmo doente.', detail: 'Feed por tipo de entrada · Passagem de turno AI · Histórico auditável' },
+  { title: 'Phlox Connect', color: '#0d6e42', href: '/connect', desc: 'Comunicação inter-profissional documentada. Farmacêutico → Médico → Enfermeiro.', detail: 'Análise AI · Aceite documentado · Registo por doente' },
+  { title: 'Phlox Rounds', color: '#7c3aed', href: '/rounds', desc: 'Ronda farmacêutica digital com classificação PCNE v9.1 completa.', detail: 'Score de risco automático · Relatório de acreditação · 1 clique' },
+  { title: 'Phlox Carta', color: '#0891b2', href: '/carta', desc: 'Referenciação, nota de alta, intervenção farmacêutica. Pronto para assinar.', detail: '5 tipos de carta clínica · Formato PCNE · Imprimível', badge: 'Novo' },
+  { title: 'Escalas Clínicas', color: '#b45309', href: '/escalas', desc: 'PHQ-9, NIHSS, Braden, Morse, MNA, APGAR e mais. Com interpretação clínica.', detail: '8 escalas validadas · Resultado imediato · Gratuito', badge: 'Novo' },
+  { title: 'Phlox Residentes', color: '#dc2626', href: '/residentes', desc: 'Revisão farmacoterapêutica automatizada de residentes de lar. STOPP/START + Beers.', detail: 'Dashboard de risco · Relatório por residente · Acreditação', badge: 'Novo' },
+]
+
+const STUDENT_TOOLS = [
+  { title: 'Phlox Arena', color: '#7c3aed', href: '/arena', desc: 'Ligas de conhecimento clínico. Bronze a Diamante. XP real, ranking global.' },
+  { title: 'Phlox OSCE', color: '#dc2626', href: '/osce', desc: 'Simulação de OSCE com AI como doente. 6 cursos. Timer real por estação.' },
+  { title: 'Phlox Decisão', color: '#0891b2', href: '/decisao', desc: 'O caso clínico evolui com as tuas decisões. O doente piora se decides mal.', badge: 'Exclusivo' },
+  { title: 'Phlox Hive', color: '#d97706', href: '/hive', desc: 'A inteligência colectiva da comunidade. Os teus pontos cegos específicos.' },
+]
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+export default function HomePage() {
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', overflowX: 'hidden' }}>
       <Header />
 
-      {/* ── HERO ──────────────────────────────────────────────────────────── */}
-      <section style={{ background: '#0f172a', padding: '80px 0 72px', position: 'relative', overflow: 'hidden' }}>
-        <div aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
-        <div aria-hidden style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: 900, height: 500, background: 'radial-gradient(ellipse, rgba(34,197,94,0.07) 0%, transparent 65%)', pointerEvents: 'none' }} />
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <section style={{ background: '#0c0f1a', minHeight: '92vh', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Linha diagonal — elemento editorial, não grid quadriculado */}
+        <div aria-hidden style={{ position: 'absolute', top: 0, right: 0, width: '55%', height: '100%', background: 'linear-gradient(135deg, transparent 0%, #0f172a 100%)', pointerEvents: 'none' }} />
+        {/* Acento verde subtil */}
+        <div aria-hidden style={{ position: 'absolute', bottom: -100, left: '30%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(34,197,94,0.04) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        <div className="page-container" style={{ position: 'relative' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }} className="hero-grid">
+        <div className="page-container" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center' }} className="hero-grid">
 
-            {/* Left */}
+            {/* Texto */}
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1e293b', border: '1px solid #334155', borderRadius: 20, padding: '5px 14px 5px 10px', marginBottom: 28 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2s infinite' }} />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Portugal · Online agora</span>
+              {/* Tag line editorial — não marketing */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 40 }}>
+                <div style={{ width: 28, height: 1, background: '#22c55e' }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#4b5563', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+                  Farmacologia clínica · Portugal · 2026
+                </span>
               </div>
 
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(32px,4vw,54px)', color: '#f8fafc', fontWeight: 400, lineHeight: 1.1, letterSpacing: '-0.025em', marginBottom: 20 }}>
-                A plataforma clínica<br />
-                <span style={{ color: '#22c55e' }}>feita para Portugal.</span>
+              {/* Headline tipográfica — serif grande, não hero genérico */}
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(36px,4.5vw,64px)', color: '#f9fafb', fontWeight: 400, lineHeight: 1.08, letterSpacing: '-0.03em', margin: '0 0 32px' }}>
+                A clínica<br />
+                <span style={{ color: '#22c55e', fontStyle: 'italic' }}>precisa</span><br />
+                de melhor.
               </h1>
 
-              <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.8, marginBottom: 12 }}>
-                Para profissionais que precisam de ferramentas reais.
-              </p>
-              <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.8, marginBottom: 12 }}>
-                Para estudantes que querem competir a sério.
-              </p>
-              <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.8, marginBottom: 36 }}>
-                Para famílias que merecem perceber a sua medicação.
+              <p style={{ fontSize: 16, color: '#6b7280', lineHeight: 1.8, maxWidth: 400, margin: '0 0 40px' }}>
+                Ferramentas para profissionais que trabalham. Competição para estudantes que querem ser os melhores. Clareza para famílias que gerem medicação.
               </p>
 
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 48 }}>
                 <Link href="/login"
-                  style={{ padding: '14px 32px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 15, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'all 0.15s', letterSpacing: '-0.01em' }}
+                  style={{ padding: '13px 28px', background: '#22c55e', color: '#0c0f1a', textDecoration: 'none', borderRadius: 7, fontSize: 14, fontWeight: 800, letterSpacing: '0.01em', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
                   className="hero-cta-primary">
                   Começar grátis
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </Link>
-                <Link href="/interactions"
-                  style={{ padding: '14px 22px', background: 'transparent', color: '#94a3b8', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, border: '1px solid #334155', transition: 'all 0.15s' }}>
-                  Verificar interações — sem conta
+                <Link href="/institucional"
+                  style={{ padding: '13px 22px', background: 'transparent', color: '#9ca3af', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, border: '1px solid #1f2937', transition: 'all 0.15s' }}
+                  className="hero-cta-secondary">
+                  Para instituições
                 </Link>
               </div>
 
-              {/* Stats */}
-              <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-                {STATS.map(s => (
+              {/* Números — horizontais, tipográficos */}
+              <div style={{ display: 'flex', gap: 32 }}>
+                {[
+                  { value: 35, suffix: '+', label: 'ferramentas' },
+                  { value: 10, suffix: '', label: 'domínios' },
+                  { value: 100, suffix: '%', label: 'grátis para começar' },
+                ].map(s => (
                   <div key={s.label}>
-                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#f8fafc', lineHeight: 1 }}>{s.value}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 3 }}>{s.label}</div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#f9fafb', lineHeight: 1 }}>
+                      <AnimatedNumber value={s.value} suffix={s.suffix} />
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 4 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right — interactive demo */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <InteractionDemo />
+            {/* Demo interactiva */}
+            <div>
+              <LiveDemo />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── FREE TOOLS BAR ───────────────────────────────────────────────── */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '13px 0' }}>
+      {/* ── FERRAMENTAS GRATUITAS ────────────────────────────────────────── */}
+      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '0' }}>
         <div className="page-container">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.16em', flexShrink: 0 }}>Grátis · Sem conta</span>
-            <div style={{ width: 1, height: 14, background: 'var(--border)' }} />
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, overflowX: 'auto' }}>
+            <div style={{ padding: '16px 0', display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: 20 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.18em', padding: '4px 10px', border: '1px solid #22c55e', borderRadius: 20 }}>Grátis · Sem conta</span>
+            </div>
             {[
               { label: 'Verificar Interações', href: '/interactions' },
               { label: 'Tradutor de Bula', href: '/bula' },
               { label: 'Dose Pediátrica', href: '/dose-crianca' },
               { label: 'Calculadoras Clínicas', href: '/calculators' },
-            ].map((t, i, arr) => (
-              <span key={t.href} style={{ display: 'flex', alignItems: 'center' }}>
-                <Link href={t.href} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', textDecoration: 'none', padding: '2px 0', transition: 'color 0.1s' }} className="free-link">{t.label}</Link>
-                {i < arr.length - 1 && <span style={{ color: 'var(--border-2)', margin: '0 12px' }}>·</span>}
-              </span>
+              { label: 'Escalas Clínicas', href: '/escalas' },
+            ].map((t, i) => (
+              <Link key={t.href} href={t.href}
+                style={{ display: 'flex', alignItems: 'center', padding: '16px 18px', fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', borderLeft: '1px solid var(--border)', transition: 'color 0.1s, background 0.1s', whiteSpace: 'nowrap' }}
+                className="free-tool-link">
+                {t.label}
+              </Link>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── AUDIENCE SECTIONS ─────────────────────────────────────────────── */}
-      {AUDIENCES.map((aud, idx) => (
-        <section key={aud.id} style={{ padding: '88px 0', background: idx % 2 === 1 ? '#0f172a' : 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
-          {idx % 2 === 1 && (
-            <div aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
-          )}
-          <div className="page-container" style={{ position: 'relative' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: idx % 2 === 0 ? '1fr 1fr' : '1fr 1fr', gap: 64, alignItems: 'center' }} className="audience-grid">
-
-              {/* Text side */}
-              <div style={{ order: idx % 2 === 0 ? 0 : 1 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: aud.color, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 16, opacity: 0.9 }}>{aud.tag}</div>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,3.5vw,44px)', color: idx % 2 === 1 ? '#f8fafc' : 'var(--ink)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.12, marginBottom: 18, whiteSpace: 'pre-line' }}>{aud.title}</h2>
-                <p style={{ fontSize: 16, color: idx % 2 === 1 ? '#64748b' : 'var(--ink-3)', lineHeight: 1.75, marginBottom: 36, maxWidth: 440 }}>{aud.sub}</p>
-                <Link href={aud.href}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: aud.color, color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, marginBottom: 36 }}>
-                  {aud.cta}
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      {/* ── PARA PROFISSIONAIS ────────────────────────────────────────────── */}
+      <section style={{ padding: '120px 0 100px', background: 'var(--bg)' }}>
+        <div className="page-container">
+          <Reveal>
+            <div style={{ display: 'flex', gap: 40, alignItems: 'flex-start', marginBottom: 72, flexWrap: 'wrap' }}>
+              <div style={{ flex: '0 0 auto' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#1d4ed8', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 20, height: 1, background: '#1d4ed8' }} />Profissionais e Instituições
+                </div>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,4vw,50px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.1, margin: 0, maxWidth: 480 }}>
+                  Ferramentas feitas<br />para o trabalho real.
+                </h2>
+              </div>
+              <div style={{ flex: 1, minWidth: 280, paddingTop: 8 }}>
+                <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 20 }}>
+                  Farmácias, hospitais, clínicas, lares. As ferramentas que substituem o papel, o fax, e o WhatsApp clínico.
+                </p>
+                <Link href="/institucional"
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  Ver planos institucionais
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </Link>
               </div>
-
-              {/* Points side */}
-              <div style={{ order: idx % 2 === 0 ? 1 : 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {aud.points.map((pt, i) => (
-                    <div key={i} style={{ padding: '18px 20px', background: idx % 2 === 1 ? '#1e293b' : 'white', border: `1px solid ${idx % 2 === 1 ? '#334155' : 'var(--border)'}`, borderRadius: 10, borderLeft: `3px solid ${aud.color}`, transition: 'transform 0.1s' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: idx % 2 === 1 ? '#f8fafc' : 'var(--ink)', marginBottom: 4, letterSpacing: '-0.01em' }}>{pt.title}</div>
-                      <div style={{ fontSize: 13, color: idx % 2 === 1 ? '#64748b' : 'var(--ink-3)', lineHeight: 1.6 }}>{pt.desc}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
-          </div>
-        </section>
-      ))}
+          </Reveal>
 
-      {/* ── TESTIMONIALS ─────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 0', background: 'white', borderTop: '1px solid var(--border)' }}>
-        <div className="page-container">
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 14 }}>Utilizado por profissionais e estudantes em Portugal</div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3vw,36px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em' }}>O que dizem os utilizadores</h2>
+          {/* Tools — layout em lista tipográfica, não cards quadrados */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {PRO_TOOLS.map((tool, i) => (
+              <Reveal key={tool.title} delay={i * 0.06}>
+                <Link href={tool.href}
+                  style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '28px 0', borderTop: '1px solid var(--border)', textDecoration: 'none', transition: 'background 0.1s' }}
+                  className="pro-tool-row">
+                  {/* Number */}
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)', width: 28, flexShrink: 0 }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  {/* Accent dot */}
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: tool.color, flexShrink: 0 }} />
+                  {/* Title */}
+                  <div style={{ width: 180, flexShrink: 0 }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>{tool.title}</span>
+                    {'badge' in tool && tool.badge && (
+                      <span style={{ marginLeft: 8, fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 700, color: tool.color, background: `${tool.color}12`, border: `1px solid ${tool.color}30`, padding: '1px 6px', borderRadius: 3, verticalAlign: 'middle', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{tool.badge}</span>
+                    )}
+                  </div>
+                  {/* Desc */}
+                  <div style={{ flex: 1, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.5 }}>{tool.desc}</div>
+                  {/* Detail */}
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', textAlign: 'right', maxWidth: 220, flexShrink: 0, display: 'none' }} className="pro-tool-detail">
+                    {tool.detail}
+                  </div>
+                  {/* Arrow */}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </Link>
+              </Reveal>
+            ))}
+            <div style={{ borderTop: '1px solid var(--border)' }} />
           </div>
+        </div>
+      </section>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,280px),1fr))', gap: 16 }}>
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} style={{ padding: '24px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, borderTop: `3px solid ${t.color}` }}>
-                <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.75, margin: '0 0 20px', fontStyle: 'italic' }}>"{t.quote}"</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${t.color}15`, border: `1px solid ${t.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 14, color: t.color, fontWeight: 600 }}>
-                    {t.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{t.role} · {t.location}</div>
-                  </div>
-                </div>
+      {/* ── PARA ESTUDANTES ──────────────────────────────────────────────── */}
+      <section style={{ padding: '100px 0', background: '#0c0f1a', position: 'relative', overflow: 'hidden' }}>
+        {/* Acento diagonal direita */}
+        <div aria-hidden style={{ position: 'absolute', top: 0, left: 0, width: '40%', height: '100%', background: 'linear-gradient(135deg, #0f172a 0%, transparent 100%)', pointerEvents: 'none' }} />
+        <div aria-hidden style={{ position: 'absolute', top: '50%', left: '20%', transform: 'translateY(-50%)', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(124,58,237,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div className="page-container" style={{ position: 'relative', zIndex: 1 }}>
+          <Reveal>
+            <div style={{ marginBottom: 64 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#7c3aed', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 20, height: 1, background: '#7c3aed' }} />Student
               </div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,4vw,52px)', color: '#f9fafb', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.1, margin: '0 0 20px' }}>
+                Estuda como<br />
+                <span style={{ color: '#a78bfa', fontStyle: 'italic' }}>um profissional.</span>
+              </h2>
+              <p style={{ fontSize: 16, color: '#4b5563', lineHeight: 1.75, maxWidth: 480 }}>
+                Medicina, Farmácia, Enfermagem, Nutrição, Fisioterapia, Dentária. Arena, OSCE, Hive, Decisão — o que nenhuma plataforma oferece em português.
+              </p>
+            </div>
+          </Reveal>
+
+          {/* Student tools — layout assimétrico, 2+2 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
+            {STUDENT_TOOLS.map((tool, i) => (
+              <Reveal key={tool.title} delay={i * 0.08}>
+                <Link href={tool.href}
+                  style={{ display: 'flex', flexDirection: 'column', padding: '24px', background: '#111827', border: '1px solid #1f2937', borderRadius: 12, textDecoration: 'none', transition: 'border-color 0.15s, transform 0.15s', minHeight: 160 }}
+                  className="student-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: tool.color, marginTop: 4 }} />
+                    {'badge' in tool && tool.badge && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 700, color: tool.color, background: `${tool.color}15`, border: `1px solid ${tool.color}30`, padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{tool.badge}</span>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: '#f9fafb', fontWeight: 400, marginBottom: 10, letterSpacing: '-0.01em' }}>{tool.title}</div>
+                  <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.65, margin: 0, flex: 1 }}>{tool.desc}</p>
+                  <div style={{ marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 10, color: tool.color, fontWeight: 700 }}>Abrir →</div>
+                </Link>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── VS ALTERNATIVAS ───────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 0', background: 'var(--bg)' }}>
+      {/* ── PARA QUEM ────────────────────────────────────────────────────── */}
+      <section style={{ padding: '100px 0', background: 'white' }}>
         <div className="page-container">
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3vw,36px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 12 }}>
-              Porque o Phlox é diferente
+          <Reveal>
+            <Rule>Para quem</Rule>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3.5vw,44px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: 56, maxWidth: 500 }}>
+              Uma plataforma.<br />
+              Quatro experiências<br />completamente diferentes.
             </h2>
-            <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.6 }}>Comparação honesta com alternativas internacionais.</p>
-          </div>
+          </Reveal>
 
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', maxWidth: 700, margin: '0 auto' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', width: '45%' }}>Funcionalidade</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, fontWeight: 800, color: 'var(--green)' }}>Phlox</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--ink-4)' }}>UpToDate</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--ink-4)' }}>MIMS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON_ROWS.map((row, i) => (
-                    <tr key={row.feature} style={{ borderBottom: '1px solid var(--bg-3)', background: i % 2 === 0 ? 'white' : 'var(--bg-2)' }}>
-                      <td style={{ padding: '10px 20px', fontSize: 13, color: 'var(--ink-2)' }}>{row.feature}</td>
-                      {[
-                        { v: row.phlox, accent: 'var(--green)' },
-                        { v: row.uptodate, accent: 'var(--ink-4)' },
-                        { v: row.mims, accent: 'var(--ink-4)' },
-                      ].map(({ v, accent }, j) => (
-                        <td key={j} style={{ padding: '10px 16px', textAlign: 'center' }}>
-                          {typeof v === 'boolean' ? (
-                            v ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                            ) : (
-                              <span style={{ color: 'var(--border-2)', fontSize: 16 }}>—</span>
-                            )
-                          ) : (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: j === 0 ? 'var(--green)' : 'var(--ink-3)', fontWeight: j === 0 ? 700 : 400 }}>{v}</span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 2, border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+            {[
+              { title: 'Profissional de Saúde', sub: 'Farmácia · Hospital · Clínica · Lar', color: '#1d4ed8', href: '/login?mode=clinical', tools: ['Ward — ficha colaborativa', 'Connect — inter-profissional', 'Rounds — PCNE v9.1', 'Carta — referenciação', 'Residentes — gestão de lar'] },
+              { title: 'Estudante', sub: 'Medicina · Farmácia · Enfermagem e mais', color: '#7c3aed', href: '/login?mode=student', tools: ['Arena — ligas Bronze→Diamante', 'OSCE — AI como doente', 'Decisão — caso que evolui', 'Hive — inteligência colectiva', 'Tutor AI socrático'] },
+              { title: 'Cuidador Familiar', sub: 'Pais · Filhos · Cônjuge · Avós', color: '#b45309', href: '/login?mode=caregiver', tools: ['Perfis familiares', 'Care Plan imprimível', 'Calendário de tomas', 'Monitor de adesão', 'Verificar interações'] },
+              { title: 'Uso Pessoal', sub: 'A minha saúde', color: '#0d6e42', href: '/login?mode=personal', tools: ['Os meus medicamentos', 'Registo de saúde', 'Análises e vacinas', 'Timeline clínica', 'Phlox AI'] },
+            ].map((p, i) => (
+              <Reveal key={p.title} delay={i * 0.08}>
+                <Link href={p.href}
+                  style={{ display: 'flex', flexDirection: 'column', padding: '28px 24px', background: 'white', textDecoration: 'none', height: '100%', transition: 'background 0.1s' }}
+                  className="persona-tile">
+                  <div style={{ width: 20, height: 3, background: p.color, borderRadius: 1.5, marginBottom: 20 }} />
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, marginBottom: 4, lineHeight: 1.25 }}>{p.title}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 22 }}>{p.sub}</div>
+                  <div style={{ flex: 1 }}>
+                    {p.tools.map((t, j) => (
+                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: j < p.tools.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
+                        <div style={{ width: 3, height: 3, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: p.color }}>
+                    Entrar
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── TRUST / FONTES ────────────────────────────────────────────────── */}
-      <section style={{ padding: '48px 0', background: 'white', borderTop: '1px solid var(--border)' }}>
-        <div className="page-container" style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 18 }}>Fontes verificáveis — nunca inventadas</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
-            {['OpenFDA', 'INFARMED', 'EMA', 'RxNorm · NIH', 'ESC 2024', 'ADA 2024', 'NICE', 'DGS', 'KDIGO', 'Lexicomp'].map(s => (
+      {/* ── INSTITUCIONAL CTA ─────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 0', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
+        <div className="page-container">
+          <Reveal>
+            <div style={{ display: 'flex', gap: 48, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 280 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#1d4ed8', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 16, height: 1, background: '#1d4ed8' }} />Plano Institucional
+                </div>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,38px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 14 }}>
+                  Para farmácias, hospitais,<br />clínicas e lares.
+                </h2>
+                <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.75, marginBottom: 0 }}>
+                  Ward + Connect + Rounds + Residentes para toda a equipa. Múltiplos utilizadores, dashboard de risco institucional, relatórios de acreditação. Contacto directo sem compromisso.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
+                <Link href="/institucional"
+                  style={{ padding: '14px 28px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, textAlign: 'center', display: 'block', whiteSpace: 'nowrap' }}>
+                  Ver plano institucional
+                </Link>
+                <Link href="/pricing"
+                  style={{ padding: '12px 24px', background: 'white', color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', textAlign: 'center', display: 'block' }}>
+                  Comparar todos os planos
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── FONTES ────────────────────────────────────────────────────────── */}
+      <div style={{ background: 'white', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '28px 0' }}>
+        <div className="page-container">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.16em', flexShrink: 0 }}>Fontes verificáveis</span>
+            {['OpenFDA', 'INFARMED', 'EMA', 'RxNorm · NIH', 'ESC 2024', 'ADA 2024', 'NICE', 'DGS', 'KDIGO', 'Beers 2023', 'STOPP/START v3'].map(s => (
               <span key={s} className="source-pill">{s}</span>
             ))}
           </div>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)', maxWidth: 500, margin: '0 auto', lineHeight: 1.7 }}>
-            A AI é usada para síntese e raciocínio clínico.<br />Toda a informação crítica é verificável nas fontes originais.
-          </p>
         </div>
-      </section>
+      </div>
 
       {/* ── CTA FINAL ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '88px 0', background: '#0f172a', position: 'relative', overflow: 'hidden' }}>
-        <div aria-hidden style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 800, height: 400, background: 'radial-gradient(ellipse, rgba(34,197,94,0.06) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        <div className="page-container" style={{ textAlign: 'center', maxWidth: 580, position: 'relative' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,4vw,46px)', color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.15, marginBottom: 18 }}>
-            Começa hoje.<br />É grátis para sempre.
-          </h2>
-          <p style={{ fontSize: 16, color: '#475569', marginBottom: 14, lineHeight: 1.7 }}>
-            Três ferramentas sem conta. Upgrade quando faz sentido.
-          </p>
-          <p style={{ fontSize: 14, color: '#334155', marginBottom: 40, fontFamily: 'var(--font-mono)' }}>
-            Cancela quando quiseres. Sem fidelização.
-          </p>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
-            <Link href="/login"
-              style={{ padding: '15px 36px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 16, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}
-              className="hero-cta-primary">
-              Criar conta grátis
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </Link>
-            <Link href="/pricing"
-              style={{ padding: '15px 24px', background: 'transparent', color: '#64748b', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, border: '1px solid #334155' }}>
-              Ver planos
-            </Link>
-          </div>
-          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {['Sem cartão de crédito', 'Cancela quando quiseres', 'Sem anúncios'].map(t => (
-              <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#334155' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                {t}
-              </div>
-            ))}
-          </div>
+      <section style={{ padding: '100px 0', background: '#0c0f1a', position: 'relative', overflow: 'hidden' }}>
+        <div aria-hidden style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 400, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(34,197,94,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="page-container" style={{ textAlign: 'center', position: 'relative', maxWidth: 560 }}>
+          <Reveal>
+            {/* Headline final — directa, sem exagero */}
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#374151', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 24 }}>
+              Começa hoje
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,4.5vw,56px)', color: '#f9fafb', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.1, marginBottom: 20 }}>
+              Grátis para sempre.
+            </h2>
+            <p style={{ fontSize: 15, color: '#4b5563', marginBottom: 40, lineHeight: 1.75 }}>
+              Três ferramentas sem conta. Upgrade quando fizer sentido. Cancela sem consequências.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/login"
+                style={{ padding: '14px 32px', background: '#22c55e', color: '#0c0f1a', textDecoration: 'none', borderRadius: 7, fontSize: 15, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
+                className="hero-cta-primary">
+                Criar conta grátis
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </Link>
+              <Link href="/pricing"
+                style={{ padding: '14px 22px', background: 'transparent', color: '#6b7280', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, border: '1px solid #1f2937' }}>
+                Ver planos
+              </Link>
+            </div>
+            <div style={{ marginTop: 40, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#1f2937', textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+              © 2026 Phlox Clinical · Feito em Portugal
+            </div>
+          </Reveal>
         </div>
       </section>
 
       <style>{`
         .hero-cta-primary:hover { background: #16a34a !important; transform: translateY(-2px); }
-        .free-link:hover { color: var(--green) !important; }
-        @media(max-width:768px) {
-          .hero-grid { grid-template-columns: 1fr !important; }
-          .audience-grid { grid-template-columns: 1fr !important; }
+        .hero-cta-secondary:hover { border-color: #374151 !important; color: #d1d5db !important; }
+        .free-tool-link:hover { color: var(--green) !important; background: var(--bg) !important; }
+        .pro-tool-row:hover { padding-left: 8px; }
+        .pro-tool-row:hover .pro-tool-detail { display: block !important; }
+        .student-card:hover { border-color: rgba(124,58,237,0.4) !important; transform: translateY(-3px); }
+        .persona-tile:hover { background: var(--bg) !important; }
+        @media(max-width: 768px) {
+          .hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .pro-tool-row { flex-wrap: wrap; gap: 12px; }
         }
-        @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes pulse-green { 0%,100%{opacity:1} 50%{opacity:0.4} }
       `}</style>
     </div>
   )
