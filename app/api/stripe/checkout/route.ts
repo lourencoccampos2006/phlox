@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     // Support both old (userId+email in body) and new (token-based) format
     const { priceId: priceKey, plan: planKey, billing } = body
     
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     const stripeKey = process.env.STRIPE_SECRET_KEY
     if (!stripeKey) {
       return NextResponse.json({
-        error: 'STRIPE_SECRET_KEY não está definida nas variáveis de ambiente do Cloudflare. Vai a Workers & Pages → Phlox → Settings → Variables e adiciona-a.'
+        error: 'STRIPE_SECRET_KEY não está definida. Vai ao Vercel Dashboard → Settings → Environment Variables e adiciona STRIPE_SECRET_KEY.'
       }, { status: 503 })
     }
 

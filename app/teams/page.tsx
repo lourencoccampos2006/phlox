@@ -370,9 +370,13 @@ export default function WardPage() {
     let channelId: string | undefined = existing?.id
 
     if (!channelId) {
+      // Only send org_id if the user actually has one — avoids FK violation
+      const channelPayload: any = { patient_id: patient.id }
+      if (orgId) channelPayload.org_id = orgId
+
       const { data: newChannel, error: chErr } = await supabase
         .from('patient_channels')
-        .insert({ patient_id: patient.id, org_id: orgId || '00000000-0000-0000-0000-000000000000' })
+        .insert(channelPayload)
         .select()
         .single()
       if (chErr) {
