@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
+import HealthInsights from '@/components/HealthInsights'
+import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ReferralSection from '@/components/ReferralSection'
@@ -32,29 +34,28 @@ function FamilyProfilesSection({ accentColor = 'var(--green)' }: { accentColor?:
 
   useEffect(() => {
     if (!user) return
-    const loadProfiles = async () => {
-      const { data } = await supabase
-        .from('family_profiles')
-        .select('id, name, relation, age')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-      const ps = data || []
-      setProfiles(ps)
-      // Contar meds por perfil
-      if (ps.length > 0) {
-        const { data: meds } = await supabase
-          .from('family_profile_meds')
-          .select('profile_id')
-          .eq('user_id', user.id)
-        const counts: Record<string, number> = {}
-        ;(meds || []).forEach((m: { profile_id: string }) => {
-          counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
-        })
-        setMedsCount(counts)
-      }
-      setLoading(false)
-    }
-    loadProfiles().catch((_e: any) => setLoading(false))
+    supabase
+      .from('family_profiles')
+      .select('id, name, relation, age')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .then(async ({ data }) => {
+        const ps = data || []
+        setProfiles(ps)
+        // Contar meds por perfil
+        if (ps.length > 0) {
+          const { data: meds } = await supabase
+            .from('family_profile_meds')
+            .select('profile_id')
+            .eq('user_id', user.id)
+          const counts: Record<string, number> = {}
+          ;(meds || []).forEach((m: { profile_id: string }) => {
+            counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
+          })
+          setMedsCount(counts)
+        }
+        setLoading(false)
+      })
   }, [user, supabase])
 
   if (loading) return <div className="skeleton" style={{ height: 80, borderRadius: 10, marginBottom: 16 }} />
@@ -282,7 +283,7 @@ function PersonalDashboard() {
                 </div>
                 {meds.slice(0, 4).map((med, i) => (
                   <div key={med.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 18px', borderBottom: i < Math.min(meds.length, 4) - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{med.name}</div>
+                    <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', cursor: 'pointer', textDecorationLine: 'underline', textDecorationStyle: 'dotted', textDecorationColor: 'var(--border-2)' }}>{med.name}</span>} />
                     <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{[med.dose, med.frequency].filter(Boolean).join(' · ')}</div>
                   </div>
                 ))}
@@ -293,6 +294,13 @@ function PersonalDashboard() {
                     </Link>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Análise integrada de saúde */}
+            {meds.length > 0 && plan !== 'free' && (
+              <div style={{ marginBottom: 16 }}>
+                <HealthInsights trigger="manual" compact />
               </div>
             )}
 

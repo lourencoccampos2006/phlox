@@ -4,7 +4,9 @@
 // Substitui: /shift (Turno Virtual) + /cases (Casos Clínicos) + /decisao (Phlox Decisão)
 // Três modos de simulação, uma ferramenta coerente.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
 import Link from 'next/link'
@@ -56,9 +58,14 @@ const DIFFICULTIES = [
   { id: 'especialista',label: 'Especialista' },
 ]
 
-export default function SimuladorPage() {
+function SimuladorContent() {
   const { user, supabase } = useAuth()
-  const [mode, setMode] = useState<SimMode>('case')
+  const searchParams = useSearchParams()
+  const [mode, setMode] = useState<SimMode>(() => {
+    const m = searchParams.get('mode')
+    if (m === 'shift' || m === 'decision' || m === 'case') return m as SimMode
+    return 'case'
+  })
   const [domain, setDomain] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
   const [generating, setGenerating] = useState(false)
@@ -215,5 +222,13 @@ export default function SimuladorPage() {
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
+  )
+}
+
+export default function SimuladorPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg)' }} />}>
+      <SimuladorContent />
+    </Suspense>
   )
 }
