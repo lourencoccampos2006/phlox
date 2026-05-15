@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import NotificationBell from '@/components/NotificationBell'
 import { useState, useRef, useEffect } from 'react'
 import { getActiveProfile, type ActiveProfile } from '../lib/profileContext'
 import { ROUTE_GROUPS, MODE_META, type ExperienceMode } from '../lib/experienceMode'
@@ -241,6 +242,7 @@ function MobileDrawer({ open, onClose, user, signOut, supabase }: { open: boolea
         </div>
         <div style={{ padding: '16px 20px', borderTop: '2px solid var(--border)', background: 'var(--bg-2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* ─── NOVO: Mode switcher no mobile ─── */}
+          {user && <NotificationBell />}
           {user && (
             <div style={{ marginBottom: 4 }}>
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Mudar modo</div>
@@ -274,6 +276,7 @@ function MobileDrawer({ open, onClose, user, signOut, supabase }: { open: boolea
             </div>
           )}
           {/* Quick access links always visible on mobile */}
+          {user && <NotificationBell />}
           {user && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 4 }}>
               {[

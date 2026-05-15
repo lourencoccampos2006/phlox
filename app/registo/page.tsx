@@ -183,7 +183,10 @@ export default function RegistoPage() {
         const buffer = await file.arrayBuffer()
         const bytes = new Uint8Array(buffer)
         let binary = ''
-        bytes.forEach(b => binary += String.fromCharCode(b))
+        const chunkSize = 8192
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+        }
         const base64 = btoa(binary)
         // Send to labs API with pdf flag
         const { data: sd } = await supabase.auth.getSession()
