@@ -7,7 +7,7 @@
     "STRIPE_PRO_ANNUAL": "price_1TOL7ABq0eVzwb9fSdomK2I9",
     "NEXT_PUBLIC_BASE_URL": "https://phlox.lourencoccampos2006.workers.dev/"
   },
-  "main": ".open-next/worker.js",
+  "main": "./cf-worker.js",
   "name": "phlox",
   "compatibility_date": "2026-04-16",
   "compatibility_flags": [
@@ -26,5 +26,9 @@
   
   "observability": {
     "enabled": true
+  },
+
+  "triggers": {
+    "crons": ["*/15 * * * *"]
   }
 }

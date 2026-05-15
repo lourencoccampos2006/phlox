@@ -145,6 +145,7 @@ export default function MARPage() {
   const [records, setRecords] = useState<AdminRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
+  const [allOmissions, setAllOmissions] = useState<{ name: string; missing: number }[]>([])
 
   // Load patients
   useEffect(() => {
@@ -175,6 +176,30 @@ export default function MARPage() {
       .eq('shift', shift)
       .then(({ data }) => setRecords(data || []))
   }, [selectedPatient, date, shift, supabase])
+
+  // Calculate omissions across all patients for current shift
+  useEffect(() => {
+    if (!user || !isPro || patients.length === 0) return
+    const patientIds = patients.map(p => p.id)
+    Promise.all([
+      supabase.from('patient_meds').select('patient_id').eq('active', true).in('patient_id', patientIds),
+      supabase.from('mar_records').select('patient_id, med_id').eq('date', date).eq('shift', shift).in('patient_id', patientIds),
+    ]).then(([{ data: allMeds }, { data: todayRecs }]) => {
+      const medsPerPatient: Record<string, number> = {}
+      ;(allMeds || []).forEach((m: { patient_id: string }) => {
+        medsPerPatient[m.patient_id] = (medsPerPatient[m.patient_id] || 0) + 1
+      })
+      const recsPerPatient: Record<string, number> = {}
+      ;(todayRecs || []).forEach((r: { patient_id: string }) => {
+        recsPerPatient[r.patient_id] = (recsPerPatient[r.patient_id] || 0) + 1
+      })
+      const omissions = patients
+        .map(p => ({ name: p.name, missing: (medsPerPatient[p.id] || 0) - (recsPerPatient[p.id] || 0) }))
+        .filter(o => o.missing > 0)
+        .sort((a, b) => b.missing - a.missing)
+      setAllOmissions(omissions)
+    })
+  }, [patients, date, shift, user, isPro, supabase])
 
   const getRecord = (medId: string) =>
     records.find(r => r.med_id === medId && r.shift === shift) || null
@@ -281,6 +306,31 @@ export default function MARPage() {
           </div>
         </div>
       </div>
+
+      {/* Omission banner */}
+      {allOmissions.length > 0 && (
+        <div style={{ background: '#fef9c3', borderBottom: '1px solid #fde68a' }}>
+          <div className="page-container" style={{ padding: '10px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 14 }}>⚠️</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#854d0e' }}>
+                {allOmissions.reduce((s, o) => s + o.missing, 0)} doses em falta neste turno:
+              </span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {allOmissions.map(o => (
+                  <button key={o.name} onClick={() => {
+                    const p = patients.find(pt => pt.name === o.name)
+                    if (p) setSelectedPatient(p.id)
+                  }}
+                    style={{ padding: '3px 10px', background: 'white', border: '1px solid #fde68a', borderRadius: 14, fontSize: 12, color: '#854d0e', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                    {o.name} ({o.missing})
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="page-container page-body">
         {!selectedPatient ? (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
 import DrugQuickLook from '@/components/DrugQuickLook'
@@ -10,6 +10,7 @@ import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 interface Med {
   id: string; name: string; dose: string|null
   frequency: string|null; indication: string|null
+  reminder_times: string[]|null
   started_at: string|null; created_at: string
 }
 
@@ -18,11 +19,31 @@ interface Alert {
   message: string; action: string; drugs?: string[]
 }
 
+interface AutoCheckResult {
+  severity: 'GRAVE'|'MODERADA'|'LIGEIRA'|'SEM_INTERACAO'
+  patientInfo: string
+  recommendation: string
+  newDrug: string
+}
+
+interface ChatMessage {
+  role: 'user'|'assistant'
+  content: string
+}
+
 const SEV = {
   grave:    { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', dot:'#dc2626', label:'GRAVE',    icon:'🚨' },
   moderada: { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', dot:'#d97706', label:'MODERADA', icon:'⚠️' },
   info:     { bg:'#eff6ff', border:'#bfdbfe', color:'#1d4ed8', dot:'#3b82f6', label:'INFO',     icon:'ℹ️' },
 }
+
+const QUICK_PROMPTS = [
+  'Posso tomar com álcool?',
+  'Esqueci uma dose, o que faço?',
+  'Posso tomar com leite?',
+  'Tenho dores de cabeça, posso tomar algo?',
+  'Quais os efeitos secundários mais comuns?',
+]
 
 function RiskScore({ score, alerts }: { score: number; alerts: Alert[] }) {
   const level = score >= 60 ? 'critical' : score >= 30 ? 'moderate' : 'low'
@@ -58,6 +79,72 @@ function RiskScore({ score, alerts }: { score: number; alerts: Alert[] }) {
   )
 }
 
+// ─── Reminder Modal ───────────────────────────────────────────────────────────
+
+function ReminderModal({ meds, onSave, onClose }: {
+  meds: Med[]
+  onSave: (medId: string, times: string[]) => void
+  onClose: () => void
+}) {
+  const [times, setTimes] = useState<Record<string, string[]>>(
+    Object.fromEntries(meds.map(m => [m.id, m.reminder_times || []]))
+  )
+
+  const toggleTime = (medId: string, slot: string) => {
+    setTimes(prev => {
+      const current = prev[medId] || []
+      const next = current.includes(slot) ? current.filter(t => t !== slot) : [...current, slot].sort()
+      return { ...prev, [medId]: next }
+    })
+  }
+
+  const SLOTS = ['07:00','09:00','12:00','13:00','18:00','20:00','22:00']
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}
+      onClick={onClose}>
+      <div style={{ background:'white', borderRadius:'14px 14px 0 0', padding:24, width:'100%', maxWidth:480, maxHeight:'80vh', overflowY:'auto' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Lembretes de toma</div>
+        <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:20 }}>Seleciona os horários para cada medicamento. Receberás uma notificação.</div>
+
+        {meds.map(med => (
+          <div key={med.id} style={{ marginBottom:20 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:8 }}>
+              💊 {med.name}{med.dose ? ` ${med.dose}` : ''}
+            </div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {SLOTS.map(slot => {
+                const active = (times[med.id] || []).includes(slot)
+                return (
+                  <button key={slot} onClick={() => toggleTime(med.id, slot)}
+                    style={{ padding:'6px 12px', borderRadius:20, border:`1.5px solid ${active ? 'var(--green)' : 'var(--border)'}`, background:active ? 'var(--green-light)' : 'white', color:active ? 'var(--green-2)' : 'var(--ink-4)', fontSize:12, fontWeight:active ? 700 : 400, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                    {slot}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+
+        <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)' }}>
+          <button onClick={() => {
+            meds.forEach(m => onSave(m.id, times[m.id] || []))
+            onClose()
+          }}
+            style={{ flex:1, padding:'12px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            Guardar lembretes
+          </button>
+          <button onClick={onClose}
+            style={{ padding:'12px 16px', background:'white', color:'var(--ink-4)', border:'1px solid var(--border)', borderRadius:8, fontSize:14, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function MyMedsPage() {
   const { user, supabase } = useAuth()
   const [meds, setMeds] = useState<Med[]>([])
@@ -66,10 +153,26 @@ export default function MyMedsPage() {
   const [riskScore, setRiskScore] = useState(0)
   const [analysing, setAnalysing] = useState(false)
   const [analysed, setAnalysed] = useState(false)
-  const [tab, setTab] = useState<'overview'|'alerts'|'add'>('overview')
+  const [tab, setTab] = useState<'overview'|'alerts'|'add'|'ask'>('overview')
   const [newMed, setNewMed] = useState({ name:'', dose:'', frequency:'', indication:'' })
   const [adding, setAdding] = useState(false)
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
+
+  // Auto-check state
+  const [autoCheckResult, setAutoCheckResult] = useState<AutoCheckResult|null>(null)
+  const [autoChecking, setAutoChecking] = useState(false)
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Reminders
+  const [reminderOpen, setReminderOpen] = useState(false)
+  const [pushSupported, setPushSupported] = useState(false)
+  const [pushGranted, setPushGranted] = useState(false)
+
   const plan = (user?.plan||'free') as string
   const canAnalyse = plan !== 'free'
 
@@ -81,6 +184,76 @@ export default function MyMedsPage() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
+      setPushGranted(Notification.permission === 'granted')
+    }
+  }, [])
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
+
+  // ─── Auto-check interactions on add ──────────────────────────────────────────
+
+  const autoCheckInteractions = async (allMeds: Med[]) => {
+    if (allMeds.length < 2) return
+    setAutoChecking(true)
+    setAutoCheckResult(null)
+    try {
+      const res = await fetch('/api/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ drugs: allMeds.map(m => m.name) }),
+      })
+      const data = await res.json()
+      if (data.severity) {
+        setAutoCheckResult({
+          severity: data.severity,
+          patientInfo: data.patient_info || data.summary || '',
+          recommendation: data.recommendation || '',
+          newDrug: allMeds[0].name,
+        })
+      }
+    } catch {}
+    setAutoChecking(false)
+  }
+
+  // ─── Push notifications ───────────────────────────────────────────────────────
+
+  const requestPushAndOpen = async () => {
+    if (!pushSupported) return
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission()
+      setPushGranted(perm === 'granted')
+      if (perm !== 'granted') return
+    }
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidKey) { setReminderOpen(true); return }
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey,
+      })
+      const { data: sd } = await supabase.auth.getSession()
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      })
+    } catch {}
+    setReminderOpen(true)
+  }
+
+  const saveReminder = async (medId: string, times: string[]) => {
+    await supabase.from('personal_meds').update({ reminder_times: times.length ? times : null }).eq('id', medId)
+    setMeds(prev => prev.map(m => m.id === medId ? { ...m, reminder_times: times.length ? times : null } : m))
+  }
+
+  // ─── Manual analyse ───────────────────────────────────────────────────────────
 
   const analyse = async () => {
     if (meds.length < 2) return
@@ -105,6 +278,8 @@ export default function MyMedsPage() {
     setAnalysing(false)
   }
 
+  // ─── Add med ──────────────────────────────────────────────────────────────────
+
   const addMed = async () => {
     if (!newMed.name.trim() || !user) return
     setAdding(true)
@@ -114,7 +289,13 @@ export default function MyMedsPage() {
       user_id: user.id, name: finalName,
       dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
     }).select().single()
-    if (data) { setMeds(p => [data, ...p]); setAnalysed(false) }
+    if (data) {
+      const updatedMeds = [data, ...meds]
+      setMeds(updatedMeds)
+      setAnalysed(false)
+      // Auto-check interactions with new med
+      autoCheckInteractions(updatedMeds)
+    }
     setNewMed({ name:'', dose:'', frequency:'', indication:'' })
     setSuggestions([])
     setAdding(false)
@@ -125,7 +306,38 @@ export default function MyMedsPage() {
     await supabase.from('personal_meds').delete().eq('id', id)
     setMeds(p => p.filter(m => m.id !== id))
     setAnalysed(false)
+    setAutoCheckResult(null)
   }
+
+  // ─── Chat ─────────────────────────────────────────────────────────────────────
+
+  const sendChat = async (messageText?: string) => {
+    const text = (messageText ?? chatInput).trim()
+    if (!text || chatLoading) return
+    const userMsg: ChatMessage = { role: 'user', content: text }
+    setChatMessages(prev => [...prev, userMsg])
+    setChatInput('')
+    setChatLoading(true)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/chat-med', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({
+          message: text,
+          meds: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })),
+          history: chatMessages.slice(-6),
+        }),
+      })
+      const data = await res.json()
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Não consegui responder. Tenta novamente.' }])
+    } catch {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Erro ao contactar o assistente. Tenta novamente.' }])
+    }
+    setChatLoading(false)
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   const tabStyle = (t: string) => ({
     padding:'9px 16px', background:'none', border:'none',
@@ -137,6 +349,16 @@ export default function MyMedsPage() {
   })
 
   const unreadAlerts = alerts.filter(a => a.severity==='grave').length
+  const hasReminders = meds.some(m => m.reminder_times && m.reminder_times.length > 0)
+
+  // ─── Auto-check card ─────────────────────────────────────────────────────────
+
+  const autoCheckSevStyle = {
+    GRAVE:         { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', icon:'🚨', label:'ATENÇÃO — Interação grave' },
+    MODERADA:      { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', icon:'⚠️', label:'Interação moderada detetada' },
+    LIGEIRA:       { bg:'#fffbeb', border:'#fde68a', color:'#92400e', icon:'ℹ️', label:'Interação ligeira' },
+    SEM_INTERACAO: { bg:'#d1fae5', border:'#6ee7b7', color:'#065f46', icon:'✅', label:'Sem interações conhecidas' },
+  }
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
@@ -156,12 +378,15 @@ export default function MyMedsPage() {
               {canAnalyse && meds.length >= 2 && (
                 <button onClick={analyse} disabled={analysing}
                   style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:analysing?'var(--bg-3)':'var(--green)', color:analysing?'var(--ink-4)':'white', border:'none', borderRadius:8, cursor:analysing?'wait':'pointer', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)' }}>
-                  {analysing ? <><div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A analisar...</> : '⚡ Analisar interações'}
+                  {analysing ? <><div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A analisar...</> : '⚡ Analisar'}
                 </button>
               )}
-              <Link href="/ai" style={{ padding:'10px 16px', background:'white', color:'var(--ink)', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:13, fontWeight:700 }}>
-                🤖 Perguntar à AI
-              </Link>
+              {pushSupported && meds.length > 0 && (
+                <button onClick={requestPushAndOpen}
+                  style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', background:hasReminders ? 'var(--green-light)' : 'white', color:hasReminders ? 'var(--green-2)' : 'var(--ink)', border:`1px solid ${hasReminders ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+                  🔔 {hasReminders ? 'Lembretes ativos' : 'Ativar lembretes'}
+                </button>
+              )}
             </div>
           </div>
           <div style={{ display:'flex', borderTop:'1px solid var(--border)', overflowX:'auto' }}>
@@ -169,6 +394,7 @@ export default function MyMedsPage() {
             <button onClick={() => setTab('alerts')} style={tabStyle('alerts')}>
               Alertas {unreadAlerts>0 && <span style={{ marginLeft:4, background:'#dc2626', color:'white', fontSize:9, fontFamily:'var(--font-mono)', padding:'1px 5px', borderRadius:10, fontWeight:700 }}>{unreadAlerts}</span>}
             </button>
+            <button onClick={() => setTab('ask')} style={tabStyle('ask')}>💬 Perguntar</button>
             <button onClick={() => setTab('add')} style={tabStyle('add')}>+ Adicionar</button>
           </div>
         </div>
@@ -181,6 +407,40 @@ export default function MyMedsPage() {
           <div>
             {/* Risk score */}
             {analysed && <div style={{ marginBottom:14 }}><RiskScore score={riskScore} alerts={alerts} /></div>}
+
+            {/* Auto-check result */}
+            {autoChecking && (
+              <div style={{ marginBottom:14, padding:'12px 16px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:14, height:14, border:'2px solid var(--border)', borderTopColor:'var(--green)', borderRadius:'50%', animation:'spin 0.7s linear infinite', flexShrink:0 }} />
+                <span style={{ fontSize:13, color:'var(--ink-4)' }}>A verificar interações com a medicação atual...</span>
+              </div>
+            )}
+            {autoCheckResult && !autoChecking && (() => {
+              const s = autoCheckSevStyle[autoCheckResult.severity]
+              const showDetail = autoCheckResult.severity !== 'SEM_INTERACAO'
+              return (
+                <div style={{ marginBottom:14, padding:'14px 16px', background:s.bg, border:`1px solid ${s.border}`, borderRadius:10 }}>
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                    <span style={{ fontSize:18, flexShrink:0 }}>{s.icon}</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:s.color, marginBottom:showDetail?5:0 }}>{s.label}</div>
+                      {showDetail && autoCheckResult.patientInfo && (
+                        <div style={{ fontSize:13, color:s.color, opacity:0.9, lineHeight:1.55, marginBottom:5 }}>{autoCheckResult.patientInfo}</div>
+                      )}
+                      {showDetail && autoCheckResult.recommendation && (
+                        <div style={{ fontSize:12, color:s.color, fontFamily:'var(--font-mono)', opacity:0.8 }}>→ {autoCheckResult.recommendation}</div>
+                      )}
+                    </div>
+                    {showDetail && (
+                      <Link href={`/interactions?drugs=${meds.map(m=>m.name).join(',')}`}
+                        style={{ fontSize:11, color:s.color, textDecoration:'none', fontWeight:700, fontFamily:'var(--font-mono)', flexShrink:0, whiteSpace:'nowrap' }}>
+                        Ver detalhes →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
             {!canAnalyse && meds.length >= 2 && (
               <div style={{ background:'var(--green-light)', border:'1px solid var(--green-mid)', borderRadius:10, padding:'14px 16px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
@@ -213,6 +473,7 @@ export default function MyMedsPage() {
                 {meds.map((med, i) => {
                   const medAlerts = alerts.filter(a => a.drugs?.some(d => d.toLowerCase().includes(med.name.toLowerCase())))
                   const hasGrave = medAlerts.some(a => a.severity==='grave')
+                  const hasReminder = med.reminder_times && med.reminder_times.length > 0
                   return (
                     <div key={med.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom:i<meds.length-1?'1px solid var(--bg-3)':'none' }}>
                       <div style={{ width:36, height:36, borderRadius:'50%', background:hasGrave?'#fee2e2':'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
@@ -222,16 +483,13 @@ export default function MyMedsPage() {
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
                           <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', letterSpacing:'-0.01em', cursor:'pointer', textDecorationLine:'underline', textDecorationStyle:'dotted', textDecorationColor:'var(--border-2)' }}>{med.name}</span>} />
                           {hasGrave && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', background:'#fee2e2', border:'1px solid #fca5a5', padding:'1px 5px', borderRadius:3, textTransform:'uppercase', letterSpacing:'0.06em' }}>Alerta</span>}
+                          {hasReminder && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius:3, letterSpacing:'0.04em' }}>🔔 {med.reminder_times!.join(' · ')}</span>}
                         </div>
                         <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
                           {[med.dose, med.frequency, med.indication].filter(Boolean).join(' · ')}
                         </div>
                       </div>
                       <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                        <Link href={`/ai?q=${encodeURIComponent(`Fala-me sobre ${med.name}${med.dose?' '+med.dose:''} — indicações, efeitos adversos e interações importantes`)}`}
-                          style={{ padding:'6px 10px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:6, textDecoration:'none', fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', fontWeight:700 }}>
-                          AI
-                        </Link>
                         <button onClick={() => removeMed(med.id)}
                           style={{ padding:'6px 8px', background:'white', border:'1px solid var(--border)', borderRadius:6, cursor:'pointer', color:'var(--ink-5)', fontSize:14, lineHeight:1 }}>
                           ×
@@ -253,7 +511,7 @@ export default function MyMedsPage() {
                 <div style={{ fontSize:36, marginBottom:12 }}>⚡</div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Sem análise ainda</div>
                 <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>
-                  {!canAnalyse ? 'Requer plano Student para análise automática de interações.' : meds.length < 2 ? 'Adiciona pelo menos 2 medicamentos para analisar interações.' : 'Clica em "Analisar interações" para verificar a tua medicação.'}
+                  {!canAnalyse ? 'Requer plano Student para análise automática de interações.' : meds.length < 2 ? 'Adiciona pelo menos 2 medicamentos para analisar interações.' : 'Clica em "Analisar" para verificar a tua medicação.'}
                 </div>
                 {canAnalyse && meds.length >= 2 && (
                   <button onClick={analyse} disabled={analysing}
@@ -301,6 +559,78 @@ export default function MyMedsPage() {
           </div>
         )}
 
+        {/* ASK — Chat com medicação */}
+        {tab === 'ask' && (
+          <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 300px)', minHeight:400 }}>
+            {meds.length === 0 && (
+              <div style={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, padding:'24px', textAlign:'center', marginBottom:12 }}>
+                <div style={{ fontSize:13, color:'var(--ink-4)' }}>Adiciona os teus medicamentos primeiro para obter respostas personalizadas.</div>
+              </div>
+            )}
+
+            {/* Quick prompts */}
+            {chatMessages.length === 0 && (
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10 }}>Perguntas frequentes</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {QUICK_PROMPTS.map(p => (
+                    <button key={p} onClick={() => sendChat(p)}
+                      style={{ padding:'8px 14px', background:'white', border:'1px solid var(--border)', borderRadius:20, fontSize:12, color:'var(--ink-3)', cursor:'pointer', fontFamily:'var(--font-sans)', transition:'all 0.1s' }}
+                      className="quick-prompt">
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Messages */}
+            <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:10, paddingBottom:8 }}>
+              {chatMessages.map((msg, i) => (
+                <div key={i} style={{ display:'flex', justifyContent:msg.role==='user'?'flex-end':'flex-start' }}>
+                  <div style={{
+                    maxWidth:'80%', padding:'11px 14px', borderRadius:msg.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',
+                    background:msg.role==='user'?'var(--green)':'white',
+                    color:msg.role==='user'?'white':'var(--ink)',
+                    border:msg.role==='user'?'none':'1px solid var(--border)',
+                    fontSize:13, lineHeight:1.55,
+                  }}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div style={{ display:'flex', justifyContent:'flex-start' }}>
+                  <div style={{ padding:'11px 16px', background:'white', border:'1px solid var(--border)', borderRadius:'14px 14px 14px 4px', display:'flex', gap:4, alignItems:'center' }}>
+                    {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--ink-4)', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)', background:'var(--bg)', position:'sticky', bottom:0 }}>
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChat() } }}
+                placeholder={meds.length > 0 ? 'Pergunta sobre os teus medicamentos...' : 'Adiciona medicamentos para perguntas personalizadas...'}
+                disabled={chatLoading}
+                style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', fontSize:13, fontFamily:'var(--font-sans)', outline:'none', background:'white' }}
+              />
+              <button onClick={() => sendChat()} disabled={!chatInput.trim() || chatLoading}
+                style={{ padding:'11px 18px', background:chatInput.trim()?'var(--green)':'var(--bg-3)', color:chatInput.trim()?'white':'var(--ink-5)', border:'none', borderRadius:24, cursor:chatInput.trim()?'pointer':'default', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)', flexShrink:0 }}>
+                →
+              </button>
+            </div>
+
+            <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', textAlign:'center', marginTop:8 }}>
+              Assistente informativo — não substitui aconselhamento médico ou farmacêutico.
+            </div>
+          </div>
+        )}
+
         {/* ADD */}
         {tab === 'add' && (
           <div style={{ maxWidth:520 }}>
@@ -338,7 +668,18 @@ export default function MyMedsPage() {
           </div>
         )}
       </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} .suggestion-item:hover{background:var(--bg-2)!important}`}</style>
+
+      {/* Reminder modal */}
+      {reminderOpen && meds.length > 0 && (
+        <ReminderModal meds={meds} onSave={saveReminder} onClose={() => setReminderOpen(false)} />
+      )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes bounce { 0%,80%,100% { transform: scale(0.6); opacity:0.4 } 40% { transform: scale(1); opacity:1 } }
+        .suggestion-item:hover { background: var(--bg-2) !important }
+        .quick-prompt:hover { background: var(--bg-2) !important; border-color: var(--green) !important; color: var(--green-2) !important }
+      `}</style>
     </div>
   )
 }
