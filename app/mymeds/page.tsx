@@ -7,11 +7,20 @@ import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 
+interface ScannedMed {
+  name: string; dose: string|null; frequency: string|null; indication: string|null; selected: boolean
+}
+
 interface Med {
   id: string; name: string; dose: string|null
   frequency: string|null; indication: string|null
   reminder_times: string[]|null
   started_at: string|null; created_at: string
+}
+
+interface DoseLog {
+  id: string; med_id: string; date: string
+  logged_at: string; status: 'taken'|'skipped'|'snoozed'
 }
 
 interface Alert {
@@ -21,20 +30,22 @@ interface Alert {
 
 interface AutoCheckResult {
   severity: 'GRAVE'|'MODERADA'|'LIGEIRA'|'SEM_INTERACAO'
-  patientInfo: string
-  recommendation: string
-  newDrug: string
+  patientInfo: string; recommendation: string; newDrug: string
 }
 
-interface ChatMessage {
-  role: 'user'|'assistant'
-  content: string
-}
+interface ChatMessage { role: 'user'|'assistant'; content: string }
 
 const SEV = {
-  grave:    { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', dot:'#dc2626', label:'GRAVE',    icon:'🚨' },
-  moderada: { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', dot:'#d97706', label:'MODERADA', icon:'⚠️' },
-  info:     { bg:'#eff6ff', border:'#bfdbfe', color:'#1d4ed8', dot:'#3b82f6', label:'INFO',     icon:'ℹ️' },
+  grave:    { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', label:'GRAVE',    icon:'🚨' },
+  moderada: { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', label:'MODERADA', icon:'⚠️' },
+  info:     { bg:'#eff6ff', border:'#bfdbfe', color:'#1d4ed8', label:'INFO',     icon:'ℹ️' },
+}
+
+const AUTO_SEV = {
+  GRAVE:         { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', icon:'🚨', label:'ATENÇÃO — Interação grave' },
+  MODERADA:      { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', icon:'⚠️', label:'Interação moderada' },
+  LIGEIRA:       { bg:'#fffbeb', border:'#fde68a', color:'#92400e', icon:'ℹ️', label:'Interação ligeira' },
+  SEM_INTERACAO: { bg:'#d1fae5', border:'#6ee7b7', color:'#065f46', icon:'✅', label:'Sem interações conhecidas' },
 }
 
 const QUICK_PROMPTS = [
@@ -45,69 +56,51 @@ const QUICK_PROMPTS = [
   'Quais os efeitos secundários mais comuns?',
 ]
 
-function RiskScore({ score, alerts }: { score: number; alerts: Alert[] }) {
-  const level = score >= 60 ? 'critical' : score >= 30 ? 'moderate' : 'low'
-  const style = {
-    critical: { color:'#991b1b', bg:'#fee2e2', label:'Risco Elevado',   desc:'Requer atenção médica imediata' },
-    moderate: { color:'#854d0e', bg:'#fef9c3', label:'Risco Moderado',  desc:'Discute com o teu farmacêutico' },
-    low:      { color:'#0d6e42', bg:'#d1fae5', label:'Risco Baixo',     desc:'Sem problemas conhecidos' },
-  }[level]
+function todayStr() { return new Date().toISOString().split('T')[0] }
 
-  return (
-    <div style={{ background:style.bg, border:`1px solid`, borderColor:level==='critical'?'#fca5a5':level==='moderate'?'#fde68a':'#6ee7b7', borderRadius:10, padding:'16px 18px', display:'flex', alignItems:'center', gap:14 }}>
-      <div style={{ textAlign:'center', flexShrink:0 }}>
-        <div style={{ fontFamily:'var(--font-serif)', fontSize:40, color:style.color, lineHeight:1 }}>{score}</div>
-        <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:style.color, textTransform:'uppercase', letterSpacing:'0.08em', marginTop:2 }}>score</div>
-      </div>
-      <div style={{ width:1, height:44, background:`${style.color}30`, flexShrink:0 }} />
-      <div>
-        <div style={{ fontSize:14, fontWeight:700, color:style.color, marginBottom:3 }}>{style.label}</div>
-        <div style={{ fontSize:12, color:style.color, opacity:0.8 }}>{style.desc}</div>
-        <div style={{ fontSize:11, color:style.color, opacity:0.6, fontFamily:'var(--font-mono)', marginTop:3 }}>
-          {alerts.filter(a=>a.severity==='grave').length} grave · {alerts.filter(a=>a.severity==='moderada').length} moderada
-        </div>
-      </div>
-      <div style={{ marginLeft:'auto', flexShrink:0 }}>
-        <svg width="52" height="52" viewBox="0 0 52 52">
-          <circle cx="26" cy="26" r="22" fill="none" stroke={`${style.color}20`} strokeWidth="6" />
-          <circle cx="26" cy="26" r="22" fill="none" stroke={style.color} strokeWidth="6"
-            strokeDasharray={`${(score/100)*138} 138`} strokeLinecap="round"
-            transform="rotate(-90 26 26)" />
-        </svg>
-      </div>
-    </div>
-  )
+function nowHHMM() {
+  const n = new Date()
+  return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`
 }
 
-// ─── Reminder Modal ───────────────────────────────────────────────────────────
+function toMinutes(t: string) {
+  const [h, m] = t.split(':').map(Number); return h * 60 + m
+}
+
+// Returns true if a log's logged_at is within ±90min of a slot time
+function slotIsCovered(slotTime: string, logs: DoseLog[]): DoseLog|undefined {
+  const slotMin = toMinutes(slotTime)
+  return logs.find(l => {
+    const logDate = new Date(l.logged_at)
+    const logMin = logDate.getHours() * 60 + logDate.getMinutes()
+    return Math.abs(logMin - slotMin) <= 90
+  })
+}
+
+// ─── Reminder Modal ────────────────────────────────────────────────────────────
 
 function ReminderModal({ meds, onSave, onClose }: {
-  meds: Med[]
-  onSave: (medId: string, times: string[]) => void
-  onClose: () => void
+  meds: Med[]; onSave: (medId: string, times: string[]) => void; onClose: () => void
 }) {
   const [times, setTimes] = useState<Record<string, string[]>>(
     Object.fromEntries(meds.map(m => [m.id, m.reminder_times || []]))
   )
-
+  const SLOTS = ['07:00','09:00','12:00','13:00','18:00','20:00','22:00']
   const toggleTime = (medId: string, slot: string) => {
     setTimes(prev => {
-      const current = prev[medId] || []
-      const next = current.includes(slot) ? current.filter(t => t !== slot) : [...current, slot].sort()
+      const cur = prev[medId] || []
+      const next = cur.includes(slot) ? cur.filter(t => t !== slot) : [...cur, slot].sort()
       return { ...prev, [medId]: next }
     })
   }
-
-  const SLOTS = ['07:00','09:00','12:00','13:00','18:00','20:00','22:00']
-
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}
+    <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}
       onClick={onClose}>
-      <div style={{ background:'white', borderRadius:'14px 14px 0 0', padding:24, width:'100%', maxWidth:480, maxHeight:'80vh', overflowY:'auto' }}
+      <div style={{ background:'white', borderRadius:'16px 16px 0 0', padding:24, width:'100%', maxWidth:480, maxHeight:'82vh', overflowY:'auto' }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Lembretes de toma</div>
-        <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:20 }}>Seleciona os horários para cada medicamento. Receberás uma notificação.</div>
-
+        <div style={{ width:36, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 20px' }} />
+        <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Lembretes de toma</div>
+        <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:20 }}>Receberás uma notificação push no horário escolhido.</div>
         {meds.map(med => (
           <div key={med.id} style={{ marginBottom:20 }}>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:8 }}>
@@ -115,10 +108,10 @@ function ReminderModal({ meds, onSave, onClose }: {
             </div>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
               {SLOTS.map(slot => {
-                const active = (times[med.id] || []).includes(slot)
+                const active = (times[med.id]||[]).includes(slot)
                 return (
                   <button key={slot} onClick={() => toggleTime(med.id, slot)}
-                    style={{ padding:'6px 12px', borderRadius:20, border:`1.5px solid ${active ? 'var(--green)' : 'var(--border)'}`, background:active ? 'var(--green-light)' : 'white', color:active ? 'var(--green-2)' : 'var(--ink-4)', fontSize:12, fontWeight:active ? 700 : 400, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                    style={{ padding:'7px 13px', borderRadius:20, border:`1.5px solid ${active?'var(--green)':'var(--border)'}`, background:active?'var(--green-light)':'white', color:active?'var(--green-2)':'var(--ink-4)', fontSize:12, fontWeight:active?700:400, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
                     {slot}
                   </button>
                 )
@@ -126,17 +119,13 @@ function ReminderModal({ meds, onSave, onClose }: {
             </div>
           </div>
         ))}
-
         <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)' }}>
-          <button onClick={() => {
-            meds.forEach(m => onSave(m.id, times[m.id] || []))
-            onClose()
-          }}
-            style={{ flex:1, padding:'12px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
-            Guardar lembretes
+          <button onClick={() => { meds.forEach(m => onSave(m.id, times[m.id]||[])); onClose() }}
+            style={{ flex:1, padding:13, background:'var(--green)', color:'white', border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+            Guardar
           </button>
           <button onClick={onClose}
-            style={{ padding:'12px 16px', background:'white', color:'var(--ink-4)', border:'1px solid var(--border)', borderRadius:8, fontSize:14, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            style={{ padding:'13px 18px', background:'white', color:'var(--ink-4)', border:'1px solid var(--border)', borderRadius:10, fontSize:14, cursor:'pointer' }}>
             Cancelar
           </button>
         </div>
@@ -145,83 +134,188 @@ function ReminderModal({ meds, onSave, onClose }: {
   )
 }
 
+// ─── Today Dose Row ────────────────────────────────────────────────────────────
+
+function DoseRow({ med, slotTime, log, onTake, onSkip, justConfirmed }: {
+  med: Med; slotTime: string; log: DoseLog|undefined
+  onTake: () => void; onSkip: () => void; justConfirmed: boolean
+}) {
+  const now = nowHHMM()
+  const slotMin = toMinutes(slotTime)
+  const nowMin = toMinutes(now)
+  const isPast = nowMin > slotMin + 10
+  const isSoon = !isPast && nowMin >= slotMin - 30
+  const taken = log?.status === 'taken'
+  const skipped = log?.status === 'skipped'
+
+  let dotColor = 'var(--border-2)'
+  if (taken) dotColor = 'var(--green)'
+  else if (skipped) dotColor = 'var(--ink-5)'
+  else if (isPast) dotColor = '#f59e0b'
+  else if (isSoon) dotColor = '#3b82f6'
+
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap:12, padding:'13px 16px',
+      background: justConfirmed ? '#d1fae5' : taken ? '#f0fdf4' : skipped ? 'var(--bg-2)' : 'white',
+      transition: 'background 0.4s',
+    }}>
+      <div style={{ width:10, height:10, borderRadius:'50%', background:dotColor, flexShrink:0 }} />
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:13, color:'var(--ink-4)', fontWeight:700, width:44, flexShrink:0 }}>{slotTime}</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:14, fontWeight:700, color:taken||skipped?'var(--ink-4)':'var(--ink)', letterSpacing:'-0.01em', textDecoration:skipped?'line-through':'none' }}>
+          {med.name}{med.dose ? ` ${med.dose}` : ''}
+        </div>
+        {taken && log && (
+          <div style={{ fontSize:11, color:'var(--green-2)', fontFamily:'var(--font-mono)', marginTop:1 }}>
+            ✓ Tomado às {new Date(log.logged_at).toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit' })}
+          </div>
+        )}
+        {skipped && <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', marginTop:1 }}>Ignorado</div>}
+        {!taken && !skipped && isPast && <div style={{ fontSize:11, color:'#92400e', fontFamily:'var(--font-mono)', marginTop:1 }}>Em atraso</div>}
+        {!taken && !skipped && isSoon && !isPast && <div style={{ fontSize:11, color:'#1d4ed8', fontFamily:'var(--font-mono)', marginTop:1 }}>A seguir</div>}
+      </div>
+      {!taken && !skipped && (
+        <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+          <button onClick={onTake}
+            style={{ padding:'7px 14px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            Tomar
+          </button>
+          {isPast && (
+            <button onClick={onSkip}
+              style={{ padding:'7px 10px', background:'white', color:'var(--ink-5)', border:'1px solid var(--border)', borderRadius:8, fontSize:12, cursor:'pointer' }}>
+              Ignorar
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
+
 export default function MyMedsPage() {
   const { user, supabase } = useAuth()
   const [meds, setMeds] = useState<Med[]>([])
+  const [todayLogs, setTodayLogs] = useState<DoseLog[]>([])
   const [loading, setLoading] = useState(true)
   const [alerts, setAlerts] = useState<Alert[]>([])
-  const [riskScore, setRiskScore] = useState(0)
   const [analysing, setAnalysing] = useState(false)
   const [analysed, setAnalysed] = useState(false)
   const [tab, setTab] = useState<'overview'|'alerts'|'add'|'ask'>('overview')
   const [newMed, setNewMed] = useState({ name:'', dose:'', frequency:'', indication:'' })
   const [adding, setAdding] = useState(false)
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
+  const [justConfirmed, setJustConfirmed] = useState<string|null>(null)
 
-  // Auto-check state
+  // Auto-check
   const [autoCheckResult, setAutoCheckResult] = useState<AutoCheckResult|null>(null)
   const [autoChecking, setAutoChecking] = useState(false)
 
-  // Chat state
+  // Chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // Reminders
+  // Push / reminders
   const [reminderOpen, setReminderOpen] = useState(false)
   const [pushSupported, setPushSupported] = useState(false)
   const [pushGranted, setPushGranted] = useState(false)
 
-  const plan = (user?.plan||'free') as string
+  // Scan receita
+  const [scannedMeds, setScannedMeds] = useState<ScannedMed[]>([])
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState<string|null>(null)
+  const [addingAll, setAddingAll] = useState(false)
+  const scanInputRef = useRef<HTMLInputElement>(null)
+
+  const plan = (user?.plan || 'free') as string
   const canAnalyse = plan !== 'free'
+
+  // ─── Load meds + today's logs ─────────────────────────────────────────────────
 
   const load = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase.from('personal_meds').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    setMeds(data || [])
+    const today = todayStr()
+    const [{ data: medsData }, { data: logsData }] = await Promise.all([
+      supabase.from('personal_meds').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('med_logs').select('*').eq('user_id', user.id).eq('date', today),
+    ])
+    setMeds(medsData || [])
+    setTodayLogs(logsData || [])
     setLoading(false)
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
 
+  // Push support detection — safe for iOS where Notification may not exist
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setPushSupported('serviceWorker' in navigator && 'PushManager' in window)
-      setPushGranted(Notification.permission === 'granted')
-    }
+    if (typeof window === 'undefined') return
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined'
+    setPushSupported(supported)
+    if (supported) setPushGranted(Notification.permission === 'granted')
   }, [])
+
+  // Handle push notification confirm URL (?confirm=<id>&date=<date>)
+  useEffect(() => {
+    if (!user || loading) return
+    const params = new URLSearchParams(window.location.search)
+    const confirmId = params.get('confirm')
+    if (!confirmId) return
+    const alreadyTaken = todayLogs.some(l => l.med_id === confirmId && l.status === 'taken')
+    if (!alreadyTaken) {
+      takeDose(confirmId, 'taken').then(() => {
+        setJustConfirmed(confirmId)
+        setTimeout(() => setJustConfirmed(null), 3000)
+      })
+    }
+    // Remove param from URL without reload
+    const url = new URL(window.location.href)
+    url.searchParams.delete('confirm')
+    url.searchParams.delete('date')
+    window.history.replaceState({}, '', url.toString())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
 
-  // ─── Auto-check interactions on add ──────────────────────────────────────────
+  // ─── Dose tracking ────────────────────────────────────────────────────────────
+
+  const takeDose = async (medId: string, status: 'taken'|'skipped' = 'taken') => {
+    if (!user) return
+    const today = todayStr()
+    const { data } = await supabase.from('med_logs').insert({
+      user_id: user.id, med_id: medId, date: today, status,
+    }).select().single()
+    if (data) setTodayLogs(prev => [...prev, data as DoseLog])
+  }
+
+  // ─── Auto-check ───────────────────────────────────────────────────────────────
 
   const autoCheckInteractions = async (allMeds: Med[]) => {
     if (allMeds.length < 2) return
-    setAutoChecking(true)
-    setAutoCheckResult(null)
+    setAutoChecking(true); setAutoCheckResult(null)
     try {
       const res = await fetch('/api/interactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ drugs: allMeds.map(m => m.name) }),
       })
       const data = await res.json()
       if (data.severity) {
         setAutoCheckResult({
-          severity: data.severity,
-          patientInfo: data.patient_info || data.summary || '',
-          recommendation: data.recommendation || '',
-          newDrug: allMeds[0].name,
+          severity: data.severity, patientInfo: data.patient_info || data.summary || '',
+          recommendation: data.recommendation || '', newDrug: allMeds[0].name,
         })
       }
     } catch {}
     setAutoChecking(false)
   }
 
-  // ─── Push notifications ───────────────────────────────────────────────────────
+  // ─── Push subscription ────────────────────────────────────────────────────────
 
   const requestPushAndOpen = async () => {
     if (!pushSupported) return
@@ -233,17 +327,15 @@ export default function MyMedsPage() {
     try {
       const reg = await navigator.serviceWorker.register('/sw.js')
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidKey) { setReminderOpen(true); return }
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKey,
-      })
-      const { data: sd } = await supabase.auth.getSession()
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-        body: JSON.stringify({ subscription: sub.toJSON() }),
-      })
+      if (vapidKey) {
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey })
+        const { data: sd } = await supabase.auth.getSession()
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+          body: JSON.stringify({ subscription: sub.toJSON() }),
+        })
+      }
     } catch {}
     setReminderOpen(true)
   }
@@ -253,7 +345,7 @@ export default function MyMedsPage() {
     setMeds(prev => prev.map(m => m.id === medId ? { ...m, reminder_times: times.length ? times : null } : m))
   }
 
-  // ─── Manual analyse ───────────────────────────────────────────────────────────
+  // ─── Analyse ─────────────────────────────────────────────────────────────────
 
   const analyse = async () => {
     if (meds.length < 2) return
@@ -268,11 +360,7 @@ export default function MyMedsPage() {
       const data = await res.json()
       if (data.alerts) {
         setAlerts(data.alerts)
-        const critical = data.alerts.filter((a: Alert) => a.severity==='grave').length
-        const moderate = data.alerts.filter((a: Alert) => a.severity==='moderada').length
-        setRiskScore(Math.min(100, critical*30 + moderate*15 + Math.min(25, meds.length*3)))
-        setAnalysed(true)
-        setTab('alerts')
+        setAnalysed(true); setTab('alerts')
       }
     } catch {}
     setAnalysing(false)
@@ -293,7 +381,6 @@ export default function MyMedsPage() {
       const updatedMeds = [data, ...meds]
       setMeds(updatedMeds)
       setAnalysed(false)
-      // Auto-check interactions with new med
       autoCheckInteractions(updatedMeds)
     }
     setNewMed({ name:'', dose:'', frequency:'', indication:'' })
@@ -305,8 +392,63 @@ export default function MyMedsPage() {
   const removeMed = async (id: string) => {
     await supabase.from('personal_meds').delete().eq('id', id)
     setMeds(p => p.filter(m => m.id !== id))
-    setAnalysed(false)
-    setAutoCheckResult(null)
+    setTodayLogs(p => p.filter(l => l.med_id !== id))
+    setAnalysed(false); setAutoCheckResult(null)
+  }
+
+  // ─── Scan de receita ─────────────────────────────────────────────────────────
+
+  const scanPrescription = async (file: File) => {
+    setScanning(true); setScanError(null); setScannedMeds([])
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/scan-prescription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ image: base64, mimeType: file.type || 'image/jpeg' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao analisar')
+      if (!data.medications?.length) throw new Error('Nenhum medicamento encontrado. Tenta uma foto mais nítida.')
+      setScannedMeds(data.medications.map((m: Omit<ScannedMed, 'selected'>) => ({ ...m, selected: true })))
+    } catch (e: any) {
+      setScanError(e.message)
+    }
+    setScanning(false)
+  }
+
+  const addAllScanned = async () => {
+    if (!user) return
+    const toAdd = scannedMeds.filter(m => m.selected)
+    if (!toAdd.length) return
+    setAddingAll(true)
+    const inserted: Med[] = []
+    for (const med of toAdd) {
+      const resolved = resolveDrugName(med.name)
+      const { data } = await supabase.from('personal_meds').insert({
+        user_id: user.id,
+        name: resolved ? resolved.dci : med.name,
+        dose: med.dose || null,
+        frequency: med.frequency || null,
+        indication: med.indication || null,
+      }).select().single()
+      if (data) inserted.push(data as Med)
+    }
+    if (inserted.length) {
+      const updatedMeds = [...inserted, ...meds]
+      setMeds(updatedMeds)
+      setAnalysed(false)
+      autoCheckInteractions(updatedMeds)
+    }
+    setScannedMeds([])
+    setAddingAll(false)
+    setTab('overview')
   }
 
   // ─── Chat ─────────────────────────────────────────────────────────────────────
@@ -314,30 +456,24 @@ export default function MyMedsPage() {
   const sendChat = async (messageText?: string) => {
     const text = (messageText ?? chatInput).trim()
     if (!text || chatLoading) return
-    const userMsg: ChatMessage = { role: 'user', content: text }
-    setChatMessages(prev => [...prev, userMsg])
-    setChatInput('')
-    setChatLoading(true)
+    setChatMessages(prev => [...prev, { role: 'user', content: text }])
+    setChatInput(''); setChatLoading(true)
     try {
       const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/chat-med', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-        body: JSON.stringify({
-          message: text,
-          meds: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })),
-          history: chatMessages.slice(-6),
-        }),
+        body: JSON.stringify({ message: text, meds: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })), history: chatMessages.slice(-6) }),
       })
       const data = await res.json()
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Não consegui responder. Tenta novamente.' }])
     } catch {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Erro ao contactar o assistente. Tenta novamente.' }])
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Erro ao contactar o assistente.' }])
     }
     setChatLoading(false)
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────────
+  // ─── Derived ──────────────────────────────────────────────────────────────────
 
   const tabStyle = (t: string) => ({
     padding:'9px 16px', background:'none', border:'none',
@@ -350,15 +486,18 @@ export default function MyMedsPage() {
 
   const unreadAlerts = alerts.filter(a => a.severity==='grave').length
   const hasReminders = meds.some(m => m.reminder_times && m.reminder_times.length > 0)
+  const medsWithTimes = meds.filter(m => m.reminder_times && m.reminder_times.length > 0)
+  const medsWithoutTimes = meds.filter(m => !m.reminder_times || m.reminder_times.length === 0)
 
-  // ─── Auto-check card ─────────────────────────────────────────────────────────
+  // Build today's schedule (med × slot pairs, sorted by time)
+  const schedule = medsWithTimes.flatMap(med =>
+    (med.reminder_times!).map(slot => ({ med, slot }))
+  ).sort((a, b) => toMinutes(a.slot) - toMinutes(b.slot))
 
-  const autoCheckSevStyle = {
-    GRAVE:         { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', icon:'🚨', label:'ATENÇÃO — Interação grave' },
-    MODERADA:      { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', icon:'⚠️', label:'Interação moderada detetada' },
-    LIGEIRA:       { bg:'#fffbeb', border:'#fde68a', color:'#92400e', icon:'ℹ️', label:'Interação ligeira' },
-    SEM_INTERACAO: { bg:'#d1fae5', border:'#6ee7b7', color:'#065f46', icon:'✅', label:'Sem interações conhecidas' },
-  }
+  const todayDone = schedule.filter(({ med, slot }) => slotIsCovered(slot, todayLogs.filter(l => l.med_id === med.id && l.status === 'taken'))).length
+  const todayTotal = schedule.length
+
+  const dateLabel = new Date().toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long' })
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
@@ -377,13 +516,13 @@ export default function MyMedsPage() {
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
               {canAnalyse && meds.length >= 2 && (
                 <button onClick={analyse} disabled={analysing}
-                  style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:analysing?'var(--bg-3)':'var(--green)', color:analysing?'var(--ink-4)':'white', border:'none', borderRadius:8, cursor:analysing?'wait':'pointer', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)' }}>
-                  {analysing ? <><div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A analisar...</> : '⚡ Analisar'}
+                  style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:analysing?'var(--bg-3)':'var(--green)', color:analysing?'var(--ink-4)':'white', border:'none', borderRadius:8, cursor:analysing?'wait':'pointer', fontSize:13, fontWeight:700 }}>
+                  {analysing ? <><span style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' }} /> A analisar...</> : '⚡ Analisar'}
                 </button>
               )}
               {pushSupported && meds.length > 0 && (
                 <button onClick={requestPushAndOpen}
-                  style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', background:hasReminders ? 'var(--green-light)' : 'white', color:hasReminders ? 'var(--green-2)' : 'var(--ink)', border:`1px solid ${hasReminders ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+                  style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', background:hasReminders?'var(--green-light)':'white', color:hasReminders?'var(--green-2)':'var(--ink)', border:`1px solid ${hasReminders?'var(--green-mid)':'var(--border)'}`, borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer' }}>
                   🔔 {hasReminders ? 'Lembretes ativos' : 'Ativar lembretes'}
                 </button>
               )}
@@ -392,7 +531,7 @@ export default function MyMedsPage() {
           <div style={{ display:'flex', borderTop:'1px solid var(--border)', overflowX:'auto' }}>
             <button onClick={() => setTab('overview')} style={tabStyle('overview')}>Medicação</button>
             <button onClick={() => setTab('alerts')} style={tabStyle('alerts')}>
-              Alertas {unreadAlerts>0 && <span style={{ marginLeft:4, background:'#dc2626', color:'white', fontSize:9, fontFamily:'var(--font-mono)', padding:'1px 5px', borderRadius:10, fontWeight:700 }}>{unreadAlerts}</span>}
+              Alertas {unreadAlerts>0 && <span style={{ marginLeft:4, background:'#dc2626', color:'white', fontSize:9, padding:'1px 5px', borderRadius:10, fontWeight:700 }}>{unreadAlerts}</span>}
             </button>
             <button onClick={() => setTab('ask')} style={tabStyle('ask')}>💬 Perguntar</button>
             <button onClick={() => setTab('add')} style={tabStyle('add')}>+ Adicionar</button>
@@ -402,39 +541,36 @@ export default function MyMedsPage() {
 
       <div className="page-container page-body">
 
-        {/* OVERVIEW */}
+        {/* ─── OVERVIEW ─── */}
         {tab === 'overview' && (
           <div>
-            {/* Risk score */}
-            {analysed && <div style={{ marginBottom:14 }}><RiskScore score={riskScore} alerts={alerts} /></div>}
-
             {/* Auto-check result */}
             {autoChecking && (
               <div style={{ marginBottom:14, padding:'12px 16px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ width:14, height:14, border:'2px solid var(--border)', borderTopColor:'var(--green)', borderRadius:'50%', animation:'spin 0.7s linear infinite', flexShrink:0 }} />
+                <span style={{ width:14, height:14, border:'2px solid var(--border)', borderTopColor:'var(--green)', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block', flexShrink:0 }} />
                 <span style={{ fontSize:13, color:'var(--ink-4)' }}>A verificar interações com a medicação atual...</span>
               </div>
             )}
             {autoCheckResult && !autoChecking && (() => {
-              const s = autoCheckSevStyle[autoCheckResult.severity]
-              const showDetail = autoCheckResult.severity !== 'SEM_INTERACAO'
+              const s = AUTO_SEV[autoCheckResult.severity]
+              const detail = autoCheckResult.severity !== 'SEM_INTERACAO'
               return (
                 <div style={{ marginBottom:14, padding:'14px 16px', background:s.bg, border:`1px solid ${s.border}`, borderRadius:10 }}>
                   <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
                     <span style={{ fontSize:18, flexShrink:0 }}>{s.icon}</span>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:s.color, marginBottom:showDetail?5:0 }}>{s.label}</div>
-                      {showDetail && autoCheckResult.patientInfo && (
+                      <div style={{ fontSize:13, fontWeight:700, color:s.color, marginBottom:detail?5:0 }}>{s.label}</div>
+                      {detail && autoCheckResult.patientInfo && (
                         <div style={{ fontSize:13, color:s.color, opacity:0.9, lineHeight:1.55, marginBottom:5 }}>{autoCheckResult.patientInfo}</div>
                       )}
-                      {showDetail && autoCheckResult.recommendation && (
+                      {detail && autoCheckResult.recommendation && (
                         <div style={{ fontSize:12, color:s.color, fontFamily:'var(--font-mono)', opacity:0.8 }}>→ {autoCheckResult.recommendation}</div>
                       )}
                     </div>
-                    {showDetail && (
+                    {detail && (
                       <Link href={`/interactions?drugs=${meds.map(m=>m.name).join(',')}`}
                         style={{ fontSize:11, color:s.color, textDecoration:'none', fontWeight:700, fontFamily:'var(--font-mono)', flexShrink:0, whiteSpace:'nowrap' }}>
-                        Ver detalhes →
+                        Ver →
                       </Link>
                     )}
                   </div>
@@ -449,61 +585,115 @@ export default function MyMedsPage() {
                   <div style={{ fontSize:13, fontWeight:700, color:'var(--green-2)', marginBottom:2 }}>Verifica as interações entre os teus {meds.length} medicamentos</div>
                   <div style={{ fontSize:12, color:'var(--green-2)', opacity:0.8 }}>Disponível no plano Student — 3,99€/mês</div>
                 </div>
-                <Link href="/pricing" style={{ padding:'8px 14px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:7, fontSize:12, fontWeight:700, flexShrink:0 }}>
-                  Desbloquear →
-                </Link>
+                <Link href="/pricing" style={{ padding:'8px 14px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:7, fontSize:12, fontWeight:700, flexShrink:0 }}>Desbloquear →</Link>
               </div>
             )}
 
             {loading ? (
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height:72, borderRadius:8 }} />)}
+                {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height:68, borderRadius:8 }} />)}
               </div>
             ) : meds.length === 0 ? (
               <div style={{ background:'white', border:'2px dashed var(--border)', borderRadius:10, padding:'56px 24px', textAlign:'center' }}>
                 <div style={{ fontSize:36, marginBottom:12 }}>💊</div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Nenhum medicamento ainda</div>
                 <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>Adiciona os teus medicamentos para verificar interações e receber alertas.</div>
-                <button onClick={() => setTab('add')} style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'11px 22px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+                <button onClick={() => setTab('add')}
+                  style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'11px 22px', fontSize:13, fontWeight:700, cursor:'pointer' }}>
                   Adicionar primeiro medicamento →
                 </button>
               </div>
             ) : (
-              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
-                {meds.map((med, i) => {
-                  const medAlerts = alerts.filter(a => a.drugs?.some(d => d.toLowerCase().includes(med.name.toLowerCase())))
-                  const hasGrave = medAlerts.some(a => a.severity==='grave')
-                  const hasReminder = med.reminder_times && med.reminder_times.length > 0
-                  return (
-                    <div key={med.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom:i<meds.length-1?'1px solid var(--bg-3)':'none' }}>
-                      <div style={{ width:36, height:36, borderRadius:'50%', background:hasGrave?'#fee2e2':'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
-                        💊
+              <>
+                {/* ─── TODAY SCHEDULE ─── */}
+                {schedule.length > 0 && (
+                  <div style={{ marginBottom:20 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                      <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase' }}>
+                        {dateLabel}
                       </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
-                          <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', letterSpacing:'-0.01em', cursor:'pointer', textDecorationLine:'underline', textDecorationStyle:'dotted', textDecorationColor:'var(--border-2)' }}>{med.name}</span>} />
-                          {hasGrave && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', background:'#fee2e2', border:'1px solid #fca5a5', padding:'1px 5px', borderRadius:3, textTransform:'uppercase', letterSpacing:'0.06em' }}>Alerta</span>}
-                          {hasReminder && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius:3, letterSpacing:'0.04em' }}>🔔 {med.reminder_times!.join(' · ')}</span>}
-                        </div>
-                        <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
-                          {[med.dose, med.frequency, med.indication].filter(Boolean).join(' · ')}
-                        </div>
-                      </div>
-                      <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                        <button onClick={() => removeMed(med.id)}
-                          style={{ padding:'6px 8px', background:'white', border:'1px solid var(--border)', borderRadius:6, cursor:'pointer', color:'var(--ink-5)', fontSize:14, lineHeight:1 }}>
-                          ×
-                        </button>
+                      <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color: todayDone === todayTotal ? 'var(--green-2)' : 'var(--ink-4)' }}>
+                        {todayDone}/{todayTotal} {todayDone === todayTotal && '✓ Completo'}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
+                    <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+                      {schedule.map(({ med, slot }, i) => {
+                        const medLogs = todayLogs.filter(l => l.med_id === med.id)
+                        const log = slotIsCovered(slot, medLogs.filter(l => l.status === 'taken'))
+                          || slotIsCovered(slot, medLogs.filter(l => l.status === 'skipped'))
+                        const isConfirmed = justConfirmed === med.id && !log
+                        return (
+                          <div key={`${med.id}-${slot}`} style={{ borderBottom: i < schedule.length-1 ? '1px solid var(--bg-3)' : 'none' }}>
+                            <DoseRow
+                              med={med} slotTime={slot} log={log}
+                              onTake={() => takeDose(med.id, 'taken')}
+                              onSkip={() => takeDose(med.id, 'skipped')}
+                              justConfirmed={isConfirmed}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── ALL MEDS LIST ─── */}
+                {(medsWithoutTimes.length > 0 || medsWithTimes.length > 0) && (
+                  <div>
+                    <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:10 }}>
+                      {medsWithoutTimes.length > 0 ? 'Todos os medicamentos' : 'Medicamentos'}
+                    </div>
+                    <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+                      {meds.map((med, i) => {
+                        const medAlerts = alerts.filter(a => a.drugs?.some(d => d.toLowerCase().includes(med.name.toLowerCase())))
+                        const hasGrave = medAlerts.some(a => a.severity==='grave')
+                        const hasReminder = med.reminder_times && med.reminder_times.length > 0
+                        return (
+                          <div key={med.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom:i<meds.length-1?'1px solid var(--bg-3)':'none' }}>
+                            <div style={{ width:36, height:36, borderRadius:'50%', background:hasGrave?'#fee2e2':'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
+                              💊
+                            </div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, flexWrap:'wrap' }}>
+                                <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', cursor:'pointer', textDecorationLine:'underline', textDecorationStyle:'dotted', textDecorationColor:'var(--border-2)' }}>{med.name}</span>} />
+                                {hasGrave && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', background:'#fee2e2', border:'1px solid #fca5a5', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>Alerta</span>}
+                                {hasReminder && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius:3 }}>🔔 {med.reminder_times!.join(' · ')}</span>}
+                              </div>
+                              <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
+                                {[med.dose, med.frequency, med.indication].filter(Boolean).join(' · ')}
+                              </div>
+                            </div>
+                            <button onClick={() => removeMed(med.id)}
+                              style={{ padding:'6px 8px', background:'white', border:'1px solid var(--border)', borderRadius:6, cursor:'pointer', color:'var(--ink-5)', fontSize:14, lineHeight:1, flexShrink:0 }}>
+                              ×
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── Nudge to set reminders if none set ─── */}
+                {medsWithTimes.length === 0 && pushSupported && (
+                  <div style={{ marginTop:14, padding:'14px 16px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, display:'flex', alignItems:'center', gap:12 }}>
+                    <span style={{ fontSize:20 }}>🔔</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:2 }}>Ativa lembretes de toma</div>
+                      <div style={{ fontSize:12, color:'var(--ink-4)' }}>Recebe notificações no horário certo para cada medicamento.</div>
+                    </div>
+                    <button onClick={requestPushAndOpen}
+                      style={{ padding:'8px 14px', background:'var(--green)', color:'white', border:'none', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+                      Ativar →
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {/* ALERTS */}
+        {/* ─── ALERTS ─── */}
         {tab === 'alerts' && (
           <div>
             {!analysed && (
@@ -511,18 +701,17 @@ export default function MyMedsPage() {
                 <div style={{ fontSize:36, marginBottom:12 }}>⚡</div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Sem análise ainda</div>
                 <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>
-                  {!canAnalyse ? 'Requer plano Student para análise automática de interações.' : meds.length < 2 ? 'Adiciona pelo menos 2 medicamentos para analisar interações.' : 'Clica em "Analisar" para verificar a tua medicação.'}
+                  {!canAnalyse ? 'Requer plano Student.' : meds.length < 2 ? 'Adiciona pelo menos 2 medicamentos.' : 'Clica em "Analisar" para verificar.'}
                 </div>
                 {canAnalyse && meds.length >= 2 && (
                   <button onClick={analyse} disabled={analysing}
-                    style={{ padding:'11px 22px', background:'var(--green)', color:'white', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)' }}>
+                    style={{ padding:'11px 22px', background:'var(--green)', color:'white', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:700 }}>
                     Analisar agora →
                   </button>
                 )}
                 {!canAnalyse && <Link href="/pricing" style={{ display:'inline-block', padding:'11px 22px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:8, fontSize:13, fontWeight:700 }}>Ver plano Student →</Link>}
               </div>
             )}
-
             {analysed && alerts.length === 0 && (
               <div style={{ background:'#d1fae5', border:'1px solid #6ee7b7', borderRadius:10, padding:'32px 24px', textAlign:'center' }}>
                 <div style={{ fontSize:36, marginBottom:10 }}>✅</div>
@@ -530,14 +719,13 @@ export default function MyMedsPage() {
                 <div style={{ fontSize:13, color:'#065f46', opacity:0.8 }}>A combinação dos teus medicamentos não tem interações clinicamente relevantes conhecidas.</div>
               </div>
             )}
-
             {analysed && alerts.length > 0 && (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {alerts.map((alert, i) => {
                   const s = SEV[alert.severity]
                   return (
                     <div key={i} style={{ padding:'14px 16px', background:s.bg, border:`1px solid ${s.border}`, borderRadius:10 }}>
-                      <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:6 }}>
+                      <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
                         <span style={{ fontSize:16, flexShrink:0 }}>{s.icon}</span>
                         <div style={{ flex:1 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4, flexWrap:'wrap' }}>
@@ -545,37 +733,35 @@ export default function MyMedsPage() {
                             {alert.drugs?.map(d => <span key={d} style={{ fontSize:10, color:s.color, fontFamily:'var(--font-mono)' }}>{d}</span>)}
                           </div>
                           <div style={{ fontSize:13, fontWeight:600, color:s.color, lineHeight:1.5, marginBottom:5 }}>{alert.message}</div>
-                          <div style={{ fontSize:12, color:s.color, opacity:0.8, lineHeight:1.5 }}>→ {alert.action}</div>
+                          <div style={{ fontSize:12, color:s.color, opacity:0.8 }}>→ {alert.action}</div>
                         </div>
                       </div>
                     </div>
                   )
                 })}
                 <div style={{ padding:'12px 14px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8, fontSize:12, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
-                  Discute sempre estes alertas com o teu médico ou farmacêutico antes de alterar medicação.
+                  Discute sempre estes alertas com o teu médico ou farmacêutico.
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ASK — Chat com medicação */}
+        {/* ─── ASK ─── */}
         {tab === 'ask' && (
-          <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 300px)', minHeight:400 }}>
+          <div style={{ display:'flex', flexDirection:'column', minHeight:420 }}>
             {meds.length === 0 && (
-              <div style={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, padding:'24px', textAlign:'center', marginBottom:12 }}>
-                <div style={{ fontSize:13, color:'var(--ink-4)' }}>Adiciona os teus medicamentos primeiro para obter respostas personalizadas.</div>
+              <div style={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, padding:24, textAlign:'center', marginBottom:12 }}>
+                <div style={{ fontSize:13, color:'var(--ink-4)' }}>Adiciona os teus medicamentos para respostas personalizadas.</div>
               </div>
             )}
-
-            {/* Quick prompts */}
             {chatMessages.length === 0 && (
               <div style={{ marginBottom:12 }}>
                 <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10 }}>Perguntas frequentes</div>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                   {QUICK_PROMPTS.map(p => (
                     <button key={p} onClick={() => sendChat(p)}
-                      style={{ padding:'8px 14px', background:'white', border:'1px solid var(--border)', borderRadius:20, fontSize:12, color:'var(--ink-3)', cursor:'pointer', fontFamily:'var(--font-sans)', transition:'all 0.1s' }}
+                      style={{ padding:'8px 14px', background:'white', border:'1px solid var(--border)', borderRadius:20, fontSize:12, color:'var(--ink-3)', cursor:'pointer' }}
                       className="quick-prompt">
                       {p}
                     </button>
@@ -583,13 +769,12 @@ export default function MyMedsPage() {
                 </div>
               </div>
             )}
-
-            {/* Messages */}
             <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:10, paddingBottom:8 }}>
               {chatMessages.map((msg, i) => (
                 <div key={i} style={{ display:'flex', justifyContent:msg.role==='user'?'flex-end':'flex-start' }}>
                   <div style={{
-                    maxWidth:'80%', padding:'11px 14px', borderRadius:msg.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',
+                    maxWidth:'82%', padding:'11px 14px',
+                    borderRadius:msg.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',
                     background:msg.role==='user'?'var(--green)':'white',
                     color:msg.role==='user'?'white':'var(--ink)',
                     border:msg.role==='user'?'none':'1px solid var(--border)',
@@ -600,52 +785,125 @@ export default function MyMedsPage() {
                 </div>
               ))}
               {chatLoading && (
-                <div style={{ display:'flex', justifyContent:'flex-start' }}>
+                <div style={{ display:'flex' }}>
                   <div style={{ padding:'11px 16px', background:'white', border:'1px solid var(--border)', borderRadius:'14px 14px 14px 4px', display:'flex', gap:4, alignItems:'center' }}>
-                    {[0,1,2].map(i => <div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--ink-4)', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
+                    {[0,1,2].map(i => <span key={i} style={{ width:6, height:6, borderRadius:'50%', background:'var(--ink-4)', display:'inline-block', animation:`bounce 1.2s ${i*0.2}s infinite` }} />)}
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
-
-            {/* Input */}
-            <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)', background:'var(--bg)', position:'sticky', bottom:0 }}>
-              <input
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
+            <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)', background:'var(--bg)' }}>
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChat() } }}
-                placeholder={meds.length > 0 ? 'Pergunta sobre os teus medicamentos...' : 'Adiciona medicamentos para perguntas personalizadas...'}
+                placeholder={meds.length > 0 ? 'Pergunta sobre os teus medicamentos...' : 'Adiciona medicamentos primeiro...'}
                 disabled={chatLoading}
-                style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', fontSize:13, fontFamily:'var(--font-sans)', outline:'none', background:'white' }}
-              />
+                style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', fontSize:13, outline:'none', background:'white', fontFamily:'var(--font-sans)' }} />
               <button onClick={() => sendChat()} disabled={!chatInput.trim() || chatLoading}
-                style={{ padding:'11px 18px', background:chatInput.trim()?'var(--green)':'var(--bg-3)', color:chatInput.trim()?'white':'var(--ink-5)', border:'none', borderRadius:24, cursor:chatInput.trim()?'pointer':'default', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)', flexShrink:0 }}>
+                style={{ padding:'11px 18px', background:chatInput.trim()?'var(--green)':'var(--bg-3)', color:chatInput.trim()?'white':'var(--ink-5)', border:'none', borderRadius:24, cursor:chatInput.trim()?'pointer':'default', fontSize:13, fontWeight:700, flexShrink:0 }}>
                 →
               </button>
             </div>
-
             <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', textAlign:'center', marginTop:8 }}>
-              Assistente informativo — não substitui aconselhamento médico ou farmacêutico.
+              Informativo — não substitui aconselhamento médico.
             </div>
           </div>
         )}
 
-        {/* ADD */}
+        {/* ─── ADD ─── */}
         {tab === 'add' && (
           <div style={{ maxWidth:520 }}>
+
+            {/* ── Scan receita ── */}
+            <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:20, marginBottom:14 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+                <div style={{ width:36, height:36, borderRadius:8, background:'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>📷</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>Fotografar receita</div>
+                  <div style={{ fontSize:12, color:'var(--ink-4)' }}>A IA extrai todos os medicamentos automaticamente</div>
+                </div>
+              </div>
+
+              {/* hidden file input — capture=environment abre câmara no mobile */}
+              <input ref={scanInputRef} type="file" accept="image/*" capture="environment"
+                style={{ display:'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) scanPrescription(f); e.target.value = '' }} />
+
+              {scannedMeds.length === 0 && !scanning && (
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => scanInputRef.current?.click()}
+                    style={{ flex:1, padding:'12px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                    <span>📷</span> Tirar foto / Escolher imagem
+                  </button>
+                </div>
+              )}
+
+              {scanning && (
+                <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px', background:'var(--bg-2)', borderRadius:8 }}>
+                  <span style={{ width:16, height:16, border:'2.5px solid var(--border)', borderTopColor:'var(--green)', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block', flexShrink:0 }} />
+                  <span style={{ fontSize:13, color:'var(--ink-4)' }}>A analisar a imagem com IA...</span>
+                </div>
+              )}
+
+              {scanError && (
+                <div style={{ padding:'12px 14px', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, fontSize:13, color:'#991b1b', marginBottom:8 }}>
+                  {scanError}
+                  <button onClick={() => { setScanError(null); scanInputRef.current?.click() }}
+                    style={{ marginLeft:12, fontSize:12, fontWeight:700, color:'#991b1b', background:'none', border:'1px solid #fca5a5', borderRadius:5, padding:'2px 8px', cursor:'pointer' }}>
+                    Tentar novamente
+                  </button>
+                </div>
+              )}
+
+              {scannedMeds.length > 0 && (
+                <div>
+                  <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:10 }}>
+                    {scannedMeds.filter(m=>m.selected).length} de {scannedMeds.length} selecionado{scannedMeds.filter(m=>m.selected).length!==1?'s':''} — toca para desselecionar
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+                    {scannedMeds.map((med, i) => (
+                      <button key={i} onClick={() => setScannedMeds(p => p.map((m,j) => j===i ? {...m, selected:!m.selected} : m))}
+                        style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:med.selected?'var(--green-light)':'var(--bg-2)', border:`1.5px solid ${med.selected?'var(--green-mid)':'var(--border)'}`, borderRadius:8, cursor:'pointer', textAlign:'left' }}>
+                        <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${med.selected?'var(--green)':'var(--border)'}`, background:med.selected?'var(--green)':'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                          {med.selected && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>}
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>{med.name}</div>
+                          <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginTop:1 }}>
+                            {[med.dose, med.frequency, med.indication].filter(Boolean).join(' · ') || 'sem detalhes'}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={addAllScanned} disabled={addingAll || !scannedMeds.some(m=>m.selected)}
+                      style={{ flex:1, padding:'13px', background:scannedMeds.some(m=>m.selected)?'var(--green)':'var(--bg-3)', color:scannedMeds.some(m=>m.selected)?'white':'var(--ink-5)', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:scannedMeds.some(m=>m.selected)?'pointer':'default' }}>
+                      {addingAll ? 'A adicionar...' : `Adicionar ${scannedMeds.filter(m=>m.selected).length} medicamento${scannedMeds.filter(m=>m.selected).length!==1?'s':''}`}
+                    </button>
+                    <button onClick={() => setScannedMeds([])}
+                      style={{ padding:'13px 14px', background:'white', color:'var(--ink-4)', border:'1px solid var(--border)', borderRadius:8, fontSize:13, cursor:'pointer' }}>
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Manual ── */}
             <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:20 }}>
-              <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:16 }}>Novo medicamento</div>
+              <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:16 }}>Adicionar manualmente</div>
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <div style={{ position:'relative' }}>
-                  <input value={newMed.name} onChange={e => { setNewMed(p=>({...p,name:e.target.value})); setSuggestions(suggestDrugs(e.target.value)) }}
+                  <input value={newMed.name}
+                    onChange={e => { setNewMed(p=>({...p,name:e.target.value})); setSuggestions(suggestDrugs(e.target.value)) }}
                     placeholder="Nome do medicamento *"
-                    style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none' }} />
+                    style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
                   {suggestions.length > 0 && newMed.name.length > 1 && (
-                    <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'white', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,0.08)', zIndex:10, overflow:'hidden', marginTop:2 }}>
+                    <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'white', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,0.08)', zIndex:10, marginTop:2, overflow:'hidden' }}>
                       {suggestions.slice(0,6).map(s => (
                         <button key={s.dci} onClick={() => { setNewMed(p=>({...p,name:s.display})); setSuggestions([]) }}
-                          style={{ width:'100%', textAlign:'left', padding:'10px 14px', background:'white', border:'none', borderBottom:'1px solid var(--bg-3)', cursor:'pointer', fontSize:13, fontFamily:'var(--font-sans)', color:'var(--ink)' }}
+                          style={{ width:'100%', textAlign:'left', padding:'10px 14px', background:'white', border:'none', borderBottom:'1px solid var(--bg-3)', cursor:'pointer', fontSize:13, color:'var(--ink)' }}
                           className="suggestion-item">
                           {s.display}
                         </button>
@@ -654,13 +912,13 @@ export default function MyMedsPage() {
                   )}
                 </div>
                 <input value={newMed.dose} onChange={e => setNewMed(p=>({...p,dose:e.target.value}))} placeholder="Dose (ex: 500mg)"
-                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none' }} />
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
                 <input value={newMed.frequency} onChange={e => setNewMed(p=>({...p,frequency:e.target.value}))} placeholder="Frequência (ex: 1x/dia, de manhã)"
-                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none' }} />
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
                 <input value={newMed.indication} onChange={e => setNewMed(p=>({...p,indication:e.target.value}))} placeholder="Indicação (ex: HTA, diabetes)"
-                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none' }} />
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
                 <button onClick={addMed} disabled={!newMed.name.trim() || adding}
-                  style={{ padding:'12px', background:newMed.name.trim()?'var(--green)':'var(--bg-3)', color:newMed.name.trim()?'white':'var(--ink-5)', border:'none', borderRadius:8, cursor:newMed.name.trim()?'pointer':'not-allowed', fontSize:14, fontWeight:700, fontFamily:'var(--font-sans)' }}>
+                  style={{ padding:12, background:newMed.name.trim()?'var(--green)':'var(--bg-3)', color:newMed.name.trim()?'white':'var(--ink-5)', border:'none', borderRadius:8, cursor:newMed.name.trim()?'pointer':'not-allowed', fontSize:14, fontWeight:700 }}>
                   {adding ? 'A adicionar...' : 'Adicionar medicamento'}
                 </button>
               </div>
@@ -669,7 +927,6 @@ export default function MyMedsPage() {
         )}
       </div>
 
-      {/* Reminder modal */}
       {reminderOpen && meds.length > 0 && (
         <ReminderModal meds={meds} onSave={saveReminder} onClose={() => setReminderOpen(false)} />
       )}

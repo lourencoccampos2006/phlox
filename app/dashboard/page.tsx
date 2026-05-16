@@ -137,6 +137,157 @@ function FamilyProfilesSection({ accentColor = 'var(--green)' }: { accentColor?:
   )
 }
 
+// ─── Today's Meds Widget ─────────────────────────────────────────────────────
+
+function TodayMedsWidget() {
+  const { user, supabase } = useAuth()
+  const [schedule, setSchedule] = useState<{ name: string; dose: string|null; slot: string; medId: string; taken: boolean }[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+    Promise.all([
+      supabase.from('personal_meds').select('id,name,dose,reminder_times').eq('user_id', user.id).not('reminder_times','is',null),
+      supabase.from('med_logs').select('med_id,logged_at,status').eq('user_id', user.id).eq('date', today).eq('status','taken'),
+    ]).then(([{ data: medsData }, { data: logsData }]) => {
+      const logs = logsData || []
+      const rows = (medsData || []).flatMap((m: any) =>
+        (m.reminder_times as string[]).map(slot => {
+          const slotMin = toMin(slot)
+          const taken = logs.some(l => {
+            const d = new Date(l.logged_at)
+            return l.med_id === m.id && Math.abs(d.getHours()*60+d.getMinutes() - slotMin) <= 90
+          })
+          return { name: m.name, dose: m.dose, slot, medId: m.id, taken }
+        })
+      ).sort((a, b) => toMin(a.slot) - toMin(b.slot))
+      setSchedule(rows)
+      setLoading(false)
+    })
+  }, [user, supabase])
+
+  if (loading || schedule.length === 0) return null
+
+  const nowMin = new Date().getHours()*60 + new Date().getMinutes()
+  const done = schedule.filter(r => r.taken).length
+  const next = schedule.find(r => !r.taken && toMin(r.slot) >= nowMin - 10)
+  const pct = Math.round(done / schedule.length * 100)
+
+  return (
+    <Link href="/mymeds" style={{ display:'block', background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px', textDecoration:'none', marginBottom:16, transition:'border-color 0.15s' }} className="stat-card">
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase' }}>Hoje</div>
+        <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color: done===schedule.length?'var(--green-2)':'var(--ink-4)', fontWeight:700 }}>
+          {done}/{schedule.length} {done===schedule.length && '✓'}
+        </div>
+      </div>
+      <div style={{ height:6, background:'var(--bg-3)', borderRadius:3, marginBottom:12, overflow:'hidden' }}>
+        <div style={{ height:'100%', width:`${pct}%`, background: done===schedule.length?'var(--green)':'#3b82f6', borderRadius:3, transition:'width 0.4s' }} />
+      </div>
+      {next ? (
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'#3b82f6', flexShrink:0 }} />
+          <div style={{ fontSize:13, color:'var(--ink)', fontWeight:600 }}>
+            {next.slot} · {next.name}{next.dose ? ` ${next.dose}` : ''}
+          </div>
+          <div style={{ marginLeft:'auto', fontSize:12, color:'var(--green)', fontWeight:700 }}>Tomar →</div>
+        </div>
+      ) : done===schedule.length ? (
+        <div style={{ fontSize:13, color:'var(--green-2)', fontWeight:600 }}>Todas as doses tomadas hoje ✓</div>
+      ) : (
+        <div style={{ fontSize:13, color:'var(--ink-4)' }}>Sem doses pendentes agora</div>
+      )}
+    </Link>
+  )
+}
+
+function toMin(t: string) { const [h,m] = t.split(':').map(Number); return h*60+m }
+
+// ─── Adherence Widget ─────────────────────────────────────────────────────────
+
+function AdherenceWidget() {
+  const { user, supabase } = useAuth()
+  const [pct, setPct] = useState<number|null>(null)
+  const [streak, setStreak] = useState(0)
+  const [days, setDays] = useState<{ date: string; pct: number }[]>([])
+
+  useEffect(() => {
+    if (!user) return
+    const today = new Date()
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today); d.setDate(d.getDate() - (6-i))
+      return d.toISOString().split('T')[0]
+    })
+    const since = dates[0]
+    Promise.all([
+      supabase.from('personal_meds').select('id,reminder_times').eq('user_id', user.id).not('reminder_times','is',null),
+      supabase.from('med_logs').select('med_id,date,status').eq('user_id', user.id).gte('date', since).eq('status','taken'),
+    ]).then(([{ data: medsData }, { data: logsData }]) => {
+      const meds = (medsData || []) as { id: string; reminder_times: string[] }[]
+      const logs = (logsData || []) as { med_id: string; date: string }[]
+      const slotsPerDay = meds.reduce((n, m) => n + (m.reminder_times?.length || 0), 0)
+      if (slotsPerDay === 0) return
+
+      const dayStats = dates.map(date => {
+        const taken = logs.filter(l => l.date === date).length
+        return { date, pct: Math.min(100, Math.round(taken / slotsPerDay * 100)) }
+      })
+      setDays(dayStats)
+
+      const totalExpected = slotsPerDay * 7
+      const totalTaken = logs.length
+      setPct(Math.min(100, Math.round(totalTaken / totalExpected * 100)))
+
+      // streak: consecutive days ending today with pct >= 80
+      let s = 0
+      for (let i = dayStats.length - 1; i >= 0; i--) {
+        if (dayStats[i].pct >= 80) s++; else break
+      }
+      setStreak(s)
+    })
+  }, [user, supabase])
+
+  if (pct === null) return null
+
+  const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : '#ef4444'
+  const dayLabels = ['S','T','Q','Q','S','S','D']
+  const todayIdx = new Date().getDay() // 0=Sun
+
+  return (
+    <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px', marginBottom:16 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase' }}>Aderência — 7 dias</div>
+        {streak >= 2 && (
+          <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--green-2)', fontWeight:700, background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'2px 8px', borderRadius:20 }}>
+            🔥 {streak} dias seguidos
+          </div>
+        )}
+      </div>
+      <div style={{ display:'flex', alignItems:'flex-end', gap:4, height:40, marginBottom:10 }}>
+        {days.map((d, i) => {
+          const dayIdx = (todayIdx - (6-i) + 7) % 7
+          return (
+            <div key={d.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+              <div style={{ width:'100%', height: Math.max(4, d.pct * 0.34), background: d.pct >= 80 ? 'var(--green)' : d.pct >= 50 ? '#f59e0b' : d.pct > 0 ? '#ef4444' : 'var(--bg-3)', borderRadius:'2px 2px 0 0', transition:'height 0.3s' }} />
+              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color: i===6?'var(--ink)':'var(--ink-5)', fontWeight: i===6?700:400 }}>
+                {['D','S','T','Q','Q','S','S'][dayIdx]}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color, fontWeight:400, lineHeight:1 }}>{pct}%</div>
+        <div style={{ fontSize:12, color:'var(--ink-4)' }}>
+          {pct >= 90 ? 'Excelente aderência' : pct >= 70 ? 'Boa aderência' : pct >= 50 ? 'Aderência moderada' : 'Atenção à aderência'}
+        </div>
+        <Link href="/mymeds" style={{ marginLeft:'auto', fontSize:11, color:'var(--green)', fontFamily:'var(--font-mono)', fontWeight:700, textDecoration:'none' }}>Ver →</Link>
+      </div>
+    </div>
+  )
+}
+
 // ─── Personal Dashboard ───────────────────────────────────────────────────────
 
 function PersonalDashboard() {
@@ -249,6 +400,12 @@ function PersonalDashboard() {
                 })}
               </div>
             )}
+
+            {/* Today's dose progress + next due */}
+            <TodayMedsWidget />
+
+            {/* Weekly adherence chart */}
+            <AdherenceWidget />
 
             {/* ─── Os Meus Perfis ─── */}
             <FamilyProfilesSection accentColor="var(--green)" />
