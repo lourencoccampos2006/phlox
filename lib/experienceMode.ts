@@ -30,6 +30,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/carta',          label: 'Phlox Carta',              sub: 'Referenciação · alta · intervenção', badge: 'Novo' },
         { href: '/consulta',       label: 'Phlox Consulta',           sub: 'Copiloto de consulta bidirecional' },
         { href: '/patients',       label: 'Doentes / Utentes',        sub: 'Gestão completa com alertas' },
+        { href: '/turno',          label: 'Gestão de Turno',          sub: 'Todos os doentes · doses · risco · 1 toque', badge: 'Novo' },
         { href: '/mar',            label: 'MAR Digital',              sub: 'Registo de administração por turno' },
         { href: '/reconciliacao',  label: 'Reconciliação',            sub: 'Antes vs depois · discrepâncias' },
         { href: '/residentes',     label: 'Phlox Residentes',         sub: 'Gestão farmacoterapêutica de lares', badge: 'Novo' },

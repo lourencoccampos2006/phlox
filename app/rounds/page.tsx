@@ -449,7 +449,7 @@ export default function RoundsPage() {
   const [interventions, setInterventions] = useState<PCNEIntervention[]>([])
   const [selected, setSelected] = useState<string|null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'rounds'|'report'>('rounds')
+  const [tab, setTab] = useState<'rounds'|'report'|'pendentes'>('rounds')
   const [reportMonth, setReportMonth] = useState(new Date().toISOString().slice(0,7))
   const [generatingReport, setGeneratingReport] = useState(false)
   const [report, setReport] = useState<string|null>(null)
@@ -517,6 +517,11 @@ export default function RoundsPage() {
   const selectedPatient = patients.find(p => p.id === selected)
   const selectedRisk = selected && risks[selected] !== 'loading' ? risks[selected] as RiskScore : null
   const selectedMeds = selected ? (meds[selected]||[]) : []
+
+  const updateInterventionOutcome = async (id: string, outcome_code: string) => {
+    await supabase.from('pcne_interventions').update({ outcome_code }).eq('id', id)
+    setInterventions(prev => prev.map(i => i.id === id ? { ...i, outcome_code } : i))
+  }
 
   const generateReport = async () => {
     setGeneratingReport(true)
@@ -649,6 +654,9 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
           <div style={{ display:'flex', borderTop:'1px solid #1e293b' }}>
             <button onClick={() => setTab('rounds')} style={tabStyle('rounds', tab==='rounds')}>Ronda</button>
             <button onClick={() => setTab('report')} style={tabStyle('report', tab==='report')}>Relatório Mensal</button>
+            <button onClick={() => setTab('pendentes')} style={tabStyle('pendentes', tab==='pendentes')}>
+              {`Pendentes${interventions.filter(i=>i.outcome_code==='O0').length > 0 ? ` (${interventions.filter(i=>i.outcome_code==='O0').length})` : ''}`}
+            </button>
           </div>
         </div>
       </div>
@@ -768,6 +776,110 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
           )}
         </div>
       )}
+
+      {tab==='pendentes' && (() => {
+        const pending = interventions.filter(i => i.outcome_code === 'O0')
+        const thisMonth = new Date().toISOString().slice(0, 7)
+        const monthIvs = interventions.filter(i => i.date.startsWith(thisMonth))
+        const accepted = monthIvs.filter(i => i.accepted === true).length
+        const solved = interventions.filter(i => i.outcome_code === 'O1' || i.outcome_code === 'O2').length
+        return (
+          <div className="page-container page-body" style={{ maxWidth: 760 }}>
+            {/* Metrics row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: 10, marginBottom: 20 }}>
+              {([
+                { label: 'Pendentes', value: pending.length, color: '#854d0e', bg: '#fef9c3', border: '#fde68a' },
+                { label: 'Resolvidos', value: solved, color: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0' },
+                { label: 'Este mês', value: monthIvs.length, color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+                { label: 'Taxa aceitação', value: `${monthIvs.length > 0 ? Math.round(accepted / monthIvs.length * 100) : 0}%`, color: '#7c3aed', bg: '#faf5ff', border: '#ddd6fe' },
+              ] as const).map(s => (
+                <div key={s.label} style={{ background: s.bg, borderRadius: 8, padding: '14px 16px', border: `1px solid ${s.border}` }}>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: s.color, fontWeight: 400 }}>{s.value}</div>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: s.color, opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 3 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Problem breakdown */}
+            {monthIvs.length > 0 && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+                  Problemas mais frequentes este mês
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {PCNE_PROBLEMS.map(p => {
+                    const count = monthIvs.filter(i => i.problem_code === p.code).length
+                    if (count === 0) return null
+                    const pct = Math.round(count / monthIvs.length * 100)
+                    return (
+                      <div key={p.code} style={{ flex: 1, minWidth: 120, background: '#eff6ff', borderRadius: 7, padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', background: 'white', padding: '2px 6px', borderRadius: 3, border: '1px solid #bfdbfe' }}>{p.code}</span>
+                          <span style={{ fontSize: 18, fontWeight: 800, color: '#1d4ed8', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{count}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#1d4ed8', fontWeight: 600 }}>{p.label}</div>
+                        <div style={{ marginTop: 6, height: 3, background: '#bfdbfe', borderRadius: 2 }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: '#1d4ed8', borderRadius: 2 }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pending list */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Aguardam resultado médico
+                </div>
+                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', background: '#fef9c3', padding: '2px 8px', borderRadius: 10, border: '1px solid #fde68a' }}>O0 — Desconhecido</span>
+              </div>
+              {pending.length === 0 ? (
+                <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>Sem intervenções pendentes</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Todas as intervenções têm resultado registado.</div>
+                </div>
+              ) : pending.map((iv, i) => (
+                <div key={iv.id} style={{ padding: '16px 18px', borderBottom: i < pending.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{iv.patient_name}</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{iv.date}</span>
+                        <span style={{ fontSize: 11, color: iv.accepted === true ? '#0d6e42' : iv.accepted === false ? '#dc2626' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                          {iv.accepted === true ? 'Aceite' : iv.accepted === false ? 'Recusada' : 'Aceitação pendente'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 7 }}>
+                        {[iv.problem_code, iv.cause_code, iv.intervention_code].map(code => (
+                          <span key={code} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 6px', borderRadius: 3 }}>{code}</span>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: iv.recommendation ? 4 : 0 }}>{iv.description}</div>
+                      {iv.recommendation && (
+                        <div style={{ fontSize: 12, color: '#1d4ed8', fontFamily: 'var(--font-mono)' }}>→ {iv.recommendation}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginRight: 2 }}>Resultado:</span>
+                    {PCNE_OUTCOMES.filter(o => o.code !== 'O0').map(o => (
+                      <button key={o.code}
+                        onClick={() => updateInterventionOutcome(iv.id, o.code)}
+                        style={{ padding: '4px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: o.color }}>
+                        {o.code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}

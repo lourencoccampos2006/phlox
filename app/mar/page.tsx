@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
@@ -13,6 +13,45 @@ interface Patient {
   name: string
   age: number | null
   conditions: string | null
+  allergies: string | null
+}
+
+
+const ANTICOAG_TERMS = ['varfarina','acenocumarol','warfarin','rivaroxabano','apixabano','dabigatrano','edoxabano','heparina','enoxaparina']
+const NSAID_TERMS = ['ibuprofeno','diclofenac','naproxeno','meloxicam','piroxicam','indometacina','celecoxib','etoricoxib']
+const SSRI_TERMS = ['fluoxetina','sertralina','paroxetina','citalopram','escitalopram','fluvoxamina']
+const MAOI_TERMS = ['fenelzina','tranilcipromina','isocarboxazida','moclobemida','rasagilina','selegilina']
+const DIGOXIN_TERMS = ['digoxina']
+const AMIO_TERMS = ['amiodarona']
+
+function checkAllergyWarning(allergies: string | null, medName: string): string | null {
+  if (!allergies) return null
+  const tokens = allergies.toLowerCase().split(/[,;/\s]+/).filter(t => t.length >= 4)
+  const name = medName.toLowerCase()
+  const hit = tokens.find(t => name.includes(t) || t.includes(name.split(' ')[0]))
+  return hit ? `Alergia documentada: "${hit}" — confirmar antes de administrar` : null
+}
+
+function checkInteractionWarnings(medName: string, otherMedNames: string[]): string[] {
+  const warnings: string[] = []
+  const n = medName.toLowerCase()
+  const others = otherMedNames.map(m => m.toLowerCase())
+  const has = (terms: string[], list: string[]) => list.some(m => terms.some(t => m.includes(t)))
+  const isNew = (terms: string[]) => terms.some(t => n.includes(t))
+
+  if (isNew(NSAID_TERMS) && has(ANTICOAG_TERMS, others))
+    warnings.push('AINE + anticoagulante — risco de hemorragia grave')
+  if (isNew(ANTICOAG_TERMS) && has(NSAID_TERMS, others))
+    warnings.push('Anticoagulante + AINE — risco de hemorragia grave')
+  if (isNew(SSRI_TERMS) && has(MAOI_TERMS, others))
+    warnings.push('ISRS + IMAO — risco de síndrome serotoninérgica GRAVE')
+  if (isNew(MAOI_TERMS) && has(SSRI_TERMS, others))
+    warnings.push('IMAO + ISRS — risco de síndrome serotoninérgica GRAVE')
+  if (isNew(DIGOXIN_TERMS) && has(AMIO_TERMS, others))
+    warnings.push('Digoxina + amiodarona — risco de toxicidade digitálica')
+  if (isNew(AMIO_TERMS) && has(DIGOXIN_TERMS, others))
+    warnings.push('Amiodarona + digoxina — risco de toxicidade digitálica')
+  return warnings
 }
 
 interface PatientMed {
@@ -146,11 +185,12 @@ export default function MARPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
   const [allOmissions, setAllOmissions] = useState<{ name: string; missing: number }[]>([])
+  const [pendingWarning, setPendingWarning] = useState<{ medId: string; status: AdminStatus; notes: string; messages: string[] } | null>(null)
 
   // Load patients
   useEffect(() => {
     if (!user || !isPro) return
-    supabase.from('patients').select('id, name, age, conditions')
+    supabase.from('patients').select('id, name, age, conditions, allergies')
       .eq('user_id', user.id)
       .order('name', { ascending: true })
       .then(({ data }) => setPatients(data || []))
@@ -204,22 +244,21 @@ export default function MARPage() {
   const getRecord = (medId: string) =>
     records.find(r => r.med_id === medId && r.shift === shift) || null
 
-  const handleAdmin = async (medId: string, status: AdminStatus, notes: string) => {
+  const doAdmin = async (medId: string, status: AdminStatus, notes: string) => {
     if (!user || !selectedPatient) return
     setSaving(medId)
     const existing = getRecord(medId)
     const record = {
       patient_id: selectedPatient,
-      user_id: user.id,  // ─── CORRIGIDO: necessário para RLS ───
+      user_id: user.id,
       med_id: medId,
       shift,
       date,
       status,
       notes,
-      recorded_by: user.name || user.email,
+      recorded_by: (user as any).name || user.email,
       recorded_at: new Date().toISOString(),
     }
-
     if (status === null && existing) {
       await supabase.from('mar_records').delete().eq('id', (existing as any).id)
       setRecords(prev => prev.filter(r => r.med_id !== medId || r.shift !== shift))
@@ -232,6 +271,29 @@ export default function MARPage() {
       if (data) setRecords(prev => [...prev, data])
     }
     setSaving(null)
+  }
+
+  const handleAdmin = async (medId: string, status: AdminStatus, notes: string) => {
+    if (!user || !selectedPatient) return
+    // Only safety-check on new 'administered' records
+    if (status === 'administered' && !getRecord(medId)) {
+      const patient = patients.find(p => p.id === selectedPatient)
+      const med = meds.find(m => m.id === medId)
+      if (patient && med) {
+        const otherAdministered = records
+          .filter(r => r.shift === shift && r.status === 'administered' && r.med_id !== medId)
+          .map(r => meds.find(m => m.id === r.med_id)?.name || '')
+          .filter(Boolean)
+        const allergyMsg = checkAllergyWarning(patient.allergies, med.name)
+        const interactionMsgs = checkInteractionWarnings(med.name, otherAdministered)
+        const messages = [...(allergyMsg ? [allergyMsg] : []), ...interactionMsgs]
+        if (messages.length > 0) {
+          setPendingWarning({ medId, status, notes, messages })
+          return
+        }
+      }
+    }
+    await doAdmin(medId, status, notes)
   }
 
   const administered = records.filter(r => r.shift === shift && r.status === 'administered').length
@@ -418,6 +480,40 @@ export default function MARPage() {
           </div>
         )}
       </div>
+
+      {/* Safety confirmation modal */}
+      {pendingWarning && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: '20px' }}>
+          <div style={{ background: 'white', borderRadius: 14, padding: '24px', width: '100%', maxWidth: 420, boxShadow: '0 32px 80px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚠️</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#991b1b' }}>Alerta de segurança</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              {pendingWarning.messages.map((msg, i) => (
+                <div key={i} style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b', lineHeight: 1.5, fontWeight: 600 }}>
+                  {msg}
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 20 }}>
+              Confirma que verificaste esta situação com o clínico responsável antes de administrar.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={async () => { const pw = pendingWarning; setPendingWarning(null); await doAdmin(pw.medId, pw.status, pw.notes) }}
+                style={{ flex: 1, padding: '11px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                Confirmar administração
+              </button>
+              <button
+                onClick={() => setPendingWarning(null)}
+                style={{ padding: '11px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
