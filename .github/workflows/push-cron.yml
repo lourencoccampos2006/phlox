@@ -1,0 +1,16 @@
+name: Push Notifications Cron
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  run-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call push cron endpoint
+        run: |
+          curl -sf -X GET \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://phlox-pi.vercel.app/api/push/cron"
