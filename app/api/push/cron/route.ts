@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendPushNotification } from '@/lib/webPush'
 
-// Cloudflare Cron calls this endpoint every 15 minutes via GET
-// Authenticated by the CRON_SECRET env variable
+// Called every 15 minutes by Vercel Cron (vercel.json) or an external scheduler.
+// Vercel sends: Authorization: Bearer <CRON_SECRET>
+// Manual/Cloudflare: x-cron-secret header or ?secret= query param
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
+  const bearerToken = req.headers.get('authorization')?.replace('Bearer ', '')
+  const secret = bearerToken || req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
