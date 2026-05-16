@@ -203,7 +203,7 @@ export default function MyMedsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [analysing, setAnalysing] = useState(false)
   const [analysed, setAnalysed] = useState(false)
-  const [tab, setTab] = useState<'overview'|'alerts'|'add'|'ask'>('overview')
+  const [tab, setTab] = useState<'overview'|'alerts'|'add'|'ask'|'sintomas'>('overview')
   const [newMed, setNewMed] = useState({ name:'', dose:'', frequency:'', indication:'' })
   const [adding, setAdding] = useState(false)
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
@@ -218,6 +218,17 @@ export default function MyMedsPage() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Emergency card
+  const [emergencyOpen, setEmergencyOpen] = useState(false)
+  const [emergencyToken, setEmergencyToken] = useState<string|null>(null)
+  const [emergencyForm, setEmergencyForm] = useState({ name:'', allergies:'', blood_type:'', emergency_contact:'' })
+  const [emergencyLoading, setEmergencyLoading] = useState(false)
+
+  // ADR symptom check
+  const [symptoms, setSymptoms] = useState('')
+  const [adrResult, setAdrResult] = useState<any>(null)
+  const [adrLoading, setAdrLoading] = useState(false)
 
   // Push / reminders
   const [reminderOpen, setReminderOpen] = useState(false)
@@ -473,6 +484,41 @@ export default function MyMedsPage() {
     setChatLoading(false)
   }
 
+  // ─── Emergency Card ──────────────────────────────────────────────────────────
+
+  const generateEmergencyCard = async () => {
+    setEmergencyLoading(true)
+    const { data: sd } = await supabase.auth.getSession()
+    const res = await fetch('/api/emergency-card/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+      body: JSON.stringify(emergencyForm),
+    })
+    const data = await res.json()
+    if (data.token) setEmergencyToken(data.token)
+    setEmergencyLoading(false)
+  }
+
+  const emergencyCardUrl = emergencyToken
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/emergency/${emergencyToken}`
+    : null
+
+  // ─── ADR Symptom Check ────────────────────────────────────────────────────────
+
+  const checkSymptoms = async () => {
+    if (!symptoms.trim() || meds.length === 0) return
+    setAdrLoading(true); setAdrResult(null)
+    const { data: sd } = await supabase.auth.getSession()
+    const res = await fetch('/api/symptom-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+      body: JSON.stringify({ symptoms, medications: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })) }),
+    })
+    const data = await res.json()
+    setAdrResult(data)
+    setAdrLoading(false)
+  }
+
   // ─── Derived ──────────────────────────────────────────────────────────────────
 
   const tabStyle = (t: string) => ({
@@ -526,6 +572,10 @@ export default function MyMedsPage() {
                   🔔 {hasReminders ? 'Lembretes ativos' : 'Ativar lembretes'}
                 </button>
               )}
+              <button onClick={() => setEmergencyOpen(true)}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', background:emergencyToken?'#fee2e2':'white', color:emergencyToken?'#991b1b':'var(--ink)', border:`1px solid ${emergencyToken?'#fca5a5':'var(--border)'}`, borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                🆘 Cartão
+              </button>
             </div>
           </div>
           <div style={{ display:'flex', borderTop:'1px solid var(--border)', overflowX:'auto' }}>
@@ -534,6 +584,7 @@ export default function MyMedsPage() {
               Alertas {unreadAlerts>0 && <span style={{ marginLeft:4, background:'#dc2626', color:'white', fontSize:9, padding:'1px 5px', borderRadius:10, fontWeight:700 }}>{unreadAlerts}</span>}
             </button>
             <button onClick={() => setTab('ask')} style={tabStyle('ask')}>💬 Perguntar</button>
+            <button onClick={() => setTab('sintomas')} style={tabStyle('sintomas')}>🩺 Sintomas</button>
             <button onClick={() => setTab('add')} style={tabStyle('add')}>+ Adicionar</button>
           </div>
         </div>
@@ -810,6 +861,95 @@ export default function MyMedsPage() {
           </div>
         )}
 
+        {/* ─── SINTOMAS / ADR ─── */}
+        {tab === 'sintomas' && (
+          <div style={{ maxWidth:560 }}>
+            <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:20, marginBottom:14 }}>
+              <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:6 }}>Detetor de reações adversas</div>
+              <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:16, lineHeight:1.5 }}>
+                Descreve os sintomas que sentes — a IA verifica se podem estar relacionados com algum dos teus medicamentos.
+              </div>
+              {meds.length === 0 ? (
+                <div style={{ padding:'16px', background:'var(--bg-2)', borderRadius:8, fontSize:13, color:'var(--ink-4)', textAlign:'center' }}>
+                  Adiciona medicamentos primeiro para usar esta funcionalidade.
+                </div>
+              ) : (
+                <>
+                  <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)}
+                    placeholder="Ex: tenho tonturas quando me levanto, a cabeça dói-me e estou mais cansado do que o habitual..."
+                    rows={4}
+                    style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:13, outline:'none', fontFamily:'var(--font-sans)', resize:'vertical', boxSizing:'border-box', lineHeight:1.55 }} />
+                  <button onClick={checkSymptoms} disabled={!symptoms.trim() || adrLoading}
+                    style={{ marginTop:10, width:'100%', padding:'12px', background:symptoms.trim() && !adrLoading?'#dc2626':'var(--bg-3)', color:symptoms.trim() && !adrLoading?'white':'var(--ink-5)', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:symptoms.trim() && !adrLoading?'pointer':'default', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                    {adrLoading
+                      ? <><span style={{ width:14, height:14, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' }} /> A analisar...</>
+                      : '🔍 Analisar sintomas'}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {adrResult && !adrLoading && (() => {
+              const safety = adrResult.overall_safety as string
+              const safetyStyle = {
+                seguro:          { bg:'#d1fae5', border:'#6ee7b7', color:'#065f46', icon:'✅', label:'Sem relação com medicação' },
+                monitorizar:     { bg:'#fef9c3', border:'#fde68a', color:'#854d0e', icon:'👁', label:'Monitorizar' },
+                consultar_medico:{ bg:'#fef3c7', border:'#fcd34d', color:'#92400e', icon:'⚠️', label:'Consulta recomendada' },
+                urgente:         { bg:'#fee2e2', border:'#fca5a5', color:'#991b1b', icon:'🚨', label:'Urgente' },
+              }[safety] || { bg:'var(--bg-2)', border:'var(--border)', color:'var(--ink)', icon:'ℹ️', label:safety }
+
+              return (
+                <div>
+                  <div style={{ padding:'14px 16px', background:safetyStyle.bg, border:`1px solid ${safetyStyle.border}`, borderRadius:10, marginBottom:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:adrResult.message?8:0 }}>
+                      <span style={{ fontSize:20 }}>{safetyStyle.icon}</span>
+                      <span style={{ fontSize:14, fontWeight:700, color:safetyStyle.color }}>{safetyStyle.label}</span>
+                    </div>
+                    {adrResult.message && <div style={{ fontSize:13, color:safetyStyle.color, lineHeight:1.55 }}>{adrResult.message}</div>}
+                  </div>
+
+                  {adrResult.suspicions?.length > 0 && (
+                    <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:12 }}>
+                      <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase' }}>Suspeitas identificadas</div>
+                      {adrResult.suspicions.map((s: any, i: number) => {
+                        const probColor = s.probability === 'alta' ? '#dc2626' : s.probability === 'moderada' ? '#d97706' : '#6b7280'
+                        const actionIcon = { manter_vigilancia:'👁', avisar_medico:'🩺', urgente:'🚨', nao_relacionado:'ℹ️' }[s.action as string] || '•'
+                        return (
+                          <div key={i} style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px' }}>
+                            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:6 }}>
+                              <div style={{ flex:1 }}>
+                                <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>{s.suspected_drug}</span>
+                                <span style={{ fontSize:12, color:'var(--ink-4)', marginLeft:8 }}>→ {s.symptom}</span>
+                              </div>
+                              <span style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:probColor, background:`${probColor}18`, border:`1px solid ${probColor}40`, padding:'2px 7px', borderRadius:4, whiteSpace:'nowrap' }}>
+                                {s.probability}
+                              </span>
+                            </div>
+                            {s.mechanism && <div style={{ fontSize:12, color:'var(--ink-4)', lineHeight:1.5, marginBottom:6 }}>{s.mechanism}</div>}
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <span style={{ fontSize:12 }}>{actionIcon}</span>
+                              <span style={{ fontSize:12, color:'var(--ink-3)', fontFamily:'var(--font-mono)' }}>
+                                {{ manter_vigilancia:'Manter vigilância', avisar_medico:'Avisar médico', urgente:'Urgente', nao_relacionado:'Não relacionado' }[s.action as string] || s.action}
+                              </span>
+                              <span style={{ fontSize:10, color:'var(--ink-5)', marginLeft:'auto' }}>{s.evidence}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {adrResult.disclaimer && (
+                    <div style={{ padding:'12px 14px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8, fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
+                      {adrResult.disclaimer}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
         {/* ─── ADD ─── */}
         {tab === 'add' && (
           <div style={{ maxWidth:520 }}>
@@ -926,6 +1066,68 @@ export default function MyMedsPage() {
           </div>
         )}
       </div>
+
+      {emergencyOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+          onClick={() => setEmergencyOpen(false)}>
+          <div style={{ background:'white', borderRadius:14, padding:24, width:'100%', maxWidth:440, maxHeight:'90vh', overflowY:'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>🆘 Cartão de Emergência</div>
+            <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:20, lineHeight:1.55 }}>
+              Cria um cartão público com a tua medicação essencial, acessível por QR code. Útil para primeiros socorros.
+            </div>
+
+            {emergencyToken ? (
+              <div>
+                <div style={{ textAlign:'center', marginBottom:16 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(emergencyCardUrl!)}`}
+                    alt="QR Code" style={{ width:180, height:180, borderRadius:8, border:'2px solid #dc2626' }} />
+                  <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--ink-4)', marginTop:8, wordBreak:'break-all' }}>{emergencyCardUrl}</div>
+                </div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => { navigator.clipboard?.writeText(emergencyCardUrl!); }}
+                    style={{ flex:1, padding:'11px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                    Copiar link
+                  </button>
+                  <button onClick={() => window.open(emergencyCardUrl!, '_blank')}
+                    style={{ flex:1, padding:'11px', background:'#dc2626', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                    Abrir cartão
+                  </button>
+                </div>
+                <button onClick={() => { setEmergencyToken(null) }}
+                  style={{ marginTop:8, width:'100%', padding:'10px', background:'white', color:'var(--ink-4)', border:'1px solid var(--border)', borderRadius:8, fontSize:12, cursor:'pointer' }}>
+                  Regenerar / Editar
+                </button>
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <input value={emergencyForm.name} onChange={e => setEmergencyForm(p => ({...p,name:e.target.value}))}
+                  placeholder="Nome completo *"
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
+                <input value={emergencyForm.blood_type} onChange={e => setEmergencyForm(p => ({...p,blood_type:e.target.value}))}
+                  placeholder="Grupo sanguíneo (ex: A+)"
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
+                <input value={emergencyForm.allergies} onChange={e => setEmergencyForm(p => ({...p,allergies:e.target.value}))}
+                  placeholder="Alergias conhecidas (ex: penicilina, ibuprofeno)"
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
+                <input value={emergencyForm.emergency_contact} onChange={e => setEmergencyForm(p => ({...p,emergency_contact:e.target.value}))}
+                  placeholder="Contacto de emergência (ex: Maria 912345678)"
+                  style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)' }} />
+                <button onClick={generateEmergencyCard} disabled={!emergencyForm.name.trim() || emergencyLoading}
+                  style={{ padding:'13px', background:emergencyForm.name.trim() && !emergencyLoading?'#dc2626':'var(--bg-3)', color:emergencyForm.name.trim() && !emergencyLoading?'white':'var(--ink-5)', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:emergencyForm.name.trim() && !emergencyLoading?'pointer':'default', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                  {emergencyLoading
+                    ? <><span style={{ width:14, height:14, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite', display:'inline-block' }} /> A gerar...</>
+                    : '🆘 Gerar cartão de emergência'}
+                </button>
+                <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', textAlign:'center' }}>
+                  O cartão inclui os {meds.length} medicamento{meds.length!==1?'s':''} da tua lista atual.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {reminderOpen && meds.length > 0 && (
         <ReminderModal meds={meds} onSave={saveReminder} onClose={() => setReminderOpen(false)} />

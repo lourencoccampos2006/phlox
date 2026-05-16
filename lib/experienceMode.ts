@@ -45,6 +45,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/escalas',       label: 'Escalas Clínicas',          sub: 'PHQ-9 · NIHSS · Braden · Morse · 8+', badge: 'Novo' },
         { href: '/interactions',  label: 'Verificar Interações',      sub: 'Qualquer combinação, com evidência' },
         { href: '/calculators',   label: 'Calculadoras',              sub: 'SCORE2 · CKD-EPI · Vancomicina · 15+' },
+        { href: '/iv-calc',       label: 'Calculadora IV',            sub: 'Volume · Infusão · Reconstituição · Referência', badge: 'Novo' },
         { href: '/nursing',       label: 'Farmacotecnia',             sub: 'IV · SC · IM · compatibilidades' },
         { href: '/protocol',      label: 'Protocolo Terapêutico',     sub: 'ESC · ADA · NICE · DGS' },
         { href: '/monitor',       label: 'Phlox Watcher',             sub: 'Monitorização automática · todos os fármacos' },

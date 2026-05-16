@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
 import Link from 'next/link'
+import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 
 // ─── PCNE Classification v9.1 (simplified) ───────────────────────────────────
 const PCNE_PROBLEMS = [
@@ -257,8 +258,15 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
   supabase: any; user: any; onNewIntervention: (i: PCNEIntervention) => void
 }) {
   const [showPCNE, setShowPCNE] = useState(false)
-  const [tab, setTab] = useState<'overview'|'meds'|'interventions'>('overview')
+  const [tab, setTab] = useState<'overview'|'meds'|'interventions'|'stopp'>('overview')
   const crcl = calcCrCl(patient)
+  const stoppResult: STOPPSTARTResult = runSTOPPSTART(
+    patient.age,
+    patient.conditions,
+    meds.map(m => m.name.toLowerCase()),
+    crcl,
+  )
+  const stoppCount = stoppResult.stopp.length + stoppResult.start.length
 
   const tabStyle = (t: string) => ({
     padding:'8px 14px', background:'none', border:'none',
@@ -316,6 +324,9 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
         <button onClick={() => setTab('overview')} style={tabStyle('overview')}>Visão Geral</button>
         <button onClick={() => setTab('meds')} style={tabStyle('meds')}>Medicação ({meds.length})</button>
         <button onClick={() => setTab('interventions')} style={tabStyle('interventions')}>PCNE ({patientInterventions.length})</button>
+        <button onClick={() => setTab('stopp')} style={{ ...tabStyle('stopp'), color: tab==='stopp' ? '#1d4ed8' : stoppCount > 0 ? '#854d0e' : 'var(--ink-4)' }}>
+          {`STOPP/START${stoppCount > 0 ? ` (${stoppCount})` : ''}`}
+        </button>
       </div>
 
       {/* Content */}
@@ -432,6 +443,68 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {tab==='stopp' && (
+          <div>
+            {stoppResult.stopp.length === 0 && stoppResult.start.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink-4)' }}>
+                <div style={{ fontSize:28, marginBottom:8 }}>✅</div>
+                <div style={{ fontSize:14, fontWeight:600, color:'var(--ink)', marginBottom:4 }}>Sem critérios STOPP/START detectados</div>
+                <div style={{ fontSize:12, color:'var(--ink-4)' }}>Com base nos dados disponíveis (medicação, idade, condições, CrCl)</div>
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                {stoppResult.stopp.length > 0 && (
+                  <div>
+                    <div style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ background:'#fee2e2', color:'#991b1b', padding:'2px 8px', borderRadius:10, fontSize:10 }}>STOPP</span>
+                      {stoppResult.stopp.length} critérios — medicamentos potencialmente inapropriados
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {stoppResult.stopp.map(s => (
+                        <div key={s.code} style={{ padding:'12px 14px', background: s.severity==='high' ? '#fee2e2' : '#fef9c3', border:`1px solid ${s.severity==='high'?'#fca5a5':'#fde68a'}`, borderRadius:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:800, color:s.severity==='high'?'#991b1b':'#854d0e', background:'white', padding:'2px 7px', borderRadius:3, letterSpacing:'0.1em' }}>{s.code}</span>
+                            <span style={{ fontSize:11, fontWeight:700, color:s.severity==='high'?'#991b1b':'#854d0e' }}>{s.category}</span>
+                            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', background:'var(--bg-2)', padding:'2px 6px', borderRadius:3 }}>{s.drug_class}</span>
+                          </div>
+                          <div style={{ fontSize:13, fontWeight:600, color: s.severity==='high'?'#7f1d1d':'#78350f', lineHeight:1.4, marginBottom:5 }}>{s.criterion}</div>
+                          <div style={{ fontSize:12, color:s.severity==='high'?'#991b1b':'#92400e', fontFamily:'var(--font-mono)' }}>→ {s.action}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {stoppResult.start.length > 0 && (
+                  <div>
+                    <div style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:'#0d6e42', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ background:'#dcfce7', color:'#0d6e42', padding:'2px 8px', borderRadius:10, fontSize:10 }}>START</span>
+                      {stoppResult.start.length} critérios — terapêuticas potencialmente omitidas
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {stoppResult.start.map(s => (
+                        <div key={s.code} style={{ padding:'12px 14px', background:'#f0fdf5', border:'1px solid #bbf7d0', borderRadius:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:800, color:'#0d6e42', background:'white', padding:'2px 7px', borderRadius:3, letterSpacing:'0.1em' }}>{s.code}</span>
+                            <span style={{ fontSize:11, fontWeight:700, color:'#0d6e42' }}>{s.category}</span>
+                            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', background:'var(--bg-2)', padding:'2px 6px', borderRadius:3 }}>Falta: {s.missing_class}</span>
+                          </div>
+                          <div style={{ fontSize:13, fontWeight:600, color:'#14532d', lineHeight:1.4, marginBottom:5 }}>{s.criterion}</div>
+                          <div style={{ fontSize:12, color:'#166534', fontFamily:'var(--font-mono)' }}>→ {s.rationale}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ padding:'8px 12px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:6, fontSize:11, color:'var(--ink-4)', lineHeight:1.5 }}>
+                  Critérios STOPP/START v2 (O'Mahony et al., 2015). Análise baseada nos dados disponíveis — pode não reflectir a situação clínica completa.
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
