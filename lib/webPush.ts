@@ -174,4 +174,5 @@ export async function sendPushNotification(sub: PushSubscription, payload: PushP
     console.error('Push send error:', e)
     return false
   }
+
 }
