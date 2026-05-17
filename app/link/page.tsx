@@ -32,6 +32,7 @@ export default function LinkPage() {
   const [copied, setCopied] = useState(false)
   const [showSetup, setShowSetup] = useState(false)
   const [revoking, setRevoking] = useState(false)
+  const [genError, setGenError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -50,42 +51,59 @@ export default function LinkPage() {
   const generate = async () => {
     if (!user) return
     setGenerating(true)
-    const { data: sd } = await supabase.auth.getSession()
-    const res = await fetch('/api/link/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-      body: JSON.stringify({ access_level: accessLevel, label: label || null, expires_in_days: expireDays || null }),
-    })
-    const data = await res.json()
-    if (data.code) {
-      const { data: linkData } = await supabase.from('phlox_links').select('*').eq('code', data.code).single()
-      setLink(linkData as LinkInfo)
+    setGenError(null)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const token = sd.session?.access_token
+      if (!token) { setGenError('Sessão expirada. Recarrega a página.'); return }
+      const res = await fetch('/api/link/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ access_level: accessLevel, label: label || null, expires_in_days: expireDays || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setGenError(data.error || 'Erro ao criar link'); return }
+      if (data.code) {
+        const { data: linkData } = await supabase.from('phlox_links').select('*').eq('code', data.code).maybeSingle()
+        if (linkData) setLink(linkData as LinkInfo)
+        else setLink({ code: data.code, access_level: accessLevel, label: label || null, views: 0, created_at: new Date().toISOString(), expires_at: null })
+        setShowSetup(false)
+      } else {
+        setGenError(data.error || 'Erro inesperado')
+      }
+    } catch (e: any) {
+      setGenError(e.message || 'Erro de ligação')
+    } finally {
+      setGenerating(false)
     }
-    setGenerating(false)
-    setShowSetup(false)
   }
 
   const revoke = async () => {
     if (!user || !link) return
     setRevoking(true)
-    const { data: sd } = await supabase.auth.getSession()
-    await fetch('/api/link/generate', {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${sd.session?.access_token}` },
-    })
-    setLink(null)
-    setRevoking(false)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      await fetch('/api/link/generate', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${sd.session?.access_token}` },
+      })
+      setLink(null)
+    } finally {
+      setRevoking(false)
+    }
   }
 
   const updateAccess = async (level: AccessLevel) => {
     if (!user || !link) return
-    const { data: sd } = await supabase.auth.getSession()
-    await fetch('/api/link/generate', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-      body: JSON.stringify({ access_level: level }),
-    })
-    setLink(l => l ? { ...l, access_level: level } : l)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      await fetch('/api/link/generate', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ access_level: level }),
+      })
+      setLink(l => l ? { ...l, access_level: level } : l)
+    } catch {}
   }
 
   const linkUrl = link ? `${typeof window !== 'undefined' ? window.location.origin : ''}/shared/${link.code}` : null
@@ -269,10 +287,15 @@ export default function LinkPage() {
               </div>
             </div>
 
+            {genError && (
+              <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 12, color: '#991b1b', marginTop: 8 }}>
+                ⚠️ {genError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               <button onClick={generate} disabled={generating} style={{
                 flex: 1, padding: '13px', background: 'var(--green)', color: 'white',
-                border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: generating ? 'wait' : 'pointer',
               }}>
                 {generating ? 'A criar...' : '🔗 Criar Link'}
               </button>

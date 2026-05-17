@@ -33,6 +33,7 @@ export default function PassportPage() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name:'', blood_type:'', allergies:'', emergency_contact:'', conditions:'' })
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const t = lang === 'PT' ? PT : EN
 
@@ -40,7 +41,7 @@ export default function PassportPage() {
     if (!user) { setLoading(false); return }
     Promise.all([
       supabase.from('personal_meds').select('*').eq('user_id', user.id).order('started_at', { ascending: false }),
-      supabase.from('emergency_tokens').select('*').eq('user_id', user.id).eq('active', true).maybeSingle(),
+      supabase.from('emergency_tokens').select('*').eq('user_id', user.id).maybeSingle(),
     ]).then(async ([{ data: medsData }, { data: cardData }]) => {
       setMeds(medsData || [])
       if (cardData) {
@@ -49,34 +50,50 @@ export default function PassportPage() {
       } else {
         const userName = (user as any).user_metadata?.full_name || user.email?.split('@')[0] || ''
         setForm(p => ({ ...p, name: userName }))
-        // Auto-generate card so QR is always available
         if (userName) {
-          const { data: sd } = await supabase.auth.getSession()
-          const res = await fetch('/api/emergency-card/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-            body: JSON.stringify({ name: userName }),
-          })
-          const created = await res.json()
-          if (created.token) setCard({ name: userName, allergies: '', blood_type: '', emergency_contact: '', token: created.token })
+          try {
+            const { data: sd } = await supabase.auth.getSession()
+            const token = sd.session?.access_token
+            if (token) {
+              const res = await fetch('/api/emergency-card/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ name: userName }),
+              })
+              if (res.ok) {
+                const created = await res.json()
+                if (created.token) setCard({ name: userName, allergies: '', blood_type: '', emergency_contact: '', token: created.token })
+              }
+            }
+          } catch {}
         }
       }
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [user, supabase])
 
   const save = async () => {
     if (!user) return
     setSaving(true)
-    const { data: sd } = await supabase.auth.getSession()
-    const res = await fetch('/api/emergency-card/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-      body: JSON.stringify({ name: form.name, blood_type: form.blood_type, allergies: form.allergies, emergency_contact: form.emergency_contact }),
-    })
-    const data = await res.json()
-    if (data.token) setCard({ name: form.name, blood_type: form.blood_type, allergies: form.allergies, emergency_contact: form.emergency_contact, token: data.token })
-    setSaving(false); setEditing(false)
+    setSaveError(null)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const token = sd.session?.access_token
+      if (!token) { setSaveError('Sessão expirada. Recarrega a página.'); return }
+      const res = await fetch('/api/emergency-card/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name: form.name, blood_type: form.blood_type, allergies: form.allergies, emergency_contact: form.emergency_contact }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setSaveError(data.error || 'Erro ao guardar'); return }
+      if (data.token) setCard({ name: form.name, blood_type: form.blood_type, allergies: form.allergies, emergency_contact: form.emergency_contact, token: data.token })
+      setEditing(false)
+    } catch (e: any) {
+      setSaveError(e.message || 'Erro de ligação')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const emergencyUrl = card?.token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/emergency/${card.token}` : null
@@ -259,6 +276,11 @@ export default function PassportPage() {
                 rows={2}
                 style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'11px 14px', fontSize:14, outline:'none', fontFamily:'var(--font-sans)', resize:'none' }} />
             </div>
+            {saveError && (
+              <div style={{ marginTop:10, padding:'8px 12px', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, fontSize:12, color:'#991b1b' }}>
+                ⚠️ {saveError}
+              </div>
+            )}
             <div style={{ display:'flex', gap:8, marginTop:16 }}>
               <button onClick={save} disabled={!form.name.trim() || saving}
                 style={{ flex:1, padding:'12px', background:form.name.trim()?'var(--green)':'var(--bg-3)', color:form.name.trim()?'white':'var(--ink-5)', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:form.name.trim()?'pointer':'default' }}>

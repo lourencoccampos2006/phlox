@@ -34,7 +34,7 @@ const SEV = {
 }
 
 export default function FoodDrugPage() {
-  const { user } = useAuth()
+  const { user, supabase } = useAuth()
 
   const [selectedFoods, setSelectedFoods] = useState<string[]>([])
   const [customFood, setCustomFood]       = useState('')
@@ -42,6 +42,7 @@ export default function FoodDrugPage() {
   const [drugs, setDrugs]                 = useState<string[]>([])
   const [suggestions, setSuggestions]     = useState<{display:string;dci:string;isBrand:boolean}[]>([])
   const [loading, setLoading]             = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(false)
   const [result, setResult]               = useState<Result|null>(null)
   const [error, setError]                 = useState<string|null>(null)
 
@@ -53,6 +54,14 @@ export default function FoodDrugPage() {
     if (!trimmed || drugs.includes(trimmed)) return
     setDrugs(p => [...p, trimmed])
     setDrugInput(''); setSuggestions([])
+  }
+
+  const loadFromProfile = async () => {
+    if (!user) return
+    setLoadingProfile(true)
+    const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id)
+    if (data) setDrugs(data.map((m: any) => m.name))
+    setLoadingProfile(false)
   }
 
   const allFoods = [
@@ -95,8 +104,15 @@ export default function FoodDrugPage() {
 
         {/* ── Step 1: Drugs ── */}
         <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:20, marginBottom:14 }}>
-          <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>
-            1 — Medicamentos
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:8 }}>
+            <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
+              1 — Medicamentos
+            </div>
+            {user && (
+              <button onClick={loadFromProfile} disabled={loadingProfile} style={{ fontSize:12, fontWeight:700, color:'var(--green)', background:'var(--green-light)', border:'1px solid var(--green-mid)', borderRadius:20, padding:'5px 12px', cursor:'pointer' }}>
+                {loadingProfile ? '...' : '⚡ Carregar do meu perfil'}
+              </button>
+            )}
           </div>
           <div style={{ position:'relative', marginBottom:10 }}>
             <input value={drugInput}
