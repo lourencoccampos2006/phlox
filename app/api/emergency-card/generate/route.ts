@@ -5,7 +5,7 @@ import { checkRateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || 'unknown'
-  if (checkRateLimit(ip, 10, 60_000)) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  if (!checkRateLimit(ip, 10, 60_000).allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })

@@ -41,13 +41,25 @@ export default function PassportPage() {
     Promise.all([
       supabase.from('personal_meds').select('*').eq('user_id', user.id).order('started_at', { ascending: false }),
       supabase.from('emergency_tokens').select('*').eq('user_id', user.id).eq('active', true).maybeSingle(),
-    ]).then(([{ data: medsData }, { data: cardData }]) => {
+    ]).then(async ([{ data: medsData }, { data: cardData }]) => {
       setMeds(medsData || [])
       if (cardData) {
         setCard(cardData as EmergencyCard)
         setForm({ name: cardData.name || '', blood_type: cardData.blood_type || '', allergies: cardData.allergies || '', emergency_contact: cardData.emergency_contact || '', conditions: '' })
       } else {
-        setForm(p => ({ ...p, name: (user as any).user_metadata?.full_name || user.email?.split('@')[0] || '' }))
+        const userName = (user as any).user_metadata?.full_name || user.email?.split('@')[0] || ''
+        setForm(p => ({ ...p, name: userName }))
+        // Auto-generate card so QR is always available
+        if (userName) {
+          const { data: sd } = await supabase.auth.getSession()
+          const res = await fetch('/api/emergency-card/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+            body: JSON.stringify({ name: userName }),
+          })
+          const created = await res.json()
+          if (created.token) setCard({ name: userName, allergies: '', blood_type: '', emergency_contact: '', token: created.token })
+        }
       }
       setLoading(false)
     })
@@ -63,7 +75,7 @@ export default function PassportPage() {
       body: JSON.stringify({ name: form.name, blood_type: form.blood_type, allergies: form.allergies, emergency_contact: form.emergency_contact }),
     })
     const data = await res.json()
-    if (data.token) setCard(data)
+    if (data.token) setCard({ name: form.name, blood_type: form.blood_type, allergies: form.allergies, emergency_contact: form.emergency_contact, token: data.token })
     setSaving(false); setEditing(false)
   }
 
