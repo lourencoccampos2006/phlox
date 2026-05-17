@@ -6,67 +6,163 @@ import NotificationBell from '@/components/NotificationBell'
 import { useState, useRef, useEffect } from 'react'
 import { getActiveProfile, type ActiveProfile } from '../lib/profileContext'
 import { ROUTE_GROUPS, MODE_META, type ExperienceMode } from '../lib/experienceMode'
+import CommandPalette, { useCommandPalette } from './CommandPalette'
 
 // ─── Mega menu ─────────────────────────────────────────────────────────────────
 
-function MegaMenu({ onClose, mode }: { onClose: () => void; mode: ExperienceMode | null }) {
-  const groups = mode ? ROUTE_GROUPS[mode] : [
-    { id: 'free', heading: 'Grátis · Sem conta', color: '#0d6e42', tools: [
+const MEGA_BY_MODE: Record<string, { heading: string; color: string; tools: { href: string; label: string; sub: string; badge?: string }[] }[]> = {
+  personal: [
+    { heading: 'Medicação', color: '#0d6e42', tools: [
+      { href: '/mymeds',       label: 'Os Meus Medicamentos', sub: 'Lista · lembretes · verificação', badge: 'Principal' },
+      { href: '/interactions', label: 'Verificar Interações',  sub: 'Qualquer combinação', badge: 'Grátis' },
+      { href: '/food-drug',    label: 'Fármaco-Alimento',      sub: 'Toranja · álcool · laticínios' },
+      { href: '/schedule',     label: 'Horário Inteligente',   sub: 'IA cria o horário ideal', badge: 'Novo' },
+      { href: '/optimizer',    label: 'Otimizar Prescrição',   sub: 'Genéricos · STOPP/START', badge: 'Novo' },
+    ]},
+    { heading: 'Saúde & Documentos', color: '#1d4ed8', tools: [
+      { href: '/vitals',    label: 'Sinais Vitais',       sub: 'TA · FC · SpO₂ · tendências', badge: 'Novo' },
+      { href: '/objetivos', label: 'Objetivos de Saúde',  sub: 'Define metas · acompanha', badge: 'Novo' },
+      { href: '/passport',  label: 'Passaporte de Saúde', sub: 'QR de emergência · PDF', badge: 'Novo' },
+      { href: '/link',      label: 'Phlox Link',          sub: 'Partilha com médico / família', badge: 'Novo' },
+      { href: '/relatorio', label: 'Relatório Semanal',   sub: 'IA analisa a tua semana', badge: 'Novo' },
+    ]},
+    { heading: 'IA & Apoio', color: '#7c3aed', tools: [
+      { href: '/ai',           label: 'Phlox AI',          sub: 'Faz qualquer pergunta de saúde' },
+      { href: '/oracle',       label: 'Farmacêutico AI',   sub: 'Consulta estruturada', badge: 'Novo' },
+      { href: '/bula',         label: 'Tradutor de Bula',  sub: 'Texto clínico em linguagem simples', badge: 'Grátis' },
+      { href: '/labs',         label: 'Análises',          sub: 'Perceber os resultados' },
+      { href: '/integracoes',  label: 'Importar Dados',    sub: 'Apple Saúde · Garmin · MySNS', badge: 'Novo' },
+    ]},
+  ],
+  caregiver: [
+    { heading: 'Gerir a Família', color: '#b45309', tools: [
+      { href: '/perfis',          label: 'Perfis Familiares',    sub: 'Medicação e saúde de cada familiar' },
+      { href: '/mymeds',          label: 'Medicamentos',         sub: 'Lista · lembretes · verificação' },
+      { href: '/schedule',        label: 'Horário Inteligente',  sub: 'IA cria o horário ideal', badge: 'Novo' },
+      { href: '/interactions',    label: 'Verificar Interações', sub: 'Qualquer combinação', badge: 'Grátis' },
+      { href: '/food-drug',       label: 'Fármaco-Alimento',     sub: 'O que não combinar com a medicação' },
+    ]},
+    { heading: 'Saúde & Documentos', color: '#374151', tools: [
+      { href: '/passport',    label: 'Passaporte de Saúde', sub: 'QR de emergência · imprimir', badge: 'Novo' },
+      { href: '/vitals',      label: 'Sinais Vitais',       sub: 'TA · FC · SpO₂ · tendências', badge: 'Novo' },
+      { href: '/link',        label: 'Phlox Link',          sub: 'Partilhar com o médico', badge: 'Novo' },
+      { href: '/labs',        label: 'Análises',            sub: 'O que está fora do normal' },
+      { href: '/prescription',label: 'Perceber a Receita',  sub: 'Foto ou texto → explicação' },
+    ]},
+    { heading: 'IA & Apoio', color: '#0d6e42', tools: [
+      { href: '/ai',         label: 'Phlox AI',           sub: 'Qualquer dúvida de saúde' },
+      { href: '/oracle',     label: 'Farmacêutico AI',    sub: 'Consulta estruturada', badge: 'Novo' },
+      { href: '/dose-crianca',label: 'Dose Pediátrica',   sub: 'Peso + medicamento → dose certa', badge: 'Grátis' },
+      { href: '/relatorio',  label: 'Relatório Semanal',  sub: 'IA analisa a semana', badge: 'Novo' },
+      { href: '/integracoes',label: 'Importar Dados',     sub: 'Apple Saúde · Garmin · MySNS', badge: 'Novo' },
+    ]},
+  ],
+  clinical: [
+    { heading: 'Fluxo de Trabalho', color: '#1d4ed8', tools: [
+      { href: '/turno',        label: 'Turno',              sub: 'Doentes · doses · alertas num ecrã', badge: 'Principal' },
+      { href: '/rounds',       label: 'Ronda',              sub: 'PCNE · pendentes · métricas' },
+      { href: '/mar',          label: 'MAR',                sub: 'Registo de tomas · alertas' },
+      { href: '/patients',     label: 'Doentes',            sub: 'Fichas · medicação · alertas' },
+      { href: '/reconciliacao',label: 'Reconciliação',      sub: 'Antes vs depois da admissão' },
+    ]},
+    { heading: 'Decisão Clínica', color: '#0f766e', tools: [
+      { href: '/oracle',       label: 'Oracle AI',          sub: 'SOAP · PCNE · intervenção', badge: 'Novo' },
+      { href: '/interactions', label: 'Interações',         sub: 'Mecanismo · evidência · gestão' },
+      { href: '/optimizer',    label: 'Otimizar',           sub: 'STOPP/START · genéricos', badge: 'Novo' },
+      { href: '/calculators',  label: 'Calculadoras',       sub: 'SCORE2 · CKD-EPI · Vancomicina' },
+      { href: '/adr-report',   label: 'Notificação RAM',    sub: 'WHO-UMC · INFARMED', badge: 'Novo' },
+    ]},
+    { heading: 'Ferramentas & IA', color: '#7c3aed', tools: [
+      { href: '/ai',           label: 'Phlox AI Clínico',  sub: 'Co-piloto farmacológico' },
+      { href: '/iv-calc',      label: 'Calculadora IV',    sub: 'Volume · infusão · reconstituição', badge: 'Novo' },
+      { href: '/protocol',     label: 'Protocolos',        sub: 'ESC · ADA · NICE · DGS' },
+      { href: '/nursing',      label: 'Farmacotecnia',     sub: 'IV · SC · IM · compatibilidades' },
+      { href: '/schedule',     label: 'Horário de Medicação', sub: 'Horário ideal por doente', badge: 'Novo' },
+    ]},
+  ],
+  student: [
+    { heading: 'Praticar', color: '#7c3aed', tools: [
+      { href: '/arena',     label: 'Arena',             sub: 'Ligas Bronze → Diamante', badge: 'Principal' },
+      { href: '/simulador', label: 'Simulador Clínico', sub: 'Caso · Turno · Evolutivo', badge: 'Novo' },
+      { href: '/osce',      label: 'Simulação OSCE',    sub: 'AI como doente · feedback' },
+      { href: '/exam',      label: 'Modo Exame',        sub: 'Timer · análise de erros' },
+      { href: '/cases',     label: 'Casos Clínicos',    sub: 'Arquivo por área e dificuldade' },
+    ]},
+    { heading: 'Estudar', color: '#0d6e42', tools: [
+      { href: '/study',        label: 'Flashcards & Quizzes', sub: '200+ tópicos · repetição espaçada' },
+      { href: '/tutor',        label: 'AI Tutor',             sub: 'Socrático · passo a passo' },
+      { href: '/ficha',        label: 'Ficha de Fármaco',     sub: 'Mecanismo · mnemónica · quiz' },
+      { href: '/interactions', label: 'Interações + Mecanismo',sub: 'CYP450 · PD · PK · evidência' },
+      { href: '/progresso',    label: 'O Meu Progresso',      sub: 'XP · streak · pontos fracos' },
+    ]},
+    { heading: 'Ferramentas Clínicas', color: '#1d4ed8', tools: [
+      { href: '/oracle',       label: 'Oracle AI',         sub: 'Raciocínio farmacológico guiado', badge: 'Novo' },
+      { href: '/calculators',  label: 'Calculadoras',      sub: 'SCORE2 · CKD-EPI · 15+' },
+      { href: '/adr-report',   label: 'Reportar RAM',      sub: 'Pratica notificação WHO-UMC', badge: 'Novo' },
+      { href: '/escalas',      label: 'Escalas Clínicas',  sub: 'PHQ-9 · NIHSS · Braden · Morse' },
+      { href: '/schedule',     label: 'Horário de Medicação', sub: 'Justifica farmacologicamente', badge: 'Novo' },
+    ]},
+  ],
+  default: [
+    { heading: 'Grátis · Sem conta', color: '#0d6e42', tools: [
       { href: '/interactions', label: 'Verificar Interações', sub: 'Brufen + Xarelto — analisamos', badge: 'Grátis' },
-      { href: '/bula', label: 'Tradutor de Bula', sub: 'Cola o texto — linguagem simples', badge: 'Grátis' },
-      { href: '/dose-crianca', label: 'Dose Pediátrica', sub: 'Peso + medicamento → dose certa', badge: 'Grátis' },
+      { href: '/bula',         label: 'Tradutor de Bula',     sub: 'Cola o texto — linguagem simples', badge: 'Grátis' },
+      { href: '/dose-crianca', label: 'Dose Pediátrica',      sub: 'Peso + medicamento → dose certa', badge: 'Grátis' },
+      { href: '/ai',           label: 'Phlox AI',             sub: 'Faz qualquer pergunta de saúde' },
     ]},
-    { id: 'family', heading: 'Para Famílias', color: '#b45309', tools: [
-      { href: '/perfis', label: 'Perfis Familiares', sub: 'Medicação de cada familiar' },
-      { href: '/registo', label: 'Registo de Saúde', sub: 'Análises · vacinas · vitais · documentos' },
-      { href: '/importar', label: 'Importar Dados', sub: 'MySNS · PDF · receitas · análises' },
-      { href: '/prescription', label: 'Perceber a Receita', sub: 'Foto ou texto → explicação simples' },
-      { href: '/labs', label: 'Perceber as Análises', sub: 'PDF ou texto → o que importa' },
-      { href: '/vaccines', label: 'Vacinas em Dia?', sub: 'Calendário PT · viagens' },
-      { href: '/otc', label: 'Automedicação', sub: 'Sintoma → o que comprar' },
+    { heading: 'Para Famílias', color: '#b45309', tools: [
+      { href: '/mymeds',      label: 'Medicamentos',      sub: 'Lista · lembretes · verificação' },
+      { href: '/passport',    label: 'Passaporte QR',     sub: 'Cartão de emergência', badge: 'Novo' },
+      { href: '/vitals',      label: 'Sinais Vitais',     sub: 'TA · FC · SpO₂ · peso', badge: 'Novo' },
+      { href: '/food-drug',   label: 'Fármaco-Alimento',  sub: 'O que não combinar' },
     ]},
-    { id: 'student-preview', heading: 'Para Estudantes', color: '#7c3aed', tools: [
-      { href: '/study', label: 'Flashcards e Quizzes', sub: 'Farmacologia e clínica médica' },
-      { href: '/cases', label: 'Casos Clínicos', sub: 'Raciocínio guiado · todos os níveis' },
-      { href: '/shift', label: 'Turno Virtual', sub: '3 doentes · score · feedback IA' },
-      { href: '/compare', label: 'Comparar Fármacos', sub: 'A vs B — linha a linha' },
-      { href: '/disease', label: 'Fármacos por Doença', sub: '1ª e 2ª linha com doses' },
-      { href: '/exam', label: 'Modo Exame', sub: 'Timer + análise de erros' },
+    { heading: 'Para Profissionais', color: '#1d4ed8', tools: [
+      { href: '/oracle',      label: 'Farmacêutico AI',  sub: 'Consulta estruturada', badge: 'Novo' },
+      { href: '/optimizer',   label: 'Otimizar Prescrição', sub: 'STOPP/START · genéricos', badge: 'Novo' },
+      { href: '/calculators', label: 'Calculadoras',     sub: 'SCORE2 · CKD-EPI · 15+' },
+      { href: '/turno',       label: 'Turno Clínico',    sub: 'Doentes · doses · alertas' },
     ]},
-    { id: 'clinical-preview', heading: 'Para Profissionais', color: '#1d4ed8', tools: [
-      { href: '/ai', label: 'Phlox AI Clínico', sub: 'Co-piloto farmacológico IA' },
-      { href: '/protocol', label: 'Protocolo Terapêutico', sub: 'ESC · ADA · NICE · DGS' },
-      { href: '/briefing', label: 'Briefing de Consulta', sub: 'Preparação em 15 segundos' },
-      { href: '/calculators', label: 'Calculadoras Clínicas', sub: 'SCORE2 · CKD-EPI · Cockcroft' },
-      { href: '/nursing', label: 'IV · SC · IM', sub: 'Compatibilidades e farmacotecnia' },
-      { href: '/med-review', label: 'Revisão de Medicação', sub: 'Análise clínica + PDF' },
+    { heading: 'Para Estudantes', color: '#7c3aed', tools: [
+      { href: '/arena',     label: 'Arena',             sub: 'Ligas competitivas', badge: 'Novo' },
+      { href: '/simulador', label: 'Simulador Clínico', sub: '3 modos de jogo', badge: 'Novo' },
+      { href: '/study',     label: 'Flashcards',        sub: '200+ tópicos' },
+      { href: '/tutor',     label: 'AI Tutor',          sub: 'Socrático · passo a passo' },
     ]},
-  ]
+  ],
+}
 
+function MegaMenu({ onClose, mode }: { onClose: () => void; mode: ExperienceMode | null }) {
+  const groups = mode ? (MEGA_BY_MODE[mode] || MEGA_BY_MODE.default) : MEGA_BY_MODE.default
   const isClinical = mode === 'clinical'
 
   return (
     <div style={{ position: 'fixed', top: 60, left: 0, right: 0, zIndex: 200, background: isClinical ? '#0f172a' : 'white', borderBottom: `1px solid ${isClinical ? '#1e293b' : 'var(--border)'}`, boxShadow: '0 24px 64px rgba(0,0,0,0.12)' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 48px 32px', display: 'grid', gridTemplateColumns: `repeat(${groups.length}, 1fr)`, gap: '0 32px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 48px 20px', display: 'grid', gridTemplateColumns: `repeat(${groups.length}, 1fr)`, gap: '0 28px' }}>
         {groups.map((group, gi) => (
-          <div key={group.id} style={{ borderRight: gi < groups.length - 1 ? `1px solid ${isClinical ? '#1e293b' : 'var(--border)'}` : 'none', paddingRight: gi < groups.length - 1 ? 32 : 0 }}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: group.color, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ width: 14, height: 2, background: group.color, borderRadius: 1, flexShrink: 0 }} />
+          <div key={group.heading} style={{ borderRight: gi < groups.length - 1 ? `1px solid ${isClinical ? '#1e293b' : 'var(--border)'}` : 'none', paddingRight: gi < groups.length - 1 ? 28 : 0 }}>
+            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: group.color, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ width: 12, height: 2, background: group.color, borderRadius: 1, flexShrink: 0 }} />
               {group.heading}
             </div>
-            {group.tools.map(({ href, label, sub, badge }: any) => (
+            {group.tools.map(({ href, label, sub, badge }) => (
               <Link key={href} href={href} onClick={onClose}
-                style={{ display: 'block', padding: '8px 8px 8px 0', textDecoration: 'none', borderRadius: 6, transition: 'background 0.12s' }}
+                style={{ display: 'block', padding: '7px 8px 7px 0', textDecoration: 'none', borderRadius: 6, transition: 'background 0.12s' }}
                 className={isClinical ? 'mega-link-dark' : 'mega-link'}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: isClinical ? '#f1f5f9' : 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{label}</span>
-                  {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', flexShrink: 0, textTransform: 'uppercase' }}>{badge}</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: isClinical ? '#f1f5f9' : 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{label}</span>
+                  {badge && <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 700, color: badge === 'Grátis' ? '#0d6e42' : badge === 'Principal' ? '#1d4ed8' : '#7c3aed', background: badge === 'Grátis' ? '#d1fae5' : badge === 'Principal' ? '#dbeafe' : '#ede9fe', border: `1px solid ${badge === 'Grátis' ? '#a7f3d0' : badge === 'Principal' ? '#bfdbfe' : '#ddd6fe'}`, borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', flexShrink: 0, textTransform: 'uppercase' as const }}>{badge}</span>}
                 </div>
-                <div style={{ fontSize: 11, color: isClinical ? '#64748b' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.4 }}>{sub}</div>
+                <div style={{ fontSize: 10.5, color: isClinical ? '#64748b' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.4 }}>{sub}</div>
               </Link>
             ))}
           </div>
         ))}
+      </div>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 48px', borderTop: `1px solid ${isClinical ? '#1e293b' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: isClinical ? '#475569' : 'var(--ink-5)' }}>30+ ferramentas disponíveis</span>
+        <Link href="/ferramentas" onClick={onClose} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: isClinical ? '#6ee7b7' : 'var(--green)', textDecoration: 'none', letterSpacing: '0.04em' }}>
+          Ver todas as ferramentas →
+        </Link>
       </div>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, top: 60, zIndex: -1 }} />
     </div>
@@ -146,15 +242,14 @@ function UserMenu({ user, signOut, supabase }: { user: any; signOut: () => void;
   const isClinical = user.experience_mode === 'clinical'
 
   const menuItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/registo', label: 'Registo de Saúde' },
-    { href: '/importar', label: 'Importar' },
-    { href: '/settings', label: 'Definições' },
-    ...(user.experience_mode === 'caregiver' ? [{ href: '/perfis', label: 'Perfis Familiares' }] : []),
-    ...(user.experience_mode === 'clinical' ? [{ href: '/patients', label: 'Doentes / Utentes' }] : []),
-    ...(user.experience_mode === 'personal' ? [{ href: '/mymeds', label: 'Os Meus Meds' }] : []),
+    { href: '/dashboard',   label: 'Dashboard' },
+    { href: '/ferramentas', label: 'Todas as ferramentas' },
+    ...(user.experience_mode === 'personal'  ? [{ href: '/mymeds',   label: 'Medicamentos' }] : []),
+    ...(user.experience_mode === 'caregiver' ? [{ href: '/perfis',   label: 'Perfis Familiares' }] : []),
+    ...(user.experience_mode === 'clinical'  ? [{ href: '/patients', label: 'Doentes / Utentes' }] : []),
     ...((user.org_role === 'owner' || user.org_role === 'admin') ? [{ href: '/organizacao', label: 'Organização' }] : []),
-    { href: '/pricing', label: 'Ver planos' },
+    { href: '/settings', label: 'Definições' },
+    { href: '/pricing',  label: 'Ver planos' },
   ]
 
   return (
@@ -307,6 +402,7 @@ export default function Header() {
   const [megaOpen, setMegaOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
+  const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette()
 
   useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
@@ -364,15 +460,13 @@ export default function Header() {
               <Link href="/bula" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Bula</Link>
             </>)}
 
-            <Link href="/ai"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 300, marginLeft: 4, padding: '7px 12px', background: isClinical ? '#1e293b' : 'var(--bg-2)', border: `1.5px solid ${isClinical ? '#334155' : 'var(--border)'}`, borderRadius: 28, textDecoration: 'none', fontSize: 12, color: isClinical ? '#64748b' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s' }}
+            <button onClick={() => setCmdOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 300, marginLeft: 4, padding: '7px 12px', background: isClinical ? '#1e293b' : 'var(--bg-2)', border: `1.5px solid ${isClinical ? '#334155' : 'var(--border)'}`, borderRadius: 28, fontSize: 12, color: isClinical ? '#64748b' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s', cursor: 'pointer' }}
               className="search-bar-trigger">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isClinical ? '#475569' : 'var(--ink-5)'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <span style={{ flex: 1 }}>
-                {mode === 'clinical' ? 'Consulta clínica...' : mode === 'student' ? 'Pergunta ao tutor...' : mode === 'caregiver' ? 'Pergunta sobre a família...' : 'Faz uma pergunta...'}
-              </span>
-              <kbd style={{ fontSize: 9, fontFamily: 'var(--font-mono)', background: isClinical ? '#0f172a' : 'white', border: `1px solid ${isClinical ? '#334155' : 'var(--border)'}`, padding: '2px 5px', borderRadius: 3, flexShrink: 0, color: isClinical ? '#475569' : 'var(--ink-5)' }}>AI</kbd>
-            </Link>
+              <span style={{ flex: 1, textAlign: 'left' }}>Pesquisar ferramentas...</span>
+              <kbd style={{ fontSize: 9, fontFamily: 'var(--font-mono)', background: isClinical ? '#0f172a' : 'white', border: `1px solid ${isClinical ? '#334155' : 'var(--border)'}`, padding: '2px 5px', borderRadius: 3, flexShrink: 0, color: isClinical ? '#475569' : 'var(--ink-5)' }}>⌘K</kbd>
+            </button>
 
             {!user && <Link href="/pricing" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Preços</Link>}
             {!user && <Link href="/institucional" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Institucional</Link>}
@@ -413,6 +507,7 @@ export default function Header() {
 
       {megaOpen && <MegaMenu onClose={() => setMegaOpen(false)} mode={mode} />}
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} signOut={signOut} supabase={supabase} />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
       <style>{`
         @media (min-width: 769px) { .desktop-nav { display: flex !important; } .mobile-controls { display: none !important; } }

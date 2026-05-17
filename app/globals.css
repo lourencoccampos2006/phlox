@@ -465,6 +465,45 @@ img, video, iframe { max-width: 100%; height: auto; }
 .animate-in-delay-2 { animation: fadeSlideUp 0.35s 0.10s cubic-bezier(0.16,1,0.3,1) both; }
 .animate-in-delay-3 { animation: fadeSlideUp 0.35s 0.15s cubic-bezier(0.16,1,0.3,1) both; }
 
+/* Tool cards — used in /ferramentas and tool grids */
+.tool-card { transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+.tool-card:hover { border-color: var(--border-2) !important; box-shadow: var(--shadow) !important; transform: translateY(-2px); }
+
+/* Premium surface — elevated white card */
+.surface { background: white; border: 1px solid var(--border); border-radius: var(--r-md); }
+.surface-hover { transition: border-color 0.15s, box-shadow 0.15s; }
+.surface-hover:hover { border-color: var(--border-2); box-shadow: var(--shadow); }
+
+/* Glass card — for dark backgrounds */
+.glass { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-md); backdrop-filter: blur(8px); }
+
+/* Gradient text */
+.gradient-text { background: linear-gradient(135deg, var(--ink) 0%, var(--ink-3) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.gradient-text-green { background: linear-gradient(135deg, var(--green) 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+/* Premium number display */
+.number-display { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+/* Soft glow on focus — for key CTAs */
+.focus-glow:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--green-glow), 0 0 0 1px var(--green); }
+
+/* Status indicator dot */
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.status-dot.green  { background: #22c55e; }
+.status-dot.amber  { background: #f59e0b; }
+.status-dot.red    { background: #ef4444; }
+.status-dot.blue   { background: #3b82f6; }
+.status-dot.gray   { background: var(--border-2); }
+
+/* Horizontal scroll container (mobile lists) */
+.h-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none; }
+.h-scroll::-webkit-scrollbar { display: none; }
+
+/* Chip — interactive filter pill */
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 12px; font-weight: 600; font-family: var(--font-sans); color: var(--ink-3); background: white; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.chip:hover  { border-color: var(--border-2); color: var(--ink); }
+.chip.active { border-color: var(--green); color: var(--green); background: var(--green-light); }
+
 /* Focus ring override para inputs */
 input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible {
   outline: 2px solid var(--green);
