@@ -288,6 +288,129 @@ function AdherenceWidget() {
   )
 }
 
+// ─── Daily Brief Hero Card ───────────────────────────────────────────────────
+
+interface BriefInsight { icon: string; text: string; type: 'positive' | 'warning' | 'info' | 'tip' }
+interface BriefData {
+  greeting: string; status_line: string; health_score: number; health_score_label: string
+  insights: BriefInsight[]; today_focus: string; encouragement: string; first_name: string
+}
+
+const INSIGHT_STYLE: Record<string, { bg: string; border: string; color: string }> = {
+  positive: { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', color: '#6ee7b7' },
+  warning:  { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', color: '#fcd34d' },
+  info:     { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.3)', color: '#93c5fd' },
+  tip:      { bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)', color: '#c4b5fd' },
+}
+
+function BriefScoreArc({ score }: { score: number }) {
+  const r = 28, cx = 32, cy = 32
+  const circ = 2 * Math.PI * r
+  const dash = (score / 10) * circ
+  const color = score >= 8 ? '#10b981' : score >= 6 ? '#f59e0b' : '#ef4444'
+  return (
+    <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
+      <svg width={64} height={64} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={5} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={5}
+          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 1s ease' }} />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{score}</div>
+        <div style={{ fontSize: 6, color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>score</div>
+      </div>
+    </div>
+  )
+}
+
+function DailyBrief() {
+  const { user, supabase } = useAuth()
+  const [brief, setBrief] = useState<BriefData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+    const cacheKey = `phlox-brief-${user.id}-${today}`
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) { setBrief(JSON.parse(cached)); setLoading(false); return }
+    } catch {}
+    const generate = async () => {
+      try {
+        const { data: sd } = await supabase.auth.getSession()
+        const token = sd.session?.access_token
+        if (!token) { setLoading(false); return }
+        const res = await fetch('/api/daily-brief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) { setLoading(false); return }
+        const data: BriefData = await res.json()
+        setBrief(data)
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)) } catch {}
+      } catch { /* silent */ }
+      finally { setLoading(false) }
+    }
+    generate()
+  }, [user, supabase])
+
+  if (loading) return (
+    <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: 16, padding: '22px 24px', marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 18, width: '55%', borderRadius: 4, background: 'rgba(255,255,255,0.08)', marginBottom: 8 }} />
+          <div style={{ height: 13, width: '75%', borderRadius: 4, background: 'rgba(255,255,255,0.06)' }} />
+        </div>
+      </div>
+      <div style={{ height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', marginBottom: 6 }} />
+      <div style={{ height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.04)' }} />
+    </div>
+  )
+
+  if (!brief) return null
+
+  return (
+    <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 60%, #0f172a 100%)', borderRadius: 16, padding: '22px 24px', marginBottom: 20, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: '50%', background: 'rgba(16,185,129,0.07)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -30, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(59,130,246,0.05)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 8, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Phlox AI</div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16, position: 'relative' }}>
+        <BriefScoreArc score={brief.health_score} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 4, letterSpacing: '-0.02em' }}>{brief.greeting}</div>
+          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{brief.status_line}</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '3px 10px' }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: brief.health_score >= 7 ? '#10b981' : brief.health_score >= 5 ? '#f59e0b' : '#ef4444', flexShrink: 0 }} />
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{brief.health_score_label}</span>
+          </div>
+        </div>
+      </div>
+
+      {brief.insights?.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12, position: 'relative' }}>
+          {brief.insights.map((ins, i) => {
+            const s = INSIGHT_STYLE[ins.type] || INSIGHT_STYLE.info
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '9px 12px' }}>
+                <span style={{ fontSize: 14, flexShrink: 0 }}>{ins.icon}</span>
+                <span style={{ fontSize: 12, color: s.color, lineHeight: 1.55 }}>{ins.text}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)', borderLeft: '3px solid #10b981', borderRadius: 8, padding: '10px 14px', position: 'relative' }}>
+        <div style={{ fontSize: 8, fontFamily: 'var(--font-mono)', color: '#6ee7b7', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 3 }}>Foco de hoje</div>
+        <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.55 }}>{brief.today_focus}</div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Personal Dashboard ───────────────────────────────────────────────────────
 
 function PersonalDashboard() {
@@ -325,12 +448,12 @@ function PersonalDashboard() {
   }
 
   const QUICK_ACTIONS = [
-    { label: 'Verificar interações', sub: `${meds.length > 0 ? meds.length + ' medicamentos no perfil' : 'Escreve os nomes das caixas'}`, href: '/interactions', badge: 'Grátis' },
-    { label: 'Tradutor de Bula', sub: 'Cola o texto ou escreve o nome', href: '/bula', badge: 'Grátis' },
-    { label: 'Dose Pediátrica', sub: 'Peso + medicamento = dose exacta', href: '/dose-crianca', badge: 'Grátis' },
+    { label: 'Verificar interações', sub: meds.length > 0 ? `${meds.length} medicamentos no perfil` : 'Escreve os nomes das caixas', href: '/interactions', badge: 'Grátis' },
+    { label: 'Horário de Medicação', sub: 'AI gera o melhor horário para os teus meds', href: '/schedule', badge: 'Novo' },
+    { label: 'Fármaco-Alimento', sub: 'O que não combinar com a tua medicação', href: '/food-drug', badge: 'Novo' },
+    { label: 'Relatório Semanal', sub: 'Resumo IA da tua semana de saúde', href: '/relatorio', badge: 'Novo' },
+    { label: 'Tradutor de Bula', sub: 'Cola o texto — linguagem simples', href: '/bula', badge: 'Grátis' },
     { label: 'Perceber Análises', sub: 'PDF ou cola os valores', href: '/labs', badge: undefined },
-    { label: 'Preparar Consulta', sub: 'Perguntas certas para o médico', href: '/consult-prep', badge: undefined },
-    { label: 'O que comprar sem receita', sub: 'Guia de automedicação', href: '/otc', badge: undefined },
   ]
 
   const tabStyle = (t: string) => ({
@@ -378,20 +501,23 @@ function PersonalDashboard() {
         {/* HOME TAB */}
         {tab === 'home' && (
           <div>
-            {/* Stats row */}
+            {/* ─── AI Daily Brief Hero ─── */}
+            <DailyBrief />
+
+            {/* ─── Stats row ─── */}
             {!loading && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
                 {[
                   { value: String(meds.length), label: meds.length === 1 ? 'Medicamento' : 'Medicamentos', color: 'var(--green)', href: undefined as string | undefined, action: () => setTab('meds') },
                   { value: plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), label: 'Plano actual', color: plan === 'free' ? 'var(--ink-4)' : plan === 'student' ? '#7c3aed' : '#1d4ed8', href: plan === 'free' ? '/pricing' : undefined, action: undefined as (() => void) | undefined },
-                  { value: meds.length >= 2 ? '!' : '✓', label: meds.length >= 2 ? 'Verificar interações' : 'Sem alertas', color: meds.length >= 2 ? '#d97706' : 'var(--green)', href: '/interactions', action: undefined as (() => void) | undefined },
+                  { value: meds.length >= 2 ? '!' : '✓', label: meds.length >= 2 ? 'Ver interações' : 'Sem alertas', color: meds.length >= 2 ? '#d97706' : 'var(--green)', href: '/interactions', action: undefined as (() => void) | undefined },
                 ].map(({ value, label, color, href, action }) => {
                   const content = (
-                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', cursor: href || action ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
+                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', cursor: href || action ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
                       onClick={action}
                       className={href || action ? 'stat-card' : ''}>
-                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 6 }}>{label}</div>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
+                      <div style={{ fontSize: 9, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 5 }}>{label}</div>
                     </div>
                   )
                   return href
@@ -401,51 +527,51 @@ function PersonalDashboard() {
               </div>
             )}
 
-            {/* Today's dose progress + next due */}
+            {/* ─── Today's dose progress + next due ─── */}
             <TodayMedsWidget />
 
-            {/* Weekly adherence chart */}
+            {/* ─── Weekly adherence chart ─── */}
             <AdherenceWidget />
 
             {/* ─── Os Meus Perfis ─── */}
             <FamilyProfilesSection accentColor="var(--green)" />
 
-            {/* Quick actions */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>O que precisas hoje?</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
+            {/* ─── Quick actions ─── */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Ferramentas rápidas</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 7 }}>
                 {QUICK_ACTIONS.map(({ label, sub, href, badge }) => (
                   <Link key={href} href={href}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 9, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
                     className="quick-action">
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
-                        {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>{badge}</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
+                        {badge && <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>{badge}</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
                     </div>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Meds snapshot */}
+            {/* ─── Meds snapshot ─── */}
             {meds.length > 0 && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Os meus medicamentos</div>
+                <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Medicamentos</div>
                   <button onClick={() => setTab('meds')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--green)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Ver todos →</button>
                 </div>
                 {meds.slice(0, 4).map((med, i) => (
-                  <div key={med.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 18px', borderBottom: i < Math.min(meds.length, 4) - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <div key={med.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', borderBottom: i < Math.min(meds.length, 4) - 1 ? '1px solid var(--border)' : 'none' }}>
                     <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', cursor: 'pointer', textDecorationLine: 'underline', textDecorationStyle: 'dotted', textDecorationColor: 'var(--border-2)' }}>{med.name}</span>} />
                     <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{[med.dose, med.frequency].filter(Boolean).join(' · ')}</div>
                   </div>
                 ))}
                 {meds.length >= 2 && (
-                  <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ padding: '11px 16px', borderTop: '1px solid var(--border)' }}>
                     <Link href="/interactions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: 'var(--green-light)', color: 'var(--green)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--green-mid)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                       Verificar interações entre {meds.length} medicamentos →
                     </Link>

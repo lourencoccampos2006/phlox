@@ -331,25 +331,51 @@ export default function Header() {
             </div>
           </Link>
 
-          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', flex: 1, marginLeft: 12, gap: 4 }}>
+          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', flex: 1, marginLeft: 12, gap: 2 }}>
             <button onClick={() => setMegaOpen(!megaOpen)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: megaOpen ? (isClinical ? '#1e293b' : 'var(--bg-2)') : 'transparent', border: '1px solid', borderColor: megaOpen ? (isClinical ? '#334155' : 'var(--border-2)') : 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: isClinical ? '#94a3b8' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', textTransform: 'uppercase', borderRadius: 7, flexShrink: 0 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', background: megaOpen ? (isClinical ? '#1e293b' : 'var(--bg-2)') : 'transparent', border: '1px solid', borderColor: megaOpen ? (isClinical ? '#334155' : 'var(--border-2)') : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: isClinical ? '#94a3b8' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', textTransform: 'uppercase', borderRadius: 7, flexShrink: 0 }}>
               Ferramentas
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: megaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: megaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
             </button>
 
+            {/* Mode-specific quick nav links */}
+            {user && mode === 'personal' && (<>
+              <Link href="/mymeds" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: isClinical ? '#94a3b8' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Medicação</Link>
+              <Link href="/vitals" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: isClinical ? '#94a3b8' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Vitais</Link>
+              <Link href="/relatorio" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: isClinical ? '#94a3b8' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Relatório</Link>
+            </>)}
+            {user && mode === 'caregiver' && (<>
+              <Link href="/perfis" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Família</Link>
+              <Link href="/mymeds" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Medicação</Link>
+              <Link href="/passport" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Passaporte</Link>
+            </>)}
+            {user && mode === 'clinical' && (<>
+              <Link href="/turno" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: '#94a3b8', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Turno</Link>
+              <Link href="/rounds" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: '#94a3b8', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Ronda</Link>
+              <Link href="/oracle" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: '#94a3b8', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Oracle</Link>
+            </>)}
+            {user && mode === 'student' && (<>
+              <Link href="/arena" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Arena</Link>
+              <Link href="/study" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Estudar</Link>
+              <Link href="/simulador" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Simulador</Link>
+            </>)}
+            {!user && (<>
+              <Link href="/interactions" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Interações</Link>
+              <Link href="/bula" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Bula</Link>
+            </>)}
+
             <Link href="/ai"
-              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 320, padding: '7px 12px', background: isClinical ? '#1e293b' : 'var(--bg-2)', border: `1.5px solid ${isClinical ? '#334155' : 'var(--border)'}`, borderRadius: 28, textDecoration: 'none', fontSize: 12.5, color: isClinical ? '#64748b' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 300, marginLeft: 4, padding: '7px 12px', background: isClinical ? '#1e293b' : 'var(--bg-2)', border: `1.5px solid ${isClinical ? '#334155' : 'var(--border)'}`, borderRadius: 28, textDecoration: 'none', fontSize: 12, color: isClinical ? '#64748b' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', transition: 'border-color 0.15s' }}
               className="search-bar-trigger">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isClinical ? '#475569' : 'var(--ink-5)'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isClinical ? '#475569' : 'var(--ink-5)'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
               <span style={{ flex: 1 }}>
                 {mode === 'clinical' ? 'Consulta clínica...' : mode === 'student' ? 'Pergunta ao tutor...' : mode === 'caregiver' ? 'Pergunta sobre a família...' : 'Faz uma pergunta...'}
               </span>
-              <kbd style={{ fontSize: 9, fontFamily: 'var(--font-mono)', background: isClinical ? '#0f172a' : 'white', border: `1px solid ${isClinical ? '#334155' : 'var(--border)'}`, padding: '2px 5px', borderRadius: 3, flexShrink: 0, color: isClinical ? '#475569' : 'var(--ink-5)' }}>⌘K</kbd>
+              <kbd style={{ fontSize: 9, fontFamily: 'var(--font-mono)', background: isClinical ? '#0f172a' : 'white', border: `1px solid ${isClinical ? '#334155' : 'var(--border)'}`, padding: '2px 5px', borderRadius: 3, flexShrink: 0, color: isClinical ? '#475569' : 'var(--ink-5)' }}>AI</kbd>
             </Link>
 
-            <Link href="/pricing" style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, color: isClinical ? '#64748b' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Preços</Link>
-            <Link href="/institucional" style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, color: isClinical ? '#64748b' : 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.02em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Institucional</Link>
+            {!user && <Link href="/pricing" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Preços</Link>}
+            {!user && <Link href="/institucional" style={{ padding: '7px 11px', fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textDecoration: 'none', letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0 }} className="nav-link">Institucional</Link>}
           </nav>
 
           <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
