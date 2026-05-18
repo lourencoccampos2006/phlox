@@ -5,55 +5,91 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Mode config ──────────────────────────────────────────────────────────────
 
-interface FamilyProfile { id: string; name: string; relation?: string }
+const MODE_HERO: Record<string, {
+  gradient: string; accent: string; greeting: string; sub: string; emoji: string
+}> = {
+  personal: {
+    gradient: 'linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%)',
+    accent: '#059669',
+    greeting: 'O que quer fazer hoje?',
+    sub: 'Saúde simples, ao seu ritmo.',
+    emoji: '🌱',
+  },
+  caregiver: {
+    gradient: 'linear-gradient(135deg, #92400e 0%, #b45309 60%, #d97706 100%)',
+    accent: '#d97706',
+    greeting: 'Como está a família?',
+    sub: 'Cuide de quem mais ama.',
+    emoji: '🏡',
+  },
+  clinical: {
+    gradient: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #2563eb 100%)',
+    accent: '#2563eb',
+    greeting: 'Pronto para o turno?',
+    sub: 'Tudo o que precisa, num ecrã.',
+    emoji: '🏥',
+  },
+  student: {
+    gradient: 'linear-gradient(135deg, #3b0764 0%, #6d28d9 60%, #7c3aed 100%)',
+    accent: '#7c3aed',
+    greeting: 'Hora de aprender!',
+    sub: 'Cada sessão conta.',
+    emoji: '📚',
+  },
+}
 
-// ─── Big action tiles per mode ─────────────────────────────────────────────────
+// ─── Tiles per mode ───────────────────────────────────────────────────────────
 
-const TILES: Record<string, { icon: string; label: string; desc: string; href: string; accent: string }[]> = {
+const TILES: Record<string, {
+  icon: string; label: string; desc: string; href: string; accent: string; primary?: boolean
+}[]> = {
   personal: [
-    { icon: '💊', label: 'Os meus medicamentos', desc: 'Veja a lista, adicione novos e configure os lembretes', href: '/mymeds',       accent: '#0d6e42' },
-    { icon: '🔍', label: 'Verificar segurança',  desc: 'Descubra se os medicamentos que toma são seguros juntos', href: '/interactions', accent: '#1d4ed8' },
-    { icon: '❤️', label: 'A minha saúde',        desc: 'Registe tensão arterial, pulso e outros dados do corpo', href: '/vitals',       accent: '#dc2626' },
-    { icon: '🤖', label: 'Tenho uma dúvida',     desc: 'Faça qualquer pergunta sobre saúde ou medicação à IA', href: '/ai',           accent: '#7c3aed' },
-    { icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência com a sua medicação completa', href: '/passport',     accent: '#d97706' },
-    { icon: '📄', label: 'Perceber uma bula',    desc: 'Cole o texto de uma bula — explicamos em linguagem simples', href: '/bula',        accent: '#0891b2' },
+    { icon: '💊', label: 'Os meus medicamentos',  desc: 'Ver lista, adicionar e configurar lembretes diários', href: '/mymeds',       accent: '#059669', primary: true },
+    { icon: '🔍', label: 'Verificar segurança',   desc: 'Os meus medicamentos são seguros juntos?',            href: '/interactions', accent: '#3b82f6' },
+    { icon: '❤️', label: 'A minha saúde',         desc: 'Registe tensão arterial, pulso e peso',               href: '/vitals',       accent: '#ef4444' },
+    { icon: '🤖', label: 'Tenho uma dúvida',      desc: 'Faça qualquer pergunta de saúde à inteligência artificial', href: '/ai',    accent: '#8b5cf6' },
+    { icon: '🆘', label: 'Passaporte de saúde',   desc: 'Cartão de emergência com QR code — para urgências',   href: '/passport',     accent: '#f59e0b' },
+    { icon: '📄', label: 'Perceber uma bula',     desc: 'Cole o texto de uma bula — explicamos em português simples', href: '/bula', accent: '#0891b2' },
   ],
   caregiver: [
-    { icon: '👨‍👩‍👧', label: 'A minha família',      desc: 'Veja e gira os perfis de todos os familiares', href: '/perfis',       accent: '#7c3aed' },
-    { icon: '💊',   label: 'Medicamentos',         desc: 'Gerir a medicação de cada familiar com lembretes', href: '/mymeds',       accent: '#0d6e42' },
-    { icon: '🔍',   label: 'Verificar segurança',  desc: 'Descubra se os medicamentos são seguros juntos', href: '/interactions', accent: '#1d4ed8' },
-    { icon: '🆘',   label: 'Passaporte de saúde',  desc: 'QR code para urgências com dados completos', href: '/passport',     accent: '#d97706' },
-    { icon: '❤️',   label: 'Sinais vitais',        desc: 'Registe tensão, pulso e outros dados do corpo', href: '/vitals',       accent: '#dc2626' },
-    { icon: '🤖',   label: 'Tenho uma dúvida',     desc: 'Faça qualquer pergunta de saúde à IA', href: '/ai',           accent: '#7c3aed' },
+    { icon: '👨‍👩‍👧', label: 'A minha família',       desc: 'Ver e gerir os perfis de todos os familiares',        href: '/perfis',       accent: '#7c3aed', primary: true },
+    { icon: '💊',   label: 'Medicamentos',          desc: 'Lista, lembretes e verificação de toda a família',    href: '/mymeds',       accent: '#059669' },
+    { icon: '🔍',   label: 'Verificar segurança',   desc: 'Os medicamentos são seguros juntos?',                  href: '/interactions', accent: '#3b82f6' },
+    { icon: '🆘',   label: 'Passaporte de saúde',   desc: 'QR code para urgências — dados completos',            href: '/passport',     accent: '#f59e0b' },
+    { icon: '❤️',   label: 'Sinais vitais',         desc: 'Registe tensão, pulso e outros dados do corpo',       href: '/vitals',       accent: '#ef4444' },
+    { icon: '🤖',   label: 'Tenho uma dúvida',      desc: 'Faça qualquer pergunta de saúde à IA',                href: '/ai',           accent: '#8b5cf6' },
   ],
   clinical: [
-    { icon: '🏥', label: 'Turno',         desc: 'Todos os doentes, doses e alertas do turno atual', href: '/turno',        accent: '#1d4ed8' },
-    { icon: '📋', label: 'Ronda',         desc: 'Revisão PCNE, intervenções pendentes e métricas', href: '/rounds',       accent: '#0f766e' },
-    { icon: '📝', label: 'MAR',           desc: 'Registo de administração de medicação', href: '/mar',          accent: '#0d6e42' },
-    { icon: '👥', label: 'Doentes',       desc: 'Fichas completas, medicação e alertas de cada doente', href: '/patients',     accent: '#7c3aed' },
-    { icon: '🤖', label: 'Oracle AI',     desc: 'Consulta farmacêutica estruturada com SOAP e PCNE', href: '/oracle',       accent: '#6d28d9' },
-    { icon: '🔍', label: 'Interações',    desc: 'Análise de interações com mecanismo e evidência', href: '/interactions', accent: '#0891b2' },
+    { icon: '🏥', label: 'Turno',          desc: 'Todos os doentes, doses e alertas do turno atual',  href: '/turno',        accent: '#2563eb', primary: true },
+    { icon: '📋', label: 'Ronda',          desc: 'Revisão, intervenções pendentes e métricas PCNE',   href: '/rounds',       accent: '#0f766e' },
+    { icon: '📝', label: 'MAR',            desc: 'Registo de administração de medicação',              href: '/mar',          accent: '#059669' },
+    { icon: '👥', label: 'Doentes',        desc: 'Fichas completas, medicação e alertas',              href: '/patients',     accent: '#7c3aed' },
+    { icon: '🤖', label: 'Oracle AI',      desc: 'Consulta farmacêutica com SOAP e PCNE',              href: '/oracle',       accent: '#8b5cf6' },
+    { icon: '🔍', label: 'Interações',     desc: 'Análise com mecanismo e grau de evidência',          href: '/interactions', accent: '#3b82f6' },
   ],
   student: [
-    { icon: '🏆', label: 'Arena',              desc: 'Competição em ligas Bronze → Diamante', href: '/arena',     accent: '#7c3aed' },
-    { icon: '🎮', label: 'Simulador clínico',  desc: 'Casos clínicos realistas com inteligência artificial', href: '/simulador', accent: '#1d4ed8' },
-    { icon: '🃏', label: 'Flashcards',         desc: 'Estudar com repetição espaçada — mais de 200 tópicos', href: '/study',     accent: '#0d6e42' },
-    { icon: '🤖', label: 'AI Tutor',           desc: 'Explicações passo a passo em português simples', href: '/tutor',     accent: '#0891b2' },
-    { icon: '🎯', label: 'Simulação OSCE',     desc: 'IA faz o papel de doente, feedback imediato', href: '/osce',      accent: '#d97706' },
-    { icon: '📈', label: 'O meu progresso',    desc: 'XP, streak e identificação dos pontos fracos', href: '/progresso', accent: '#dc2626' },
+    { icon: '🏆', label: 'Arena',               desc: 'Competição em ligas Bronze → Diamante',                href: '/arena',     accent: '#7c3aed', primary: true },
+    { icon: '🎮', label: 'Simulador clínico',   desc: 'Casos clínicos realistas com inteligência artificial', href: '/simulador', accent: '#2563eb' },
+    { icon: '🃏', label: 'Flashcards',          desc: 'Estudar com repetição espaçada — 200+ tópicos',        href: '/study',     accent: '#059669' },
+    { icon: '🤖', label: 'AI Tutor',            desc: 'Explicações passo a passo em português',               href: '/tutor',     accent: '#8b5cf6' },
+    { icon: '🎯', label: 'Simulação OSCE',      desc: 'A IA é o doente — feedback imediato',                  href: '/osce',      accent: '#f59e0b' },
+    { icon: '📈', label: 'O meu progresso',     desc: 'XP, streak e os seus pontos fracos',                   href: '/progresso', accent: '#ef4444' },
   ],
 }
 
 // ─── Today's meds widget ──────────────────────────────────────────────────────
 
-function toMin(t: string) { const [h,m] = t.split(':').map(Number); return h*60+m }
+function toMin(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
 
-function TodayMedsWidget() {
+function TodayMedsWidget({ accent }: { accent: string }) {
   const { user, supabase } = useAuth()
-  const [schedule, setSchedule] = useState<{ name: string; dose: string|null; slot: string; medId: string; taken: boolean }[]>([])
-  const [loading, setLoading] = useState(true)
+  const [rows, setRows] = useState<{ name: string; dose: string|null; slot: string; taken: boolean }[]>([])
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -61,179 +97,314 @@ function TodayMedsWidget() {
     Promise.all([
       supabase.from('personal_meds').select('id,name,dose,reminder_times').eq('user_id', user.id).not('reminder_times','is',null),
       supabase.from('med_logs').select('med_id,logged_at,status').eq('user_id', user.id).eq('date', today).eq('status','taken'),
-    ]).then(([{ data: medsData }, { data: logsData }]) => {
-      const logs = logsData || []
-      const rows = (medsData || []).flatMap((m: any) =>
-        (m.reminder_times as string[]).map(slot => {
+    ]).then(([{ data: meds }, { data: logs }]) => {
+      const taken = logs || []
+      const schedule = (meds || []).flatMap((m: any) =>
+        (m.reminder_times as string[]).map((slot: string) => {
           const slotMin = toMin(slot)
-          const taken = logs.some(l => {
+          const isTaken = taken.some(l => {
             const d = new Date(l.logged_at)
             return l.med_id === m.id && Math.abs(d.getHours()*60+d.getMinutes() - slotMin) <= 90
           })
-          return { name: m.name, dose: m.dose, slot, medId: m.id, taken }
+          return { name: m.name, dose: m.dose, slot, taken: isTaken }
         })
       ).sort((a, b) => toMin(a.slot) - toMin(b.slot))
-      setSchedule(rows)
-      setLoading(false)
+      setRows(schedule)
+      setReady(true)
     })
   }, [user, supabase])
 
-  if (loading || schedule.length === 0) return null
+  if (!ready || rows.length === 0) return null
 
   const nowMin = new Date().getHours()*60 + new Date().getMinutes()
-  const done = schedule.filter(r => r.taken).length
-  const next = schedule.find(r => !r.taken && toMin(r.slot) >= nowMin - 10)
-  const pct = Math.round(done / schedule.length * 100)
-  const allDone = done === schedule.length
+  const done = rows.filter(r => r.taken).length
+  const total = rows.length
+  const pct = Math.round(done / total * 100)
+  const next = rows.find(r => !r.taken && toMin(r.slot) >= nowMin - 15)
+  const allDone = done === total
 
   return (
-    <Link href="/mymeds" style={{ display: 'block', background: allDone ? '#f0fdf4' : 'white', border: `1px solid ${allDone ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 14, padding: '18px 20px', textDecoration: 'none', marginBottom: 24, transition: 'border-color 0.15s' }} className="stat-card">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 22 }}>💊</span>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Doses de hoje</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{done} de {schedule.length} tomadas</div>
+    <Link href="/mymeds" style={{ display: 'block', textDecoration: 'none', marginBottom: 16 }}>
+      <div style={{
+        background: allDone ? '#f0fdf4' : 'white',
+        border: `2px solid ${allDone ? '#86efac' : '#e5e7eb'}`,
+        borderRadius: 20,
+        padding: '20px 22px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 72, opacity: 0.05, pointerEvents: 'none', userSelect: 'none',
+        }}>💊</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: allDone ? '#dcfce7' : accent + '18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, flexShrink: 0,
+            }}>💊</div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>
+                Doses de hoje
+              </div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginTop: 1 }}>
+                {done} de {total} tomadas
+              </div>
+            </div>
           </div>
+          <div style={{
+            fontSize: 28, fontWeight: 900,
+            color: allDone ? '#16a34a' : accent,
+            letterSpacing: '-0.04em',
+            fontVariantNumeric: 'tabular-nums',
+          }}>{pct}%</div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: allDone ? 'var(--green)' : '#3b82f6' }}>{pct}%</div>
-      </div>
-      <div style={{ height: 8, background: 'var(--bg-3)', borderRadius: 4, marginBottom: 12, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: allDone ? 'var(--green)' : '#3b82f6', borderRadius: 4, transition: 'width 0.4s' }} />
-      </div>
-      {next ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-          <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
-            Próxima: {next.slot} — {next.name}{next.dose ? ` ${next.dose}` : ''}
+
+        <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
+          <div style={{
+            height: '100%',
+            width: `${pct}%`,
+            background: allDone ? '#22c55e' : accent,
+            borderRadius: 4,
+            transition: 'width 0.5s cubic-bezier(.4,0,.2,1)',
+          }} />
+        </div>
+
+        {next ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, flexShrink: 0 }} />
+            <span style={{ fontSize: 14, color: '#374151', fontWeight: 600 }}>
+              {next.slot} — {next.name}{next.dose ? ` ${next.dose}` : ''}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: accent, fontWeight: 700 }}>
+              Tomar →
+            </span>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--green)', fontWeight: 700 }}>Tomar →</div>
-        </div>
-      ) : allDone ? (
-        <div style={{ fontSize: 14, color: 'var(--green)', fontWeight: 700 }}>Todas as doses tomadas hoje ✓</div>
-      ) : (
-        <div style={{ fontSize: 14, color: 'var(--ink-4)' }}>Sem doses pendentes agora</div>
-      )}
+        ) : allDone ? (
+          <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 700 }}>
+            ✓ Todas as doses tomadas hoje
+          </div>
+        ) : (
+          <div style={{ fontSize: 14, color: '#9ca3af' }}>Sem doses pendentes agora</div>
+        )}
+      </div>
     </Link>
   )
 }
 
-// ─── Family profiles widget ───────────────────────────────────────────────────
-
-function FamilyWidget() {
-  const { user, supabase } = useAuth()
-  const [profiles, setProfiles] = useState<FamilyProfile[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!user) return
-    supabase.from('family_profiles').select('id,name,relation').eq('user_id', user.id).order('created_at', { ascending: true })
-      .then(({ data }) => { setProfiles(data || []); setLoading(false) })
-  }, [user, supabase])
-
-  if (loading || profiles.length === 0) return null
-
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>A minha família</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {profiles.map(p => (
-          <Link key={p.id} href={`/perfil/${p.id}`}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', transition: 'border-color 0.15s' }}
-            className="family-chip">
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9d5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#7c3aed', flexShrink: 0 }}>
-              {p.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</div>
-              {p.relation && <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{p.relation}</div>}
-            </div>
-          </Link>
-        ))}
-        <Link href="/perfis" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'var(--bg-2)', border: '1.5px dashed var(--border)', borderRadius: 10, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13 }}>
-          + Ver todos
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-// ─── Dashboard principal ──────────────────────────────────────────────────────
+// ─── Dashboard content ────────────────────────────────────────────────────────
 
 function DashboardContent() {
-  const { user, loading } = useAuth()
-  const mode = (user as any)?.experience_mode || 'personal'
-  const tiles = TILES[mode] || TILES.personal
+  const { user } = useAuth()
+
+  const mode   = ((user as any)?.experience_mode as string) || 'personal'
+  const hero   = MODE_HERO[mode] || MODE_HERO.personal
+  const tiles  = TILES[mode] || TILES.personal
   const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Bom dia' : hour < 19 ? 'Boa tarde' : 'Boa noite'
+  const timeGreeting = hour < 12 ? 'Bom dia' : hour < 19 ? 'Boa tarde' : 'Boa noite'
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="skeleton" style={{ width: 280, height: 20, borderRadius: 4 }} />
-    </div>
-  )
+  const primaryTile   = tiles[0]
+  const secondaryTiles = tiles.slice(1)
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', padding: '32px 0 64px' }}>
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px' }}>
+    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
 
-        {/* Greeting */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 4, lineHeight: 1.2 }}>
-            {greeting}, {firstName}!
-          </h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.5 }}>
-            O que quer fazer hoje?
-          </p>
+      {/* ── HERO ── */}
+      <div style={{
+        background: hero.gradient,
+        padding: '36px 24px 52px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', right: -10, bottom: -20,
+          fontSize: 160, opacity: 0.07, lineHeight: 1,
+          pointerEvents: 'none', userSelect: 'none',
+          transform: 'rotate(-8deg)',
+        }}>{hero.emoji}</div>
+
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            display: 'inline-block',
+            background: 'rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: 20,
+            padding: '4px 12px',
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.9)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            marginBottom: 14,
+          }}>{timeGreeting}</div>
+
+          <h1 style={{
+            fontSize: 34,
+            fontWeight: 900,
+            color: 'white',
+            margin: '0 0 6px',
+            letterSpacing: '-0.03em',
+            lineHeight: 1.1,
+          }}>{firstName}</h1>
+
+          <p style={{
+            fontSize: 17,
+            color: 'rgba(255,255,255,0.75)',
+            margin: 0,
+            fontWeight: 400,
+          }}>{hero.greeting}</p>
         </div>
+      </div>
 
-        {/* Today's meds widget — shown only for personal/caregiver with reminders */}
-        {(mode === 'personal' || mode === 'caregiver') && <TodayMedsWidget />}
+      {/* ── CONTENT (overlaps hero slightly) ── */}
+      <div style={{
+        maxWidth: 900,
+        margin: '-20px auto 0',
+        padding: '0 16px 40px',
+        position: 'relative',
+      }}>
 
-        {/* Family profiles — shown for caregiver */}
-        {mode === 'caregiver' && <FamilyWidget />}
+        {/* Today's meds widget */}
+        {(mode === 'personal' || mode === 'caregiver') && (
+          <TodayMedsWidget accent={hero.accent} />
+        )}
 
-        {/* Big action tiles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12, marginBottom: 32 }}>
-          {tiles.map(tile => (
-            <Link key={tile.href} href={tile.href}
-              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 22px', background: 'white', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.1s' }}
-              className="action-tile">
-              <div style={{ width: 52, height: 52, borderRadius: 12, background: tile.accent + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>
-                {tile.icon}
+        {/* ── PRIMARY TILE (full-width, large) ── */}
+        <Link href={primaryTile.href} style={{ display: 'block', textDecoration: 'none', marginBottom: 12 }}
+          className="tile-primary">
+          <div style={{
+            background: 'white',
+            borderRadius: 20,
+            padding: '24px 22px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+            borderLeft: `6px solid ${primaryTile.accent}`,
+            minHeight: 96,
+          }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: 16,
+              background: primaryTile.accent + '18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, flexShrink: 0,
+            }}>{primaryTile.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 19, fontWeight: 900, color: '#111', letterSpacing: '-0.02em', marginBottom: 4 }}>
+                {primaryTile.label}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, lineHeight: 1.3 }}>{tile.label}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.4 }}>{tile.desc}</div>
+              <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.4 }}>
+                {primaryTile.desc}
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={tile.accent} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: primaryTile.accent + '18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={primaryTile.accent} strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </Link>
+
+        {/* ── SECONDARY TILES (2-column grid) ── */}
+        <div className="tiles-grid">
+          {secondaryTiles.map(tile => (
+            <Link key={tile.href} href={tile.href} style={{ display: 'block', textDecoration: 'none' }}
+              className="tile-secondary">
+              <div style={{
+                background: 'white',
+                borderRadius: 18,
+                padding: '20px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                borderTop: `4px solid ${tile.accent}`,
+                height: '100%',
+                minHeight: 130,
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 13,
+                  background: tile.accent + '15',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 26,
+                }}>{tile.icon}</div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: '-0.02em', marginBottom: 4, lineHeight: 1.2 }}>
+                    {tile.label}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.4 }}>
+                    {tile.desc}
+                  </div>
+                </div>
+              </div>
             </Link>
           ))}
         </div>
 
-        {/* All tools link */}
-        <div style={{ textAlign: 'center', padding: '20px', background: 'white', border: '1px solid var(--border)', borderRadius: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Quer ver todas as ferramentas disponíveis?</div>
-          <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>O Phlox tem mais de 30 ferramentas de saúde e medicação.</div>
-          <Link href="/ferramentas" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
-            Ver todas as ferramentas →
-          </Link>
-        </div>
+        {/* ── ALL TOOLS CTA ── */}
+        <Link href="/ferramentas" style={{ display: 'block', textDecoration: 'none', marginTop: 16 }}>
+          <div style={{
+            background: '#111827',
+            borderRadius: 20,
+            padding: '22px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'white', marginBottom: 4, letterSpacing: '-0.01em' }}>
+                Ver todas as ferramentas
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
+                Mais de 30 ferramentas de saúde e medicação
+              </div>
+            </div>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: 'rgba(255,255,255,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </Link>
 
       </div>
 
       <style>{`
-        .action-tile:hover { border-color: var(--border-2) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.07) !important; transform: translateY(-1px) !important; }
-        .stat-card:hover { border-color: var(--green) !important; }
-        .family-chip:hover { border-color: #7c3aed !important; }
+        .tiles-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          margin-bottom: 0;
+        }
+        @media (max-width: 480px) {
+          .tiles-grid { grid-template-columns: 1fr; }
+        }
+        .tile-primary > div { transition: transform 0.15s, box-shadow 0.15s; }
+        .tile-primary:hover > div {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+        }
+        .tile-secondary > div { transition: transform 0.15s, box-shadow 0.15s; }
+        .tile-secondary:hover > div {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+        }
       `}</style>
     </div>
   )
 }
 
-// ─── Router wrapper ───────────────────────────────────────────────────────────
+// ─── Auth guard ───────────────────────────────────────────────────────────────
 
 function DashboardRouter() {
   const { user, loading } = useAuth()
@@ -246,8 +417,8 @@ function DashboardRouter() {
   }, [user, loading, router])
 
   if (loading || !user) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="skeleton" style={{ width: 280, height: 20, borderRadius: 4 }} />
+    <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e5e7eb', borderTopColor: '#059669', animation: 'spin 0.8s linear infinite' }} />
     </div>
   )
 
@@ -256,7 +427,7 @@ function DashboardRouter() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-2)' }} />}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f9fafb' }} />}>
       <DashboardRouter />
     </Suspense>
   )

@@ -101,13 +101,28 @@ img, video, iframe { max-width: 100%; height: auto; }
 .page-container { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 20px; }
 .page-body      { padding: 28px 20px 80px; }
 
-/* ── Sidebar offset — authenticated users only ────── */
+/* ── Main layout — no sidebar, bottom tab bar on mobile ── */
 .phlox-main {
-  transition: padding-left 0.2s ease;
+  min-height: 100vh;
 }
 @media (max-width: 768px) {
-  /* Override padding-left on mobile — sidebar is hidden, bottom bar is shown */
-  .phlox-main { padding-left: 0 !important; padding-bottom: 72px; }
+  .phlox-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+}
+
+/* ── Global interactive improvements ─────────────── */
+a, button { -webkit-tap-highlight-color: transparent; }
+button { font-family: inherit; }
+
+/* ── Card / tile base ─────────────────────────────── */
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
 /* ── Responsive grids — mobile-first ─────────────── */
