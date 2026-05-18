@@ -1,143 +1,54 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
-import HealthInsights from '@/components/HealthInsights'
-import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
-import { useSearchParams, useRouter } from 'next/navigation'
-import ReferralSection from '@/components/ReferralSection'
+import { useRouter } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Med { id: string; name: string; dose?: string; frequency?: string; created_at: string }
-interface Patient { id: string; name: string; age?: number; conditions?: string; meds_count?: number; updated_at?: string; last_updated?: string; alerts?: number }
-interface StudyStats { total_cards: number; streak: number; weak_topics: string[]; next_review: string }
-// ─── NOVO: tipo para perfis familiares no dashboard ───
-interface FamilyProfile { id: string; name: string; relation?: string; age?: number; meds_count?: number }
+interface FamilyProfile { id: string; name: string; relation?: string }
 
-// ─── NOVO: secção Os Meus Perfis (partilhada pelos 3 dashboards) ──────────────
+// ─── Big action tiles per mode ─────────────────────────────────────────────────
 
-function FamilyProfilesSection({ accentColor = 'var(--green)' }: { accentColor?: string }) {
-  const { user, supabase } = useAuth()
-  const [profiles, setProfiles] = useState<FamilyProfile[]>([])
-  const [medsCount, setMedsCount] = useState<Record<string, number>>({})
-  const [loading, setLoading] = useState(true)
-
-  const plan = (user?.plan || 'free') as string
-  // Limites de perfis familiares visíveis
-  const LIMIT_LABELS: Record<string, string> = { free: '2 perfis', student: '3 perfis', pro: 'ilimitado', clinic: 'ilimitado' }
-  const LIMIT_NUMS: Record<string, number> = { free: 2, student: 3, pro: Infinity, clinic: Infinity }
-  const limit = LIMIT_NUMS[plan] ?? 2
-  const atLimit = isFinite(limit) && profiles.length >= limit
-
-  useEffect(() => {
-    if (!user) return
-    supabase
-      .from('family_profiles')
-      .select('id, name, relation, age')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
-      .then(async ({ data }) => {
-        const ps = data || []
-        setProfiles(ps)
-        // Contar meds por perfil
-        if (ps.length > 0) {
-          const { data: meds } = await supabase
-            .from('family_profile_meds')
-            .select('profile_id')
-            .eq('user_id', user.id)
-          const counts: Record<string, number> = {}
-          ;(meds || []).forEach((m: { profile_id: string }) => {
-            counts[m.profile_id] = (counts[m.profile_id] || 0) + 1
-          })
-          setMedsCount(counts)
-        }
-        setLoading(false)
-      })
-  }, [user, supabase])
-
-  if (loading) return <div className="skeleton" style={{ height: 80, borderRadius: 10, marginBottom: 16 }} />
-
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          Os Meus Perfis
-        </div>
-        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>
-          {LIMIT_LABELS[plan]}
-        </span>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
-        {/* Card próprio */}
-        <Link href="/dashboard" style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px', background: 'white', border: `2px solid ${accentColor}`, borderRadius: 10, textDecoration: 'none', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Eu</div>
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Perfil pessoal</div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-            <Link href="/ai" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: accentColor, textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>AI →</Link>
-            <span style={{ color: 'var(--border)' }}>|</span>
-            <Link href="/interactions" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Interações</Link>
-          </div>
-        </Link>
-
-        {/* Cards familiares */}
-        {profiles.map(p => (
-          <Link key={p.id} href={`/perfil/${p.id}`}
-            style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 6, transition: 'border-color 0.15s' }}
-            className="family-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e9d5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#7c3aed', flexShrink: 0 }}>
-                {p.name.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                {p.relation && <div style={{ fontSize: 10, color: 'var(--ink-5)' }}>{p.relation}</div>}
-              </div>
-              {(medsCount[p.id] || 0) > 0 && (
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7c3aed', background: '#e9d5ff', border: '1px solid #d8b4fe', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>
-                  {medsCount[p.id]} med.
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-              <Link href={`/ai?profile=${p.id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: '#7c3aed', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>AI →</Link>
-              <span style={{ color: 'var(--border)' }}>|</span>
-              <Link href={`/interactions?profile=${p.id}`} onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Interações</Link>
-            </div>
-          </Link>
-        ))}
-
-        {/* Botão novo perfil (se não atingiu limite) */}
-        {!atLimit ? (
-          <Link href="/perfis"
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: 'var(--bg-2)', border: '1.5px dashed var(--border)', borderRadius: 10, textDecoration: 'none', gap: 4, minHeight: 80, transition: 'border-color 0.15s, background 0.15s' }}
-            className="add-profile-card">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Novo perfil</div>
-          </Link>
-        ) : (
-          <Link href="/pricing"
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 16px', background: '#fffbeb', border: '1.5px dashed #fde68a', borderRadius: 10, textDecoration: 'none', gap: 4, minHeight: 80 }}>
-            <div style={{ fontSize: 11, color: '#d97706', fontFamily: 'var(--font-mono)', fontWeight: 700, textAlign: 'center' }}>Limite atingido</div>
-            <div style={{ fontSize: 10, color: '#d97706', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>Upgrade →</div>
-          </Link>
-        )}
-      </div>
-    </div>
-  )
+const TILES: Record<string, { icon: string; label: string; desc: string; href: string; accent: string }[]> = {
+  personal: [
+    { icon: '💊', label: 'Os meus medicamentos', desc: 'Veja a lista, adicione novos e configure os lembretes', href: '/mymeds',       accent: '#0d6e42' },
+    { icon: '🔍', label: 'Verificar segurança',  desc: 'Descubra se os medicamentos que toma são seguros juntos', href: '/interactions', accent: '#1d4ed8' },
+    { icon: '❤️', label: 'A minha saúde',        desc: 'Registe tensão arterial, pulso e outros dados do corpo', href: '/vitals',       accent: '#dc2626' },
+    { icon: '🤖', label: 'Tenho uma dúvida',     desc: 'Faça qualquer pergunta sobre saúde ou medicação à IA', href: '/ai',           accent: '#7c3aed' },
+    { icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência com a sua medicação completa', href: '/passport',     accent: '#d97706' },
+    { icon: '📄', label: 'Perceber uma bula',    desc: 'Cole o texto de uma bula — explicamos em linguagem simples', href: '/bula',        accent: '#0891b2' },
+  ],
+  caregiver: [
+    { icon: '👨‍👩‍👧', label: 'A minha família',      desc: 'Veja e gira os perfis de todos os familiares', href: '/perfis',       accent: '#7c3aed' },
+    { icon: '💊',   label: 'Medicamentos',         desc: 'Gerir a medicação de cada familiar com lembretes', href: '/mymeds',       accent: '#0d6e42' },
+    { icon: '🔍',   label: 'Verificar segurança',  desc: 'Descubra se os medicamentos são seguros juntos', href: '/interactions', accent: '#1d4ed8' },
+    { icon: '🆘',   label: 'Passaporte de saúde',  desc: 'QR code para urgências com dados completos', href: '/passport',     accent: '#d97706' },
+    { icon: '❤️',   label: 'Sinais vitais',        desc: 'Registe tensão, pulso e outros dados do corpo', href: '/vitals',       accent: '#dc2626' },
+    { icon: '🤖',   label: 'Tenho uma dúvida',     desc: 'Faça qualquer pergunta de saúde à IA', href: '/ai',           accent: '#7c3aed' },
+  ],
+  clinical: [
+    { icon: '🏥', label: 'Turno',         desc: 'Todos os doentes, doses e alertas do turno atual', href: '/turno',        accent: '#1d4ed8' },
+    { icon: '📋', label: 'Ronda',         desc: 'Revisão PCNE, intervenções pendentes e métricas', href: '/rounds',       accent: '#0f766e' },
+    { icon: '📝', label: 'MAR',           desc: 'Registo de administração de medicação', href: '/mar',          accent: '#0d6e42' },
+    { icon: '👥', label: 'Doentes',       desc: 'Fichas completas, medicação e alertas de cada doente', href: '/patients',     accent: '#7c3aed' },
+    { icon: '🤖', label: 'Oracle AI',     desc: 'Consulta farmacêutica estruturada com SOAP e PCNE', href: '/oracle',       accent: '#6d28d9' },
+    { icon: '🔍', label: 'Interações',    desc: 'Análise de interações com mecanismo e evidência', href: '/interactions', accent: '#0891b2' },
+  ],
+  student: [
+    { icon: '🏆', label: 'Arena',              desc: 'Competição em ligas Bronze → Diamante', href: '/arena',     accent: '#7c3aed' },
+    { icon: '🎮', label: 'Simulador clínico',  desc: 'Casos clínicos realistas com inteligência artificial', href: '/simulador', accent: '#1d4ed8' },
+    { icon: '🃏', label: 'Flashcards',         desc: 'Estudar com repetição espaçada — mais de 200 tópicos', href: '/study',     accent: '#0d6e42' },
+    { icon: '🤖', label: 'AI Tutor',           desc: 'Explicações passo a passo em português simples', href: '/tutor',     accent: '#0891b2' },
+    { icon: '🎯', label: 'Simulação OSCE',     desc: 'IA faz o papel de doente, feedback imediato', href: '/osce',      accent: '#d97706' },
+    { icon: '📈', label: 'O meu progresso',    desc: 'XP, streak e identificação dos pontos fracos', href: '/progresso', accent: '#dc2626' },
+  ],
 }
 
-// ─── Today's Meds Widget ─────────────────────────────────────────────────────
+// ─── Today's meds widget ──────────────────────────────────────────────────────
+
+function toMin(t: string) { const [h,m] = t.split(':').map(Number); return h*60+m }
 
 function TodayMedsWidget() {
   const { user, supabase } = useAuth()
@@ -173,1261 +84,174 @@ function TodayMedsWidget() {
   const done = schedule.filter(r => r.taken).length
   const next = schedule.find(r => !r.taken && toMin(r.slot) >= nowMin - 10)
   const pct = Math.round(done / schedule.length * 100)
+  const allDone = done === schedule.length
 
   return (
-    <Link href="/mymeds" style={{ display:'block', background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px', textDecoration:'none', marginBottom:16, transition:'border-color 0.15s' }} className="stat-card">
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-        <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase' }}>Hoje</div>
-        <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color: done===schedule.length?'var(--green-2)':'var(--ink-4)', fontWeight:700 }}>
-          {done}/{schedule.length} {done===schedule.length && '✓'}
+    <Link href="/mymeds" style={{ display: 'block', background: allDone ? '#f0fdf4' : 'white', border: `1px solid ${allDone ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 14, padding: '18px 20px', textDecoration: 'none', marginBottom: 24, transition: 'border-color 0.15s' }} className="stat-card">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 22 }}>💊</span>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Doses de hoje</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{done} de {schedule.length} tomadas</div>
+          </div>
         </div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: allDone ? 'var(--green)' : '#3b82f6' }}>{pct}%</div>
       </div>
-      <div style={{ height:6, background:'var(--bg-3)', borderRadius:3, marginBottom:12, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:`${pct}%`, background: done===schedule.length?'var(--green)':'#3b82f6', borderRadius:3, transition:'width 0.4s' }} />
+      <div style={{ height: 8, background: 'var(--bg-3)', borderRadius: 4, marginBottom: 12, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: allDone ? 'var(--green)' : '#3b82f6', borderRadius: 4, transition: 'width 0.4s' }} />
       </div>
       {next ? (
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:'#3b82f6', flexShrink:0 }} />
-          <div style={{ fontSize:13, color:'var(--ink)', fontWeight:600 }}>
-            {next.slot} · {next.name}{next.dose ? ` ${next.dose}` : ''}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+          <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
+            Próxima: {next.slot} — {next.name}{next.dose ? ` ${next.dose}` : ''}
           </div>
-          <div style={{ marginLeft:'auto', fontSize:12, color:'var(--green)', fontWeight:700 }}>Tomar →</div>
+          <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--green)', fontWeight: 700 }}>Tomar →</div>
         </div>
-      ) : done===schedule.length ? (
-        <div style={{ fontSize:13, color:'var(--green-2)', fontWeight:600 }}>Todas as doses tomadas hoje ✓</div>
+      ) : allDone ? (
+        <div style={{ fontSize: 14, color: 'var(--green)', fontWeight: 700 }}>Todas as doses tomadas hoje ✓</div>
       ) : (
-        <div style={{ fontSize:13, color:'var(--ink-4)' }}>Sem doses pendentes agora</div>
+        <div style={{ fontSize: 14, color: 'var(--ink-4)' }}>Sem doses pendentes agora</div>
       )}
     </Link>
   )
 }
 
-function toMin(t: string) { const [h,m] = t.split(':').map(Number); return h*60+m }
+// ─── Family profiles widget ───────────────────────────────────────────────────
 
-// ─── Adherence Widget ─────────────────────────────────────────────────────────
-
-function AdherenceWidget() {
+function FamilyWidget() {
   const { user, supabase } = useAuth()
-  const [pct, setPct] = useState<number|null>(null)
-  const [streak, setStreak] = useState(0)
-  const [days, setDays] = useState<{ date: string; pct: number }[]>([])
-
-  useEffect(() => {
-    if (!user) return
-    const today = new Date()
-    const dates = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(today); d.setDate(d.getDate() - (6-i))
-      return d.toISOString().split('T')[0]
-    })
-    const since = dates[0]
-    Promise.all([
-      supabase.from('personal_meds').select('id,reminder_times').eq('user_id', user.id).not('reminder_times','is',null),
-      supabase.from('med_logs').select('med_id,date,status').eq('user_id', user.id).gte('date', since).eq('status','taken'),
-    ]).then(([{ data: medsData }, { data: logsData }]) => {
-      const meds = (medsData || []) as { id: string; reminder_times: string[] }[]
-      const logs = (logsData || []) as { med_id: string; date: string }[]
-      const slotsPerDay = meds.reduce((n, m) => n + (m.reminder_times?.length || 0), 0)
-      if (slotsPerDay === 0) return
-
-      const dayStats = dates.map(date => {
-        const taken = logs.filter(l => l.date === date).length
-        return { date, pct: Math.min(100, Math.round(taken / slotsPerDay * 100)) }
-      })
-      setDays(dayStats)
-
-      const totalExpected = slotsPerDay * 7
-      const totalTaken = logs.length
-      setPct(Math.min(100, Math.round(totalTaken / totalExpected * 100)))
-
-      // streak: consecutive days ending today with pct >= 80
-      let s = 0
-      for (let i = dayStats.length - 1; i >= 0; i--) {
-        if (dayStats[i].pct >= 80) s++; else break
-      }
-      setStreak(s)
-    })
-  }, [user, supabase])
-
-  if (pct === null) return null
-
-  const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : '#ef4444'
-  const dayLabels = ['S','T','Q','Q','S','S','D']
-  const todayIdx = new Date().getDay() // 0=Sun
-
-  return (
-    <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px', marginBottom:16 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-        <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em', textTransform:'uppercase' }}>Aderência — 7 dias</div>
-        {streak >= 2 && (
-          <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--green-2)', fontWeight:700, background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'2px 8px', borderRadius:20 }}>
-            🔥 {streak} dias seguidos
-          </div>
-        )}
-      </div>
-      <div style={{ display:'flex', alignItems:'flex-end', gap:4, height:40, marginBottom:10 }}>
-        {days.map((d, i) => {
-          const dayIdx = (todayIdx - (6-i) + 7) % 7
-          return (
-            <div key={d.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
-              <div style={{ width:'100%', height: Math.max(4, d.pct * 0.34), background: d.pct >= 80 ? 'var(--green)' : d.pct >= 50 ? '#f59e0b' : d.pct > 0 ? '#ef4444' : 'var(--bg-3)', borderRadius:'2px 2px 0 0', transition:'height 0.3s' }} />
-              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color: i===6?'var(--ink)':'var(--ink-5)', fontWeight: i===6?700:400 }}>
-                {['D','S','T','Q','Q','S','S'][dayIdx]}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-        <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color, fontWeight:400, lineHeight:1 }}>{pct}%</div>
-        <div style={{ fontSize:12, color:'var(--ink-4)' }}>
-          {pct >= 90 ? 'Excelente aderência' : pct >= 70 ? 'Boa aderência' : pct >= 50 ? 'Aderência moderada' : 'Atenção à aderência'}
-        </div>
-        <Link href="/mymeds" style={{ marginLeft:'auto', fontSize:11, color:'var(--green)', fontFamily:'var(--font-mono)', fontWeight:700, textDecoration:'none' }}>Ver →</Link>
-      </div>
-    </div>
-  )
-}
-
-// ─── Daily Brief Hero Card ───────────────────────────────────────────────────
-
-interface BriefInsight { icon: string; text: string; type: 'positive' | 'warning' | 'info' | 'tip' }
-interface BriefData {
-  greeting: string; status_line: string; health_score: number; health_score_label: string
-  insights: BriefInsight[]; today_focus: string; encouragement: string; first_name: string
-}
-
-const INSIGHT_STYLE: Record<string, { bg: string; border: string; color: string }> = {
-  positive: { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', color: '#6ee7b7' },
-  warning:  { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', color: '#fcd34d' },
-  info:     { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.3)', color: '#93c5fd' },
-  tip:      { bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)', color: '#c4b5fd' },
-}
-
-function BriefScoreArc({ score }: { score: number }) {
-  const r = 28, cx = 32, cy = 32
-  const circ = 2 * Math.PI * r
-  const dash = (score / 10) * circ
-  const color = score >= 8 ? '#10b981' : score >= 6 ? '#f59e0b' : '#ef4444'
-  return (
-    <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
-      <svg width={64} height={64} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={5} />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={5}
-          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 1s ease' }} />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{score}</div>
-        <div style={{ fontSize: 6, color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>score</div>
-      </div>
-    </div>
-  )
-}
-
-function DailyBrief() {
-  const { user, supabase } = useAuth()
-  const [brief, setBrief] = useState<BriefData | null>(null)
+  const [profiles, setProfiles] = useState<FamilyProfile[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
-    const today = new Date().toISOString().split('T')[0]
-    const cacheKey = `phlox-brief-${user.id}-${today}`
-    try {
-      const cached = localStorage.getItem(cacheKey)
-      if (cached) { setBrief(JSON.parse(cached)); setLoading(false); return }
-    } catch {}
-    const generate = async () => {
-      try {
-        const { data: sd } = await supabase.auth.getSession()
-        const token = sd.session?.access_token
-        if (!token) { setLoading(false); return }
-        const res = await fetch('/api/daily-brief', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) { setLoading(false); return }
-        const data: BriefData = await res.json()
-        setBrief(data)
-        try { localStorage.setItem(cacheKey, JSON.stringify(data)) } catch {}
-      } catch { /* silent */ }
-      finally { setLoading(false) }
-    }
-    generate()
+    supabase.from('family_profiles').select('id,name,relation').eq('user_id', user.id).order('created_at', { ascending: true })
+      .then(({ data }) => { setProfiles(data || []); setLoading(false) })
   }, [user, supabase])
 
-  if (loading) return (
-    <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: 16, padding: '22px 24px', marginBottom: 20 }}>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ height: 18, width: '55%', borderRadius: 4, background: 'rgba(255,255,255,0.08)', marginBottom: 8 }} />
-          <div style={{ height: 13, width: '75%', borderRadius: 4, background: 'rgba(255,255,255,0.06)' }} />
-        </div>
-      </div>
-      <div style={{ height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.06)', marginBottom: 6 }} />
-      <div style={{ height: 38, borderRadius: 8, background: 'rgba(255,255,255,0.04)' }} />
-    </div>
-  )
-
-  if (!brief) return null
+  if (loading || profiles.length === 0) return null
 
   return (
-    <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1a2744 60%, #0f172a 100%)', borderRadius: 16, padding: '22px 24px', marginBottom: 20, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: '50%', background: 'rgba(16,185,129,0.07)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -30, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(59,130,246,0.05)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 8, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Phlox AI</div>
-
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 16, position: 'relative' }}>
-        <BriefScoreArc score={brief.health_score} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 4, letterSpacing: '-0.02em' }}>{brief.greeting}</div>
-          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{brief.status_line}</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '3px 10px' }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: brief.health_score >= 7 ? '#10b981' : brief.health_score >= 5 ? '#f59e0b' : '#ef4444', flexShrink: 0 }} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{brief.health_score_label}</span>
-          </div>
-        </div>
-      </div>
-
-      {brief.insights?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12, position: 'relative' }}>
-          {brief.insights.map((ins, i) => {
-            const s = INSIGHT_STYLE[ins.type] || INSIGHT_STYLE.info
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '9px 12px' }}>
-                <span style={{ fontSize: 14, flexShrink: 0 }}>{ins.icon}</span>
-                <span style={{ fontSize: 12, color: s.color, lineHeight: 1.55 }}>{ins.text}</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)', borderLeft: '3px solid #10b981', borderRadius: 8, padding: '10px 14px', position: 'relative' }}>
-        <div style={{ fontSize: 8, fontFamily: 'var(--font-mono)', color: '#6ee7b7', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 3 }}>Foco de hoje</div>
-        <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', lineHeight: 1.55 }}>{brief.today_focus}</div>
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>A minha família</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {profiles.map(p => (
+          <Link key={p.id} href={`/perfil/${p.id}`}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', transition: 'border-color 0.15s' }}
+            className="family-chip">
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e9d5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#7c3aed', flexShrink: 0 }}>
+              {p.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</div>
+              {p.relation && <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{p.relation}</div>}
+            </div>
+          </Link>
+        ))}
+        <Link href="/perfis" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'var(--bg-2)', border: '1.5px dashed var(--border)', borderRadius: 10, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13 }}>
+          + Ver todos
+        </Link>
       </div>
     </div>
   )
 }
 
-// ─── Personal Dashboard ───────────────────────────────────────────────────────
+// ─── Dashboard principal ──────────────────────────────────────────────────────
 
-function PersonalDashboard() {
-  const { user, supabase, signOut } = useAuth()
-  const [tab, setTab] = useState<'home' | 'meds' | 'diary' | 'account'>('home')
-  const [meds, setMeds] = useState<Med[]>([])
-  const [loading, setLoading] = useState(true)
-  const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '' })
-  const [adding, setAdding] = useState(false)
-
-  const plan = (user?.plan || 'free') as string
-  const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
-
-  const loadMeds = useCallback(async () => {
-    if (!user) return
-    const { data } = await supabase.from('personal_meds').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    setMeds(data || [])
-    setLoading(false)
-  }, [user, supabase])
-
-  useEffect(() => { loadMeds() }, [loadMeds])
-
-  const addMed = async () => {
-    if (!newMed.name.trim() || !user) return
-    setAdding(true)
-    const { data } = await supabase.from('personal_meds').insert({ user_id: user.id, name: newMed.name.trim(), dose: newMed.dose || null, frequency: newMed.frequency || null }).select().single()
-    if (data) setMeds(p => [data, ...p])
-    setNewMed({ name: '', dose: '', frequency: '' })
-    setAdding(false)
-  }
-
-  const removeMed = async (id: string) => {
-    await supabase.from('personal_meds').delete().eq('id', id)
-    setMeds(p => p.filter(m => m.id !== id))
-  }
-
-  const QUICK_ACTIONS = [
-    { label: 'Verificar interações', sub: meds.length > 0 ? `${meds.length} medicamentos no perfil` : 'Escreve os nomes das caixas', href: '/interactions', badge: 'Grátis' },
-    { label: 'Horário de Medicação', sub: 'AI gera o melhor horário para os teus meds', href: '/schedule', badge: 'Novo' },
-    { label: 'Fármaco-Alimento', sub: 'O que não combinar com a tua medicação', href: '/food-drug', badge: 'Novo' },
-    { label: 'Relatório Semanal', sub: 'Resumo IA da tua semana de saúde', href: '/relatorio', badge: 'Novo' },
-    { label: 'Tradutor de Bula', sub: 'Cola o texto — linguagem simples', href: '/bula', badge: 'Grátis' },
-    { label: 'Perceber Análises', sub: 'PDF ou cola os valores', href: '/labs', badge: undefined },
-  ]
-
-  const tabStyle = (t: string) => ({
-    padding: '10px 16px', background: 'none', border: 'none',
-    borderBottom: `2px solid ${tab === t ? 'var(--green)' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: tab === t ? 'var(--green)' : 'var(--ink-4)',
-    fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-    textTransform: 'uppercase' as const, marginBottom: -1,
-    transition: 'color 0.15s, border-color 0.15s', whiteSpace: 'nowrap' as const,
-  })
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
-
-      {/* Personal header */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
-                Olá, {firstName}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 3 }}>
-                {meds.length > 0 ? `${meds.length} medicamento${meds.length > 1 ? 's' : ''} no teu perfil` : 'Começa por adicionar os teus medicamentos'}
-              </div>
-            </div>
-            {plan === 'free' && (
-              <Link href="/pricing" style={{ fontSize: 11, color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, border: '1px solid var(--green)', padding: '5px 10px', borderRadius: 5, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
-                Upgrade
-              </Link>
-            )}
-          </div>
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            {[['home', 'Início'], ['meds', 'Medicação'], ['diary', 'Diário'], ['account', 'Conta']].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="page-container page-body">
-
-        {/* HOME TAB */}
-        {tab === 'home' && (
-          <div>
-            {/* ─── AI Daily Brief Hero ─── */}
-            <DailyBrief />
-
-            {/* ─── Stats row ─── */}
-            {!loading && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                {[
-                  { value: String(meds.length), label: meds.length === 1 ? 'Medicamento' : 'Medicamentos', color: 'var(--green)', href: undefined as string | undefined, action: () => setTab('meds') },
-                  { value: plan === 'free' ? 'Free' : plan.charAt(0).toUpperCase() + plan.slice(1), label: 'Plano actual', color: plan === 'free' ? 'var(--ink-4)' : plan === 'student' ? '#7c3aed' : '#1d4ed8', href: plan === 'free' ? '/pricing' : undefined, action: undefined as (() => void) | undefined },
-                  { value: meds.length >= 2 ? '!' : '✓', label: meds.length >= 2 ? 'Ver interações' : 'Sem alertas', color: meds.length >= 2 ? '#d97706' : 'var(--green)', href: '/interactions', action: undefined as (() => void) | undefined },
-                ].map(({ value, label, color, href, action }) => {
-                  const content = (
-                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', cursor: href || action ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
-                      onClick={action}
-                      className={href || action ? 'stat-card' : ''}>
-                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
-                      <div style={{ fontSize: 9, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 5 }}>{label}</div>
-                    </div>
-                  )
-                  return href
-                    ? <Link key={label} href={href} style={{ textDecoration: 'none' }}>{content}</Link>
-                    : <div key={label}>{content}</div>
-                })}
-              </div>
-            )}
-
-            {/* ─── Today's dose progress + next due ─── */}
-            <TodayMedsWidget />
-
-            {/* ─── Weekly adherence chart ─── */}
-            <AdherenceWidget />
-
-            {/* ─── Os Meus Perfis ─── */}
-            <FamilyProfilesSection accentColor="var(--green)" />
-
-            {/* ─── Quick actions ─── */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Ferramentas rápidas</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 7 }}>
-                {QUICK_ACTIONS.map(({ label, sub, href, badge }) => (
-                  <Link key={href} href={href}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 9, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-                    className="quick-action">
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
-                        {badge && <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>{badge}</span>}
-                      </div>
-                      <div style={{ fontSize: 10.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
-                    </div>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* ─── Meds snapshot ─── */}
-            {meds.length > 0 && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Medicamentos</div>
-                  <button onClick={() => setTab('meds')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--green)', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Ver todos →</button>
-                </div>
-                {meds.slice(0, 4).map((med, i) => (
-                  <div key={med.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', borderBottom: i < Math.min(meds.length, 4) - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em', cursor: 'pointer', textDecorationLine: 'underline', textDecorationStyle: 'dotted', textDecorationColor: 'var(--border-2)' }}>{med.name}</span>} />
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{[med.dose, med.frequency].filter(Boolean).join(' · ')}</div>
-                  </div>
-                ))}
-                {meds.length >= 2 && (
-                  <div style={{ padding: '11px 16px', borderTop: '1px solid var(--border)' }}>
-                    <Link href="/interactions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', background: 'var(--green-light)', color: 'var(--green)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--green-mid)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                      Verificar interações entre {meds.length} medicamentos →
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Análise integrada de saúde */}
-            {meds.length > 0 && plan !== 'free' && (
-              <div style={{ marginBottom: 16 }}>
-                <HealthInsights trigger="manual" compact />
-              </div>
-            )}
-
-            {/* Upgrade prompt for free */}
-            {plan === 'free' && (
-              <div style={{ background: 'var(--ink)', borderRadius: 10, padding: '20px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4, letterSpacing: '-0.01em' }}>Diário de sintomas, preparação de consulta, alertas</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Acompanha a tua medicação ao longo do tempo com análise farmacológica.</div>
-                </div>
-                <Link href="/pricing" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '9px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '0.02em', textTransform: 'uppercase', flexShrink: 0 }}>
-                  Ver Student -- 3,99€/mês
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* MEDS TAB */}
-        {tab === 'meds' && (
-          <div style={{ maxWidth: 640 }}>
-            <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>Os meus medicamentos</h2>
-            </div>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', marginBottom: 12 }}>
-              <div className="add-med-form">
-                <input value={newMed.name} onChange={e => setNewMed(p => ({ ...p, name: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addMed()}
-                  placeholder="Nome do medicamento *" style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                <input value={newMed.dose} onChange={e => setNewMed(p => ({ ...p, dose: e.target.value }))}
-                  placeholder="Dose (ex: 10mg)" style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                <input value={newMed.frequency} onChange={e => setNewMed(p => ({ ...p, frequency: e.target.value }))}
-                  placeholder="Frequência" style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                <button onClick={addMed} disabled={!newMed.name.trim() || adding}
-                  style={{ background: newMed.name.trim() && !adding ? 'var(--ink)' : 'var(--bg-3)', color: newMed.name.trim() && !adding ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, padding: '10px 16px', fontSize: 12, fontWeight: 700, cursor: newMed.name.trim() && !adding ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  {adding ? '...' : 'Adicionar'}
-                </button>
-              </div>
-            </div>
-            {loading ? <div className="skeleton" style={{ height: 200, borderRadius: 10 }} /> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {meds.map(med => (
-                  <div key={med.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '13px 16px', gap: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{med.name}</div>
-                      {(med.dose || med.frequency) && <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{[med.dose, med.frequency].filter(Boolean).join(' · ')}</div>}
-                    </div>
-                    <button onClick={() => removeMed(med.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 18, padding: '2px 6px' }} className="remove-btn">×</button>
-                  </div>
-                ))}
-                {meds.length === 0 && <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '40px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>Nenhum medicamento adicionado ainda.</div>}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* DIARY TAB */}
-        {tab === 'diary' && (
-          <div style={{ maxWidth: 640 }}>
-            {plan === 'free' ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, marginBottom: 14, letterSpacing: '-0.01em' }}>Diário de sintomas</div>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 360, margin: '0 auto 24px' }}>Regista como te sentes dia a dia. Ao fim de 2 semanas, análise farmacológica completa -- o que está a funcionar, o que pode ser efeito adverso, o que levar à consulta.</p>
-                <Link href="/pricing" style={{ display: 'inline-flex', background: 'var(--ink)', color: 'white', textDecoration: 'none', padding: '11px 22px', borderRadius: 7, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Student -- 3,99€/mês
-                </Link>
-              </div>
-            ) : (
-              <Link href="/diary" style={{ display: 'block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '20px 24px', borderRadius: 10, fontSize: 15, fontWeight: 700 }}>
-                Abrir diário de sintomas →
-              </Link>
-            )}
-          </div>
-        )}
-
-        {/* ACCOUNT TAB */}
-        {tab === 'account' && (
-          <div style={{ maxWidth: 520 }}>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 20 }}>Conta</h2>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-              {[{ l: 'Nome', v: user?.name || '--' }, { l: 'Email', v: user?.email || '' }, { l: 'Plano', v: user?.plan || 'Gratuito' }].map(({ l, v }, i, arr) => (
-                <div key={l} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ padding: '12px 14px', background: 'var(--bg-2)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>{l}</div>
-                  <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--ink-2)' }}>{v}</div>
-                </div>
-              ))}
-            </div>
-            <ReferralSection />
-            <button onClick={signOut} style={{ width: '100%', marginTop: 12, padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }} className="signout-btn">
-              Terminar sessão
-            </button>
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        .quick-action:hover { border-color: var(--green) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
-        .stat-card:hover { border-color: var(--border-2) !important; }
-        .remove-btn:hover { color: var(--red) !important; }
-        .signout-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
-        .family-card:hover { border-color: #7c3aed !important; }
-        .add-profile-card:hover { border-color: var(--green) !important; background: var(--green-light) !important; }
-      `}</style>
-    </div>
-  )
-}
-
-// ─── Student Dashboard ────────────────────────────────────────────────────────
-
-function StudentDashboard() {
-  const { user, supabase, signOut } = useAuth()
-  const [tab, setTab] = useState<'study' | 'ai' | 'tools' | 'account'>('study')
-  const [stats, setStats] = useState<StudyStats>({ total_cards: 0, streak: 0, weak_topics: [], next_review: '' })
-
-  const [arenaXp, setArenaXp] = useState(0)
-  const [arenaCorrect, setArenaCorrect] = useState(0)
-  const [arenaTotal, setArenaTotal] = useState(0)
-
-  // ─── Carregar stats reais ───
-  useEffect(() => {
-    if (!user) return
-    const loadStats = async () => {
-      const [{ data: sessions }, { data: arenaData }] = await Promise.all([
-        supabase.from('study_sessions').select('date, type').eq('user_id', user.id)
-          .order('date', { ascending: false }).limit(200),
-        supabase.from('arena_attempts').select('score').eq('user_id', user.id),
-      ])
-      if (sessions) {
-        const dates = [...new Set(sessions.map((s: any) => s.date?.split('T')[0]))].sort().reverse() as string[]
-        let streak = 0
-        for (let i = 0; i < dates.length; i++) {
-          const d = new Date(); d.setDate(d.getDate() - i)
-          if (dates[i] === d.toISOString().split('T')[0]) streak++
-          else break
-        }
-        setStats(prev => ({ ...prev, streak, total_cards: sessions.filter((s: any) => s.type === 'flashcard').length }))
-      }
-      if (arenaData) {
-        setArenaXp(arenaData.reduce((sum: number, a: any) => sum + (a.score || 0), 0))
-        setArenaCorrect(arenaData.filter((a: any) => (a.score || 0) > 0).length)
-        setArenaTotal(arenaData.length)
-      }
-    }
-    loadStats()
-  }, [user, supabase])
-  const plan = (user?.plan || 'free') as string
-  const firstName = user?.name?.split(' ')[0] || 'Estudante'
-  const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
-
-  // ─── Classes com progresso demo enquanto não há dados reais ───
-  const CLASSES_COLORS: Record<string, string> = {
-    'Cardiovascular': '#ef4444', 'Psiquiatria': '#8b5cf6',
-    'Endocrinologia': '#f59e0b', 'Anti-infecciosos': '#10b981',
-    'Respiratório': '#3b82f6', 'Gastrointestinal': '#f97316',
-    'SNC e Analgesia': '#6366f1', 'Reumatologia': '#ec4899',
-    'Antibióticos': '#10b981', 'Analgésicos': '#f59e0b',
-  }
-  const CLASSES = stats.weak_topics?.length
-    ? (stats.weak_topics || []).map((t: any) => ({ name: t.topic, progress: t.score, color: CLASSES_COLORS[t.topic] || '#7c3aed' }))
-    : [
-      { name: 'Cardiovascular', progress: 0, color: '#ef4444' },
-      { name: 'Anti-infecciosos', progress: 0, color: '#10b981' },
-      { name: 'SNC e Analgesia', progress: 0, color: '#6366f1' },
-    ]
-
-  const STUDY_TOOLS = [
-    { href: '/study', label: 'Flashcards e Quizzes', sub: '24 classes farmacológicas', plan: null },
-    { href: '/exam', label: 'Modo Exame', sub: 'Timer + análise de erros', plan: 'student' },
-    { href: '/cases', label: 'Casos Clínicos', sub: 'Raciocínio clínico guiado', plan: 'student' },
-    { href: '/compare', label: 'Comparar Fármacos', sub: 'A vs B linha a linha', plan: 'student' },
-    { href: '/disease', label: 'Fármacos por Diagnóstico', sub: '1ª e 2ª linha + exame', plan: 'student' },
-  ]
-
-  const tabStyle = (t: string) => ({
-    padding: '10px 16px', background: 'none', border: 'none',
-    borderBottom: `2px solid ${tab === t ? '#7c3aed' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: tab === t ? '#7c3aed' : 'var(--ink-4)',
-    fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-    textTransform: 'uppercase' as const, marginBottom: -1,
-    whiteSpace: 'nowrap' as const,
-  })
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
-
-      {/* Student header */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
-                Modo Estudo -- {firstName}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 3 }}>
-                {isStudent ? 'Continua de onde paraste.' : 'Activa o plano Student para acesso completo.'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', fontStyle: 'italic' }}>{stats.streak || 0}</div>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>dias streak</div>
-              </div>
-              <div style={{ width: 1, height: 32, background: 'var(--border)' }} />
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', fontStyle: 'italic' }}>{stats.total_cards || 0}</div>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>flashcards</div>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            {[['study', 'Estudo'], ['ai', 'Phlox AI'], ['tools', 'Ferramentas'], ['account', 'Conta']].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="page-container page-body">
-
-        {/* STUDY TAB */}
-        {tab === 'study' && (
-          <div>
-            {/* ─── NOVO: Os Meus Perfis ─── */}
-            <FamilyProfilesSection accentColor="#7c3aed" />
-
-            {/* Progress by class */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px', marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Progresso por classe</div>
-                <Link href="/study" style={{ fontSize: 11, color: '#7c3aed', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>Estudar →</Link>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-                {CLASSES.map(cls => (
-                  <div key={cls.name}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '-0.01em' }}>{cls.name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{cls.progress}%</span>
-                    </div>
-                    <div style={{ height: 4, background: 'var(--bg-3)', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${cls.progress}%`, background: cls.color, borderRadius: 2, transition: 'width 0.8s ease' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Study tools */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Ferramentas de estudo</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {STUDY_TOOLS.map(({ href, label, sub, plan: toolPlan }) => {
-                  const locked = toolPlan === 'student' && !isStudent
-                  return (
-                    <Link key={href} href={locked ? '/pricing' : href}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', gap: 12 }}
-                      className="study-tool">
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: locked ? 'var(--ink-4)' : 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{sub}</div>
-                      </div>
-                      {locked
-                        ? <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7c3aed', border: '1px solid #e9d5ff', background: '#faf5ff', padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>Student</span>
-                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                      }
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-
-            {!isStudent && (
-              <div style={{ background: '#7c3aed', borderRadius: 10, padding: '20px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Modo Exame, Casos Clínicos, Comparador, Progressão</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Tudo o que precisas para passar nos exames de farmacologia.</div>
-                </div>
-                <Link href="/pricing" style={{ background: 'white', color: '#7c3aed', textDecoration: 'none', padding: '9px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
-                  3,99€/mês →
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* AI TUTOR TAB */}
-        {tab === 'ai' && (
-          <div style={{ maxWidth: 680 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ background: '#7c3aed', padding: '18px 22px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Phlox AI · Tutor Farmacológico</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'white', fontStyle: 'italic', fontWeight: 400 }}>
-                  Não te dou respostas. Construo o raciocínio contigo.
-                </div>
-              </div>
-              <div style={{ padding: '20px 22px' }}>
-                <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 20 }}>
-                  O tutor socrático de farmacologia. Faz a tua pergunta -- desde "porque é que os beta-bloqueadores são usados na IC se parecem contraintuitivos" até "qual a diferença clínica entre IECA e ARA-II" -- e o AI guia-te até perceberes, não só memorizares.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                  {[
-                    'Porque é que o ramipril é preferido ao enalapril na nefropatia diabética?',
-                    'Não percebo porque é que os diuréticos poupadores de potássio são usados com outros diuréticos.',
-                    'Explica-me o mecanismo da resistência à insulina como se eu fosse idiota.',
-                  ].map(q => (
-                    <Link key={q} href={`/ai?q=${encodeURIComponent(q)}`}
-                      style={{ padding: '11px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--ink-2)', textDecoration: 'none', lineHeight: 1.5 }}
-                      className="question-pill">
-                      &ldquo;{q}&rdquo;
-                    </Link>
-                  ))}
-                </div>
-                <Link href="/ai" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px', background: '#7c3aed', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Abrir Phlox AI →
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TOOLS TAB */}
-        {tab === 'tools' && (
-          <div>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Todas as ferramentas</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
-              {[
-                { href: '/interactions', label: 'Verificar Interações', plan: null },
-                { href: '/labs', label: 'Análises Clínicas', plan: null },
-                { href: '/drugs', label: 'Base de Dados FDA', plan: null },
-                { href: '/compare', label: 'Comparar Fármacos', plan: 'student' },
-                { href: '/disease', label: 'Fármacos por Diagnóstico', plan: 'student' },
-                { href: '/monograph', label: 'Monografia Clínica', plan: null },
-                { href: '/doses', label: 'Posologia', plan: null },
-                { href: '/calculators', label: 'Calculadoras', plan: null },
-                { href: '/safety', label: 'Segurança', plan: null },
-              ].map(({ href, label, plan: toolPlan }) => {
-                const locked = toolPlan === 'student' && !isStudent
-                return (
-                  <Link key={href} href={locked ? '/pricing' : href}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', gap: 10 }}
-                    className="study-tool">
-                    <span style={{ fontSize: 13, fontWeight: 600, color: locked ? 'var(--ink-4)' : 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
-                    {locked
-                      ? <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#7c3aed', border: '1px solid #e9d5ff', background: '#faf5ff', padding: '2px 6px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>STU</span>
-                      : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    }
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ACCOUNT TAB */}
-        {tab === 'account' && (
-          <div style={{ maxWidth: 480 }}>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 20 }}>Conta</h2>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-              {[{ l: 'Nome', v: user?.name || '--' }, { l: 'Email', v: user?.email || '' }, { l: 'Plano', v: user?.plan || 'Gratuito' }].map(({ l, v }, i, arr) => (
-                <div key={l} style={{ display: 'grid', gridTemplateColumns: '90px 1fr', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ padding: '12px 14px', background: 'var(--bg-2)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>{l}</div>
-                  <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--ink-2)' }}>{v}</div>
-                </div>
-              ))}
-            </div>
-            <button onClick={signOut} style={{ width: '100%', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }} className="signout-btn">
-              Terminar sessão
-            </button>
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        .study-tool:hover { border-color: #7c3aed !important; background: #faf5ff !important; }
-        .question-pill:hover { border-color: #7c3aed !important; background: #faf5ff !important; }
-        .signout-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
-      `}</style>
-    </div>
-  )
-}
-
-// ─── Pro Dashboard ────────────────────────────────────────────────────────────
-
-function ProDashboard() {
-  const { user, supabase, signOut } = useAuth()
-  const [tab, setTab] = useState<'patients' | 'tools' | 'ai' | 'account'>('patients')
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [loading, setLoading] = useState(true)
-  const [newPatient, setNewPatient] = useState({ name: '', age: '', conditions: '' })
-  const [adding, setAdding] = useState(false)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const plan = (user?.plan || 'free') as string
-  const isPro = plan === 'pro' || plan === 'clinic'
-  const firstName = user?.name?.split(' ')[0] || 'Doutor'
-
-  const loadPatients = useCallback(async () => {
-    if (!user) return
-    const { data } = await supabase.from('patients').select('*').eq('user_id', user.id).order('updated_at', { ascending: false })
-    setPatients(data || [])
-    setLoading(false)
-  }, [user, supabase])
-
-  useEffect(() => { loadPatients() }, [loadPatients])
-
-  const addPatient = async () => {
-    if (!newPatient.name.trim() || !user) return
-    setAdding(true)
-    const { data, error } = await supabase.from('patients').insert({
-      user_id: user.id,
-      name: newPatient.name.trim(),
-      age: newPatient.age ? parseInt(newPatient.age) : null,
-      conditions: newPatient.conditions.trim() || null,
-    }).select().single()
-    if (error) console.error('addPatient error:', error.message)
-    if (data) setPatients(p => [data, ...p])
-    setNewPatient({ name: '', age: '', conditions: '' })
-    setShowAddForm(false)
-    setAdding(false)
-  }
-
-  const PRO_TOOLS = [
-    { href: '/ai', label: 'Phlox AI Co-Piloto', sub: 'Com contexto clínico do doente', key: 'ai' },
-    { href: '/strategy', label: 'Estratégias Terapêuticas', sub: 'Evidência A/B/C comparada', key: 'strategy' },
-    { href: '/protocol', label: 'Protocolo Terapêutico', sub: 'ESC · ADA · NICE · DGS', key: 'protocol' },
-    { href: '/med-review', label: 'Revisão de Medicação', sub: 'Análise clínica + PDF', key: 'review' },
-    { href: '/nursing', label: 'Farmacotecnia IV·SC·IM', sub: 'Compatibilidades e prep.', key: 'nursing' },
-    { href: '/calculators', label: 'Calculadoras Clínicas', sub: 'CKD-EPI · SCORE2 · Cockcroft', key: 'calc' },
-    { href: '/compatibility', label: 'Compatibilidade IV', sub: "Trissel's e King Guide", key: 'compat' },
-    { href: '/monograph', label: 'Monografia Clínica', sub: 'Qualquer fármaco completo', key: 'mono' },
-    { href: '/doses', label: 'Posologia por Indicação', sub: 'Guidelines actualizadas', key: 'doses' },
-    { href: '/briefing', label: 'Briefing de Consulta', sub: 'Contexto clínico em 15s', key: 'brief' },
-  ]
-
-  const tabStyle = (t: string) => ({
-    padding: '10px 16px', background: 'none', border: 'none',
-    borderBottom: `2px solid ${tab === t ? '#1d4ed8' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: tab === t ? '#1d4ed8' : 'var(--ink-4)',
-    fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-    textTransform: 'uppercase' as const, marginBottom: -1,
-    whiteSpace: 'nowrap' as const,
-  })
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
-
-      {/* Pro header */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
-                Espaço Clínico -- {firstName}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 3 }}>
-                {isPro ? `${patients.length} doente${patients.length !== 1 ? 's' : ''} no perfil · Co-piloto IA activo` : 'Upgrade para Pro para activar gestão de doentes'}
-              </div>
-            </div>
-            {isPro && (
-              <button onClick={() => { setTab('patients'); setShowAddForm(true) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Novo doente
-              </button>
-            )}
-          </div>
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            {[['patients', 'Doentes'], ['tools', 'Ferramentas'], ['ai', 'Co-Piloto IA'], ['account', 'Conta']].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="page-container page-body">
-
-        {/* PATIENTS TAB */}
-        {tab === 'patients' && (
-          <div>
-            {/* ─── NOVO: Os Meus Perfis (pessoais/familiares) ─── */}
-            <FamilyProfilesSection accentColor="#1d4ed8" />
-
-            {!isPro ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 14, letterSpacing: '-0.01em' }}>Gestão de Doentes</div>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 400, margin: '0 auto 24px' }}>
-                  Cria perfis clínicos para os teus doentes. O Phlox AI tem contexto completo -- patologias, medicação, função renal -- e responde em função de cada doente específico.
-                </p>
-                <Link href="/pricing" style={{ display: 'inline-flex', background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '12px 24px', borderRadius: 7, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Pro -- 12,99€/mês
-                </Link>
-              </div>
-            ) : (
-              <div>
-                {/* Add patient form */}
-                {showAddForm && (
-                  <div style={{ background: 'white', border: '2px solid #1d4ed8', borderRadius: 10, padding: '18px', marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#1d4ed8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Novo doente</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 1fr', gap: 8, marginBottom: 10 }}>
-                      <input value={newPatient.name} onChange={e => setNewPatient(p => ({ ...p, name: e.target.value }))}
-                        placeholder="Nome do doente *" style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                      <input value={newPatient.age} onChange={e => setNewPatient(p => ({ ...p, age: e.target.value }))}
-                        placeholder="Idade" type="number" style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                      <input value={newPatient.conditions} onChange={e => setNewPatient(p => ({ ...p, conditions: e.target.value }))}
-                        placeholder="Diagnósticos (ex: HTA, DM2, FA)" style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={addPatient} disabled={!newPatient.name.trim() || adding}
-                        style={{ background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 7, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                        {adding ? 'A criar...' : 'Criar perfil'}
-                      </button>
-                      <button onClick={() => setShowAddForm(false)}
-                        style={{ background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 7, padding: '10px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Patient list */}
-                {loading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 8 }} />)}
-                  </div>
-                ) : patients.length === 0 ? (
-                  <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 14, color: 'var(--ink-4)', marginBottom: 16 }}>Nenhum doente criado ainda.</div>
-                    <button onClick={() => setShowAddForm(true)}
-                      style={{ background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 7, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                      Criar primeiro doente →
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                    {patients.map(patient => (
-                      <Link key={patient.id} href={`/patients/${patient.id}`}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'white', textDecoration: 'none', gap: 12 }}
-                        className="patient-row">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1d4ed8', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                            {patient.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 2 }}>{patient.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {[patient.age ? `${patient.age} anos` : null, patient.conditions].filter(Boolean).join(' · ')}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                          {patient.alerts && patient.alerts > 0 ? (
-                            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--red)', background: 'var(--red-light)', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 3 }}>
-                              {patient.alerts} alerta{patient.alerts > 1 ? 's' : ''}
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{patient.meds_count} med.</span>
-                          )}
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TOOLS TAB */}
-        {tab === 'tools' && (
-          <div>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas clínicas</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 8 }}>
-              {PRO_TOOLS.map(({ href, label, sub }) => {
-                const locked = !isPro && ['strategy', 'protocol', 'review', 'brief'].includes(href.slice(1))
-                return (
-                  <Link key={href} href={locked ? '/pricing' : href}
-                    style={{ display: 'flex', flexDirection: 'column', padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}
-                    className="pro-tool">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: locked ? 'var(--ink-4)' : 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
-                      {locked && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', border: '1px solid #bfdbfe', background: '#eff6ff', padding: '2px 6px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0, marginLeft: 8 }}>Pro</span>}
-                    </div>
-                    <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{sub}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* AI CO-PILOT TAB */}
-        {tab === 'ai' && (
-          <div style={{ maxWidth: 680 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ background: '#1d4ed8', padding: '18px 22px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Phlox AI · Co-Piloto Clínico</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'white', fontStyle: 'italic', fontWeight: 400 }}>
-                  Com o contexto dos teus doentes, não em abstracto.
-                </div>
-              </div>
-              <div style={{ padding: '20px 22px' }}>
-                <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 20 }}>
-                  Selecciona um doente antes de abrir o AI. O co-piloto já sabe a idade, diagnósticos, função renal e medicação actual. As respostas são em função daquele doente específico -- não genéricas.
-                </p>
-                {patients.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Abrir AI com doente</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {patients.slice(0, 3).map(p => (
-                        <Link key={p.id} href={`/ai?patient=${p.id}`}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, textDecoration: 'none', gap: 10 }}
-                          className="patient-ai-btn">
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
-                          <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{p.conditions || '--'}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <Link href="/ai" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Abrir Co-Piloto IA →
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ACCOUNT TAB */}
-        {tab === 'account' && (
-          <div style={{ maxWidth: 480 }}>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 20 }}>Conta</h2>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-              {[{ l: 'Nome', v: user?.name || '--' }, { l: 'Email', v: user?.email || '' }, { l: 'Plano', v: user?.plan || 'Gratuito' }].map(({ l, v }, i, arr) => (
-                <div key={l} style={{ display: 'grid', gridTemplateColumns: '90px 1fr', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ padding: '12px 14px', background: 'var(--bg-2)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>{l}</div>
-                  <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--ink-2)' }}>{v}</div>
-                </div>
-              ))}
-            </div>
-            {!isPro && (
-              <Link href="/pricing" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: '#1d4ed8', borderRadius: 10, textDecoration: 'none', marginBottom: 12, color: 'white' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em' }}>Upgrade para Pro</div>
-                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Gestão de doentes, co-piloto IA, relatórios PDF</div>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </Link>
-            )}
-            <ReferralSection />
-            <button onClick={signOut} style={{ width: '100%', marginTop: 12, padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }} className="signout-btn">
-              Terminar sessão
-            </button>
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        .patient-row:hover { background: #eff6ff !important; }
-        .pro-tool:hover { border-color: #1d4ed8 !important; background: #eff6ff !important; }
-        .patient-ai-btn:hover { border-color: #1d4ed8 !important; background: #eff6ff !important; }
-        .signout-btn:hover { color: var(--red) !important; border-color: var(--red) !important; }
-      `}</style>
-    </div>
-  )
-}
-
-// ─── Main router ──────────────────────────────────────────────────────────────
-
-// ─── NOVO: CaregiverDashboard ─────────────────────────────────────────────────
-
-function CaregiverDashboard() {
-  const { user, supabase } = useAuth()
-  const plan = (user?.plan || 'free') as string
-  const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
-  const [tab, setTab] = useState<'home' | 'perfis' | 'account'>('home')
-
-  const tabStyle = (t: string) => ({
-    padding: '10px 16px', background: 'none', border: 'none',
-    borderBottom: `2px solid ${tab === t ? '#b45309' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: tab === t ? '#b45309' : 'var(--ink-4)',
-    fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-    textTransform: 'uppercase' as const, marginBottom: -1,
-    transition: 'color 0.15s, border-color 0.15s', whiteSpace: 'nowrap' as const,
-  })
-
-  const QUICK_ACTIONS = [
-    { label: 'Tradutor de Bula', sub: 'Linguagem simples para qualquer bula', href: '/bula', badge: 'Grátis', color: '#1d4ed8' },
-    { label: 'Dose para Criança', sub: 'Dose certa por peso com alertas', href: '/dose-crianca', badge: 'Grátis', color: '#b45309' },
-    { label: 'Verificar Interações', sub: 'Qualquer combinação de medicamentos', href: '/interactions', badge: 'Grátis', color: '#0d6e42' },
-    { label: 'Perceber a Receita', sub: 'Foto ou texto → explicação simples', href: '/prescription', color: '#0d6e42' },
-    { label: 'Perceber as Análises', sub: 'O que está fora do normal', href: '/labs', color: '#0d6e42' },
-    { label: 'Preparar Consulta', sub: 'Perguntas certas para o médico', href: '/consult-prep', color: '#374151' },
-  ]
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
-                Olá, {firstName}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 3 }}>
-                Geres a medicação da tua família
-              </div>
-            </div>
-            {plan === 'free' && (
-              <Link href="/pricing" style={{ fontSize: 11, color: '#b45309', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, border: '1px solid #fde68a', background: '#fffbeb', padding: '5px 10px', borderRadius: 5, letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
-                Upgrade
-              </Link>
-            )}
-          </div>
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            {[['home', 'Início'], ['perfis', 'Os Meus Perfis'], ['account', 'Conta']].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="page-container page-body">
-        {tab === 'home' && (
-          <div>
-            <FamilyProfilesSection accentColor="#b45309" />
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas para a família</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 8 }}>
-                {QUICK_ACTIONS.map(({ label, sub, href, badge, color }) => (
-                  <Link key={href} href={href}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', gap: 12, transition: 'border-color 0.15s' }}
-                    className="quick-action">
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
-                        {badge && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color, background: color === '#0d6e42' ? '#d1fae5' : color === '#1d4ed8' ? '#dbeafe' : '#fde68a', border: `1px solid ${color === '#0d6e42' ? '#a7f3d0' : color === '#1d4ed8' ? '#bfdbfe' : '#fcd34d'}`, borderRadius: 3, padding: '1px 5px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{badge}</span>}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
-                    </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <Link href="/ai" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 22px', background: '#0f172a', borderRadius: 10, textDecoration: 'none', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 4 }}>Phlox AI — pergunta sobre qualquer familiar</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Conhece os medicamentos de cada perfil e responde com contexto real.</div>
-              </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </Link>
-          </div>
-        )}
-        {tab === 'perfis' && (
-          <div>
-            <FamilyProfilesSection accentColor="#b45309" />
-            <div style={{ marginTop: 12 }}>
-              <Link href="/perfis" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#b45309', textDecoration: 'none', fontWeight: 700, fontFamily: 'var(--font-mono)', border: '1px solid #fde68a', background: '#fffbeb', padding: '8px 14px', borderRadius: 7 }}>
-                Gerir todos os perfis →
-              </Link>
-            </div>
-          </div>
-        )}
-        {tab === 'account' && (
-          <div style={{ maxWidth: 480 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{user?.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{user?.email}</div>
-              </div>
-              <div style={{ padding: '16px 20px' }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Plano actual</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', textTransform: 'capitalize' }}>{user?.plan || 'Gratuito'}</span>
-                  <Link href="/pricing" style={{ fontSize: 12, color: '#b45309', textDecoration: 'none', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>Mudar plano →</Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── NOVO: DashboardRouter actualizado com experience_mode ────────────────────
-
-function DashboardRouter() {
+function DashboardContent() {
   const { user, loading } = useAuth()
-  const sp = useSearchParams()
-  const router = useRouter()
+  const mode = (user as any)?.experience_mode || 'personal'
+  const tiles = TILES[mode] || TILES.personal
+  const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
 
-  const modeParam = sp.get('mode')
-
-  // ─── NOVO: usa experience_mode como fonte principal ───
-  const getDashboard = (): 'clinical' | 'student' | 'caregiver' | 'personal' => {
-    const experienceMode = (user as any)?.experience_mode
-    // URL param overrides (para compatibilidade com links existentes)
-    if (modeParam === 'pro' || modeParam === 'professional' || modeParam === 'clinical') return 'clinical'
-    if (modeParam === 'student') return 'student'
-    if (modeParam === 'caregiver') return 'caregiver'
-    if (modeParam === 'personal') return 'personal'
-    // experience_mode do perfil
-    if (experienceMode === 'clinical') return 'clinical'
-    if (experienceMode === 'student') return 'student'
-    if (experienceMode === 'caregiver') return 'caregiver'
-    if (experienceMode === 'personal') return 'personal'
-    // Fallback por profile_type (compatibilidade)
-    const profileType = (user as any)?.profile_type
-    if (profileType === 'professional') return 'clinical'
-    if (profileType === 'student') return 'student'
-    const plan = user?.plan || 'free'
-    if (plan === 'pro' || plan === 'clinic') return 'clinical'
-    return 'personal'
-  }
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Bom dia' : hour < 19 ? 'Boa tarde' : 'Boa noite'
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="skeleton" style={{ width: 300, height: 24, borderRadius: 4 }} />
+      <div className="skeleton" style={{ width: 280, height: 20, borderRadius: 4 }} />
     </div>
   )
 
-  if (!user) { router.push('/login'); return null }
-
-  // ─── redirecionar para onboarding se nunca completou ───
-  if ((user as any)?.onboarded !== true) {
-    router.push('/onboarding')
-    return null
-  }
-
-  const dash = getDashboard()
-
   return (
-    <>
-      {dash === 'clinical' && <ProDashboard />}
-      {dash === 'student' && <StudentDashboard />}
-      {dash === 'caregiver' && <CaregiverDashboard />}
-      {dash === 'personal' && <PersonalDashboard />}
-    </>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', padding: '32px 0 64px' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px' }}>
+
+        {/* Greeting */}
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 4, lineHeight: 1.2 }}>
+            {greeting}, {firstName}!
+          </h1>
+          <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.5 }}>
+            O que quer fazer hoje?
+          </p>
+        </div>
+
+        {/* Today's meds widget — shown only for personal/caregiver with reminders */}
+        {(mode === 'personal' || mode === 'caregiver') && <TodayMedsWidget />}
+
+        {/* Family profiles — shown for caregiver */}
+        {mode === 'caregiver' && <FamilyWidget />}
+
+        {/* Big action tiles */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: 12, marginBottom: 32 }}>
+          {tiles.map(tile => (
+            <Link key={tile.href} href={tile.href}
+              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 22px', background: 'white', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none', transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.1s' }}
+              className="action-tile">
+              <div style={{ width: 52, height: 52, borderRadius: 12, background: tile.accent + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>
+                {tile.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, lineHeight: 1.3 }}>{tile.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.4 }}>{tile.desc}</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={tile.accent} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </Link>
+          ))}
+        </div>
+
+        {/* All tools link */}
+        <div style={{ textAlign: 'center', padding: '20px', background: 'white', border: '1px solid var(--border)', borderRadius: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Quer ver todas as ferramentas disponíveis?</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>O Phlox tem mais de 30 ferramentas de saúde e medicação.</div>
+          <Link href="/ferramentas" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
+            Ver todas as ferramentas →
+          </Link>
+        </div>
+
+      </div>
+
+      <style>{`
+        .action-tile:hover { border-color: var(--border-2) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.07) !important; transform: translateY(-1px) !important; }
+        .stat-card:hover { border-color: var(--green) !important; }
+        .family-chip:hover { border-color: #7c3aed !important; }
+      `}</style>
+    </div>
   )
+}
+
+// ─── Router wrapper ───────────────────────────────────────────────────────────
+
+function DashboardRouter() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (loading) return
+    if (!user) { router.push('/login'); return }
+    if ((user as any)?.onboarded !== true) { router.push('/onboarding'); return }
+  }, [user, loading, router])
+
+  if (loading || !user) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="skeleton" style={{ width: 280, height: 20, borderRadius: 4 }} />
+    </div>
+  )
+
+  return <DashboardContent />
 }
 
 export default function DashboardPage() {
