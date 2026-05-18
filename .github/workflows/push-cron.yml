@@ -1,16 +1,43 @@
 name: Push Notifications Cron
 
+# GitHub Actions schedules run at most every 5 minutes (free tier may delay).
+# This workflow is the primary scheduler for medication reminders and MAR alerts.
+
 on:
   schedule:
-    - cron: '*/15 * * * *'
-  workflow_dispatch: # allow manual trigger
+    # Every 15 minutes — GitHub's minimum supported interval is 5 min; 15 min is fine.
+    # Note: GitHub may delay by up to 15 min during high load.
+    - cron: '0,15,30,45 * * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (production/preview)'
+        required: false
+        default: 'production'
 
 jobs:
   run-cron:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Call push cron endpoint
+      - name: Call Phlox push cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL || 'https://phlox-pi.vercel.app' }}
         run: |
-          curl -sf -X GET \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            "https://phlox-pi.vercel.app/api/push/cron"
+          echo "Running cron at $(date -u)"
+          HTTP_STATUS=$(curl -sf -o /tmp/cron_response.json -w "%{http_code}" \
+            -X GET \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            --max-time 25 \
+            "${APP_URL}/api/push/cron")
+
+          echo "HTTP status: ${HTTP_STATUS}"
+          cat /tmp/cron_response.json 2>/dev/null || true
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Cron endpoint returned error status: ${HTTP_STATUS}"
+            exit 1
+          fi
+
+          echo "Cron completed successfully"

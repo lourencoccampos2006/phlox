@@ -6,6 +6,7 @@ import Header from '@/components/Header'
 import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
+import { startClientReminderLoop, stopClientReminderLoop } from '@/lib/clientReminder'
 
 interface ScannedMed {
   name: string; dose: string|null; frequency: string|null; indication: string|null; selected: boolean
@@ -268,6 +269,13 @@ export default function MyMedsPage() {
     setPushSupported(supported)
     if (supported) setPushGranted(Notification.permission === 'granted')
   }, [])
+
+  // Client-side reminder loop — fires notifications while app is open (fallback for server cron)
+  useEffect(() => {
+    if (!pushGranted) return
+    startClientReminderLoop(() => meds, () => todayLogs)
+    return () => stopClientReminderLoop()
+  }, [pushGranted, meds, todayLogs])
 
   // Handle push notification confirm URL (?confirm=<id>&date=<date>)
   useEffect(() => {

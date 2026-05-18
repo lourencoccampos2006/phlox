@@ -127,3 +127,34 @@ end $$;
 alter table if exists public.personal_meds
   add column if not exists reminder_times text[];
 -- example: {"09:00","13:00","21:00"}
+
+-- ─── Supabase pg_cron alternative for push notifications ─────────────────────
+-- Use this if GitHub Actions is not available or reliable.
+-- Requires pg_cron extension (enabled by default on Supabase Pro).
+-- On Supabase free tier: enable via Dashboard → Database → Extensions → pg_cron
+--
+-- Step 1: enable extension (run once)
+-- create extension if not exists pg_cron;
+--
+-- Step 2: schedule a call to your cron endpoint every 15 minutes.
+-- Replace <YOUR_CRON_SECRET> and <YOUR_APP_URL> with your actual values.
+--
+-- select cron.schedule(
+--   'phlox-push-cron',
+--   '*/15 * * * *',
+--   $$
+--     select net.http_get(
+--       url := '<YOUR_APP_URL>/api/push/cron',
+--       headers := '{"x-cron-secret": "<YOUR_CRON_SECRET>"}'::jsonb
+--     )
+--   $$
+-- );
+--
+-- Note: net extension (pg_net) must also be enabled:
+-- create extension if not exists pg_net;
+--
+-- To check scheduled jobs:
+-- select * from cron.job;
+--
+-- To remove:
+-- select cron.unschedule('phlox-push-cron');
