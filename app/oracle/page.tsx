@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
 import Link from 'next/link'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null }
 interface Question { question:string; type:'yesno'|'scale'|'duration'|'text'; options?:string[] }
@@ -39,6 +41,7 @@ type Phase = 'input'|'clarifying'|'result'
 
 export default function OraclePage() {
   const { user, supabase } = useAuth()
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [phase, setPhase] = useState<Phase>('input')
   const [problem, setProblem] = useState('')
@@ -50,6 +53,8 @@ export default function OraclePage() {
   const [soap, setSOAP] = useState<SOAPNote|null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string|null>(null)
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
   useEffect(() => {
     if (!user) return
@@ -104,12 +109,19 @@ export default function OraclePage() {
       {/* Header */}
       <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b' }}>
         <div className="page-container" style={{ paddingTop:28, paddingBottom:24 }}>
-          <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'rgba(255,255,255,0.35)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8 }}>Phlox Oracle</div>
-          <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color:'white', fontWeight:400, marginBottom:8 }}>
-            Consulta Farmacêutica Estruturada
-          </div>
-          <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.6, maxWidth:480 }}>
-            Apresenta o teu problema. O Oracle faz as perguntas certas e produz uma avaliação clínica completa com plano de ação.
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:8 }}>
+            <div>
+              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'rgba(255,255,255,0.35)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8 }}>Phlox Oracle</div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color:'white', fontWeight:400, marginBottom:8 }}>
+                Consulta Farmacêutica Estruturada
+              </div>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.6, maxWidth:480 }}>
+                Apresenta o teu problema. O Oracle faz as perguntas certas e produz uma avaliação clínica completa com plano de ação.
+              </div>
+            </div>
+            <div style={{ marginTop:4 }}>
+              <ProfileSelector onChange={p => setActiveProfileState(p)} />
+            </div>
           </div>
           {/* Progress indicator */}
           <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:16 }}>

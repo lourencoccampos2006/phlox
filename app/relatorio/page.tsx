@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface Highlight { type: 'positive' | 'warning' | 'info'; text: string }
 interface Trend { metric: string; trend: 'subiu' | 'desceu' | 'estável' | 'sem dados'; comment: string }
@@ -58,9 +60,12 @@ function ScoreRing({ score }: { score: number }) {
 
 export default function RelatorioPage() {
   const { user, supabase } = useAuth()
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
   const generate = async () => {
     if (!user) return
@@ -103,11 +108,14 @@ export default function RelatorioPage() {
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Relatório Semanal</div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O resumo da tua semana de saúde</div>
             </div>
-            {report && (
-              <button onClick={() => window.print()} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                🖨️ Imprimir
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <ProfileSelector onChange={p => setActiveProfileState(p)} />
+              {report && (
+                <button onClick={() => window.print()} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  🖨️ Imprimir
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

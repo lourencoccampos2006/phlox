@@ -9,27 +9,29 @@ export async function GET(
     const { code } = await params
     if (!code) return NextResponse.json({ error: 'Código inválido' }, { status: 400 })
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not set')
-      return NextResponse.json({ error: 'Configuração do servidor em falta' }, { status: 500 })
-    }
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
+    // Use ANON key — sprint8.sql added public SELECT policies scoped to active links
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     const { data: link, error: linkError } = await supabase
       .from('phlox_links')
       .select('user_id, access_level, label, expires_at, active, views')
       .eq('code', code.toUpperCase())
-      .single()
+      .maybeSingle()
 
-    if (linkError || !link) return NextResponse.json({ error: 'Link não encontrado' }, { status: 404 })
+    if (linkError) {
+      console.error('phlox_links lookup error:', linkError)
+      return NextResponse.json({ error: 'Erro ao procurar link' }, { status: 500 })
+    }
+    if (!link) return NextResponse.json({ error: 'Link não encontrado' }, { status: 404 })
     if (!link.active) return NextResponse.json({ error: 'Este link foi revogado' }, { status: 410 })
     if (link.expires_at && new Date(link.expires_at) < new Date()) {
       return NextResponse.json({ error: 'Este link expirou' }, { status: 410 })
     }
 
-    // Increment view count (fire-and-forget)
+    // Increment view count (fire-and-forget, will fail silently if RLS blocks)
     supabase.from('phlox_links').update({ views: (link.views || 0) + 1 }).eq('code', code.toUpperCase()).then(() => {})
 
     const userId = link.user_id

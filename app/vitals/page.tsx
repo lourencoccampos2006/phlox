@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface Vital {
   id: string; recorded_at: string
@@ -58,6 +60,7 @@ const FIELDS = [
 
 export default function VitalsPage() {
   const { user, supabase } = useAuth()
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [vitals, setVitals] = useState<Vital[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<Record<string,string>>({})
@@ -67,6 +70,8 @@ export default function VitalsPage() {
   const [analysis, setAnalysis] = useState<TrendAnalysis|null>(null)
   const [analysing, setAnalysing] = useState(false)
   const [meds, setMeds] = useState<string[]>([])
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
@@ -149,7 +154,8 @@ export default function VitalsPage() {
                 {loading ? '—' : `${vitals.length} ${vitals.length===1?'medição':'medições'}`}
               </div>
             </div>
-            <div style={{ display:'flex', gap:8 }}>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <ProfileSelector onChange={p => setActiveProfileState(p)} />
               {vitals.length >= 2 && (
                 <button onClick={analyse} disabled={analysing}
                   style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:analysing?'var(--bg-3)':'#4f46e5', color:analysing?'var(--ink-4)':'white', border:'none', borderRadius:8, cursor:analysing?'wait':'pointer', fontSize:13, fontWeight:700 }}>

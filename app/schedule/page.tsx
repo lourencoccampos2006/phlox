@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface Med { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null }
 interface ScheduleMed { med_id: string; name: string; dose: string | null; reason: string; food: 'com_refeicao' | 'em_jejum' | 'indiferente'; notes?: string }
@@ -25,6 +27,7 @@ const SEV_BG   = { alta: '#fee2e2', media: '#fffbeb', baixa: '#eff6ff' }
 
 export default function SchedulePage() {
   const { user, supabase } = useAuth()
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -33,6 +36,8 @@ export default function SchedulePage() {
   const [wakeTime, setWakeTime] = useState('07:30')
   const [sleepTime, setSleepTime] = useState('23:00')
   const [conditions, setConditions] = useState('')
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -86,11 +91,14 @@ export default function SchedulePage() {
                 <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Horário Inteligente</div>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O horário perfeito para a tua medicação</div>
               </div>
-              {schedule && (
-                <button onClick={printSchedule} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  🖨️ Imprimir
-                </button>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ProfileSelector onChange={p => setActiveProfileState(p)} />
+                {schedule && (
+                  <button onClick={printSchedule} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    🖨️ Imprimir
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

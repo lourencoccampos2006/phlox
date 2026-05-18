@@ -7,15 +7,13 @@ export async function GET(
 ) {
   try {
     const { token } = await params
-    if (!token || token.length > 64) return NextResponse.json({ error: 'Inválido' }, { status: 400 })
+    if (!token || token.length > 128) return NextResponse.json({ error: 'Inválido' }, { status: 400 })
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not set')
-      return NextResponse.json({ error: 'Configuração em falta no servidor' }, { status: 500 })
-    }
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey)
+    // Use ANON key — sprint8.sql added public SELECT policies scoped to active tokens
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     const { data: row, error: rowError } = await supabase
       .from('emergency_tokens')

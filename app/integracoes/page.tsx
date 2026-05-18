@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface ParsedVital {
   type: string
@@ -134,10 +136,13 @@ function groupVitalsByDate(vitals: ParsedVital[]): Record<string, Record<string,
 
 export default function IntegracoesPage() {
   const { user, supabase } = useAuth()
+  const [activeProfileState, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [activeTab, setActiveTab] = useState<'apple' | 'wearable' | 'mysnspdf' | 'manual'>('apple')
   const [parsed, setParsed] = useState<ImportResult | null>(null)
   const [importing, setImporting] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
   const [error, setError] = useState<string | null>(null)
   const [csvSource, setCsvSource] = useState<'Garmin' | 'Fitbit' | 'Polar' | 'Outro'>('Garmin')
   const appleRef = useRef<HTMLInputElement>(null)
@@ -250,10 +255,15 @@ export default function IntegracoesPage() {
 
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Integrações</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 4 }}>Importar dados de saúde</div>
-          <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 560 }}>
-            Importa os teus dados diretamente da Apple Saúde, wearables ou apps médicas. Os dados ficam no teu perfil Phlox.
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Integrações</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 4 }}>Importar dados de saúde</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 560 }}>
+                Importa os teus dados diretamente da Apple Saúde, wearables ou apps médicas. Os dados ficam no teu perfil Phlox.
+              </div>
+            </div>
+            <ProfileSelector onChange={p => setActiveProfileState(p)} />
           </div>
         </div>
       </div>

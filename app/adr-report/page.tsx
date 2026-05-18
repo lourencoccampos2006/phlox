@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface ADRResult {
   who_umc_causality: string
@@ -30,6 +32,7 @@ const CAUSALITY_COLOR: Record<string, string> = {
 
 export default function ADRReportPage() {
   const { user, supabase } = useAuth()
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [form, setForm] = useState({
     suspected_drug: '',
     reaction: '',
@@ -44,6 +47,8 @@ export default function ADRReportPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
   const analyze = async () => {
     if (!form.suspected_drug.trim() || !form.reaction.trim()) return
@@ -111,8 +116,13 @@ ${result.disclaimer}`
       <Header />
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Farmacovigilância</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 4 }}>Notificação de Reação Adversa</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Farmacovigilância</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 4 }}>Notificação de Reação Adversa</div>
+            </div>
+            <ProfileSelector onChange={p => setActiveProfileState(p)} />
+          </div>
           <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 560 }}>
             Analisa a causalidade, classifica pela WHO-UMC e gera a narrativa para reportar ao INFARMED.
           </div>

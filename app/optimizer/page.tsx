@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Header from '@/components/Header'
 import Link from 'next/link'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null; indication:string|null }
 interface SavingItem { drug:string; brand_cost:string; generic_name:string; generic_cost:string; monthly_saving:string; equivalence_note:string }
@@ -24,6 +26,7 @@ const CONDITION_ICON: Record<string,string> = {
 
 export default function OptimizerPage() {
   const { user, supabase } = useAuth()
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
@@ -33,6 +36,8 @@ export default function OptimizerPage() {
   const [age, setAge] = useState('')
   const plan = (user?.plan || 'free') as string
   const canRun = plan !== 'free'
+
+  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -72,10 +77,15 @@ export default function OptimizerPage() {
 
       <div style={{ background:'white', borderBottom:'1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop:28, paddingBottom:20 }}>
-          <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>Otimização de Prescrição</div>
-          <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color:'var(--ink)', fontWeight:400, marginBottom:6 }}>Farmacêutico AI</div>
-          <div style={{ fontSize:13, color:'var(--ink-4)', lineHeight:1.55, maxWidth:540 }}>
-            Análise completa da tua medicação: poupanças com genéricos, sinalizadores de segurança, monitorização em falta e revisão de doses.
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+            <div>
+              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>Otimização de Prescrição</div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color:'var(--ink)', fontWeight:400, marginBottom:6 }}>Farmacêutico AI</div>
+              <div style={{ fontSize:13, color:'var(--ink-4)', lineHeight:1.55, maxWidth:540 }}>
+                Análise completa da tua medicação: poupanças com genéricos, sinalizadores de segurança, monitorização em falta e revisão de doses.
+              </div>
+            </div>
+            <ProfileSelector onChange={p => setActiveProfileState(p)} />
           </div>
         </div>
       </div>
