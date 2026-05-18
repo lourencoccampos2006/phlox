@@ -4,342 +4,355 @@ import { useState, useEffect, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
 
-// ─── Mode config ──────────────────────────────────────────────────────────────
+// ─── Tile definitions per mode ────────────────────────────────────────────────
 
-const MODE_HERO: Record<string, {
-  gradient: string; accent: string; greeting: string; sub: string; emoji: string
-}> = {
-  personal: {
-    gradient: 'linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%)',
-    accent: '#059669',
-    greeting: 'O que quer fazer hoje?',
-    sub: 'Saúde simples, ao seu ritmo.',
-    emoji: '🌱',
-  },
-  caregiver: {
-    gradient: 'linear-gradient(135deg, #92400e 0%, #b45309 60%, #d97706 100%)',
-    accent: '#d97706',
-    greeting: 'Como está a família?',
-    sub: 'Cuide de quem mais ama.',
-    emoji: '🏡',
-  },
-  clinical: {
-    gradient: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #2563eb 100%)',
-    accent: '#2563eb',
-    greeting: 'Pronto para o turno?',
-    sub: 'Tudo o que precisa, num ecrã.',
-    emoji: '🏥',
-  },
-  student: {
-    gradient: 'linear-gradient(135deg, #3b0764 0%, #6d28d9 60%, #7c3aed 100%)',
-    accent: '#7c3aed',
-    greeting: 'Hora de aprender!',
-    sub: 'Cada sessão conta.',
-    emoji: '📚',
-  },
+interface Tile {
+  icon: string; label: string; desc: string; href: string
+  bg: string; iconBg: string; iconColor: string; span?: boolean
 }
 
-// ─── Tiles per mode ───────────────────────────────────────────────────────────
-
-const TILES: Record<string, {
-  icon: string; label: string; desc: string; href: string; accent: string; primary?: boolean
-}[]> = {
+const TILES: Record<string, Tile[]> = {
   personal: [
-    { icon: '💊', label: 'Os meus medicamentos',  desc: 'Ver lista, adicionar e configurar lembretes diários', href: '/mymeds',       accent: '#059669', primary: true },
-    { icon: '🔍', label: 'Verificar segurança',   desc: 'Os meus medicamentos são seguros juntos?',            href: '/interactions', accent: '#3b82f6' },
-    { icon: '❤️', label: 'A minha saúde',         desc: 'Registe tensão arterial, pulso e peso',               href: '/vitals',       accent: '#ef4444' },
-    { icon: '🤖', label: 'Tenho uma dúvida',      desc: 'Faça qualquer pergunta de saúde à inteligência artificial', href: '/ai',    accent: '#8b5cf6' },
-    { icon: '🆘', label: 'Passaporte de saúde',   desc: 'Cartão de emergência com QR code — para urgências',   href: '/passport',     accent: '#f59e0b' },
-    { icon: '📄', label: 'Perceber uma bula',     desc: 'Cole o texto de uma bula — explicamos em português simples', href: '/bula', accent: '#0891b2' },
+    {
+      icon: '💊', label: 'Os meus medicamentos',
+      desc: 'Ver lista, doses de hoje e lembretes',
+      href: '/mymeds',
+      bg: '#f0fdf4', iconBg: '#059669', iconColor: '#fff', span: true,
+    },
+    {
+      icon: '🔍', label: 'Verificar segurança',
+      desc: 'São seguros juntos?',
+      href: '/interactions',
+      bg: '#fff', iconBg: '#eff6ff', iconColor: '#2563eb',
+    },
+    {
+      icon: '❤️', label: 'A minha saúde',
+      desc: 'Tensão, pulso, peso',
+      href: '/vitals',
+      bg: '#fff', iconBg: '#fff1f2', iconColor: '#e11d48',
+    },
+    {
+      icon: '🤖', label: 'Tenho uma dúvida',
+      desc: 'Pergunte à inteligência artificial',
+      href: '/ai',
+      bg: '#fff', iconBg: '#faf5ff', iconColor: '#7c3aed',
+    },
+    {
+      icon: '🆘', label: 'Passaporte de saúde',
+      desc: 'QR code para urgências',
+      href: '/passport',
+      bg: '#fff', iconBg: '#fffbeb', iconColor: '#d97706',
+    },
+    {
+      icon: '📄', label: 'Perceber uma bula',
+      desc: 'Em português simples',
+      href: '/bula',
+      bg: '#fff', iconBg: '#f0f9ff', iconColor: '#0284c7',
+    },
   ],
   caregiver: [
-    { icon: '👨‍👩‍👧', label: 'A minha família',       desc: 'Ver e gerir os perfis de todos os familiares',        href: '/perfis',       accent: '#7c3aed', primary: true },
-    { icon: '💊',   label: 'Medicamentos',          desc: 'Lista, lembretes e verificação de toda a família',    href: '/mymeds',       accent: '#059669' },
-    { icon: '🔍',   label: 'Verificar segurança',   desc: 'Os medicamentos são seguros juntos?',                  href: '/interactions', accent: '#3b82f6' },
-    { icon: '🆘',   label: 'Passaporte de saúde',   desc: 'QR code para urgências — dados completos',            href: '/passport',     accent: '#f59e0b' },
-    { icon: '❤️',   label: 'Sinais vitais',         desc: 'Registe tensão, pulso e outros dados do corpo',       href: '/vitals',       accent: '#ef4444' },
-    { icon: '🤖',   label: 'Tenho uma dúvida',      desc: 'Faça qualquer pergunta de saúde à IA',                href: '/ai',           accent: '#8b5cf6' },
+    {
+      icon: '👨‍👩‍👧', label: 'A minha família',
+      desc: 'Ver e gerir todos os perfis',
+      href: '/perfis',
+      bg: '#fdf4ff', iconBg: '#7c3aed', iconColor: '#fff', span: true,
+    },
+    {
+      icon: '💊', label: 'Medicamentos',
+      desc: 'Lista, doses e lembretes',
+      href: '/mymeds',
+      bg: '#fff', iconBg: '#f0fdf4', iconColor: '#059669',
+    },
+    {
+      icon: '🔍', label: 'Verificar segurança',
+      desc: 'São seguros juntos?',
+      href: '/interactions',
+      bg: '#fff', iconBg: '#eff6ff', iconColor: '#2563eb',
+    },
+    {
+      icon: '🆘', label: 'Passaporte de saúde',
+      desc: 'QR code para urgências',
+      href: '/passport',
+      bg: '#fff', iconBg: '#fffbeb', iconColor: '#d97706',
+    },
+    {
+      icon: '❤️', label: 'Sinais vitais',
+      desc: 'Tensão, pulso, peso',
+      href: '/vitals',
+      bg: '#fff', iconBg: '#fff1f2', iconColor: '#e11d48',
+    },
+    {
+      icon: '🤖', label: 'Tenho uma dúvida',
+      desc: 'Pergunte à IA',
+      href: '/ai',
+      bg: '#fff', iconBg: '#faf5ff', iconColor: '#7c3aed',
+    },
   ],
   clinical: [
-    { icon: '🏥', label: 'Turno',          desc: 'Todos os doentes, doses e alertas do turno atual',  href: '/turno',        accent: '#2563eb', primary: true },
-    { icon: '📋', label: 'Ronda',          desc: 'Revisão, intervenções pendentes e métricas PCNE',   href: '/rounds',       accent: '#0f766e' },
-    { icon: '📝', label: 'MAR',            desc: 'Registo de administração de medicação',              href: '/mar',          accent: '#059669' },
-    { icon: '👥', label: 'Doentes',        desc: 'Fichas completas, medicação e alertas',              href: '/patients',     accent: '#7c3aed' },
-    { icon: '🤖', label: 'Oracle AI',      desc: 'Consulta farmacêutica com SOAP e PCNE',              href: '/oracle',       accent: '#8b5cf6' },
-    { icon: '🔍', label: 'Interações',     desc: 'Análise com mecanismo e grau de evidência',          href: '/interactions', accent: '#3b82f6' },
+    {
+      icon: '🏥', label: 'Turno',
+      desc: 'Doentes, doses e alertas agora',
+      href: '/turno',
+      bg: '#eff6ff', iconBg: '#2563eb', iconColor: '#fff', span: true,
+    },
+    {
+      icon: '📋', label: 'Ronda',
+      desc: 'PCNE e intervenções',
+      href: '/rounds',
+      bg: '#fff', iconBg: '#f0fdfa', iconColor: '#0d9488',
+    },
+    {
+      icon: '📝', label: 'MAR',
+      desc: 'Registo de administração',
+      href: '/mar',
+      bg: '#fff', iconBg: '#f0fdf4', iconColor: '#059669',
+    },
+    {
+      icon: '👥', label: 'Doentes',
+      desc: 'Fichas e medicação completa',
+      href: '/patients',
+      bg: '#fff', iconBg: '#faf5ff', iconColor: '#7c3aed',
+    },
+    {
+      icon: '🤖', label: 'Oracle AI',
+      desc: 'SOAP e intervenção farmacêutica',
+      href: '/oracle',
+      bg: '#fff', iconBg: '#eff6ff', iconColor: '#2563eb',
+    },
+    {
+      icon: '🔍', label: 'Interações',
+      desc: 'Mecanismo e evidência',
+      href: '/interactions',
+      bg: '#fff', iconBg: '#f0f9ff', iconColor: '#0284c7',
+    },
   ],
   student: [
-    { icon: '🏆', label: 'Arena',               desc: 'Competição em ligas Bronze → Diamante',                href: '/arena',     accent: '#7c3aed', primary: true },
-    { icon: '🎮', label: 'Simulador clínico',   desc: 'Casos clínicos realistas com inteligência artificial', href: '/simulador', accent: '#2563eb' },
-    { icon: '🃏', label: 'Flashcards',          desc: 'Estudar com repetição espaçada — 200+ tópicos',        href: '/study',     accent: '#059669' },
-    { icon: '🤖', label: 'AI Tutor',            desc: 'Explicações passo a passo em português',               href: '/tutor',     accent: '#8b5cf6' },
-    { icon: '🎯', label: 'Simulação OSCE',      desc: 'A IA é o doente — feedback imediato',                  href: '/osce',      accent: '#f59e0b' },
-    { icon: '📈', label: 'O meu progresso',     desc: 'XP, streak e os seus pontos fracos',                   href: '/progresso', accent: '#ef4444' },
+    {
+      icon: '🏆', label: 'Arena',
+      desc: 'Ligas competitivas Bronze → Diamante',
+      href: '/arena',
+      bg: '#faf5ff', iconBg: '#7c3aed', iconColor: '#fff', span: true,
+    },
+    {
+      icon: '🎮', label: 'Simulador',
+      desc: 'Casos clínicos com IA',
+      href: '/simulador',
+      bg: '#fff', iconBg: '#eff6ff', iconColor: '#2563eb',
+    },
+    {
+      icon: '🃏', label: 'Flashcards',
+      desc: '200+ tópicos',
+      href: '/study',
+      bg: '#fff', iconBg: '#f0fdf4', iconColor: '#059669',
+    },
+    {
+      icon: '🤖', label: 'AI Tutor',
+      desc: 'Passo a passo',
+      href: '/tutor',
+      bg: '#fff', iconBg: '#faf5ff', iconColor: '#7c3aed',
+    },
+    {
+      icon: '🎯', label: 'OSCE',
+      desc: 'IA como doente',
+      href: '/osce',
+      bg: '#fff', iconBg: '#fffbeb', iconColor: '#d97706',
+    },
+    {
+      icon: '📈', label: 'Progresso',
+      desc: 'XP, streak e pontos fracos',
+      href: '/progresso',
+      bg: '#fff', iconBg: '#fff1f2', iconColor: '#e11d48',
+    },
   ],
 }
 
-// ─── Today's meds widget ──────────────────────────────────────────────────────
+// ─── Today's doses widget ─────────────────────────────────────────────────────
 
-function toMin(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
+function toMin(t: string) { const [h,m] = t.split(':').map(Number); return h*60+m }
 
-function TodayMedsWidget({ accent }: { accent: string }) {
+function TodayDoses() {
   const { user, supabase } = useAuth()
-  const [rows, setRows] = useState<{ name: string; dose: string|null; slot: string; taken: boolean }[]>([])
-  const [ready, setReady] = useState(false)
+  const [data, setData] = useState<{ done: number; total: number; nextName: string; nextSlot: string; allDone: boolean } | null>(null)
 
   useEffect(() => {
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
+    const nowMin = new Date().getHours()*60 + new Date().getMinutes()
     Promise.all([
       supabase.from('personal_meds').select('id,name,dose,reminder_times').eq('user_id', user.id).not('reminder_times','is',null),
       supabase.from('med_logs').select('med_id,logged_at,status').eq('user_id', user.id).eq('date', today).eq('status','taken'),
     ]).then(([{ data: meds }, { data: logs }]) => {
-      const taken = logs || []
-      const schedule = (meds || []).flatMap((m: any) =>
-        (m.reminder_times as string[]).map((slot: string) => {
-          const slotMin = toMin(slot)
-          const isTaken = taken.some(l => {
+      const takenLogs = logs || []
+      const rows = (meds || []).flatMap((m: any) =>
+        (m.reminder_times as string[]).map((slot: string) => ({
+          name: m.name, dose: m.dose, slot,
+          taken: takenLogs.some(l => {
             const d = new Date(l.logged_at)
-            return l.med_id === m.id && Math.abs(d.getHours()*60+d.getMinutes() - slotMin) <= 90
-          })
-          return { name: m.name, dose: m.dose, slot, taken: isTaken }
-        })
+            return l.med_id === m.id && Math.abs(d.getHours()*60+d.getMinutes() - toMin(slot)) <= 90
+          }),
+        }))
       ).sort((a, b) => toMin(a.slot) - toMin(b.slot))
-      setRows(schedule)
-      setReady(true)
+      if (rows.length === 0) return
+      const done = rows.filter(r => r.taken).length
+      const next = rows.find(r => !r.taken && toMin(r.slot) >= nowMin - 15)
+      setData({ done, total: rows.length, nextName: next?.name || '', nextSlot: next?.slot || '', allDone: done === rows.length })
     })
   }, [user, supabase])
 
-  if (!ready || rows.length === 0) return null
-
-  const nowMin = new Date().getHours()*60 + new Date().getMinutes()
-  const done = rows.filter(r => r.taken).length
-  const total = rows.length
-  const pct = Math.round(done / total * 100)
-  const next = rows.find(r => !r.taken && toMin(r.slot) >= nowMin - 15)
-  const allDone = done === total
+  if (!data) return null
+  const pct = Math.round(data.done / data.total * 100)
 
   return (
-    <Link href="/mymeds" style={{ display: 'block', textDecoration: 'none', marginBottom: 16 }}>
+    <Link href="/mymeds" style={{ display: 'block', textDecoration: 'none', margin: '0 20px 20px' }}>
       <div style={{
-        background: allDone ? '#f0fdf4' : 'white',
-        border: `2px solid ${allDone ? '#86efac' : '#e5e7eb'}`,
+        background: data.allDone
+          ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+          : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         borderRadius: 20,
         padding: '20px 22px',
+        color: 'white',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <div style={{
-          position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 72, opacity: 0.05, pointerEvents: 'none', userSelect: 'none',
-        }}>💊</div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: allDone ? '#dcfce7' : accent + '18',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, flexShrink: 0,
-            }}>💊</div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>
-                Doses de hoje
-              </div>
-              <div style={{ fontSize: 13, color: '#6b7280', marginTop: 1 }}>
-                {done} de {total} tomadas
-              </div>
+        <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 80, opacity: 0.08, lineHeight: 1, pointerEvents: 'none' }}>💊</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Doses de hoje</div>
+            <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
+              {data.done}<span style={{ fontSize: 16, opacity: 0.6, fontWeight: 500 }}> / {data.total}</span>
             </div>
           </div>
-          <div style={{
-            fontSize: 28, fontWeight: 900,
-            color: allDone ? '#16a34a' : accent,
-            letterSpacing: '-0.04em',
-            fontVariantNumeric: 'tabular-nums',
-          }}>{pct}%</div>
+          <div style={{ fontSize: 32, fontWeight: 900, opacity: 0.9, letterSpacing: '-0.03em' }}>{pct}%</div>
         </div>
-
-        <div style={{ height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
-          <div style={{
-            height: '100%',
-            width: `${pct}%`,
-            background: allDone ? '#22c55e' : accent,
-            borderRadius: 4,
-            transition: 'width 0.5s cubic-bezier(.4,0,.2,1)',
-          }} />
+        <div style={{ height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: 'white', borderRadius: 3, transition: 'width 0.5s ease' }} />
         </div>
-
-        {next ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, flexShrink: 0 }} />
-            <span style={{ fontSize: 14, color: '#374151', fontWeight: 600 }}>
-              {next.slot} — {next.name}{next.dose ? ` ${next.dose}` : ''}
-            </span>
-            <span style={{ marginLeft: 'auto', fontSize: 13, color: accent, fontWeight: 700 }}>
-              Tomar →
-            </span>
-          </div>
-        ) : allDone ? (
-          <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 700 }}>
-            ✓ Todas as doses tomadas hoje
-          </div>
-        ) : (
-          <div style={{ fontSize: 14, color: '#9ca3af' }}>Sem doses pendentes agora</div>
-        )}
+        <div style={{ fontSize: 14, opacity: 0.8, fontWeight: 500 }}>
+          {data.allDone ? '✓ Todas as doses tomadas hoje' : data.nextSlot ? `Próxima: ${data.nextSlot} — ${data.nextName}` : 'Sem doses pendentes agora'}
+        </div>
       </div>
     </Link>
   )
 }
 
-// ─── Dashboard content ────────────────────────────────────────────────────────
+// ─── Dashboard main ───────────────────────────────────────────────────────────
 
 function DashboardContent() {
   const { user } = useAuth()
-
-  const mode   = ((user as any)?.experience_mode as string) || 'personal'
-  const hero   = MODE_HERO[mode] || MODE_HERO.personal
-  const tiles  = TILES[mode] || TILES.personal
-  const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
+  const mode  = ((user as any)?.experience_mode as string) || 'personal'
+  const tiles = TILES[mode] || TILES.personal
+  const modeMeta = MODE_META[mode as ExperienceMode] || MODE_META.personal
 
   const hour = new Date().getHours()
-  const timeGreeting = hour < 12 ? 'Bom dia' : hour < 19 ? 'Boa tarde' : 'Boa noite'
+  const period = hour < 12 ? 'Bom dia' : hour < 19 ? 'Boa tarde' : 'Boa noite'
+  const firstName = user?.name?.split(' ')[0] || 'Bem-vindo'
+  const dateStr = new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
 
-  const primaryTile   = tiles[0]
-  const secondaryTiles = tiles.slice(1)
+  const primaryTile    = tiles.find(t => t.span)!
+  const secondaryTiles = tiles.filter(t => !t.span)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+    <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
 
-      {/* ── HERO ── */}
-      <div style={{
-        background: hero.gradient,
-        padding: '36px 24px 52px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+      {/* ── Greeting ── */}
+      <div style={{ padding: '28px 20px 22px', background: 'white', borderBottom: '1px solid #f1f5f9' }}>
         <div style={{
-          position: 'absolute', right: -10, bottom: -20,
-          fontSize: 160, opacity: 0.07, lineHeight: 1,
-          pointerEvents: 'none', userSelect: 'none',
-          transform: 'rotate(-8deg)',
-        }}>{hero.emoji}</div>
-
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            display: 'inline-block',
-            background: 'rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: 20,
-            padding: '4px 12px',
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.9)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            marginBottom: 14,
-          }}>{timeGreeting}</div>
-
-          <h1 style={{
-            fontSize: 34,
-            fontWeight: 900,
-            color: 'white',
-            margin: '0 0 6px',
-            letterSpacing: '-0.03em',
-            lineHeight: 1.1,
-          }}>{firstName}</h1>
-
-          <p style={{
-            fontSize: 17,
-            color: 'rgba(255,255,255,0.75)',
-            margin: 0,
-            fontWeight: 400,
-          }}>{hero.greeting}</p>
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 10px 3px 7px', borderRadius: 20,
+          background: `${modeMeta.color}18`, marginBottom: 12,
+        }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: modeMeta.color }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: modeMeta.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {modeMeta.labelShort}
+          </span>
+        </div>
+        <h1 style={{ fontSize: 30, fontWeight: 900, color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
+          {period}, {firstName} 👋
+        </h1>
+        <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 500, textTransform: 'capitalize' }}>
+          {dateStr}
         </div>
       </div>
 
-      {/* ── CONTENT (overlaps hero slightly) ── */}
-      <div style={{
-        maxWidth: 900,
-        margin: '-20px auto 0',
-        padding: '0 16px 40px',
-        position: 'relative',
-      }}>
+      {/* ── Today's doses (personal/caregiver only) ── */}
+      {(mode === 'personal' || mode === 'caregiver') && (
+        <div style={{ background: 'white', paddingBottom: 4 }}>
+          <TodayDoses />
+        </div>
+      )}
 
-        {/* Today's meds widget */}
-        {(mode === 'personal' || mode === 'caregiver') && (
-          <TodayMedsWidget accent={hero.accent} />
-        )}
+      {/* ── Tiles ── */}
+      <div style={{ padding: '20px 20px 8px' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+          O que quer fazer?
+        </div>
 
-        {/* ── PRIMARY TILE (full-width, large) ── */}
+        {/* Primary tile */}
         <Link href={primaryTile.href} style={{ display: 'block', textDecoration: 'none', marginBottom: 12 }}
-          className="tile-primary">
+          className="ph-tile">
           <div style={{
-            background: 'white',
-            borderRadius: 20,
-            padding: '24px 22px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 18,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
-            borderLeft: `6px solid ${primaryTile.accent}`,
-            minHeight: 96,
+            background: primaryTile.bg,
+            borderRadius: 18,
+            padding: '22px 20px',
+            display: 'flex', alignItems: 'center', gap: 18,
+            border: '1.5px solid rgba(0,0,0,0.06)',
           }}>
             <div style={{
-              width: 60, height: 60, borderRadius: 16,
-              background: primaryTile.accent + '18',
+              width: 56, height: 56, borderRadius: '50%',
+              background: primaryTile.iconBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, flexShrink: 0,
+              fontSize: 28, flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             }}>{primaryTile.icon}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 19, fontWeight: 900, color: '#111', letterSpacing: '-0.02em', marginBottom: 4 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: 4 }}>
                 {primaryTile.label}
               </div>
-              <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.4 }}>
+              <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.4 }}>
                 {primaryTile.desc}
               </div>
             </div>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: primaryTile.accent + '18',
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.06)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={primaryTile.accent} strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </div>
           </div>
         </Link>
 
-        {/* ── SECONDARY TILES (2-column grid) ── */}
-        <div className="tiles-grid">
+        {/* Secondary grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 12,
+        }}>
           {secondaryTiles.map(tile => (
-            <Link key={tile.href} href={tile.href} style={{ display: 'block', textDecoration: 'none' }}
-              className="tile-secondary">
+            <Link key={tile.href} href={tile.href} style={{ textDecoration: 'none' }}
+              className="ph-tile">
               <div style={{
-                background: 'white',
+                background: tile.bg,
                 borderRadius: 18,
-                padding: '20px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                borderTop: `4px solid ${tile.accent}`,
-                height: '100%',
+                padding: '18px 16px',
+                display: 'flex', flexDirection: 'column', gap: 14,
+                border: '1.5px solid rgba(0,0,0,0.05)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                 minHeight: 130,
               }}>
                 <div style={{
-                  width: 48, height: 48, borderRadius: 13,
-                  background: tile.accent + '15',
+                  width: 46, height: 46, borderRadius: '50%',
+                  background: tile.iconBg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 26,
+                  fontSize: 22,
                 }}>{tile.icon}</div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: '-0.02em', marginBottom: 4, lineHeight: 1.2 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', lineHeight: 1.25, marginBottom: 5 }}>
                     {tile.label}
                   </div>
-                  <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.4 }}>
                     {tile.desc}
                   </div>
                 </div>
@@ -347,57 +360,18 @@ function DashboardContent() {
             </Link>
           ))}
         </div>
-
-        {/* ── ALL TOOLS CTA ── */}
-        <Link href="/ferramentas" style={{ display: 'block', textDecoration: 'none', marginTop: 16 }}>
-          <div style={{
-            background: '#111827',
-            borderRadius: 20,
-            padding: '22px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-          }}>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'white', marginBottom: 4, letterSpacing: '-0.01em' }}>
-                Ver todas as ferramentas
-              </div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
-                Mais de 30 ferramentas de saúde e medicação
-              </div>
-            </div>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: 'rgba(255,255,255,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-          </div>
-        </Link>
-
       </div>
 
+
       <style>{`
-        .tiles-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-bottom: 0;
+        .ph-tile { display: block; }
+        .ph-tile > div { transition: transform 0.12s ease, box-shadow 0.12s ease; }
+        .ph-tile:hover > div, .ph-tile:active > div {
+          transform: scale(0.98);
+          box-shadow: 0 0 0 3px rgba(0,0,0,0.06) !important;
         }
-        @media (max-width: 480px) {
-          .tiles-grid { grid-template-columns: 1fr; }
-        }
-        .tile-primary > div { transition: transform 0.15s, box-shadow 0.15s; }
-        .tile-primary:hover > div {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
-        }
-        .tile-secondary > div { transition: transform 0.15s, box-shadow 0.15s; }
-        .tile-secondary:hover > div {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+        @media (max-width: 380px) {
+          .ph-tile > div { border-radius: 14px !important; }
         }
       `}</style>
     </div>
@@ -413,21 +387,20 @@ function DashboardRouter() {
   useEffect(() => {
     if (loading) return
     if (!user) { router.push('/login'); return }
-    if ((user as any)?.onboarded !== true) { router.push('/onboarding'); return }
+    if (!(user as any).onboarded) { router.push('/onboarding'); return }
   }, [user, loading, router])
 
   if (loading || !user) return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e5e7eb', borderTopColor: '#059669', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#059669', animation: 'spin 0.7s linear infinite' }} />
     </div>
   )
-
   return <DashboardContent />
 }
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f9fafb' }} />}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f8fafc' }} />}>
       <DashboardRouter />
     </Suspense>
   )
