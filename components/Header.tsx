@@ -22,7 +22,7 @@ type HeaderUser = {
 
 // ─── SearchBar ────────────────────────────────────────────────────────────────
 
-function SearchBar({ onClose }: { onClose: () => void }) {
+function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMode }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -30,7 +30,12 @@ function SearchBar({ onClose }: { onClose: () => void }) {
     cat.tools.map(t => ({ ...t, categoryLabel: cat.label, categoryColor: cat.color }))
   )
 
-  const popularTools = allTools.slice(0, 8)
+  // Show mode-relevant tools first as popular suggestions
+  const modeQuickHrefs = new Set((MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal).map(a => a.href))
+  const popularTools = [
+    ...allTools.filter(t => modeQuickHrefs.has(t.href)),
+    ...allTools.filter(t => !modeQuickHrefs.has(t.href)),
+  ].slice(0, 8)
 
   const filtered = query.trim()
     ? allTools.filter(t =>
@@ -329,72 +334,60 @@ function ToolsDropdown({ onClose }: { onClose: () => void }) {
 
 // ─── QuickActionsDropdown ─────────────────────────────────────────────────────
 
-const SAFETY_TOOLS = [
-  { href: '/interactions', icon: '🔍', label: 'Verificar interações',  desc: 'Combinação segura?' },
-  { href: '/food-drug',    icon: '🥗', label: 'Alimentos a evitar',   desc: 'O que não misturar' },
-  { href: '/bula',         icon: '📄', label: 'Perceber uma bula',    desc: 'Em linguagem simples' },
-  { href: '/schedule',     icon: '⏰', label: 'Horário inteligente',  desc: 'IA cria o horário ideal' },
-  { href: '/optimizer',    icon: '⚡', label: 'Otimizar prescrição',  desc: 'STOPP/START e genéricos' },
-]
 
 function QuickActionsDropdown({ user, onClose }: { user: HeaderUser; onClose: () => void }) {
   const mode: ExperienceMode = user.experience_mode || 'personal'
   const actions = MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal
   const meta = MODE_META[mode]
-  const isClinical = mode === 'clinical'
 
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
       <div style={{
         position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-        width: 320, background: 'white',
+        width: 300, background: 'white',
         border: '1px solid rgba(0,0,0,0.08)',
         borderRadius: 16,
         boxShadow: '0 24px 64px rgba(0,0,0,0.14)',
         zIndex: 150, overflow: 'hidden',
+        maxHeight: 'min(480px, calc(100vh - 80px))',
+        display: 'flex', flexDirection: 'column',
         animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
       }}>
         {/* Header */}
         <div style={{
-          padding: '12px 16px 10px',
+          padding: '11px 16px 10px', flexShrink: 0,
           borderBottom: '1px solid #f1f5f9',
           background: `${meta.color}06`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Ações rápidas
-            </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
-              Modo: {meta.label}
-            </div>
-          </div>
           <div style={{
-            width: 24, height: 24, borderRadius: 6,
-            background: `${meta.color}15`,
+            width: 22, height: 22, borderRadius: 6,
+            background: `${meta.color}20`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13,
-          }}>
-            ⚡
+            fontSize: 12, flexShrink: 0,
+          }}>⚡</div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Ações rápidas</div>
+            <div style={{ fontSize: 10, color: meta.color, fontWeight: 600 }}>{meta.labelShort}</div>
           </div>
         </div>
 
-        {/* Mode-specific quick actions */}
-        <div>
+        {/* Scrollable actions */}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
           {actions.map((action, i) => (
             <Link key={action.href} href={action.href} onClick={onClose}
               className="qa-item"
               style={{
                 display: 'flex', alignItems: 'center', gap: 11,
-                padding: '9px 16px', textDecoration: 'none',
+                padding: '10px 16px', textDecoration: 'none',
                 borderBottom: i < actions.length - 1 ? '1px solid #fafafa' : 'none',
               }}>
               <div style={{
-                width: 34, height: 34, borderRadius: 9,
+                width: 36, height: 36, borderRadius: 10,
                 background: `${meta.color}12`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 17, flexShrink: 0,
+                fontSize: 18, flexShrink: 0,
               }}>
                 {action.icon}
               </div>
@@ -409,45 +402,14 @@ function QuickActionsDropdown({ user, onClose }: { user: HeaderUser; onClose: ()
           ))}
         </div>
 
-        {/* Safety tools section — always visible */}
-        {!isClinical && (
-          <div style={{ borderTop: '1px solid #f1f5f9' }}>
-            <div style={{ padding: '8px 16px 4px', fontSize: 10, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Verificação rápida
-            </div>
-            {SAFETY_TOOLS.map(tool => (
-              <Link key={tool.href} href={tool.href} onClick={onClose}
-                className="qa-item"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 16px', textDecoration: 'none',
-                }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 7,
-                  background: '#0d948812',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, flexShrink: 0,
-                }}>
-                  {tool.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>{tool.label}</div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 0.5 }}>{tool.desc}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
         {/* Footer */}
-        <div style={{ padding: '10px 16px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '10px 16px', borderTop: '1px solid #f1f5f9', flexShrink: 0, background: '#fafafa' }}>
           <Link href="/ferramentas" onClick={onClose}
-            style={{ fontSize: 12, color: meta.color, fontWeight: 700, textDecoration: 'none' }}>
-            Todas as ferramentas →
-          </Link>
-          <Link href="/dashboard" onClick={onClose}
-            style={{ fontSize: 11, color: '#94a3b8', textDecoration: 'none' }}>
-            Painel
+            style={{ fontSize: 13, color: meta.color, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+            Ver todas as ferramentas
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </Link>
         </div>
       </div>
@@ -571,22 +533,20 @@ function UserMenu({ user, signOut, supabase, isDark }: {
     window.location.reload()
   }
 
-  const menuLinks = [
-    { href: '/inicio',       label: 'Início',           icon: '🏠' },
-    { href: '/dashboard',    label: 'Painel',            icon: '📊' },
-    { href: '/ferramentas',  label: 'Ferramentas',       icon: '🔧' },
-    { href: '/settings',     label: 'Definições',        icon: '⚙️' },
-    { href: '/passport',     label: 'Passaporte',        icon: '🆘' },
-    { href: '/vitals',       label: 'Sinais vitais',     icon: '❤️' },
-    { href: '/ai',           label: 'Phlox AI',          icon: '🤖' },
-  ]
-
   const planLabels: Record<string, string> = {
     free: 'Grátis', student: 'Estudante', pro: 'Pro', clinic: 'Clínica',
   }
 
+  const MODES_LIST = [
+    { id: 'personal'  as ExperienceMode, icon: '👤', labelShort: 'Pessoal',   color: MODE_META.personal.color },
+    { id: 'caregiver' as ExperienceMode, icon: '👨‍👩‍👧', labelShort: 'Família',   color: MODE_META.caregiver.color },
+    { id: 'clinical'  as ExperienceMode, icon: '🏥', labelShort: 'Clínico',   color: MODE_META.clinical.color },
+    { id: 'student'   as ExperienceMode, icon: '🎓', labelShort: 'Estudante', color: MODE_META.student.color },
+  ]
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
+      {/* Trigger button */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{
@@ -627,114 +587,83 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             position: 'absolute', right: 0, top: 'calc(100% + 8px)',
             background: 'white', border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.14)',
-            minWidth: 252, zIndex: 999, overflow: 'hidden',
+            width: 248, zIndex: 999, overflow: 'hidden',
             animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
           }}>
-            {/* User info card */}
-            <div style={{ padding: '16px', background: `${color}08`, borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 10 }}>
+            {/* User card */}
+            <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
+                  width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
                   background: color, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: 'white', fontSize: 16,
-                  fontWeight: 700, overflow: 'hidden', flexShrink: 0,
-                  border: `2px solid ${color}30`,
+                  justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700,
+                  overflow: 'hidden', border: `2px solid ${color}30`,
                 }}>
                   {user.avatar
                     ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : (user.name?.[0] || 'U').toUpperCase()}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user.name}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 8px', borderRadius: 20,
+                      background: `${color}15`, fontSize: 10, fontWeight: 700, color: color,
+                    }}>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: color }} />
+                      {modeMeta.labelShort}
+                    </span>
+                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>
+                      {planLabels[user.plan || ''] || 'Grátis'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '3px 10px', borderRadius: 20,
-                  background: `${color}18`,
-                  fontSize: 11, fontWeight: 700, color: color,
-                  letterSpacing: '0.04em',
-                }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: color }} />
-                  {modeMeta.labelShort}
-                </span>
-                {user.plan && (
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center',
-                    padding: '3px 9px', borderRadius: 20,
-                    background: '#f1f5f9',
-                    fontSize: 11, fontWeight: 600, color: '#64748b',
-                  }}>
-                    {planLabels[user.plan] || user.plan}
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Nav links */}
-            {menuLinks.map(item => (
+            {/* Nav */}
+            {[
+              { href: '/inicio',      label: 'Início',       icon: '🏠' },
+              { href: '/ferramentas', label: 'Ferramentas',  icon: '🔧' },
+              { href: '/settings',    label: 'Definições',   icon: '⚙️' },
+            ].map(item => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
                 className="um-item"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 16px', fontSize: 13, color: '#374151',
-                  textDecoration: 'none',
+                  padding: '9px 16px', fontSize: 13, fontWeight: 500,
+                  color: '#374151', textDecoration: 'none',
                 }}>
-                <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{item.icon}</span>
+                <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
                 {item.label}
               </Link>
             ))}
 
-            {/* Mode-specific quick access */}
-            <div style={{ borderTop: '1px solid #f1f5f9', padding: '6px 0 2px' }}>
-              <div style={{ padding: '3px 16px 6px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Acesso rápido — {modeMeta.labelShort}
-              </div>
-              {(MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal).slice(0, 3).map(tool => (
-                <Link key={tool.href} href={tool.href} onClick={() => setOpen(false)}
-                  className="um-item"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 9,
-                    padding: '7px 16px', textDecoration: 'none',
-                  }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: 6,
-                    background: `${color}12`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, flexShrink: 0,
-                  }}>
-                    {tool.icon}
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: '#374151' }}>{tool.label}</span>
-                </Link>
-              ))}
-            </div>
-
             {/* Mode switcher */}
-            <div style={{ padding: '10px 16px', borderTop: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <div style={{ borderTop: '1px solid #f1f5f9', padding: '8px 12px 10px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7, paddingLeft: 4 }}>
                 Mudar modo
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-                {(['personal', 'caregiver', 'clinical', 'student'] as const).map(m => {
-                  const mm = MODE_META[m]
-                  const active = mode === m
+                {MODES_LIST.map(m => {
+                  const active = mode === m.id
                   return (
-                    <button key={m} onClick={() => switchMode(m)} style={{
-                      padding: '7px 9px', borderRadius: 9,
-                      border: `1px solid ${active ? mm.color + '35' : '#f1f5f9'}`,
-                      background: active ? mm.color + '10' : '#f8fafc',
-                      cursor: 'pointer', fontSize: 12,
-                      fontWeight: active ? 700 : 500,
-                      color: active ? mm.color : '#64748b',
+                    <button key={m.id} onClick={() => switchMode(m.id)} style={{
+                      padding: '7px 8px', borderRadius: 8,
+                      border: `1px solid ${active ? m.color + '40' : '#f1f5f9'}`,
+                      background: active ? m.color + '10' : '#f8fafc',
+                      cursor: active ? 'default' : 'pointer',
+                      fontSize: 11, fontWeight: active ? 700 : 500,
+                      color: active ? m.color : '#64748b',
                       fontFamily: 'inherit',
-                      display: 'flex', alignItems: 'center',
-                      gap: 5, transition: 'all 0.1s',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      transition: 'all 0.1s',
                     }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: mm.color, flexShrink: 0 }} />
-                      {mm.labelShort}
+                      <span style={{ fontSize: 13 }}>{m.icon}</span>
+                      {m.labelShort}
                     </button>
                   )
                 })}
@@ -746,8 +675,7 @@ function UserMenu({ user, signOut, supabase, isDark }: {
               onClick={() => { signOut(); setOpen(false) }}
               style={{
                 width: '100%', padding: '10px 16px', textAlign: 'left',
-                background: 'none', border: 'none',
-                borderTop: '1px solid #f1f5f9',
+                background: 'none', border: 'none', borderTop: '1px solid #f1f5f9',
                 cursor: 'pointer', fontSize: 13, color: '#ef4444',
                 fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -955,55 +883,32 @@ function MobileDrawer({ open, onClose, user, signOut, supabase }: {
             </div>
           )}
 
-          {/* All tools by category */}
-          {NAV_CATEGORIES.map(cat => (
-            <div key={cat.id} style={{ padding: '12px 0 4px' }}>
-              <div style={{ padding: '0 18px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: cat.color }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: cat.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {cat.label}
-                </span>
-              </div>
-              {cat.tools.map(tool => (
-                <Link key={tool.href} href={tool.href} onClick={onClose}
-                  className="mob-item"
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 18px', textDecoration: 'none' }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    background: `${cat.color}12`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16, flexShrink: 0,
-                  }}>
-                    {tool.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{tool.label}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{tool.desc}</div>
-                  </div>
-                  {tool.badge && (
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, color: cat.color,
-                      background: `${cat.color}15`, padding: '1px 5px',
-                      borderRadius: 3, letterSpacing: '0.05em',
-                      textTransform: 'uppercase', flexShrink: 0,
-                    }}>
-                      {tool.badge}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          ))}
-
-          <div style={{ padding: '10px 18px 16px' }}>
+          {/* All tools link */}
+          <div style={{ padding: '14px 18px' }}>
             <Link href="/ferramentas" onClick={onClose}
               style={{
-                display: 'block', padding: '11px 16px', background: '#f8fafc',
-                border: '1px solid #e2e8f0', borderRadius: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                padding: '13px 16px', background: '#f8fafc',
+                border: '1px solid #e2e8f0', borderRadius: 13,
                 fontSize: 14, fontWeight: 700, color: '#0f172a',
-                textDecoration: 'none', textAlign: 'center',
+                textDecoration: 'none',
               }}>
-              Ver todas as ferramentas →
+              🔧 Ver todas as ferramentas
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </Link>
+          </div>
+          <div style={{ padding: '0 18px 14px' }}>
+            <Link href="/dashboard" onClick={onClose}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                padding: '13px 16px', background: modeMeta.color + '10',
+                border: `1px solid ${modeMeta.color}25`, borderRadius: 13,
+                fontSize: 14, fontWeight: 700, color: modeMeta.color,
+                textDecoration: 'none',
+              }}>
+              📊 Painel de controlo
             </Link>
           </div>
         </div>
@@ -1416,7 +1321,7 @@ export default function Header() {
       {!isHomepage && <div style={{ height: 56 }} />}
 
       {/* Overlays */}
-      {searchOpen && <SearchBar onClose={closeSearch} />}
+      {searchOpen && <SearchBar onClose={closeSearch} mode={mode} />}
       {shortcutsOpen && <KeyboardShortcutsOverlay onClose={closeShortcuts} />}
 
       <MobileDrawer
