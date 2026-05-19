@@ -513,65 +513,129 @@ function DashboardContent() {
     free: 'Grátis', student: 'Estudante', pro: 'Pro', clinic: 'Clínica',
   }
 
+  // Mode-specific hero config
+  const HERO_CONFIG = {
+    personal: {
+      gradient: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
+      icon: '💊',
+      title: 'A tua saúde, organizada.',
+      subtitle: 'Medicação, sinais vitais e segurança num só lugar.',
+      badgeLabel: 'Modo Pessoal',
+    },
+    caregiver: {
+      gradient: 'linear-gradient(135deg, #d97706 0%, #ea580c 100%)',
+      icon: '👨‍👩‍👧',
+      title: 'Cuida de toda a família.',
+      subtitle: 'Perfis familiares, medicação e passaporte de emergência.',
+      badgeLabel: 'Modo Cuidador',
+    },
+    clinical: {
+      gradient: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
+      icon: '🏥',
+      title: 'Farmácia clínica digital.',
+      subtitle: 'Gestão de doentes, MAR, rondas e intervenção farmacêutica.',
+      badgeLabel: 'Modo Clínico',
+    },
+    student: {
+      gradient: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+      icon: '🎓',
+      title: 'Aprende. Compete. Cresce.',
+      subtitle: 'Arena, simulador clínico, OSCE e flashcards — tudo com IA.',
+      badgeLabel: 'Modo Estudante',
+    },
+  }
+  const hero = HERO_CONFIG[mode]
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', paddingTop: 56 }}>
 
-      {/* Page header */}
-      <div style={{ background: 'white', borderBottom: '1px solid #f1f5f9', padding: '32px 24px 28px' }}>
+      {/* Dramatic mode hero */}
+      <div style={{ background: hero.gradient, padding: '36px 24px 32px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-            <div>
-              <p style={{
-                fontSize: 11, fontWeight: 700, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px',
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 12px', borderRadius: 20,
+                background: 'rgba(255,255,255,0.18)', marginBottom: 16,
               }}>
-                Phlox
-              </p>
-              <h1 style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.03em' }}>
-                Painel de controlo
+                <span style={{ fontSize: 14 }}>{hero.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {hero.badgeLabel}
+                </span>
+              </div>
+              <h1 style={{ fontSize: 34, fontWeight: 900, color: 'white', margin: '0 0 10px', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
+                {hero.title}
               </h1>
-              <p style={{ fontSize: 13, color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
-                Gere o teu modo, acede a todas as ferramentas e personaliza a tua experiência.
+              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', margin: 0, lineHeight: 1.6 }}>
+                {hero.subtitle}
               </p>
             </div>
             {user && (
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 16px',
-                background: `${meta.color}08`,
-                border: `1px solid ${meta.color}25`,
-                borderRadius: 12,
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 18px',
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                borderRadius: 16, backdropFilter: 'blur(8px)',
+                flexShrink: 0,
               }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: meta.color, overflow: 'hidden',
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.25)', overflow: 'hidden',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontSize: 15, fontWeight: 700, flexShrink: 0,
+                  color: 'white', fontSize: 18, fontWeight: 700, flexShrink: 0,
+                  border: '2px solid rgba(255,255,255,0.4)',
                 }}>
                   {user.avatar
                     ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : (user.name?.[0] || 'U').toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{user.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: 11, fontWeight: 700, color: meta.color,
-                    }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color }} />
-                      {meta.labelShort}
-                    </span>
-                    {user.plan && (
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                        · {planLabels[user.plan] || user.plan}
-                      </span>
-                    )}
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{user.name}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+                    {planLabels[user.plan || ''] || 'Grátis'}
                   </div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Quick stat pills */}
+          {!statsLoading && (
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap' }}>
+              {mode === 'personal' && (<>
+                {stats.meds > 0 && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.18)' }}>
+                    <span style={{ fontSize: 13, color: 'white' }}>💊</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{stats.meds} medicamento{stats.meds !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+                {stats.vitals > 0 && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.18)' }}>
+                    <span style={{ fontSize: 13, color: 'white' }}>❤️</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{stats.vitals} medição{stats.vitals !== 1 ? 'ões' : ''}</span>
+                  </div>
+                )}
+              </>)}
+              {mode === 'caregiver' && (<>
+                {stats.profiles > 0 && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.18)' }}>
+                    <span style={{ fontSize: 13, color: 'white' }}>👨‍👩‍👧</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{stats.profiles} perfil{stats.profiles !== 1 ? 's' : ''} familiar{stats.profiles !== 1 ? 'es' : ''}</span>
+                  </div>
+                )}
+              </>)}
+              {mode === 'clinical' && (<>
+                {stats.patients > 0 && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.18)' }}>
+                    <span style={{ fontSize: 13, color: 'white' }}>👥</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{stats.patients} doente{stats.patients !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+              </>)}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1292,9 +1292,9 @@ export default function Header() {
             </div>
           )}
 
-          {/* Compact mode pill — medium screens where mode tabs are hidden */}
+          {/* Compact mode pill — shows on 769–1249px where full mode tabs are hidden */}
           {!loading && user && (
-            <div style={{ marginLeft: 10 }} className="hdr-mode-pill-compact">
+            <div style={{ marginLeft: 8, display: 'none' }} className="hdr-mode-pill-compact">
               <DesktopModeIndicator user={user as HeaderUser} supabase={supabase} />
             </div>
           )}
@@ -1459,33 +1459,36 @@ export default function Header() {
           transition: background 0.25s, color 0.25s, border-color 0.25s;
         }
 
+        /* Desktop ≥769px: hide hamburger and mobile spacer */
         @media (min-width:769px) {
-          .hdr-hamburger { display:none !important; }
-          .hdr-spacer    { display:none !important; }
+          .hdr-hamburger         { display:none !important; }
+          .hdr-spacer            { display:none !important; }
         }
+        /* Mobile ≤768px: hide desktop elements */
         @media (max-width:768px) {
-          .hdr-nav        { display:none !important; }
-          .hdr-mode-tabs  { display:none !important; }
-          .hdr-search-btn { display:none !important; }
+          .hdr-nav               { display:none !important; }
+          .hdr-mode-tabs         { display:none !important; }
+          .hdr-search-btn        { display:none !important; }
+          .hdr-mode-pill-compact { display:none !important; }
         }
+        /* Medium desktop 769–1249px: hide full mode tabs, show compact pill */
+        @media (min-width:769px) and (max-width:1249px) {
+          .hdr-mode-tabs         { display:none !important; }
+          .hdr-mode-pill-compact { display:flex !important; }
+        }
+        /* Wide desktop ≥1250px: show full mode tabs, hide compact pill */
+        @media (min-width:1250px) {
+          .hdr-mode-pill-compact { display:none !important; }
+        }
+        /* Hide search label/kbd on narrower desktops */
         @media (max-width:1100px) {
           .hdr-search-label { display:none !important; }
           .hdr-search-kbd   { display:none !important; }
         }
-        @media (max-width:480px) {
-          .hdr-desktop-only { display:none !important; }
-        }
-        /* Compact mode pill: never visible (PersonaModeBar covers desktop, drawer covers mobile) */
-        /* Kept here for future use on medium viewports if PersonaModeBar is hidden */
-        .hdr-mode-pill-compact {
-          display: none !important;
-        }
-
-        /* Notification bell pulse on new notifications */
+        /* Notification bell pulse */
         .notif-bell-active {
           animation: pulseRing 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite;
         }
-
         /* Tool grid gap fix on small screens */
         @media (max-width: 400px) {
           .mob-tool-grid { gap: 4px !important; }

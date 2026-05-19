@@ -191,29 +191,64 @@ function PersonalHome({ user }: { user: any }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', paddingTop: 56 }}>
-      {/* Greeting banner */}
-      <div style={{ background: 'white', borderBottom: '1px solid #f1f5f9', padding: '32px 24px 28px' }}>
+      {/* Greeting banner — colored gradient */}
+      <div style={{ background: `linear-gradient(135deg, ${color} 0%, #0891b2 100%)`, padding: '32px 24px 30px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
-          <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 4px', textTransform: 'capitalize' }}>{dateStr()}</p>
-          <h1 style={{ fontSize: 30, fontWeight: 900, color: '#0f172a', margin: '0 0 10px', letterSpacing: '-0.03em' }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', margin: '0 0 6px', textTransform: 'capitalize' }}>{dateStr()}</p>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: 'white', margin: '0 0 8px', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
             {greeting()}{firstName ? `, ${firstName}` : ''} 👋
           </h1>
-          <div style={{ height: 3, width: 44, borderRadius: 2, background: color }} />
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', margin: 0 }}>
+            {meds.length > 0
+              ? `Tens ${totalSlots} dose${totalSlots !== 1 ? 's' : ''} agendada${totalSlots !== 1 ? 's' : ''} para hoje.`
+              : 'A tua saúde, organizada num só lugar.'}
+          </p>
         </div>
       </div>
 
+      {/* Próxima dose banner — destaque */}
+      {!loadingData && upcomingDoses.length > 0 && (
+        <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
+          <div style={{ maxWidth: 860, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 11,
+              background: '#fde68a',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 20, flexShrink: 0,
+            }}>⏰</div>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+                Próxima toma
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#78350f' }}>
+                {upcomingDoses[0].time} — {upcomingDoses[0].medName}
+              </div>
+            </div>
+            <Link href="/mymeds" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '11px 20px', borderRadius: 28,
+              background: '#d97706', color: 'white',
+              fontSize: 14, fontWeight: 800, textDecoration: 'none',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              Registar toma
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 20px 80px' }}>
 
-        {/* Section 2 — Medicação hoje */}
+        {/* Section 2 — Medicamentos hoje */}
         <section style={{ marginBottom: 32 }}>
           <SectionLabel right={
             meds.length > 0 && (
-              <Link href="/mymeds" style={{ fontSize: 12, color: color, fontWeight: 600, textDecoration: 'none' }}>
+              <Link href="/mymeds" style={{ fontSize: 13, color: color, fontWeight: 700, textDecoration: 'none' }}>
                 Ver todos →
               </Link>
             )
           }>
-            Medicação hoje
+            Os teus medicamentos hoje
           </SectionLabel>
 
           {loadingData ? (
@@ -221,113 +256,132 @@ function PersonalHome({ user }: { user: any }) {
           ) : meds.length === 0 ? (
             <Link href="/mymeds" style={{ display: 'block', textDecoration: 'none' }}>
               <div style={{
-                background: 'white', borderRadius: 16, padding: '36px 24px',
+                background: 'white', borderRadius: 16, padding: '40px 24px',
                 border: '2px dashed #e2e8f0', textAlign: 'center',
               }}>
-                <div style={{ fontSize: 38, marginBottom: 12 }}>💊</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
-                  Nenhum medicamento registado
+                <div style={{ fontSize: 48, marginBottom: 14 }}>💊</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
+                  Ainda não tens medicamentos
                 </div>
-                <div style={{ fontSize: 13, color: color, fontWeight: 600 }}>
-                  Adicionar medicamento →
+                <div style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>
+                  Adiciona os teus medicamentos e o Phlox lembra-te quando é hora de tomar.
+                </div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '13px 26px', borderRadius: 28, background: color, color: 'white',
+                  fontSize: 15, fontWeight: 800,
+                }}>
+                  + Adicionar medicamento
                 </div>
               </div>
             </Link>
           ) : (
             <div style={{
-              background: 'white', borderRadius: 16, padding: '20px 22px',
+              background: 'white', borderRadius: 16, padding: '22px 22px',
               border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             }}>
-              {/* Adherence header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              {/* Progress header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
-                    Adesão hoje
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
+                    Tomados hoje
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em' }}>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>
                     {takenCount}
-                    <span style={{ fontSize: 15, fontWeight: 500, color: '#94a3b8' }}> / {totalSlots} doses</span>
+                    <span style={{ fontSize: 18, fontWeight: 500, color: '#94a3b8' }}> de {totalSlots}</span>
                   </div>
                 </div>
                 <div style={{
-                  fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em',
-                  color: pct === 100 ? '#059669' : pct >= 70 ? color : '#f59e0b',
+                  width: 62, height: 62,
+                  borderRadius: '50%',
+                  background: `conic-gradient(${pct === 100 ? '#059669' : pct >= 70 ? color : '#f59e0b'} ${pct * 3.6}deg, #f1f5f9 0deg)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
                 }}>
-                  {pct}%
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '50%', background: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 900,
+                    color: pct === 100 ? '#059669' : pct >= 70 ? color : '#f59e0b',
+                  }}>
+                    {pct}%
+                  </div>
                 </div>
               </div>
 
               {/* Progress bar */}
-              <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden', marginBottom: 18 }}>
+              <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden', marginBottom: 20 }}>
                 <div style={{
                   height: '100%', width: `${pct}%`,
                   background: pct === 100 ? '#059669' : pct >= 70 ? color : '#f59e0b',
-                  borderRadius: 3, transition: 'width 0.5s ease',
+                  borderRadius: 4, transition: 'width 0.5s ease',
                 }} />
               </div>
 
-              {/* Med list */}
+              {/* Med list — bigger, accessible */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {meds.slice(0, 6).map(m => {
                   const taken = takenIds.has(m.id)
                   return (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                    <div key={m.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '12px 14px', borderRadius: 12,
+                      background: taken ? '#f0fdf4' : '#f8fafc',
+                      border: `1.5px solid ${taken ? '#86efac' : '#e2e8f0'}`,
+                    }}>
                       <div style={{
-                        width: 22, height: 22, borderRadius: '50%',
-                        border: `2px solid ${taken ? '#059669' : '#e2e8f0'}`,
-                        background: taken ? '#059669' : 'transparent',
+                        width: 30, height: 30, borderRadius: '50%',
+                        border: `2.5px solid ${taken ? '#059669' : '#cbd5e1'}`,
+                        background: taken ? '#059669' : 'white',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0, transition: 'all 0.2s',
                       }}>
                         {taken && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round">
                             <path d="M20 6L9 17l-5-5"/>
                           </svg>
                         )}
                       </div>
-                      <span style={{
-                        fontSize: 13,
-                        color: taken ? '#94a3b8' : '#0f172a',
-                        fontWeight: taken ? 400 : 600,
-                        textDecoration: taken ? 'line-through' : 'none',
-                        flex: 1,
-                      }}>
-                        {m.name}
-                      </span>
-                      {m.dose && (
-                        <span style={{ fontSize: 12, color: '#94a3b8' }}>{m.dose}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{
+                          fontSize: 15,
+                          color: taken ? '#059669' : '#0f172a',
+                          fontWeight: taken ? 500 : 700,
+                          textDecoration: taken ? 'line-through' : 'none',
+                        }}>
+                          {m.name}
+                        </span>
+                        {m.dose && (
+                          <span style={{ fontSize: 13, color: '#94a3b8', marginLeft: 7 }}>{m.dose}</span>
+                        )}
+                      </div>
+                      {taken && (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', flexShrink: 0 }}>✓ Tomado</span>
                       )}
                     </div>
                   )
                 })}
                 {meds.length > 6 && (
-                  <div style={{ fontSize: 12, color: '#94a3b8', paddingLeft: 33 }}>
-                    +{meds.length - 6} mais
-                  </div>
+                  <Link href="/mymeds" style={{
+                    fontSize: 13, color: color, fontWeight: 700, textDecoration: 'none',
+                    textAlign: 'center', padding: '8px 0', display: 'block',
+                  }}>
+                    Ver mais {meds.length - 6} medicamentos →
+                  </Link>
                 )}
               </div>
 
-              {/* Next dose hint */}
-              {upcomingDoses.length > 0 && (
-                <div style={{
-                  marginTop: 16, paddingTop: 14,
-                  borderTop: '1px solid #f1f5f9',
-                  display: 'flex', alignItems: 'center', gap: 8,
+              {/* Go to mymeds CTA */}
+              <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
+                <Link href="/mymeds" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '13px 0', borderRadius: 12,
+                  background: `${color}10`, border: `1.5px solid ${color}30`,
+                  color: color, fontSize: 14, fontWeight: 700, textDecoration: 'none',
                 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 7,
-                    background: `${color}12`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, flexShrink: 0,
-                  }}>⏰</div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 1 }}>Próxima toma</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                      {upcomingDoses[0].time} — {upcomingDoses[0].medName}
-                    </div>
-                  </div>
-                </div>
-              )}
+                  Gerir os meus medicamentos →
+                </Link>
+              </div>
             </div>
           )}
         </section>
@@ -335,29 +389,35 @@ function PersonalHome({ user }: { user: any }) {
         {/* Section 3 — Próximas tomas (timeline) */}
         {upcomingDoses.length > 1 && (
           <section style={{ marginBottom: 32 }}>
-            <SectionLabel>Próximas tomas</SectionLabel>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {upcomingDoses.slice(0, 8).map((dose, i) => (
+            <SectionLabel>Horário de hoje</SectionLabel>
+            <div style={{
+              background: 'white', borderRadius: 16, padding: '6px 4px',
+              border: '1px solid #f1f5f9',
+            }}>
+              {upcomingDoses.slice(0, 6).map((dose, i) => (
                 <div key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '6px 12px', borderRadius: 20,
-                  background: 'white', border: `1px solid ${color}25`,
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '12px 16px',
+                  borderBottom: i < Math.min(upcomingDoses.length, 6) - 1 ? '1px solid #f8fafc' : 'none',
                 }}>
                   <div style={{
-                    width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0,
+                    minWidth: 50, fontSize: 15, fontWeight: 800, color: color,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {dose.time}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', flex: 1 }}>
+                    {dose.medName}
+                  </div>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: `${color}50`, flexShrink: 0,
                   }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: color }}>{dose.time}</span>
-                  <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{dose.medName}</span>
                 </div>
               ))}
-              {upcomingDoses.length > 8 && (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  padding: '6px 12px', borderRadius: 20,
-                  background: '#f8fafc', border: '1px solid #e2e8f0',
-                }}>
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>+{upcomingDoses.length - 8} mais</span>
+              {upcomingDoses.length > 6 && (
+                <div style={{ padding: '10px 16px', fontSize: 13, color: '#94a3b8' }}>
+                  +{upcomingDoses.length - 6} tomas mais tarde
                 </div>
               )}
             </div>
@@ -367,8 +427,12 @@ function PersonalHome({ user }: { user: any }) {
         {/* Section 4 — Sinais vitais */}
         <section style={{ marginBottom: 32 }}>
           <SectionLabel right={
-            <Link href="/vitals" style={{ fontSize: 12, color: '#e11d48', fontWeight: 600, textDecoration: 'none' }}>
-              + Registar
+            <Link href="/vitals" style={{
+              fontSize: 13, color: '#e11d48', fontWeight: 700, textDecoration: 'none',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '6px 14px', borderRadius: 20, background: '#fff1f2', border: '1px solid #fecdd3',
+            }}>
+              + Registar medição
             </Link>
           }>
             Sinais vitais
@@ -379,33 +443,43 @@ function PersonalHome({ user }: { user: any }) {
           ) : vitals.length === 0 ? (
             <Link href="/vitals" style={{ display: 'block', textDecoration: 'none' }}>
               <div style={{
-                background: 'white', borderRadius: 14, padding: '28px 24px',
-                border: '2px dashed #e2e8f0', textAlign: 'center',
+                background: 'white', borderRadius: 16, padding: '36px 24px',
+                border: '2px dashed #fecdd3', textAlign: 'center',
               }}>
-                <div style={{ fontSize: 32, marginBottom: 10 }}>❤️</div>
-                <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>
-                  Sem medições registadas
+                <div style={{ fontSize: 44, marginBottom: 12 }}>❤️</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
+                  Regista os teus sinais vitais
                 </div>
-                <div style={{ fontSize: 13, color: '#e11d48', fontWeight: 600 }}>
-                  Registar primeira medição →
+                <div style={{ fontSize: 14, color: '#64748b', marginBottom: 18, lineHeight: 1.6 }}>
+                  Tensão arterial, pulso, peso... acompanha a tua saúde ao longo do tempo.
+                </div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '12px 24px', borderRadius: 28, background: '#e11d48', color: 'white',
+                  fontSize: 14, fontWeight: 800,
+                }}>
+                  Começar agora →
                 </div>
               </div>
             </Link>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 140px), 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 150px), 1fr))', gap: 10 }}>
               {vitals.map((v, i) => (
                 <Link key={i} href="/vitals" style={{ textDecoration: 'none' }} className="ic-card">
                   <div style={{
-                    background: 'white', borderRadius: 12, padding: '14px 16px',
-                    border: '1px solid #f1f5f9',
+                    background: 'white', borderRadius: 14, padding: '16px 18px',
+                    border: '1px solid #fce7f3',
                     transition: 'transform 0.12s, box-shadow 0.12s',
                   }}>
-                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+                    <div style={{ fontSize: 20, marginBottom: 8 }}>
+                      {v.type === 'Tensão' ? '🩺' : v.type === 'Pulso' ? '💓' : v.type === 'Peso' ? '⚖️' : v.type === 'Glicemia' ? '🩸' : '📊'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
                       {v.type || 'Medição'}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#0f172a' }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a' }}>
                       {v.value}
-                      {v.unit && <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}> {v.unit}</span>}
+                      {v.unit && <span style={{ fontSize: 13, fontWeight: 500, color: '#94a3b8' }}> {v.unit}</span>}
                     </div>
                     <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 5 }}>
                       {new Date(v.measured_at).toLocaleDateString('pt-PT')}
@@ -419,7 +493,7 @@ function PersonalHome({ user }: { user: any }) {
 
         {/* Section 5 — Ferramentas */}
         <section style={{ marginBottom: 32 }}>
-          <SectionLabel>Ferramentas</SectionLabel>
+          <SectionLabel>O que queres fazer?</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
             {MODE_QUICK_ACTIONS.personal.map(a => (
               <ToolCard key={a.href} {...a} color={color} />
@@ -439,66 +513,77 @@ function PersonalHome({ user }: { user: any }) {
 
         {/* Section 7 — AI assistente rápido */}
         <section style={{ marginBottom: 32 }}>
-          <SectionLabel>Assistente farmacêutico</SectionLabel>
           <Link href="/ai" style={{ display: 'block', textDecoration: 'none' }} className="ai-banner">
             <div style={{
               background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
-              borderRadius: 16, padding: '22px 24px',
-              display: 'flex', alignItems: 'center', gap: 18,
+              borderRadius: 20, padding: '28px 26px',
+              display: 'flex', alignItems: 'center', gap: 20,
               transition: 'transform 0.12s, box-shadow 0.12s',
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14,
+                width: 64, height: 64, borderRadius: 18,
                 background: 'rgba(255,255,255,0.18)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 26, flexShrink: 0,
+                fontSize: 32, flexShrink: 0,
               }}>
                 🤖
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'white', marginBottom: 5 }}>Phlox AI</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.55 }}>
-                  Farmacêutico virtual 24h. Pergunta sobre a tua medicação, interações ou qualquer dúvida de saúde.
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                  Farmacêutico virtual 24h
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: 'white', marginBottom: 6, lineHeight: 1.2 }}>
+                  Phlox AI
+                </div>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.55 }}>
+                  Podes perguntar qualquer coisa sobre os teus medicamentos, interações ou saúde.
                 </div>
               </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </div>
             </div>
           </Link>
         </section>
 
         {/* Section 8 — Verificação de segurança */}
         <section style={{ marginBottom: 32 }}>
-          <SectionLabel>Segurança</SectionLabel>
+          <SectionLabel>Segurança da medicação</SectionLabel>
           <div style={{
             background: 'white', borderRadius: 16, overflow: 'hidden',
             border: '1px solid rgba(0,0,0,0.06)',
           }}>
             {[
-              { href: '/interactions', icon: '🔍', label: 'Verificar interações', desc: 'Combinações seguras entre medicamentos' },
-              { href: '/food-drug',    icon: '🥗', label: 'Alimentos a evitar',   desc: 'O que não misturar com os teus meds' },
-              { href: '/schedule',     icon: '⏰', label: 'Horário inteligente',  desc: 'IA cria o horário ideal para ti' },
-              { href: '/bula',         icon: '📄', label: 'Perceber uma bula',    desc: 'Texto técnico em linguagem simples' },
+              { href: '/interactions', icon: '🔍', label: 'Verificar interações', desc: 'Os meus medicamentos são seguros juntos?' },
+              { href: '/food-drug',    icon: '🥗', label: 'Alimentos a evitar',   desc: 'O que não devo comer com estes meds?' },
+              { href: '/schedule',     icon: '⏰', label: 'Horário inteligente',  desc: 'A que horas devo tomar cada medicamento?' },
+              { href: '/bula',         icon: '📄', label: 'Perceber uma bula',    desc: 'O que significa este texto técnico?' },
             ].map((item, i, arr) => (
               <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }} className="sec-row">
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px',
+                  display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
                   borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none',
                   transition: 'background 0.1s',
                 }}>
                   <div style={{
-                    width: 38, height: 38, borderRadius: 10,
+                    width: 46, height: 46, borderRadius: 13,
                     background: `${color}10`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0,
                   }}>
                     {item.icon}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{item.label}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{item.desc}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{item.label}</div>
+                    <div style={{ fontSize: 13, color: '#64748b' }}>{item.desc}</div>
                   </div>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                     <path d="M9 18l6-6-6-6"/>
                   </svg>
                 </div>
@@ -509,21 +594,25 @@ function PersonalHome({ user }: { user: any }) {
 
         {/* Section 9 — Objetivos e progresso */}
         <section>
-          <SectionLabel right={<Link href="/objetivos" style={{ fontSize: 12, color: color, fontWeight: 600, textDecoration: 'none' }}>Ver todos →</Link>}>
+          <SectionLabel right={<Link href="/objetivos" style={{ fontSize: 13, color: color, fontWeight: 700, textDecoration: 'none' }}>Ver todos →</Link>}>
             Objetivos de saúde
           </SectionLabel>
           <Link href="/objetivos" style={{ display: 'block', textDecoration: 'none' }}>
             <div style={{
-              background: 'white', borderRadius: 14, padding: '20px 22px',
+              background: 'white', borderRadius: 16, padding: '28px 24px',
               border: '2px dashed #e2e8f0', textAlign: 'center',
               transition: 'border-color 0.12s',
             }} className="goals-empty">
-              <div style={{ fontSize: 28, marginBottom: 8 }}>🎯</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>Define objetivos de saúde</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14, lineHeight: 1.55 }}>
-                Controla pressão arterial, peso, açúcar no sangue ou qualquer outra métrica que queiras acompanhar.
+              <div style={{ fontSize: 44, marginBottom: 12 }}>🎯</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>Define objetivos de saúde</div>
+              <div style={{ fontSize: 14, color: '#64748b', marginBottom: 18, lineHeight: 1.6 }}>
+                Controla a tua tensão, peso ou açúcar no sangue. O Phlox acompanha o teu progresso.
               </div>
-              <span style={{ fontSize: 12, color: color, fontWeight: 700 }}>Definir primeiro objetivo →</span>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '11px 22px', borderRadius: 28, background: `${color}12`,
+                color: color, fontSize: 14, fontWeight: 800,
+              }}>Definir primeiro objetivo →</span>
             </div>
           </Link>
         </section>
@@ -532,7 +621,7 @@ function PersonalHome({ user }: { user: any }) {
       <style>{`
         .ic-card > div:hover  { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.08) !important; }
         .big-card > div:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.09) !important; }
-        .ai-banner > div:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(13,148,136,0.3) !important; }
+        .ai-banner > div:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(13,148,136,0.35) !important; }
         .sec-row > div:hover  { background:#f8fafc !important; }
         .goals-empty:hover    { border-color:${color} !important; }
         @keyframes spin { to { transform:rotate(360deg); } }
@@ -554,26 +643,34 @@ function CaregiverHome({ user }: { user: any }) {
 
   useEffect(() => {
     if (!user?.id) return
-    Promise.all([
-      supabase
-        .from('family_profiles')
-        .select('id,name,relation,age,avatar,date_of_birth,allergies')
-        .eq('user_id', user.id)
-        .order('name'),
-      supabase
-        .from('family_profile_meds')
-        .select('profile_id')
-        .eq('user_id', user.id),
-    ]).then(([{ data: p }, { data: m }]) => {
-      setProfiles(p ?? [])
-      const counts: Record<string, number> = {}
-      ;(m ?? []).forEach((row: any) => {
-        counts[row.profile_id] = (counts[row.profile_id] || 0) + 1
-      })
-      setMedCounts(counts)
-      setLoadingProfiles(false)
-    })
-  }, [user, supabase])
+    setLoadingProfiles(true)
+    ;(async () => {
+      try {
+        const { data: p, error: pe } = await supabase
+          .from('family_profiles')
+          .select('id,name,relation,age,avatar,date_of_birth,allergies')
+          .eq('user_id', user.id)
+          .order('name')
+        if (pe) console.error('[CaregiverHome] family_profiles error:', pe)
+        setProfiles(p ?? [])
+
+        const { data: m, error: me } = await supabase
+          .from('family_profile_meds')
+          .select('profile_id')
+          .in('profile_id', (p ?? []).map((x: any) => x.id))
+        if (me) console.error('[CaregiverHome] family_profile_meds error:', me)
+        const counts: Record<string, number> = {}
+        ;(m ?? []).forEach((row: any) => {
+          counts[row.profile_id] = (counts[row.profile_id] || 0) + 1
+        })
+        setMedCounts(counts)
+      } catch (err) {
+        console.error('[CaregiverHome] unexpected error:', err)
+      } finally {
+        setLoadingProfiles(false)
+      }
+    })()
+  }, [user?.id])
 
   function getInitials(name: string) {
     return name
@@ -869,17 +966,24 @@ function ClinicalHome({ user }: { user: any }) {
 
   useEffect(() => {
     if (!user?.id) return
-    supabase
-      .from('patients')
-      .select('id,name,age,sex,conditions,updated_at,room,alerts_count')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(8)
-      .then(({ data }) => {
+    setLoadingPatients(true)
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('patients')
+          .select('id,name,age,sex,conditions,updated_at,room,alerts_count')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(8)
+        if (error) console.error('[ClinicalHome] patients error:', error)
         setPatients(data ?? [])
+      } catch (err) {
+        console.error('[ClinicalHome] unexpected error:', err)
+      } finally {
         setLoadingPatients(false)
-      })
-  }, [user, supabase])
+      }
+    })()
+  }, [user?.id])
 
   function truncateConditions(conditions: string[] | string | null) {
     if (!conditions) return ''
