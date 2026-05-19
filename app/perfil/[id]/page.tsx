@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 interface FamilyProfile {
@@ -95,7 +94,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div className="skeleton" style={{ height: 120, borderRadius: 10, marginBottom: 16 }} />
         <div className="skeleton" style={{ height: 200, borderRadius: 10 }} />
@@ -105,7 +104,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
 
   if (!profile) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 16 }}>Perfil não encontrado</div>
         <Link href="/perfis" style={{ color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>← Voltar aos perfis</Link>
@@ -115,7 +114,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Header da página */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>

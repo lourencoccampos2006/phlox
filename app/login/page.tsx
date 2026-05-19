@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Header from '@/components/Header'
 import { Suspense } from 'react'
 
 const FREE_FEATURES = [
@@ -67,7 +66,7 @@ function LoginContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 20px 72px' }}>
         <div style={{ width: '100%', maxWidth: 420 }}>

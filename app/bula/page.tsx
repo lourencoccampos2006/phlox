@@ -6,7 +6,6 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 interface BulaResult {
@@ -61,7 +60,7 @@ export default function BulaPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
 

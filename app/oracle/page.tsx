@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
@@ -104,7 +103,7 @@ export default function OraclePage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Header */}
       <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b' }}>

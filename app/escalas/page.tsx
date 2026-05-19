@@ -5,7 +5,6 @@
 // Gratuito, sem login — ferramenta de aquisição viral para enfermeiros e médicos
 
 import { useState } from 'react'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 type ScaleResult = { score: number; label: string; color: string; detail: string; action?: string }
@@ -424,7 +423,7 @@ export default function EscalasPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {active && (

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
@@ -207,7 +206,7 @@ export default function InteractionsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div className="page-container page-body">
         <div className="interactions-layout">

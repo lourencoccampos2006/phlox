@@ -9,7 +9,6 @@
 // - Declaração de aptidão
 
 import { useState, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -138,7 +137,7 @@ export default function CartaPage() {
 
   if (step === 'tipo') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 680 }}>
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Ferramenta Pro</div>
@@ -167,7 +166,7 @@ export default function CartaPage() {
 
   if (step === 'form') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
         <button onClick={() => setStep('tipo')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', padding: 0, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)' }}>
@@ -295,7 +294,7 @@ export default function CartaPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
           <button onClick={() => setStep('form')}

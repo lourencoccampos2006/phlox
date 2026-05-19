@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -302,7 +301,7 @@ export default function MARPage() {
   if (!isPro) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-        <Header />
+
         <div style={{ maxWidth: 600, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 14 }}>Registo de Administração de Medicação</div>
           <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28 }}>
@@ -318,7 +317,7 @@ export default function MARPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* MAR Header */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '16px 0' }}>

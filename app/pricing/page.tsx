@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Header from '@/components/Header'
 
 type Billing = 'monthly' | 'annual'
 
@@ -106,7 +105,7 @@ export default function PricingPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Header */}
       <div style={{ background: '#0f172a', padding: '56px 0 48px', borderBottom: '1px solid #1e293b', textAlign: 'center' }}>

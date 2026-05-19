@@ -6,7 +6,6 @@
 // O autor revela o diagnóstico e plano. Aprende-se com casos reais.
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -318,7 +317,7 @@ export default function GrandRoundPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 20, paddingBottom: 0 }}>

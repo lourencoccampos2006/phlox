@@ -7,7 +7,6 @@
 // Exclusivo no mercado — zero concorrentes em PT ou internacionalmente neste formato.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -362,7 +361,7 @@ export default function DecisaoPage() {
   // ── MENU ────────────────────────────────────────────────────────────────────
   if (phase === 'menu') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {/* Header */}
@@ -452,7 +451,7 @@ export default function DecisaoPage() {
   // ── BRIEFING ────────────────────────────────────────────────────────────────
   if (phase === 'briefing' && patient && selectedCase) return (
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container" style={{ padding: '40px 20px', maxWidth: 700 }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#475569', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Phlox Decisão · {selectedCase.specialty}</div>
@@ -528,7 +527,7 @@ export default function DecisaoPage() {
 
     return (
       <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
-        <Header />
+
 
         {/* Case header */}
         <div style={{ background: '#0f172a', padding: '12px 0', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
@@ -652,7 +651,7 @@ export default function DecisaoPage() {
   // ── RESULT ──────────────────────────────────────────────────────────────────
   if (phase === 'result' && finalScore && selectedCase) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
         {/* Score */}
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>

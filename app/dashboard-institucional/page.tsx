@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 interface TeamMember {
@@ -143,7 +142,7 @@ export default function DashboardInstitucionalPage() {
 
   if (!isInstitutional) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 600 }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 36px', textAlign: 'center' }}>
           <div style={{ width: 52, height: 52, borderRadius: 12, background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
@@ -170,7 +169,7 @@ export default function DashboardInstitucionalPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Institutional header */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '16px 0' }}>

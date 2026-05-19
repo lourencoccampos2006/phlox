@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Header from '@/components/Header'
 import { useState, useEffect, useRef } from 'react'
 
 // ─── Scroll reveal ────────────────────────────────────────────────────────────
@@ -179,7 +178,6 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#050508', fontFamily: 'var(--font-sans)', overflowX: 'hidden' }}>
-      <Header />
 
       {/* ─── HERO ──────────────────────────────────────────────────────── */}
       <section ref={heroRef} style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>

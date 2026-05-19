@@ -31,7 +31,6 @@ async function extractPdfText(file: File): Promise<string> {
     }
   })
 }
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
@@ -414,7 +413,7 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
   if (!isStudent) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-        <Header />
+
         <div className="page-container page-body">
           <UpgradeGate plan={plan} />
         </div>
@@ -424,7 +423,7 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div className="interactions-layout">
 

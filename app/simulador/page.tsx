@@ -8,7 +8,6 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 type SimMode = 'case' | 'shift' | 'decision'
@@ -126,7 +125,7 @@ function SimuladorContent() {
 
   if (!canPlay) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 480 }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 32px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12 }}>Simulador Clínico</div>
@@ -139,7 +138,7 @@ function SimuladorContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
 
         <div style={{ marginBottom: 32 }}>

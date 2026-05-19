@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -484,7 +483,7 @@ export default function StudyPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {mode !== 'home' && (

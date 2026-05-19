@@ -8,7 +8,6 @@
 // Aprende o que toda a gente erra. Torna-te o que toda a gente não é.
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -229,7 +228,7 @@ export default function HivePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Header */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>

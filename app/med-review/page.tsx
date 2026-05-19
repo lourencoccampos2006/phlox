@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
@@ -303,7 +302,7 @@ export default function MedReviewPage() {
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-        <Header />
+
         <div className="page-container page-body" style={{ textAlign: 'center' }}>
           <p style={{ fontSize: 15, color: 'var(--ink-3)', marginBottom: 20 }}>Faz login para aceder à revisão clínica de medicação.</p>
           <Link href="/login" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>Fazer login →</Link>
@@ -316,7 +315,7 @@ export default function MedReviewPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {!isPro && <UpgradeGate />}

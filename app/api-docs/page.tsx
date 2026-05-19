@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -78,7 +77,7 @@ const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
 export default function ApiDocsPage() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth:820 }}>
 
         {/* Header */}

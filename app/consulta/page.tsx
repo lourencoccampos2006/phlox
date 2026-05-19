@@ -6,7 +6,6 @@
 // Não existe nada assim em Portugal nem no mundo fora de EHRs hospitalares.
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
@@ -533,7 +532,7 @@ export default function ConsultaPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
 
         {/* Header */}

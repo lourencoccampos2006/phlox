@@ -7,7 +7,6 @@
 // Importa de PDF, foto, ou registo manual. Guarda para sempre.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import HealthInsights from '@/components/HealthInsights'
@@ -274,7 +273,7 @@ export default function RegistoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Page header */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>

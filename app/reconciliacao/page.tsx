@@ -6,7 +6,6 @@
 // Identifica discrepâncias, omissões e adições não justificadas.
 
 import { useState } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
@@ -91,7 +90,7 @@ export default function ReconciliacaoPage() {
 
   if (!isPro) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth:480, margin:'0 auto' }}>
         <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'48px 28px', textAlign:'center' }}>
           <div style={{ fontSize:40, marginBottom:14 }}>🔄</div>
@@ -109,7 +108,7 @@ export default function ReconciliacaoPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div style={{ marginBottom:24 }}>
           <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#1d4ed8', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>

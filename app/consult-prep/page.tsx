@@ -7,7 +7,6 @@
 // Para famílias: resumo para a consulta do familiar.
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import type { ActiveProfile } from '@/lib/profileContext'
@@ -101,7 +100,7 @@ export default function ConsultPrepPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 740 }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Ferramenta de apoio</div>

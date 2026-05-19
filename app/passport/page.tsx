@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null; indication:string|null; started_at:string|null }
 interface EmergencyCard { name:string; allergies:string; blood_type:string; emergency_contact:string; token:string }
@@ -102,7 +101,7 @@ export default function PassportPage() {
 
   if (!user) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ textAlign:'center', paddingTop:60 }}>
         <div style={{ fontSize:36, marginBottom:16 }}>🪪</div>
         <div style={{ fontSize:18, fontWeight:700, color:'var(--ink)', marginBottom:8 }}>Passaporte de Saúde</div>
@@ -116,7 +115,7 @@ export default function PassportPage() {
 
       {/* Controls — hidden on print */}
       <div className="no-print">
-        <Header />
+
         <div style={{ background:'white', borderBottom:'1px solid var(--border)' }}>
           <div className="page-container" style={{ paddingTop:24, paddingBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>

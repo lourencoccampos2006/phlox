@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
@@ -555,7 +554,7 @@ export default function MyMedsPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Page header */}
       <div style={{ background:'white', borderBottom:'1px solid var(--border)' }}>

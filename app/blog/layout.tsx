@@ -1,6 +1,5 @@
 // app/blog/layout.tsx
 import type { Metadata } from 'next'
-import Header from '@/components/Header'
 
 export const metadata: Metadata = {
   title: { template: '%s | Phlox Clinical', default: 'Blog — Phlox Clinical' },
@@ -10,7 +9,7 @@ export const metadata: Metadata = {
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       {children}
     </div>
   )

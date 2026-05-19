@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -78,7 +77,7 @@ export default function PatientsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* ── Header clínico ───────────────────────────────────────────────── */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>

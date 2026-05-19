@@ -5,7 +5,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 interface FamilyProfile {
@@ -111,7 +110,7 @@ export default function PerfisPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div className="page-container page-body">
 

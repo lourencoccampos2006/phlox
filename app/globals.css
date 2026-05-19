@@ -101,12 +101,9 @@ img, video, iframe { max-width: 100%; height: auto; }
 .page-container { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 20px; }
 .page-body      { padding: 28px 20px 80px; }
 
-/* ── Main layout — no sidebar, bottom tab bar on mobile ── */
+/* ── Main layout ── */
 .phlox-main {
   min-height: 100vh;
-}
-@media (max-width: 768px) {
-  .phlox-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 }
 
 /* ── Global interactive improvements ─────────────── */

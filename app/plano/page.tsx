@@ -10,7 +10,6 @@
 // Imprimível. Partilhável. Específico para aquela combinação de medicamentos.
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
@@ -221,7 +220,7 @@ export default function PlanoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <style>{PRINT_STYLE}</style>
 
       {/* Hero */}

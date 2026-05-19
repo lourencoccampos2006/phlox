@@ -15,7 +15,6 @@
 // Funciona para todos os cursos: Medicina, Farmácia, Enfermagem, Nutrição, Fisioterapia
 
 import { useState, useEffect, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -223,7 +222,7 @@ export default function OSCEPage() {
 
   if (!isStudent) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 600, margin: '0 auto' }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🩺</div>
@@ -241,7 +240,7 @@ export default function OSCEPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Setup */}
       {phase === 'setup' && (

@@ -3,7 +3,6 @@
 // ─── PHLOX SETTINGS ───────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -123,7 +122,7 @@ export default function SettingsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Conta</div>

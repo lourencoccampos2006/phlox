@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { Metadata } from 'next'
 
@@ -58,7 +57,7 @@ const COMPARISON_ITEMS = [
 export default function InstitucionalPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Hero */}
       <section style={{ background: '#0f172a', padding: '72px 0 64px', position: 'relative', overflow: 'hidden' }}>

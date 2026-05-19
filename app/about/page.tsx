@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { Metadata } from 'next'
 
@@ -39,7 +38,7 @@ const ROADMAP = [
 export default function AboutPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Hero */}
       <section style={{ background: 'var(--ink)', padding: '72px 0 56px', borderBottom: '1px solid #1e293b' }}>

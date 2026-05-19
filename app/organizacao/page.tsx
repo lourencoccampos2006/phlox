@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -118,7 +117,7 @@ export default function OrganizacaoPage() {
   if (!loading && !orgId) {
     return (
       <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-        <Header />
+
         <div className="page-container page-body">
           <div style={{ maxWidth: 520, margin: '0 auto', background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 32px', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 16 }}>🏥</div>
@@ -139,7 +138,7 @@ export default function OrganizacaoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Header institucional */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>

@@ -10,7 +10,6 @@
 // É diferente do /ai — não é um chatbot, é um tutor.
 
 import { useState, useRef, useEffect } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -168,7 +167,7 @@ export default function TutorPage() {
 
   if (!isStudent) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth:520, margin:'0 auto' }}>
         <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'48px 28px', textAlign:'center' }}>
           <div style={{ fontSize:48, marginBottom:16 }}>🧑‍🏫</div>
@@ -186,7 +185,7 @@ export default function TutorPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)', display:'flex', flexDirection:'column' }}>
-      <Header />
+
 
       {!session ? (
         /* ── Setup ── */

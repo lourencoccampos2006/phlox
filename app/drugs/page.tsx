@@ -4,7 +4,6 @@ import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 
 const EXAMPLES = [
@@ -194,7 +193,7 @@ export default function DrugsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {/* Search header */}

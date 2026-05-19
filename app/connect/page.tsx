@@ -7,7 +7,6 @@
 // Não é uma rede social. É comunicação clínica estruturada e auditável.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -629,7 +628,7 @@ export default function ConnectPage() {
 
   if (!isPro) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 600, margin: '0 auto' }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '56px 36px', textAlign: 'center' }}>
           <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 16 }}>Phlox Connect</div>
@@ -649,7 +648,7 @@ export default function ConnectPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
-      <Header />
+
 
       {/* Header */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>

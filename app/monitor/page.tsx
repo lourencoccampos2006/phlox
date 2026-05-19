@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -141,7 +140,7 @@ export default function MonitorPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
 
       <div style={{ background:'var(--ink)', borderBottom:'1px solid #1e293b' }}>
         <div className="page-container" style={{ paddingTop:28, paddingBottom:0 }}>

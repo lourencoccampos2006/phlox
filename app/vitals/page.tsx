@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
@@ -143,7 +142,7 @@ export default function VitalsPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
 
       <div style={{ background:'white', borderBottom:'1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop:28, paddingBottom:20 }}>

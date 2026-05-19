@@ -5,7 +5,6 @@
 // Liga icons: SVGs únicos criados para o Phlox — sem emojis, sem letras
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -372,7 +371,7 @@ export default function ArenaPage() {
 
   if (!canPlay) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth:480, margin:'0 auto' }}>
         <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'56px 32px', textAlign:'center' }}>
           <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
@@ -388,7 +387,7 @@ export default function ArenaPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       {xpToast !== null && <XPToast xp={xpToast} onDone={() => setXpToast(null)} />}
 
       {/* Header */}

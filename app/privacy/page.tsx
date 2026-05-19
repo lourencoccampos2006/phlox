@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -48,7 +47,7 @@ const SECTIONS = [
 export default function PrivacyPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 14 }}>
           Política de Privacidade

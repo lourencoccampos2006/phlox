@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { Metadata } from 'next'
 import AdBanner from '@/components/AdBanner'
@@ -16,7 +15,7 @@ export const metadata: Metadata = {
 export default function PostIbuprofenWarfarin() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
 

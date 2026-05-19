@@ -1,4 +1,3 @@
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { Metadata } from 'next'
 
@@ -41,7 +40,7 @@ export default function BlogDoseParacetamolCrianca() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <Schema />
-      <Header />
+
 
       <article style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px 80px' }}>
 

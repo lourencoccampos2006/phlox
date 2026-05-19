@@ -9,7 +9,6 @@
 
 import { useState, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 type SourceSystem = 'sifarma' | 'sclinico' | 'phc' | 'excel' | 'mysns' | 'word' | 'manual'
@@ -137,7 +136,7 @@ export default function MigrarPage() {
 
   if (!canImport) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 560 }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 36px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, marginBottom: 14 }}>Phlox Migração</h1>
@@ -152,7 +151,7 @@ export default function MigrarPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 820 }}>
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Migração de dados</div>

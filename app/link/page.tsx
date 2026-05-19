@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 
 type AccessLevel = 'meds_only' | 'meds_vitals' | 'full'
 
@@ -117,7 +116,7 @@ export default function LinkPage() {
 
   if (!user) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🔗</div>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Phlox Link</div>
@@ -128,7 +127,7 @@ export default function LinkPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>

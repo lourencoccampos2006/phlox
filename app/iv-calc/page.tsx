@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Header from '@/components/Header'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -290,7 +289,7 @@ export default function IVCalcPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '16px 0' }}>
         <div className="page-container">

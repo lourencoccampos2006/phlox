@@ -9,7 +9,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -490,7 +489,7 @@ export default function WardPage() {
 
   if (!isPro) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 14 }}>🏥</div>
@@ -508,7 +507,7 @@ export default function WardPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
-      <Header />
+
 
       {/* Ward header */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>

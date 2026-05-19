@@ -14,7 +14,6 @@
 // 5. Sugestões de estratégias adaptadas à causa real de não-adesão
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
@@ -172,7 +171,7 @@ export default function AdherenciaPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Header */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>

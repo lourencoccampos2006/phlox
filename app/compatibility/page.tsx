@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Header from '@/components/Header'
 
 const EXAMPLES = [
   { drugs: ['furosemida', 'morfina'], solution: 'NaCl 0.9%' },
@@ -62,7 +61,7 @@ export default function CompatibilityPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div className="interactions-layout">
 

@@ -10,7 +10,6 @@
 // É a história clínica digital que nenhum outro produto oferece.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile } from '@/lib/profileContext'
 import Link from 'next/link'
@@ -398,7 +397,7 @@ export default function TimelinePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Hero header */}
       <div style={{ background: 'var(--ink)', borderBottom: '1px solid #1e293b' }}>

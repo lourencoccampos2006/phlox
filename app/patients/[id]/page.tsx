@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
@@ -158,7 +157,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[60, 200, 100].map((h, i) => <div key={i} className="skeleton" style={{ height: h, borderRadius: 10 }} />)}
@@ -171,7 +170,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
 
       {/* Patient header */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>

@@ -4,7 +4,6 @@
 // Área de progresso do estudante — XP, streak, performance por classe, pontos fracos.
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -179,7 +178,7 @@ export default function ProgressoPage() {
   if (!isStudent) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-        <Header />
+
         <div className="page-container page-body">
           <div style={{ maxWidth: 480, margin: '0 auto', background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 28px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 14 }}>📊</div>
@@ -198,7 +197,7 @@ export default function ProgressoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {/* Header */}

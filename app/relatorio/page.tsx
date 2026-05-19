@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
@@ -89,7 +88,7 @@ export default function RelatorioPage() {
 
   if (!user) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
         <div style={{ fontSize: 40 }}>📊</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>Relatório Semanal</div>
@@ -100,7 +99,7 @@ export default function RelatorioPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="no-print"><Header /></div>
+      <div className="no-print"></div>
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }} className="no-print">
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>

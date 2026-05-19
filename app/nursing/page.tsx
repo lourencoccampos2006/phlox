@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 
 type Via = 'IV' | 'SC' | 'IM'
@@ -72,7 +71,7 @@ export default function NursingPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div className="interactions-layout">
 

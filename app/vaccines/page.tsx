@@ -6,7 +6,6 @@
 // Mostra o PNV português concreto, não uma resposta genérica.
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile } from '@/lib/profileContext'
@@ -104,7 +103,7 @@ export default function VaccinesPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {/* Header */}

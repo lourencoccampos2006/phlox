@@ -7,7 +7,6 @@
 // quiz de 3 perguntas, e a ficha é guardada no "caderno" do estudante.
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
@@ -96,7 +95,7 @@ export default function FichaPage() {
 
   if (!isStudent) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <Header />
+
       <div className="page-container page-body" style={{ maxWidth:480, margin:'0 auto' }}>
         <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'48px 28px', textAlign:'center' }}>
           <div style={{ fontSize:40, marginBottom:14 }}>🧠</div>
@@ -114,7 +113,7 @@ export default function FichaPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
 
         {/* Header */}

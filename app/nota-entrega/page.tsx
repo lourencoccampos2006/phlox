@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import Header from '@/components/Header'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile } from '@/lib/profileContext'
@@ -156,7 +155,7 @@ export default function NotaEntregaPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-      <Header />
+
       <div className="page-container page-body">
         <div style={{ marginBottom:24 }}>
           <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#b45309', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
