@@ -5,14 +5,10 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
 import { useState, useEffect, useRef } from 'react'
-import { NAV_CATEGORIES } from '@/lib/navigation'
+import { NAV_CATEGORIES, PERSONA_NAV } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
 
-const MODE_COLOR: Record<string, string> = {
-  personal: '#0d9488', caregiver: '#d97706', clinical: '#2563eb', student: '#7c3aed',
-}
-
-// ─── Mega dropdown ────────────────────────────────────────────────────────────
+// ─── Mega dropdown (logged-out only) ─────────────────────────────────────────
 
 function MegaDropdown({ onClose }: { onClose: () => void }) {
   return (
@@ -160,7 +156,7 @@ function MobileDrawer({ open, onClose, user, signOut }: {
           {user ? (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: MODE_COLOR[mode] || '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: modeMeta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
                   {user.avatar
                     ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : (user.name?.[0] || 'U').toUpperCase()}
@@ -201,7 +197,8 @@ function UserMenu({ user, signOut, supabase, isDark }: {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const mode: ExperienceMode = user.experience_mode || 'personal'
-  const color = MODE_COLOR[mode] || '#0d9488'
+  const modeMeta = MODE_META[mode] || MODE_META.personal
+  const color = modeMeta.color
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -252,9 +249,9 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{user.email}</div>
           </div>
           {[
-            { href: '/dashboard', label: 'Painel' },
-            { href: '/settings',  label: 'Definições' },
-            { href: '/pricing',   label: 'Ver planos' },
+            { href: '/inicio',   label: 'Início' },
+            { href: '/settings', label: 'Definições' },
+            { href: '/pricing',  label: 'Ver planos' },
           ].map(item => (
             <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
               className="um-item"
@@ -299,30 +296,34 @@ function UserMenu({ user, signOut, supabase, isDark }: {
 export default function Header() {
   const { user, loading, signOut, supabase } = useAuth()
   const pathname = usePathname()
-  const [scrolled, setScrolled] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const isHomepage = pathname === '/'
 
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 40)
-    window.addEventListener('scroll', fn, { passive: true })
-    fn()
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
+  const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
+  const modeMeta = MODE_META[mode] || MODE_META.personal
+  const modeColor = modeMeta.color
 
-  const isDark = isHomepage && !scrolled
+  // Clinical mode uses dark header regardless
+  const isDark = user ? mode === 'clinical' : false
+
+  // Background: clinical=dark, others=frosted white always (homepage was dark before, now it's light so frosted white)
+  const headerBg = isDark
+    ? '#0f172a'
+    : 'rgba(255,255,255,0.92)'
+
+  const personaLinks = user ? (PERSONA_NAV[mode] || PERSONA_NAV.personal) : []
 
   return (
     <>
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         height: 56,
-        background: isDark ? 'transparent' : 'rgba(255,255,255,0.92)',
+        background: headerBg,
         backdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
-        borderBottom: `1px solid ${isDark ? 'transparent' : 'rgba(0,0,0,0.07)'}`,
+        borderBottom: `1px solid ${isDark ? '#1e293b' : 'rgba(0,0,0,0.07)'}`,
         transition: 'background 0.25s, border-color 0.25s',
       }}>
         <div style={{
@@ -331,8 +332,13 @@ export default function Header() {
         }}>
 
           {/* Logo */}
-          <Link href={user ? '/dashboard' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none', flexShrink: 0 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: isDark ? 'rgba(255,255,255,0.15)' : '#0d6e42', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.25s' }}>
+          <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none', flexShrink: 0 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 7,
+              background: isDark ? '#1e40af' : '#0d6e42',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.25s',
+            }}>
               <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
                 <path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
               </svg>
@@ -343,45 +349,43 @@ export default function Header() {
           </Link>
 
           {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 24, flex: 1 }} className="hdr-nav">
-            <div style={{ position: 'relative' }}>
-              <button onClick={() => setToolsOpen(o => !o)} style={{
-                display: 'flex', alignItems: 'center', gap: 3,
-                padding: '6px 11px', background: 'none', border: 'none',
-                cursor: 'pointer', borderRadius: 7, fontFamily: 'inherit',
-                fontSize: 14, fontWeight: 500,
-                color: isDark ? 'rgba(255,255,255,0.8)' : '#374151',
-                transition: 'color 0.15s',
-              }}>
-                Ferramentas
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
-              </button>
-              {toolsOpen && <MegaDropdown onClose={() => setToolsOpen(false)} />}
-            </div>
-
-            {!loading && user && (
-              <Link href="/dashboard" style={{
-                padding: '6px 11px', fontSize: 14,
-                fontWeight: pathname === '/dashboard' ? 700 : 500,
-                color: pathname === '/dashboard'
-                  ? (isDark ? 'white' : '#0f172a')
-                  : (isDark ? 'rgba(255,255,255,0.75)' : '#374151'),
-                textDecoration: 'none', borderRadius: 7, transition: 'color 0.15s',
-              }}>
-                Painel
-              </Link>
-            )}
-
-            {!loading && !user && (
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 20, flex: 1 }} className="hdr-nav">
+            {!loading && user ? (
+              // Persona-aware nav links
+              personaLinks.map(link => (
+                <Link key={link.href} href={link.href}
+                  style={{
+                    fontSize: 13, fontWeight: pathname === link.href ? 700 : 500,
+                    padding: '5px 9px',
+                    color: pathname === link.href
+                      ? (isDark ? 'white' : '#0f172a')
+                      : (isDark ? 'rgba(255,255,255,0.7)' : '#374151'),
+                    textDecoration: 'none', borderRadius: 7, transition: 'color 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}>
+                  {link.label}
+                </Link>
+              ))
+            ) : !loading && !user ? (
+              // Logged-out nav
               <>
-                <Link href="/pricing" style={{ padding: '6px 11px', fontSize: 14, fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.7)' : '#374151', textDecoration: 'none', borderRadius: 7 }}>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setToolsOpen(o => !o)} style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    padding: '5px 9px', background: 'none', border: 'none',
+                    cursor: 'pointer', borderRadius: 7, fontFamily: 'inherit',
+                    fontSize: 13, fontWeight: 500, color: '#374151', transition: 'color 0.15s',
+                  }}>
+                    Ferramentas
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  {toolsOpen && <MegaDropdown onClose={() => setToolsOpen(false)} />}
+                </div>
+                <Link href="/pricing" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>
                   Preços
                 </Link>
-                <Link href="/institucional" style={{ padding: '6px 11px', fontSize: 14, fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.7)' : '#374151', textDecoration: 'none', borderRadius: 7 }}>
-                  Institucional
-                </Link>
               </>
-            )}
+            ) : null}
           </nav>
 
           {/* Mobile spacer */}
@@ -393,17 +397,16 @@ export default function Header() {
               <>
                 <Link href="/login" className="hdr-nav" style={{
                   padding: '7px 13px', fontSize: 13, fontWeight: 600,
-                  color: isDark ? 'rgba(255,255,255,0.8)' : '#374151',
+                  color: '#374151',
                   textDecoration: 'none', borderRadius: 7,
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : '#e2e8f0'}`,
+                  border: '1px solid #e2e8f0',
                   transition: 'all 0.15s',
                 }}>
                   Entrar
                 </Link>
                 <Link href="/login" style={{
                   padding: '7px 15px', fontSize: 13, fontWeight: 800,
-                  background: isDark ? 'white' : '#0f172a',
-                  color: isDark ? '#0f172a' : 'white',
+                  background: '#0f172a', color: 'white',
                   textDecoration: 'none', borderRadius: 7,
                   whiteSpace: 'nowrap', transition: 'all 0.2s',
                 }}>
@@ -432,9 +435,14 @@ export default function Header() {
             </button>
           </div>
         </div>
+
+        {/* Accent line — only for logged-in users */}
+        {!loading && user && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: modeColor, opacity: 0.7 }} />
+        )}
       </header>
 
-      {/* Push content below fixed header on non-homepage */}
+      {/* Push content below fixed header */}
       {!isHomepage && <div style={{ height: 56 }} />}
 
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} user={user} signOut={signOut} />

@@ -64,6 +64,38 @@ export const NAV_CATEGORIES: NavCategory[] = [
   },
 ]
 
+export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>> = {
+  personal:  [
+    { href: '/inicio', label: 'Início' },
+    { href: '/mymeds', label: 'Medicação' },
+    { href: '/vitals', label: 'Saúde' },
+    { href: '/verificar', label: 'Verificar' },
+    { href: '/ai', label: 'IA' },
+  ],
+  caregiver: [
+    { href: '/inicio', label: 'Início' },
+    { href: '/perfis', label: 'Família' },
+    { href: '/mymeds', label: 'Medicação' },
+    { href: '/verificar', label: 'Verificar' },
+    { href: '/passport', label: 'Emergência' },
+  ],
+  clinical: [
+    { href: '/inicio', label: 'Início' },
+    { href: '/turno', label: 'Turno' },
+    { href: '/rounds', label: 'Ronda' },
+    { href: '/mar', label: 'MAR' },
+    { href: '/patients', label: 'Doentes' },
+    { href: '/oracle', label: 'Oracle' },
+  ],
+  student: [
+    { href: '/inicio', label: 'Início' },
+    { href: '/arena', label: 'Arena' },
+    { href: '/study', label: 'Estudar' },
+    { href: '/simulador', label: 'Simular' },
+    { href: '/progresso', label: 'Progresso' },
+  ],
+}
+
 export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   personal: [
     { href: '/mymeds',       icon: '💊', label: 'Medicação',   desc: 'Lista e lembretes de hoje' },
