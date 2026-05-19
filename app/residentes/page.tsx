@@ -59,92 +59,6 @@ interface ReviewResult {
   next_review_weeks: number
 }
 
-// ─── Demo data (para utilizadores sem residentes ainda) ───────────────────────
-const DEMO_RESIDENTS: Resident[] = [
-  {
-    id: 'demo-1',
-    name: 'Maria João Ferreira',
-    age: 84,
-    room: '12A',
-    diagnosis: 'HTA, IC-FEp, DM2, demência ligeira, osteoporose',
-    medications: [
-      { name: 'Furosemida', dose: '40mg', frequency: '1x/dia' },
-      { name: 'Espironolactona', dose: '25mg', frequency: '1x/dia' },
-      { name: 'Ramipril', dose: '5mg', frequency: '1x/dia' },
-      { name: 'Bisoprolol', dose: '2.5mg', frequency: '1x/dia' },
-      { name: 'Metformina', dose: '500mg', frequency: '2x/dia' },
-      { name: 'Alprazolam', dose: '0.5mg', frequency: 'à noite' },
-      { name: 'Omeprazol', dose: '20mg', frequency: '1x/dia' },
-      { name: 'Alendronato', dose: '70mg', frequency: '1x/semana' },
-      { name: 'Colecalciferol', dose: '800 UI', frequency: '1x/dia' },
-      { name: 'Ácido acetilsalicílico', dose: '100mg', frequency: '1x/dia' },
-    ],
-    allergies: ['Penicilina'],
-    weight: 58,
-    creatinine: 1.4,
-    last_review: '2026-03-15',
-    risk_level: 'CRITICO',
-    alert_count: 4,
-  },
-  {
-    id: 'demo-2',
-    name: 'António Manuel Costa',
-    age: 79,
-    room: '08B',
-    diagnosis: 'DPOC moderada, HTA, depressão',
-    medications: [
-      { name: 'Tiotrópio', dose: '18mcg', frequency: '1x/dia', route: 'inalação' },
-      { name: 'Salbutamol', dose: '100mcg', frequency: 'SOS', route: 'inalação' },
-      { name: 'Amlodipina', dose: '5mg', frequency: '1x/dia' },
-      { name: 'Sertralina', dose: '50mg', frequency: '1x/dia' },
-      { name: 'Tramadol', dose: '50mg', frequency: '2x/dia' },
-      { name: 'Lorazepam', dose: '1mg', frequency: 'à noite' },
-    ],
-    allergies: [],
-    weight: 72,
-    last_review: '2026-02-20',
-    risk_level: 'ALTO',
-    alert_count: 2,
-  },
-  {
-    id: 'demo-3',
-    name: 'Rosa Conceição Silva',
-    age: 91,
-    room: '15C',
-    diagnosis: 'FA permanente, DRC G3b, osteoporose grave',
-    medications: [
-      { name: 'Apixabano', dose: '2.5mg', frequency: '2x/dia' },
-      { name: 'Bisoprolol', dose: '5mg', frequency: '1x/dia' },
-      { name: 'Atorvastatina', dose: '10mg', frequency: '1x/dia' },
-      { name: 'Omeprazol', dose: '40mg', frequency: '1x/dia' },
-      { name: 'Colecalciferol', dose: '1000 UI', frequency: '1x/dia' },
-      { name: 'Ibuprofeno', dose: '400mg', frequency: 'SOS' },
-    ],
-    allergies: [],
-    weight: 49,
-    creatinine: 2.1,
-    last_review: '2026-01-10',
-    risk_level: 'CRITICO',
-    alert_count: 3,
-  },
-  {
-    id: 'demo-4',
-    name: 'Joaquim Rodrigues',
-    age: 75,
-    room: '03A',
-    diagnosis: 'HTA, dislipidemia, ansiedade',
-    medications: [
-      { name: 'Losartan', dose: '50mg', frequency: '1x/dia' },
-      { name: 'Rosuvastatina', dose: '10mg', frequency: '1x/dia' },
-      { name: 'Alprazolam', dose: '0.25mg', frequency: 'SOS' },
-    ],
-    allergies: ['AINEs'],
-    last_review: '2026-04-01',
-    risk_level: 'MODERADO',
-    alert_count: 1,
-  },
-]
-
 // ─── Risk styles ──────────────────────────────────────────────────────────────
 const RISK_STYLE: Record<RiskLevel, { color: string; bg: string; border: string; label: string }> = {
   CRITICO:  { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', label: 'Crítico' },
@@ -508,7 +422,6 @@ export default function ResidentesPage() {
   const [search, setSearch] = useState('')
   const [riskFilter, setRiskFilter] = useState<string>('all')
   const [showAddForm, setShowAddForm] = useState(false)
-  const [isDemo, setIsDemo] = useState(false)
 
   const plan = (user as any)?.plan || 'free'
   const orgId = (user as any)?.org_id || null
@@ -526,21 +439,15 @@ export default function ResidentesPage() {
       const { data: sd } = await supabase.auth.getSession()
       const token = sd?.session?.access_token
       if (!token) throw new Error('Sem sessão')
-      // Try to load from DB — fall back to demo
       const { data, error: dbErr } = await supabase
         .from('residents')
         .select('*')
         .eq('org_id', orgId || user?.id)
         .order('name')
-      if (dbErr || !data || data.length === 0) {
-        setResidents(DEMO_RESIDENTS)
-        setIsDemo(true)
-      } else {
-        setResidents(data)
-      }
+      if (dbErr) throw new Error(dbErr.message)
+      setResidents(data || [])
     } catch (_e: any) {
-      setResidents(DEMO_RESIDENTS)
-      setIsDemo(true)
+      setResidents([])
     } finally {
       setLoading(false)
     }
@@ -637,19 +544,6 @@ export default function ResidentesPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
 
       <div className="page-container page-body">
-
-        {/* Demo banner */}
-        {isDemo && (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 16px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: 13, color: '#92400e' }}>
-              <strong>Modo demonstração</strong> — a ver residentes de exemplo. Para usar com os teus residentes reais, importa a lista abaixo.
-            </div>
-            <button onClick={() => setShowAddForm(true)}
-              style={{ padding: '6px 14px', background: '#b45309', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-              Importar residentes reais
-            </button>
-          </div>
-        )}
 
         {selected ? (
           <ResidentDetail
