@@ -376,6 +376,10 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
                 style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:'white', color:'var(--ink)', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:13, fontWeight:700 }}>
                 👤 Ver perfil completo
               </Link>
+              <Link href="/nota-clinica"
+                style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:'white', color:'#1d4ed8', border:'1px solid #bfdbfe', borderRadius:8, textDecoration:'none', fontSize:13, fontWeight:700 }}>
+                📝 Nota clínica
+              </Link>
             </div>
 
             {showPCNE && (
@@ -522,6 +526,7 @@ export default function RoundsPage() {
   const [selected, setSelected] = useState<string|null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'rounds'|'report'|'pendentes'>('rounds')
+  const [search, setSearch] = useState('')
   const [reportMonth, setReportMonth] = useState(new Date().toISOString().slice(0,7))
   const [generatingReport, setGeneratingReport] = useState(false)
   const [report, setReport] = useState<string|null>(null)
@@ -578,13 +583,15 @@ export default function RoundsPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Sort patients by risk score (highest first)
-  const sorted = [...patients].sort((a, b) => {
-    const ra = risks[a.id], rb = risks[b.id]
-    const sa = (ra && ra !== 'loading') ? (ra as RiskScore).score : -1
-    const sb = (rb && rb !== 'loading') ? (rb as RiskScore).score : -1
-    return sb - sa
-  })
+  // Sort + filter patients
+  const sorted = [...patients]
+    .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.conditions||'').toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const ra = risks[a.id], rb = risks[b.id]
+      const sa = (ra && ra !== 'loading') ? (ra as RiskScore).score : -1
+      const sb = (rb && rb !== 'loading') ? (rb as RiskScore).score : -1
+      return sb - sa
+    })
 
   const selectedPatient = patients.find(p => p.id === selected)
   const selectedRisk = selected && risks[selected] !== 'loading' ? risks[selected] as RiskScore : null
@@ -723,11 +730,29 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
               </div>
             </div>
           </div>
-          <div style={{ display:'flex', borderTop:'1px solid #1e293b' }}>
+          <div style={{ display:'flex', borderTop:'1px solid #1e293b', alignItems:'center' }}>
             <button onClick={() => setTab('rounds')} style={tabStyle('rounds', tab==='rounds')}>Ronda</button>
             <button onClick={() => setTab('report')} style={tabStyle('report', tab==='report')}>Relatório Mensal</button>
             <button onClick={() => setTab('pendentes')} style={tabStyle('pendentes', tab==='pendentes')}>
               {`Pendentes${interventions.filter(i=>i.outcome_code==='O0').length > 0 ? ` (${interventions.filter(i=>i.outcome_code==='O0').length})` : ''}`}
+            </button>
+            <div style={{ flex:1 }} />
+            <button
+              onClick={() => {
+                const rows = [
+                  'Data,Doente,Problema,Causa,Intervenção,Resultado,Descrição',
+                  ...interventions.map(i => [
+                    i.date, i.patient_name, i.problem_code, i.cause_code, i.intervention_code, i.outcome_code,
+                    `"${(i.description||'').replace(/"/g,'""')}"`
+                  ].join(','))
+                ].join('\n')
+                const a = document.createElement('a')
+                a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows)
+                a.download = `pcne_${new Date().toISOString().slice(0,10)}.csv`
+                a.click()
+              }}
+              style={{ padding:'6px 14px', background:'rgba(255,255,255,0.08)', color:'#94a3b8', border:'1px solid #334155', borderRadius:6, cursor:'pointer', fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, marginRight:16, whiteSpace:'nowrap' }}>
+              ↓ CSV
             </button>
           </div>
         </div>
@@ -737,11 +762,21 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
         <div style={{ display:'grid', gridTemplateColumns:'320px 1fr', height:'calc(100vh - 145px)' }} className="rounds-grid">
           {/* Patient list */}
           <div style={{ background:'white', borderRight:'1px solid var(--border)', overflowY:'auto' }}>
-            <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg-2)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>
-                {loading ? 'A analisar...' : `${sorted.length} doentes · ordenados por risco`}
+            <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg-2)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>
+                  {loading ? 'A analisar...' : `${sorted.length} doentes · risco`}
+                </div>
+                <Link href="/patients" style={{ fontSize:10, color:'#1d4ed8', textDecoration:'none', fontFamily:'var(--font-mono)', fontWeight:700 }}>+ Novo</Link>
               </div>
-              <Link href="/patients" style={{ fontSize:10, color:'#1d4ed8', textDecoration:'none', fontFamily:'var(--font-mono)', fontWeight:700 }}>+ Novo</Link>
+              <div style={{ position:'relative' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round" style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Pesquisar doente ou diagnóstico..."
+                  style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:7, padding:'6px 10px 6px 28px', fontSize:12, fontFamily:'var(--font-sans)', outline:'none', background:'white' }} />
+              </div>
             </div>
 
             {loading ? (

@@ -666,9 +666,187 @@ function VancomycinDose() {
   )
 }
 
+// ─── NOVA: CURB-65 (gravidade pneumonia) ─────────────────────────────────────
+const CURB65_CRITERIA = [
+  { key: 'confusion', label: 'C — Confusão aguda', desc: 'Desorientação em pessoa/lugar/tempo — novo ou piorado', points: 1 },
+  { key: 'urea',      label: 'U — Ureia > 7 mmol/L', desc: 'Ou BUN > 19 mg/dL', points: 1 },
+  { key: 'rr',        label: 'R — FR ≥ 30/min', desc: 'Frequência respiratória em repouso', points: 1 },
+  { key: 'bp',        label: 'B — TAS < 90 mmHg ou TAD ≤ 60 mmHg', desc: 'Hipotensão arterial', points: 1 },
+  { key: 'age65',     label: '65 — Idade ≥ 65 anos', desc: '', points: 1 },
+]
+
+function CURB65Calc() {
+  const [checks, setChecks] = useState<Record<string, boolean>>({})
+  const score = Object.entries(checks).filter(([, v]) => v).length
+  const interpret = (s: number) => {
+    if (s <= 1) return { label: 'Baixa gravidade — ambulatório', color: '#276749', mortality: '< 3%', action: 'Tratamento em ambulatório com antibiótico oral. Reavaliar em 48h.' }
+    if (s === 2) return { label: 'Gravidade moderada — considerar internamento', color: '#d69e2e', mortality: '3–15%', action: 'Considerar internamento breve ou supervisão ambulatória intensiva. Antibiótico oral ou IV.' }
+    return { label: 'Alta gravidade — internamento urgente', color: '#c53030', mortality: s >= 4 ? '> 30%' : '15–30%', action: s >= 4 ? 'UCI / internamento urgente. Antibioterapia IV dupla. Considerar cuidados intensivos.' : 'Internamento hospitalar. Antibioterapia IV. Considerar UCI se score 4–5.' }
+  }
+  const i = interpret(score)
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.6 }}>Score de gravidade da Pneumonia Adquirida na Comunidade. Orienta decisão de internamento. Guidelines BTS/IDSA.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
+        {CURB65_CRITERIA.map(({ key, label, desc }) => (
+          <label key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', background: checks[key] ? '#fef2f2' : 'white', cursor: 'pointer' }}>
+            <input type="checkbox" checked={!!checks[key]} onChange={e => setChecks(p => ({ ...p, [key]: e.target.checked }))} style={{ marginTop: 2, accentColor: '#dc2626', flexShrink: 0, width: 16, height: 16 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: checks[key] ? '#dc2626' : 'var(--ink-2)', fontFamily: 'var(--font-mono)', marginBottom: desc ? 2 : 0 }}>{label}</div>
+              {desc && <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>{desc}</div>}
+            </div>
+          </label>
+        ))}
+      </div>
+      <div style={resultBox(i.color)}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>CURB-65</div>
+            <div style={{ fontSize: 12, color: i.color, fontFamily: 'var(--font-mono)', fontWeight: 700, marginTop: 2 }}>Mortalidade 30d: {i.mortality}</div>
+          </div>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 48, color: i.color, lineHeight: 1 }}>{score}</span>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: i.color, marginBottom: 8 }}>{i.label}</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, background: 'rgba(255,255,255,0.5)', borderRadius: 4, padding: '8px 12px' }}>{i.action}</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── NOVA: MEWS (Modified Early Warning Score) ───────────────────────────────
+function MEWSCalc() {
+  const [form, setForm] = useState({ sbp: '1', hr: '1', rr: '1', temp: '1', avpu: '0' })
+  const score = Object.values(form).reduce((s, v) => s + parseInt(v), 0)
+  const interpret = (s: number) => {
+    if (s <= 1) return { label: 'Baixo risco', color: '#276749', action: 'Monitorização de rotina. Reavaliar conforme protocolo.' }
+    if (s <= 3) return { label: 'Risco moderado', color: '#d69e2e', action: 'Aumentar frequência de monitorização. Informar médico se deterioração.' }
+    if (s <= 5) return { label: 'Risco elevado', color: '#dd6b20', action: 'Contactar médico imediatamente. Monitorização contínua. Considerar UCI.' }
+    return { label: 'Risco crítico — ativação de equipa de emergência', color: '#c53030', action: 'Ativar equipa de emergência / RRT imediatamente. Preparar transferência para UCI.' }
+  }
+  const i = interpret(score)
+  const SELECT = (key: string, opts: { v: string; label: string }[]) => (
+    <select value={form[key as keyof typeof form]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} style={inp}>
+      {opts.map((o, idx) => <option key={idx} value={o.v}>{o.label}</option>)}
+    </select>
+  )
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.6 }}>Modified Early Warning Score — detecção precoce de deterioração clínica em internamento. Ativa chamada precoce de emergência.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+        <div><label style={lbl}>TAS sistólica</label>{SELECT('sbp', [{ v: '3', label: '≤ 70 mmHg — 3 pontos' }, { v: '2', label: '71–80 mmHg — 2 pontos' }, { v: '1', label: '81–100 mmHg — 1 ponto' }, { v: '0', label: '101–199 mmHg — 0 pontos' }, { v: '2', label: '≥ 200 mmHg — 2 pontos' }])}</div>
+        <div><label style={lbl}>Frequência Cardíaca</label>{SELECT('hr', [{ v: '2', label: '< 40 bpm — 2 pontos' }, { v: '1', label: '41–50 bpm — 1 ponto' }, { v: '0', label: '51–100 bpm — 0 pontos' }, { v: '1', label: '101–110 bpm — 1 ponto' }, { v: '2', label: '111–129 bpm — 2 pontos' }, { v: '3', label: '≥ 130 bpm — 3 pontos' }])}</div>
+        <div><label style={lbl}>Frequência Respiratória</label>{SELECT('rr', [{ v: '2', label: '< 9/min — 2 pontos' }, { v: '1', label: '9–14/min — 1 ponto' }, { v: '0', label: '15–20/min — 0 pontos' }, { v: '2', label: '21–29/min — 2 pontos' }, { v: '3', label: '≥ 30/min — 3 pontos' }])}</div>
+        <div><label style={lbl}>Temperatura</label>{SELECT('temp', [{ v: '2', label: '< 35°C — 2 pontos' }, { v: '0', label: '35–38.4°C — 0 pontos' }, { v: '2', label: '≥ 38.5°C — 2 pontos' }])}</div>
+        <div><label style={lbl}>Consciência (AVPU)</label>{SELECT('avpu', [{ v: '0', label: 'A — Alerta (normal)' }, { v: '1', label: 'V — Responde à voz' }, { v: '2', label: 'P — Responde à dor' }, { v: '3', label: 'U — Não responde (inconsciente)' }])}</div>
+      </div>
+      <div style={resultBox(i.color)}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>MEWS</span>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 48, color: i.color, lineHeight: 1 }}>{score}</span>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: i.color, marginBottom: 8 }}>{i.label}</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, background: 'rgba(255,255,255,0.5)', borderRadius: 4, padding: '8px 12px' }}>{i.action}</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── NOVA: Caprini VTE Risk ───────────────────────────────────────────────────
+const CAPRINI_1PT = [
+  { key: 'age41', label: 'Idade 41–60 anos' },
+  { key: 'minor_surgery', label: 'Cirurgia minor programada' },
+  { key: 'bmi25', label: 'IMC > 25 kg/m²' },
+  { key: 'leg_swelling', label: 'Edema dos membros inferiores' },
+  { key: 'varicose', label: 'Varizes dos membros inferiores' },
+  { key: 'pregnancy', label: 'Gravidez ou pós-parto' },
+  { key: 'pill', label: 'Contracetivos ou TRH orais' },
+  { key: 'sepsis_month', label: 'Sépsis < 1 mês' },
+  { key: 'lung', label: 'Pneumonia / DPOC grave' },
+  { key: 'ibd', label: 'DII activa' },
+  { key: 'bedrest', label: 'Repouso no leito' },
+]
+const CAPRINI_2PT = [
+  { key: 'age61', label: 'Idade 61–74 anos' },
+  { key: 'major_surgery', label: 'Cirurgia major (< 45 min)' },
+  { key: 'cancer_history', label: 'Neoplasia prévia' },
+  { key: 'laparoscopy', label: 'Laparoscopia (> 45 min)' },
+  { key: 'thrombophilia', label: 'Trombofilia' },
+  { key: 'central_line', label: 'Cateter venoso central' },
+]
+const CAPRINI_3PT = [
+  { key: 'age75', label: 'Idade ≥ 75 anos' },
+  { key: 'dvt_history', label: 'TVP / TEP prévio (pessoal)' },
+  { key: 'family_dvt', label: 'História familiar de TVP/TEP' },
+  { key: 'factor_v', label: 'Factor V Leiden positivo' },
+  { key: 'prothrombin', label: 'Mutação da Protrombina G20210A' },
+  { key: 'lupus', label: 'Anticoagulante Lúpico' },
+  { key: 'heparin_hit', label: 'TIH' },
+]
+const CAPRINI_5PT = [
+  { key: 'stroke', label: 'AVC < 1 mês' },
+  { key: 'arthroplasty', label: 'Artroplastia do joelho/anca' },
+  { key: 'hip_fracture', label: 'Fractura da anca, pélvis ou perna' },
+  { key: 'major_trauma', label: 'Traumatismo major (< 1 mês)' },
+  { key: 'spinal_cord', label: 'Lesão medular (< 1 mês)' },
+]
+
+function CapriniVTE() {
+  const [checks, setChecks] = useState<Record<string, boolean>>({})
+  const score =
+    CAPRINI_1PT.reduce((s, { key }) => s + (checks[key] ? 1 : 0), 0) +
+    CAPRINI_2PT.reduce((s, { key }) => s + (checks[key] ? 2 : 0), 0) +
+    CAPRINI_3PT.reduce((s, { key }) => s + (checks[key] ? 3 : 0), 0) +
+    CAPRINI_5PT.reduce((s, { key }) => s + (checks[key] ? 5 : 0), 0)
+  const interpret = (s: number) => {
+    if (s === 0) return { label: 'Risco mínimo', risk: '< 0.5%', color: '#276749', action: 'Deambulação precoce. Sem tromboprofilaxia farmacológica.' }
+    if (s <= 2) return { label: 'Risco baixo', risk: '1.5%', color: '#6b7280', action: 'Meias de compressão elástica. Sem HBPM de rotina.' }
+    if (s <= 4) return { label: 'Risco moderado', risk: '3%', color: '#d69e2e', action: 'HBPM dose profilática (ex: enoxaparina 40mg/dia) 7–10 dias + meias.' }
+    return { label: 'Risco alto', risk: s >= 8 ? '> 6%' : '6%', color: '#c53030', action: 'HBPM dose profilática ≥ 28 dias pós-cirurgia. Meias elásticas. Avaliar filtro VCI se contra-indicação.' }
+  }
+  const i = interpret(score)
+
+  const CheckList = ({ items, pts }: { items: {key:string;label:string}[], pts: number }) => (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>+{pts} ponto{pts > 1 ? 's' : ''} cada</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+        {items.map(({ key, label }) => (
+          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: checks[key] ? '#eff6ff' : 'white', cursor: 'pointer' }}>
+            <input type="checkbox" checked={!!checks[key]} onChange={e => setChecks(p => ({ ...p, [key]: e.target.checked }))} style={{ accentColor: '#1d4ed8', flexShrink: 0, width: 15, height: 15 }} />
+            <span style={{ fontSize: 13, color: checks[key] ? '#1d4ed8' : 'var(--ink-3)' }}>{label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.6 }}>Score de risco tromboembólico em cirurgia. Guidelines ACCP 2012. Orienta tromboprofilaxia com HBPM.</p>
+      <CheckList items={CAPRINI_1PT} pts={1} />
+      <CheckList items={CAPRINI_2PT} pts={2} />
+      <CheckList items={CAPRINI_3PT} pts={3} />
+      <CheckList items={CAPRINI_5PT} pts={5} />
+      <div style={resultBox(i.color)}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '0.1em' }}>CAPRINI VTE RISK</div>
+            <div style={{ fontSize: 12, color: i.color, fontFamily: 'var(--font-mono)', fontWeight: 700, marginTop: 2 }}>TEV sem profilaxia: {i.risk}</div>
+          </div>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 48, color: i.color, lineHeight: 1 }}>{score}</span>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: i.color, marginBottom: 8 }}>{i.label}</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, background: 'rgba(255,255,255,0.5)', borderRadius: 4, padding: '8px 12px' }}>{i.action}</div>
+      </div>
+    </div>
+  )
+}
+
 // ─── REGISTRY ────────────────────────────────────────────────────────────────
 
 const CALCULATORS = [
+  { id: 'curb65',    title: 'Gravidade da Pneumonia',         subtitle: 'CURB-65 — BTS/IDSA',              tag: 'Respiratório', description: 'Score de gravidade da PAC. 5 critérios clínicos. Orienta internamento vs ambulatório e nível de cuidados.', component: CURB65Calc },
+  { id: 'mews',      title: 'Deterioração Clínica',          subtitle: 'MEWS — Early Warning Score',      tag: 'Urgência', description: 'Detecção precoce de deterioração clínica em internamento. 5 parâmetros fisiológicos. Activa chamada de emergência.', component: MEWSCalc },
+  { id: 'caprini',   title: 'Risco Tromboembólico (Cirurgia)', subtitle: 'Caprini VTE Risk — ACCP 2012',  tag: 'Hemato', description: 'Score de risco de TEV em cirurgia. Orienta profilaxia com HBPM. 25+ factores de risco ponderados.', component: CapriniVTE },
   { id: 'cha2ds2',   title: 'Risco de AVC na FA',            subtitle: 'CHA₂DS₂-VASc — ESC 2020',        tag: 'Cardiovascular', description: 'Score de risco tromboembólico em doentes com fibrilhação auricular. Indica necessidade de anticoagulação oral.', component: CHA2DS2VASc },
   { id: 'score2',    title: 'Risco Cardiovascular',           subtitle: 'SCORE2 — ESC 2021',               tag: 'Cardiovascular', description: 'Risco a 10 anos de evento CV fatal/não-fatal em doentes sem DCV estabelecida. Válido para 40–75 anos.', component: SCORE2Calc },
   { id: 'hasBled',   title: 'Risco Hemorrágico',             subtitle: 'HAS-BLED — ESC 2020',             tag: 'Cardiovascular', description: 'Score de risco hemorrágico em doentes anticoagulados com FA. Não contra-indica anticoagulação — identifica factores corrigíveis.', component: HASBLEDScore },
@@ -696,6 +874,8 @@ const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   Dor:            { bg: '#fdf4ff', color: '#7e22ce' },
   Geral:          { bg: '#f0fff4', color: '#276749' },
   Pediátrico:     { bg: '#fefce8', color: '#713f12' },
+  Respiratório:   { bg: '#f0f9ff', color: '#0369a1' },
+  Urgência:       { bg: '#fef2f2', color: '#b91c1c' },
 }
 
 export default function CalculatorsPage() {

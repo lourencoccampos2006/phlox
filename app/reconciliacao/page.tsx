@@ -56,6 +56,9 @@ export default function ReconciliacaoPage() {
   const [result, setResult] = useState<ReconciliationResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [decisions, setDecisions] = useState<Record<number, 'approved' | 'rejected'>>({})
+  const [decisionNotes, setDecisionNotes] = useState<Record<number, string>>({})
+  const [copied, setCopied] = useState(false)
 
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
@@ -86,6 +89,34 @@ export default function ReconciliacaoPage() {
       setResult(data)
     } catch (e: any) { setError(e.message || 'Erro. Tenta novamente.') }
     finally { setLoading(false) }
+  }
+
+  const decide = (i: number, v: 'approved' | 'rejected') => setDecisions(d => ({ ...d, [i]: d[i] === v ? undefined as any : v }))
+
+  const exportNote = () => {
+    if (!result) return
+    const date = new Date().toLocaleDateString('pt-PT')
+    const lines = [
+      `RECONCILIAÇÃO MEDICAMENTOSA — ${date}`,
+      context ? `Contexto: ${context}` : '',
+      '',
+      result.summary,
+      '',
+      `DISCREPÂNCIAS (${result.discrepancies.length}):`,
+      ...result.discrepancies.map((d, i) => {
+        const dec = decisions[i]
+        const note = decisionNotes[i]
+        const decLabel = dec === 'approved' ? ' [ACEITE]' : dec === 'rejected' ? ' [RECUSADO]' : ' [PENDENTE]'
+        return `• ${TYPE_LABELS[d.type].label} — ${d.drug}${decLabel}${note ? ` — Nota: ${note}` : ''}\n  ${d.action_required}`
+      }),
+      result.unintentional_omissions.length ? `\nOMISSÕES NÃO INTENCIONAIS:\n${result.unintentional_omissions.map(o => `• ${o}`).join('\n')}` : '',
+      result.therapeutic_duplications.length ? `\nDUPLICAÇÕES TERAPÊUTICAS:\n${result.therapeutic_duplications.map(d => `• ${d}`).join('\n')}` : '',
+      `\nRECOMENDAÇÕES:\n${result.recommendations.map(r => `→ ${r}`).join('\n')}`,
+      `\nGerado via Phlox Reconciliação · ${date}`,
+    ].filter(Boolean).join('\n')
+    navigator.clipboard?.writeText(lines)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
   }
 
   if (!isPro) return (
@@ -195,8 +226,9 @@ export default function ReconciliacaoPage() {
                 {result.discrepancies.map((d, i) => {
                   const s = DISC_STYLE[d.severity]
                   const t = TYPE_LABELS[d.type]
+                  const dec = decisions[i]
                   return (
-                    <div key={i} style={{ padding:'14px 18px', borderBottom:i<result.discrepancies.length-1?'1px solid var(--bg-3)':'none', background:s.bg }}>
+                    <div key={i} style={{ padding:'14px 18px', borderBottom:i<result.discrepancies.length-1?'1px solid var(--bg-3)':'none', background: dec === 'approved' ? '#f0fdf4' : dec === 'rejected' ? '#fef2f2' : s.bg }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
                         <span style={{ fontSize:16 }}>{s.icon}</span>
                         <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>{d.drug}</span>
@@ -214,12 +246,27 @@ export default function ReconciliacaoPage() {
                           {d.after && <div style={{ fontSize:12, color:'#0d6e42', fontFamily:'var(--font-mono)' }}>Depois: {d.after}</div>}
                         </div>
                       )}
-                      <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5, marginBottom:d.justification_needed?6:0 }}>{d.action_required}</div>
+                      <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5, marginBottom:6 }}>{d.action_required}</div>
                       {d.justification_needed && (
-                        <div style={{ fontSize:11, color:'#7c3aed', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:4 }}>
+                        <div style={{ fontSize:11, color:'#7c3aed', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:4, marginBottom:8 }}>
                           ✏️ Requer justificação clínica no processo
                         </div>
                       )}
+                      <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                        <button onClick={() => decide(i, 'approved')}
+                          style={{ padding:'5px 12px', background: dec==='approved'?'#059669':'white', color: dec==='approved'?'white':'#059669', border:'1.5px solid #059669', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                          ✓ Aceitar
+                        </button>
+                        <button onClick={() => decide(i, 'rejected')}
+                          style={{ padding:'5px 12px', background: dec==='rejected'?'#dc2626':'white', color: dec==='rejected'?'white':'#dc2626', border:'1.5px solid #dc2626', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                          ✗ Recusar
+                        </button>
+                        {dec === 'rejected' && (
+                          <input value={decisionNotes[i] || ''} onChange={e => setDecisionNotes(n => ({ ...n, [i]: e.target.value }))}
+                            placeholder="Motivo (opcional)"
+                            style={{ flex:1, minWidth:120, border:'1px solid #fca5a5', borderRadius:6, padding:'5px 10px', fontSize:11, outline:'none', fontFamily:'var(--font-sans)' }} />
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -266,6 +313,18 @@ export default function ReconciliacaoPage() {
                 ))}
               </div>
             )}
+
+            {/* Export actions */}
+            <div style={{ display:'flex', gap:8, paddingTop:4 }}>
+              <button onClick={exportNote}
+                style={{ flex:1, padding:'12px', background: copied?'#d1fae5':'#1d4ed8', color: copied?'#065f46':'white', border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}>
+                {copied ? '✓ Copiado para clipboard' : '📋 Exportar nota clínica'}
+              </button>
+              <button onClick={() => window.print()}
+                style={{ padding:'12px 18px', background:'white', color:'var(--ink)', border:'1px solid var(--border)', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                🖨️ Imprimir
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -65,6 +65,7 @@ type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held' | null
 
 interface AdminRecord {
+  id?: string
   patient_id: string
   med_id: string
   shift: Shift
@@ -181,7 +182,6 @@ export default function MARPage() {
   const [date, setDate] = useState(getToday())
   const [shift, setShift] = useState<Shift>(getCurrentShift())
   const [records, setRecords] = useState<AdminRecord[]>([])
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
   const [allOmissions, setAllOmissions] = useState<{ name: string; missing: number }[]>([])
   const [pendingWarning, setPendingWarning] = useState<{ medId: string; status: AdminStatus; notes: string; messages: string[] } | null>(null)
@@ -295,8 +295,29 @@ export default function MARPage() {
     await doAdmin(medId, status, notes)
   }
 
+  const administerAllPending = async () => {
+    if (!user || !selectedPatient) return
+    const pending = meds.filter(m => !getRecord(m.id))
+    if (!pending.length) return
+    const now = new Date().toISOString()
+    const inserts = pending.map(m => ({
+      patient_id: selectedPatient, user_id: user.id, med_id: m.id, shift, date,
+      status: 'administered', notes: '',
+      recorded_by: (user as any).name || user.email,
+      recorded_at: now,
+    }))
+    const { data: inserted } = await supabase.from('mar_records').insert(inserts).select()
+    if (inserted) setRecords(prev => [...prev, ...inserted])
+  }
+
   const administered = records.filter(r => r.shift === shift && r.status === 'administered').length
   const total = meds.length
+  const pendingCount = total - records.filter(r => r.shift === shift && r.status).length
+
+  function formatTime(iso: string): string {
+    const d = new Date(iso)
+    return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+  }
 
   if (!isPro) {
     return (
@@ -363,6 +384,27 @@ export default function MARPage() {
                   )
                 })}
               </div>
+
+              {/* Administer all pending */}
+              {selectedPatient && pendingCount > 0 && (
+                <button onClick={administerAllPending}
+                  style={{ padding: '8px 14px', background: 'var(--green-2)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                  ✓ Todos ({pendingCount})
+                </button>
+              )}
+
+              {/* Print */}
+              <button onClick={() => window.print()}
+                style={{ padding: '8px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Imprimir
+              </button>
+
+              {/* Handover */}
+              <Link href="/handover"
+                style={{ padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#1d4ed8', fontFamily: 'var(--font-sans)', fontWeight: 700, textDecoration: 'none' }}>
+                Passagem →
+              </Link>
             </div>
           </div>
         </div>
@@ -434,7 +476,7 @@ export default function MARPage() {
             {/* MAR table */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               {/* Table header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 140px', gap: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', padding: '10px 16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 160px', gap: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', padding: '10px 16px' }}>
                 {['Medicamento', 'Dose', 'Frequência', 'Registo'].map(h => (
                   <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
                 ))}
@@ -445,14 +487,22 @@ export default function MARPage() {
                 const rec = getRecord(med.id)
                 const isSaving = saving === med.id
                 return (
-                  <div key={med.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 140px', gap: 0, padding: '12px 16px', borderBottom: i < meds.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'center', opacity: isSaving ? 0.6 : 1, transition: 'opacity 0.15s' }}>
+                  <div key={med.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 160px', gap: 0, padding: '12px 16px', borderBottom: i < meds.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'start', opacity: isSaving ? 0.6 : 1, transition: 'opacity 0.15s' }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{med.name}</div>
                       {med.indication && <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{med.indication}</div>}
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>{med.dose || '—'}</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>{med.frequency || '—'}</div>
-                    <AdminCell record={rec} onChange={(status, notes) => handleAdmin(med.id, status, notes)} />
+                    <div style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.dose || '—'}</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.frequency || '—'}</div>
+                    <div>
+                      <AdminCell record={rec} onChange={(status, notes) => handleAdmin(med.id, status, notes)} />
+                      {rec?.recorded_at && (
+                        <div style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
+                          {formatTime(rec.recorded_at)}{rec.recorded_by ? ` · ${rec.recorded_by.split(' ')[0]}` : ''}
+                          {rec.notes ? <span style={{ color: 'var(--ink-4)' }}> · {rec.notes}</span> : null}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )
               })}

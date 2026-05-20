@@ -52,6 +52,9 @@ export default function OraclePage() {
   const [soap, setSOAP] = useState<SOAPNote|null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string|null>(null)
+  const [copied, setCopied] = useState(false)
+  const [patients, setPatients] = useState<{id:string;name:string;age:number|null;conditions:string|null;weight:number|null;creatinine:number|null;sex:string|null}[]>([])
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('')
 
   useEffect(() => {
     const p = getActiveProfile()
@@ -68,15 +71,21 @@ export default function OraclePage() {
     }
   }, [user, supabase, activeProfile])
 
+  useEffect(() => {
+    if (!user || mode !== 'clinical') return
+    supabase.from('patients').select('id,name,age,conditions,weight,creatinine,sex').eq('user_id', user.id).order('name').then(({ data }) => setPatients(data || []))
+  }, [user, supabase, mode])
+
   const getClarifyQuestions = async () => {
     if (!problem.trim()) return
     setLoading(true); setError(null)
     const { data: sd } = await supabase.auth.getSession()
+    const selPt = patients.find(p => p.id === selectedPatientId)
     try {
       const res = await fetch('/api/oracle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-        body: JSON.stringify({ phase: 'clarify', problem, medications: meds.map(m=>({name:m.name,dose:m.dose,frequency:m.frequency})), mode, age: age ? parseInt(age) : null }),
+        body: JSON.stringify({ phase: 'clarify', problem, medications: meds.map(m=>({name:m.name,dose:m.dose,frequency:m.frequency})), mode, age: age ? parseInt(age) : null, patientContext: selPt ? { conditions: selPt.conditions, weight: selPt.weight, creatinine: selPt.creatinine } : null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
@@ -90,13 +99,14 @@ export default function OraclePage() {
   const getAssessment = async () => {
     setLoading(true); setError(null)
     const { data: sd } = await supabase.auth.getSession()
+    const selPt = patients.find(p => p.id === selectedPatientId)
     try {
       const res = await fetch('/api/oracle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
         body: JSON.stringify({
           phase: 'assess', problem, medications: meds.map(m=>({name:m.name,dose:m.dose,frequency:m.frequency})),
-          answers, mode, age: age ? parseInt(age) : null,
+          answers, mode, age: age ? parseInt(age) : null, patientContext: selPt ? { conditions: selPt.conditions, weight: selPt.weight, creatinine: selPt.creatinine } : null,
         }),
       })
       const data = await res.json()
@@ -107,7 +117,48 @@ export default function OraclePage() {
     setLoading(false)
   }
 
-  const reset = () => { setPhase('input'); setProblem(''); setQuestions([]); setAnswers({}); setSOAP(null); setError(null) }
+  const reset = () => { setPhase('input'); setProblem(''); setQuestions([]); setAnswers({}); setSOAP(null); setError(null); setCopied(false) }
+
+  const copySOAP = () => {
+    if (!soap) return
+    const date = new Date().toLocaleDateString('pt-PT')
+    const lines = [
+      `AVALIAÇÃO FARMACÊUTICA — ${date}`,
+      mode === 'clinical' ? `Modo: Clínico` : `Modo: Pessoal`,
+      age ? `Idade: ${age} anos` : '',
+      '',
+      `S — SUBJECTIVO`,
+      soap.subjective,
+      '',
+      `O — OBJECTIVO`,
+      soap.objective,
+      '',
+      `A — AVALIAÇÃO`,
+      soap.assessment,
+      '',
+      `P — PLANO`,
+      soap.plan.map((s, i) => `${i+1}. ${s}`).join('\n'),
+      '',
+      `MONITORIZAÇÃO`,
+      soap.monitoring,
+      '',
+      `SINAIS DE ALERTA`,
+      soap.when_to_seek_help,
+      soap.pcne_problem ? `\nPCNE — Problema: ${soap.pcne_problem}` : '',
+      soap.pcne_cause ? `PCNE — Causa: ${soap.pcne_cause}` : '',
+      soap.pcne_intervention ? `PCNE — Intervenção: ${soap.pcne_intervention}` : '',
+      '',
+      `Gerado pelo Phlox Oracle · ${EVIDENCE[soap.evidence_level].label}`,
+    ].filter(l => l !== undefined).join('\n')
+    navigator.clipboard.writeText(lines).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500) })
+  }
+
+  const selectPatient = (id: string) => {
+    setSelectedPatientId(id)
+    const p = patients.find(pt => pt.id === id)
+    if (!p) return
+    if (p.age) setAge(String(p.age))
+  }
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
@@ -176,6 +227,18 @@ export default function OraclePage() {
                     style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:7, padding:'8px 11px', fontSize:13, outline:'none', fontFamily:'var(--font-mono)', boxSizing:'border-box' }} />
                 </div>
               </div>
+              {mode === 'clinical' && patients.length > 0 && (
+                <div style={{ marginBottom:16 }}>
+                  <label style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)', letterSpacing:'0.1em', textTransform:'uppercase', display:'block', marginBottom:6 }}>Doente registado (pré-preenche dados)</label>
+                  <select value={selectedPatientId} onChange={e => selectPatient(e.target.value)}
+                    style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:7, padding:'8px 11px', fontSize:13, outline:'none', fontFamily:'var(--font-sans)', background:'white', cursor:'pointer' }}>
+                    <option value=''>— Selecionar doente —</option>
+                    {patients.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}{p.conditions ? ` · ${p.conditions.split(',')[0]}` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Meds context */}
               {meds.length > 0 && (
@@ -422,9 +485,13 @@ export default function OraclePage() {
             </div>
 
             <div style={{ display:'flex', gap:8 }}>
+              <button onClick={copySOAP}
+                style={{ flex:1, padding:'12px', background: copied ? '#d1fae5' : 'white', color: copied ? '#065f46' : 'var(--ink)', border:`1px solid ${copied ? '#6ee7b7' : 'var(--border)'}`, borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}>
+                {copied ? '✓ Copiado' : '📋 Copiar SOAP'}
+              </button>
               <button onClick={() => window.print()}
                 style={{ flex:1, padding:'12px', background:'white', color:'var(--ink)', border:'1px solid var(--border)', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                🖨️ Imprimir avaliação
+                🖨️ Imprimir
               </button>
               <button onClick={reset}
                 style={{ flex:1, padding:'12px', background:'#0f172a', color:'white', border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer' }}>

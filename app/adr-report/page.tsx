@@ -46,6 +46,8 @@ export default function ADRReportPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<{ date: string; form: typeof form; result: ADRResult }[]>([])
 
   useEffect(() => {
     const p = getActiveProfile()
@@ -57,6 +59,10 @@ export default function ADRReportPage() {
         patient_sex: (p as any).sex || f.patient_sex,
       }))
     }
+    try {
+      const saved = localStorage.getItem('phlox_adr_history')
+      if (saved) setHistory(JSON.parse(saved))
+    } catch {}
   }, [])
 
   const analyze = async () => {
@@ -73,6 +79,12 @@ export default function ADRReportPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Erro na análise'); return }
       setResult(data)
+      const entry = { date: new Date().toISOString(), form: { ...form }, result: data }
+      setHistory(prev => {
+        const updated = [entry, ...prev].slice(0, 20)
+        try { localStorage.setItem('phlox_adr_history', JSON.stringify(updated)) } catch {}
+        return updated
+      })
     } catch (e: any) {
       setError(e.message || 'Erro de ligação')
     } finally {
@@ -130,7 +142,14 @@ ${result.disclaimer}`
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Farmacovigilância</div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 4 }}>Notificação de Reação Adversa</div>
             </div>
-            <ProfileSelector onChange={p => { setActiveProfileState(p); if (p.type === 'family') setForm(f => ({ ...f, patient_age: p.age ? String(p.age) : f.patient_age, patient_sex: (p as any).sex || f.patient_sex })) }} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {history.length > 0 && (
+                <button onClick={() => setShowHistory(h => !h)} style={{ padding: '8px 14px', background: showHistory ? '#0f172a' : 'var(--bg-2)', color: showHistory ? 'white' : 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  📋 Histórico ({history.length})
+                </button>
+              )}
+              <ProfileSelector onChange={p => { setActiveProfileState(p); if (p.type === 'family') setForm(f => ({ ...f, patient_age: p.age ? String(p.age) : f.patient_age, patient_sex: (p as any).sex || f.patient_sex })) }} />
+            </div>
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 560 }}>
             Analisa a causalidade, classifica pela WHO-UMC e gera a narrativa para reportar ao INFARMED.
@@ -224,6 +243,32 @@ ${result.disclaimer}`
               </button>
             </div>
           </div>
+
+          {/* History panel */}
+          {showHistory && history.length > 0 && (
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>📋 Histórico de análises</div>
+                <button onClick={() => { if (confirm('Limpar histórico?')) { setHistory([]); localStorage.removeItem('phlox_adr_history') } }}
+                  style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Limpar</button>
+              </div>
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                {history.map((h, i) => (
+                  <button key={i} onClick={() => { setForm(h.form); setResult(h.result); setShowHistory(false) }}
+                    style={{ width: '100%', textAlign: 'left', padding: '12px 18px', borderBottom: '1px solid var(--bg-3)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{h.form.suspected_drug}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.form.reaction}</div>
+                    </div>
+                    <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: CAUSALITY_COLOR[h.result.who_umc_causality] || '#6b7280' }}>{h.result.who_umc_causality}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-5)', marginTop: 2 }}>{new Date(h.date).toLocaleDateString('pt-PT')}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Result */}
           {result && (

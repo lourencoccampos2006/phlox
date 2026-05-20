@@ -25,7 +25,7 @@ export default function PatientsPage() {
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [newP, setNewP] = useState({ name: '', age: '', sex: '', conditions: '', allergies: '' })
+  const [newP, setNewP] = useState({ name: '', age: '', sex: '', weight: '', height: '', creatinine: '', conditions: '', allergies: '', notes: '' })
 
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
@@ -51,8 +51,12 @@ export default function PatientsPage() {
       name: newP.name.trim(),
       age: newP.age ? parseInt(newP.age) : null,
       sex: newP.sex || null,
+      weight: newP.weight ? parseFloat(newP.weight) : null,
+      height: newP.height ? parseInt(newP.height) : null,
+      creatinine: newP.creatinine ? parseFloat(newP.creatinine) : null,
       conditions: newP.conditions.trim() || null,
       allergies: newP.allergies.trim() || null,
+      notes: newP.notes.trim() || null,
     }).select().single()
     if (error) console.error('addPatient error:', error.message)
     if (data) {
@@ -66,11 +70,18 @@ export default function PatientsPage() {
     (p.conditions || '').toLowerCase().includes(search.toLowerCase())
   )
 
-  // ─── Risco heurístico por número de alertas ───
   const riskBadge = (p: Patient) => {
     if (p.alerts && p.alerts > 0) return { label: `${p.alerts} alerta${p.alerts > 1 ? 's' : ''}`, bg: '#fee2e2', color: '#991b1b', border: '#fecaca' }
     if (p.meds_count && p.meds_count >= 5) return { label: 'Polimedicado', bg: '#fef9c3', color: '#854d0e', border: '#fde68a' }
     return null
+  }
+
+  const gfrBadge = (p: Patient) => {
+    if (!(p as any).creatinine || !(p as any).age || !(p as any).weight || !(p as any).sex) return null
+    const crCl = Math.round(((140 - (p as any).age) * (p as any).weight * ((p as any).sex === 'F' ? 0.85 : 1)) / (72 * (p as any).creatinine))
+    if (crCl >= 60) return null
+    if (crCl >= 30) return { label: `CrCl ${crCl}`, bg: '#fef3c7', color: '#b45309', border: '#fde68a' }
+    return { label: `CrCl ${crCl} ⚠`, bg: '#fee2e2', color: '#991b1b', border: '#fecaca' }
   }
 
   if (!user) return null
@@ -137,7 +148,7 @@ export default function PatientsPage() {
                       style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', width: '100%' }} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <input value={newP.age} onChange={e => setNewP(p => ({ ...p, age: e.target.value }))}
-                        placeholder="Idade" type="number"
+                        placeholder="Idade" type="number" min="0" max="120"
                         style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
                       <select value={newP.sex} onChange={e => setNewP(p => ({ ...p, sex: e.target.value }))}
                         style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', color: newP.sex ? 'var(--ink)' : 'var(--ink-4)' }}>
@@ -146,8 +157,19 @@ export default function PatientsPage() {
                         <option value="F">Feminino</option>
                       </select>
                     </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                      <input value={newP.weight} onChange={e => setNewP(p => ({ ...p, weight: e.target.value }))}
+                        placeholder="Peso (kg)" type="number" step="0.1"
+                        style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                      <input value={newP.height} onChange={e => setNewP(p => ({ ...p, height: e.target.value }))}
+                        placeholder="Altura (cm)" type="number"
+                        style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                      <input value={newP.creatinine} onChange={e => setNewP(p => ({ ...p, creatinine: e.target.value }))}
+                        placeholder="Creat. (mg/dL)" type="number" step="0.01"
+                        style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                    </div>
                     <input value={newP.conditions} onChange={e => setNewP(p => ({ ...p, conditions: e.target.value }))}
-                      placeholder="Diagnósticos (ex: HTA, DM2, FA, IRC grau 3)"
+                      placeholder="Diagnósticos (ex: HTA, DM2, FA, IRC G3)"
                       style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', width: '100%' }} />
                     <input value={newP.allergies} onChange={e => setNewP(p => ({ ...p, allergies: e.target.value }))}
                       placeholder="Alergias medicamentosas"
@@ -231,11 +253,21 @@ export default function PatientsPage() {
                       </div>
                       {/* Info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{patient.name}</span>
                           {badge && (
                             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}`, borderRadius: 3, padding: '2px 6px', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
                               {badge.label}
+                            </span>
+                          )}
+                          {(() => { const g = gfrBadge(patient); return g ? (
+                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: g.color, background: g.bg, border: `1px solid ${g.border}`, borderRadius: 3, padding: '2px 6px', letterSpacing: '0.06em', flexShrink: 0 }}>
+                              {g.label}
+                            </span>
+                          ) : null })()}
+                          {patient.allergies && (
+                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>
+                              ⚠ ALERGIA
                             </span>
                           )}
                         </div>

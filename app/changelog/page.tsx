@@ -8,9 +8,30 @@ export const metadata: Metadata = {
 
 const RELEASES = [
   {
-    version: '2.5',
+    version: '2.6',
     date: '2026-05-20',
     tag: 'Mais recente',
+    tagColor: '#2563eb',
+    items: [
+      { type: 'new', text: 'Nova página /nota-clinica — geração de nota SOAP estruturada com IA (tipos: SOAP, Evolução, Alta, Interconsulta)' },
+      { type: 'new', text: 'Nova página /drug-info — monografia completa de fármacos: mecanismo, doses renais/hepáticas, interações, RAMs' },
+      { type: 'new', text: 'Nova página /handover — passagem de turno automática com resumo por doente gerado por IA' },
+      { type: 'new', text: '/turno reescrito: countdown do turno, notas por dose, pesquisa de doentes, timestamps de administração, print' },
+      { type: 'new', text: '/mar: administrar todos pendentes com 1 clique, timestamps + registado por por linha, botão print, link para passagem' },
+      { type: 'new', text: '/patients: formulário com peso, altura e creatinina; badge GFR em lista; alerta "ALERGIA" visível' },
+      { type: 'new', text: '/patients/[id]: badge IRC G1-G5 com cor, indicador de polimedicação, links Ronda e Oracle' },
+      { type: 'new', text: '/rounds: pesquisa de doentes, exportação PCNE para CSV, link para nota clínica por doente' },
+      { type: 'new', text: '/oracle: botão "Copiar SOAP" para clipboard, seletor de doente registado (pré-preenche dados)' },
+      { type: 'new', text: '/adr-report: histórico de análises com localStorage — recarrega análise anterior com 1 clique' },
+      { type: 'new', text: '/reconciliacao: botões aceitar/recusar por discrepância, notas por decisão, exportar nota clínica' },
+      { type: 'new', text: 'Calculadoras: 3 novos scores — CURB-65 (pneumonia), MEWS (deterioração clínica), Caprini VTE (cirurgia)' },
+      { type: 'new', text: 'Navegação clínica atualizada: nota-clinica, drug-info, handover adicionados ao menu e quick actions' },
+    ],
+  },
+  {
+    version: '2.5',
+    date: '2026-05-20',
+    tag: null,
     tagColor: '#059669',
     items: [
       { type: 'new', text: 'Dashboard de família (/familia) — resumo de todos os perfis com risco, STOPP e medicação' },

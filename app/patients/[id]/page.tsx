@@ -190,13 +190,28 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 6 }}>
                 {patient.name}
               </h1>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {patient.age && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{patient.age} anos</span>}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {patient.age && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{patient.age} anos{(patient.age || 0) >= 75 ? ' ⚠' : ''}</span>}
                 {patient.sex && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{patient.sex === 'M' ? 'Masculino' : patient.sex === 'F' ? 'Feminino' : patient.sex}</span>}
-                {crCl && <span style={{ fontSize: 12, color: crCl < 30 ? 'var(--red)' : crCl < 60 ? 'var(--amber)' : 'var(--green)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>CrCl: {crCl} mL/min</span>}
-                {meds.length > 0 && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{meds.length} medicamentos</span>}
+                {patient.weight && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{patient.weight} kg</span>}
+                {crCl && (
+                  <span style={{
+                    fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    color: crCl < 30 ? '#991b1b' : crCl < 60 ? '#b45309' : '#166534',
+                    background: crCl < 30 ? '#fee2e2' : crCl < 60 ? '#fef3c7' : '#dcfce7',
+                    border: `1px solid ${crCl < 30 ? '#fca5a5' : crCl < 60 ? '#fde68a' : '#86efac'}`,
+                    padding: '2px 8px', borderRadius: 10,
+                  }}>
+                    CrCl {crCl} mL/min · IRC {crCl >= 90 ? 'G1' : crCl >= 60 ? 'G2' : crCl >= 45 ? 'G3a' : crCl >= 30 ? 'G3b' : crCl >= 15 ? 'G4' : 'G5'}
+                  </span>
+                )}
+                {meds.length > 0 && (
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: meds.length >= 5 ? '#854d0e' : 'var(--ink-4)', background: meds.length >= 5 ? '#fef9c3' : 'var(--bg-2)', padding: '2px 8px', borderRadius: 10 }}>
+                    {meds.length} med{meds.length !== 1 ? 's' : ''}{meds.length >= 5 ? ' · polimedicado' : ''}
+                  </span>
+                )}
                 {alerts.filter(a => a.severity === 'grave').length > 0 && (
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--red)', background: 'var(--red-light)', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 3 }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#991b1b', background: '#fee2e2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 10 }}>
                     {alerts.filter(a => a.severity === 'grave').length} alerta{alerts.filter(a => a.severity === 'grave').length > 1 ? 's' : ''} grave{alerts.filter(a => a.severity === 'grave').length > 1 ? 's' : ''}
                   </span>
                 )}
@@ -207,6 +222,14 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                 style={{ padding: '7px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                 Editar
               </button>
+              <Link href="/rounds"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', color: '#1d4ed8', border: '1px solid #bfdbfe', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
+                Ronda →
+              </Link>
+              <Link href="/oracle"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', color: '#7c3aed', border: '1px solid #ddd6fe', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
+                Oracle →
+              </Link>
               <Link href={`/ai?patient=${patient.id}`}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>

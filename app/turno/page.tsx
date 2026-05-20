@@ -15,6 +15,9 @@ interface PatientMedRow {
   dose: string | null
   status: AdminStatus | null
   recordId: string | null
+  recordedBy: string | null
+  recordedAt: string | null
+  notes: string | null
 }
 
 interface PatientCard {
@@ -23,16 +26,19 @@ interface PatientCard {
   age: number | null
   conditions: string | null
   allergies: string | null
+  weight: number | null
+  creatinine: number | null
+  sex: string | null
   meds: PatientMedRow[]
   riskScore: number
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SHIFT_LABELS: Record<Shift, { label: string; time: string; color: string; bg: string; border: string }> = {
-  manha: { label: 'Manhã', time: '07:00–14:00', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-  tarde: { label: 'Tarde', time: '14:00–21:00', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
-  noite: { label: 'Noite', time: '21:00–07:00', color: '#6d28d9', bg: '#faf5ff', border: '#ddd6fe' },
+const SHIFT_LABELS: Record<Shift, { label: string; time: string; color: string; bg: string; border: string; endHour: number }> = {
+  manha: { label: 'Manhã', time: '07:00–14:00', color: '#d97706', bg: '#fffbeb', border: '#fde68a', endHour: 14 },
+  tarde: { label: 'Tarde', time: '14:00–21:00', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', endHour: 21 },
+  noite: { label: 'Noite', time: '21:00–07:00', color: '#6d28d9', bg: '#faf5ff', border: '#ddd6fe', endHour: 7 },
 }
 
 const STATUS_CONFIG: Record<AdminStatus, { label: string; short: string; color: string; bg: string; border: string }> = {
@@ -69,6 +75,9 @@ function calcRisk(patient: PatientCard): number {
   const hasNsaid = names.some(n => NSAIDS.some(ns => n.includes(ns)))
   if (hasBzd && (patient.age || 0) >= 65) score += 20
   if (hasNsaid && hasAnticoag) score += 25
+  // Renal risk: high creatinine
+  if (patient.creatinine && patient.creatinine > 1.5) score += 10
+  if (patient.creatinine && patient.creatinine > 3.0) score += 15
   return Math.min(score, 100)
 }
 
@@ -76,6 +85,50 @@ function riskLevel(score: number): { label: string; color: string; bg: string } 
   if (score >= 60) return { label: 'Alto',  color: '#991b1b', bg: '#fee2e2' }
   if (score >= 35) return { label: 'Médio', color: '#854d0e', bg: '#fef9c3' }
   return                   { label: 'Baixo', color: '#166534', bg: '#dcfce7' }
+}
+
+function formatTime(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+}
+
+function calcCrCl(p: PatientCard): number | null {
+  if (!p.age || !p.weight || !p.creatinine || !p.sex) return null
+  return Math.round(((140 - p.age) * p.weight * (p.sex === 'F' ? 0.85 : 1)) / (72 * p.creatinine))
+}
+
+function getGFRStage(crCl: number | null): { stage: string; color: string; bg: string } | null {
+  if (crCl === null) return null
+  if (crCl >= 90) return { stage: 'G1', color: '#166534', bg: '#dcfce7' }
+  if (crCl >= 60) return { stage: 'G2', color: '#0d6e42', bg: '#d1fae5' }
+  if (crCl >= 45) return { stage: 'G3a', color: '#d97706', bg: '#fffbeb' }
+  if (crCl >= 30) return { stage: 'G3b', color: '#b45309', bg: '#fef3c7' }
+  if (crCl >= 15) return { stage: 'G4', color: '#dc2626', bg: '#fee2e2' }
+  return { stage: 'G5', color: '#991b1b', bg: '#fecaca' }
+}
+
+// ─── Countdown hook ───────────────────────────────────────────────────────────
+
+function useShiftCountdown(shift: Shift): string {
+  const [text, setText] = useState('')
+  useEffect(() => {
+    function update() {
+      const now = new Date()
+      const endHour = SHIFT_LABELS[shift].endHour
+      const end = new Date(now)
+      end.setHours(endHour, 0, 0, 0)
+      if (end <= now) end.setDate(end.getDate() + 1)
+      const diffMs = end.getTime() - now.getTime()
+      const h = Math.floor(diffMs / 3_600_000)
+      const m = Math.floor((diffMs % 3_600_000) / 60_000)
+      setText(`${h}h ${m.toString().padStart(2, '0')}m`)
+    }
+    update()
+    const id = setInterval(update, 30_000)
+    return () => clearInterval(id)
+  }, [shift])
+  return text
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -92,6 +145,13 @@ export default function TurnoPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState<'urgency' | 'name'>('urgency')
+  const [search, setSearch] = useState('')
+  // notes modal
+  const [notesModal, setNotesModal] = useState<{ patientId: string; medId: string; status: AdminStatus; medName: string } | null>(null)
+  const [notesInput, setNotesInput] = useState('')
+
+  const countdown = useShiftCountdown(shift)
+  const sl = SHIFT_LABELS[shift]
 
   const load = useCallback(async () => {
     if (!user || !isPro) return
@@ -99,7 +159,7 @@ export default function TurnoPage() {
     try {
       const { data: rawPatients } = await supabase
         .from('patients')
-        .select('id, name, age, conditions, allergies')
+        .select('id, name, age, sex, weight, creatinine, conditions, allergies')
         .eq('user_id', user.id)
         .order('name', { ascending: true })
 
@@ -108,7 +168,7 @@ export default function TurnoPage() {
 
       const [{ data: rawMeds }, { data: rawRecords }] = await Promise.all([
         supabase.from('patient_meds').select('id, patient_id, name, dose').eq('active', true).in('patient_id', pIds),
-        supabase.from('mar_records').select('id, patient_id, med_id, status').eq('date', date).eq('shift', shift).in('patient_id', pIds),
+        supabase.from('mar_records').select('id, patient_id, med_id, status, notes, recorded_by, recorded_at').eq('date', date).eq('shift', shift).in('patient_id', pIds),
       ])
 
       const cards: PatientCard[] = (rawPatients || []).map((p: any) => {
@@ -116,9 +176,14 @@ export default function TurnoPage() {
           .filter((m: any) => m.patient_id === p.id)
           .map((m: any) => {
             const rec = (rawRecords || []).find((r: any) => r.med_id === m.id && r.patient_id === p.id)
-            return { id: m.id, name: m.name, dose: m.dose, status: rec?.status ?? null, recordId: rec?.id ?? null }
+            return {
+              id: m.id, name: m.name, dose: m.dose,
+              status: rec?.status ?? null, recordId: rec?.id ?? null,
+              recordedBy: rec?.recorded_by ?? null, recordedAt: rec?.recorded_at ?? null,
+              notes: rec?.notes ?? null,
+            }
           })
-        const card: PatientCard = { id: p.id, name: p.name, age: p.age, conditions: p.conditions, allergies: p.allergies, meds, riskScore: 0 }
+        const card: PatientCard = { id: p.id, name: p.name, age: p.age, sex: p.sex, weight: p.weight, creatinine: p.creatinine, conditions: p.conditions, allergies: p.allergies, meds, riskScore: 0 }
         card.riskScore = calcRisk(card)
         return card
       })
@@ -131,13 +196,12 @@ export default function TurnoPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Auto-expand patients with missing doses (up to 5)
   useEffect(() => {
     const urgent = patients.filter(p => p.meds.some(m => !m.status)).map(p => p.id).slice(0, 5)
     setExpanded(new Set(urgent))
   }, [patients])
 
-  const handleRecord = async (patient: PatientCard, med: PatientMedRow, status: AdminStatus | null) => {
+  const handleRecord = async (patient: PatientCard, med: PatientMedRow, status: AdminStatus | null, notes?: string) => {
     if (!user) return
     setSaving(`${patient.id}-${med.id}`)
     const base = {
@@ -148,19 +212,27 @@ export default function TurnoPage() {
       date,
       recorded_by: (user as any).name || user.email,
       recorded_at: new Date().toISOString(),
+      notes: notes ?? '',
     }
+    let newRecordId = med.recordId
     if (status === null && med.recordId) {
       await supabase.from('mar_records').delete().eq('id', med.recordId)
+      newRecordId = null
     } else if (med.recordId) {
-      await supabase.from('mar_records').update({ status, recorded_at: base.recorded_at }).eq('id', med.recordId)
+      await supabase.from('mar_records').update({ status, recorded_at: base.recorded_at, notes: notes ?? med.notes ?? '' }).eq('id', med.recordId)
     } else if (status) {
-      const { data } = await supabase.from('mar_records').insert({ ...base, status, notes: '' }).select('id').single()
-      med = { ...med, recordId: data?.id ?? null }
+      const { data } = await supabase.from('mar_records').insert({ ...base, status }).select('id').single()
+      newRecordId = data?.id ?? null
     }
     setPatients(prev => prev.map(p => p.id !== patient.id ? p : {
-      ...p, meds: p.meds.map(m => m.id !== med.id ? m : { ...m, status, recordId: med.recordId }),
+      ...p, meds: p.meds.map(m => m.id !== med.id ? m : {
+        ...m, status, recordId: newRecordId,
+        recordedBy: base.recorded_by, recordedAt: base.recorded_at, notes: notes ?? m.notes,
+      }),
     }))
     setSaving(null)
+    setNotesModal(null)
+    setNotesInput('')
   }
 
   const administerAll = async (patient: PatientCard) => {
@@ -178,14 +250,24 @@ export default function TurnoPage() {
     const { data: inserted } = await supabase.from('mar_records').insert(inserts).select('id, med_id')
     const idMap = Object.fromEntries((inserted || []).map((r: any) => [r.med_id, r.id]))
     setPatients(prev => prev.map(p => p.id !== patient.id ? p : {
-      ...p, meds: p.meds.map(m => m.status ? m : { ...m, status: 'administered' as AdminStatus, recordId: idMap[m.id] ?? null }),
+      ...p, meds: p.meds.map(m => m.status ? m : {
+        ...m, status: 'administered' as AdminStatus, recordId: idMap[m.id] ?? null,
+        recordedBy: (user as any).name || user.email, recordedAt: now, notes: '',
+      }),
     }))
     setSaving(null)
   }
 
+  const printShift = () => window.print()
+
   // ─── Derived ────────────────────────────────────────────────────────────────
 
-  const sorted = [...patients].sort((a, b) => {
+  const filtered = patients.filter(p =>
+    !search || p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.conditions || '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  const sorted = [...filtered].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name)
     const aMiss = a.meds.filter(m => !m.status).length
     const bMiss = b.meds.filter(m => !m.status).length
@@ -196,14 +278,12 @@ export default function TurnoPage() {
   const totalMeds = patients.reduce((s, p) => s + p.meds.length, 0)
   const totalDone = patients.reduce((s, p) => s + p.meds.filter(m => !!m.status).length, 0)
   const pct = totalMeds > 0 ? Math.round((totalDone / totalMeds) * 100) : 0
-  const sl = SHIFT_LABELS[shift]
 
   // ─── Upsell ─────────────────────────────────────────────────────────────────
 
   if (!isPro) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
         <div style={{ maxWidth: 560, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 14 }}>Gestão de Turno</div>
           <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28 }}>
@@ -222,9 +302,8 @@ export default function TurnoPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
 
-
       {/* Sticky top bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '14px 0', position: 'sticky', top: 0, zIndex: 40 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '14px 0', position: 'sticky', top: 0, zIndex: 40 }} className="no-print">
         <div className="page-container">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
@@ -235,6 +314,11 @@ export default function TurnoPage() {
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: sl.color, background: sl.bg, border: `1px solid ${sl.border}`, padding: '2px 9px', borderRadius: 3, letterSpacing: '0.08em' }}>
                   {sl.label.toUpperCase()} · {sl.time}
                 </span>
+                {countdown && (
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 3 }}>
+                    ⏱ {countdown} para fim
+                  </span>
+                )}
               </div>
               {!loading && totalMeds > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -252,6 +336,16 @@ export default function TurnoPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Search */}
+              <div style={{ position: 'relative' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Pesquisar doente..."
+                  style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 11px 7px 30px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', width: 170 }} />
+              </div>
+
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
                 style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 11px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
 
@@ -277,6 +371,19 @@ export default function TurnoPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Print */}
+              <button onClick={printShift}
+                style={{ padding: '7px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Imprimir
+              </button>
+
+              {/* Handover */}
+              <Link href="/handover"
+                style={{ padding: '7px 12px', background: sl.bg, border: `1px solid ${sl.border}`, borderRadius: 7, fontSize: 12, cursor: 'pointer', color: sl.color, fontFamily: 'var(--font-sans)', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+                Passagem de turno →
+              </Link>
             </div>
           </div>
         </div>
@@ -298,6 +405,11 @@ export default function TurnoPage() {
               para começar a gerir turnos.
             </p>
           </div>
+        ) : sorted.length === 0 ? (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, color: 'var(--ink-4)' }}>Nenhum doente corresponde a "{search}"</div>
+            <button onClick={() => setSearch('')} style={{ marginTop: 10, fontSize: 12, color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>Limpar pesquisa</button>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sorted.map(patient => {
@@ -308,21 +420,21 @@ export default function TurnoPage() {
               const risk = riskLevel(patient.riskScore)
               const isExpanded = expanded.has(patient.id)
               const isSavingAll = saving === `all-${patient.id}`
+              const crCl = calcCrCl(patient)
+              const gfr = getGFRStage(crCl)
 
               return (
                 <div key={patient.id}
-                  style={{ background: 'white', border: `1.5px solid ${complete ? 'var(--green-mid)' : missing > 0 ? 'var(--border)' : 'var(--border)'}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                  style={{ background: 'white', border: `1.5px solid ${complete ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.2s' }}>
 
-                  {/* Card header — click to expand */}
+                  {/* Card header */}
                   <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', background: complete ? '#f0fdf4' : 'white', userSelect: 'none' }}
                     onClick={() => setExpanded(prev => { const n = new Set(prev); n.has(patient.id) ? n.delete(patient.id) : n.add(patient.id); return n })}>
 
-                    {/* Circle indicator */}
                     <div style={{ width: 40, height: 40, borderRadius: '50%', background: complete ? 'var(--green-2)' : missing > 2 ? '#dc2626' : sl.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'white', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: complete ? 18 : 14 }}>
                       {complete ? '✓' : missing}
                     </div>
 
-                    {/* Patient info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{patient.name}</span>
@@ -332,6 +444,12 @@ export default function TurnoPage() {
                         <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: risk.color, background: risk.bg, padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em' }}>
                           Risco {risk.label}
                         </span>
+                        {gfr && crCl && (
+                          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: gfr.color, background: gfr.bg, padding: '2px 8px', borderRadius: 10 }}
+                            title={`CrCl ${crCl} mL/min`}>
+                            IRC {gfr.stage}
+                          </span>
+                        )}
                         {patient.allergies && (
                           <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 8px', borderRadius: 10 }}>
                             ⚠ ALERGIAS
@@ -345,7 +463,6 @@ export default function TurnoPage() {
                       )}
                     </div>
 
-                    {/* Right side: progress + actions */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: complete ? 'var(--green-2)' : 'var(--ink-3)' }}>
@@ -392,7 +509,6 @@ export default function TurnoPage() {
                             <div key={med.id}
                               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 10px 72px', borderBottom: isLast ? 'none' : '1px solid var(--bg-3)', background: done ? '#f9fafb' : 'white', opacity: isSavingMed ? 0.6 : 1, transition: 'all 0.15s' }}>
 
-                              {/* Med info */}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--ink-4)' : 'var(--ink)', textDecoration: done ? 'line-through' : 'none' }}>
                                   {med.name}
@@ -400,9 +516,14 @@ export default function TurnoPage() {
                                 {med.dose && (
                                   <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{med.dose}</div>
                                 )}
+                                {/* Timestamp + recorded by */}
+                                {done && med.recordedAt && (
+                                  <div style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
+                                    {formatTime(med.recordedAt)}{med.recordedBy ? ` · ${med.recordedBy}` : ''}{med.notes ? ` · "${med.notes}"` : ''}
+                                  </div>
+                                )}
                               </div>
 
-                              {/* Action buttons */}
                               <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
                                 {done && cfg ? (
                                   <>
@@ -416,16 +537,26 @@ export default function TurnoPage() {
                                     </button>
                                   </>
                                 ) : (
-                                  (Object.keys(STATUS_CONFIG) as AdminStatus[]).map(st => {
-                                    const c = STATUS_CONFIG[st]
-                                    return (
-                                      <button key={st} onClick={() => handleRecord(patient, med, st)}
-                                        title={c.label}
-                                        style={{ width: 30, height: 30, border: `1px solid ${c.border}`, borderRadius: 6, background: c.bg, cursor: 'pointer', fontSize: 14, fontWeight: 700, color: c.color }}>
-                                        {c.short}
-                                      </button>
-                                    )
-                                  })
+                                  <>
+                                    {(Object.keys(STATUS_CONFIG) as AdminStatus[]).map(st => {
+                                      const c = STATUS_CONFIG[st]
+                                      return (
+                                        <button key={st}
+                                          onClick={() => {
+                                            if (st === 'administered') {
+                                              setNotesModal({ patientId: patient.id, medId: med.id, status: st, medName: med.name })
+                                              setNotesInput('')
+                                            } else {
+                                              handleRecord(patient, med, st)
+                                            }
+                                          }}
+                                          title={c.label}
+                                          style={{ width: 30, height: 30, border: `1px solid ${c.border}`, borderRadius: 6, background: c.bg, cursor: 'pointer', fontSize: 14, fontWeight: 700, color: c.color }}>
+                                          {c.short}
+                                        </button>
+                                      )
+                                    })}
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -440,6 +571,42 @@ export default function TurnoPage() {
           </div>
         )}
       </div>
+
+      {/* Notes modal on administering */}
+      {notesModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', padding: 16 }}>
+          <div style={{ background: 'white', borderRadius: 12, padding: '22px', width: '100%', maxWidth: 360, boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Administrar: {notesModal.medName}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>Observação opcional (via, hora real, intercorrências)</div>
+            <textarea value={notesInput} onChange={e => setNotesInput(e.target.value)} rows={3}
+              placeholder="Ex: Via SC, doente recusou inicialmente..."
+              autoFocus
+              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none', marginBottom: 12 }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  const patient = patients.find(p => p.id === notesModal.patientId)
+                  const med = patient?.meds.find(m => m.id === notesModal.medId)
+                  if (patient && med) handleRecord(patient, med, notesModal.status, notesInput)
+                }}
+                style={{ flex: 1, background: 'var(--green-2)', color: 'white', border: 'none', borderRadius: 7, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                ✓ Confirmar
+              </button>
+              <button onClick={() => setNotesModal(null)}
+                style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+        }
+      `}</style>
     </div>
   )
 }
