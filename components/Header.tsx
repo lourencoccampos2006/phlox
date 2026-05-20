@@ -1144,9 +1144,23 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Desktop nav — logged-in persona links + dashboard */}
+          {/* Desktop nav — logged-in persona links + dashboard + tools dropdown */}
           {!loading && user && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: 12 }} className="hdr-nav">
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: 12, flexShrink: 0 }} className="hdr-nav">
+              <Link href="/dashboard"
+                style={{
+                  fontSize: 13,
+                  fontWeight: pathname === '/dashboard' ? 700 : 500,
+                  padding: '5px 9px',
+                  color: pathname === '/dashboard' ? textColorActive : textColor,
+                  textDecoration: 'none', borderRadius: 7,
+                  transition: 'color 0.15s', whiteSpace: 'nowrap',
+                  background: pathname === '/dashboard'
+                    ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
+                    : 'transparent',
+                }}>
+                Painel
+              </Link>
               {personaLinks.map(link => (
                 <Link key={link.href} href={link.href}
                   style={{
@@ -1163,20 +1177,24 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Link href="/dashboard"
-                style={{
-                  fontSize: 13,
-                  fontWeight: pathname === '/dashboard' ? 700 : 500,
-                  padding: '5px 9px',
-                  color: pathname === '/dashboard' ? textColorActive : textColor,
-                  textDecoration: 'none', borderRadius: 7,
+              {/* Mode-specific tools dropdown */}
+              <div style={{ position: 'relative' }}>
+                <button onClick={() => setToolsOpen(o => !o)} style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '5px 9px', border: 'none',
+                  cursor: 'pointer', borderRadius: 7, fontFamily: 'inherit',
+                  fontSize: 13, fontWeight: 500,
+                  color: toolsOpen ? textColorActive : textColor,
                   transition: 'color 0.15s', whiteSpace: 'nowrap',
-                  background: pathname === '/dashboard'
-                    ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
-                    : 'transparent',
+                  background: toolsOpen ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)') : 'transparent',
                 }}>
-                Painel
-              </Link>
+                  Ferramentas
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.6, marginTop: 1 }}>
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {toolsOpen && <ToolsDropdown onClose={() => setToolsOpen(false)} />}
+              </div>
             </nav>
           )}
 
