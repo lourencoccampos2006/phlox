@@ -93,6 +93,49 @@ function formatTime(iso: string | null): string {
   return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
 }
 
+// Drugs requiring renal dose adjustment (GFR < 60 alert)
+const RENAL_ADJUST_DRUGS = [
+  'metformina','metformin',
+  'digoxina','digoxin',
+  'atenolol',
+  'ciprofloxacina','ciprofloxacin',
+  'levofloxacina','levofloxacin',
+  'vancomicina','vancomycin',
+  'gentamicina','gentamycin','tobramicina',
+  'amoxicilina','amoxicillin','ampicilina',
+  'trimetoprim','sulfametoxazol',
+  'aciclovir','acyclovir','valaciclovir',
+  'gabapentina','gabapentin',
+  'pregabalina','pregabalin',
+  'ranitidina','famotidina','nizatidina',
+  'lisinopril','ramipril','enalapril','captopril',
+  'espironolactona','spironolactone',
+  'furosemida','furosemide',
+  'alendronato','alendronate',
+  'metoclopramida','metoclopramide',
+  'rivaroxabano','rivaroxaban','apixabano','apixaban','dabigatrano','dabigatran',
+  'tramadol','morfina','codeine','codeina',
+  'litio','lithium',
+  'carbonato de calcio','calcium',
+  'insulina','insulin',
+]
+
+function checkAllergyConflict(medName: string, allergies: string | null): boolean {
+  if (!allergies) return false
+  const med = medName.toLowerCase()
+  const allergenList = allergies.toLowerCase().split(/[,;\/\n]+/).map(a => a.trim()).filter(Boolean)
+  return allergenList.some(allergen => {
+    if (!allergen || allergen.length < 3) return false
+    const words = allergen.split(/\s+/).filter(w => w.length >= 3)
+    return words.some(w => med.includes(w) || w.includes(med.substring(0, Math.max(4, med.length - 2))))
+  })
+}
+
+function needsRenalAdjust(medName: string): boolean {
+  const n = medName.toLowerCase()
+  return RENAL_ADJUST_DRUGS.some(d => n.includes(d) || d.includes(n.substring(0, Math.max(5, n.length - 2))))
+}
+
 function calcCrCl(p: PatientCard): number | null {
   if (!p.age || !p.weight || !p.creatinine || !p.sex) return null
   return Math.round(((140 - p.age) * p.weight * (p.sex === 'F' ? 0.85 : 1)) / (72 * p.creatinine))
@@ -505,18 +548,33 @@ export default function TurnoPage() {
                           const isSavingMed = saving === `${patient.id}-${med.id}`
                           const done = !!med.status
                           const cfg = med.status ? STATUS_CONFIG[med.status] : null
+                          const allergyConflict = checkAllergyConflict(med.name, patient.allergies)
+                          const renalFlag = needsRenalAdjust(med.name) && crCl !== null && crCl < 60
                           return (
                             <div key={med.id}
-                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 10px 72px', borderBottom: isLast ? 'none' : '1px solid var(--bg-3)', background: done ? '#f9fafb' : 'white', opacity: isSavingMed ? 0.6 : 1, transition: 'all 0.15s' }}>
+                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 10px 72px', borderBottom: isLast ? 'none' : '1px solid var(--bg-3)', background: allergyConflict ? '#fff1f2' : done ? '#f9fafb' : 'white', opacity: isSavingMed ? 0.6 : 1, transition: 'all 0.15s', borderLeft: allergyConflict ? '3px solid #dc2626' : 'none' }}>
 
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--ink-4)' : 'var(--ink)', textDecoration: done ? 'line-through' : 'none' }}>
-                                  {med.name}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: allergyConflict ? '#991b1b' : done ? 'var(--ink-4)' : 'var(--ink)', textDecoration: done ? 'line-through' : 'none' }}>
+                                    {med.name}
+                                  </span>
+                                  {allergyConflict && (
+                                    <span title={`Possível conflito com alergias: ${patient.allergies}`}
+                                      style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                                      ⚠ ALERGIA
+                                    </span>
+                                  )}
+                                  {renalFlag && (
+                                    <span title={`CrCl ${crCl} mL/min — verificar dose para função renal`}
+                                      style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px solid #fcd34d', padding: '1px 6px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                                      ↓ RENAL
+                                    </span>
+                                  )}
                                 </div>
                                 {med.dose && (
                                   <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{med.dose}</div>
                                 )}
-                                {/* Timestamp + recorded by */}
                                 {done && med.recordedAt && (
                                   <div style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
                                     {formatTime(med.recordedAt)}{med.recordedBy ? ` · ${med.recordedBy}` : ''}{med.notes ? ` · "${med.notes}"` : ''}

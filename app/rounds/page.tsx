@@ -251,13 +251,16 @@ function PCNEForm({ patient, pharmacist, onSave, onCancel }: {
 
 // ─── Patient detail panel ─────────────────────────────────────────────────────
 
-function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase, user, onNewIntervention }: {
+function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase, user, onNewIntervention, onUpdateOutcome }: {
   patient: Patient; risk: RiskScore|null; meds: PatientMed[]
   interventions: PCNEIntervention[]; pharmacist: string
-  supabase: any; user: any; onNewIntervention: (i: PCNEIntervention) => void
+  supabase: any; user: any
+  onNewIntervention: (i: PCNEIntervention) => void
+  onUpdateOutcome: (id: string, outcome_code: string, accepted?: boolean|null) => void
 }) {
   const [showPCNE, setShowPCNE] = useState(false)
   const [tab, setTab] = useState<'overview'|'meds'|'interventions'|'stopp'>('overview')
+  const [updatingOutcome, setUpdatingOutcome] = useState<string|null>(null)
   const crcl = calcCrCl(patient)
   const stoppResult: STOPPSTARTResult = runSTOPPSTART(
     patient.age,
@@ -428,21 +431,52 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
             )}
             {patientInterventions.length===0 ? (
               <div style={{ textAlign:'center', padding:'24px 0', color:'var(--ink-4)', fontSize:13 }}>Nenhuma intervenção registada para este doente.</div>
-            ) : patientInterventions.map((iv, i) => {
+            ) : patientInterventions.map((iv) => {
               const outcome = PCNE_OUTCOMES.find(o => o.code===iv.outcome_code)
+              const isPending = iv.outcome_code === 'O0'
+              const isUpdating = updatingOutcome === iv.id
+              const daysSince = Math.floor((Date.now() - new Date(iv.date).getTime()) / 86_400_000)
               return (
-                <div key={iv.id} style={{ padding:'14px', background:'white', border:'1px solid var(--border)', borderRadius:8, marginBottom:8 }}>
+                <div key={iv.id} style={{ padding:'14px', background:'white', border:`1px solid ${isPending?'#fde68a':'var(--border)'}`, borderRadius:8, marginBottom:8, borderLeft:`3px solid ${isPending?'#d97706':outcome?.color||'var(--border)'}` }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
                       {[iv.problem_code, iv.cause_code, iv.intervention_code].map(code => (
                         <span key={code} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#1d4ed8', background:'#eff6ff', border:'1px solid #bfdbfe', padding:'2px 6px', borderRadius:3 }}>{code}</span>
                       ))}
+                      {iv.accepted === true && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#0d6e42', background:'#dcfce7', padding:'2px 6px', borderRadius:3 }}>Aceite</span>}
+                      {iv.accepted === false && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#dc2626', background:'#fee2e2', padding:'2px 6px', borderRadius:3 }}>Recusada</span>}
                     </div>
-                    <span style={{ fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{iv.date}</span>
+                    <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
+                      {isPending && daysSince > 0 && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#d97706', background:'#fef9c3', padding:'2px 6px', borderRadius:3 }}>{daysSince}d pendente</span>}
+                      <span style={{ fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>{iv.date}</span>
+                    </div>
                   </div>
                   <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5, marginBottom:5 }}>{iv.description}</div>
-                  {iv.recommendation && <div style={{ fontSize:12, color:'#1d4ed8', fontFamily:'var(--font-mono)', marginBottom:6 }}>→ {iv.recommendation}</div>}
-                  {outcome && <span style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:outcome.color }}>{outcome.code} — {outcome.label}</span>}
+                  {iv.recommendation && <div style={{ fontSize:12, color:'#1d4ed8', fontFamily:'var(--font-mono)', marginBottom:8 }}>→ {iv.recommendation}</div>}
+                  {/* Outcome selector */}
+                  <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center', paddingTop:8, borderTop:'1px solid var(--bg-3)' }}>
+                    <span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-5)', textTransform:'uppercase', letterSpacing:'0.08em', marginRight:2 }}>Resultado:</span>
+                    {PCNE_OUTCOMES.map(o => (
+                      <button key={o.code} disabled={isUpdating}
+                        onClick={() => {
+                          setUpdatingOutcome(iv.id)
+                          onUpdateOutcome(iv.id, o.code)
+                          setUpdatingOutcome(null)
+                        }}
+                        style={{ padding:'3px 8px', background:iv.outcome_code===o.code?o.color:'white', border:`1px solid ${iv.outcome_code===o.code?o.color:'var(--border)'}`, borderRadius:4, cursor:'pointer', fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:iv.outcome_code===o.code?'white':o.color, opacity:isUpdating?0.5:1 }}>
+                        {o.code}
+                      </button>
+                    ))}
+                    {iv.intervention_code !== 'I0' && iv.accepted === null && (
+                      <>
+                        <span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-5)', marginLeft:6, marginRight:2 }}>Aceite:</span>
+                        <button onClick={() => onUpdateOutcome(iv.id, iv.outcome_code, true)}
+                          style={{ padding:'3px 8px', background:'#dcfce7', border:'1px solid #86efac', borderRadius:4, cursor:'pointer', fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#0d6e42' }}>Sim</button>
+                        <button onClick={() => onUpdateOutcome(iv.id, iv.outcome_code, false)}
+                          style={{ padding:'3px 8px', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:4, cursor:'pointer', fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#dc2626' }}>Não</button>
+                      </>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -814,6 +848,13 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
                 interventions={interventions} pharmacist={pharmacist}
                 supabase={supabase} user={user}
                 onNewIntervention={iv => setInterventions(prev => [iv, ...prev])}
+                onUpdateOutcome={(id, outcome_code, accepted) => {
+                  updateInterventionOutcome(id, outcome_code)
+                  if (accepted !== undefined) {
+                    supabase.from('pcne_interventions').update({ accepted }).eq('id', id)
+                    setInterventions(prev => prev.map(i => i.id === id ? { ...i, accepted: accepted ?? null } : i))
+                  }
+                }}
               />
             ) : null}
           </div>

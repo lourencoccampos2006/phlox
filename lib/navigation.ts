@@ -52,6 +52,13 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/calculators',   icon: '🔢', label: 'Calculadoras',    desc: 'CURB-65, MEWS, VTE, CKD…' },
       { href: '/reconciliacao', icon: '🔄', label: 'Reconciliação',   desc: 'Admissão vs. atual' },
       { href: '/adr-report',    icon: '⚠️', label: 'Notificação RAM', desc: 'WHO-UMC e INFARMED' },
+      { href: '/antibiotics',   icon: '💉', label: 'Antibioterapia',  desc: 'Empírica · MRSA/ESBL · stewardship', badge: 'Novo' },
+      { href: '/stopp-start',   icon: '🛑', label: 'STOPP/START',    desc: 'v3 2023 + Beers', badge: 'Novo' },
+      { href: '/polypharmacy',  icon: '⚕️', label: 'Polimedicação',  desc: 'Auditoria · cascatas · carga ACB', badge: 'Novo' },
+      { href: '/counseling',    icon: '📋', label: 'Aconselhamento',  desc: 'Folha de informação ao doente', badge: 'Novo' },
+      { href: '/iv-compatibility', icon: '🧪', label: 'Comp. IV',   desc: 'Y-site · mistura · seringa', badge: 'Novo' },
+      { href: '/emergency-doses',  icon: '🚨', label: 'Urgência',   desc: 'Doses de emergência por peso', badge: 'Novo' },
+      { href: '/electrolytes',     icon: '⚡', label: 'Eletrólitos', desc: 'Protocolos K, Na, Mg, Ca', badge: 'Novo' },
     ],
   },
   {
@@ -91,6 +98,8 @@ export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>>
     { href: '/oracle', label: 'Oracle' },
     { href: '/drug-info', label: 'Fármacos' },
     { href: '/calculators', label: 'Cálculos' },
+    { href: '/antibiotics', label: 'Antibióticos' },
+    { href: '/polypharmacy', label: 'Polimedicação' },
   ],
   student: [
     { href: '/inicio', label: 'Início' },
@@ -125,6 +134,8 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/patients',     icon: '👥', label: 'Doentes',     desc: 'Fichas e medicação' },
     { href: '/oracle',       icon: '🤖', label: 'Oracle',      desc: 'SOAP e intervenção' },
     { href: '/drug-info',    icon: '💊', label: 'Fármacos',    desc: 'Monografia e interações' },
+    { href: '/antibiotics',  icon: '💉', label: 'Antibióticos', desc: 'Empírica · MRSA/ESBL · stewardship' },
+    { href: '/emergency-doses', icon: '🚨', label: 'Urgência', desc: 'Doses de emergência por peso' },
   ],
   student: [
     { href: '/arena',     icon: '🏆', label: 'Arena',     desc: 'Ligas Bronze → Diamante' },

@@ -8,9 +8,25 @@ export const metadata: Metadata = {
 
 const RELEASES = [
   {
-    version: '2.6',
+    version: '2.7',
     date: '2026-05-20',
     tag: 'Mais recente',
+    tagColor: '#2563eb',
+    items: [
+      { type: 'new', text: '/antibiotics — antibioterapia empírica: 1.ª/2.ª linha, cobertura MRSA/ESBL, step-down IV→oral, duração, ajuste renal, stewardship. Baseado em ESCMID/EUCAST 2024, IDSA, DGS PPCIRA' },
+      { type: 'new', text: '/stopp-start — análise STOPP/START v3 (2023) + Beers 2023 com seleção de doente, 24 chips de diagnóstico, exportação e 3 painéis por critério' },
+      { type: 'new', text: '/polypharmacy — auditoria completa de polimedicação: MPI, duplicações, cascatas de prescrição, carga anticolinérgica (ACB), omissões terapêuticas. Essencial para lares e hospitais' },
+      { type: 'new', text: '/counseling — folha de aconselhamento ao doente personalizável: dose, timing, efeitos adversos, armazenamento, grupos especiais — imprimível ou exportável' },
+      { type: 'new', text: '/iv-compatibility — compatibilidade IV Y-site, mistura e seringa para até 8 fármacos em paralelo. Trissel\'s 2024, King Guide, Micromedex' },
+      { type: 'new', text: '/emergency-doses — calculadora de doses de emergência por peso: PCR, RSI, sedação, vasopressores, antídotos. Cálculo automático de volume' },
+      { type: 'new', text: '/electrolytes — protocolos completos de reposição: K, hiperK, Na, Mg, Ca, Fosfato. TBW, correção albumina, velocidades de infusão seguras' },
+      { type: 'improved', text: 'Navegação clínica atualizada com todas as novas ferramentas pro: antibioterapia, polimedicação, aconselhamento, IV, emergência, eletrólitos' },
+    ],
+  },
+  {
+    version: '2.6',
+    date: '2026-05-20',
+    tag: null,
     tagColor: '#2563eb',
     items: [
       { type: 'new', text: 'Nova página /nota-clinica — geração de nota SOAP estruturada com IA (tipos: SOAP, Evolução, Alta, Interconsulta)' },

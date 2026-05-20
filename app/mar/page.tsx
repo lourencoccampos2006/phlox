@@ -185,6 +185,9 @@ export default function MARPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [allOmissions, setAllOmissions] = useState<{ name: string; missing: number }[]>([])
   const [pendingWarning, setPendingWarning] = useState<{ medId: string; status: AdminStatus; notes: string; messages: string[] } | null>(null)
+  const [showMissedPanel, setShowMissedPanel] = useState(false)
+  const [allDayRecords, setAllDayRecords] = useState<{ patient_id: string; med_id: string; shift: Shift; status: string }[]>([])
+  const [allMedsMap, setAllMedsMap] = useState<Record<string, PatientMed[]>>({})
 
   // Load patients
   useEffect(() => {
@@ -216,20 +219,34 @@ export default function MARPage() {
       .then(({ data }) => setRecords(data || []))
   }, [selectedPatient, date, shift, supabase])
 
-  // Calculate omissions across all patients for current shift
+  // Calculate omissions + load all-day records for missed-dose panel
   useEffect(() => {
     if (!user || !isPro || patients.length === 0) return
     const patientIds = patients.map(p => p.id)
     Promise.all([
-      supabase.from('patient_meds').select('patient_id').eq('active', true).in('patient_id', patientIds),
-      supabase.from('mar_records').select('patient_id, med_id').eq('date', date).eq('shift', shift).in('patient_id', patientIds),
+      supabase.from('patient_meds').select('id, patient_id, name, dose, frequency').eq('active', true).in('patient_id', patientIds),
+      supabase.from('mar_records').select('patient_id, med_id, shift, status').eq('date', date).in('patient_id', patientIds),
     ]).then(([{ data: allMeds }, { data: todayRecs }]) => {
+      const medsData: any[] = allMeds || []
+      const recsData = todayRecs || []
+
+      // Build meds map by patient
+      const medsMap: Record<string, PatientMed[]> = {}
+      medsData.forEach((m: any) => {
+        if (!medsMap[m.patient_id]) medsMap[m.patient_id] = []
+        medsMap[m.patient_id].push(m)
+      })
+      setAllMedsMap(medsMap)
+      setAllDayRecords(recsData)
+
+      // Compute per-shift omissions for the current shift banner
+      const recsThisShift = recsData.filter((r: any) => r.shift === shift)
       const medsPerPatient: Record<string, number> = {}
-      ;(allMeds || []).forEach((m: { patient_id: string }) => {
+      medsData.forEach((m: any) => {
         medsPerPatient[m.patient_id] = (medsPerPatient[m.patient_id] || 0) + 1
       })
       const recsPerPatient: Record<string, number> = {}
-      ;(todayRecs || []).forEach((r: { patient_id: string }) => {
+      recsThisShift.forEach((r: any) => {
         recsPerPatient[r.patient_id] = (recsPerPatient[r.patient_id] || 0) + 1
       })
       const omissions = patients
@@ -419,7 +436,7 @@ export default function MARPage() {
               <span style={{ fontSize: 13, fontWeight: 700, color: '#854d0e' }}>
                 {allOmissions.reduce((s, o) => s + o.missing, 0)} doses em falta neste turno:
               </span>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
                 {allOmissions.map(o => (
                   <button key={o.name} onClick={() => {
                     const p = patients.find(pt => pt.name === o.name)
@@ -430,7 +447,56 @@ export default function MARPage() {
                   </button>
                 ))}
               </div>
+              <button onClick={() => setShowMissedPanel(p => !p)}
+                style={{ padding: '4px 12px', background: showMissedPanel ? '#854d0e' : 'white', color: showMissedPanel ? 'white' : '#854d0e', border: '1px solid #d97706', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700, flexShrink: 0 }}>
+                {showMissedPanel ? '▲ Fechar' : '▼ Ver detalhe'}
+              </button>
             </div>
+
+            {/* Missed-dose detail panel */}
+            {showMissedPanel && (
+              <div style={{ marginTop: 10, background: 'white', border: '1px solid #fde68a', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', background: '#fef9c3', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    Resumo de omissões — {SHIFT_LABELS[shift].label} · {date}
+                  </span>
+                  <button onClick={() => {
+                    const lines = allOmissions.map(o => {
+                      const p = patients.find(pt => pt.name === o.name)
+                      if (!p) return `${o.name}: ${o.missing} dose(s) em falta`
+                      const pMeds = allMedsMap[p.id] || []
+                      const missing = pMeds.filter(m => !allDayRecords.find(r => r.med_id === m.id && r.shift === shift))
+                      return `${o.name}: ${missing.map(m => m.name + (m.dose ? ' ' + m.dose : '')).join(', ')}`
+                    }).join('\n')
+                    navigator.clipboard.writeText(`OMISSÕES MAR — ${SHIFT_LABELS[shift].label} ${date}\n\n${lines}`)
+                  }}
+                    style={{ fontSize: 10, color: '#854d0e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                    ⎘ Copiar
+                  </button>
+                </div>
+                {allOmissions.map(o => {
+                  const p = patients.find(pt => pt.name === o.name)
+                  if (!p) return null
+                  const pMeds = allMedsMap[p.id] || []
+                  const missingMeds = pMeds.filter(m => !allDayRecords.find(r => r.med_id === m.id && r.shift === shift))
+                  return (
+                    <div key={o.name} style={{ padding: '10px 14px', borderBottom: '1px solid #fef9c3', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <button onClick={() => setSelectedPatient(p.id)}
+                        style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0, flexShrink: 0, minWidth: 120, textAlign: 'left' }}>
+                        {o.name} →
+                      </button>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {missingMeds.map(m => (
+                          <span key={m.id} style={{ padding: '2px 8px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 4, fontSize: 11, color: '#92400e', fontFamily: 'var(--font-mono)' }}>
+                            {m.name}{m.dose ? ` ${m.dose}` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -529,6 +595,17 @@ export default function MARPage() {
           </div>
         )}
       </div>
+
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: 12mm; }
+          body { background: white !important; font-size: 11px !important; }
+          .no-print { display: none !important; }
+          .page-container { padding: 0 !important; max-width: none !important; }
+          div[style*="background: var(--bg-2)"] { background: white !important; }
+          div[style*="background: white"] { box-shadow: none !important; }
+        }
+      `}</style>
 
       {/* Safety confirmation modal */}
       {pendingWarning && (
