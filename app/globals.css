@@ -548,8 +548,16 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 
 /* Print utilities */
 @media print {
-  .no-print { display: none !important; }
+  .no-print, header, nav, footer, [role="navigation"] { display: none !important; }
   .print-only { display: block !important; }
-  body { background: white !important; }
-  .page-container { padding: 0 !important; }
+  body { background: white !important; color: black !important; font-size: 12pt !important; }
+  .page-container { padding: 0 !important; max-width: 100% !important; }
+  a { color: black !important; text-decoration: none !important; }
+  button { display: none !important; }
+  .print-break-before { page-break-before: always; }
+  .print-break-after { page-break-after: always; }
+  /* Clinical docs: show full content without truncation */
+  * { overflow: visible !important; max-height: none !important; }
+  /* Ensure borders print */
+  *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

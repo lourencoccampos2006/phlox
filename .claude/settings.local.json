@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\sitemap.ts\" -ItemType File -Force)",
+      "Bash(Out-Null)",
+      "Bash(Get-Content \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\sitemap.ts\")",
+      "Bash(touch /mnt/c/Users/Fernando/phlox/app/sitemap.ts)",
+      "Bash(python3 -c \"open\\('/mnt/c/Users/Fernando/phlox/app/sitemap.ts', 'a'\\).close\\(\\)\")",
+      "Bash(ls /mnt/c/Users/Fernando/phlox/app/ | head -5)",
+      "PowerShell(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\sitemap.ts\" -ItemType File -Force)",
+      "PowerShell(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\api\\\\export\\\\route.ts\" -ItemType File -Force)",
+      "PowerShell(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\changelog\\\\page.tsx\" -ItemType File -Force)"
     ]
   }
 }

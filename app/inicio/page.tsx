@@ -351,21 +351,44 @@ function PersonalHome({ user }: { user: any }) {
 
   const progressColor = pct === 100 ? '#059669' : pct >= 70 ? color : '#f59e0b'
 
-  // Flatten latest vital records into displayable metric cards
-  type VCard = { icon: string; label: string; value: string; unit: string; date: string }
+  // Adherence streak: consecutive days (going back from today) with ≥80% adherence
+  let adherenceStreak = 0
+  if (!loadingMeds && meds.length > 0) {
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      const iso = d.toISOString().split('T')[0]
+      const dayTaken = weekLogs.filter(l => l.date === iso && l.status === 'taken').length
+      if (Math.round((dayTaken / meds.length) * 100) >= 80) adherenceStreak++
+      else break
+    }
+  }
+
+  // Flatten latest vital records — keep current + previous per metric for trend arrows
+  type VCard = { icon: string; label: string; value: string; unit: string; date: string; trend?: 'up' | 'down' | 'same' }
+  const vitalPrev: Record<string, number> = {}
+  const vitalCurrent: Record<string, number> = {}
   const vitalCards: VCard[] = []
   const seenVital = new Set<string>()
   vitals.forEach((v: any) => {
     const date = new Date(v.recorded_at).toLocaleDateString('pt-PT')
-    const candidates: VCard[] = []
-    if (v.hr)                             candidates.push({ icon: '💓', label: 'FC',       value: `${v.hr}`,              unit: 'bpm',   date })
-    if (v.bp_sys && v.bp_dia)             candidates.push({ icon: '🩺', label: 'Tensão',   value: `${v.bp_sys}/${v.bp_dia}`, unit: 'mmHg',  date })
-    if (v.spo2)                           candidates.push({ icon: '🫁', label: 'SpO₂',     value: `${v.spo2}`,            unit: '%',     date })
-    if (v.weight)                         candidates.push({ icon: '⚖️', label: 'Peso',     value: `${v.weight}`,          unit: 'kg',    date })
-    if (v.glucose)                        candidates.push({ icon: '🩸', label: 'Glicemia', value: `${v.glucose}`,         unit: 'mg/dL', date })
-    if (v.temp)                           candidates.push({ icon: '🌡️', label: 'Temp.',    value: `${v.temp}`,            unit: '°C',    date })
-    candidates.forEach(c => {
-      if (!seenVital.has(c.label)) { seenVital.add(c.label); vitalCards.push(c) }
+    const candidates: Array<{ icon: string; label: string; value: string; unit: string; date: string; num: number }> = []
+    if (v.hr)               candidates.push({ icon: '💓', label: 'FC',       value: `${v.hr}`,              unit: 'bpm',   date, num: v.hr })
+    if (v.bp_sys && v.bp_dia) candidates.push({ icon: '🩺', label: 'Tensão', value: `${v.bp_sys}/${v.bp_dia}`, unit: 'mmHg', date, num: v.bp_sys })
+    if (v.spo2)             candidates.push({ icon: '🫁', label: 'SpO₂',     value: `${v.spo2}`,            unit: '%',     date, num: v.spo2 })
+    if (v.weight)           candidates.push({ icon: '⚖️', label: 'Peso',     value: `${v.weight}`,          unit: 'kg',    date, num: v.weight })
+    if (v.glucose)          candidates.push({ icon: '🩸', label: 'Glicemia', value: `${v.glucose}`,         unit: 'mg/dL', date, num: v.glucose })
+    if (v.temp)             candidates.push({ icon: '🌡️', label: 'Temp.',    value: `${v.temp}`,            unit: '°C',    date, num: v.temp })
+    candidates.forEach(({ num, ...c }) => {
+      if (!seenVital.has(c.label)) {
+        seenVital.add(c.label)
+        vitalCurrent[c.label] = num
+        const prev = vitalPrev[c.label]
+        const trend: VCard['trend'] = prev === undefined ? undefined
+          : num > prev ? 'up' : num < prev ? 'down' : 'same'
+        vitalCards.push({ ...c, trend })
+      } else if (vitalPrev[c.label] === undefined) {
+        vitalPrev[c.label] = num
+      }
     })
   })
 
@@ -738,7 +761,14 @@ function PersonalHome({ user }: { user: any }) {
           const totalMeds = meds.length
           return (
             <section style={{ marginBottom: 32 }}>
-              <SectionLabel>Adesão — últimos 7 dias</SectionLabel>
+              <SectionLabel right={adherenceStreak > 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 20, padding: '4px 10px' }}>
+                  <span style={{ fontSize: 14 }}>🔥</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#92400e' }}>
+                    {adherenceStreak} dia{adherenceStreak !== 1 ? 's' : ''} seguidos
+                  </span>
+                </div>
+              ) : undefined}>Adesão — últimos 7 dias</SectionLabel>
               <div style={{ background: 'white', borderRadius: 16, padding: '18px 20px', border: '1px solid #f1f5f9' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
                   {days.map(d => {
@@ -914,7 +944,17 @@ function PersonalHome({ user }: { user: any }) {
                     border: '1px solid #fce7f3',
                     transition: 'transform 0.12s, box-shadow 0.12s',
                   }}>
-                    <div style={{ fontSize: 22, marginBottom: 8 }}>{c.icon}</div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 22 }}>{c.icon}</div>
+                      {c.trend && c.trend !== 'same' && (
+                        <span style={{
+                          fontSize: 13, fontWeight: 700,
+                          color: c.trend === 'up' ? '#3b82f6' : '#10b981',
+                        }}>
+                          {c.trend === 'up' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
                     <div style={{
                       fontSize: 10, color: '#94a3b8',
                       textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4,
@@ -932,6 +972,55 @@ function PersonalHome({ user }: { user: any }) {
             </div>
           )}
         </section>
+
+        {/* HEALTH SCORE */}
+        {!loadingMeds && !loadingVitals && (meds.length > 0 || vitalCards.length > 0) && (() => {
+          const adherenceScore = meds.length > 0 ? Math.round(pct * 0.45) : 0
+          const streakBonus = Math.min(adherenceStreak * 3, 15)
+          const vitalsScore = vitalCards.length > 0 ? 25 : 0
+          const medsScore = meds.length > 0 ? 15 : 0
+          const score = Math.min(100, adherenceScore + streakBonus + vitalsScore + medsScore)
+          const scoreColor = score >= 80 ? '#059669' : score >= 60 ? '#d97706' : '#e11d48'
+          const scoreLabel = score >= 80 ? 'Excelente' : score >= 60 ? 'Bom' : 'A melhorar'
+          return (
+            <section style={{ marginBottom: 32 }}>
+              <SectionLabel>Score de saúde</SectionLabel>
+              <div style={{ background: 'white', borderRadius: 16, padding: '20px 22px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+                  <svg width="72" height="72" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="36" cy="36" r="30" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                    <circle cx="36" cy="36" r="30" fill="none" stroke={scoreColor} strokeWidth="6"
+                      strokeDasharray={`${2 * Math.PI * 30}`}
+                      strokeDashoffset={`${2 * Math.PI * 30 * (1 - score / 100)}`}
+                      strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{score}</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{scoreLabel}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {meds.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, height: 4, background: '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: progressColor, borderRadius: 2 }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 80 }}>Adesão {pct}%</span>
+                      </div>
+                    )}
+                    {adherenceStreak > 0 && (
+                      <div style={{ fontSize: 11, color: '#92400e', fontWeight: 700 }}>🔥 {adherenceStreak} dia{adherenceStreak !== 1 ? 's' : ''} em sequência</div>
+                    )}
+                    {vitalCards.length === 0 && (
+                      <Link href="/vitals" style={{ fontSize: 11, color: '#e11d48', fontWeight: 600, textDecoration: 'none' }}>+ Regista sinais vitais para melhorar o teu score →</Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )
+        })()}
 
         {/* FERRAMENTAS RÁPIDAS */}
         <section style={{ marginBottom: 32 }}>
@@ -1553,12 +1642,30 @@ function ClinicalHome({ user }: { user: any }) {
   const firstName = user?.name?.split(' ')[0] || ''
   const color = '#2563eb'
 
-  const h = new Date().getHours()
-  const shiftLabel =
-    h >= 8 && h < 20
-      ? `Turno Manhã  ·  08:00 – 20:00`
-      : `Turno Noite  ·  20:00 – 08:00`
-  const shiftEmoji = h >= 8 && h < 20 ? '🌤️' : '🌙'
+  const now = new Date()
+  const h = now.getHours()
+  const m = now.getMinutes()
+  const isDayShift = h >= 8 && h < 20
+  const shiftLabel = isDayShift ? `Turno Manhã  ·  08:00 – 20:00` : `Turno Noite  ·  20:00 – 08:00`
+  const shiftEmoji = isDayShift ? '🌤️' : '🌙'
+
+  // Minutes remaining in current shift
+  const currentMin = h * 60 + m
+  const shiftEndMin = isDayShift ? 20 * 60 : (h >= 20 ? 32 * 60 : 8 * 60)
+  const minutesLeft = shiftEndMin - currentMin
+  const hoursLeft = Math.floor(minutesLeft / 60)
+  const minsLeft = minutesLeft % 60
+  const countdownLabel = minutesLeft <= 90
+    ? `⚡ ${minutesLeft}min restantes`
+    : `${hoursLeft}h ${minsLeft}min restantes`
+  const countdownColor = minutesLeft <= 60 ? '#ef4444' : minutesLeft <= 120 ? '#f59e0b' : '#64748b'
+
+  function getPatientRisk(p: any): { label: string; color: string; bg: string; border: string } {
+    let score = (p.alerts || 0) * 20 + ((p.meds_count || 0) >= 5 ? 25 : 0) + ((p.age || 0) >= 75 ? 15 : 0)
+    if (score >= 50) return { label: 'Risco alto', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
+    if (score >= 20) return { label: 'Risco médio', color: '#d97706', bg: '#fffbeb', border: '#fde68a' }
+    return { label: 'Risco baixo', color: '#059669', bg: '#f0fdf4', border: '#bbf7d0' }
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -1601,27 +1708,26 @@ function ClinicalHome({ user }: { user: any }) {
             gap: 16,
           }}>
             <div>
-              {/* Shift badge */}
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
-                borderRadius: 20,
-                background: 'rgba(255,255,255,0.08)',
-                marginBottom: 12,
-              }}>
-                <span style={{ fontSize: 14 }}>{shiftEmoji}</span>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#64748b',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.07em',
-                  fontFamily: 'monospace',
+              {/* Shift badge + countdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.08)',
                 }}>
-                  {shiftLabel}
-                </span>
+                  <span style={{ fontSize: 14 }}>{shiftEmoji}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: 'monospace' }}>
+                    {shiftLabel}
+                  </span>
+                </div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '5px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${countdownColor}40`,
+                }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: countdownColor, fontFamily: 'monospace', letterSpacing: '0.06em' }}>
+                    {countdownLabel}
+                  </span>
+                </div>
               </div>
               <h1 style={{
                 fontSize: 26,
@@ -1774,74 +1880,39 @@ function ClinicalHome({ user }: { user: any }) {
               {patients.map(p => {
                 const condStr = truncateConditions(p.conditions)
                 const alerts = p.alerts || 0
+                const risk = getPatientRisk(p)
+                const isPolymed = (p.meds_count || 0) >= 5
+                const isElderly = (p.age || 0) >= 75
                 return (
-                  <Link
-                    key={p.id}
-                    href={`/patients/${p.id}`}
-                    style={{ textDecoration: 'none' }}
-                    className="patient-row"
-                  >
+                  <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none' }} className="patient-row">
                     <div style={{
-                      background: 'white',
-                      borderRadius: 12,
-                      padding: '14px 18px',
-                      border: '1px solid rgba(0,0,0,0.06)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 14,
-                      transition: 'transform 0.12s, box-shadow 0.12s',
+                      background: 'white', borderRadius: 12, padding: '14px 18px',
+                      border: `1px solid ${alerts > 0 ? '#fca5a5' : 'rgba(0,0,0,0.06)'}`,
+                      display: 'flex', alignItems: 'center', gap: 14, transition: 'transform 0.12s, box-shadow 0.12s',
                     }}>
-                      {/* Avatar initial */}
-                      <div style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: '50%',
-                        background: `${color}12`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color,
-                        flexShrink: 0,
-                      }}>
+                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: risk.bg, border: `1.5px solid ${risk.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: risk.color, flexShrink: 0 }}>
                         {p.name?.[0]?.toUpperCase() || '?'}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: '#0f172a',
-                          marginBottom: 2,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          flexWrap: 'wrap',
-                        }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {p.name}
+                          {isPolymed && <span style={{ fontSize: 9, fontFamily: 'monospace', fontWeight: 700, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: 3 }}>POLIMEDIC.</span>}
+                          {isElderly && <span style={{ fontSize: 9, fontFamily: 'monospace', fontWeight: 700, color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: 3 }}>≥75</span>}
                         </div>
                         <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                          {[
-                            p.age ? `${p.age} anos` : null,
-                            p.sex,
-                            condStr || null,
-                          ].filter(Boolean).join(' · ')}
+                          {[p.age ? `${p.age}a` : null, p.sex, condStr || null, p.meds_count ? `${p.meds_count} meds` : null].filter(Boolean).join(' · ')}
                         </div>
                       </div>
-                      {alerts > 0 && (
-                        <div style={{
-                          background: '#fef2f2',
-                          borderRadius: 7,
-                          padding: '3px 10px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: '#dc2626',
-                          flexShrink: 0,
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {alerts} alerta{alerts !== 1 ? 's' : ''}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <div style={{ background: risk.bg, border: `1px solid ${risk.border}`, borderRadius: 5, padding: '2px 7px', fontSize: 10, fontWeight: 700, color: risk.color, whiteSpace: 'nowrap' }}>
+                          {risk.label}
                         </div>
-                      )}
+                        {alerts > 0 && (
+                          <div style={{ background: '#fef2f2', borderRadius: 5, padding: '2px 7px', fontSize: 10, fontWeight: 700, color: '#dc2626', whiteSpace: 'nowrap' }}>
+                            {alerts} alerta{alerts !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
                       <ChevronRight />
                     </div>
                   </Link>
@@ -2061,6 +2132,43 @@ function StudentHome({ user }: { user: any }) {
   const card = DAILY_FLASHCARDS[cardIndex]
   const [revealed, setRevealed] = useState(false)
   const color = '#7c3aed'
+  const [streak, setStreak] = useState(0)
+  const [xp, setXp] = useState(0)
+  const [league, setLeague] = useState('Bronze')
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    const raw = localStorage.getItem('phlox_study_dates')
+    const dates: string[] = raw ? JSON.parse(raw) : []
+    if (!dates.includes(today)) dates.push(today)
+    localStorage.setItem('phlox_study_dates', JSON.stringify(dates))
+
+    const sorted = [...new Set(dates)].sort().reverse()
+    let s = 0
+    for (let i = 0; i < sorted.length; i++) {
+      const expected = new Date()
+      expected.setDate(expected.getDate() - i)
+      if (sorted[i] === expected.toISOString().split('T')[0]) s++
+      else break
+    }
+    setStreak(s)
+
+    const reveals = parseInt(localStorage.getItem('phlox_flashcard_reveals') || '0', 10)
+    const totalXp = dates.length * 10 + reveals * 5
+    setXp(totalXp)
+    setLeague(totalXp >= 500 ? 'Diamante' : totalXp >= 200 ? 'Ouro' : totalXp >= 100 ? 'Prata' : 'Bronze')
+  }, [])
+
+  const handleReveal = () => {
+    setRevealed(true)
+    const reveals = parseInt(localStorage.getItem('phlox_flashcard_reveals') || '0', 10)
+    localStorage.setItem('phlox_flashcard_reveals', String(reveals + 1))
+    setXp(prev => {
+      const next = prev + 5
+      setLeague(next >= 500 ? 'Diamante' : next >= 200 ? 'Ouro' : next >= 100 ? 'Prata' : 'Bronze')
+      return next
+    })
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f3ff', paddingTop: 56 }}>
@@ -2111,22 +2219,18 @@ function StudentHome({ user }: { user: any }) {
         }}>
           <div style={{ display: 'flex', gap: 20, flex: 1, flexWrap: 'wrap' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: '-0.03em' }}>—</div>
-              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Streak
-              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: '-0.03em' }}>{streak > 0 ? `🔥${streak}` : '0'}</div>
+              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Streak</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: '-0.03em' }}>—</div>
-              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                XP
-              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: '-0.03em' }}>{xp}</div>
+              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>XP</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: '-0.03em' }}>—</div>
-              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Liga
+              <div style={{ fontSize: 20, fontWeight: 900, color, letterSpacing: '-0.03em' }}>
+                {league === 'Diamante' ? '💎' : league === 'Ouro' ? '🥇' : league === 'Prata' ? '🥈' : '🥉'}
               </div>
+              <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{league}</div>
             </div>
           </div>
           <Link href="/progresso" style={{
@@ -2229,7 +2333,7 @@ function StudentHome({ user }: { user: any }) {
               </>
             ) : (
               <button
-                onClick={() => setRevealed(true)}
+                onClick={handleReveal}
                 style={{
                   width: '100%',
                   padding: '14px',
@@ -2244,7 +2348,7 @@ function StudentHome({ user }: { user: any }) {
                   transition: 'opacity 0.15s',
                 }}
               >
-                Revelar resposta
+                Revelar resposta (+5 XP)
               </button>
             )}
           </div>

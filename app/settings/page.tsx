@@ -35,6 +35,27 @@ export default function SettingsPage() {
   }, [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const downloadExport = async (format: 'json' | 'csv') => {
+    setExporting(true)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const token = sd?.session?.access_token
+      const res = await fetch(`/api/export?format=${format}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error('Falhou')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `phlox-export-${new Date().toISOString().split('T')[0]}.${format}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {}
+    setExporting(false)
+  }
   const [handleChecking, setHandleChecking] = useState(false)
   const [handleAvailable, setHandleAvailable] = useState<boolean | null>(null)
   const [handleError, setHandleError] = useState('')
@@ -409,6 +430,22 @@ export default function SettingsPage() {
                 style={{ padding: '9px 16px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
                 Terminar sessão
               </button>
+            </div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Exportar os meus dados</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14, lineHeight: 1.5 }}>
+                Descarrega todos os teus medicamentos, sinais vitais e histórico em formato portátil. Os teus dados são teus.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => downloadExport('json')} disabled={exporting}
+                  style={{ padding: '9px 16px', background: exporting ? 'var(--bg-3)' : 'var(--ink)', color: exporting ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, cursor: exporting ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {exporting ? 'A exportar...' : '⬇ JSON'}
+                </button>
+                <button onClick={() => downloadExport('csv')} disabled={exporting}
+                  style={{ padding: '9px 16px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 7, cursor: exporting ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                  ⬇ CSV
+                </button>
+              </div>
             </div>
             <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#742a2a', marginBottom: 4 }}>Zona de perigo</div>

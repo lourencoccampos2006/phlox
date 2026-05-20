@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
 
   // ─── NOVO: persona da AI por modo de experiência ───
   const AI_PERSONAS: Record<string, string> = {
-    clinical: `MODO: Profissional Clínico. Respondes de forma técnica e precisa, usando nomenclatura DCI. Citas sempre guidelines (ESC, ADA, NICE, DGS, INFARMED). Sugeres acções concretas com fontes. O utilizador é profissional de saúde — não simplifica em demasia. Menciona monitorização, interações e ajuste renal/hepático quando pertinente.`,
-    student: `MODO: Tutor Socrático. Antes de dar a resposta completa, fazes uma pergunta ao estudante para activar o raciocínio ("O que sabes sobre o mecanismo deste fármaco?" ou "Qual seria a tua primeira escolha?"). Depois explicas passo a passo. Usas analogias para mecanismos complexos. No final sugeres sempre o próximo tópico a estudar. Objectivo: o estudante compreende, não apenas memoriza.`,
-    caregiver: `MODO: Conselheiro Familiar. Usas linguagem completamente simples, sem jargão. Termos técnicos são explicados entre parênteses. Respondes sempre com "o que fazer agora" de forma prática. Se há urgência real, dizes explicitamente "vai ao médico" ou "vai à urgência". O utilizador cuida de um familiar — precisa de clareza, não de incerteza.`,
-    personal: `MODO: Amigo Informado. Directo e sem drama. Dás a informação pedida e terminas com recomendação prática. Quando há dúvida de segurança real, aconselhas a confirmar com farmacêutico. Sem jargão desnecessário.`,
+    clinical: `MODO: Farmacologista Clínico — Profissional de Saúde. Respondes de forma técnica e precisa usando nomenclatura DCI/INN. Referencias guidelines portuguesas e europeias por ordem de prioridade: DGS, INFARMED, SNS, depois ESC/ADA/NICE/WHO. Quando relevante, mencionas a Circular Normativa DGS ou Prontuário Terapêutico. Sugeres acções concretas: ajuste de dose, monitorização (laboratório/clínica), alternativas terapêuticas. Nunca subestimas o profissional — responde ao nível dele.`,
+    student: `MODO: Tutor Socrático de Farmacologia. PRIMEIRO fazes sempre uma pergunta de raciocínio antes da resposta ("Sabes qual o receptor alvo?", "O que acontece ao CYP3A4 nesta combinação?"). Depois explicas com: 1) mecanismo molecular, 2) efeito clínico, 3) implicação prática. Usas analogias criativas para mecanismos farmacocinéticos. Terminas SEMPRE com: "Próximo tópico sugerido: [X]" e um link para /study. O objectivo é construir raciocínio, não transmitir factos.`,
+    caregiver: `MODO: Conselheiro Familiar Empático. Linguagem simples — nunca jargão clínico sem explicação. Cada resposta tem: 1) o que está a acontecer em linguagem simples, 2) o que deves fazer AGORA, 3) quando ir ao médico/farmácia. Urgências reais: indica claramente "liga para o 112" ou "vai à urgência". Usa exemplos do quotidiano. O cuidador precisa de clareza para agir, não de ambiguidade.`,
+    personal: `MODO: Farmacêutico Amigo. Directo e sem dramatismo. Dás a informação relevante + a recomendação prática em 3-5 frases. Quando há dúvida de segurança real, dizes "confirma com o teu farmacêutico antes de tomar" — não em vez de informar, mas depois. Sem clichés como "não sou médico" ou "consulte um profissional" como única resposta.`,
   }
   const personaText = AI_PERSONAS[experienceMode || 'personal'] || AI_PERSONAS.personal
   const isPro = plan === 'pro' || plan === 'clinic'
@@ -100,13 +100,15 @@ FORMATO:
   ]
 
   try {
+    const maxTokens = isPro ? 900 : experienceMode === 'clinical' ? 750 : 600
+
     // Run thinking and main response (thinking is optional, never blocks)
     const [thinkingRes, responseRes] = await Promise.allSettled([
       aiComplete(thinkingMessages, { maxTokens: 150, temperature: 0.1, preferFast: true }),
       aiComplete([
         { role: 'system', content: systemPrompt },
         ...messages.slice(-10).map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-      ], { maxTokens: 600, temperature: 0.2 }),
+      ], { maxTokens, temperature: 0.2 }),
     ])
 
     const thinking = thinkingRes.status === 'fulfilled'
@@ -117,12 +119,15 @@ FORMATO:
     const response = responseRes.value.text.trim() || ''
 
     // Detect sources used in response
+    const rl = response.toLowerCase()
     const sources: string[] = []
-    if (response.toLowerCase().includes('rxnorm') || response.toLowerCase().includes('nih')) sources.push('RxNorm/NIH')
-    if (response.toLowerCase().includes('esc') || response.toLowerCase().includes('guideline')) sources.push('Guidelines ESC')
-    if (response.toLowerCase().includes('ada') || response.toLowerCase().includes('diabetes')) sources.push('ADA 2024')
-    if (response.toLowerCase().includes('fda') || response.toLowerCase().includes('openfda')) sources.push('OpenFDA')
-    if (response.toLowerCase().includes('beers') || response.toLowerCase().includes('stopp')) sources.push('Critérios Beers')
+    if (rl.includes('rxnorm') || rl.includes('nih')) sources.push('RxNorm/NIH')
+    if (rl.includes('esc') || rl.includes('guideline')) sources.push('Guidelines ESC')
+    if (rl.includes('ada') || rl.includes('diabetes')) sources.push('ADA 2024')
+    if (rl.includes('fda') || rl.includes('openfda')) sources.push('OpenFDA')
+    if (rl.includes('beers') || rl.includes('stopp')) sources.push('Critérios Beers/STOPP')
+    if (rl.includes('dgs') || rl.includes('infarmed') || rl.includes('prontuário')) sources.push('DGS/INFARMED')
+    if (rl.includes('cyp') || rl.includes('cyp3a4') || rl.includes('cyp2d6')) sources.push('CYP450')
     if (patientContext?.meds?.length > 0) sources.push('Perfil do utilizador')
 
     // Detect suggested actions
@@ -133,8 +138,14 @@ FORMATO:
     if (response.toLowerCase().includes('dose renal') || response.toLowerCase().includes('insuficiência renal')) {
       actions.push({ label: 'Calcular ajuste de dose renal', href: '/calculators' })
     }
-    if (response.toLowerCase().includes('compatibilidade') || response.toLowerCase().includes('soro')) {
+    if (rl.includes('compatibilidade') || rl.includes('soro')) {
       actions.push({ label: 'Verificar compatibilidade IV', href: '/compatibility' })
+    }
+    if (rl.includes('tensão arterial') || rl.includes('glicemia') || rl.includes('sinais vitais') || rl.includes('monitoriz')) {
+      actions.push({ label: 'Registar sinais vitais', href: '/vitals' })
+    }
+    if (rl.includes('bula') || rl.includes('folheto informativo')) {
+      actions.push({ label: 'Traduzir bula', href: '/bula' })
     }
 
     return NextResponse.json({ response, thinking, sources, actions })

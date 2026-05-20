@@ -156,7 +156,15 @@ function UpgradeGate() {
 
 function MessageBubble({ msg }: { msg: Message }) {
   const [showThinking, setShowThinking] = useState(false)
+  const [copied, setCopied] = useState(false)
   const isUser = msg.role === 'user'
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(msg.content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    })
+  }
 
   if (isUser) {
     return (
@@ -212,8 +220,14 @@ function MessageBubble({ msg }: { msg: Message }) {
             )}
           </div>
         )}
-        <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 6 }}>
-          {msg.timestamp.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+          <span style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+            {msg.timestamp.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <button onClick={handleCopy}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 10, color: copied ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4, borderRadius: 3 }}>
+            {copied ? '✓ copiado' : '⎘ copiar'}
+          </button>
         </div>
       </div>
     </div>
@@ -605,11 +619,15 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               <textarea
                 ref={inputRef}
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => {
+                  setInput(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder={familyProfile ? `Pergunta sobre ${familyProfile.name}...` : 'Pergunta ao teu farmacologista clínico...'}
                 rows={1}
-                style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', lineHeight: 1.5, maxHeight: 120, overflow: 'auto' }}
+                style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', lineHeight: 1.5, maxHeight: 140, overflow: 'auto' }}
               />
               <button
                 onClick={() => sendMessage()}
@@ -618,8 +636,15 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                 ↑
               </button>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 8, textAlign: 'center' }}>
-              Enter para enviar · Shift+Enter para nova linha · Informação educacional — não substitui consulta médica
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 7 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                Enter para enviar · Shift+Enter para nova linha
+              </div>
+              {input.length > 80 && (
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: input.length > 900 ? '#ef4444' : 'var(--ink-4)' }}>
+                  {input.length}/1000
+                </div>
+              )}
             </div>
           </div>
         </div>

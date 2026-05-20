@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
@@ -92,6 +92,18 @@ export default function InteractionsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Pre-populate from ?drugs=a,b,c URL param
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const raw = params.get('drugs')
+    if (raw) {
+      const names = raw.split(',').map(s => s.trim()).filter(Boolean).slice(0, 10)
+      if (names.length > 0) setDrugs(names)
+    }
+  }, [])
 
   const handlePhoto = async (file: File) => {
     setPhotoLoading(true); setError('')
@@ -422,7 +434,19 @@ export default function InteractionsPage() {
 
                   <div style={{ paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Informação educacional — não substitui aconselhamento profissional</div>
-                    <ShareButton title={`${drugs.join(' + ')} — ${result?.severity || ''}`} text={result?.summary || ''} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => {
+                        const text = [
+                          `${drugs.join(' + ')} — ${result?.severity || ''}`,
+                          result?.summary,
+                          result?.recommendation ? `Recomendação: ${result.recommendation}` : '',
+                        ].filter(Boolean).join('\n\n')
+                        navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })
+                      }} style={{ padding: '6px 12px', background: copied ? 'var(--green-light)' : 'var(--bg-2)', color: copied ? 'var(--green-2)' : 'var(--ink-4)', border: `1px solid ${copied ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 4, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                        {copied ? '✓ Copiado' : '⎘ Copiar'}
+                      </button>
+                      <ShareButton title={`${drugs.join(' + ')} — ${result?.severity || ''}`} text={result?.summary || ''} />
+                    </div>
                   </div>
                 </div>
               </div>

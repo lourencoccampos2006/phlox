@@ -140,11 +140,22 @@ export async function aiJSON<T>(
   options: Parameters<typeof aiComplete>[1] = {}
 ): Promise<T> {
   const result = await aiComplete(messages, options)
+  if (!result.text?.trim()) throw new Error('Resposta vazia do serviço de IA. Tenta novamente.')
+
   const clean = result.text
-    .replace(/```json\n?/g, '')
-    .replace(/```\n?/g, '')
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
     .trim()
-  return JSON.parse(clean) as T
+
+  // Try to extract the first JSON object or array if the model added surrounding text
+  const match = clean.match(/[\[{][\s\S]*[\]\}]/)
+  const toParse = match ? match[0] : clean
+
+  try {
+    return JSON.parse(toParse) as T
+  } catch {
+    throw new Error('Não foi possível interpretar a resposta da IA. Tenta novamente.')
+  }
 }
 
 // ─── Gemini Vision: image analysis ───────────────────────────────────────────

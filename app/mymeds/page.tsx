@@ -597,6 +597,22 @@ export default function MyMedsPage() {
         </div>
       </div>
 
+      {/* Adherence summary bar — only show when there's a schedule */}
+      {!loading && schedule.length > 0 && (
+        <div style={{ background: todayDone === todayTotal ? '#f0fdf4' : todayDone === 0 ? '#fef2f2' : '#fffbeb', borderBottom: `1px solid ${todayDone === todayTotal ? '#bbf7d0' : todayDone === 0 ? '#fecaca' : '#fde68a'}` }}>
+          <div className="page-container" style={{ paddingTop: 10, paddingBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, height: 6, background: todayDone === todayTotal ? '#bbf7d0' : '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${todayTotal > 0 ? Math.round((todayDone / todayTotal) * 100) : 0}%`, background: todayDone === todayTotal ? '#059669' : todayDone === 0 ? '#ef4444' : '#f59e0b', borderRadius: 3, transition: 'width 0.5s ease' }} />
+              </div>
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: todayDone === todayTotal ? '#065f46' : todayDone === 0 ? '#991b1b' : '#92400e', whiteSpace: 'nowrap' }}>
+                {todayDone === todayTotal ? '✓ Hoje completo' : `${todayDone}/${todayTotal} doses hoje`}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="page-container page-body">
 
         {/* ─── OVERVIEW ─── */}
@@ -706,6 +722,12 @@ export default function MyMedsPage() {
                         const medAlerts = alerts.filter(a => a.drugs?.some(d => d.toLowerCase().includes(med.name.toLowerCase())))
                         const hasGrave = medAlerts.some(a => a.severity==='grave')
                         const hasReminder = med.reminder_times && med.reminder_times.length > 0
+                        const daysSinceStart = med.started_at
+                          ? Math.floor((Date.now() - new Date(med.started_at).getTime()) / (1000 * 60 * 60 * 24))
+                          : med.created_at
+                            ? Math.floor((Date.now() - new Date(med.created_at).getTime()) / (1000 * 60 * 60 * 24))
+                            : 0
+                        const needsRefill = daysSinceStart >= 25
                         return (
                           <div key={med.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom:i<meds.length-1?'1px solid var(--bg-3)':'none' }}>
                             <div style={{ width:36, height:36, borderRadius:'50%', background:hasGrave?'#fee2e2':'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
@@ -716,9 +738,11 @@ export default function MyMedsPage() {
                                 <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', cursor:'pointer', textDecorationLine:'underline', textDecorationStyle:'dotted', textDecorationColor:'var(--border-2)' }}>{med.name}</span>} />
                                 {hasGrave && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', background:'#fee2e2', border:'1px solid #fca5a5', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>Alerta</span>}
                                 {hasReminder && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius:3 }}>🔔 {med.reminder_times!.join(' · ')}</span>}
+                                {needsRefill && <span title={`Adicionado há ${daysSinceStart} dias`} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#d97706', background:'#fffbeb', border:'1px solid #fde68a', padding:'1px 5px', borderRadius:3 }}>📦 Verificar stock</span>}
                               </div>
                               <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
                                 {[med.dose, med.frequency, med.indication].filter(Boolean).join(' · ')}
+                                {daysSinceStart > 0 && <span style={{ color:'var(--ink-5)' }}> · há {daysSinceStart}d</span>}
                               </div>
                             </div>
                             <button onClick={() => removeMed(med.id)}

@@ -1,0 +1,141 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Changelog',
+  description: 'Novidades e atualizações da plataforma Phlox Clinical',
+}
+
+const RELEASES = [
+  {
+    version: '2.4',
+    date: '2026-05-20',
+    tag: 'Mais recente',
+    tagColor: '#059669',
+    items: [
+      { type: 'new', text: 'Score de saúde pessoal com barra de progresso e streak de adesão' },
+      { type: 'new', text: 'Trend arrows nos sinais vitais — comparação com leitura anterior' },
+      { type: 'new', text: 'Sistema XP + ligas para modo estudante (Bronze → Diamante)' },
+      { type: 'new', text: 'Badges de risco e flags STOPP em doentes (ClinicalHome)' },
+      { type: 'new', text: 'Countdown do turno na vista clínica' },
+      { type: 'new', text: 'Exportação de dados (JSON + CSV) em Definições' },
+      { type: 'new', text: 'Botão de copiar em mensagens da Phlox AI' },
+      { type: 'new', text: 'Textarea auto-resize e contador de caracteres no chat AI' },
+      { type: 'new', text: 'Barra de adesão de tomas no topo de /mymeds' },
+      { type: 'new', text: 'Indicador "Verificar stock" para medicamentos com >25 dias' },
+      { type: 'new', text: 'Pré-população de /interactions via ?drugs= URL param' },
+      { type: 'new', text: 'Botão Copiar resultado em /interactions' },
+      { type: 'new', text: 'PWA manifest com atalhos para interações, AI e mymeds' },
+      { type: 'new', text: 'Scroll-to-top automático + ⌘K para ferramentas' },
+      { type: 'fix', text: 'Sitemap.xml dinâmico com todas as páginas públicas' },
+      { type: 'fix', text: 'aiJSON com extração robusta de JSON e mensagens de erro claras' },
+      { type: 'fix', text: 'robots.txt protege rotas autenticadas de indexação' },
+      { type: 'fix', text: 'Print styles melhorados para documentos clínicos' },
+    ],
+  },
+  {
+    version: '2.3',
+    date: '2026-05-10',
+    tag: null,
+    items: [
+      { type: 'new', text: 'Página /inicio totalmente integrada com dados reais (vitais, perfis, doentes)' },
+      { type: 'new', text: 'Dropdowns fixados em desktop — não clipam dentro do header' },
+      { type: 'new', text: 'BottomTabBar reescrita com tabs por modo, badge de notificações' },
+      { type: 'new', text: 'Sugestões de prompt contextuais na AI por modo (clinical, student, caregiver)' },
+      { type: 'fix', text: 'Fetch de sinais vitais usa /api/vitals em vez de query direta' },
+      { type: 'fix', text: 'CaregiverHome e ClinicalHome com schema correto da base de dados' },
+    ],
+  },
+  {
+    version: '2.2',
+    date: '2026-04-28',
+    tag: null,
+    items: [
+      { type: 'new', text: 'Chat de medicação em /mymeds com contexto do utilizador' },
+      { type: 'new', text: 'Verificação automática de interações ao adicionar medicamento' },
+      { type: 'new', text: 'Web Push Notifications para lembretes de toma' },
+      { type: 'new', text: 'Scan de receita médica via foto com IA' },
+      { type: 'new', text: 'Cartão de emergência com QR code' },
+    ],
+  },
+  {
+    version: '2.1',
+    date: '2026-04-15',
+    tag: null,
+    items: [
+      { type: 'new', text: 'MAR (Medication Administration Record) para organizações' },
+      { type: 'new', text: 'Sistema de Rounds farmacêuticos' },
+      { type: 'new', text: 'Perfis familiares com medicação independente' },
+      { type: 'new', text: 'Arena de ligas com pontuação competitiva' },
+    ],
+  },
+]
+
+const TYPE_STYLE: Record<string, { label: string; color: string; bg: string }> = {
+  new:  { label: 'Novo',      color: '#059669', bg: '#d1fae5' },
+  fix:  { label: 'Fix',       color: '#2563eb', bg: '#dbeafe' },
+  perf: { label: 'Perf',      color: '#7c3aed', bg: '#ede9fe' },
+  dep:  { label: 'Depreciado',color: '#d97706', bg: '#fef9c3' },
+}
+
+export default function ChangelogPage() {
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', paddingTop: 56 }}>
+      <div className="page-container page-body" style={{ maxWidth: 680 }}>
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Phlox Clinical
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.02em' }}>
+            Changelog
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>
+            Novidades, correções e melhorias em cada versão da plataforma.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          {RELEASES.map(release => (
+            <div key={release.version}>
+              {/* Version header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 500 }}>
+                  v{release.version}
+                </div>
+                {release.tag && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: release.tagColor, background: `${release.tagColor}18`, border: `1px solid ${release.tagColor}40`, borderRadius: 20, padding: '2px 8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    {release.tag}
+                  </span>
+                )}
+                <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>
+                  {new Date(release.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+
+              {/* Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {release.items.map((item, i) => {
+                  const s = TYPE_STYLE[item.type] || TYPE_STYLE.fix
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: s.color, background: s.bg, borderRadius: 3, padding: '2px 6px', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0, marginTop: 2 }}>
+                        {s.label}
+                      </span>
+                      <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{item.text}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+          <Link href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--green)', textDecoration: 'none', fontWeight: 700 }}>
+            ← Voltar ao início
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
