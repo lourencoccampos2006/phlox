@@ -664,6 +664,11 @@ export default function TurnoPage() {
           .no-print { display: none !important; }
           body { background: white !important; }
         }
+        @media(max-width:768px){
+          .turno-grid{grid-template-columns:1fr!important}
+          .turno-header-row{flex-wrap:wrap!important;gap:8px!important}
+          .turno-stats{display:none!important}
+        }
       `}</style>
     </div>
   )

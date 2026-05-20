@@ -133,55 +133,6 @@ const INTERVENTION_TYPES = [
   'Outro',
 ]
 
-// ─── Demo data ────────────────────────────────────────────────────────────────
-
-const DEMO_PRESCRIPTIONS: Prescription[] = [
-  {
-    id: '1', patient_name: 'Maria dos Santos', patient_dob: '1948-03-12', patient_weight: 58,
-    ward: 'Medicina A', bed: '204-2', prescriber: 'Dr. Rodrigues',
-    drug_name: 'Metformina', dose: '850 mg', route: 'oral', frequency: '2×/dia',
-    indication: 'Diabetes tipo 2', duration: 'Crónico',
-    status: 'pending', priority: 'routine',
-    created_at: new Date(Date.now() - 25 * 60000).toISOString(), org_id: 'demo',
-  },
-  {
-    id: '2', patient_name: 'António Ferreira', patient_dob: '1955-07-22', patient_weight: 82,
-    ward: 'UCI', bed: 'UCI-3', prescriber: 'Dra. Costa',
-    drug_name: 'Vancomicina', dose: '1500 mg', route: 'IV', frequency: 'q12h',
-    indication: 'MRSA bacteriémia', duration: '14 dias',
-    status: 'pending', priority: 'stat',
-    created_at: new Date(Date.now() - 8 * 60000).toISOString(), org_id: 'demo',
-  },
-  {
-    id: '3', patient_name: 'Fernanda Oliveira', patient_dob: '1932-11-05', patient_weight: 49,
-    ward: 'Cardiologia', bed: '318-1', prescriber: 'Dr. Sousa',
-    drug_name: 'Digoxina', dose: '250 mcg', route: 'oral', frequency: '1×/dia',
-    indication: 'Fibrilhação auricular', duration: 'Crónico',
-    status: 'pending', priority: 'urgent',
-    created_at: new Date(Date.now() - 45 * 60000).toISOString(), org_id: 'demo',
-  },
-  {
-    id: '4', patient_name: 'João Pereira', patient_dob: '1978-05-14', patient_weight: 75,
-    ward: 'Ortopedia', bed: '105-3', prescriber: 'Dr. Almeida',
-    drug_name: 'Ibuprofeno', dose: '800 mg', route: 'oral', frequency: '3×/dia',
-    indication: 'Dor pós-operatória', duration: '5 dias',
-    status: 'approved', priority: 'routine',
-    reviewed_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    created_at: new Date(Date.now() - 3 * 3600000).toISOString(), org_id: 'demo',
-  },
-  {
-    id: '5', patient_name: 'Rosa Lima', patient_dob: '1961-09-30', patient_weight: 64,
-    ward: 'Medicina B', bed: '210-4', prescriber: 'Dr. Santos',
-    drug_name: 'Amoxicilina', dose: '1 g', route: 'oral', frequency: '3×/dia',
-    indication: 'Pneumonia comunitária', duration: '7 dias',
-    status: 'modified', priority: 'urgent',
-    intervention_type: 'Dose ajustada',
-    intervention_note: 'Dose reduzida para 500 mg 3×/dia por IR ligeira (CrCl 45 mL/min)',
-    reviewed_at: new Date(Date.now() - 1 * 3600000).toISOString(),
-    created_at: new Date(Date.now() - 4 * 3600000).toISOString(), org_id: 'demo',
-  },
-]
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string) {
@@ -209,8 +160,8 @@ function checksAllPassed(checks: ClinicalChecks) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PrescriptionQueue() {
-  const { user, supabase } = useAuth()
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(DEMO_PRESCRIPTIONS)
+  const { user, supabase } = useAuth() as any
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [selected, setSelected] = useState<Prescription | null>(null)
   const [checks, setChecks] = useState<ClinicalChecks>(BLANK_CHECKS)
   const [interventionType, setInterventionType] = useState('')
@@ -221,19 +172,29 @@ export default function PrescriptionQueue() {
   const [newRx, setNewRx] = useState<NewRxForm>(BLANK_FORM)
   const [saving, setSaving] = useState(false)
   const [searchQ, setSearchQ] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [criticalShortages, setCriticalShortages] = useState<{drug: string; alternatives: string[]}[]>([])
+  const [shortagesDismissed, setShortagesDismissed] = useState(false)
 
-  // Load from Supabase (if user has org)
   useEffect(() => {
     if (!user || !supabase) return
-    supabase
-      .from('prescription_queue')
-      .select('*')
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(100)
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) setPrescriptions(data as Prescription[])
-      })
+    Promise.all([
+      supabase
+        .from('prescription_queue')
+        .select('*')
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(100),
+      supabase
+        .from('drug_shortages')
+        .select('drug,alternatives,severity')
+        .eq('user_id', user.id)
+        .in('severity', ['critical', 'severe']),
+    ]).then(([rxRes, shortRes]: any[]) => {
+      if (!rxRes.error && rxRes.data) setPrescriptions(rxRes.data as Prescription[])
+      if (!shortRes.error && shortRes.data) setCriticalShortages(shortRes.data)
+      setLoading(false)
+    })
   }, [user, supabase])
 
   const filtered = useMemo(() => {
@@ -379,7 +340,38 @@ export default function PrescriptionQueue() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* Drug shortage banner */}
+      {criticalShortages.length > 0 && !shortagesDismissed && (
+        <div style={{ background: '#fef2f2', borderBottom: '2px solid #fecaca', padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <span style={{ fontSize: 16 }}>🚨</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>
+            {criticalShortages.length} rutura{criticalShortages.length !== 1 ? 's' : ''} activa{criticalShortages.length !== 1 ? 's' : ''}:
+          </span>
+          <span style={{ fontSize: 12, color: '#7f1d1d' }}>
+            {criticalShortages.map(s => s.drug).join(' · ')}
+          </span>
+          <a href="/drug-intelligence" style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, textDecoration: 'underline', marginLeft: 4 }}>Ver alternativas →</a>
+          <button onClick={() => setShortagesDismissed(true)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 14 }}>✕</button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && prescriptions.length === 0 && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 16 }}>
+          <div style={{ fontSize: 48 }}>📬</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Fila vazia</div>
+          <div style={{ fontSize: 14, color: '#64748b', textAlign: 'center', maxWidth: 380 }}>
+            Nenhuma prescrição na fila. Adicione a primeira para começar o fluxo de validação.
+          </div>
+          <button onClick={() => setShowNewRx(true)} style={{
+            padding: '12px 24px', borderRadius: 10, border: 'none',
+            background: '#0d9488', color: 'white', cursor: 'pointer',
+            fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+          }}>+ Adicionar prescrição</button>
+        </div>
+      )}
+
+      {(loading || prescriptions.length > 0) && <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* ── Queue list ──────────────────────────────────────────────── */}
         <div style={{ width: 380, borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', background: 'white' }}>
@@ -639,7 +631,7 @@ export default function PrescriptionQueue() {
             <div style={{ fontSize: 13, color: '#94a3b8' }}>Clique numa prescrição na lista para iniciar a revisão</div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* New Rx Modal */}
       {showNewRx && (

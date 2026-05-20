@@ -198,10 +198,25 @@ function PCNEForm({ patient, pharmacist, onSave, onCancel }: {
       </div>
 
       <div style={{ marginBottom:10 }}>
-        <label style={label_style}>Descrição do problema *</label>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+          <label style={{ ...label_style, marginBottom:0 }}>Descrição do problema *</label>
+          <div style={{ display:'flex', gap:4 }}>
+            {[
+              { label:'SOAP', template: `S: ${patient.name} com ${patient.conditions ?? ''}.\nO: Medicação actual: ${patient.name}.\nA: \nP: ` },
+              { label:'RAM', template: `Reacção adversa suspeita a [FÁRMACO].\nInício: [DATA]. Manifestação: [SINTOMA].\nRelação temporal: plausível/provável.\nMedida tomada: suspensão/redução de dose.` },
+              { label:'Dose', template: `Dose de [FÁRMACO] aparenta ser inadequada para o peso/função renal do doente.\nPeso: ${patient.weight ?? '?'}kg · CrCl estimado: ?mL/min.\nDose actual: ? · Dose recomendada: ?` },
+            ].map(t => (
+              <button key={t.label} onClick={() => set('description', t.template)} style={{
+                padding:'2px 8px', borderRadius:5, border:'1px solid #bfdbfe',
+                background:'#eff6ff', color:'#1d4ed8', fontSize:10, fontWeight:700,
+                cursor:'pointer', fontFamily:'inherit',
+              }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
         <textarea value={form.description} onChange={e => set('description', e.target.value)}
           placeholder="Descreve o problema farmacoterapêutico identificado..."
-          rows={2}
+          rows={3}
           style={{ ...select_style, resize:'vertical', lineHeight:1.6 }} />
       </div>
 

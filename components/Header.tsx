@@ -196,326 +196,6 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
   )
 }
 
-// ─── PersonaModeBar ───────────────────────────────────────────────────────────
-
-function PersonaModeBar({ user, supabase }: { user: HeaderUser; supabase: any }) {
-  const [switching, setSwitching] = useState<string | null>(null)
-  const currentMode: ExperienceMode = user.experience_mode || 'personal'
-
-  const modes: { id: ExperienceMode; label: string; icon: string }[] = [
-    { id: 'personal',  label: 'Pessoal',   icon: '👤' },
-    { id: 'caregiver', label: 'Família',   icon: '👨‍👩‍👧' },
-    { id: 'clinical',  label: 'Clínico',   icon: '🏥' },
-    { id: 'student',   label: 'Estudante', icon: '🎓' },
-  ]
-
-  async function handleSwitch(modeId: ExperienceMode) {
-    if (modeId === currentMode || switching) return
-    setSwitching(modeId)
-    try {
-      await supabase.from('profiles').update({ experience_mode: modeId }).eq('id', user.id)
-      window.location.reload()
-    } catch {
-      setSwitching(null)
-    }
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }} className="hdr-mode-tabs">
-      {modes.map(m => {
-        const meta = MODE_META[m.id]
-        const active = currentMode === m.id
-        const isLoading = switching === m.id
-        return (
-          <button
-            key={m.id}
-            onClick={() => handleSwitch(m.id)}
-            disabled={!!switching}
-            title={meta.label}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '4px 10px', borderRadius: 8,
-              border: active ? `1px solid ${meta.color}40` : '1px solid transparent',
-              background: active ? `${meta.color}10` : 'transparent',
-              cursor: switching ? 'wait' : active ? 'default' : 'pointer',
-              fontSize: 12, fontWeight: active ? 700 : 500,
-              color: active ? meta.color : '#64748b',
-              fontFamily: 'inherit', transition: 'all 0.12s',
-              opacity: isLoading ? 0.6 : 1,
-              whiteSpace: 'nowrap',
-            }}>
-            {isLoading ? (
-              <span style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px solid ${meta.color}40`, borderTopColor: meta.color, display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-            ) : (
-              <span style={{ fontSize: 13 }}>{m.icon}</span>
-            )}
-            {m.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── ToolsDropdown ────────────────────────────────────────────────────────────
-
-function ToolsDropdown({ onClose }: { onClose: () => void }) {
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
-      <div style={{
-        position: 'absolute', top: 'calc(100% + 8px)', left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'min(880px, 96vw)',
-        background: 'white',
-        border: '1px solid rgba(0,0,0,0.08)',
-        borderRadius: 16,
-        boxShadow: '0 24px 80px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
-        zIndex: 150,
-        maxWidth: 'none',
-        animation: 'dropDown 0.18s cubic-bezier(0.16,1,0.3,1)',
-        overflow: 'hidden',
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-          {NAV_CATEGORIES.map((cat, ci) => (
-            <div key={cat.id} style={{
-              padding: '20px 16px',
-              borderRight: ci < NAV_CATEGORIES.length - 1 ? '1px solid #f1f5f9' : 'none',
-            }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                fontSize: 10, fontWeight: 700, color: cat.color,
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12,
-              }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color }} />
-                {cat.label}
-              </div>
-              {cat.tools.map(tool => (
-                <Link key={tool.href} href={tool.href} onClick={onClose}
-                  className="mega-item"
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 9,
-                    padding: '7px 8px', borderRadius: 9,
-                    textDecoration: 'none', marginBottom: 2,
-                  }}>
-                  <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{tool.icon}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', lineHeight: 1.3 }}>{tool.label}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.3, marginTop: 1 }}>{tool.desc}</div>
-                  </div>
-                  {tool.badge && (
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, color: cat.color,
-                      background: `${cat.color}18`, padding: '1px 5px', borderRadius: 3,
-                      letterSpacing: '0.05em', textTransform: 'uppercase',
-                      flexShrink: 0, marginTop: 2,
-                    }}>
-                      {tool.badge}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div style={{ borderTop: '1px solid #f1f5f9', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>35+ ferramentas disponíveis</span>
-          <Link href="/ferramentas" onClick={onClose}
-            style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
-            Ver todas
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </Link>
-        </div>
-      </div>
-    </>
-  )
-}
-
-// ─── QuickActionsDropdown ─────────────────────────────────────────────────────
-
-
-function QuickActionsDropdown({ user, onClose, anchorRight }: { user: HeaderUser; onClose: () => void; anchorRight: number }) {
-  const mode: ExperienceMode = user.experience_mode || 'personal'
-  const actions = MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal
-  const meta = MODE_META[mode]
-
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
-      <div style={{
-        position: 'fixed', right: anchorRight, top: 64,
-        width: 300, background: 'white',
-        border: '1px solid rgba(0,0,0,0.08)',
-        borderRadius: 16,
-        boxShadow: '0 24px 64px rgba(0,0,0,0.14)',
-        zIndex: 150, overflow: 'hidden',
-        maxHeight: 'calc(100vh - 80px)',
-        maxWidth: 'none',
-        display: 'flex', flexDirection: 'column',
-        animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '11px 16px 10px', flexShrink: 0,
-          borderBottom: '1px solid #f1f5f9',
-          background: `${meta.color}06`,
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <div style={{
-            width: 22, height: 22, borderRadius: 6,
-            background: `${meta.color}20`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, flexShrink: 0,
-          }}>⚡</div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Ações rápidas</div>
-            <div style={{ fontSize: 10, color: meta.color, fontWeight: 600 }}>{meta.labelShort}</div>
-          </div>
-        </div>
-
-        {/* Scrollable actions */}
-        <div style={{ overflowY: 'auto', flex: 1 }}>
-          {actions.map((action, i) => (
-            <Link key={action.href} href={action.href} onClick={onClose}
-              className="qa-item"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 11,
-                padding: '10px 16px', textDecoration: 'none',
-                borderBottom: i < actions.length - 1 ? '1px solid #fafafa' : 'none',
-              }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: `${meta.color}12`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18, flexShrink: 0,
-              }}>
-                {action.icon}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{action.label}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{action.desc}</div>
-              </div>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                <path d="M9 18l6-6-6-6"/>
-              </svg>
-            </Link>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: '10px 16px', borderTop: '1px solid #f1f5f9', flexShrink: 0, background: '#fafafa' }}>
-          <Link href="/ferramentas" onClick={onClose}
-            style={{ fontSize: 13, color: meta.color, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-            Ver todas as ferramentas
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </Link>
-        </div>
-      </div>
-    </>
-  )
-}
-
-// ─── DesktopModeIndicator ──────────────────────────────────────────────────────
-
-function DesktopModeIndicator({ user, supabase }: { user: HeaderUser; supabase: any }) {
-  const [open, setOpen] = useState(false)
-  const [switching, setSwitching] = useState<ExperienceMode | null>(null)
-  const [dropLeft, setDropLeft] = useState(20)
-  const ref = useRef<HTMLDivElement>(null)
-  const mode = user.experience_mode || 'personal'
-  const meta = MODE_META[mode]
-
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
-  }, [])
-
-  async function switchMode(m: ExperienceMode) {
-    setSwitching(m)
-    await supabase.from('profiles').update({ experience_mode: m }).eq('id', user.id)
-    window.location.reload()
-  }
-
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button
-        onClick={() => {
-          if (!open && ref.current) {
-            const rect = ref.current.getBoundingClientRect()
-            setDropLeft(rect.left)
-          }
-          setOpen(o => !o)
-        }}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          padding: '4px 10px 4px 7px',
-          background: `${meta.color}12`,
-          border: `1px solid ${meta.color}25`,
-          borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit',
-          transition: 'all 0.15s',
-        }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: meta.color }}>
-          {meta.labelShort}
-        </span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={meta.color} strokeWidth="2.5" strokeLinecap="round">
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
-      </button>
-      {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
-          <div style={{
-            position: 'fixed', left: dropLeft, top: 64,
-            background: 'white', border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
-            minWidth: 200, maxWidth: 'none', zIndex: 150, overflow: 'hidden',
-            animation: 'dropDown2 0.15s cubic-bezier(0.16,1,0.3,1)',
-            padding: '6px',
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 8px' }}>
-              Mudar modo
-            </div>
-            {(['personal', 'caregiver', 'clinical', 'student'] as ExperienceMode[]).map(m => {
-              const mm = MODE_META[m]
-              const active = mode === m
-              const isLoading = switching === m
-              return (
-                <button key={m} onClick={() => switchMode(m)} style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-                  padding: '9px 10px', borderRadius: 9, border: 'none',
-                  background: active ? `${mm.color}10` : 'transparent',
-                  cursor: isLoading ? 'wait' : active ? 'default' : 'pointer',
-                  fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.1s',
-                }}>
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: mm.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? mm.color : '#374151' }}>
-                    {mm.label}
-                  </span>
-                  {active && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={mm.color} strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto' }}>
-                      <path d="M20 6L9 17l-5-5"/>
-                    </svg>
-                  )}
-                  {isLoading && (
-                    <span style={{ marginLeft: 'auto', width: 12, height: 12, borderRadius: '50%', border: `2px solid ${mm.color}30`, borderTopColor: mm.color, display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
 
 // ─── UserMenu ─────────────────────────────────────────────────────────────────
 
@@ -1060,13 +740,9 @@ function KeyboardShortcutsOverlay({ onClose }: { onClose: () => void }) {
 export default function Header() {
   const { user, loading, signOut, supabase } = useAuth()
   const pathname = usePathname()
-  const [toolsOpen, setToolsOpen] = useState(false)
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
-  const [quickActionsRight, setQuickActionsRight] = useState(20)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
-  const quickActionsRef = useRef<HTMLDivElement>(null)
 
   const isHomepage = pathname === '/'
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
@@ -1074,8 +750,7 @@ export default function Header() {
   const modeColor = modeMeta.color
   const isDark = user ? mode === 'clinical' : false
 
-  const headerBg = isDark ? '#0f172a' : 'rgba(255,255,255,0.92)'
-  const personaLinks = user ? (PERSONA_NAV[mode] || PERSONA_NAV.personal) : []
+  const headerBg = isDark ? '#0f172a' : 'rgba(255,255,255,0.96)'
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1093,20 +768,6 @@ export default function Header() {
     return () => document.removeEventListener('keydown', fn)
   }, [])
 
-  // Close quick actions on outside click
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (quickActionsRef.current && !quickActionsRef.current.contains(e.target as Node)) {
-        setQuickActionsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
-  }, [])
-
-  const textColor = isDark ? 'rgba(255,255,255,0.75)' : '#374151'
-  const textColorActive = isDark ? 'white' : '#0f172a'
-
   const closeSearch = useCallback(() => setSearchOpen(false), [])
   const closeShortcuts = useCallback(() => setShortcutsOpen(false), [])
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
@@ -1123,7 +784,7 @@ export default function Header() {
         transition: 'background 0.25s, border-color 0.25s',
       }}>
         <div style={{
-          height: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 20px',
+          height: '100%', padding: '0 20px',
           display: 'flex', alignItems: 'center', gap: 0,
         }}>
 
@@ -1144,124 +805,35 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Desktop nav — logged-in persona links + dashboard + tools dropdown */}
-          {!loading && user && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: 1, marginLeft: 12, flexShrink: 0 }} className="hdr-nav">
-              <Link href="/dashboard"
-                style={{
-                  fontSize: 13,
-                  fontWeight: pathname === '/dashboard' ? 700 : 500,
-                  padding: '5px 9px',
-                  color: pathname === '/dashboard' ? textColorActive : textColor,
-                  textDecoration: 'none', borderRadius: 7,
-                  transition: 'color 0.15s', whiteSpace: 'nowrap',
-                  background: pathname === '/dashboard'
-                    ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
-                    : 'transparent',
-                }}>
-                Painel
-              </Link>
-              {personaLinks.map(link => (
-                <Link key={link.href} href={link.href}
-                  style={{
-                    fontSize: 13,
-                    fontWeight: pathname === link.href ? 700 : 500,
-                    padding: '5px 9px',
-                    color: pathname === link.href ? textColorActive : textColor,
-                    textDecoration: 'none', borderRadius: 7,
-                    transition: 'color 0.15s', whiteSpace: 'nowrap',
-                    background: pathname === link.href
-                      ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
-                      : 'transparent',
-                  }}>
-                  {link.label}
-                </Link>
-              ))}
-              {/* Mode-specific tools dropdown */}
-              <div style={{ position: 'relative' }}>
-                <button onClick={() => setToolsOpen(o => !o)} style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '5px 9px', border: 'none',
-                  cursor: 'pointer', borderRadius: 7, fontFamily: 'inherit',
-                  fontSize: 13, fontWeight: 500,
-                  color: toolsOpen ? textColorActive : textColor,
-                  transition: 'color 0.15s', whiteSpace: 'nowrap',
-                  background: toolsOpen ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)') : 'transparent',
-                }}>
-                  Ferramentas
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.6, marginTop: 1 }}>
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-                {toolsOpen && <ToolsDropdown onClose={() => setToolsOpen(false)} />}
-              </div>
-            </nav>
-          )}
-
-          {/* Desktop nav — logged-out */}
+          {/* Logged-out nav */}
           {!loading && !user && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 20 }} className="hdr-nav">
-              <div style={{ position: 'relative' }}>
-                <button onClick={() => setToolsOpen(o => !o)} style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '5px 9px', background: 'none', border: 'none',
-                  cursor: 'pointer', borderRadius: 7, fontFamily: 'inherit',
-                  fontSize: 13, fontWeight: 500, color: '#374151',
-                  transition: 'color 0.15s',
-                }}>
-                  Ferramentas
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-                {toolsOpen && <ToolsDropdown onClose={() => setToolsOpen(false)} />}
-              </div>
-              <Link href="/pricing" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>
-                Preços
-              </Link>
-              <Link href="/about" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>
-                Sobre
-              </Link>
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 20 }}>
+              <Link href="/ferramentas" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Ferramentas</Link>
+              <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
+              <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>
             </nav>
-          )}
-
-          {/* Persona mode bar — logged-in, desktop only */}
-          {!loading && user && (
-            <div style={{ marginLeft: 16 }} className="hdr-mode-tabs">
-              <PersonaModeBar user={user as HeaderUser} supabase={supabase} />
-            </div>
-          )}
-
-          {/* Compact mode pill — shows on 769–1249px where full mode tabs are hidden */}
-          {!loading && user && (
-            <div style={{ marginLeft: 8, display: 'none' }} className="hdr-mode-pill-compact">
-              <DesktopModeIndicator user={user as HeaderUser} supabase={supabase} />
-            </div>
           )}
 
           {/* Spacer */}
           <div style={{ flex: 1 }} />
-          {/* Mobile spacer (also fills gap on mobile) */}
-          <div style={{ flex: 1 }} className="hdr-spacer" />
 
           {/* Right controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
 
-            {/* Logged-in right side */}
+            {/* Logged-in */}
             {!loading && user && (
               <>
-                {/* Search button — desktop */}
+                {/* Search */}
                 <button
                   onClick={() => setSearchOpen(true)}
-                  className="hdr-search-btn"
+                  title="Pesquisar (⌘K)"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 7,
                     padding: '6px 12px', borderRadius: 9,
                     background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
                     cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.6)' : '#94a3b8',
-                    fontSize: 13, fontFamily: 'inherit',
-                    transition: 'all 0.15s',
+                    fontSize: 13, fontFamily: 'inherit', transition: 'all 0.15s',
                   }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -1275,45 +847,34 @@ export default function Header() {
                   }}>⌘K</kbd>
                 </button>
 
-                {/* Quick actions */}
-                <div ref={quickActionsRef} style={{ position: 'relative' }} className="hdr-nav">
-                  <button
-                    onClick={() => {
-                      if (!quickActionsOpen && quickActionsRef.current) {
-                        const rect = quickActionsRef.current.getBoundingClientRect()
-                        setQuickActionsRight(window.innerWidth - rect.right)
-                      }
-                      setQuickActionsOpen(o => !o)
-                    }}
-                    title="Ações rápidas"
-                    style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
-                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0'}`,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 15, transition: 'all 0.12s',
-                    }}>
-                    ⚡
-                  </button>
-                  {quickActionsOpen && (
-                    <QuickActionsDropdown user={user as HeaderUser} onClose={() => setQuickActionsOpen(false)} anchorRight={quickActionsRight} />
-                  )}
-                </div>
-
                 {/* Notifications */}
-                <div className="hdr-nav">
-                  <NotificationBell />
-                </div>
+                <NotificationBell />
 
                 {/* User menu */}
                 <UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} />
+
+                {/* Hamburger — mobile only */}
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="hdr-hamburger"
+                  aria-label="Abrir menu"
+                  style={{
+                    width: 34, height: 34, display: 'none', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 4,
+                    background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
+                    border: 'none', borderRadius: 7, cursor: 'pointer', flexShrink: 0,
+                  }}>
+                  <span style={{ width: 16, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
+                  <span style={{ width: 11, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
+                  <span style={{ width: 16, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
+                </button>
               </>
             )}
 
-            {/* Logged-out right side */}
+            {/* Logged-out */}
             {!loading && !user && (
               <>
-                <Link href="/login" className="hdr-nav" style={{
+                <Link href="/login" style={{
                   padding: '7px 13px', fontSize: 13, fontWeight: 600,
                   color: '#374151', textDecoration: 'none', borderRadius: 7,
                   border: '1px solid #e2e8f0', transition: 'all 0.15s',
@@ -1330,26 +891,10 @@ export default function Header() {
                 </Link>
               </>
             )}
-
-            {/* Hamburger — mobile only */}
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="hdr-hamburger"
-              aria-label="Abrir menu"
-              style={{
-                width: 34, height: 34, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 4,
-                background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
-                border: 'none', borderRadius: 7, cursor: 'pointer', flexShrink: 0,
-              }}>
-              <span style={{ width: 16, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
-              <span style={{ width: 11, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
-              <span style={{ width: 16, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
-            </button>
           </div>
         </div>
 
-        {/* Color accent bar at bottom */}
+        {/* Mode accent bar */}
         {!loading && user && (
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -1358,7 +903,7 @@ export default function Header() {
         )}
       </header>
 
-      {/* Content spacer — NOT on homepage */}
+      {/* Content spacer */}
       {!isHomepage && <div style={{ height: 56 }} />}
 
       {/* Overlays */}
