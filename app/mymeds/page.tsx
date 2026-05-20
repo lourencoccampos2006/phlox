@@ -6,6 +6,8 @@ import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { startClientReminderLoop, stopClientReminderLoop } from '@/lib/clientReminder'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 interface ScannedMed {
   name: string; dose: string|null; frequency: string|null; indication: string|null; selected: boolean
@@ -242,6 +244,12 @@ export default function MyMedsPage() {
   const [addingAll, setAddingAll] = useState(false)
   const scanInputRef = useRef<HTMLInputElement>(null)
 
+  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(() => {
+    if (typeof window !== 'undefined') return getActiveProfile()
+    return null
+  })
+  const [familyProfileData, setFamilyProfileData] = useState<{ name: string; age?: number | null; conditions?: string | null; allergies?: string | null } | null>(null)
+
   const plan = (user?.plan || 'free') as string
   const canAnalyse = plan !== 'free'
 
@@ -250,16 +258,32 @@ export default function MyMedsPage() {
   const load = useCallback(async () => {
     if (!user) return
     const today = todayStr()
-    const [{ data: medsData }, { data: logsData }] = await Promise.all([
-      supabase.from('personal_meds').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('med_logs').select('*').eq('user_id', user.id).eq('date', today),
-    ])
-    setMeds(medsData || [])
-    setTodayLogs(logsData || [])
+    if (activeProfile?.type === 'family') {
+      const [{ data: medsData }, { data: logsData }] = await Promise.all([
+        supabase.from('family_profile_meds').select('*').eq('profile_id', activeProfile.id).order('created_at', { ascending: false }),
+        supabase.from('med_logs').select('*').eq('user_id', user.id).eq('date', today),
+      ])
+      setMeds(medsData || [])
+      setTodayLogs(logsData || [])
+    } else {
+      const [{ data: medsData }, { data: logsData }] = await Promise.all([
+        supabase.from('personal_meds').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('med_logs').select('*').eq('user_id', user.id).eq('date', today),
+      ])
+      setMeds(medsData || [])
+      setTodayLogs(logsData || [])
+    }
     setLoading(false)
-  }, [user, supabase])
+  }, [user, supabase, activeProfile])
 
   useEffect(() => { load() }, [load])
+
+  // Load family profile details (for allergy/condition warnings)
+  useEffect(() => {
+    if (!user || !activeProfile || activeProfile.type !== 'family') { setFamilyProfileData(null); return }
+    supabase.from('family_profiles').select('name, age, conditions, allergies').eq('id', activeProfile.id).single()
+      .then(({ data }) => setFamilyProfileData(data || null))
+  }, [user, supabase, activeProfile])
 
   // Push support detection — safe for iOS where Notification may not exist
   useEffect(() => {
@@ -359,7 +383,8 @@ export default function MyMedsPage() {
   }
 
   const saveReminder = async (medId: string, times: string[]) => {
-    await supabase.from('personal_meds').update({ reminder_times: times.length ? times : null }).eq('id', medId)
+    const table = activeProfile?.type === 'family' ? 'family_profile_meds' : 'personal_meds'
+    await supabase.from(table).update({ reminder_times: times.length ? times : null }).eq('id', medId)
     setMeds(prev => prev.map(m => m.id === medId ? { ...m, reminder_times: times.length ? times : null } : m))
   }
 
@@ -391,10 +416,30 @@ export default function MyMedsPage() {
     setAdding(true)
     const resolved = resolveDrugName(newMed.name)
     const finalName = resolved ? resolved.dci : newMed.name.trim()
-    const { data } = await supabase.from('personal_meds').insert({
-      user_id: user.id, name: finalName,
-      dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
-    }).select().single()
+
+    // Allergy cross-check for family profiles
+    if (activeProfile?.type === 'family' && familyProfileData?.allergies) {
+      const allergyList = familyProfileData.allergies.toLowerCase()
+      const drugLower = finalName.toLowerCase()
+      if (allergyList.split(/[,;]+/).some(a => drugLower.includes(a.trim()) || a.trim().includes(drugLower))) {
+        setAutoCheckResult({ severity: 'GRAVE', patientInfo: `${familyProfileData.name} tem alergia registada a "${familyProfileData.allergies}". Este medicamento pode estar na lista de alergias.`, recommendation: 'Confirma com o médico antes de adicionar.', newDrug: finalName })
+      }
+    }
+
+    let data: any = null
+    if (activeProfile?.type === 'family') {
+      const result = await supabase.from('family_profile_meds').insert({
+        profile_id: activeProfile.id, name: finalName,
+        dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
+      }).select().single()
+      data = result.data
+    } else {
+      const result = await supabase.from('personal_meds').insert({
+        user_id: user.id, name: finalName,
+        dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
+      }).select().single()
+      data = result.data
+    }
     if (data) {
       const updatedMeds = [data, ...meds]
       setMeds(updatedMeds)
@@ -408,7 +453,8 @@ export default function MyMedsPage() {
   }
 
   const removeMed = async (id: string) => {
-    await supabase.from('personal_meds').delete().eq('id', id)
+    const table = activeProfile?.type === 'family' ? 'family_profile_meds' : 'personal_meds'
+    await supabase.from(table).delete().eq('id', id)
     setMeds(p => p.filter(m => m.id !== id))
     setTodayLogs(p => p.filter(l => l.med_id !== id))
     setAnalysed(false); setAutoCheckResult(null)
@@ -449,13 +495,26 @@ export default function MyMedsPage() {
     const inserted: Med[] = []
     for (const med of toAdd) {
       const resolved = resolveDrugName(med.name)
-      const { data } = await supabase.from('personal_meds').insert({
-        user_id: user.id,
-        name: resolved ? resolved.dci : med.name,
-        dose: med.dose || null,
-        frequency: med.frequency || null,
-        indication: med.indication || null,
-      }).select().single()
+      let data: any = null
+      if (activeProfile?.type === 'family') {
+        const result = await supabase.from('family_profile_meds').insert({
+          profile_id: activeProfile.id,
+          name: resolved ? resolved.dci : med.name,
+          dose: med.dose || null,
+          frequency: med.frequency || null,
+          indication: med.indication || null,
+        }).select().single()
+        data = result.data
+      } else {
+        const result = await supabase.from('personal_meds').insert({
+          user_id: user.id,
+          name: resolved ? resolved.dci : med.name,
+          dose: med.dose || null,
+          frequency: med.frequency || null,
+          indication: med.indication || null,
+        }).select().single()
+        data = result.data
+      }
       if (data) inserted.push(data as Med)
     }
     if (inserted.length) {
@@ -481,7 +540,7 @@ export default function MyMedsPage() {
       const res = await fetch('/api/chat-med', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-        body: JSON.stringify({ message: text, meds: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })), history: chatMessages.slice(-6) }),
+        body: JSON.stringify({ message: text, meds: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })), history: chatMessages.slice(-6), familyProfile: activeProfile?.type === 'family' ? { name: familyProfileData?.name || activeProfile.name, age: familyProfileData?.age, conditions: familyProfileData?.conditions, allergies: familyProfileData?.allergies } : null }),
       })
       const data = await res.json()
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Não consegui responder. Tenta novamente.' }])
@@ -561,12 +620,21 @@ export default function MyMedsPage() {
         <div className="page-container" style={{ paddingTop:28, paddingBottom:0 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:12 }}>
             <div>
-              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>Os Meus Medicamentos</div>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:24, color:'var(--ink)', fontWeight:400 }}>
-                {loading ? '—' : `${meds.length} medicamento${meds.length!==1?'s':''}`}
+              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>
+                {activeProfile?.type === 'family' ? 'Medicamentos de' : 'Os Meus Medicamentos'}
               </div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:24, color:'var(--ink)', fontWeight:400 }}>
+                {activeProfile?.type === 'family' && familyProfileData ? familyProfileData.name : loading ? '—' : `${meds.length} medicamento${meds.length!==1?'s':''}`}
+              </div>
+              {activeProfile?.type === 'family' && !loading && (
+                <div style={{ fontSize:12, color:'var(--ink-4)', marginTop:3, fontFamily:'var(--font-mono)' }}>
+                  {meds.length} medicamento{meds.length!==1?'s':''}
+                  {familyProfileData?.age ? ` · ${familyProfileData.age} anos` : ''}
+                </div>
+              )}
             </div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+              <ProfileSelector onChange={p => { setActiveProfileState(p); setMeds([]); setTodayLogs([]); setAlerts([]); setAnalysed(false); setAutoCheckResult(null); setLoading(true) }} />
               {canAnalyse && meds.length >= 2 && (
                 <button onClick={analyse} disabled={analysing}
                   style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:analysing?'var(--bg-3)':'var(--green)', color:analysing?'var(--ink-4)':'white', border:'none', borderRadius:8, cursor:analysing?'wait':'pointer', fontSize:13, fontWeight:700 }}>
@@ -579,7 +647,7 @@ export default function MyMedsPage() {
                   🔔 {hasReminders ? 'Lembretes ativos' : 'Ativar lembretes'}
                 </button>
               )}
-              <button onClick={() => setEmergencyOpen(true)}
+              <button onClick={() => { setEmergencyOpen(true); if (activeProfile?.type === 'family' && familyProfileData) setEmergencyForm(p => ({ ...p, name: p.name || familyProfileData.name, allergies: p.allergies || (familyProfileData.allergies ?? '') })) }}
                 style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', background:emergencyToken?'#fee2e2':'white', color:emergencyToken?'#991b1b':'var(--ink)', border:`1px solid ${emergencyToken?'#fca5a5':'var(--border)'}`, borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer' }}>
                 🆘 Cartão
               </button>
@@ -596,6 +664,37 @@ export default function MyMedsPage() {
           </div>
         </div>
       </div>
+
+      {/* Family profile context banner */}
+      {activeProfile?.type === 'family' && familyProfileData && (
+        <div style={{ background:'#f5f3ff', borderBottom:'1px solid #e9d5ff' }}>
+          <div className="page-container" style={{ paddingTop:10, paddingBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <div style={{ width:24, height:24, borderRadius:'50%', background:'#e9d5ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#7c3aed', flexShrink:0 }}>
+                {familyProfileData.name.charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize:12, color:'#6d28d9', fontWeight:600 }}>
+                A gerir a medicação de {familyProfileData.name}
+              </span>
+              {familyProfileData.conditions && (
+                <span style={{ fontSize:11, color:'#7c3aed', background:'white', border:'1px solid #e9d5ff', borderRadius:20, padding:'2px 8px' }}>
+                  {familyProfileData.conditions}
+                </span>
+              )}
+              {familyProfileData.allergies && (
+                <span style={{ fontSize:11, color:'#dc2626', background:'#fff5f5', border:'1px solid #fca5a5', borderRadius:20, padding:'2px 8px' }}>
+                  ⚠️ Alergia: {familyProfileData.allergies}
+                </span>
+              )}
+              {familyProfileData.age && familyProfileData.age >= 75 && (
+                <span style={{ fontSize:11, color:'#d97706', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:20, padding:'2px 8px' }}>
+                  ≥75 anos — Critérios STOPP aplicáveis
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Adherence summary bar — only show when there's a schedule */}
       {!loading && schedule.length > 0 && (
@@ -670,8 +769,12 @@ export default function MyMedsPage() {
             ) : meds.length === 0 ? (
               <div style={{ background:'white', border:'2px dashed var(--border)', borderRadius:10, padding:'56px 24px', textAlign:'center' }}>
                 <div style={{ fontSize:36, marginBottom:12 }}>💊</div>
-                <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Nenhum medicamento ainda</div>
-                <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>Adiciona os teus medicamentos para verificar interações e receber alertas.</div>
+                <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>
+                  {activeProfile?.type === 'family' && familyProfileData ? `${familyProfileData.name} não tem medicamentos ainda` : 'Nenhum medicamento ainda'}
+                </div>
+                <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>
+                  {activeProfile?.type === 'family' ? 'Adiciona os medicamentos deste perfil familiar para verificar interações e receber alertas.' : 'Adiciona os teus medicamentos para verificar interações e receber alertas.'}
+                </div>
                 <button onClick={() => setTab('add')}
                   style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'11px 22px', fontSize:13, fontWeight:700, cursor:'pointer' }}>
                   Adicionar primeiro medicamento →

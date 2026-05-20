@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MODE_QUICK_ACTIONS } from '@/lib/navigation'
+import { setActiveProfile } from '@/lib/profileContext'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1191,7 +1192,9 @@ function CaregiverHome({ user }: { user: any }) {
   const { supabase } = useAuth()
   const [profiles, setProfiles] = useState<any[]>([])
   const [medCounts, setMedCounts] = useState<Record<string, number>>({})
+  const [profileMeds, setProfileMeds] = useState<Record<string, string[]>>({})
   const [loadingProfiles, setLoadingProfiles] = useState(true)
+  const [todayLogs, setTodayLogs] = useState<any[]>([])
 
   const firstName = user?.name?.split(' ')[0] || ''
   const color = '#d97706'
@@ -1200,30 +1203,46 @@ function CaregiverHome({ user }: { user: any }) {
     if (!user?.id) return
     ;(async () => {
       setLoadingProfiles(true)
-      const { data: p, error: pe } = await supabase
+      const today = new Date().toISOString().split('T')[0]
+      const { data: p } = await supabase
         .from('family_profiles')
         .select('id,name,relation,age,sex,conditions,allergies,created_at')
         .eq('user_id', user.id)
         .order('name')
-      if (pe) console.error('[CaregiverHome] family_profiles:', pe)
       const profileList = p ?? []
       setProfiles(profileList)
 
       if (profileList.length > 0) {
-        const { data: m, error: me } = await supabase
-          .from('family_profile_meds')
-          .select('profile_id')
-          .in('profile_id', profileList.map((x: any) => x.id))
-        if (me) console.error('[CaregiverHome] family_profile_meds:', me)
+        const ids = profileList.map((x: any) => x.id)
+        const [{ data: m }, { data: logs }] = await Promise.all([
+          supabase.from('family_profile_meds').select('profile_id, name, reminder_times').in('profile_id', ids),
+          supabase.from('med_logs').select('med_id, status, date').eq('user_id', user.id).eq('date', today),
+        ])
         const counts: Record<string, number> = {}
+        const medsMap: Record<string, string[]> = {}
         ;(m ?? []).forEach((row: any) => {
           counts[row.profile_id] = (counts[row.profile_id] || 0) + 1
+          if (!medsMap[row.profile_id]) medsMap[row.profile_id] = []
+          medsMap[row.profile_id].push(row.name)
         })
         setMedCounts(counts)
+        setProfileMeds(medsMap)
+        setTodayLogs(logs ?? [])
       }
       setLoadingProfiles(false)
     })()
   }, [user?.id])
+
+  function getProfileRisk(p: any, medCount: number) {
+    let score = 0
+    if ((p.age || 0) >= 75) score += 25
+    if (medCount >= 5) score += 25
+    if (p.allergies) score += 10
+    if (p.conditions?.toLowerCase().includes('renal') || p.conditions?.toLowerCase().includes('hepátic')) score += 20
+    if (score >= 50) return { label: 'Alto risco', color: '#dc2626', bg: '#fee2e2' }
+    if (score >= 25) return { label: 'Atenção', color: '#d97706', bg: '#fffbeb' }
+    return null
+  }
 
   function getInitials(name: string) {
     return name
@@ -1370,77 +1389,60 @@ function CaregiverHome({ user }: { user: any }) {
               {profiles.map(p => {
                 const age = calcAge(p.age)
                 const medCount = medCounts[p.id] || 0
+                const risk = getProfileRisk(p, medCount)
                 return (
-                  <Link
-                    key={p.id}
-                    href={`/perfis?id=${p.id}`}
-                    style={{ textDecoration: 'none' }}
-                    className="profile-card"
-                  >
+                  <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{
                       background: 'white',
                       borderRadius: 14,
                       padding: '18px',
-                      border: '1px solid rgba(0,0,0,0.06)',
-                      transition: 'transform 0.12s, box-shadow 0.12s',
+                      border: `1px solid ${risk ? risk.color + '30' : 'rgba(0,0,0,0.06)'}`,
                       height: '100%',
                       boxSizing: 'border-box',
                     }}>
-                      {/* Avatar circle */}
-                      <div style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        background: '#fef3c7',
-                        border: `2px solid ${color}30`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color,
-                        marginBottom: 12,
-                        flexShrink: 0,
-                      }}>
-                        {getInitials(p.name)}
-                      </div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 2 }}>
-                        {p.name}
-                      </div>
-                      {p.relation && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
                         <div style={{
-                          fontSize: 11,
-                          color,
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: 2,
-                        }}>
-                          {p.relation}
-                        </div>
-                      )}
-                      {age != null && (
-                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
-                          {age} anos
-                        </div>
-                      )}
-                      {medCount > 0 && (
-                        <div style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          padding: '3px 9px',
-                          borderRadius: 10,
+                          width: 44,
+                          height: 44,
+                          borderRadius: '50%',
                           background: '#fef3c7',
-                          fontSize: 11,
+                          border: `2px solid ${color}30`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 14,
                           fontWeight: 700,
                           color,
+                          flexShrink: 0,
                         }}>
+                          {getInitials(p.name)}
+                        </div>
+                        {risk && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: risk.color, background: risk.bg, border: `1px solid ${risk.color}40`, borderRadius: 6, padding: '2px 7px', fontFamily: 'var(--font-mono)' }}>
+                            {risk.label}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 1 }}>{p.name}</div>
+                      {p.relation && <div style={{ fontSize: 11, color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{p.relation}</div>}
+                      {age != null && <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>{age} anos{(age as number) >= 75 ? ' · ≥75' : ''}</div>}
+                      {p.conditions && <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, lineHeight: 1.4 }}>{p.conditions}</div>}
+                      {p.allergies && <div style={{ fontSize: 10, color: '#dc2626', background: '#fff5f5', border: '1px solid #fca5a5', borderRadius: 4, padding: '2px 6px', marginBottom: 6, display: 'inline-block' }}>⚠️ {p.allergies}</div>}
+                      {medCount > 0 && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 10, background: '#fef3c7', fontSize: 11, fontWeight: 700, color }}>
                           💊 {medCount} med{medCount !== 1 ? 's' : ''}
                         </div>
                       )}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+                        <Link href="/mymeds" onClick={() => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, conditions: p.conditions, allergies: p.allergies })} style={{ flex: 1, padding: '7px 0', background: color, color: 'white', borderRadius: 7, fontSize: 11, fontWeight: 700, textDecoration: 'none', textAlign: 'center' as const }}>
+                          Medicamentos
+                        </Link>
+                        <Link href="/vitals" onClick={() => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, conditions: p.conditions, allergies: p.allergies })} style={{ flex: 1, padding: '7px 0', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 11, fontWeight: 700, textDecoration: 'none', textAlign: 'center' as const }}>
+                          Vitais
+                        </Link>
+                      </div>
                     </div>
-                  </Link>
+                  </div>
                 )
               })}
               {/* Add profile card */}
@@ -1494,6 +1496,40 @@ function CaregiverHome({ user }: { user: any }) {
             ))}
           </div>
         </section>
+
+        {/* RESUMO DE MEDICAÇÃO FAMILIAR */}
+        {!loadingProfiles && profiles.length > 0 && Object.keys(profileMeds).length > 0 && (
+          <section style={{ marginBottom: 32 }}>
+            <SectionLabel right={<Link href="/interactions" style={{ fontSize: 13, color, fontWeight: 700, textDecoration: 'none' }}>Ver interações →</Link>}>
+              Medicação da família
+            </SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {profiles.filter(p => (profileMeds[p.id] || []).length > 0).map(p => {
+                const meds = profileMeds[p.id] || []
+                const hasHighRisk = (p.age || 0) >= 75 && meds.length >= 3
+                return (
+                  <div key={p.id} style={{ background: 'white', borderRadius: 12, padding: '14px 16px', border: `1px solid ${hasHighRisk ? '#fde68a' : 'rgba(0,0,0,0.06)'}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color, flexShrink: 0 }}>
+                      {getInitials(p.name)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 3 }}>{p.name}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {meds.slice(0, 4).map((m: string) => (
+                          <span key={m} style={{ fontSize: 10, color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 6px', fontFamily: 'var(--font-mono)' }}>{m}</span>
+                        ))}
+                        {meds.length > 4 && <span style={{ fontSize: 10, color: '#94a3b8', padding: '1px 0' }}>+{meds.length - 4} mais</span>}
+                      </div>
+                    </div>
+                    <Link href="/interactions" onClick={() => { const drugsParam = meds.slice(0, 5).join(','); window.sessionStorage?.setItem('interactions_prefill', drugsParam) }} style={{ fontSize: 11, fontWeight: 700, color, background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 6, padding: '5px 9px', textDecoration: 'none', whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
+                      Verificar
+                    </Link>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         {/* VERIFICAÇÃO RÁPIDA DE SEGURANÇA */}
         <section style={{ marginBottom: 32 }}>

@@ -53,12 +53,20 @@ export default function OraclePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string|null>(null)
 
-  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
+  useEffect(() => {
+    const p = getActiveProfile()
+    setActiveProfileState(p)
+    if (p?.type === 'family' && p.age) setAge(String(p.age))
+  }, [])
 
   useEffect(() => {
     if (!user) return
-    supabase.from('personal_meds').select('id,name,dose,frequency').eq('user_id', user.id).then(({ data }) => setMeds(data || []))
-  }, [user, supabase])
+    if (activeProfile?.type === 'family') {
+      supabase.from('family_profile_meds').select('id,name,dose,frequency').eq('profile_id', activeProfile.id).then(({ data }) => setMeds(data || []))
+    } else {
+      supabase.from('personal_meds').select('id,name,dose,frequency').eq('user_id', user.id).then(({ data }) => setMeds(data || []))
+    }
+  }, [user, supabase, activeProfile])
 
   const getClarifyQuestions = async () => {
     if (!problem.trim()) return
@@ -119,7 +127,7 @@ export default function OraclePage() {
               </div>
             </div>
             <div style={{ marginTop:4 }}>
-              <ProfileSelector onChange={p => setActiveProfileState(p)} />
+              <ProfileSelector onChange={p => { setActiveProfileState(p); setMeds([]); if (p.type === 'family' && p.age) setAge(String(p.age)) }} />
             </div>
           </div>
           {/* Progress indicator */}

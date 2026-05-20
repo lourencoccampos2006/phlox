@@ -40,10 +40,17 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
-    supabase.from('personal_meds').select('*').eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setMeds(data || []); setLoading(false) })
-  }, [user, supabase])
+    setSchedule(null); setLoading(true)
+    if (activeProfile?.type === 'family') {
+      supabase.from('family_profile_meds').select('*').eq('profile_id', activeProfile.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => { setMeds(data || []); setLoading(false) })
+    } else {
+      supabase.from('personal_meds').select('*').eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => { setMeds(data || []); setLoading(false) })
+    }
+  }, [user, supabase, activeProfile])
 
   const generate = async () => {
     if (!user || meds.length === 0) return
@@ -88,10 +95,12 @@ export default function SchedulePage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Horário Inteligente</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O horário perfeito para a tua medicação</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>
+                  {activeProfile?.type === 'family' ? `Horário de ${activeProfile.name}` : 'O horário perfeito para a tua medicação'}
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ProfileSelector onChange={p => setActiveProfileState(p)} />
+                <ProfileSelector onChange={p => { setActiveProfileState(p); setMeds([]); setSchedule(null) }} />
                 {schedule && (
                   <button onClick={printSchedule} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     🖨️ Imprimir
@@ -109,10 +118,14 @@ export default function SchedulePage() {
         ) : meds.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 32, textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>💊</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Sem medicamentos registados</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>Adiciona os teus medicamentos primeiro.</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
+              {activeProfile?.type === 'family' ? `${activeProfile.name} não tem medicamentos registados` : 'Sem medicamentos registados'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>
+              {activeProfile?.type === 'family' ? 'Adiciona os medicamentos deste perfil familiar primeiro.' : 'Adiciona os teus medicamentos primeiro.'}
+            </div>
             <a href="/mymeds" style={{ padding: '10px 20px', background: 'var(--green)', color: 'white', borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-              Ir para Os Meus Medicamentos →
+              {activeProfile?.type === 'family' ? `Ir para medicamentos de ${activeProfile.name} →` : 'Ir para Os Meus Medicamentos →'}
             </a>
           </div>
         ) : (

@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { setActiveProfile } from '@/lib/profileContext'
 
 interface FamilyProfile {
   id: string
@@ -123,6 +124,9 @@ export default function PerfisPage() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link href="/familia" style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#d97706', fontWeight: 700, textDecoration: 'none', padding: '7px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6 }}>
+              Dashboard →
+            </Link>
             <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>
               {isFinite(limit) ? `${profiles.length}/${limit}` : `${profiles.length} perfis`}
             </span>
@@ -255,17 +259,22 @@ export default function PerfisPage() {
                   )}
 
                   {/* Acções */}
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <Link href={`/ai?profile=${p.id}`} style={{ padding: '7px 12px', background: '#eff6ff', color: '#1d4ed8', textDecoration: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
-                      AI
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                    <Link href="/mymeds" onClick={() => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, conditions: p.conditions, allergies: p.allergies })}
+                      style={{ padding: '7px 12px', background: '#fef3c7', color: '#d97706', textDecoration: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', border: '1px solid #fde68a' }}>
+                      💊 Meds
                     </Link>
-                    <Link href={`/perfil/${p.id}`} style={{ padding: '7px 12px', background: 'var(--bg-2)', color: 'var(--ink)', textDecoration: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
-                      Ver →
+                    <Link href="/vitals" onClick={() => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, conditions: p.conditions, allergies: p.allergies })}
+                      style={{ padding: '7px 12px', background: '#eff6ff', color: '#1d4ed8', textDecoration: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', border: '1px solid #bfdbfe' }}>
+                      💓 Vitais
+                    </Link>
+                    <Link href={`/ai?profile=${p.id}`} style={{ padding: '7px 12px', background: '#f0fdf4', color: 'var(--green-2)', textDecoration: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', border: '1px solid var(--green-mid)' }}>
+                      AI
                     </Link>
                     <button onClick={() => openEdit(p)} style={{ padding: '7px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
                       Editar
                     </button>
-                    <button onClick={() => deleteProfile(p.id)} disabled={deleting} style={{ padding: '7px 12px', background: 'white', color: deleting ? 'var(--ink-5)' : 'var(--red)', border: `1px solid ${deleting ? 'var(--border)' : '#fecaca'}`, borderRadius: 6, fontSize: 11, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)' }}>
+                    <button onClick={() => deleteProfile(p.id)} disabled={deleting} style={{ padding: '7px 12px', background: 'white', color: deleting ? 'var(--ink-5)' : '#dc2626', border: `1px solid ${deleting ? 'var(--border)' : '#fecaca'}`, borderRadius: 6, fontSize: 11, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)' }}>
                       {deleting ? '...' : 'Apagar'}
                     </button>
                   </div>

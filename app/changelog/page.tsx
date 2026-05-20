@@ -8,9 +8,34 @@ export const metadata: Metadata = {
 
 const RELEASES = [
   {
-    version: '2.4',
+    version: '2.5',
     date: '2026-05-20',
     tag: 'Mais recente',
+    tagColor: '#059669',
+    items: [
+      { type: 'new', text: 'Dashboard de família (/familia) — resumo de todos os perfis com risco, STOPP e medicação' },
+      { type: 'new', text: '/mymeds totalmente preparado para perfis familiares — dados, adição, remoção e lembretes por perfil' },
+      { type: 'new', text: 'Banner de contexto familiar em /mymeds — alergias, condições e aviso STOPP para ≥75 anos' },
+      { type: 'new', text: 'Verificação de alergias ao adicionar medicamento a perfil familiar' },
+      { type: 'new', text: '/vitals com filtragem real por perfil — sinais vitais separados por perfil familiar (requer migração SQL)' },
+      { type: 'new', text: '/schedule carrega corretamente a medicação do perfil familiar selecionado' },
+      { type: 'new', text: 'CaregiverHome: cards com risco, alergias, condições, links diretos para meds e vitais' },
+      { type: 'new', text: 'CaregiverHome: secção de medicação familiar com botão "Verificar interações" por perfil' },
+      { type: 'new', text: 'Botões "Medicamentos" e "Vitais" em /perfis abrem a página com o perfil familiar pré-selecionado' },
+      { type: 'new', text: 'Chat em /mymeds usa contexto do perfil familiar (nome, idade, condições, alergias)' },
+      { type: 'new', text: '/adr-report pré-preenche idade e sexo do perfil familiar selecionado' },
+      { type: 'new', text: '/optimizer carrega medicação do perfil familiar e pré-preenche idade' },
+      { type: 'new', text: '/oracle carrega medicação e idade do perfil familiar selecionado' },
+      { type: 'new', text: '/calendario-meds carrega medicação do perfil ativo ao iniciar (em vez de apenas ao mudar)' },
+      { type: 'new', text: 'Interações: pré-preenchimento via sessionStorage para link rápido do dashboard familiar' },
+      { type: 'new', text: 'Nav cuidador atualizada: link para /familia, /schedule, reorganização' },
+      { type: 'new', text: 'Ficheiro de migração SQL para coluna profile_id na tabela vitals' },
+    ],
+  },
+  {
+    version: '2.4',
+    date: '2026-05-20',
+    tag: null,
     tagColor: '#059669',
     items: [
       { type: 'new', text: 'Score de saúde pessoal com barra de progresso e streak de adesão' },

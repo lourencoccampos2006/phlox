@@ -75,15 +75,18 @@ export default function VitalsPage() {
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
     const { data: sd } = await supabase.auth.getSession()
+    const profileParam = activeProfile?.type === 'family' ? `?profile_id=${activeProfile.id}` : ''
     const [vitalsRes, medsRes] = await Promise.all([
-      fetch('/api/vitals', { headers: { 'Authorization': `Bearer ${sd.session?.access_token}` } }),
-      supabase.from('personal_meds').select('name').eq('user_id', user.id),
+      fetch(`/api/vitals${profileParam}`, { headers: { 'Authorization': `Bearer ${sd.session?.access_token}` } }),
+      activeProfile?.type === 'family'
+        ? supabase.from('family_profile_meds').select('name').eq('profile_id', activeProfile.id)
+        : supabase.from('personal_meds').select('name').eq('user_id', user.id),
     ])
     const vitalsData = await vitalsRes.json()
     setVitals(vitalsData.vitals || [])
     setMeds((medsRes.data || []).map((m: any) => m.name))
     setLoading(false)
-  }, [user, supabase])
+  }, [user, supabase, activeProfile])
 
   useEffect(() => { load() }, [load])
 
@@ -95,6 +98,7 @@ export default function VitalsPage() {
     const { data: sd } = await supabase.auth.getSession()
     const body: any = { notes: notes || null }
     FIELDS.forEach(f => { if (form[f.key]?.trim()) body[f.key] = parseFloat(form[f.key]) })
+    if (activeProfile?.type === 'family') body.profile_id = activeProfile.id
     const res = await fetch('/api/vitals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
@@ -148,13 +152,21 @@ export default function VitalsPage() {
         <div className="page-container" style={{ paddingTop:28, paddingBottom:20 }}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
             <div>
-              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>Sinais Vitais</div>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:24, color:'var(--ink)', fontWeight:400 }}>
-                {loading ? '—' : `${vitals.length} ${vitals.length===1?'medição':'medições'}`}
+              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>
+                {activeProfile?.type === 'family' ? `Sinais Vitais de` : 'Sinais Vitais'}
               </div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:24, color:'var(--ink)', fontWeight:400 }}>
+                {activeProfile?.type === 'family' ? activeProfile.name : (loading ? '—' : `${vitals.length} ${vitals.length===1?'medição':'medições'}`)}
+              </div>
+              {activeProfile?.type === 'family' && !loading && (
+                <div style={{ fontSize:12, color:'var(--ink-4)', marginTop:3, fontFamily:'var(--font-mono)' }}>
+                  {vitals.length} {vitals.length===1?'medição':'medições'}
+                  {activeProfile.age ? ` · ${activeProfile.age} anos` : ''}
+                </div>
+              )}
             </div>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              <ProfileSelector onChange={p => setActiveProfileState(p)} />
+              <ProfileSelector onChange={p => { setActiveProfileState(p); setVitals([]); setAnalysis(null); setLoading(true) }} />
               {vitals.length >= 2 && (
                 <button onClick={analyse} disabled={analysing}
                   style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 16px', background:analysing?'var(--bg-3)':'#4f46e5', color:analysing?'var(--ink-4)':'white', border:'none', borderRadius:8, cursor:analysing?'wait':'pointer', fontSize:13, fontWeight:700 }}>

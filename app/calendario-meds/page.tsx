@@ -38,7 +38,8 @@ export default function CalendarioMedsPage() {
 
   useEffect(() => {
     const p = getActiveProfile()
-    if (p?.name) setPatientName(p.name)
+    if (p) handleProfile(p)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleProfile = async (p: any) => {

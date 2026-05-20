@@ -94,11 +94,12 @@ export default function InteractionsPage() {
   const [photoLoading, setPhotoLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Pre-populate from ?drugs=a,b,c URL param
+  // Pre-populate from ?drugs=a,b,c URL param or sessionStorage (set by CaregiverHome)
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
-    const raw = params.get('drugs')
+    const raw = params.get('drugs') || sessionStorage.getItem('interactions_prefill')
+    sessionStorage.removeItem('interactions_prefill')
     if (raw) {
       const names = raw.split(',').map(s => s.trim()).filter(Boolean).slice(0, 10)
       if (names.length > 0) setDrugs(names)

@@ -36,15 +36,26 @@ export default function OptimizerPage() {
   const plan = (user?.plan || 'free') as string
   const canRun = plan !== 'free'
 
-  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
+  useEffect(() => {
+    const p = getActiveProfile()
+    setActiveProfileState(p)
+    if (p?.type === 'family' && p.age) setAge(String(p.age))
+  }, [])
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
-    supabase.from('personal_meds').select('*').eq('user_id', user.id).then(({ data }) => {
-      setMeds(data || [])
-      setLoading(false)
-    })
-  }, [user, supabase])
+    if (activeProfile?.type === 'family') {
+      supabase.from('family_profile_meds').select('*').eq('profile_id', activeProfile.id).then(({ data }) => {
+        setMeds(data || [])
+        setLoading(false)
+      })
+    } else {
+      supabase.from('personal_meds').select('*').eq('user_id', user.id).then(({ data }) => {
+        setMeds(data || [])
+        setLoading(false)
+      })
+    }
+  }, [user, supabase, activeProfile])
 
   const run = async () => {
     if (!meds.length) return
@@ -84,7 +95,7 @@ export default function OptimizerPage() {
                 Análise completa da tua medicação: poupanças com genéricos, sinalizadores de segurança, monitorização em falta e revisão de doses.
               </div>
             </div>
-            <ProfileSelector onChange={p => setActiveProfileState(p)} />
+            <ProfileSelector onChange={p => { setActiveProfileState(p); setMeds([]); setResult(null); setLoading(true); if (p.type === 'family' && p.age) setAge(String(p.age)) }} />
           </div>
         </div>
       </div>

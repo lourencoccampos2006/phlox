@@ -47,7 +47,17 @@ export default function ADRReportPage() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
+  useEffect(() => {
+    const p = getActiveProfile()
+    setActiveProfileState(p)
+    if (p?.type === 'family') {
+      setForm(f => ({
+        ...f,
+        patient_age: p.age ? String(p.age) : f.patient_age,
+        patient_sex: (p as any).sex || f.patient_sex,
+      }))
+    }
+  }, [])
 
   const analyze = async () => {
     if (!form.suspected_drug.trim() || !form.reaction.trim()) return
@@ -120,7 +130,7 @@ ${result.disclaimer}`
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Farmacovigilância</div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 4 }}>Notificação de Reação Adversa</div>
             </div>
-            <ProfileSelector onChange={p => setActiveProfileState(p)} />
+            <ProfileSelector onChange={p => { setActiveProfileState(p); if (p.type === 'family') setForm(f => ({ ...f, patient_age: p.age ? String(p.age) : f.patient_age, patient_sex: (p as any).sex || f.patient_sex })) }} />
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 560 }}>
             Analisa a causalidade, classifica pela WHO-UMC e gera a narrativa para reportar ao INFARMED.

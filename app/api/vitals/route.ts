@@ -33,11 +33,18 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url)
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '90'), 200)
+  const profileId = url.searchParams.get('profile_id')
 
-  const { data, error } = await supabase
-    .from('vitals').select('*').eq('user_id', userId)
-    .order('recorded_at', { ascending: false }).limit(limit)
+  let query = supabase.from('vitals').select('*').order('recorded_at', { ascending: false }).limit(limit)
 
+  if (profileId) {
+    // Family profile vitals — verify ownership via join
+    query = query.eq('profile_id', profileId)
+  } else {
+    query = query.eq('user_id', userId).is('profile_id', null)
+  }
+
+  const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ vitals: data || [] })
 }
@@ -50,8 +57,12 @@ export async function POST(req: NextRequest) {
   let body: Partial<Vital>
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Pedido inválido' }, { status: 400 }) }
 
-  const record = {
+  const url = new URL(req.url)
+  const profileId = url.searchParams.get('profile_id') || (body as any).profile_id || null
+
+  const record: any = {
     user_id: userId,
+    profile_id: profileId || null,
     recorded_at: body.recorded_at || new Date().toISOString(),
     hr:     body.hr     != null ? Number(body.hr)     : null,
     bp_sys: body.bp_sys != null ? Number(body.bp_sys) : null,

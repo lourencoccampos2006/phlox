@@ -13,25 +13,30 @@ export async function POST(req: NextRequest) {
   const message = String(body.message).trim().slice(0, 500)
   const meds: { name: string; dose?: string; frequency?: string }[] = body.meds || []
   const history: { role: string; content: string }[] = (body.history || []).slice(-6)
+  const familyProfile: { name?: string; age?: number; conditions?: string; allergies?: string } | null = body.familyProfile || null
 
   const medList = meds.length > 0
     ? meds.map(m => `- ${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? `, ${m.frequency}` : ''}`).join('\n')
     : 'Nenhum medicamento registado.'
 
+  const profileContext = familyProfile
+    ? `\nPerfil do doente: ${familyProfile.name || 'Familiar'}${familyProfile.age ? `, ${familyProfile.age} anos` : ''}${familyProfile.conditions ? `, condições: ${familyProfile.conditions}` : ''}${familyProfile.allergies ? `, alergias: ${familyProfile.allergies}` : ''}`
+    : ''
+
   const messages = [
     {
       role: 'system' as const,
-      content: `És o assistente farmacêutico do Phlox. O utilizador toma os seguintes medicamentos:
-${medList}
+      content: `És o assistente farmacêutico do Phlox. ${familyProfile ? `Estás a ajudar um cuidador com a medicação de ${familyProfile.name || 'um familiar'}.` : 'O utilizador toma os seguintes medicamentos:'}
+${medList}${profileContext}
 
 Regras:
 - Responde em português europeu (PT-PT), linguagem simples e direta
 - Máximo 3 frases por resposta, sem listas longas
+- Considera sempre a idade e condições clínicas do perfil${familyProfile?.age && familyProfile.age >= 75 ? ' — doente idoso, atenção a critérios STOPP e doses reduzidas' : ''}
 - Para situações graves (sobredosagem, reação alérgica, dor no peito): "Liga imediatamente para o 112 ou vai à urgência."
-- Para dúvidas sérias sobre interações: "Fala com o teu farmacêutico ou médico antes de continuar."
+- Para dúvidas sérias sobre interações: "Fala com o farmacêutico ou médico antes de continuar."
 - Se não souberes algo com certeza, diz claramente que não sabes
-- Não inventes informação clínica
-- Termina sempre com confiança, nunca em pânico desnecessário`,
+- Não inventes informação clínica`,
     },
     ...history.map(h => ({ role: h.role as 'user'|'assistant', content: h.content })),
     { role: 'user' as const, content: message },

@@ -74,7 +74,7 @@ export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>>
   ],
   caregiver: [
     { href: '/inicio', label: 'Início' },
-    { href: '/perfis', label: 'Família' },
+    { href: '/familia', label: 'Família' },
     { href: '/mymeds', label: 'Medicação' },
     { href: '/verificar', label: 'Verificar' },
     { href: '/passport', label: 'Emergência' },
@@ -106,11 +106,11 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/bula',         icon: '📄', label: 'Bula',        desc: 'Em linguagem simples' },
   ],
   caregiver: [
-    { href: '/perfis',       icon: '👨‍👩‍👧', label: 'Família',    desc: 'Todos os perfis' },
+    { href: '/familia',      icon: '👨‍👩‍👧', label: 'Dashboard',  desc: 'Resumo de todos os familiares', badge: 'Novo' },
+    { href: '/perfis',       icon: '👤',   label: 'Perfis',     desc: 'Gerir perfis familiares' },
     { href: '/mymeds',       icon: '💊',   label: 'Medicação',  desc: 'Lista e lembretes' },
     { href: '/interactions', icon: '🔍',   label: 'Verificar',  desc: 'São seguros juntos?' },
-    { href: '/passport',     icon: '🆘',   label: 'Passaporte', desc: 'QR de emergência' },
-    { href: '/vitals',       icon: '❤️',   label: 'Saúde',      desc: 'Sinais vitais' },
+    { href: '/schedule',     icon: '⏰',   label: 'Horário',    desc: 'Horário ideal por perfil' },
     { href: '/ai',           icon: '🤖',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
   ],
   clinical: [
