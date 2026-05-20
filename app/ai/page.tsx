@@ -73,6 +73,33 @@ const PRO_PROMPTS = [
   'Que interações devo vigiar neste doente polimedicado?',
 ]
 
+const CLINICAL_PROMPTS = [
+  'Gera um SOAP farmacêutico para este doente',
+  'Que interações devo vigiar nesta polimedicação?',
+  'Calcula o ajuste de dose de gentamicina para TFG 28',
+  'Protocolo terapêutico para IC + DM2',
+  'Critérios STOPP/START para doente ≥ 75 anos',
+  'Antibioterapia empírica para infecção respiratória',
+]
+
+const STUDENT_PROMPTS = [
+  'Explica o mecanismo da varfarina e as suas interações',
+  'Qual a diferença entre AINEs selectivos e não selectivos?',
+  'O que é o efeito de primeira passagem?',
+  'Explica os critérios STOPP/START de forma simples',
+  'Como calcular o ajuste de dose com insuficiência renal?',
+  'Qual a diferença entre clearance e volume de distribuição?',
+]
+
+const CAREGIVER_PROMPTS = [
+  'Há interações entre os medicamentos do meu familiar?',
+  'A dosagem é segura para a idade dele/dela?',
+  'Que efeitos adversos devo vigiar?',
+  'O que fazer se esqueceu uma dose?',
+  'Que alimentos deve evitar com esta medicação?',
+  'Posso partir ou triturar este comprimido?',
+]
+
 const FAMILY_PROMPTS = [
   'Há interações entre os medicamentos deste perfil?',
   'A medicação é adequada para a idade?',
@@ -452,9 +479,15 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
 
   const suggestionsToShow = familyProfile
     ? FAMILY_PROMPTS
-    : isPro
-    ? [...SUGGESTED_PROMPTS.slice(0, 4), ...PRO_PROMPTS.slice(0, 2)]
-    : SUGGESTED_PROMPTS
+    : isClinicalPatient
+    ? PRO_PROMPTS
+    : (() => {
+        const mode = (user as any)?.experience_mode || 'personal'
+        if (mode === 'clinical') return isPro ? [...CLINICAL_PROMPTS.slice(0, 4), ...PRO_PROMPTS.slice(0, 2)] : CLINICAL_PROMPTS
+        if (mode === 'student') return STUDENT_PROMPTS
+        if (mode === 'caregiver') return CAREGIVER_PROMPTS
+        return isPro ? [...SUGGESTED_PROMPTS.slice(0, 4), ...PRO_PROMPTS.slice(0, 2)] : SUGGESTED_PROMPTS
+      })()
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>

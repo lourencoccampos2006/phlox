@@ -14,6 +14,7 @@ function ago(d: string) {
 export default function NotificationBell() {
   const { user, supabase } = useAuth()
   const [open, setOpen] = useState(false)
+  const [dropRight, setDropRight] = useState(20)
   const [notifs, setNotifs] = useState<N[]>([])
   const [unread, setUnread] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
@@ -45,7 +46,15 @@ export default function NotificationBell() {
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => { setOpen(!open); if (!open) setUnread(0) }}
+      <button onClick={() => {
+        const next = !open
+        if (next && ref.current) {
+          const rect = ref.current.getBoundingClientRect()
+          setDropRight(window.innerWidth - rect.right)
+        }
+        setOpen(next)
+        if (next) setUnread(0)
+      }}
         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: 7, color: 'var(--ink-3)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
@@ -58,31 +67,34 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 320, background: 'white', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', zIndex: 500, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Notificações</span>
-          </div>
-          {notifs.length === 0 ? (
-            <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--ink-4)' }}>Sem notificações recentes</div>
-          ) : (
-            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-              {notifs.map((n, i) => (
-                <Link key={n.id} href={n.href} onClick={() => setOpen(false)}
-                  style={{ display: 'flex', gap: 10, padding: '10px 16px', borderBottom: i < notifs.length - 1 ? '1px solid var(--bg-3)' : 'none', textDecoration: 'none', background: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.priority === 'high' ? '#dc2626' : '#3b82f6', flexShrink: 0, marginTop: 5 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{n.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>
-                  </div>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', flexShrink: 0 }}>{ago(n.created_at)}</span>
-                </Link>
-              ))}
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 499 }} />
+          <div style={{ position: 'fixed', right: dropRight, top: 64, width: 320, maxWidth: 'none', background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.14)', zIndex: 500, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Notificações</span>
             </div>
-          )}
-        </div>
+            {notifs.length === 0 ? (
+              <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: '#94a3b8' }}>Sem notificações recentes</div>
+            ) : (
+              <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                {notifs.map((n, i) => (
+                  <Link key={n.id} href={n.href} onClick={() => setOpen(false)}
+                    className="notif-item"
+                    style={{ display: 'flex', gap: 10, padding: '10px 16px', borderBottom: i < notifs.length - 1 ? '1px solid #f8fafc' : 'none', textDecoration: 'none', background: 'white' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.priority === 'high' ? '#dc2626' : '#3b82f6', flexShrink: 0, marginTop: 5 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>{n.title}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>
+                    </div>
+                    <span style={{ fontSize: 10, color: '#cbd5e1', flexShrink: 0 }}>{ago(n.created_at)}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   )
 }
+

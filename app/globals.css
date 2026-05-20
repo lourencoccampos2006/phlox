@@ -68,6 +68,21 @@ body {
 * { max-width: 100%; }
 img, video, iframe { max-width: 100%; height: auto; }
 
+/* Fix: menus, dropdowns, tooltips e modals posicionados não devem ser limitados ao pai */
+[style*="position: fixed"],
+[style*="position:fixed"] {
+  max-width: none !important;
+}
+/* Dropdowns absolutos com zIndex explícito */
+[style*="z-index: 150"],
+[style*="z-index:150"],
+[style*="z-index: 500"],
+[style*="z-index:500"],
+[style*="z-index: 999"],
+[style*="z-index:999"] {
+  max-width: none !important;
+}
+
 :focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 3px;

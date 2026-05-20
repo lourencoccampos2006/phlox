@@ -26,7 +26,13 @@ const MODE_OPTIONS = [
 export default function SettingsPage() {
   const { user, supabase } = useAuth()
   const router = useRouter()
-  const [tab, setTab] = useState<'profile' | 'connect' | 'account'>('profile')
+  const [tab, setTab] = useState<'profile' | 'connect' | 'account' | 'notifications'>('profile')
+  const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
+
+  useEffect(() => {
+    if (!('Notification' in window)) { setPushPerm('unsupported'); return }
+    setPushPerm(Notification.permission)
+  }, [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [handleChecking, setHandleChecking] = useState(false)
@@ -127,9 +133,10 @@ export default function SettingsPage() {
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Conta</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 14 }}>Definições</h1>
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
             <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
+            <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
           </div>
         </div>
@@ -282,6 +289,98 @@ export default function SettingsPage() {
             <Link href="/connect" style={{ display: 'block', padding: '11px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
               Ir para o Phlox Connect →
             </Link>
+          </div>
+        )}
+
+        {tab === 'notifications' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Push permission card */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+                Notificações push
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.65 }}>
+                Recebe alertas de toma de medicação directamente no teu dispositivo, mesmo com o browser fechado.
+              </div>
+
+              {pushPerm === 'unsupported' && (
+                <div style={{ padding: '10px 14px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 7, fontSize: 12, color: '#854d0e' }}>
+                  O teu browser não suporta notificações push. Tenta no Chrome, Edge ou Firefox.
+                </div>
+              )}
+
+              {pushPerm === 'granted' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 7 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>Notificações push activas</div>
+                </div>
+              )}
+
+              {pushPerm === 'denied' && (
+                <div style={{ padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12, color: '#c53030', lineHeight: 1.65 }}>
+                  As notificações foram bloqueadas. Para activar, vai às definições do teu browser e permite notificações para este site.
+                </div>
+              )}
+
+              {pushPerm === 'default' && (
+                <button
+                  onClick={() => {
+                    Notification.requestPermission().then(p => setPushPerm(p))
+                  }}
+                  style={{
+                    padding: '11px 20px', background: 'var(--ink)', color: 'white',
+                    border: 'none', borderRadius: 7, cursor: 'pointer',
+                    fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                  }}>
+                  Activar notificações push →
+                </button>
+              )}
+            </div>
+
+            {/* What you'll receive */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>
+                O que vais receber
+              </div>
+              {[
+                { icon: '💊', title: 'Lembretes de toma', desc: 'Aviso quando está na hora de tomar cada medicamento. Configura os horários em Os meus medicamentos.', active: pushPerm === 'granted' },
+                { icon: '⚠️', title: 'Alertas de interações', desc: 'Aviso imediato quando adicionas um medicamento com interação grave.', active: pushPerm === 'granted' },
+                { icon: '🏥', title: 'Alertas de MAR', desc: 'Para coordenadores: aviso de doses não registadas antes do fim do turno.', active: pushPerm === 'granted' },
+                { icon: '📊', title: 'Resumo semanal', desc: 'Taxa de adesão da semana todos os domingos às 18h.', active: false },
+              ].map(item => (
+                <div key={item.title} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 14,
+                  padding: '11px 0',
+                  borderBottom: '1px solid var(--border)',
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 9,
+                    background: item.active ? '#f0fdf4' : 'var(--bg-2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18, flexShrink: 0,
+                  }}>
+                    {item.icon}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {item.title}
+                      {item.active && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', background: '#f0fdf4', border: '1px solid #86efac', padding: '1px 6px', borderRadius: 4, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                          Activo
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.55 }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+              <div style={{ paddingTop: 10, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
+                Os lembretes de toma requerem horários configurados em <strong>Os meus medicamentos</strong>.
+                Resumo semanal em breve.
+              </div>
+            </div>
+
           </div>
         )}
 

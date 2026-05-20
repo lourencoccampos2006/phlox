@@ -236,6 +236,26 @@ function BigLinkCard({
   )
 }
 
+function MedSkeleton() {
+  return (
+    <div style={{ background: 'white', borderRadius: 16, padding: '22px', border: '1px solid #e2e8f0' }}>
+      {[1, 2, 3].map(i => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          padding: '12px 0',
+          borderBottom: i < 3 ? '1px solid #f8fafc' : 'none',
+        }}>
+          <div className="skeleton" style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div className="skeleton" style={{ height: 13, width: '58%', marginBottom: 6, borderRadius: 6 }} />
+            <div className="skeleton" style={{ height: 11, width: '38%', borderRadius: 6 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ChevronRight() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -258,6 +278,7 @@ function PersonalHome({ user }: { user: any }) {
   const { supabase } = useAuth()
   const [meds, setMeds] = useState<any[]>([])
   const [logs, setLogs] = useState<any[]>([])
+  const [weekLogs, setWeekLogs] = useState<any[]>([])
   const [vitals, setVitals] = useState<any[]>([])
   const [loadingMeds, setLoadingMeds] = useState(true)
   const [loadingVitals, setLoadingVitals] = useState(true)
@@ -272,18 +293,19 @@ function PersonalHome({ user }: { user: any }) {
     if (!user?.id) return
     ;(async () => {
       setLoadingMeds(true)
-      const { data: medsData } = await supabase
-        .from('personal_meds')
-        .select('id,name,dose,frequency,reminder_times')
-        .eq('user_id', user.id)
-        .order('name')
-      const { data: logsData } = await supabase
-        .from('med_logs')
-        .select('med_id,status,logged_at')
-        .eq('user_id', user.id)
-        .eq('date', today)
-      setMeds(medsData ?? [])
-      setLogs(logsData ?? [])
+      const since7d = new Date()
+      since7d.setDate(since7d.getDate() - 6)
+      const since7dStr = since7d.toISOString().split('T')[0]
+
+      const [medsRes, logsRes, weekRes] = await Promise.all([
+        supabase.from('personal_meds').select('id,name,dose,frequency,reminder_times').eq('user_id', user.id).order('name'),
+        supabase.from('med_logs').select('med_id,status,logged_at').eq('user_id', user.id).eq('date', today),
+        supabase.from('med_logs').select('med_id,status,date').eq('user_id', user.id).gte('date', since7dStr).lte('date', today),
+      ])
+      const medsData = medsRes.data ?? []
+      setMeds(medsData)
+      setLogs(logsRes.data ?? [])
+      setWeekLogs(weekRes.data ?? [])
       setLoadingMeds(false)
     })()
   }, [user?.id])
@@ -375,6 +397,27 @@ function PersonalHome({ user }: { user: any }) {
         </div>
       </div>
 
+      {/* ALL DONE — celebration banner */}
+      {!loadingMeds && meds.length > 0 && pct === 100 && (
+        <div style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)' }}>
+          <div style={{
+            maxWidth: 860, margin: '0 auto', padding: '16px 24px',
+            display: 'flex', alignItems: 'center', gap: 16,
+          }}>
+            <div style={{ fontSize: 28, flexShrink: 0 }}>🎉</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'white', marginBottom: 2 }}>
+                Todas as tomas de hoje concluídas!
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.82)' }}>
+                Excelente adesão ao tratamento. Continua assim amanhã!
+              </div>
+            </div>
+            <div style={{ fontSize: 22 }}>✅</div>
+          </div>
+        </div>
+      )}
+
       {/* Next dose banner */}
       {!loadingMeds && upcomingDoses.length > 0 && (
         <div style={{
@@ -456,7 +499,7 @@ function PersonalHome({ user }: { user: any }) {
           </SectionLabel>
 
           {loadingMeds ? (
-            <Spinner color={color} />
+            <MedSkeleton />
           ) : meds.length === 0 ? (
             <Link href="/mymeds" style={{ display: 'block', textDecoration: 'none' }}>
               <div style={{
@@ -673,6 +716,62 @@ function PersonalHome({ user }: { user: any }) {
             </div>
           )}
         </section>
+
+        {/* ADESÃO — 7 DIAS */}
+        {!loadingMeds && meds.length > 0 && weekLogs.length > 0 && (() => {
+          const days: { label: string; date: string }[] = []
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i)
+            const iso = d.toISOString().split('T')[0]
+            const labels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+            days.push({ label: i === 0 ? 'Hoje' : labels[d.getDay()], date: iso })
+          }
+          const totalMeds = meds.length
+          return (
+            <section style={{ marginBottom: 32 }}>
+              <SectionLabel>Adesão — últimos 7 dias</SectionLabel>
+              <div style={{ background: 'white', borderRadius: 16, padding: '18px 20px', border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
+                  {days.map(d => {
+                    const dayTaken = weekLogs.filter(l => l.date === d.date && l.status === 'taken').length
+                    const pctDay = totalMeds > 0 ? Math.min(100, Math.round((dayTaken / totalMeds) * 100)) : 0
+                    const bg = pctDay === 100 ? '#059669' : pctDay >= 60 ? '#d97706' : pctDay > 0 ? '#3b82f6' : '#f1f5f9'
+                    const isToday = d.date === today
+                    return (
+                      <div key={d.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                        <div style={{
+                          width: '100%', aspectRatio: '1/1', borderRadius: 10,
+                          background: bg,
+                          border: isToday ? `2px solid ${color}` : '2px solid transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexDirection: 'column',
+                          cursor: 'default',
+                        }}>
+                          {pctDay > 0 && (
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'white', lineHeight: 1 }}>
+                              {pctDay}%
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 9, fontWeight: isToday ? 800 : 500, color: isToday ? color : '#94a3b8', textAlign: 'center', letterSpacing: '-0.01em' }}>
+                          {d.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, paddingTop: 12, borderTop: '1px solid #f8fafc' }}>
+                  {[['#059669','100%'],['#d97706','60–99%'],['#3b82f6','1–59%'],['#f1f5f9','0%']].map(([c,l]) => (
+                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: 3, background: c }} />
+                      <span style={{ fontSize: 10, color: '#94a3b8' }}>{l}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )
+        })()}
 
         {/* HORÁRIO DE HOJE (apenas se há doses pendentes) */}
         {!loadingMeds && upcomingDoses.length > 1 && (
@@ -1483,7 +1582,10 @@ function ClinicalHome({ user }: { user: any }) {
         .order('updated_at', { ascending: false })
         .limit(8)
       if (error) console.error('[ClinicalHome] patients:', error)
-      setPatients(data ?? [])
+      const sorted = (data ?? []).sort((a: any, b: any) =>
+        (b.alerts_count || 0) - (a.alerts_count || 0)
+      )
+      setPatients(sorted)
       setLoadingPatients(false)
     })()
   }, [user?.id])
@@ -1556,27 +1658,52 @@ function ClinicalHome({ user }: { user: any }) {
               border: '1px solid rgba(255,255,255,0.09)',
               borderRadius: 12,
               padding: '14px 22px',
-              textAlign: 'center',
               flexShrink: 0,
+              display: 'flex',
+              gap: 24,
             }}>
-              <div style={{
-                fontSize: 30,
-                fontWeight: 900,
-                color: 'white',
-                letterSpacing: '-0.04em',
-                lineHeight: 1,
-              }}>
-                {loadingPatients ? '–' : patients.length}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: 30,
+                  fontWeight: 900,
+                  color: 'white',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1,
+                }}>
+                  {loadingPatients ? '–' : patients.length}
+                </div>
+                <div style={{
+                  fontSize: 10,
+                  color: '#475569',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  marginTop: 4,
+                }}>
+                  Doentes
+                </div>
               </div>
-              <div style={{
-                fontSize: 10,
-                color: '#475569',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                marginTop: 4,
-              }}>
-                Doentes
-              </div>
+              {!loadingPatients && patients.reduce((s, p) => s + (p.alerts_count || 0), 0) > 0 && (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: 30,
+                    fontWeight: 900,
+                    color: '#f87171',
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1,
+                  }}>
+                    {patients.reduce((s, p) => s + (p.alerts_count || 0), 0)}
+                  </div>
+                  <div style={{
+                    fontSize: 10,
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginTop: 4,
+                  }}>
+                    Alertas
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

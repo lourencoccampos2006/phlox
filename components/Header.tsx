@@ -272,6 +272,7 @@ function ToolsDropdown({ onClose }: { onClose: () => void }) {
         borderRadius: 16,
         boxShadow: '0 24px 80px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06)',
         zIndex: 150,
+        maxWidth: 'none',
         animation: 'dropDown 0.18s cubic-bezier(0.16,1,0.3,1)',
         overflow: 'hidden',
       }}>
@@ -335,7 +336,7 @@ function ToolsDropdown({ onClose }: { onClose: () => void }) {
 // ─── QuickActionsDropdown ─────────────────────────────────────────────────────
 
 
-function QuickActionsDropdown({ user, onClose }: { user: HeaderUser; onClose: () => void }) {
+function QuickActionsDropdown({ user, onClose, anchorRight }: { user: HeaderUser; onClose: () => void; anchorRight: number }) {
   const mode: ExperienceMode = user.experience_mode || 'personal'
   const actions = MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal
   const meta = MODE_META[mode]
@@ -344,13 +345,14 @@ function QuickActionsDropdown({ user, onClose }: { user: HeaderUser; onClose: ()
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
       <div style={{
-        position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+        position: 'fixed', right: anchorRight, top: 64,
         width: 300, background: 'white',
         border: '1px solid rgba(0,0,0,0.08)',
         borderRadius: 16,
         boxShadow: '0 24px 64px rgba(0,0,0,0.14)',
         zIndex: 150, overflow: 'hidden',
-        maxHeight: 'min(480px, calc(100vh - 80px))',
+        maxHeight: 'calc(100vh - 80px)',
+        maxWidth: 'none',
         display: 'flex', flexDirection: 'column',
         animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
       }}>
@@ -422,6 +424,7 @@ function QuickActionsDropdown({ user, onClose }: { user: HeaderUser; onClose: ()
 function DesktopModeIndicator({ user, supabase }: { user: HeaderUser; supabase: any }) {
   const [open, setOpen] = useState(false)
   const [switching, setSwitching] = useState<ExperienceMode | null>(null)
+  const [dropLeft, setDropLeft] = useState(20)
   const ref = useRef<HTMLDivElement>(null)
   const mode = user.experience_mode || 'personal'
   const meta = MODE_META[mode]
@@ -443,7 +446,13 @@ function DesktopModeIndicator({ user, supabase }: { user: HeaderUser; supabase: 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => {
+          if (!open && ref.current) {
+            const rect = ref.current.getBoundingClientRect()
+            setDropLeft(rect.left)
+          }
+          setOpen(o => !o)
+        }}
         style={{
           display: 'flex', alignItems: 'center', gap: 5,
           padding: '4px 10px 4px 7px',
@@ -464,10 +473,10 @@ function DesktopModeIndicator({ user, supabase }: { user: HeaderUser; supabase: 
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
           <div style={{
-            position: 'absolute', left: 0, top: 'calc(100% + 8px)',
+            position: 'fixed', left: dropLeft, top: 64,
             background: 'white', border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
-            minWidth: 200, zIndex: 150, overflow: 'hidden',
+            minWidth: 200, maxWidth: 'none', zIndex: 150, overflow: 'hidden',
             animation: 'dropDown2 0.15s cubic-bezier(0.16,1,0.3,1)',
             padding: '6px',
           }}>
@@ -514,6 +523,7 @@ function UserMenu({ user, signOut, supabase, isDark }: {
   user: HeaderUser; signOut: () => void; supabase: any; isDark: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [dropRight, setDropRight] = useState(20)
   const ref = useRef<HTMLDivElement>(null)
   const mode: ExperienceMode = user.experience_mode || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
@@ -548,7 +558,13 @@ function UserMenu({ user, signOut, supabase, isDark }: {
     <div ref={ref} style={{ position: 'relative' }}>
       {/* Trigger button */}
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => {
+          if (!open && ref.current) {
+            const rect = ref.current.getBoundingClientRect()
+            setDropRight(window.innerWidth - rect.right)
+          }
+          setOpen(o => !o)
+        }}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
           padding: '4px 10px 4px 4px',
@@ -584,10 +600,10 @@ function UserMenu({ user, signOut, supabase, isDark }: {
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 149 }} />
           <div style={{
-            position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+            position: 'fixed', right: dropRight, top: 64,
             background: 'white', border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.14)',
-            width: 248, zIndex: 999, overflow: 'hidden',
+            width: 248, maxWidth: 'none', zIndex: 999, overflow: 'hidden',
             animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
           }}>
             {/* User card */}
@@ -1046,6 +1062,7 @@ export default function Header() {
   const pathname = usePathname()
   const [toolsOpen, setToolsOpen] = useState(false)
   const [quickActionsOpen, setQuickActionsOpen] = useState(false)
+  const [quickActionsRight, setQuickActionsRight] = useState(20)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -1243,7 +1260,13 @@ export default function Header() {
                 {/* Quick actions */}
                 <div ref={quickActionsRef} style={{ position: 'relative' }} className="hdr-nav">
                   <button
-                    onClick={() => setQuickActionsOpen(o => !o)}
+                    onClick={() => {
+                      if (!quickActionsOpen && quickActionsRef.current) {
+                        const rect = quickActionsRef.current.getBoundingClientRect()
+                        setQuickActionsRight(window.innerWidth - rect.right)
+                      }
+                      setQuickActionsOpen(o => !o)
+                    }}
                     title="Ações rápidas"
                     style={{
                       width: 32, height: 32, borderRadius: 8,
@@ -1255,7 +1278,7 @@ export default function Header() {
                     ⚡
                   </button>
                   {quickActionsOpen && (
-                    <QuickActionsDropdown user={user as HeaderUser} onClose={() => setQuickActionsOpen(false)} />
+                    <QuickActionsDropdown user={user as HeaderUser} onClose={() => setQuickActionsOpen(false)} anchorRight={quickActionsRight} />
                   )}
                 </div>
 
