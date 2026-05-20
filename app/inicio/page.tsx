@@ -310,18 +310,20 @@ function PersonalHome({ user }: { user: any }) {
     })()
   }, [user?.id])
 
-  // Fetch vitals
+  // Fetch vitals via API (tabela: hr,bp_sys,bp_dia,spo2,weight,glucose,temp,recorded_at)
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
       setLoadingVitals(true)
-      const { data } = await supabase
-        .from('vitals')
-        .select('type,value,unit,measured_at')
-        .eq('user_id', user.id)
-        .order('measured_at', { ascending: false })
-        .limit(4)
-      setVitals(data ?? [])
+      const { data: sd } = await supabase.auth.getSession()
+      const token = sd?.session?.access_token
+      if (!token) { setLoadingVitals(false); return }
+      const res = await fetch('/api/vitals?limit=5', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { setLoadingVitals(false); return }
+      const d = await res.json()
+      setVitals(d.vitals || [])
       setLoadingVitals(false)
     })()
   }, [user?.id])
@@ -349,16 +351,23 @@ function PersonalHome({ user }: { user: any }) {
 
   const progressColor = pct === 100 ? '#059669' : pct >= 70 ? color : '#f59e0b'
 
-  function vitalIcon(type: string) {
-    const t = (type || '').toLowerCase()
-    if (t.includes('tens') || t.includes('blood')) return '🩺'
-    if (t.includes('pulso') || t.includes('heart') || t.includes('fc')) return '💓'
-    if (t.includes('peso') || t.includes('weight')) return '⚖️'
-    if (t.includes('glicemia') || t.includes('glucose') || t.includes('açúcar')) return '🩸'
-    if (t.includes('temp')) return '🌡️'
-    if (t.includes('spo') || t.includes('oxig')) return '🫁'
-    return '📊'
-  }
+  // Flatten latest vital records into displayable metric cards
+  type VCard = { icon: string; label: string; value: string; unit: string; date: string }
+  const vitalCards: VCard[] = []
+  const seenVital = new Set<string>()
+  vitals.forEach((v: any) => {
+    const date = new Date(v.recorded_at).toLocaleDateString('pt-PT')
+    const candidates: VCard[] = []
+    if (v.hr)                             candidates.push({ icon: '💓', label: 'FC',       value: `${v.hr}`,              unit: 'bpm',   date })
+    if (v.bp_sys && v.bp_dia)             candidates.push({ icon: '🩺', label: 'Tensão',   value: `${v.bp_sys}/${v.bp_dia}`, unit: 'mmHg',  date })
+    if (v.spo2)                           candidates.push({ icon: '🫁', label: 'SpO₂',     value: `${v.spo2}`,            unit: '%',     date })
+    if (v.weight)                         candidates.push({ icon: '⚖️', label: 'Peso',     value: `${v.weight}`,          unit: 'kg',    date })
+    if (v.glucose)                        candidates.push({ icon: '🩸', label: 'Glicemia', value: `${v.glucose}`,         unit: 'mg/dL', date })
+    if (v.temp)                           candidates.push({ icon: '🌡️', label: 'Temp.',    value: `${v.temp}`,            unit: '°C',    date })
+    candidates.forEach(c => {
+      if (!seenVital.has(c.label)) { seenVital.add(c.label); vitalCards.push(c) }
+    })
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', paddingTop: 56 }}>
@@ -852,7 +861,7 @@ function PersonalHome({ user }: { user: any }) {
 
           {loadingVitals ? (
             <Spinner color={color} />
-          ) : vitals.length === 0 ? (
+          ) : vitalCards.length === 0 ? (
             <Link href="/vitals" style={{ display: 'block', textDecoration: 'none' }}>
               <div style={{
                 background: 'white',
@@ -896,8 +905,8 @@ function PersonalHome({ user }: { user: any }) {
               gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 145px), 1fr))',
               gap: 10,
             }}>
-              {vitals.map((v, i) => (
-                <Link key={i} href="/vitals" style={{ textDecoration: 'none' }} className="vital-card">
+              {vitalCards.slice(0, 6).map(c => (
+                <Link key={c.label} href="/vitals" style={{ textDecoration: 'none' }} className="vital-card">
                   <div style={{
                     background: 'white',
                     borderRadius: 14,
@@ -905,27 +914,18 @@ function PersonalHome({ user }: { user: any }) {
                     border: '1px solid #fce7f3',
                     transition: 'transform 0.12s, box-shadow 0.12s',
                   }}>
-                    <div style={{ fontSize: 22, marginBottom: 8 }}>
-                      {vitalIcon(v.type)}
-                    </div>
+                    <div style={{ fontSize: 22, marginBottom: 8 }}>{c.icon}</div>
                     <div style={{
-                      fontSize: 10,
-                      color: '#94a3b8',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.07em',
-                      marginBottom: 4,
+                      fontSize: 10, color: '#94a3b8',
+                      textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4,
                     }}>
-                      {v.type || 'Medição'}
+                      {c.label}
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: '#0f172a' }}>
-                      {v.value}
-                      {v.unit && (
-                        <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}> {v.unit}</span>
-                      )}
+                      {c.value}
+                      <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}> {c.unit}</span>
                     </div>
-                    <div style={{ fontSize: 10, color: '#cbd5e1', marginTop: 5 }}>
-                      {new Date(v.measured_at).toLocaleDateString('pt-PT')}
-                    </div>
+                    <div style={{ fontSize: 10, color: '#cbd5e1', marginTop: 5 }}>{c.date}</div>
                   </div>
                 </Link>
               ))}
@@ -1113,7 +1113,7 @@ function CaregiverHome({ user }: { user: any }) {
       setLoadingProfiles(true)
       const { data: p, error: pe } = await supabase
         .from('family_profiles')
-        .select('id,name,relation,age,avatar,date_of_birth,allergies')
+        .select('id,name,relation,age,sex,conditions,allergies,created_at')
         .eq('user_id', user.id)
         .order('name')
       if (pe) console.error('[CaregiverHome] family_profiles:', pe)
@@ -1145,10 +1145,8 @@ function CaregiverHome({ user }: { user: any }) {
       .toUpperCase()
   }
 
-  function calcAge(dob: string | null, age: number | null): number | null {
-    if (age != null) return age
-    if (!dob) return null
-    return Math.floor((Date.now() - new Date(dob).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+  function calcAge(age: number | null): number | null {
+    return age ?? null
   }
 
   return (
@@ -1281,7 +1279,7 @@ function CaregiverHome({ user }: { user: any }) {
               gap: 10,
             }}>
               {profiles.map(p => {
-                const age = calcAge(p.date_of_birth, p.age)
+                const age = calcAge(p.age)
                 const medCount = medCounts[p.id] || 0
                 return (
                   <Link
@@ -1309,22 +1307,13 @@ function CaregiverHome({ user }: { user: any }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: p.avatar ? 22 : 15,
+                        fontSize: 15,
                         fontWeight: 700,
                         color,
                         marginBottom: 12,
-                        overflow: 'hidden',
                         flexShrink: 0,
                       }}>
-                        {p.avatar ? (
-                          <img
-                            src={p.avatar}
-                            alt={p.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          getInitials(p.name)
-                        )}
+                        {getInitials(p.name)}
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 2 }}>
                         {p.name}
@@ -1577,13 +1566,13 @@ function ClinicalHome({ user }: { user: any }) {
       setLoadingPatients(true)
       const { data, error } = await supabase
         .from('patients')
-        .select('id,name,age,sex,conditions,updated_at,room,alerts_count')
+        .select('id,name,age,sex,conditions,updated_at,meds_count,alerts')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(8)
       if (error) console.error('[ClinicalHome] patients:', error)
       const sorted = (data ?? []).sort((a: any, b: any) =>
-        (b.alerts_count || 0) - (a.alerts_count || 0)
+        (b.alerts || 0) - (a.alerts || 0)
       )
       setPatients(sorted)
       setLoadingPatients(false)
@@ -1682,7 +1671,7 @@ function ClinicalHome({ user }: { user: any }) {
                   Doentes
                 </div>
               </div>
-              {!loadingPatients && patients.reduce((s, p) => s + (p.alerts_count || 0), 0) > 0 && (
+              {!loadingPatients && patients.reduce((s, p) => s + (p.alerts || 0), 0) > 0 && (
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
                     fontSize: 30,
@@ -1691,7 +1680,7 @@ function ClinicalHome({ user }: { user: any }) {
                     letterSpacing: '-0.04em',
                     lineHeight: 1,
                   }}>
-                    {patients.reduce((s, p) => s + (p.alerts_count || 0), 0)}
+                    {patients.reduce((s, p) => s + (p.alerts || 0), 0)}
                   </div>
                   <div style={{
                     fontSize: 10,
@@ -1784,7 +1773,7 @@ function ClinicalHome({ user }: { user: any }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {patients.map(p => {
                 const condStr = truncateConditions(p.conditions)
-                const alerts = p.alerts_count || 0
+                const alerts = p.alerts || 0
                 return (
                   <Link
                     key={p.id}
@@ -1830,18 +1819,6 @@ function ClinicalHome({ user }: { user: any }) {
                           flexWrap: 'wrap',
                         }}>
                           {p.name}
-                          {p.room && (
-                            <span style={{
-                              fontSize: 10,
-                              fontWeight: 600,
-                              color: '#64748b',
-                              background: '#f1f5f9',
-                              padding: '2px 7px',
-                              borderRadius: 6,
-                            }}>
-                              Quarto {p.room}
-                            </span>
-                          )}
                         </div>
                         <div style={{ fontSize: 12, color: '#94a3b8' }}>
                           {[
