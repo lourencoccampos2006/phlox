@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
 import ClientLayout from '@/components/ClientLayout'
+import { Analytics } from '@vercel/analytics/next'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-pi.vercel.app'
 
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ClientLayout>
           <CookieBanner />
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   )
