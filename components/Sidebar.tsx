@@ -5,10 +5,13 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { type ExperienceMode } from '../lib/experienceMode'
+import { type InstitutionType } from '../lib/useClinicPrefs'
 
 // ─── Nav structure per mode ───────────────────────────────────────────────────
 
-const NAV: Record<ExperienceMode, { section?: string; href: string; icon: string; label: string; badge?: string }[][]> = {
+type NavItem = { href: string; icon: string; label: string; badge?: string }
+
+const NAV_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, NavItem[][]> = {
   personal: [
     [
       { href: '/dashboard', icon: '⬛', label: 'Início' },
@@ -18,15 +21,15 @@ const NAV: Record<ExperienceMode, { section?: string; href: string; icon: string
     ],
     [
       { href: '/ai',           icon: '🤖', label: 'Phlox AI' },
-      { href: '/interactions', icon: '🔍', label: 'Interações',   badge: 'grátis' },
-      { href: '/food-drug',    icon: '🍊', label: 'Fármaco-Alimento', badge: 'grátis' },
+      { href: '/interactions', icon: '🔍', label: 'Interações',        badge: 'grátis' },
+      { href: '/food-drug',    icon: '🍊', label: 'Fármaco-Alimento',  badge: 'grátis' },
       { href: '/oracle',       icon: '🔮', label: 'Farmacêutico AI' },
       { href: '/schedule',     icon: '⏰', label: 'Horário Inteligente' },
     ],
     [
-      { href: '/passport', icon: '🪪', label: 'Passaporte' },
-      { href: '/link',     icon: '🔗', label: 'Phlox Link' },
-      { href: '/relatorio',icon: '📋', label: 'Relatório' },
+      { href: '/passport',  icon: '🪪', label: 'Passaporte' },
+      { href: '/link',      icon: '🔗', label: 'Phlox Link' },
+      { href: '/relatorio', icon: '📋', label: 'Relatório' },
       { href: '/objetivos', icon: '🎯', label: 'Objetivos' },
     ],
   ],
@@ -38,43 +41,21 @@ const NAV: Record<ExperienceMode, { section?: string; href: string; icon: string
       { href: '/perfis',    icon: '👨‍👩‍👧', label: 'Família' },
     ],
     [
-      { href: '/interactions',  icon: '🔍', label: 'Interações',      badge: 'grátis' },
-      { href: '/dose-crianca',  icon: '👶', label: 'Dose Pediátrica', badge: 'grátis' },
+      { href: '/interactions',  icon: '🔍', label: 'Interações',       badge: 'grátis' },
+      { href: '/dose-crianca',  icon: '👶', label: 'Dose Pediátrica',  badge: 'grátis' },
       { href: '/food-drug',     icon: '🍊', label: 'Fármaco-Alimento' },
       { href: '/schedule',      icon: '⏰', label: 'Horário Inteligente' },
     ],
     [
-      { href: '/passport',   icon: '🪪', label: 'Passaporte' },
-      { href: '/link',       icon: '🔗', label: 'Phlox Link' },
-      { href: '/prescription',icon: '📄', label: 'Perceber a Receita' },
-    ],
-  ],
-  clinical: [
-    [
-      { href: '/cockpit',  icon: '🎛️', label: 'Cockpit',  badge: 'principal' },
-      { href: '/turno',    icon: '🏥', label: 'Turno' },
-      { href: '/rounds',   icon: '👨‍⚕️', label: 'Ronda' },
-      { href: '/mar',      icon: '📋', label: 'MAR' },
-      { href: '/patients', icon: '🗂️', label: 'Doentes' },
-      { href: '/prescription-queue', icon: '📬', label: 'Validação' },
-    ],
-    [
-      { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
-      { href: '/quality',           icon: '📊', label: 'Qualidade' },
-      { href: '/team',              icon: '👥', label: 'Equipa' },
-      { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/oracle',       icon: '🔮', label: 'Oracle AI' },
-      { href: '/interactions', icon: '🔍', label: 'Interações' },
-      { href: '/adr-report',   icon: '⚠️', label: 'Notif. RAM' },
-      { href: '/reconciliacao',icon: '⚖️', label: 'Reconciliação' },
+      { href: '/passport',    icon: '🪪', label: 'Passaporte' },
+      { href: '/link',        icon: '🔗', label: 'Phlox Link' },
+      { href: '/prescription', icon: '📄', label: 'Perceber a Receita' },
     ],
   ],
   student: [
     [
       { href: '/dashboard', icon: '⬛', label: 'Início' },
-      { href: '/arena',     icon: '🏆', label: 'Arena',   badge: 'principal' },
+      { href: '/arena',     icon: '🏆', label: 'Arena',    badge: 'principal' },
       { href: '/simulador', icon: '🎮', label: 'Simulador' },
       { href: '/osce',      icon: '🎭', label: 'OSCE' },
     ],
@@ -92,6 +73,132 @@ const NAV: Record<ExperienceMode, { section?: string; href: string; icon: string
   ],
 }
 
+// Institution-specific clinical nav (3 groups)
+const CLINICAL_NAV: Record<InstitutionType, NavItem[][]> = {
+  hospital: [
+    [
+      { href: '/cockpit',            icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
+      { href: '/turno',              icon: '🏥', label: 'Turno' },
+      { href: '/rounds',             icon: '👨‍⚕️', label: 'Ronda' },
+      { href: '/mar',                icon: '📋', label: 'MAR' },
+      { href: '/patients',           icon: '🗂️', label: 'Doentes' },
+      { href: '/prescription-queue', icon: '📬', label: 'Validação' },
+    ],
+    [
+      { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
+      { href: '/quality',           icon: '📊', label: 'Qualidade' },
+      { href: '/team',              icon: '👥', label: 'Equipa' },
+      { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
+    ],
+    [
+      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+    ],
+  ],
+  pharmacy_hospital: [
+    [
+      { href: '/cockpit',            icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
+      { href: '/prescription-queue', icon: '📬', label: 'Validação' },
+      { href: '/turno',              icon: '🏥', label: 'Turno' },
+      { href: '/rounds',             icon: '👨‍⚕️', label: 'Ronda' },
+      { href: '/patients',           icon: '🗂️', label: 'Doentes' },
+      { href: '/mar',                icon: '📋', label: 'MAR' },
+    ],
+    [
+      { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
+      { href: '/quality',           icon: '📊', label: 'Qualidade' },
+      { href: '/team',              icon: '👥', label: 'Equipa' },
+      { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
+    ],
+    [
+      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+    ],
+  ],
+  pharmacy_community: [
+    [
+      { href: '/cockpit',     icon: '🎛️', label: 'Cockpit',        badge: 'principal' },
+      { href: '/patients',    icon: '🗂️', label: 'Clientes' },
+      { href: '/interactions',icon: '🔍', label: 'Interações' },
+      { href: '/counseling',  icon: '📋', label: 'Aconselhamento' },
+      { href: '/drug-info',   icon: '💊', label: 'Info Fármaco' },
+    ],
+    [
+      { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
+      { href: '/quality',           icon: '📊', label: 'Qualidade' },
+      { href: '/team',              icon: '👥', label: 'Equipa' },
+      { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
+    ],
+    [
+      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+    ],
+  ],
+  nursing_home: [
+    [
+      { href: '/cockpit',     icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
+      { href: '/patients',    icon: '🤝', label: 'Residentes' },
+      { href: '/mar',         icon: '📋', label: 'MAR' },
+      { href: '/rounds',      icon: '👨‍⚕️', label: 'Ronda' },
+      { href: '/stopp-start', icon: '🛑', label: 'STOPP/START' },
+      { href: '/polypharmacy',icon: '⚕️', label: 'Polimedicação' },
+    ],
+    [
+      { href: '/quality',  icon: '📊', label: 'Qualidade' },
+      { href: '/team',     icon: '👥', label: 'Equipa' },
+      { href: '/calculos', icon: '🧮', label: 'Calculadoras' },
+    ],
+    [
+      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+    ],
+  ],
+  clinic: [
+    [
+      { href: '/cockpit',       icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
+      { href: '/patients',      icon: '🗂️', label: 'Doentes' },
+      { href: '/mar',           icon: '📋', label: 'MAR' },
+      { href: '/rounds',        icon: '👨‍⚕️', label: 'Ronda' },
+      { href: '/interactions',  icon: '🔍', label: 'Interações' },
+      { href: '/reconciliacao', icon: '🔄', label: 'Reconciliação' },
+    ],
+    [
+      { href: '/quality',           icon: '📊', label: 'Qualidade' },
+      { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
+      { href: '/team',              icon: '👥', label: 'Equipa' },
+      { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
+    ],
+    [
+      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+    ],
+  ],
+  health_center: [
+    [
+      { href: '/cockpit',       icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
+      { href: '/patients',      icon: '🗂️', label: 'Utentes' },
+      { href: '/mar',           icon: '📋', label: 'MAR' },
+      { href: '/rounds',        icon: '👨‍⚕️', label: 'Ronda' },
+      { href: '/interactions',  icon: '🔍', label: 'Interações' },
+      { href: '/reconciliacao', icon: '🔄', label: 'Reconciliação' },
+    ],
+    [
+      { href: '/quality',           icon: '📊', label: 'Qualidade' },
+      { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
+      { href: '/team',              icon: '👥', label: 'Equipa' },
+      { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
+    ],
+    [
+      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+    ],
+  ],
+}
+
+// Mobile bottom tabs per institution
+const CLINICAL_BOTTOM: Record<InstitutionType, { href: string; icon: string; label: string }[]> = {
+  hospital:           [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/turno', icon: '🏥', label: 'Turno' }, { href: '/rounds', icon: '👨‍⚕️', label: 'Ronda' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+  pharmacy_hospital:  [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/prescription-queue', icon: '📬', label: 'Validação' }, { href: '/rounds', icon: '👨‍⚕️', label: 'Ronda' }, { href: '/drug-intelligence', icon: '🧬', label: 'Drug' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+  pharmacy_community: [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Clientes' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/counseling', icon: '📋', label: 'Consult.' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+  nursing_home:       [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/patients', icon: '🤝', label: 'Resid.' }, { href: '/stopp-start', icon: '🛑', label: 'STOPP' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+  clinic:             [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+  health_center:      [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Utentes' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+}
+
 const MODE_LABEL: Record<ExperienceMode, string> = {
   personal: 'Pessoal',
   caregiver: 'Cuidador',
@@ -106,14 +213,14 @@ const MODE_COLOR: Record<ExperienceMode, string> = {
   student: '#7c3aed',
 }
 
-// Bottom tab items (mobile)
-const BOTTOM_TABS: Record<ExperienceMode, { href: string; icon: string; label: string }[]> = {
+// Bottom tab items (mobile) for non-clinical modes
+const BOTTOM_TABS_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, { href: string; icon: string; label: string }[]> = {
   personal: [
-    { href: '/dashboard',    icon: '⬛', label: 'Início' },
-    { href: '/mymeds',       icon: '💊', label: 'Meds' },
-    { href: '/ai',           icon: '🤖', label: 'AI' },
-    { href: '/vitals',       icon: '📊', label: 'Vitais' },
-    { href: '/ferramentas',  icon: '🗺️', label: 'Tudo' },
+    { href: '/dashboard',   icon: '⬛', label: 'Início' },
+    { href: '/mymeds',      icon: '💊', label: 'Meds' },
+    { href: '/ai',          icon: '🤖', label: 'AI' },
+    { href: '/vitals',      icon: '📊', label: 'Vitais' },
+    { href: '/ferramentas', icon: '🗺️', label: 'Tudo' },
   ],
   caregiver: [
     { href: '/dashboard',    icon: '⬛', label: 'Início' },
@@ -122,19 +229,12 @@ const BOTTOM_TABS: Record<ExperienceMode, { href: string; icon: string; label: s
     { href: '/interactions', icon: '🔍', label: 'Interações' },
     { href: '/ferramentas',  icon: '🗺️', label: 'Tudo' },
   ],
-  clinical: [
-    { href: '/turno',        icon: '🏥', label: 'Turno' },
-    { href: '/rounds',       icon: '👨‍⚕️', label: 'Ronda' },
-    { href: '/mar',          icon: '📋', label: 'MAR' },
-    { href: '/oracle',       icon: '🔮', label: 'Oracle' },
-    { href: '/ferramentas',  icon: '🗺️', label: 'Tudo' },
-  ],
   student: [
-    { href: '/dashboard',    icon: '⬛', label: 'Início' },
-    { href: '/arena',        icon: '🏆', label: 'Arena' },
-    { href: '/simulador',    icon: '🎮', label: 'Simular' },
-    { href: '/study',        icon: '📚', label: 'Estudar' },
-    { href: '/ferramentas',  icon: '🗺️', label: 'Tudo' },
+    { href: '/dashboard',   icon: '⬛', label: 'Início' },
+    { href: '/arena',       icon: '🏆', label: 'Arena' },
+    { href: '/simulador',   icon: '🎮', label: 'Simular' },
+    { href: '/study',       icon: '📚', label: 'Estudar' },
+    { href: '/ferramentas', icon: '🗺️', label: 'Tudo' },
   ],
 }
 
@@ -142,20 +242,38 @@ export default function Sidebar() {
   const { user } = useAuth()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [clinicInstitution, setClinicInstitution] = useState<InstitutionType>('hospital')
 
   useEffect(() => {
     const pref = localStorage.getItem('phlox-sidebar-collapsed')
     const isCollapsed = pref === 'true'
     if (pref !== null) setCollapsed(isCollapsed)
     document.documentElement.style.setProperty('--phlox-sb', isCollapsed ? '56px' : '220px')
+
+    const inst = localStorage.getItem('phlox-clinic-institution') as InstitutionType | null
+    if (inst) setClinicInstitution(inst)
+
+    // Re-sync when institution changes (e.g. cockpit selector)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'phlox-clinic-institution' && e.newValue) {
+        setClinicInstitution(e.newValue as InstitutionType)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
 
   if (!user) return null
 
   const mode: ExperienceMode = (user.experience_mode as ExperienceMode) || 'personal'
-  const groups = NAV[mode]
+  const isClinical = mode === 'clinical'
+  const groups: NavItem[][] = isClinical
+    ? CLINICAL_NAV[clinicInstitution]
+    : NAV_NON_CLINICAL[mode as Exclude<ExperienceMode, 'clinical'>]
   const accentColor = MODE_COLOR[mode]
-  const bottomTabs = BOTTOM_TABS[mode]
+  const bottomTabs = isClinical
+    ? CLINICAL_BOTTOM[clinicInstitution]
+    : BOTTOM_TABS_NON_CLINICAL[mode as Exclude<ExperienceMode, 'clinical'>]
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
 
@@ -195,16 +313,26 @@ export default function Sidebar() {
         }}>
           {!collapsed && (
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 7,
+              display: 'flex', flexDirection: 'column', gap: 2,
               background: `${accentColor}22`,
               border: `1px solid ${accentColor}44`,
               borderRadius: 6,
-              padding: '4px 10px',
+              padding: '5px 10px',
             }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: accentColor, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                {MODE_LABEL[mode]}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: accentColor, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  {MODE_LABEL[mode]}
+                </span>
+              </div>
+              {isClinical && (
+                <span style={{ fontSize: 9, color: `${accentColor}cc`, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', paddingLeft: 13 }}>
+                  {(() => {
+                    const m = { hospital:'Hospital', pharmacy_hospital:'Farm. Hosp.', pharmacy_community:'Farm. Com.', nursing_home:'Lar/ERPI', clinic:'Clínica', health_center:'CSP' }
+                    return m[clinicInstitution] ?? clinicInstitution
+                  })()}
+                </span>
+              )}
             </div>
           )}
           <button

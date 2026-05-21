@@ -3,9 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useClinicPrefs, ROLE_META, INST_META, type ClinicalRole, type InstitutionType } from '@/lib/useClinicPrefs'
 
-type Role = 'pharmacist' | 'pharmacist_director' | 'nurse' | 'coordinator' | 'doctor' | 'administrator'
-type InstitutionType = 'hospital' | 'clinic' | 'pharmacy_hospital' | 'pharmacy_community' | 'nursing_home' | 'health_center'
 type AlertLevel = 'critical' | 'high' | 'medium' | 'low' | 'info'
 
 interface Alert {
@@ -47,22 +46,55 @@ interface Training {
   mandatory: boolean; seats_total: number; seats_taken: number
 }
 
-const ROLE_META: Record<Role, { label: string; icon: string; color: string }> = {
-  pharmacist:          { label: 'Farmacêutico Clínico', icon: '🔬', color: '#2563eb' },
-  pharmacist_director: { label: 'Director de Farmácia', icon: '🏛', color: '#7c3aed' },
-  nurse:               { label: 'Enfermeiro/a', icon: '👩‍⚕️', color: '#0d9488' },
-  coordinator:         { label: 'Coordenador/a de Serviço', icon: '📊', color: '#ca8a04' },
-  doctor:              { label: 'Médico/a', icon: '🩺', color: '#dc2626' },
-  administrator:       { label: 'Administrador/a', icon: '🏢', color: '#64748b' },
-}
-
-const INST_META: Record<InstitutionType, { label: string; icon: string }> = {
-  hospital:           { label: 'Hospital', icon: '🏥' },
-  clinic:             { label: 'Clínica / Centro de Saúde', icon: '🏠' },
-  pharmacy_hospital:  { label: 'Farmácia Hospitalar', icon: '⚗️' },
-  pharmacy_community: { label: 'Farmácia Comunitária', icon: '🏪' },
-  nursing_home:       { label: 'Lar / ERPI', icon: '🤝' },
-  health_center:      { label: 'Centro de Saúde', icon: '🌿' },
+const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; href: string }[]> = {
+  hospital: [
+    { icon: '🔬', label: 'Console PK',    href: '/pk-dosing' },
+    { icon: '💉', label: 'Antibióticos',  href: '/antibiotics' },
+    { icon: '🧴', label: 'Nutrição NP',   href: '/tpn' },
+    { icon: '🚨', label: 'Urgência',      href: '/emergency-doses' },
+    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
+    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+  ],
+  pharmacy_hospital: [
+    { icon: '🔬', label: 'Console PK',    href: '/pk-dosing' },
+    { icon: '🧪', label: 'IV Compat.',    href: '/iv-compatibility' },
+    { icon: '🧴', label: 'Nutrição NP',   href: '/tpn' },
+    { icon: '🚨', label: 'Urgência',      href: '/emergency-doses' },
+    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
+    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+  ],
+  pharmacy_community: [
+    { icon: '🔍', label: 'Interações',    href: '/interactions' },
+    { icon: '📋', label: 'Aconselhamento',href: '/counseling' },
+    { icon: '💊', label: 'Info Fármaco',  href: '/drug-info' },
+    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
+    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+  ],
+  nursing_home: [
+    { icon: '🛑', label: 'STOPP/START',   href: '/stopp-start' },
+    { icon: '⚕️', label: 'Polimedicação', href: '/polypharmacy' },
+    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
+    { icon: '📋', label: 'Aconselhamento',href: '/counseling' },
+    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+  ],
+  clinic: [
+    { icon: '🔍', label: 'Interações',    href: '/interactions' },
+    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
+    { icon: '💊', label: 'Info Fármaco',  href: '/drug-info' },
+    { icon: '🗒️', label: 'Nota Clínica', href: '/nota-clinica' },
+    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+  ],
+  health_center: [
+    { icon: '🔍', label: 'Interações',    href: '/interactions' },
+    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
+    { icon: '💊', label: 'Info Fármaco',  href: '/drug-info' },
+    { icon: '🗒️', label: 'Nota Clínica', href: '/nota-clinica' },
+    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+  ],
 }
 
 const ALERT_META: Record<AlertLevel, { color: string; bg: string; border: string; icon: string; label: string }> = {
@@ -86,8 +118,7 @@ function daysUntil(d: string | null) {
 
 export default function Cockpit() {
   const { user, supabase } = useAuth() as any
-  const [role, setRole] = useState<Role>('pharmacist')
-  const [institution, setInstitution] = useState<InstitutionType>('hospital')
+  const { role, institution, setRole, setInstitution } = useClinicPrefs()
   const [showRoleSelector, setShowRoleSelector] = useState(false)
   const [loading, setLoading] = useState(true)
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set())
@@ -99,15 +130,17 @@ export default function Cockpit() {
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [trainings, setTrainings] = useState<Training[]>([])
 
+  // Sync role from org profile on first load (only if not already set by user)
   useEffect(() => {
     if (user) {
       const orgRole = (user as any).org_role
-      if (orgRole === 'admin') setRole('pharmacist_director')
-      else if (orgRole === 'nurse') setRole('nurse')
-      else if (orgRole === 'coordinator') setRole('coordinator')
-      else if (orgRole === 'pharmacist') setRole('pharmacist')
+      const saved = localStorage.getItem('phlox-clinic-role')
+      if (!saved && orgRole) {
+        const map: Record<string, ClinicalRole> = { admin: 'pharmacist_director', nurse: 'nurse', coordinator: 'coordinator', pharmacist: 'pharmacist' }
+        if (map[orgRole]) setRole(map[orgRole])
+      }
     }
-  }, [user])
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user || !supabase) return
@@ -308,7 +341,7 @@ export default function Cockpit() {
                 <div>
                   <div style={{ fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Função</div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {(Object.entries(ROLE_META) as [Role, typeof ROLE_META[Role]][]).map(([id, m]) => (
+                    {(Object.entries(ROLE_META) as [ClinicalRole, typeof ROLE_META[ClinicalRole]][]).map(([id, m]) => (
                       <button key={id} onClick={() => { setRole(id); setShowRoleSelector(false) }} style={{
                         padding: '5px 10px', borderRadius: 7, border: `1px solid ${role === id ? m.color : '#334155'}`,
                         background: role === id ? `${m.color}20` : 'transparent', cursor: 'pointer',
@@ -321,7 +354,7 @@ export default function Cockpit() {
                   <div style={{ fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Tipo de Instituição</div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                     {(Object.entries(INST_META) as [InstitutionType, typeof INST_META[InstitutionType]][]).map(([id, m]) => (
-                      <button key={id} onClick={() => setInstitution(id)} style={{
+                      <button key={id} onClick={() => { setInstitution(id); setShowRoleSelector(false) }} style={{
                         padding: '5px 10px', borderRadius: 7, border: `1px solid ${institution === id ? '#0d9488' : '#334155'}`,
                         background: institution === id ? '#0d948820' : 'transparent', cursor: 'pointer',
                         fontSize: 11, fontWeight: institution === id ? 700 : 500, color: institution === id ? '#0d9488' : '#64748b', fontFamily: 'inherit',
@@ -552,23 +585,22 @@ export default function Cockpit() {
                   </div>
                 </div>
 
-                {/* Quick tools */}
+                {/* Quick tools — institution-specific */}
                 <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '14px 18px' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>⚡ Ferramentas Rápidas</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>⚡ Ferramentas Rápidas</div>
+                    <Link href="/toolkit" style={{ fontSize: 11, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>Ver todas →</Link>
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                    {[
-                      { icon: '🔬', label: 'Console PK', href: '/pk-dosing' },
-                      { icon: '💉', label: 'Antibióticos', href: '/antibiotics' },
-                      { icon: '🧪', label: 'Nutrição NP', href: '/tpn' },
-                      { icon: '⚡', label: 'Urgência', href: '/emergency-doses' },
-                      { icon: '📊', label: 'Qualidade', href: '/quality' },
-                      { icon: '🧬', label: 'Formulário', href: '/drug-intelligence' },
-                    ].map(t => (
+                    {INST_QUICK_TOOLS[institution].map(t => (
                       <Link key={t.href} href={t.href} style={{
                         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
                         borderRadius: 9, border: '1px solid #f1f5f9', textDecoration: 'none',
                         background: '#fafafa',
-                      }}>
+                      }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#f1f5f9' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#fafafa' }}
+                      >
                         <span style={{ fontSize: 16 }}>{t.icon}</span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{t.label}</span>
                       </Link>
