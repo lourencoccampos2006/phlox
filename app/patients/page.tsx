@@ -41,6 +41,16 @@ export default function PatientsPage() {
     setLoading(false)
   }, [user, supabase])
 
+  // Keyboard: N = new patient
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if ((e.key === 'n' || e.key === 'N') && isPro) setShowAdd(true)
+    }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [isPro])
+
   useEffect(() => { load() }, [load])
 
   const addPatient = async () => {
@@ -65,10 +75,41 @@ export default function PatientsPage() {
     setAdding(false)
   }
 
-  const filtered = patients.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.conditions || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const conditionRiskScore = (p: Patient): number => {
+    let s = 0
+    const c = (p.conditions || '').toLowerCase()
+    if (/cancro|cancer|carcinoma|tumor|neoplasia|oncol|leucemia|linfoma|mieloma|metást/.test(c)) s += 40
+    if (/terminal|paliat|hospice/.test(c)) s += 50
+    if (/diálise|hemodiálise/.test(c)) s += 38
+    if (/insuficiência renal|irc|drc g[45]/.test(c)) s += 28
+    if (/insuficiência hepática|cirrose/.test(c)) s += 28
+    if (/insuficiência cardíaca|ic [34]/.test(c)) s += 22
+    if ((p as any).age >= 85) s += 22
+    else if ((p as any).age >= 75) s += 12
+    return Math.min(s, 70)
+  }
+
+  const relativeDate = (iso: string | null | undefined): string => {
+    if (!iso) return ''
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+    if (diff === 0) return 'hoje'
+    if (diff === 1) return 'ontem'
+    if (diff < 7) return `há ${diff} dias`
+    if (diff < 30) return `há ${Math.floor(diff / 7)} sem.`
+    return `há ${Math.floor(diff / 30)} meses`
+  }
+
+  const filtered = patients
+    .filter(p =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.conditions || '').toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort: with alerts first, then by condition risk score, then alphabetically
+      const aRisk = (a.alerts || 0) * 30 + conditionRiskScore(a)
+      const bRisk = (b.alerts || 0) * 30 + conditionRiskScore(b)
+      return bRisk - aRisk
+    })
 
   const riskBadge = (p: Patient) => {
     if (p.alerts && p.alerts > 0) return { label: `${p.alerts} alerta${p.alerts > 1 ? 's' : ''}`, bg: '#fee2e2', color: '#991b1b', border: '#fecaca' }
@@ -92,15 +133,19 @@ export default function PatientsPage() {
 
       {/* ── Header clínico ───────────────────────────────────────────────── */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
-        <div className="page-container" style={{ paddingTop: 28, paddingBottom: 20 }}>
+        <div className="page-container" style={{ paddingTop: 20, paddingBottom: 20 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
+            <span>›</span>
+            <span style={{ color: '#64748b' }}>Doentes</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 10, height: 2, background: '#1d4ed8', borderRadius: 1 }} />
-                Doentes / Utentes
-              </div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.01em' }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.01em', margin: 0 }}>
                 {loading ? '—' : `${patients.length} ${patients.length === 1 ? 'doente' : 'doentes'}`}
+              </h1>
+              <div style={{ fontSize: 12, color: '#475569', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                Ordenados por risco · Phlox Rounds
               </div>
             </div>
             {isPro && (
@@ -108,6 +153,7 @@ export default function PatientsPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', flexShrink: 0 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Novo doente
+                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
               </button>
             )}
           </div>
@@ -279,12 +325,22 @@ export default function PatientsPage() {
                           ].filter(Boolean).join(' · ') || 'Sem informação clínica'}
                         </div>
                       </div>
-                      {/* Meds count + arrow */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
-                          {patient.meds_count || 0} med.
-                        </span>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      {/* Meds count + date + arrow */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {(patient.meds_count || 0) > 0 && (
+                            <span style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', background: 'var(--bg-3)', padding: '1px 6px', borderRadius: 4 }}>
+                              {patient.meds_count} med.
+                            </span>
+                          )}
+                          {(() => { const rs = conditionRiskScore(patient); if (rs >= 45) return <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rs >= 70 ? '#991b1b' : '#854d0e', background: rs >= 70 ? '#fee2e2' : '#fef9c3', border: `1px solid ${rs >= 70 ? '#fecaca' : '#fde68a'}`, borderRadius: 3, padding: '2px 5px', letterSpacing: '0.06em' }}>{rs >= 70 ? 'CRÍTICO' : 'ALTO'}</span>; return null })()}
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </div>
+                        {patient.updated_at && (
+                          <span style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
+                            {relativeDate(patient.updated_at)}
+                          </span>
+                        )}
                       </div>
                     </Link>
                   )

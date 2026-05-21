@@ -735,6 +735,66 @@ function KeyboardShortcutsOverlay({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ─── ClinicalHeaderNav ───────────────────────────────────────────────────────
+
+type InstType = 'hospital'|'pharmacy_hospital'|'pharmacy_community'|'nursing_home'|'clinic'|'health_center'
+
+function ClinicalHeaderNav({ pathname }: { pathname: string }) {
+  const [institution, setInstitution] = useState<InstType>('hospital')
+  const [clock, setClock] = useState('')
+
+  useEffect(() => {
+    const inst = localStorage.getItem('phlox-clinic-institution') as InstType | null
+    if (inst) setInstitution(inst)
+
+    const tick = () => {
+      const d = new Date()
+      const h = d.getHours(), m = d.getMinutes()
+      const shift = h >= 7 && h < 14 ? { label: 'Manhã', color: '#d97706' } : h >= 14 && h < 21 ? { label: 'Tarde', color: '#818cf8' } : { label: 'Noite', color: '#60a5fa' }
+      setClock(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} · ${shift.label}`)
+    }
+    tick()
+    const id = setInterval(tick, 30000)
+
+    const onStore = (e: StorageEvent) => { if (e.key === 'phlox-clinic-institution' && e.newValue) setInstitution(e.newValue as InstType) }
+    window.addEventListener('storage', onStore)
+    return () => { clearInterval(id); window.removeEventListener('storage', onStore) }
+  }, [])
+
+  const LINKS: Record<InstType, { href: string; label: string }[]> = {
+    hospital:           [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Doentes' }, { href: '/rounds', label: 'Ronda' }, { href: '/mar', label: 'MAR' }, { href: '/connect', label: 'Connect' }],
+    pharmacy_hospital:  [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Doentes' }, { href: '/prescription-queue', label: 'Validação' }, { href: '/drug-intelligence', label: 'Drug Intel.' }, { href: '/connect', label: 'Connect' }],
+    pharmacy_community: [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Clientes' }, { href: '/interactions', label: 'Interações' }, { href: '/counseling', label: 'Aconselhamento' }, { href: '/connect', label: 'Connect' }],
+    nursing_home:       [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Residentes' }, { href: '/mar', label: 'MAR' }, { href: '/rounds', label: 'Ronda' }, { href: '/connect', label: 'Connect' }],
+    clinic:             [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Doentes' }, { href: '/rounds', label: 'Ronda' }, { href: '/mar', label: 'MAR' }, { href: '/connect', label: 'Connect' }],
+    health_center:      [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Utentes' }, { href: '/rounds', label: 'Ronda' }, { href: '/mar', label: 'MAR' }, { href: '/connect', label: 'Connect' }],
+  }
+
+  const links = LINKS[institution]
+
+  return (
+    <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {links.map(link => {
+        const active = pathname === link.href || (link.href !== '/cockpit' && pathname.startsWith(link.href))
+        return (
+          <Link key={link.href} href={link.href} style={{
+            padding: '5px 10px', borderRadius: 6, fontSize: 13, fontWeight: active ? 700 : 500,
+            color: active ? 'white' : 'rgba(255,255,255,0.45)',
+            background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+            textDecoration: 'none', transition: 'all 0.12s', letterSpacing: '-0.01em',
+            border: active ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent',
+          }}>{link.label}</Link>
+        )
+      })}
+      {clock && (
+        <div style={{ marginLeft: 8, padding: '4px 9px', borderRadius: 6, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+          {clock}
+        </div>
+      )}
+    </nav>
+  )
+}
+
 // ─── Main Header ──────────────────────────────────────────────────────────────
 
 export default function Header() {
@@ -814,8 +874,15 @@ export default function Header() {
             </nav>
           )}
 
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
+          {/* Clinical center nav */}
+          {!loading && user && isDark && (
+            <div className="clinical-center-nav" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <ClinicalHeaderNav pathname={pathname} />
+            </div>
+          )}
+
+          {/* Spacer (non-clinical) */}
+          {(!user || !isDark) && <div style={{ flex: 1 }} />}
 
           {/* Right controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -975,6 +1042,10 @@ export default function Header() {
         @media (max-width:1100px) {
           .hdr-search-label { display:none !important; }
           .hdr-search-kbd   { display:none !important; }
+        }
+        /* Clinical center nav: hide on mobile (sidebar handles nav there) */
+        @media (max-width:768px) {
+          .clinical-center-nav { display:none !important; }
         }
         /* Notification bell pulse */
         .notif-bell-active {

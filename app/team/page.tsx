@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 
 type ShiftType = 'morning' | 'afternoon' | 'night' | 'off'
@@ -84,6 +85,16 @@ export default function TeamPage() {
   }
   useEffect(() => { load() }, [user])
 
+  // Keyboard: N = add member
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === 'n' || e.key === 'N') openNew()
+    }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   function openNew() { setForm(BLANK); setEditMember(null); setShowModal(true) }
   function openEdit(m: TeamMember) {
     setForm({ name:m.name, role:m.role, unit:m.unit||'', phone:m.phone||'',
@@ -121,29 +132,31 @@ export default function TeamPage() {
   const selectedMember = selected ? members.find(m => m.id === selected) : null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ background: '#064e3b', color: '#fff', padding: '20px 24px' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ background: '#0f172a', color: '#fff', padding: '20px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
+            <span>›</span>
+            <span style={{ color: '#94a3b8' }}>Equipa</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 22 }}>👥</span>
-                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Gestão de Equipa</h1>
-              </div>
-              <p style={{ margin: 0, color: '#6ee7b7', fontSize: 13 }}>Escala de turnos e competências da equipa</p>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Equipa</h1>
+              <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: 13 }}>Escala de turnos · Competências · Disponibilidade</p>
             </div>
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               {[
-                { label: 'Total equipa', value: members.length },
+                { label: 'Total', value: members.length, alert: false },
                 { label: 'Em serviço', value: onShiftCount, alert: false },
                 { label: 'Baixas', value: members.filter(m => m.status === 'sick').length, alert: members.filter(m => m.status === 'sick').length > 0 },
               ].map(s => (
                 <div key={s.label} style={{
-                  background: 'rgba(255,255,255,0.07)', border: `1px solid ${s.alert ? '#f87171' : 'rgba(255,255,255,0.12)'}`,
-                  borderRadius: 8, padding: '8px 14px', textAlign: 'center',
+                  background: 'rgba(255,255,255,0.07)', border: `1px solid ${s.alert ? '#f87171' : 'rgba(255,255,255,0.1)'}`,
+                  borderRadius: 8, padding: '8px 14px', textAlign: 'center', minWidth: 64,
                 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: s.alert ? '#f87171' : '#4ade80' }}>{s.value}</div>
-                  <div style={{ fontSize: 11, color: '#6ee7b7' }}>{s.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: s.alert ? '#f87171' : '#fff' }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -166,7 +179,7 @@ export default function TeamPage() {
                 {(Object.keys(STATUS_META) as MemberStatus[]).map(k => <option key={k} value={k}>{STATUS_META[k].label}</option>)}
               </select>
               <span style={{ color: '#64748b', fontSize: 13 }}>{filtered.length} membros</span>
-              <button onClick={openNew} style={{ marginLeft: 'auto', padding: '9px 18px', background: '#064e3b', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={openNew} style={{ marginLeft: 'auto', padding: '9px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
                 + Adicionar membro
               </button>
             </div>
@@ -179,7 +192,7 @@ export default function TeamPage() {
                     <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
                     <div style={{ fontWeight: 600, marginBottom: 6 }}>Equipa vazia</div>
                     <div style={{ fontSize: 13 }}>Adiciona os membros da equipa para gerir turnos e competências.</div>
-                    <button onClick={openNew} style={{ marginTop: 16, padding: '10px 20px', background: '#064e3b', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>+ Adicionar membro</button>
+                    <button onClick={openNew} style={{ marginTop: 16, padding: '10px 20px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>+ Adicionar membro</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -204,7 +217,15 @@ export default function TeamPage() {
                               fontSize: 15, fontWeight: 700, color: rm.color, position: 'relative',
                             }}>
                               {m.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
-                              <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: stm.dot, border: '2px solid #fff' }} />
+                              <span
+                                title={`Estado: ${stm.label} — clica para mudar`}
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  const cycle: MemberStatus[] = ['on_shift', 'break', 'off', 'sick', 'vacation']
+                                  const next = cycle[(cycle.indexOf(m.status) + 1) % cycle.length]
+                                  updateStatus(m.id, next)
+                                }}
+                                style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: stm.dot, border: '2px solid #fff', cursor: 'pointer' }} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -348,7 +369,7 @@ export default function TeamPage() {
             </label>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
               <button onClick={() => setShowModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancelar</button>
-              <button onClick={save} disabled={saving || !form.name.trim()} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#064e3b', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={save} disabled={saving || !form.name.trim()} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
                 {saving ? 'A guardar…' : editMember ? 'Guardar alterações' : 'Adicionar membro'}
               </button>
             </div>
@@ -361,7 +382,7 @@ export default function TeamPage() {
           .team-form-grid{grid-template-columns:1fr!important}
           .team-cards{grid-template-columns:1fr!important}
         }
-        input:focus,textarea:focus,select:focus{border-color:#064e3b!important;outline:none;box-shadow:0 0 0 3px #064e3b18}
+        input:focus,textarea:focus,select:focus{border-color:#1d4ed8!important;outline:none;box-shadow:0 0 0 3px #1d4ed818}
       `}</style>
     </div>
   )

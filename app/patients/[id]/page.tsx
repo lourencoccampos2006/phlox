@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
+import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 
 
 interface Patient {
@@ -55,6 +56,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState<Partial<Patient>>({})
   const [patientId, setPatientId] = useState<string | null>(null)
+  const [stoppResult, setStoppResult] = useState<STOPPSTARTResult | null>(null)
 
   useEffect(() => {
     params.then(p => setPatientId(p.id))
@@ -75,6 +77,19 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   }, [user, supabase, patientId, router])
 
   useEffect(() => { load() }, [load])
+
+  // Calc CrCl if we have age, weight, creatinine, sex
+  const crCl = patient?.age && patient?.weight && patient?.creatinine && patient?.sex
+    ? Math.round(((140 - patient.age) * patient.weight * (patient.sex === 'F' ? 0.85 : 1)) / (72 * patient.creatinine))
+    : null
+
+  // Run STOPP/START when patient data is ready
+  useEffect(() => {
+    if (!patient || meds.length === 0) return
+    const medNames = meds.map(m => m.name.toLowerCase())
+    const result = runSTOPPSTART(patient.age, patient.conditions, medNames, crCl ?? undefined)
+    setStoppResult(result)
+  }, [patient, meds, crCl])
 
   const addMed = async () => {
     if (!newMed.name.trim() || !patientId) return
@@ -150,10 +165,42 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     whiteSpace: 'nowrap' as const,
   })
 
-  // Calc CrCl if we have age, weight, creatinine, sex
-  const crCl = patient?.age && patient?.weight && patient?.creatinine && patient?.sex
-    ? Math.round(((140 - patient.age) * patient.weight * (patient.sex === 'F' ? 0.85 : 1)) / (72 * patient.creatinine))
-    : null
+  // Clinical risk score (conditions-based, same logic as rounds)
+  const riskScore = (() => {
+    if (!patient) return null
+    let s = 0
+    const c = (patient.conditions || '').toLowerCase()
+    if (/cancro|cancer|carcinoma|tumor|neoplasia|oncol|leucemia|linfoma|mieloma|metást/.test(c)) s += 40
+    if (/terminal|paliat|hospice/.test(c)) s += 50
+    if (/diálise|hemodiálise|periton/.test(c)) s += 38
+    if (/insuficiência renal|irc|drc g[45]/.test(c)) s += 28
+    if (/insuficiência hepática|cirrose/.test(c)) s += 28
+    if (/insuficiência cardíaca|ic [34]|ic avançada/.test(c)) s += 22
+    if (/transplante/.test(c)) s += 22
+    if (/demência|alzheimer/.test(c)) s += 15
+    if (/anticoagul|varfarin|dabigatran|rivaroxaban|apixaban/.test(c)) s += 12
+    if ((patient.age || 0) >= 85) s += 22
+    else if ((patient.age || 0) >= 75) s += 12
+    if (crCl !== null) {
+      if (crCl < 15) s += 35
+      else if (crCl < 30) s += 22
+      else if (crCl < 60) s += 8
+    }
+    // polypharmacy
+    if (meds.length >= 10) s += 25
+    else if (meds.length >= 5) s += 12
+    s += alerts.filter(a => a.severity === 'grave').length * 30
+    s += alerts.filter(a => a.severity === 'moderada').length * 15
+    return Math.min(100, s)
+  })()
+  const riskLevel = riskScore === null ? null : riskScore >= 70 ? 'critical' : riskScore >= 45 ? 'high' : riskScore >= 20 ? 'moderate' : 'low'
+  const RISK_STYLE = {
+    critical: { label: 'CRÍTICO',  color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
+    high:     { label: 'ELEVADO',  color: '#854d0e', bg: '#fef9c3', border: '#fde68a' },
+    moderate: { label: 'MODERADO', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+    low:      { label: 'BAIXO',    color: '#166534', bg: '#f0fdf4', border: '#bbf7d0' },
+  }
+  const stoppCritical = stoppResult?.stopp ?? []
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
@@ -177,7 +224,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
         <div className="page-container" style={{ paddingTop: 20, paddingBottom: 0 }}>
 
           {/* Back */}
-          <Link href="/dashboard?mode=pro&tab=patients" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', marginBottom: 16 }}>
+          <Link href="/patients" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', marginBottom: 16 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Doentes
           </Link>
@@ -215,6 +262,16 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                     {alerts.filter(a => a.severity === 'grave').length} alerta{alerts.filter(a => a.severity === 'grave').length > 1 ? 's' : ''} grave{alerts.filter(a => a.severity === 'grave').length > 1 ? 's' : ''}
                   </span>
                 )}
+                {riskLevel && riskScore !== null && (
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: RISK_STYLE[riskLevel].color, background: RISK_STYLE[riskLevel].bg, border: `1px solid ${RISK_STYLE[riskLevel].border}`, padding: '2px 8px', borderRadius: 10 }}>
+                    Risco {RISK_STYLE[riskLevel].label} · {riskScore}
+                  </span>
+                )}
+                {stoppCritical.length > 0 && (
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: 10 }}>
+                    {stoppCritical.length} critério{stoppCritical.length !== 1 ? 's' : ''} STOPP
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
@@ -226,9 +283,9 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', color: '#1d4ed8', border: '1px solid #bfdbfe', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
                 Ronda →
               </Link>
-              <Link href="/oracle"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', color: '#7c3aed', border: '1px solid #ddd6fe', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
-                Oracle →
+              <Link href={`/connect?patient=${patient.id}&name=${encodeURIComponent(patient.name)}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', color: '#0d9488', border: '1px solid #99f6e4', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
+                Interconsulta →
               </Link>
               <Link href={`/ai?patient=${patient.id}`}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -240,7 +297,15 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
 
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             {[['overview', 'Resumo'], ['meds', 'Medicação'], ['notes', 'Notas'], ['ai', 'IA']].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
+              <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>
+                {label}
+                {id === 'overview' && stoppCritical.length > 0 && (
+                  <span style={{ marginLeft: 5, fontSize: 9, background: '#fde68a', color: '#92400e', padding: '1px 5px', borderRadius: 3, fontWeight: 700 }}>{stoppCritical.length}</span>
+                )}
+                {id === 'overview' && riskLevel === 'critical' && (
+                  <span style={{ marginLeft: 5, fontSize: 9, background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 3, fontWeight: 700 }}>!</span>
+                )}
+              </button>
             ))}
           </div>
         </div>
@@ -357,6 +422,23 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
               </div>
             )}
 
+            {/* STOPP/START criteria */}
+            {stoppCritical.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#92400e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>
+                  Critérios STOPP detectados ({stoppCritical.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {stoppCritical.map((r, i) => (
+                    <div key={i} style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '3px solid #d97706', borderRadius: 8, padding: '10px 14px' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>{r.criterion}</div>
+                      <div style={{ fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>{r.action}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Analyze button */}
             {meds.length >= 2 && (
               <button onClick={analyzeProfile} disabled={analyzing}
@@ -370,9 +452,11 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
               {[
                 { href: `/ai?patient=${patient.id}`, label: 'Co-Piloto IA com contexto', accent: '#1d4ed8' },
                 { href: `/interactions?prefill=${meds.map(m => m.name).join(',')}`, label: 'Verificar interações', accent: 'var(--green)' },
-                { href: `/calculators?creatinine=${patient.creatinine}&age=${patient.age}&weight=${patient.weight}&sex=${patient.sex}`, label: 'Calculadoras com dados deste doente', accent: 'var(--ink-3)' },
+                { href: `/calculos?creatinine=${patient.creatinine || ''}&age=${patient.age || ''}&weight=${patient.weight || ''}&sex=${patient.sex || ''}`, label: 'Calculadoras com dados do doente', accent: '#7c3aed' },
+                { href: `/reconciliacao?patient=${patient.id}`, label: 'Reconciliação terapêutica', accent: '#0d9488' },
+                { href: `/connect?patient=${patient.id}&name=${encodeURIComponent(patient.name)}`, label: 'Pedir interconsulta', accent: '#0d9488' },
               ].map(({ href, label, accent }) => (
-                <Link key={href} href={href}
+                <Link key={label} href={href}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', gap: 8 }}
                   className="patient-action">
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{label}</span>
@@ -386,6 +470,21 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
         {/* MEDS */}
         {tab === 'meds' && (
           <div style={{ maxWidth: 700 }}>
+            {/* Allergy warning banner */}
+            {patient.allergies && meds.some(m => {
+              const allWords = patient.allergies!.toLowerCase().split(/[\s,;\/]+/).filter(w => w.length > 3)
+              return allWords.some(w => m.name.toLowerCase().includes(w))
+            }) && (
+              <div style={{ background: '#fef2f2', border: '2px solid #fca5a5', borderRadius: 8, padding: '10px 14px', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Verificar alergia potencial</div>
+                  <div style={{ fontSize: 12, color: '#7f1d1d', marginTop: 2 }}>
+                    Um ou mais medicamentos pode estar relacionado com as alergias registadas ({patient.allergies}). Confirme com o clínico prescritor.
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Add med */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', marginBottom: 12, position: 'relative' }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Adicionar medicamento</div>

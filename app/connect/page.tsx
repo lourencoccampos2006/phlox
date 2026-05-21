@@ -653,6 +653,11 @@ export default function ConnectPage() {
       {/* Header */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
         <div className="page-container" style={{ paddingTop: 20, paddingBottom: 0 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
+            <span>›</span>
+            <span style={{ color: '#64748b' }}>Connect</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
             <div style={{ flex: 1 }}>
               <div className="eyebrow" style={{ color: '#475569', marginBottom: 6 }}>Phlox Connect · Comunicação Inter-Profissional</div>

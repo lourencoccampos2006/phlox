@@ -97,13 +97,58 @@ function calcCrCl(p: Patient): number|null {
   return Math.round(((140-p.age)*p.weight*(p.sex==='F'?0.85:1))/(72*p.creatinine)*10)/10
 }
 
+// Condition-based clinical risk — used in addition to drug-interaction alerts
+function conditionRisk(p: Patient): number {
+  let s = 0
+  const c = (p.conditions || '').toLowerCase()
+
+  // Oncological / terminal
+  if (/cancro|cancer|carcinoma|tumor|neoplasia|oncol|leucemia|linfoma|mieloma|sarcoma|metást/.test(c)) s += 40
+  if (/terminal|paliat|hospice|cuidados de conforto/.test(c)) s += 50
+  if (/transplante/.test(c)) s += 22
+
+  // Organ failure
+  if (/diálise|hemodiálise|periton/.test(c)) s += 38
+  if (/insuficiência renal|irc|drc g[45]|ckd [45]|rim (crónico|agudo)/.test(c)) s += 28
+  if (/insuficiência hepática|cirrose|child.pugh [bc]|hepatite (b|c) crónica/.test(c)) s += 28
+  if (/insuficiência cardíaca|ic [34]|feve [<≤]|ic avançada/.test(c)) s += 22
+  if (/insuficiência respiratória|dpoc grave|dpoc estadio [34]|fibrose pulmonar|hap/.test(c)) s += 18
+
+  // Neurological / cognitive
+  if (/demência|alzheimer|parkinson|eps/.test(c)) s += 15
+  if (/avc|acidente vascular|epilepsia|convul/.test(c)) s += 10
+
+  // Haematological / immunological
+  if (/anticoagul|varfarina|warfarin|dabigatran|rivaroxaban|apixaban/.test(c)) s += 12
+  if (/imunossuprimid|transplantado|vih|hiv|vdih/.test(c)) s += 18
+
+  // Metabolic
+  if (/diabetes/.test(c)) s += 8
+  if (/hipertiroid|hipotiroid|addison|cushing/.test(c)) s += 8
+
+  // Age-based risk (even without conditions)
+  if ((p.age || 0) >= 85) s += 22
+  else if ((p.age || 0) >= 75) s += 12
+
+  // CrCl-derived renal risk (when creatinine available but condition not stated)
+  const crcl = calcCrCl(p)
+  if (crcl !== null) {
+    if (crcl < 15) s += 35
+    else if (crcl < 30) s += 22
+    else if (crcl < 60) s += 8
+  }
+
+  return Math.min(s, 70) // cap so it combines with alert scores meaningfully
+}
+
 // ─── Patient row in the list ──────────────────────────────────────────────────
 
-function PatientRow({ patient, risk, selected, onSelect }: {
+function PatientRow({ patient, risk, selected, onSelect, interventionCount }: {
   patient: Patient & { meds_count: number }
   risk: RiskScore|null
   selected: boolean
   onSelect: () => void
+  interventionCount: number
 }) {
   const rs = risk ? RISK_STYLE[risk.level] : null
   return (
@@ -119,7 +164,7 @@ function PatientRow({ patient, risk, selected, onSelect }: {
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{patient.name}</div>
         <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginTop:1 }}>
-          {[patient.age?`${patient.age}a`:null, patient.sex, `${patient.meds_count} med.`].filter(Boolean).join(' · ')}
+          {[patient.age?`${patient.age}a`:null, patient.sex, `${patient.meds_count} med.`, interventionCount > 0 ? `${interventionCount} int.` : null].filter(Boolean).join(' · ')}
         </div>
       </div>
       {/* Score */}
@@ -621,8 +666,9 @@ export default function RoundsPage() {
         const alerts: PatientAlert[] = data.alerts || []
         const critical = alerts.filter(a => a.severity==='grave').length
         const moderate = alerts.filter(a => a.severity==='moderada').length
-        const score = Math.min(100, critical*30 + moderate*15 + Math.min(30, (pMeds||[]).length*3))
-        const level = score>=60?'critical':score>=40?'high':score>=20?'moderate':'low'
+        const condScore = conditionRisk(p)
+        const score = Math.min(100, critical*30 + moderate*15 + Math.min(25, (pMeds||[]).length*3) + condScore)
+        const level = score>=70?'critical':score>=45?'high':score>=20?'moderate':'low'
         setRisks(prev => ({ ...prev, [p.id]: { score, level, alerts, summary: data.summary||'' } }))
       } catch {
         setRisks(prev => ({ ...prev, [p.id]: { score:0, level:'low', alerts:[], summary:'Erro na análise.' } }))
@@ -674,7 +720,7 @@ export default function RoundsPage() {
       if (res.ok) {
         const data = await res.json()
         setReport(data.report)
-        setLoading(false)
+        setGeneratingReport(false)
         return
       }
     } catch {}
@@ -752,6 +798,11 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
       {/* Rounds header */}
       <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b' }}>
         <div className="page-container" style={{ paddingTop:20, paddingBottom:0 }}>
+          <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'#475569', marginBottom:10, display:'flex', alignItems:'center', gap:5 }}>
+            <Link href="/cockpit" style={{ color:'#475569', textDecoration:'none' }}>Cockpit</Link>
+            <span>›</span>
+            <span style={{ color:'#64748b' }}>Ronda</span>
+          </div>
           <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14, flexWrap:'wrap' }}>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#475569', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:4, display:'flex', alignItems:'center', gap:6 }}>
@@ -843,7 +894,8 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
             ) : sorted.map(p => (
               <PatientRow key={p.id} patient={p}
                 risk={risks[p.id]!=='loading'?risks[p.id] as RiskScore:null}
-                selected={selected===p.id} onSelect={() => setSelected(p.id)} />
+                selected={selected===p.id} onSelect={() => setSelected(p.id)}
+                interventionCount={interventions.filter(i => i.patient_id === p.id).length} />
             ))}
           </div>
 

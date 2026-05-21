@@ -84,6 +84,21 @@ export default function DrugIntelligencePage() {
 
   useEffect(() => { load() }, [user])
 
+  // Keyboard: N = new drug/shortage
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === 'n' || e.key === 'N') { if (tab === 'formulary') openNewDrug(); else if (tab === 'shortages') openNewShortage() }
+    }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const daysSince = (dateStr: string | null): number | null => {
+    if (!dateStr) return null
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+  }
+
   // ── Formulary CRUD ─────────────────────────────────────────────────────────
   const DRUG_BLANK: Omit<FormularyDrug,'id'|'user_id'> = {
     name:'', generic:'', class: CLASS_OPTIONS[0], atc:'', form:'oral', strength:'',
@@ -163,17 +178,19 @@ export default function DrugIntelligencePage() {
   const criticalCount   = shortages.filter(s => s.severity === 'critical').length
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
       {/* Header */}
       <div style={{ background: '#0f172a', color: '#fff', padding: '20px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <a href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</a>
+            <span>›</span>
+            <span style={{ color: '#94a3b8' }}>Drug Intelligence</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 22 }}>🧬</span>
-                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Drug Intelligence Hub</h1>
-              </div>
-              <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>Formulário hospitalar e gestão de ruturas</p>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Drug Intelligence</h1>
+              <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: 13 }}>Formulário · Ruturas · Análise DDD &amp; Custos</p>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
@@ -193,9 +210,9 @@ export default function DrugIntelligencePage() {
           </div>
           <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             {[
-              { key: 'formulary' as const, label: '📋 Formulário' },
-              { key: 'shortages' as const, label: '⚠️ Ruturas', badge: activeShortages },
-              { key: 'analytics' as const, label: '📊 Análise DDD & Custos' },
+              { key: 'formulary' as const, label: 'Formulário' },
+              { key: 'shortages' as const, label: 'Ruturas', badge: activeShortages },
+              { key: 'analytics' as const, label: 'Análise DDD & Custos' },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key)} style={{
                 padding: '7px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
@@ -234,7 +251,11 @@ export default function DrugIntelligencePage() {
               <button onClick={openNewDrug} style={{
                 marginLeft: 'auto', padding: '9px 18px', background: '#0f172a', color: '#fff',
                 border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14,
-              }}>+ Adicionar fármaco</button>
+                display: 'flex', alignItems: 'center', gap: 7,
+              }}>
+                + Adicionar fármaco
+                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
+              </button>
             </div>
 
             {filteredFormulary.length === 0 ? (
@@ -325,7 +346,11 @@ export default function DrugIntelligencePage() {
               <button onClick={openNewShortage} style={{
                 padding: '9px 18px', background: '#dc2626', color: '#fff',
                 border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14,
-              }}>+ Registar rutura</button>
+                display: 'flex', alignItems: 'center', gap: 7,
+              }}>
+                + Registar rutura
+                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
+              </button>
             </div>
 
             {shortages.length === 0 ? (
@@ -346,12 +371,25 @@ export default function DrugIntelligencePage() {
                         <span style={{ fontSize: 18 }}>{meta.icon}</span>
                         <div style={{ flex: 1, minWidth: 200 }}>
                           <div style={{ fontWeight: 700, fontSize: 14 }}>{s.drug}</div>
-                          <div style={{ color: '#64748b', fontSize: 12 }}>Desde {s.since}</div>
+                          <div style={{ color: '#64748b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {s.since && <span>Desde {s.since}</span>}
+                            {(() => { const d = daysSince(s.since); return d !== null ? <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: d > 14 ? '#dc2626' : d > 7 ? '#d97706' : '#64748b', fontSize: 11 }}>{d}d</span> : null })()}
+                          </div>
                         </div>
                         <span style={{ background: meta.bg, color: meta.color, padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>{meta.label}</span>
                         <div style={{ textAlign: 'right', fontSize: 12 }}>
                           <div style={{ color: '#64748b' }}>Resolução prevista</div>
-                          <div style={{ fontWeight: 600, color: meta.color }}>{s.expected_resolution || '—'}</div>
+                          {s.expected_resolution ? (() => {
+                            const daysLeft = Math.ceil((new Date(s.expected_resolution).getTime() - Date.now()) / 86400000)
+                            return (
+                              <div style={{ fontWeight: 700, color: daysLeft < 0 ? '#dc2626' : daysLeft <= 3 ? '#d97706' : '#16a34a' }}>
+                                {s.expected_resolution}
+                                <span style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', marginTop: 1 }}>
+                                  {daysLeft < 0 ? `${Math.abs(daysLeft)}d atrasado` : daysLeft === 0 ? 'hoje' : `em ${daysLeft}d`}
+                                </span>
+                              </div>
+                            )
+                          })() : <div style={{ fontWeight: 600, color: '#94a3b8' }}>—</div>}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
                           <button onClick={() => openEditShortage(s)} style={{ padding: '4px 10px', background: '#f1f5f9', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>Editar</button>

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 
 type Severity = 'sentinel' | 'serious' | 'moderate' | 'minor' | 'near_miss'
@@ -10,6 +11,7 @@ interface SafetyEvent {
   id: string; user_id?: string
   date: string; type: EventType; severity: Severity
   unit: string; description: string; drug: string
+  patient_name?: string
   status: EventStatus; harm: boolean
 }
 
@@ -74,6 +76,16 @@ export default function QualityPage() {
   const [editIntervention, setEditIntervention] = useState<Intervention | null>(null)
   const [saving, setSaving]               = useState(false)
 
+  // Keyboard shortcut: N = new event, I = new intervention
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === 'n' || e.key === 'N') { if (tab === 'events') openNewEvent(); else if (tab === 'interventions') openNewIv() }
+    }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function load() {
     if (!user) return
     setLoading(true)
@@ -88,12 +100,12 @@ export default function QualityPage() {
   useEffect(() => { load() }, [user])
 
   // ── Event CRUD ─────────────────────────────────────────────────────────────
-  const EVENT_BLANK = { date: new Date().toISOString().slice(0,10), type: 'medication_error' as EventType, severity: 'moderate' as Severity, unit: '', description: '', drug: '', status: 'open' as EventStatus, harm: false }
+  const EVENT_BLANK = { date: new Date().toISOString().slice(0,10), type: 'medication_error' as EventType, severity: 'moderate' as Severity, unit: '', description: '', drug: '', patient_name: '', status: 'open' as EventStatus, harm: false }
   const [eventForm, setEventForm] = useState<typeof EVENT_BLANK>(EVENT_BLANK)
 
   function openNewEvent() { setEventForm(EVENT_BLANK); setEditEvent(null); setShowEventModal(true) }
   function openEditEvent(e: SafetyEvent) {
-    setEventForm({ date: e.date, type: e.type, severity: e.severity, unit: e.unit||'', description: e.description||'', drug: e.drug||'', status: e.status, harm: e.harm||false })
+    setEventForm({ date: e.date, type: e.type, severity: e.severity, unit: e.unit||'', description: e.description||'', drug: e.drug||'', patient_name: e.patient_name||'', status: e.status, harm: e.harm||false })
     setEditEvent(e); setShowEventModal(true)
   }
   async function saveEvent() {
@@ -137,27 +149,41 @@ export default function QualityPage() {
     load()
   }
 
-  const filteredEvents = events.filter(e => {
-    if (sevFilter !== 'all' && e.severity !== sevFilter) return false
-    if (statusFilter !== 'all' && e.status !== statusFilter) return false
-    return true
-  })
+  const SEV_ORDER: Severity[] = ['sentinel', 'serious', 'moderate', 'minor', 'near_miss']
+
+  const filteredEvents = events
+    .filter(e => {
+      if (sevFilter !== 'all' && e.severity !== sevFilter) return false
+      if (statusFilter !== 'all' && e.status !== statusFilter) return false
+      return true
+    })
+    .sort((a, b) => {
+      // Open events first, then by severity
+      const statusOrder = (s: string) => s === 'open' ? 0 : s === 'under_review' ? 1 : 2
+      if (statusOrder(a.status) !== statusOrder(b.status)) return statusOrder(a.status) - statusOrder(b.status)
+      return SEV_ORDER.indexOf(a.severity) - SEV_ORDER.indexOf(b.severity)
+    })
   const openCount = events.filter(e => e.status !== 'closed').length
   const totalIv   = interventions.reduce((s, i) => s + i.count, 0)
   const totalAccepted = interventions.reduce((s, i) => s + i.accepted, 0)
   const totalValue = interventions.reduce((s, i) => s + (i.value_eur||0), 0)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ background: '#1e3a5f', color: '#fff', padding: '20px 24px' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ background: '#0f172a', color: '#fff', padding: '20px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+          {/* Breadcrumb */}
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
+            <span>›</span>
+            <span style={{ color: '#94a3b8' }}>Qualidade</span>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 22 }}>📊</span>
-                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Central de Qualidade</h1>
-              </div>
-              <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>Eventos de segurança e intervenções farmacêuticas</p>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Qualidade &amp; Segurança</h1>
+              <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: 13 }}>Eventos de segurança · Intervenções farmacêuticas · KPIs</p>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               {[
@@ -177,14 +203,14 @@ export default function QualityPage() {
           </div>
           <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             {[
-              { key: 'events' as const,        label: '🚨 Eventos de segurança', badge: openCount },
-              { key: 'interventions' as const, label: '💡 Intervenções' },
-              { key: 'analytics' as const,     label: '📈 Indicadores KPI' },
+              { key: 'events' as const,        label: 'Eventos de segurança', badge: openCount },
+              { key: 'interventions' as const, label: 'Intervenções' },
+              { key: 'analytics' as const,     label: 'Indicadores KPI' },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key)} style={{
                 padding: '7px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
                 background: tab === t.key ? '#fff' : 'transparent',
-                color: tab === t.key ? '#1e3a5f' : '#94a3b8',
+                color: tab === t.key ? '#1d4ed8' : '#94a3b8',
                 fontWeight: tab === t.key ? 600 : 400, fontSize: 13,
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
@@ -216,8 +242,9 @@ export default function QualityPage() {
                 <option value="closed">Fechados</option>
               </select>
               <span style={{ color: '#64748b', fontSize: 13 }}>{filteredEvents.length} eventos</span>
-              <button onClick={openNewEvent} style={{ marginLeft: 'auto', padding: '9px 18px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={openNewEvent} style={{ marginLeft: 'auto', padding: '9px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
                 + Registar evento
+                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
               </button>
             </div>
 
@@ -226,7 +253,7 @@ export default function QualityPage() {
                 <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
                 <div style={{ fontWeight: 600, marginBottom: 6 }}>Sem eventos registados</div>
                 <div style={{ fontSize: 13 }}>Regista eventos de segurança para rastreabilidade e melhoria contínua.</div>
-                <button onClick={openNewEvent} style={{ marginTop: 16, padding: '10px 20px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>+ Registar evento</button>
+                <button onClick={openNewEvent} style={{ marginTop: 16, padding: '10px 20px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>+ Registar evento</button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -244,6 +271,7 @@ export default function QualityPage() {
                             <span style={{ fontWeight: 600, fontSize: 13 }}>{tm.label}</span>
                             <span style={{ background: sm.bg, color: sm.color, padding: '1px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600 }}>{sm.label}</span>
                             {ev.harm && <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600 }}>Com dano</span>}
+                            {ev.patient_name && <span style={{ color: '#0f172a', fontSize: 12, fontWeight: 600 }}>{ev.patient_name}</span>}
                             {ev.unit && <span style={{ color: '#94a3b8', fontSize: 12 }}>{ev.unit}</span>}
                           </div>
                           <div style={{ color: '#64748b', fontSize: 12, marginTop: 2, overflow: isExp ? undefined : 'hidden', textOverflow: 'ellipsis', whiteSpace: isExp ? undefined : 'nowrap', maxWidth: 500 }}>
@@ -295,8 +323,9 @@ export default function QualityPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button onClick={openNewIv} style={{ padding: '9px 18px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={openNewIv} style={{ padding: '9px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
                 + Registar intervenção
+                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
               </button>
             </div>
 
@@ -395,7 +424,7 @@ export default function QualityPage() {
                               <span style={{ fontSize: 12, color: '#64748b' }}>{count}</span>
                             </div>
                             <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', background: '#1e3a5f', borderRadius: 3, width: `${(count / maxType) * 100}%` }} />
+                              <div style={{ height: '100%', background: '#1d4ed8', borderRadius: 3, width: `${(count / maxType) * 100}%` }} />
                             </div>
                           </div>
                         ))}
@@ -451,8 +480,12 @@ export default function QualityPage() {
                 <input style={inputStyle} type="date" value={eventForm.date} onChange={e => setEventForm(f => ({ ...f, date: e.target.value }))} />
               </div>
               <div>
-                <label style={labelStyle}>Serviço</label>
-                <input style={inputStyle} value={eventForm.unit} onChange={e => setEventForm(f => ({ ...f, unit: e.target.value }))} placeholder="Ex: Medicina Interna" />
+                <label style={labelStyle}>Estado</label>
+                <select style={inputStyle} value={eventForm.status} onChange={e => setEventForm(f => ({ ...f, status: e.target.value as EventStatus }))}>
+                  <option value="open">Aberto</option>
+                  <option value="under_review">Em análise</option>
+                  <option value="closed">Fechado</option>
+                </select>
               </div>
             </div>
             <div>
@@ -463,25 +496,29 @@ export default function QualityPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={labelStyle}>Medicamento envolvido</label>
-                <input style={inputStyle} value={eventForm.drug} onChange={e => setEventForm(f => ({ ...f, drug: e.target.value }))} placeholder="Ex: Insulina" />
+                <label style={labelStyle}>Doente envolvido</label>
+                <input style={inputStyle} value={eventForm.patient_name || ''} onChange={e => setEventForm(f => ({ ...f, patient_name: e.target.value }))} placeholder="Nome do doente (opcional)" />
               </div>
               <div>
-                <label style={labelStyle}>Estado</label>
-                <select style={inputStyle} value={eventForm.status} onChange={e => setEventForm(f => ({ ...f, status: e.target.value as EventStatus }))}>
-                  <option value="open">Aberto</option>
-                  <option value="under_review">Em análise</option>
-                  <option value="closed">Fechado</option>
-                </select>
+                <label style={labelStyle}>Medicamento envolvido</label>
+                <input style={inputStyle} value={eventForm.drug} onChange={e => setEventForm(f => ({ ...f, drug: e.target.value }))} placeholder="Ex: Insulina, Varfarina" />
               </div>
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-              <input type="checkbox" checked={eventForm.harm} onChange={e => setEventForm(f => ({ ...f, harm: e.target.checked }))} />
-              Ocorreu dano ao doente
-            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Serviço / Unidade</label>
+                <input style={inputStyle} value={eventForm.unit} onChange={e => setEventForm(f => ({ ...f, unit: e.target.value }))} placeholder="Ex: Medicina Interna, UCI" />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, paddingBottom: 9 }}>
+                  <input type="checkbox" checked={eventForm.harm} onChange={e => setEventForm(f => ({ ...f, harm: e.target.checked }))} />
+                  Com dano ao doente
+                </label>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowEventModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancelar</button>
-              <button onClick={saveEvent} disabled={saving || !eventForm.description.trim()} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#1e3a5f', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={saveEvent} disabled={saving || !eventForm.description.trim()} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
                 {saving ? 'A guardar…' : editEvent ? 'Guardar alterações' : 'Registar evento'}
               </button>
             </div>
@@ -523,7 +560,7 @@ export default function QualityPage() {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowInterventionModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancelar</button>
-              <button onClick={saveIv} disabled={saving} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#1e3a5f', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={saveIv} disabled={saving} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
                 {saving ? 'A guardar…' : editIntervention ? 'Guardar' : 'Registar'}
               </button>
             </div>
@@ -535,7 +572,7 @@ export default function QualityPage() {
           .quality-form-grid{grid-template-columns:1fr!important}
           .quality-stats{grid-template-columns:1fr 1fr!important}
         }
-        input:focus,textarea:focus,select:focus{border-color:#1e3a5f!important;outline:none;box-shadow:0 0 0 3px #1e3a5f18}
+        input:focus,textarea:focus,select:focus{border-color:#1d4ed8!important;outline:none;box-shadow:0 0 0 3px #1d4ed818}
       `}</style>
     </div>
   )

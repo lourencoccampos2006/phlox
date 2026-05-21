@@ -11,7 +11,10 @@
       "PowerShell(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\sitemap.ts\" -ItemType File -Force)",
       "PowerShell(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\api\\\\export\\\\route.ts\" -ItemType File -Force)",
       "PowerShell(New-Item -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\changelog\\\\page.tsx\" -ItemType File -Force)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\components\" -Filter \"*.tsx\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Name)",
+      "Bash(cd /mnt/c/Users/Fernando/phlox && npx tsc --noEmit 2>&1 | head -60)"
     ]
   }
 }

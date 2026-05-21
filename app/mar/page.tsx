@@ -189,6 +189,19 @@ export default function MARPage() {
   const [allDayRecords, setAllDayRecords] = useState<{ patient_id: string; med_id: string; shift: Shift; status: string }[]>([])
   const [allMedsMap, setAllMedsMap] = useState<Record<string, PatientMed[]>>({})
 
+  // Keyboard: 1=manhã, 2=tarde, 3=noite, P=imprimir
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.key === '1') setShift('manha')
+      else if (e.key === '2') setShift('tarde')
+      else if (e.key === '3') setShift('noite')
+      else if (e.key === 'p' || e.key === 'P') window.print()
+    }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [])
+
   // Load patients
   useEffect(() => {
     if (!user || !isPro) return
@@ -362,6 +375,11 @@ export default function MARPage() {
         <div className="page-container">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Link href="/cockpit" style={{ color: 'var(--ink-5)', textDecoration: 'none' }}>Cockpit</Link>
+                <span>›</span>
+                <span>MAR</span>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                 <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>
                   Registo de Administração
@@ -391,12 +409,13 @@ export default function MARPage() {
 
               {/* Shift selector */}
               <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden' }}>
-                {(Object.keys(SHIFT_LABELS) as Shift[]).map(s => {
+                {(Object.keys(SHIFT_LABELS) as Shift[]).map((s, idx) => {
                   const sl = SHIFT_LABELS[s]
                   return (
-                    <button key={s} onClick={() => setShift(s)}
-                      style={{ padding: '8px 14px', background: shift === s ? sl.color : 'white', color: shift === s ? 'white' : 'var(--ink-4)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}>
+                    <button key={s} onClick={() => setShift(s)} title={`Tecla ${idx + 1}`}
+                      style={{ padding: '8px 14px', background: shift === s ? sl.color : 'white', color: shift === s ? 'white' : 'var(--ink-4)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}>
                       {sl.label}
+                      <span style={{ fontSize: 9, opacity: 0.6, fontFamily: 'var(--font-mono)' }}>[{idx + 1}]</span>
                     </button>
                   )
                 })}
@@ -411,10 +430,11 @@ export default function MARPage() {
               )}
 
               {/* Print */}
-              <button onClick={() => window.print()}
+              <button onClick={() => window.print()} title="Tecla P"
                 style={{ padding: '8px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Imprimir
+                <span style={{ fontSize: 9, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>[P]</span>
               </button>
 
               {/* Handover */}
@@ -429,12 +449,12 @@ export default function MARPage() {
 
       {/* Omission banner */}
       {allOmissions.length > 0 && (
-        <div style={{ background: '#fef9c3', borderBottom: '1px solid #fde68a' }}>
+        <div style={{ background: allOmissions.length >= 3 ? '#fee2e2' : '#fef9c3', borderBottom: `1px solid ${allOmissions.length >= 3 ? '#fca5a5' : '#fde68a'}` }}>
           <div className="page-container" style={{ padding: '10px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 14 }}>⚠️</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#854d0e' }}>
-                {allOmissions.reduce((s, o) => s + o.missing, 0)} doses em falta neste turno:
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: allOmissions.length >= 3 ? '#dc2626' : '#d97706', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: allOmissions.length >= 3 ? '#991b1b' : '#854d0e' }}>
+                {allOmissions.reduce((s, o) => s + o.missing, 0)} doses em falta — turno {SHIFT_LABELS[shift].label}:
               </span>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
                 {allOmissions.map(o => (

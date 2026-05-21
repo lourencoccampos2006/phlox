@@ -52,16 +52,16 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '💉', label: 'Antibióticos',  href: '/antibiotics' },
     { icon: '🧴', label: 'Nutrição NP',   href: '/tpn' },
     { icon: '🚨', label: 'Urgência',      href: '/emergency-doses' },
-    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+    { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   pharmacy_hospital: [
     { icon: '🔬', label: 'Console PK',    href: '/pk-dosing' },
     { icon: '🧪', label: 'IV Compat.',    href: '/iv-compatibility' },
     { icon: '🧴', label: 'Nutrição NP',   href: '/tpn' },
     { icon: '🚨', label: 'Urgência',      href: '/emergency-doses' },
-    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
+    { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   pharmacy_community: [
     { icon: '🔍', label: 'Interações',    href: '/interactions' },
@@ -69,7 +69,7 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '💊', label: 'Info Fármaco',  href: '/drug-info' },
     { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
-    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+    { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   nursing_home: [
     { icon: '🛑', label: 'STOPP/START',   href: '/stopp-start' },
@@ -77,7 +77,7 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
     { icon: '📋', label: 'Aconselhamento',href: '/counseling' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
-    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+    { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   clinic: [
     { icon: '🔍', label: 'Interações',    href: '/interactions' },
@@ -85,7 +85,7 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '💊', label: 'Info Fármaco',  href: '/drug-info' },
     { icon: '🗒️', label: 'Nota Clínica', href: '/nota-clinica' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
-    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+    { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   health_center: [
     { icon: '🔍', label: 'Interações',    href: '/interactions' },
@@ -93,7 +93,7 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '💊', label: 'Info Fármaco',  href: '/drug-info' },
     { icon: '🗒️', label: 'Nota Clínica', href: '/nota-clinica' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
-    { icon: '🧮', label: 'Calculadoras',  href: '/calculos' },
+    { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
 }
 
@@ -129,6 +129,7 @@ export default function Cockpit() {
   const [safetyEvents, setSafetyEvents] = useState<SafetyEvent[]>([])
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [trainings, setTrainings] = useState<Training[]>([])
+  const [patientCount, setPatientCount] = useState<number>(0)
 
   // Sync role from org profile on first load (only if not already set by user)
   useEffect(() => {
@@ -153,12 +154,14 @@ export default function Cockpit() {
       supabase.from('safety_events').select('id,type,severity,unit,description,drug,status,harm,date').eq('user_id', user.id).neq('status', 'closed'),
       supabase.from('pharma_interventions').select('id,type,count,accepted,value_eur,date').eq('user_id', user.id).gte('date', monthStart),
       supabase.from('training_sessions').select('id,name,category,date,mandatory,seats_total,seats_taken').eq('user_id', user.id).gte('date', today).order('date'),
-    ]).then(([t, s, e, i, tr]) => {
+      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    ]).then(([t, s, e, i, tr, p]) => {
       setTeam(t.data ?? [])
       setShortages(s.data ?? [])
       setSafetyEvents(e.data ?? [])
       setInterventions(i.data ?? [])
       setTrainings(tr.data ?? [])
+      setPatientCount(p.count ?? 0)
       setLoading(false)
     })
   }, [user, supabase])
@@ -245,7 +248,9 @@ export default function Cockpit() {
     const acceptRate = totalInterventions > 0 ? Math.round((acceptedInterventions / totalInterventions) * 100) : 0
     const nextTraining = trainings.find(t => t.mandatory)
 
+    const patientLabel = institution === 'nursing_home' ? 'Residentes' : institution === 'pharmacy_community' ? 'Clientes' : institution === 'health_center' ? 'Utentes' : 'Doentes'
     return [
+      { label: patientLabel, value: patientCount, sub: patientCount > 0 ? 'Registados no sistema' : 'Adicionar o primeiro →', color: '#1d4ed8', bg: '#eff6ff', action_href: '/patients', icon: '🗂️' },
       { label: 'Equipa de turno', value: team.length ? `${onShift}/${team.length}` : '—', sub: `${team.length - onShift} fora de turno`, color: onShift < team.length * 0.7 ? '#dc2626' : '#16a34a', bg: '#f0fdf4', action_href: '/team', icon: '👥' },
       { label: 'Ruturas activas', value: shortages.length, sub: criticalShortages > 0 ? `${criticalShortages} crítica${criticalShortages !== 1 ? 's' : ''}` : 'Sem ruturas críticas', color: criticalShortages > 0 ? '#dc2626' : '#ca8a04', bg: criticalShortages > 0 ? '#fef2f2' : '#fffbeb', action_href: '/drug-intelligence', icon: '⚠️' },
       { label: 'Eventos de segurança', value: openEvents, sub: openEvents > 0 ? 'Pendentes de revisão' : 'Sem eventos pendentes', color: openEvents > 0 ? '#ea580c' : '#16a34a', bg: openEvents > 0 ? '#fff7ed' : '#f0fdf4', action_href: '/quality', icon: '🛡️' },
@@ -269,7 +274,7 @@ export default function Cockpit() {
   const displayTeam = [...teamOnShift, ...teamOther].slice(0, 6)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
       {/* Command Header */}
@@ -318,12 +323,32 @@ export default function Cockpit() {
             </div>
 
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Validação', href: '/prescription-queue', icon: '📬' },
-                { label: 'MAR', href: '/mar', icon: '📝' },
-                { label: 'Ronda', href: '/rounds', icon: '📋' },
-                { label: 'Turno', href: '/turno', icon: '🏥' },
-              ].map(l => (
+              {((): { label: string; href: string; icon: string }[] => {
+                if (institution === 'pharmacy_community') return [
+                  { label: 'Clientes', href: '/patients', icon: '🗂️' },
+                  { label: 'Interações', href: '/interactions', icon: '🔍' },
+                  { label: 'Aconselhamento', href: '/counseling', icon: '📋' },
+                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                ]
+                if (institution === 'nursing_home') return [
+                  { label: 'Residentes', href: '/patients', icon: '🤝' },
+                  { label: 'MAR', href: '/mar', icon: '📋' },
+                  { label: 'STOPP/START', href: '/stopp-start', icon: '🛑' },
+                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                ]
+                if (institution === 'clinic' || institution === 'health_center') return [
+                  { label: 'Doentes', href: '/patients', icon: '🗂️' },
+                  { label: 'Ronda', href: '/rounds', icon: '🔬' },
+                  { label: 'MAR', href: '/mar', icon: '📋' },
+                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                ]
+                return [
+                  { label: 'Doentes', href: '/patients', icon: '🗂️' },
+                  { label: 'MAR', href: '/mar', icon: '📋' },
+                  { label: 'Ronda', href: '/rounds', icon: '🔬' },
+                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                ]
+              })().map(l => (
                 <Link key={l.href} href={l.href} style={{
                   display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
                   background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
@@ -588,7 +613,7 @@ export default function Cockpit() {
                 {/* Quick tools — institution-specific */}
                 <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '14px 18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>⚡ Ferramentas Rápidas</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>Ferramentas Rápidas</div>
                     <Link href="/toolkit" style={{ fontSize: 11, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>Ver todas →</Link>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>

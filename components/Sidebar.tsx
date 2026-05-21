@@ -73,15 +73,15 @@ const NAV_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, NavItem[][]>
   ],
 }
 
-// Institution-specific clinical nav (3 groups)
+// Institution-specific clinical nav — 2 clean groups per institution
 const CLINICAL_NAV: Record<InstitutionType, NavItem[][]> = {
   hospital: [
     [
       { href: '/cockpit',            icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
-      { href: '/turno',              icon: '🏥', label: 'Turno' },
-      { href: '/rounds',             icon: '👨‍⚕️', label: 'Ronda' },
-      { href: '/mar',                icon: '📋', label: 'MAR' },
       { href: '/patients',           icon: '🗂️', label: 'Doentes' },
+      { href: '/turno',              icon: '🏥', label: 'Turno' },
+      { href: '/rounds',             icon: '🔬', label: 'Ronda' },
+      { href: '/mar',                icon: '📋', label: 'MAR' },
       { href: '/prescription-queue', icon: '📬', label: 'Validação' },
     ],
     [
@@ -89,72 +89,64 @@ const CLINICAL_NAV: Record<InstitutionType, NavItem[][]> = {
       { href: '/quality',           icon: '📊', label: 'Qualidade' },
       { href: '/team',              icon: '👥', label: 'Equipa' },
       { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+      { href: '/connect',           icon: '🔗', label: 'Connect' },
     ],
   ],
   pharmacy_hospital: [
     [
       { href: '/cockpit',            icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
-      { href: '/prescription-queue', icon: '📬', label: 'Validação' },
-      { href: '/turno',              icon: '🏥', label: 'Turno' },
-      { href: '/rounds',             icon: '👨‍⚕️', label: 'Ronda' },
       { href: '/patients',           icon: '🗂️', label: 'Doentes' },
+      { href: '/prescription-queue', icon: '📬', label: 'Validação' },
+      { href: '/rounds',             icon: '🔬', label: 'Ronda' },
       { href: '/mar',                icon: '📋', label: 'MAR' },
+      { href: '/turno',              icon: '🏥', label: 'Turno' },
     ],
     [
       { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
       { href: '/quality',           icon: '📊', label: 'Qualidade' },
       { href: '/team',              icon: '👥', label: 'Equipa' },
       { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+      { href: '/connect',           icon: '🔗', label: 'Connect' },
     ],
   ],
   pharmacy_community: [
     [
-      { href: '/cockpit',     icon: '🎛️', label: 'Cockpit',        badge: 'principal' },
-      { href: '/patients',    icon: '🗂️', label: 'Clientes' },
-      { href: '/interactions',icon: '🔍', label: 'Interações' },
-      { href: '/counseling',  icon: '📋', label: 'Aconselhamento' },
-      { href: '/drug-info',   icon: '💊', label: 'Info Fármaco' },
+      { href: '/cockpit',      icon: '🎛️', label: 'Cockpit',         badge: 'principal' },
+      { href: '/patients',     icon: '🗂️', label: 'Clientes' },
+      { href: '/interactions', icon: '🔍', label: 'Interações' },
+      { href: '/counseling',   icon: '📋', label: 'Aconselhamento' },
+      { href: '/drug-info',    icon: '💊', label: 'Info Fármaco' },
     ],
     [
       { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
       { href: '/quality',           icon: '📊', label: 'Qualidade' },
       { href: '/team',              icon: '👥', label: 'Equipa' },
       { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+      { href: '/connect',           icon: '🔗', label: 'Connect' },
     ],
   ],
   nursing_home: [
     [
-      { href: '/cockpit',     icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
-      { href: '/patients',    icon: '🤝', label: 'Residentes' },
-      { href: '/mar',         icon: '📋', label: 'MAR' },
-      { href: '/rounds',      icon: '👨‍⚕️', label: 'Ronda' },
-      { href: '/stopp-start', icon: '🛑', label: 'STOPP/START' },
-      { href: '/polypharmacy',icon: '⚕️', label: 'Polimedicação' },
+      { href: '/cockpit',      icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
+      { href: '/patients',     icon: '🤝', label: 'Residentes' },
+      { href: '/mar',          icon: '📋', label: 'MAR' },
+      { href: '/rounds',       icon: '🔬', label: 'Ronda' },
+      { href: '/stopp-start',  icon: '🛑', label: 'STOPP/START' },
+      { href: '/polypharmacy', icon: '⚕️', label: 'Polimedicação' },
     ],
     [
       { href: '/quality',  icon: '📊', label: 'Qualidade' },
       { href: '/team',     icon: '👥', label: 'Equipa' },
       { href: '/calculos', icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+      { href: '/connect',  icon: '🔗', label: 'Connect' },
     ],
   ],
   clinic: [
     [
       { href: '/cockpit',       icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
       { href: '/patients',      icon: '🗂️', label: 'Doentes' },
+      { href: '/rounds',        icon: '🔬', label: 'Ronda' },
       { href: '/mar',           icon: '📋', label: 'MAR' },
-      { href: '/rounds',        icon: '👨‍⚕️', label: 'Ronda' },
       { href: '/interactions',  icon: '🔍', label: 'Interações' },
       { href: '/reconciliacao', icon: '🔄', label: 'Reconciliação' },
     ],
@@ -163,17 +155,15 @@ const CLINICAL_NAV: Record<InstitutionType, NavItem[][]> = {
       { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
       { href: '/team',              icon: '👥', label: 'Equipa' },
       { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+      { href: '/connect',           icon: '🔗', label: 'Connect' },
     ],
   ],
   health_center: [
     [
       { href: '/cockpit',       icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
       { href: '/patients',      icon: '🗂️', label: 'Utentes' },
+      { href: '/rounds',        icon: '🔬', label: 'Ronda' },
       { href: '/mar',           icon: '📋', label: 'MAR' },
-      { href: '/rounds',        icon: '👨‍⚕️', label: 'Ronda' },
       { href: '/interactions',  icon: '🔍', label: 'Interações' },
       { href: '/reconciliacao', icon: '🔄', label: 'Reconciliação' },
     ],
@@ -182,21 +172,19 @@ const CLINICAL_NAV: Record<InstitutionType, NavItem[][]> = {
       { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intel.' },
       { href: '/team',              icon: '👥', label: 'Equipa' },
       { href: '/calculos',          icon: '🧮', label: 'Calculadoras' },
-    ],
-    [
-      { href: '/toolkit', icon: '🧰', label: 'Ferramentas' },
+      { href: '/connect',           icon: '🔗', label: 'Connect' },
     ],
   ],
 }
 
 // Mobile bottom tabs per institution
 const CLINICAL_BOTTOM: Record<InstitutionType, { href: string; icon: string; label: string }[]> = {
-  hospital:           [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/turno', icon: '🏥', label: 'Turno' }, { href: '/rounds', icon: '👨‍⚕️', label: 'Ronda' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
-  pharmacy_hospital:  [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/prescription-queue', icon: '📬', label: 'Validação' }, { href: '/rounds', icon: '👨‍⚕️', label: 'Ronda' }, { href: '/drug-intelligence', icon: '🧬', label: 'Drug' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
-  pharmacy_community: [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Clientes' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/counseling', icon: '📋', label: 'Consult.' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
-  nursing_home:       [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/patients', icon: '🤝', label: 'Resid.' }, { href: '/stopp-start', icon: '🛑', label: 'STOPP' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
-  clinic:             [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
-  health_center:      [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Utentes' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/toolkit', icon: '🧰', label: 'Mais' }],
+  hospital:           [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/rounds', icon: '🔬', label: 'Ronda' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
+  pharmacy_hospital:  [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/prescription-queue', icon: '📬', label: 'Validação' }, { href: '/drug-intelligence', icon: '🧬', label: 'Drug' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
+  pharmacy_community: [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Clientes' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/counseling', icon: '📋', label: 'Consult.' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
+  nursing_home:       [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🤝', label: 'Resid.' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/stopp-start', icon: '🛑', label: 'STOPP' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
+  clinic:             [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/rounds', icon: '🔬', label: 'Ronda' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
+  health_center:      [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Utentes' }, { href: '/rounds', icon: '🔬', label: 'Ronda' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
 }
 
 const MODE_LABEL: Record<ExperienceMode, string> = {
