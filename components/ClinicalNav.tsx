@@ -38,6 +38,7 @@ const ICONS: Record<string, (color: string, size?: number) => React.ReactNode> =
   carelog: (c, s) => <Svg color={c} size={s}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/><circle cx="12" cy="12" r="1" fill={c}/></Svg>,
   residentes: (c, s) => <Svg color={c} size={s}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Svg>,
   transfer: (c, s) => <Svg color={c} size={s}><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></Svg>,
+  incidents: (c, s) => <Svg color={c} size={s}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Svg>,
 }
 
 function getLinks(institution: InstType): { main: NavItem[]; secondary: NavItem[] } {
@@ -85,10 +86,11 @@ function getLinks(institution: InstType): { main: NavItem[]; secondary: NavItem[
           { href: '/patients',    label: 'Residentes',    short: 'Resid.',   icon: ICONS.residentes },
           { href: '/mar',         label: 'MAR',           short: 'MAR',      icon: ICONS.mar },
           { href: '/assessments', label: 'Avaliações',    short: 'Aval.',    icon: ICONS.assessments },
-          { href: '/care-log',    label: 'Reg. Diários',  short: 'Registos', icon: ICONS.carelog },
-          { href: '/handover',    label: 'Pass. Turno',   short: 'Turno',    icon: ICONS.transfer },
+          { href: '/care-log',    label: 'Reg. Diários',  short: 'Diários',  icon: ICONS.carelog },
         ],
         secondary: [
+          { href: '/handover',        label: 'Pass. Turno',    short: 'Turno',   icon: ICONS.transfer },
+          { href: '/incidents',       label: 'Ocorrências',    short: 'Occur.',  icon: ICONS.incidents },
           { href: '/rounds',          label: 'Ronda',          short: 'Ronda',   icon: ICONS.rounds },
           { href: '/team',            label: 'Equipa',         short: 'Equipa',  icon: ICONS.team },
           { href: '/residentes',      label: 'Rev. Farmacot.', short: 'Rev.',    icon: ICONS.drug },

@@ -82,8 +82,8 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '📋', label: 'Avaliações',    href: '/assessments' },
     { icon: '📓', label: 'Reg. Diários',  href: '/care-log' },
     { icon: '🔁', label: 'Pass. Turno',   href: '/handover' },
+    { icon: '⚠️', label: 'Ocorrências',   href: '/incidents' },
     { icon: '🛑', label: 'STOPP/START',   href: '/stopp-start' },
-    { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
     { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   clinic: [
@@ -140,6 +140,7 @@ export default function Cockpit() {
   const [marRecords, setMarRecords] = useState<MarRecord[]>([])
   const [careRecordsToday, setCareRecordsToday] = useState<CareRecordLight[]>([])
   const [assessmentsRecent, setAssessmentsRecent] = useState<AssessmentLight[]>([])
+  const [openIncidents, setOpenIncidents] = useState<number>(0)
 
   // Sync role from org profile on first load (only if not already set by user)
   useEffect(() => {
@@ -184,10 +185,12 @@ export default function Cockpit() {
       supabase.from('mar_records').select('id,patient_id,shift,date,status').eq('user_id', user.id).eq('date', today),
       supabase.from('care_records').select('id,patient_id,shift,date').eq('user_id', user.id).eq('date', today),
       supabase.from('assessments').select('id,patient_id,scale,score,date').eq('user_id', user.id).gte('date', monthAgo),
-    ]).then(([mar, care, assess]) => {
+      supabase.from('incidents').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'open'),
+    ]).then(([mar, care, assess, inc]) => {
       setMarRecords(mar.data ?? [])
       setCareRecordsToday(care.data ?? [])
       setAssessmentsRecent(assess.data ?? [])
+      setOpenIncidents(inc.count ?? 0)
     })
   }, [user, supabase, institution])
 
@@ -327,9 +330,10 @@ export default function Cockpit() {
       { label: `Reg. ${shiftLabel}`, value: careThisShift, unit: '', sub: patientCount > 0 ? `${carePct}% completos` : 'Sem residentes', color: carePct >= 80 ? '#16a34a' : '#ca8a04', bg: carePct >= 80 ? '#f0fdf4' : '#fffbeb', action_href: '/care-log', icon: '📓' },
       { label: 'Aval. pendentes', value: unassessed, unit: '', sub: unassessed > 0 ? 'Sem avaliação (30d)' : 'Todos avaliados', color: unassessed > 0 ? '#ea580c' : '#16a34a', bg: unassessed > 0 ? '#fff7ed' : '#f0fdf4', action_href: '/assessments', icon: '📋' },
       { label: 'Alto risco', value: highRiskIds.size, unit: '', sub: highRiskIds.size > 0 ? 'Requer atenção esp.' : 'Sem alto risco', color: highRiskIds.size > 0 ? '#7c3aed' : '#16a34a', bg: highRiskIds.size > 0 ? '#faf5ff' : '#f0fdf4', action_href: '/assessments', icon: '⚠️' },
+      { label: 'Ocorrências', value: openIncidents, unit: '', sub: openIncidents > 0 ? 'Em aberto' : 'Nenhuma em aberto', color: openIncidents > 0 ? '#dc2626' : '#16a34a', bg: openIncidents > 0 ? '#fee2e2' : '#f0fdf4', action_href: '/incidents', icon: '⚠️' },
       { label: 'Equipa turno', value: team.length ? `${onShift}/${team.length}` : '—', unit: '', sub: `Turno ${shiftLabel}`, color: '#0d9488', bg: '#f0fdfa', action_href: '/team', icon: '👥' },
     ]
-  }, [institution, patientCount, marRecords, careRecordsToday, assessmentsRecent, team])
+  }, [institution, patientCount, marRecords, careRecordsToday, assessmentsRecent, team, openIncidents])
 
   const now = new Date()
   const hour = now.getHours()

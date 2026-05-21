@@ -424,7 +424,6 @@ export default function ResidentesPage() {
   const [showAddForm, setShowAddForm] = useState(false)
 
   const plan = (user as any)?.plan || 'free'
-  const orgId = (user as any)?.org_id || null
   const canUse = plan === 'pro' || plan === 'clinic'
 
   useEffect(() => {
@@ -436,16 +435,51 @@ export default function ResidentesPage() {
   const loadResidents = async () => {
     setLoading(true)
     try {
-      const { data: sd } = await supabase.auth.getSession()
-      const token = sd?.session?.access_token
-      if (!token) throw new Error('Sem sessão')
-      const { data, error: dbErr } = await supabase
-        .from('residents')
+      const { data: patients, error: pErr } = await supabase
+        .from('patients')
         .select('*')
-        .eq('org_id', orgId || user?.id)
+        .eq('user_id', user!.id)
         .order('name')
-      if (dbErr) throw new Error(dbErr.message)
-      setResidents(data || [])
+      if (pErr) throw new Error(pErr.message)
+
+      const patientIds = (patients || []).map((p: any) => p.id)
+      let medsByPatient: Record<string, any[]> = {}
+      if (patientIds.length > 0) {
+        const { data: meds } = await supabase
+          .from('patient_meds')
+          .select('*')
+          .in('patient_id', patientIds)
+        ;(meds || []).forEach((m: any) => {
+          if (!medsByPatient[m.patient_id]) medsByPatient[m.patient_id] = []
+          medsByPatient[m.patient_id].push(m)
+        })
+      }
+
+      const mapped: Resident[] = (patients || []).map((p: any) => {
+        const age = p.age ?? (p.dob ? Math.floor((Date.now() - new Date(p.dob).getTime()) / 31557600000) : 0)
+        const meds = (medsByPatient[p.id] || []).map((m: any) => ({
+          name: m.name || m.med_name || '',
+          dose: m.dose || '',
+          frequency: m.frequency || m.freq || '',
+          route: m.route || 'oral',
+        }))
+        return {
+          id: p.id,
+          name: p.name,
+          age,
+          room: p.room_number || p.room || '—',
+          diagnosis: p.conditions || p.diagnosis || p.notes || '—',
+          medications: meds,
+          allergies: p.allergies ? p.allergies.split(',').map((a: string) => a.trim()).filter(Boolean) : [],
+          weight: p.weight ?? undefined,
+          creatinine: p.creatinine ?? undefined,
+          last_review: p.last_review ?? undefined,
+          risk_level: p.risk_level ?? undefined,
+          alert_count: p.alert_count ?? 0,
+          notes: p.notes ?? undefined,
+        }
+      })
+      setResidents(mapped)
     } catch (_e: any) {
       setResidents([])
     } finally {
