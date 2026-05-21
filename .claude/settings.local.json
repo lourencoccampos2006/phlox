@@ -14,7 +14,10 @@
       "Bash(npm install *)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Fernando\\\\phlox\\\\components\" -Filter \"*.tsx\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object Name)",
-      "Bash(cd /mnt/c/Users/Fernando/phlox && npx tsc --noEmit 2>&1 | head -60)"
+      "Bash(cd /mnt/c/Users/Fernando/phlox && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(Get-Content \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\drug-intelligence\\\\page.tsx\")",
+      "Bash(Measure-Object -Line)",
+      "Bash(grep -n \"patient-form-3col\\\\|style.*\\\\`\\\\|@media\" \"c:/Users/Fernando/phlox/app/patients/page.tsx\")"
     ]
   }
 }

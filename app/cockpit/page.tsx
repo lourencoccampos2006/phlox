@@ -279,82 +279,77 @@ export default function Cockpit() {
 
       {/* Command Header */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '14px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px' }}>
 
+          {/* Row 1: greeting + status badges */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 18, fontWeight: 900, color: 'white', letterSpacing: '-0.02em' }}>
-                  {greeting}{user ? `, ${(user as any).name?.split(' ')[0] ?? ''}` : ''}
-                </span>
-                <span style={{ fontSize: 11, color: '#475569' }}>·</span>
-                <span style={{ fontSize: 11, color: '#64748b', textTransform: 'capitalize' }}>{dateStr}</span>
+              <div style={{ fontSize: 17, fontWeight: 900, color: 'white', letterSpacing: '-0.02em', marginBottom: 2 }}>
+                {greeting}{user ? `, ${(user as any).name?.split(' ')[0] ?? ''}` : ''}
               </div>
-              <button onClick={() => setShowRoleSelector(s => !s)} style={{
-                display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
-                cursor: 'pointer', padding: '2px 0', marginTop: 2,
-              }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: roleMeta.color }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: roleMeta.color }}>{roleMeta.icon} {roleMeta.label}</span>
-                <span style={{ fontSize: 10, color: '#334155' }}>· {instMeta.icon} {instMeta.label}</span>
-                <span style={{ fontSize: 10, color: '#334155', marginLeft: 2 }}>▾</span>
-              </button>
+              <div style={{ fontSize: 11, color: '#475569', textTransform: 'capitalize' }}>{dateStr}</div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {criticalCount > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#dc262620', border: '1px solid #dc262640', borderRadius: 20 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#dc2626' }}>{criticalCount} crítico{criticalCount !== 1 ? 's' : ''}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: '#dc262618', border: '1px solid #dc262640', borderRadius: 20 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#dc2626', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626' }}>{criticalCount} crítico{criticalCount !== 1 ? 's' : ''}</span>
                 </div>
               )}
               {highCount > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#ea580c15', border: '1px solid #ea580c30', borderRadius: 20 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#ea580c' }}>{highCount} {highCount !== 1 ? 'alertas' : 'alerta'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: '#ea580c12', border: '1px solid #ea580c30', borderRadius: 20 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>{highCount} {highCount !== 1 ? 'alertas' : 'alerta'}</span>
                 </div>
               )}
               {!loading && criticalCount === 0 && highCount === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#16a34a15', border: '1px solid #16a34a30', borderRadius: 20 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>Sem alertas activos</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: '#16a34a12', border: '1px solid #16a34a30', borderRadius: 20 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Tudo em ordem</span>
                 </div>
               )}
             </div>
+          </div>
 
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {((): { label: string; href: string; icon: string }[] => {
+          {/* Row 2: role/institution + quick links */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={() => setShowRoleSelector(s => !s)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, background: '#1e293b', border: '1px solid #334155',
+              cursor: 'pointer', padding: '6px 12px', borderRadius: 8,
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: roleMeta.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: roleMeta.color }}>{roleMeta.label}</span>
+              <span style={{ fontSize: 11, color: '#475569' }}>· {instMeta.label}</span>
+              <span style={{ fontSize: 10, color: '#475569' }}>▾</span>
+            </button>
+
+            <div className="cockpit-quick-links">
+              {((): { label: string; href: string }[] => {
                 if (institution === 'pharmacy_community') return [
-                  { label: 'Clientes', href: '/patients', icon: '🗂️' },
-                  { label: 'Interações', href: '/interactions', icon: '🔍' },
-                  { label: 'Aconselhamento', href: '/counseling', icon: '📋' },
-                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                  { label: 'Clientes', href: '/patients' },
+                  { label: 'Interações', href: '/interactions' },
+                  { label: 'Connect', href: '/connect' },
                 ]
                 if (institution === 'nursing_home') return [
-                  { label: 'Residentes', href: '/patients', icon: '🤝' },
-                  { label: 'MAR', href: '/mar', icon: '📋' },
-                  { label: 'STOPP/START', href: '/stopp-start', icon: '🛑' },
-                  { label: 'Connect', href: '/connect', icon: '🔗' },
-                ]
-                if (institution === 'clinic' || institution === 'health_center') return [
-                  { label: 'Doentes', href: '/patients', icon: '🗂️' },
-                  { label: 'Ronda', href: '/rounds', icon: '🔬' },
-                  { label: 'MAR', href: '/mar', icon: '📋' },
-                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                  { label: 'Residentes', href: '/patients' },
+                  { label: 'MAR', href: '/mar' },
+                  { label: 'Connect', href: '/connect' },
                 ]
                 return [
-                  { label: 'Doentes', href: '/patients', icon: '🗂️' },
-                  { label: 'MAR', href: '/mar', icon: '📋' },
-                  { label: 'Ronda', href: '/rounds', icon: '🔬' },
-                  { label: 'Connect', href: '/connect', icon: '🔗' },
+                  { label: 'Doentes', href: '/patients' },
+                  { label: 'MAR', href: '/mar' },
+                  { label: 'Ronda', href: '/rounds' },
+                  { label: 'Connect', href: '/connect' },
                 ]
               })().map(l => (
                 <Link key={l.href} href={l.href} style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
-                  background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
-                  textDecoration: 'none', fontSize: 11, fontWeight: 600, color: '#94a3b8',
+                  padding: '6px 12px',
+                  background: 'transparent', border: '1px solid #334155', borderRadius: 8,
+                  textDecoration: 'none', fontSize: 12, fontWeight: 600, color: '#94a3b8',
+                  whiteSpace: 'nowrap', transition: 'all 0.1s',
                 }}>
-                  {l.icon} {l.label}
+                  {l.label}
                 </Link>
               ))}
             </div>
@@ -653,10 +648,20 @@ export default function Cockpit() {
               </div>
             </div>
 
-            {/* Responsive fix: stack on mobile */}
             <style>{`
-              @media(max-width:768px){
-                .cockpit-main{grid-template-columns:1fr!important}
+              .cockpit-quick-links {
+                display: flex;
+                gap: 6px;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+              }
+              @media (max-width: 768px) {
+                .cockpit-main { grid-template-columns: 1fr !important; }
+                .cockpit-quick-links { gap: 5px; }
+              }
+              @media (max-width: 480px) {
+                .cockpit-main > div:last-child { display: none; }
               }
             `}</style>
           </>

@@ -151,20 +151,17 @@ function AdminCell({
   }
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', gap: 4 }}>
-        {(Object.keys(STATUS_LABELS) as NonNullable<AdminStatus>[]).map(st => {
-          const sl = STATUS_LABELS[st]
-          const shortLabel = st === 'administered' ? '✓' : st === 'refused' ? 'R' : 'S'
-          return (
-            <button key={st} onClick={() => onChange(st, '')}
-              title={sl.label}
-              style={{ width: 28, height: 28, border: `1px solid ${sl.border}`, borderRadius: 5, background: sl.bg, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: sl.color }}>
-              {shortLabel}
-            </button>
-          )
-        })}
-      </div>
+    <div className="mar-admin-btns">
+      {(Object.keys(STATUS_LABELS) as NonNullable<AdminStatus>[]).map(st => {
+        const sl = STATUS_LABELS[st]
+        return (
+          <button key={st} onClick={() => onChange(st, '')}
+            title={sl.label}
+            style={{ padding: '6px 10px', minHeight: 38, border: `1px solid ${sl.border}`, borderRadius: 6, background: sl.bg, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: sl.color, fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {sl.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -371,78 +368,70 @@ export default function MARPage() {
 
 
       {/* MAR Header */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
+      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '14px 0' }}>
         <div className="page-container">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+
+          {/* Title row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
             <div>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Link href="/cockpit" style={{ color: 'var(--ink-5)', textDecoration: 'none' }}>Cockpit</Link>
-                <span>›</span>
-                <span>MAR</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>
-                  Registo de Administração
-                </h1>
-                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '2px 8px', borderRadius: 3, letterSpacing: '0.08em' }}>MAR</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 17, color: 'var(--ink)', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>MAR</h1>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '2px 8px', borderRadius: 3 }}>Registo de Administração</span>
               </div>
               {selectedPatient && total > 0 && (
-                <div style={{ fontSize: 12, color: administered === total ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                  {administered}/{total} administrados neste turno
+                <div style={{ fontSize: 12, color: administered === total ? '#16a34a' : 'var(--ink-4)', fontWeight: 700, marginTop: 3 }}>
+                  {administered}/{total} administrados · turno da {SHIFT_LABELS[shift].label}
                 </div>
               )}
             </div>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* Patient selector */}
-              <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', minWidth: 180 }}>
-                <option value="">Seleccionar doente...</option>
-                {patients.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}</option>
-                ))}
-              </select>
-
-              {/* Date */}
-              <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-
-              {/* Shift selector */}
-              <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden' }}>
-                {(Object.keys(SHIFT_LABELS) as Shift[]).map((s, idx) => {
-                  const sl = SHIFT_LABELS[s]
-                  return (
-                    <button key={s} onClick={() => setShift(s)} title={`Tecla ${idx + 1}`}
-                      style={{ padding: '8px 14px', background: shift === s ? sl.color : 'white', color: shift === s ? 'white' : 'var(--ink-4)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      {sl.label}
-                      <span style={{ fontSize: 9, opacity: 0.6, fontFamily: 'var(--font-mono)' }}>[{idx + 1}]</span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Administer all pending */}
-              {selectedPatient && pendingCount > 0 && (
-                <button onClick={administerAllPending}
-                  style={{ padding: '8px 14px', background: 'var(--green-2)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                  ✓ Todos ({pendingCount})
-                </button>
-              )}
-
-              {/* Print */}
-              <button onClick={() => window.print()} title="Tecla P"
-                style={{ padding: '8px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => window.print()}
+                style={{ padding: '7px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                Imprimir
-                <span style={{ fontSize: 9, opacity: 0.5, fontFamily: 'var(--font-mono)' }}>[P]</span>
+                <span className="mar-print-label">Imprimir</span>
               </button>
-
-              {/* Handover */}
               <Link href="/handover"
-                style={{ padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#1d4ed8', fontFamily: 'var(--font-sans)', fontWeight: 700, textDecoration: 'none' }}>
+                style={{ padding: '7px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#1d4ed8', fontFamily: 'var(--font-sans)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
                 Passagem →
               </Link>
             </div>
+          </div>
+
+          {/* Controls row */}
+          <div className="mar-controls">
+            {/* Patient selector */}
+            <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}
+              style={{ flex: 1, minWidth: 160, border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', color: selectedPatient ? 'var(--ink)' : 'var(--ink-4)' }}>
+              <option value="">Seleccionar doente...</option>
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}</option>
+              ))}
+            </select>
+
+            {/* Shift selector */}
+            <div style={{ display: 'flex', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {(Object.keys(SHIFT_LABELS) as Shift[]).map(s => {
+                const sl = SHIFT_LABELS[s]
+                return (
+                  <button key={s} onClick={() => setShift(s)}
+                    style={{ padding: '10px 16px', background: shift === s ? sl.color : 'white', color: shift === s ? 'white' : 'var(--ink-4)', border: 'none', borderRight: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'all 0.12s', whiteSpace: 'nowrap' }}>
+                    {sl.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Date */}
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', flexShrink: 0 }} />
+
+            {/* Administer all pending */}
+            {selectedPatient && pendingCount > 0 && (
+              <button onClick={administerAllPending}
+                style={{ padding: '10px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                ✓ Todos ({pendingCount})
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -561,8 +550,8 @@ export default function MARPage() {
 
             {/* MAR table */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-              {/* Table header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 160px', gap: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', padding: '10px 16px' }}>
+              {/* Table header — hidden on mobile */}
+              <div className="mar-table-header" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 220px', gap: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', padding: '10px 16px' }}>
                 {['Medicamento', 'Dose', 'Frequência', 'Registo'].map(h => (
                   <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
                 ))}
@@ -573,14 +562,14 @@ export default function MARPage() {
                 const rec = getRecord(med.id)
                 const isSaving = saving === med.id
                 return (
-                  <div key={med.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 160px', gap: 0, padding: '12px 16px', borderBottom: i < meds.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'start', opacity: isSaving ? 0.6 : 1, transition: 'opacity 0.15s' }}>
-                    <div>
+                  <div key={med.id} className="mar-table-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 220px', gap: 0, padding: '12px 16px', borderBottom: i < meds.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'start', opacity: isSaving ? 0.6 : 1, transition: 'opacity 0.15s' }}>
+                    <div className="mar-col-name">
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{med.name}</div>
                       {med.indication && <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{med.indication}</div>}
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.dose || '—'}</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.frequency || '—'}</div>
-                    <div>
+                    <div className="mar-col-dose" style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.dose || '—'}</div>
+                    <div className="mar-col-freq" style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.frequency || '—'}</div>
+                    <div className="mar-col-admin">
                       <AdminCell record={rec} onChange={(status, notes) => handleAdmin(med.id, status, notes)} />
                       {rec?.recorded_at && (
                         <div style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
@@ -617,6 +606,66 @@ export default function MARPage() {
       </div>
 
       <style>{`
+        /* MAR controls: horizontal on desktop, stacked on mobile */
+        .mar-controls {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .mar-admin-btns {
+          display: flex;
+          gap: 5px;
+          flex-wrap: wrap;
+        }
+
+        @media (max-width: 640px) {
+          .mar-controls {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .mar-controls select,
+          .mar-controls input[type="date"] {
+            width: 100%;
+            font-size: 16px !important; /* prevent iOS zoom */
+          }
+          .mar-controls > div { /* shift selector */
+            display: flex;
+          }
+          .mar-controls > div button {
+            flex: 1;
+            padding: 12px 8px !important;
+            font-size: 14px !important;
+          }
+          .mar-table-header { display: none !important; }
+          .mar-table-row {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 4px !important;
+            padding: 14px 16px !important;
+          }
+          .mar-col-name { font-size: 15px; }
+          .mar-col-dose, .mar-col-freq {
+            display: inline !important;
+            font-size: 12px;
+            color: #64748b;
+            padding-top: 0 !important;
+          }
+          .mar-col-dose::after { content: ' · '; color: #94a3b8; }
+          .mar-col-admin { margin-top: 8px; }
+          .mar-admin-btns {
+            flex-direction: column;
+            gap: 6px;
+          }
+          .mar-admin-btns button {
+            width: 100%;
+            min-height: 48px !important;
+            font-size: 14px !important;
+            padding: 10px 16px !important;
+          }
+          .mar-print-label { display: none; }
+        }
+
         @media print {
           @page { size: A4 landscape; margin: 12mm; }
           body { background: white !important; font-size: 11px !important; }

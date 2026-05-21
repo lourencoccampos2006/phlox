@@ -208,18 +208,19 @@ export default function DrugIntelligencePage() {
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="di-tabs" style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
             {[
               { key: 'formulary' as const, label: 'Formulário' },
               { key: 'shortages' as const, label: 'Ruturas', badge: activeShortages },
-              { key: 'analytics' as const, label: 'Análise DDD & Custos' },
+              { key: 'analytics' as const, label: 'DDD & Custos' },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key)} style={{
-                padding: '7px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
+                padding: '8px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
                 background: tab === t.key ? '#fff' : 'transparent',
                 color: tab === t.key ? '#0f172a' : '#94a3b8',
-                fontWeight: tab === t.key ? 600 : 400, fontSize: 13,
-                display: 'flex', alignItems: 'center', gap: 6,
+                fontWeight: tab === t.key ? 600 : 400, fontSize: 14,
+                display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                minHeight: 40, fontFamily: 'inherit',
               }}>
                 {t.label}
                 {'badge' in t && (t.badge ?? 0) > 0 && (
@@ -237,11 +238,11 @@ export default function DrugIntelligencePage() {
         {/* ═══ FORMULARY ══════════════════════════════════════════════════════ */}
         {!loading && tab === 'formulary' && (
           <div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="di-filters" style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
               <input placeholder="Pesquisar fármaco…" value={search} onChange={e => setSearch(e.target.value)}
-                style={{ ...inputStyle, width: 240, flex: 'none' }} />
+                style={{ ...inputStyle, width: 220, flex: 'none', minHeight: 42 }} />
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14 }}>
+                style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, minHeight: 42 }}>
                 <option value="all">Todos os estados</option>
                 {(Object.keys(STATUS_META) as FormularyStatus[]).map(k => (
                   <option key={k} value={k}>{STATUS_META[k].label}</option>
@@ -249,12 +250,10 @@ export default function DrugIntelligencePage() {
               </select>
               <span style={{ color: '#64748b', fontSize: 13 }}>{filteredFormulary.length} fármacos</span>
               <button onClick={openNewDrug} style={{
-                marginLeft: 'auto', padding: '9px 18px', background: '#0f172a', color: '#fff',
-                border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14,
-                display: 'flex', alignItems: 'center', gap: 7,
+                marginLeft: 'auto', padding: '11px 18px', background: '#0f172a', color: '#fff',
+                border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, minHeight: 44, whiteSpace: 'nowrap',
               }}>
                 + Adicionar fármaco
-                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
               </button>
             </div>
 
@@ -484,7 +483,7 @@ export default function DrugIntelligencePage() {
 
                   {/* Flags */}
                   {(highDDD.length > 0 || lowStock.length > 0) && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div className="di-flags-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                       {highDDD.length > 0 && (
                         <div style={{ background: 'white', borderRadius: 12, border: '1px solid #fde68a', padding: '16px 18px' }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#ca8a04', marginBottom: 10 }}>⚠️ DDD elevado (&gt;80/100 PD)</div>
@@ -520,7 +519,7 @@ export default function DrugIntelligencePage() {
       {showDrugModal && (
         <Modal title={editDrug ? 'Editar fármaco' : 'Adicionar fármaco'} onClose={() => setShowDrugModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="di-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Nome *</label>
                 <input style={inputStyle} value={drugForm.name} onChange={e => setDrugForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Vancomicina 500mg IV" />
@@ -530,7 +529,7 @@ export default function DrugIntelligencePage() {
                 <input style={inputStyle} value={drugForm.generic} onChange={e => setDrugForm(f => ({ ...f, generic: e.target.value }))} placeholder="Ex: vancomycin" />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="di-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Classe terapêutica</label>
                 <select style={inputStyle} value={drugForm.class} onChange={e => setDrugForm(f => ({ ...f, class: e.target.value }))}>
@@ -546,7 +545,7 @@ export default function DrugIntelligencePage() {
                 </select>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div className="di-form-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Forma</label>
                 <select style={inputStyle} value={drugForm.form} onChange={e => setDrugForm(f => ({ ...f, form: e.target.value }))}>
@@ -562,7 +561,7 @@ export default function DrugIntelligencePage() {
                 <input style={inputStyle} value={drugForm.atc} onChange={e => setDrugForm(f => ({ ...f, atc: e.target.value }))} placeholder="Ex: J01XA01" />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div className="di-form-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Custo unitário (€)</label>
                 <input style={inputStyle} type="number" min="0" step="0.01" value={drugForm.unit_cost} onChange={e => setDrugForm(f => ({ ...f, unit_cost: parseFloat(e.target.value)||0 }))} />
@@ -646,9 +645,13 @@ export default function DrugIntelligencePage() {
         </Modal>
       )}
       <style>{`
-        @media(max-width:768px){
+        @media(max-width:640px){
+          .di-filters{flex-direction:column;align-items:stretch!important}
+          .di-filters input,.di-filters select{width:100%!important;font-size:16px!important}
+          .di-filters button{margin-left:0!important;width:100%}
           .di-form-grid{grid-template-columns:1fr!important}
-          .di-tabs{overflow-x:auto!important;white-space:nowrap!important}
+          .di-form-3col{grid-template-columns:1fr 1fr!important}
+          .di-flags-grid{grid-template-columns:1fr!important}
         }
         input:focus,textarea:focus,select:focus{border-color:#2563eb!important;outline:none;box-shadow:0 0 0 3px #2563eb18}
       `}</style>

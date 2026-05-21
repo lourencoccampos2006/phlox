@@ -756,7 +756,11 @@ export default function ConnectPage() {
 
       <style>{`
         .dir-item:hover { background: var(--bg) !important; }
-        @media (max-width: 768px) { .connect-grid { grid-template-columns: 1fr !important; height: auto !important; } }
+        @media (max-width: 768px) {
+          .connect-grid { grid-template-columns: 1fr !important; height: auto !important; overflow: visible !important; min-height: 0 !important; }
+          .connect-grid > div:first-child { max-height: 280px; }
+          .connect-grid > div:last-child { min-height: 400px; padding: 12px 14px !important; }
+        }
       `}</style>
     </div>
   )

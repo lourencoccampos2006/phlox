@@ -203,7 +203,7 @@ export default function PatientsPage() {
                         <option value="F">Feminino</option>
                       </select>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                    <div className="patient-form-3col">
                       <input value={newP.weight} onChange={e => setNewP(p => ({ ...p, weight: e.target.value }))}
                         placeholder="Peso (kg)" type="number" step="0.1"
                         style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
@@ -351,7 +351,19 @@ export default function PatientsPage() {
         )}
       </div>
 
-      <style>{`.patient-row:hover { background: #eff6ff !important; }`}</style>
+      <style>{`
+        .patient-row:hover { background: #eff6ff !important; }
+        .patient-form-3col {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 10px;
+        }
+        @media (max-width: 480px) {
+          .patient-form-3col {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   )
 }

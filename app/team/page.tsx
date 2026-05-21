@@ -169,17 +169,17 @@ export default function TeamPage() {
 
         {!loading && (
           <>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-              <select value={shiftFilter} onChange={e => setShiftFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13 }}>
+            <div className="team-filters" style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={shiftFilter} onChange={e => setShiftFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, minHeight: 42 }}>
                 <option value="all">Todos os turnos</option>
                 {(Object.keys(SHIFT_META) as ShiftType[]).map(k => <option key={k} value={k}>{SHIFT_META[k].label}</option>)}
               </select>
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13 }}>
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, minHeight: 42 }}>
                 <option value="all">Todos os estados</option>
                 {(Object.keys(STATUS_META) as MemberStatus[]).map(k => <option key={k} value={k}>{STATUS_META[k].label}</option>)}
               </select>
               <span style={{ color: '#64748b', fontSize: 13 }}>{filtered.length} membros</span>
-              <button onClick={openNew} style={{ marginLeft: 'auto', padding: '9px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <button onClick={openNew} style={{ marginLeft: 'auto', padding: '11px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, minHeight: 44, whiteSpace: 'nowrap' }}>
                 + Adicionar membro
               </button>
             </div>
@@ -250,8 +250,8 @@ export default function TeamPage() {
                               )}
                             </div>
                             <div style={{ display: 'flex', gap: 5, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                              <button onClick={() => openEdit(m)} style={{ padding: '4px 9px', background: '#f1f5f9', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>✏️</button>
-                              <button onClick={() => deleteMember(m.id)} style={{ padding: '4px 9px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>✕</button>
+                              <button onClick={() => openEdit(m)} style={{ padding: '8px 12px', background: '#f1f5f9', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14, minHeight: 38 }}>✏️</button>
+                              <button onClick={() => deleteMember(m.id)} style={{ padding: '8px 12px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14, minHeight: 38 }}>✕</button>
                             </div>
                           </div>
                         </div>
@@ -263,7 +263,7 @@ export default function TeamPage() {
 
               {/* Detail panel */}
               {selectedMember && (
-                <div style={{ width: 280, flexShrink: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 18, alignSelf: 'flex-start', position: 'sticky', top: 20 }}>
+                <div className="team-detail-panel" style={{ width: 280, flexShrink: 0, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 18, alignSelf: 'flex-start', position: 'sticky', top: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedMember.name}</div>
@@ -311,7 +311,7 @@ export default function TeamPage() {
               <label style={labelStyle}>Nome completo *</label>
               <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Dra. Ana Costa" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="team-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Função</label>
                 <select style={inputStyle} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as RoleType }))}>
@@ -323,7 +323,7 @@ export default function TeamPage() {
                 <input style={inputStyle} value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} placeholder="Ex: UCI, Medicina Interna" />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="team-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Telefone</label>
                 <input style={inputStyle} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Ex: 916 234 567" />
@@ -336,7 +336,7 @@ export default function TeamPage() {
               </div>
             </div>
             {form.shift !== 'off' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="team-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={labelStyle}>Início do turno</label>
                   <input style={inputStyle} type="time" value={form.shift_start} onChange={e => setForm(f => ({ ...f, shift_start: e.target.value }))} />
@@ -347,7 +347,7 @@ export default function TeamPage() {
                 </div>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="team-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Estado atual</label>
                 <select style={inputStyle} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as MemberStatus }))}>
@@ -377,10 +377,12 @@ export default function TeamPage() {
         </Modal>
       )}
       <style>{`
-        @media(max-width:768px){
-          .team-layout{grid-template-columns:1fr!important}
+        @media(max-width:640px){
+          .team-filters{flex-direction:column;align-items:stretch!important}
+          .team-filters select{width:100%;font-size:16px!important}
+          .team-filters button{margin-left:0!important;width:100%}
           .team-form-grid{grid-template-columns:1fr!important}
-          .team-cards{grid-template-columns:1fr!important}
+          .team-detail-panel{width:100%!important;position:static!important}
         }
         input:focus,textarea:focus,select:focus{border-color:#1d4ed8!important;outline:none;box-shadow:0 0 0 3px #1d4ed818}
       `}</style>

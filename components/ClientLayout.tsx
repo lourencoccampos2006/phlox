@@ -1,81 +1,77 @@
 'use client'
 
 import Header from '@/components/Header'
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { ClinicalSideNav, ClinicalBottomNav } from '@/components/ClinicalNav'
+import { usePathname } from 'next/navigation'
+import { useAuth } from '@/components/AuthContext'
+import { useState, useEffect } from 'react'
+
+const CLINICAL_PREFIXES = [
+  '/cockpit', '/patients', '/rounds', '/mar', '/team',
+  '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
+]
 
 function ScrollToTop() {
   const [visible, setVisible] = useState(false)
-
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 400)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const fn = () => setVisible(window.scrollY > 400)
+    window.addEventListener('scroll', fn, { passive: true })
+    return () => window.removeEventListener('scroll', fn)
   }, [])
-
   if (!visible) return null
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       aria-label="Voltar ao topo"
       style={{
-        position: 'fixed', bottom: 80, right: 20, zIndex: 200,
-        width: 40, height: 40, borderRadius: '50%',
+        position: 'fixed', bottom: 84, right: 16, zIndex: 200,
+        width: 38, height: 38, borderRadius: '50%',
         background: 'var(--ink)', color: 'white',
-        border: 'none', cursor: 'pointer', fontSize: 16,
+        border: 'none', cursor: 'pointer', fontSize: 14,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
         opacity: 0.85,
       }}
-    >
-      ↑
-    </button>
+    >↑</button>
   )
 }
 
-function CmdKHint() {
-  const [show, setShow] = useState(false)
-  useEffect(() => {
-    const timer = setTimeout(() => setShow(false), 2400)
-    return () => clearTimeout(timer)
-  }, [show])
-  return show ? (
-    <div style={{
-      position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-      background: 'var(--ink)', color: 'white', borderRadius: 8,
-      padding: '8px 16px', fontSize: 13, fontFamily: 'var(--font-mono)',
-      zIndex: 300, pointerEvents: 'none', whiteSpace: 'nowrap',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.22)',
-    }}>
-      ⌘K — Ferramentas rápidas
-    </div>
-  ) : null
-}
-
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const [cmdK, setCmdK] = useState(false)
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      e.preventDefault()
-      setCmdK(true)
-      setTimeout(() => setCmdK(false), 2400)
-      router.push('/ferramentas')
-    }
-  }, [router])
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+  const pathname = usePathname()
+  const { user } = useAuth() as any
+  const mode = user?.experience_mode
+  const isClinical = mode === 'clinical' &&
+    CLINICAL_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   return (
     <>
       <Header />
-      {children}
+      {isClinical && <ClinicalSideNav />}
+      <div id="app-main" className={isClinical ? 'clinical-layout' : ''}>
+        {children}
+      </div>
+      {isClinical && <ClinicalBottomNav />}
       <ScrollToTop />
-      {cmdK && <CmdKHint />}
+      <style>{`
+        /* Clinical layout: bottom nav on mobile, sidebar on desktop */
+        .clinical-layout {
+          padding-bottom: 64px;
+        }
+        @media (min-width: 769px) {
+          .clinical-layout {
+            padding-left: 220px;
+            padding-bottom: 0;
+          }
+          .clinical-bottom-nav {
+            display: none !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .clinical-side-nav {
+            display: none !important;
+          }
+        }
+      `}</style>
     </>
   )
 }

@@ -8,8 +8,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { NAV_CATEGORIES, PERSONA_NAV, MODE_QUICK_ACTIONS, type NavTool } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type HeaderUser = {
   id: string
   name: string
@@ -30,7 +28,6 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
     cat.tools.map(t => ({ ...t, categoryLabel: cat.label, categoryColor: cat.color }))
   )
 
-  // Show mode-relevant tools first as popular suggestions
   const modeQuickHrefs = new Set((MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal).map(a => a.href))
   const popularTools = [
     ...allTools.filter(t => modeQuickHrefs.has(t.href)),
@@ -51,9 +48,7 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
   }, [])
 
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', fn)
     document.body.style.overflow = 'hidden'
     return () => {
@@ -65,26 +60,17 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 500,
-      background: 'rgba(0,0,0,0.55)',
-      backdropFilter: 'blur(6px)',
-      WebkitBackdropFilter: 'blur(6px)',
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
       paddingTop: 80,
-      animation: 'fadeInOverlay 0.15s ease',
     }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{
-        width: 'min(640px, 94vw)',
-        background: 'white',
-        borderRadius: 18,
-        boxShadow: '0 32px 100px rgba(0,0,0,0.22)',
+        width: 'min(640px, 94vw)', background: 'white',
+        borderRadius: 18, boxShadow: '0 32px 100px rgba(0,0,0,0.22)',
         overflow: 'hidden',
         animation: 'searchSlideDown 0.18s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        {/* Search input row */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 18px', borderBottom: '1px solid #f1f5f9',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
           </svg>
@@ -93,30 +79,16 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Pesquisar ferramentas..."
-            style={{
-              flex: 1, border: 'none', outline: 'none', fontSize: 16,
-              color: '#0f172a', background: 'transparent', fontFamily: 'inherit',
-            }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: '#0f172a', background: 'transparent', fontFamily: 'inherit' }}
           />
           {query && (
-            <button onClick={() => setQuery('')} style={{
-              background: '#f1f5f9', border: 'none', borderRadius: '50%',
-              width: 22, height: 22, cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+            <button onClick={() => setQuery('')} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
-          <kbd style={{
-            fontSize: 11, color: '#94a3b8', background: '#f8fafc',
-            border: '1px solid #e2e8f0', borderRadius: 5,
-            padding: '2px 7px', fontFamily: 'inherit', flexShrink: 0,
-          }}>Esc</kbd>
+          <kbd style={{ fontSize: 11, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 5, padding: '2px 7px', fontFamily: 'inherit' }}>Esc</kbd>
         </div>
 
-        {/* Results or popular */}
         <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {query.trim() ? (
             filtered.length > 0 ? (
@@ -125,30 +97,16 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
                   {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
                 </div>
                 {filtered.map(tool => (
-                  <Link key={tool.href} href={tool.href} onClick={onClose}
-                    className="srch-item"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 13,
-                      padding: '10px 18px', textDecoration: 'none',
-                    }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 9,
-                      background: `${tool.categoryColor}14`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 18, flexShrink: 0,
-                    }}>
+                  <Link key={tool.href} href={tool.href} onClick={onClose} className="srch-item"
+                    style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '10px 18px', textDecoration: 'none' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9, background: `${tool.categoryColor}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                       {tool.icon}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{tool.label}</div>
                       <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{tool.desc}</div>
                     </div>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, color: tool.categoryColor,
-                      background: `${tool.categoryColor}14`, padding: '2px 7px',
-                      borderRadius: 4, flexShrink: 0, letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                    }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tool.categoryColor, background: `${tool.categoryColor}14`, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>
                       {tool.categoryLabel}
                     </span>
                   </Link>
@@ -156,7 +114,7 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
               </div>
             ) : (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
-                Nenhuma ferramenta encontrada para "{query}"
+                Nenhuma ferramenta encontrada para &quot;{query}&quot;
               </div>
             )
           ) : (
@@ -166,14 +124,8 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                 {popularTools.map(tool => (
-                  <Link key={tool.href} href={tool.href} onClick={onClose}
-                    className="srch-pop-item"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 12px', borderRadius: 10,
-                      border: '1px solid #f1f5f9',
-                      textDecoration: 'none', transition: 'all 0.12s',
-                    }}>
+                  <Link key={tool.href} href={tool.href} onClick={onClose} className="srch-pop-item"
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, border: '1px solid #f1f5f9', textDecoration: 'none' }}>
                     <span style={{ fontSize: 18 }}>{tool.icon}</span>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{tool.label}</div>
@@ -183,8 +135,7 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
                 ))}
               </div>
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f8fafc', display: 'flex', justifyContent: 'center' }}>
-                <Link href="/ferramentas" onClick={onClose}
-                  style={{ fontSize: 13, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>
+                <Link href="/ferramentas" onClick={onClose} style={{ fontSize: 13, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>
                   Ver todas as ferramentas →
                 </Link>
               </div>
@@ -223,9 +174,7 @@ function UserMenu({ user, signOut, supabase, isDark }: {
     window.location.reload()
   }
 
-  const planLabels: Record<string, string> = {
-    free: 'Grátis', student: 'Estudante', pro: 'Pro', clinic: 'Clínica',
-  }
+  const planLabels: Record<string, string> = { free: 'Grátis', student: 'Estudante', pro: 'Pro', clinic: 'Clínica' }
 
   const MODES_LIST = [
     { id: 'personal'  as ExperienceMode, icon: '👤', labelShort: 'Pessoal',   color: MODE_META.personal.color },
@@ -234,9 +183,12 @@ function UserMenu({ user, signOut, supabase, isDark }: {
     { id: 'student'   as ExperienceMode, icon: '🎓', labelShort: 'Estudante', color: MODE_META.student.color },
   ]
 
+  const avatarContent = user.avatar
+    ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    : (user.name?.[0] || 'U').toUpperCase()
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {/* Trigger button */}
       <button
         onClick={() => {
           if (!open && ref.current) {
@@ -247,29 +199,26 @@ function UserMenu({ user, signOut, supabase, isDark }: {
         }}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
-          padding: '4px 10px 4px 4px',
+          padding: '4px 8px 4px 4px',
           background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
           border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'}`,
           borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
         }}>
         <div style={{
-          width: 28, height: 28, borderRadius: '50%',
-          background: color, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: 'white', fontSize: 12,
-          fontWeight: 700, overflow: 'hidden',
+          width: 28, height: 28, borderRadius: '50%', background: color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', fontSize: 12, fontWeight: 700, overflow: 'hidden',
         }}>
-          {user.avatar
-            ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : (user.name?.[0] || 'U').toUpperCase()}
+          {avatarContent}
         </div>
-        <span style={{
+        <span className="hdr-user-name" style={{
           fontSize: 13, fontWeight: 600,
           color: isDark ? 'rgba(255,255,255,0.85)' : '#374151',
           maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {user.name?.split(' ')[0]}
         </span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+        <svg className="hdr-user-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none"
           stroke={isDark ? 'rgba(255,255,255,0.5)' : '#9ca3af'}
           strokeWidth="2.5" strokeLinecap="round">
           <path d="M6 9l6 6 6-6"/>
@@ -283,32 +232,21 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             position: 'fixed', right: dropRight, top: 64,
             background: 'white', border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.14)',
-            width: 248, maxWidth: 'none', zIndex: 999, overflow: 'hidden',
+            width: 248, zIndex: 999, overflow: 'hidden',
             animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
           }}>
             {/* User card */}
             <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                  background: color, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700,
-                  overflow: 'hidden', border: `2px solid ${color}30`,
-                }}>
-                  {user.avatar
-                    ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : (user.name?.[0] || 'U').toUpperCase()}
+                <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700, overflow: 'hidden' }}>
+                  {avatarContent}
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.name}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 3,
-                      padding: '2px 8px', borderRadius: 20,
-                      background: `${color}15`, fontSize: 10, fontWeight: 700, color: color,
-                    }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, background: `${color}15`, fontSize: 10, fontWeight: 700, color }}>
                       <span style={{ width: 4, height: 4, borderRadius: '50%', background: color }} />
                       {modeMeta.labelShort}
                     </span>
@@ -320,25 +258,18 @@ function UserMenu({ user, signOut, supabase, isDark }: {
               </div>
             </div>
 
-            {/* Nav */}
             {[
-              { href: '/inicio',      label: 'Início',       icon: '🏠' },
-              { href: '/ferramentas', label: 'Ferramentas',  icon: '🔧' },
-              { href: '/settings',    label: 'Definições',   icon: '⚙️' },
+              { href: '/inicio',      label: 'Início',      icon: '🏠' },
+              { href: '/ferramentas', label: 'Ferramentas', icon: '🔧' },
+              { href: '/settings',    label: 'Definições',  icon: '⚙️' },
             ].map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
-                className="um-item"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 16px', fontSize: 13, fontWeight: 500,
-                  color: '#374151', textDecoration: 'none',
-                }}>
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="um-item"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none' }}>
                 <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
                 {item.label}
               </Link>
             ))}
 
-            {/* Mode switcher */}
             <div style={{ borderTop: '1px solid #f1f5f9', padding: '8px 12px 10px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7, paddingLeft: 4 }}>
                 Mudar modo
@@ -354,9 +285,7 @@ function UserMenu({ user, signOut, supabase, isDark }: {
                       cursor: active ? 'default' : 'pointer',
                       fontSize: 11, fontWeight: active ? 700 : 500,
                       color: active ? m.color : '#64748b',
-                      fontFamily: 'inherit',
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      transition: 'all 0.1s',
+                      fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                     }}>
                       <span style={{ fontSize: 13 }}>{m.icon}</span>
                       {m.labelShort}
@@ -366,16 +295,12 @@ function UserMenu({ user, signOut, supabase, isDark }: {
               </div>
             </div>
 
-            {/* Sign out */}
-            <button
-              onClick={() => { signOut(); setOpen(false) }}
-              style={{
-                width: '100%', padding: '10px 16px', textAlign: 'left',
-                background: 'none', border: 'none', borderTop: '1px solid #f1f5f9',
-                cursor: 'pointer', fontSize: 13, color: '#ef4444',
-                fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
+            <button onClick={() => { signOut(); setOpen(false) }} style={{
+              width: '100%', padding: '10px 16px', textAlign: 'left',
+              background: 'none', border: 'none', borderTop: '1px solid #f1f5f9',
+              cursor: 'pointer', fontSize: 13, color: '#ef4444', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
               </svg>
@@ -388,17 +313,13 @@ function UserMenu({ user, signOut, supabase, isDark }: {
   )
 }
 
-// ─── MobileDrawer ─────────────────────────────────────────────────────────────
 
-function MobileDrawer({ open, onClose, user, signOut, supabase }: {
-  open: boolean
-  onClose: () => void
-  user: HeaderUser | null
-  signOut: () => void
-  supabase: any
+// ─── MobileDrawer (non-clinical mode only) ───────────────────────────────────
+
+function MobileDrawer({ open, onClose, user, signOut }: {
+  open: boolean; onClose: () => void
+  user: HeaderUser | null; signOut: () => void
 }) {
-  const [switching, setSwitching] = useState<string | null>(null)
-
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -408,244 +329,81 @@ function MobileDrawer({ open, onClose, user, signOut, supabase }: {
 
   const mode: ExperienceMode = user?.experience_mode || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
-
-  async function handleModeSwitch(m: ExperienceMode) {
-    if (!user || m === mode || switching) return
-    setSwitching(m)
-    try {
-      await supabase.from('profiles').update({ experience_mode: m }).eq('id', user.id)
-      window.location.reload()
-    } catch {
-      setSwitching(null)
-    }
-  }
-
-  const modes: { id: ExperienceMode; icon: string; label: string }[] = [
-    { id: 'personal',  icon: '👤', label: 'Pessoal' },
-    { id: 'caregiver', icon: '👨‍👩‍👧', label: 'Família' },
-    { id: 'clinical',  icon: '🏥', label: 'Clínico' },
-    { id: 'student',   icon: '🎓', label: 'Estudante' },
-  ]
-
   const personaLinks = user ? (PERSONA_NAV[mode] || PERSONA_NAV.personal) : []
 
   return (
     <>
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-      }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)' }} />
       <div style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0,
-        width: 'min(360px, 100vw)',
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(320px, 100vw)',
         background: 'white', zIndex: 201,
         display: 'flex', flexDirection: 'column',
-        boxShadow: '-20px 0 60px rgba(0,0,0,0.2)',
+        boxShadow: '-16px 0 48px rgba(0,0,0,0.16)',
         animation: 'slideInRight 0.22s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        {/* Header row */}
-        <div style={{
-          padding: '16px 18px', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9',
-          flexShrink: 0, background: 'white',
-        }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Menu</span>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: '50%', background: '#f1f5f9',
-            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Menu</span>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
-        {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-
-          {/* User info + mode badge */}
           {user && (
-            <div style={{ padding: '16px 18px', borderBottom: '1px solid #f8fafc', background: `${modeMeta.color}06` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
-                <div style={{
-                  width: 42, height: 42, borderRadius: '50%',
-                  background: modeMeta.color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontSize: 17, fontWeight: 700,
-                  overflow: 'hidden', flexShrink: 0,
-                }}>
-                  {user.avatar
-                    ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : (user.name?.[0] || 'U').toUpperCase()}
+            <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: modeMeta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+                  {user.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (user.name?.[0] || 'U').toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{user.name}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{user.email}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{user.name}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{user.email}</div>
                 </div>
               </div>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '4px 11px', borderRadius: 20,
-                background: `${modeMeta.color}18`,
-                fontSize: 11, fontWeight: 700, color: modeMeta.color,
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: modeMeta.color }} />
-                {modeMeta.labelShort}
-              </div>
             </div>
           )}
 
-          {/* Quick actions grid */}
-          {user && (
-            <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                Ações rápidas
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7 }}>
-                {(MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal).slice(0, 4).map(action => (
-                  <Link key={action.href} href={action.href} onClick={onClose}
-                    style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                    <div style={{
-                      width: 48, height: 48, borderRadius: 13,
-                      background: `${modeMeta.color}12`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 22,
-                    }}>
-                      {action.icon}
-                    </div>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#374151', textAlign: 'center', lineHeight: 1.2 }}>
-                      {action.label.split(' ')[0]}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 2×2 persona switcher grid */}
-          {user && (
-            <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                Mudar modo
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-                {modes.map(m => {
-                  const mm = MODE_META[m.id]
-                  const active = mode === m.id
-                  const isLoading = switching === m.id
-                  return (
-                    <button key={m.id} onClick={() => handleModeSwitch(m.id)}
-                      disabled={!!switching}
-                      style={{
-                        padding: '10px 10px',
-                        borderRadius: 11,
-                        border: active ? `1.5px solid ${mm.color}40` : '1px solid #f1f5f9',
-                        background: active ? `${mm.color}10` : '#f8fafc',
-                        cursor: switching ? 'wait' : active ? 'default' : 'pointer',
-                        fontFamily: 'inherit', textAlign: 'left',
-                      }}>
-                      <div style={{ fontSize: 20, marginBottom: 5 }}>
-                        {isLoading ? (
-                          <span style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${mm.color}30`, borderTopColor: mm.color, display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                        ) : m.icon}
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: active ? 700 : 600, color: active ? mm.color : '#374151' }}>{m.label}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Persona nav links */}
-          {user && personaLinks.length > 0 && (
-            <div style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ padding: '0 18px 6px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Navegação
-              </div>
-              {personaLinks.map(link => (
-                <Link key={link.href} href={link.href} onClick={onClose}
-                  className="mob-item"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{link.label}</span>
+          {personaLinks.length > 0 && (
+            <div style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '4px 18px 8px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Navegação</div>
+              {personaLinks.map((link: any) => (
+                <Link key={link.href} href={link.href} onClick={onClose} className="mob-item"
+                  style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a' }}>
+                  {link.label}
                 </Link>
               ))}
-              <Link href="/dashboard" onClick={onClose}
-                className="mob-item"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', textDecoration: 'none' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>Painel</span>
-              </Link>
             </div>
           )}
 
-          {/* All tools link */}
-          <div style={{ padding: '14px 18px' }}>
-            <Link href="/ferramentas" onClick={onClose}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                padding: '13px 16px', background: '#f8fafc',
-                border: '1px solid #e2e8f0', borderRadius: 13,
-                fontSize: 14, fontWeight: 700, color: '#0f172a',
-                textDecoration: 'none',
-              }}>
-              🔧 Ver todas as ferramentas
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
+          {[
+            { href: '/ferramentas', label: 'Todas as ferramentas' },
+            { href: '/dashboard',   label: 'Painel de controlo' },
+            { href: '/settings',    label: 'Definições' },
+          ].map(item => (
+            <Link key={item.href} href={item.href} onClick={onClose} className="mob-item"
+              style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a', borderBottom: '1px solid #f8fafc' }}>
+              {item.label}
             </Link>
-          </div>
-          <div style={{ padding: '0 18px 14px' }}>
-            <Link href="/dashboard" onClick={onClose}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                padding: '13px 16px', background: modeMeta.color + '10',
-                border: `1px solid ${modeMeta.color}25`, borderRadius: 13,
-                fontSize: 14, fontWeight: 700, color: modeMeta.color,
-                textDecoration: 'none',
-              }}>
-              📊 Painel de controlo
-            </Link>
-          </div>
+          ))}
         </div>
 
-        {/* Footer: sign out or login */}
-        <div style={{ padding: '14px 18px', borderTop: '1px solid #f1f5f9', flexShrink: 0, background: 'white' }}>
+        <div style={{ padding: '14px 18px', borderTop: '1px solid #f1f5f9', flexShrink: 0 }}>
           {user ? (
-            <button
-              onClick={() => { signOut(); onClose() }}
-              style={{
-                width: '100%', padding: '11px', background: 'transparent',
-                border: '1px solid #e2e8f0', borderRadius: 10,
-                fontSize: 13, color: '#ef4444', cursor: 'pointer',
-                fontFamily: 'inherit', fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              }}>
+            <button onClick={() => { signOut(); onClose() }} style={{
+              width: '100%', padding: '11px', background: 'transparent',
+              border: '1px solid #e2e8f0', borderRadius: 10,
+              fontSize: 13, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
               </svg>
               Terminar sessão
             </button>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Link href="/login" onClick={onClose}
-                style={{
-                  display: 'block', padding: '11px', background: '#0f172a',
-                  color: 'white', textDecoration: 'none', borderRadius: 10,
-                  fontSize: 14, fontWeight: 800, textAlign: 'center',
-                }}>
-                Entrar
-              </Link>
-              <Link href="/login" onClick={onClose}
-                style={{
-                  display: 'block', padding: '10px',
-                  border: '1px solid #e2e8f0', color: '#0f172a',
-                  textDecoration: 'none', borderRadius: 10,
-                  fontSize: 13, fontWeight: 600, textAlign: 'center',
-                }}>
-                Criar conta grátis
-              </Link>
-            </div>
+            <Link href="/login" onClick={onClose} style={{ display: 'block', padding: '11px', background: '#0f172a', color: 'white', textDecoration: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, textAlign: 'center' }}>
+              Entrar
+            </Link>
           )}
         </div>
       </div>
@@ -653,147 +411,6 @@ function MobileDrawer({ open, onClose, user, signOut, supabase }: {
   )
 }
 
-// ─── KeyboardShortcutsOverlay ─────────────────────────────────────────────────
-
-function KeyboardShortcutsOverlay({ onClose }: { onClose: () => void }) {
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', fn)
-    return () => document.removeEventListener('keydown', fn)
-  }, [onClose])
-
-  const shortcuts = [
-    { keys: ['⌘', 'K'],      label: 'Abrir pesquisa global',    desc: 'Encontra qualquer ferramenta instantaneamente' },
-    { keys: ['⌘', '/'],      label: 'Atalhos de teclado',       desc: 'Mostra este painel de atalhos' },
-    { keys: ['Esc'],          label: 'Fechar modal/pesquisa',    desc: 'Fecha qualquer painel ou overlay aberto' },
-    { keys: ['Tab'],          label: 'Navegar entre campos',     desc: 'Move o foco entre elementos interativos' },
-    { keys: ['Shift', 'Tab'], label: 'Navegar para trás',       desc: 'Move o foco para o elemento anterior' },
-    { keys: ['Enter'],        label: 'Confirmar seleção',        desc: 'Confirma seleção ou abre item com foco' },
-    { keys: ['Space'],        label: 'Ativar botão',             desc: 'Activa o botão ou checkbox com foco' },
-    { keys: ['↑', '↓'],      label: 'Navegar lista',            desc: 'Move seleção em listas e menus' },
-    { keys: ['⌘', '1-4'],    label: 'Mudar modo (futuro)',      desc: 'Troca entre pessoal, família, clínico, estudante' },
-  ]
-
-  return (
-    <>
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 499,
-        background: 'rgba(0,0,0,0.55)',
-        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-        animation: 'fadeInOverlay 0.15s ease',
-      }} />
-      <div style={{
-        position: 'fixed', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 'min(480px, 94vw)',
-        background: 'white', borderRadius: 20,
-        boxShadow: '0 32px 80px rgba(0,0,0,0.2)',
-        zIndex: 500, overflow: 'hidden',
-        animation: 'searchSlideDown 0.18s cubic-bezier(0.16,1,0.3,1)',
-      }}>
-        <div style={{ padding: '20px 22px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Atalhos de teclado</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>Navegação rápida no Phlox</div>
-          </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div style={{ padding: '8px 0 12px' }}>
-          {shortcuts.map(sc => (
-            <div key={sc.label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 22px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 80, flexShrink: 0 }}>
-                {sc.keys.map(k => (
-                  <kbd key={k} style={{
-                    fontSize: 11, padding: '2px 6px', borderRadius: 5,
-                    background: '#f8fafc', border: '1px solid #e2e8f0',
-                    fontFamily: 'monospace', fontWeight: 700, color: '#374151',
-                  }}>
-                    {k}
-                  </kbd>
-                ))}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{sc.label}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{sc.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ padding: '12px 22px', borderTop: '1px solid #f1f5f9', background: '#fafafa', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>Prima</span>
-          <kbd style={{ fontSize: 11, padding: '1px 5px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 700, color: '#374151' }}>Esc</kbd>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>para fechar</span>
-        </div>
-      </div>
-    </>
-  )
-}
-
-// ─── ClinicalHeaderNav ───────────────────────────────────────────────────────
-
-type InstType = 'hospital'|'pharmacy_hospital'|'pharmacy_community'|'nursing_home'|'clinic'|'health_center'
-
-function ClinicalHeaderNav({ pathname }: { pathname: string }) {
-  const [institution, setInstitution] = useState<InstType>('hospital')
-  const [clock, setClock] = useState('')
-
-  useEffect(() => {
-    const inst = localStorage.getItem('phlox-clinic-institution') as InstType | null
-    if (inst) setInstitution(inst)
-
-    const tick = () => {
-      const d = new Date()
-      const h = d.getHours(), m = d.getMinutes()
-      const shift = h >= 7 && h < 14 ? { label: 'Manhã', color: '#d97706' } : h >= 14 && h < 21 ? { label: 'Tarde', color: '#818cf8' } : { label: 'Noite', color: '#60a5fa' }
-      setClock(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} · ${shift.label}`)
-    }
-    tick()
-    const id = setInterval(tick, 30000)
-
-    const onStore = (e: StorageEvent) => { if (e.key === 'phlox-clinic-institution' && e.newValue) setInstitution(e.newValue as InstType) }
-    window.addEventListener('storage', onStore)
-    return () => { clearInterval(id); window.removeEventListener('storage', onStore) }
-  }, [])
-
-  const LINKS: Record<InstType, { href: string; label: string }[]> = {
-    hospital:           [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Doentes' }, { href: '/rounds', label: 'Ronda' }, { href: '/mar', label: 'MAR' }, { href: '/connect', label: 'Connect' }],
-    pharmacy_hospital:  [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Doentes' }, { href: '/prescription-queue', label: 'Validação' }, { href: '/drug-intelligence', label: 'Drug Intel.' }, { href: '/connect', label: 'Connect' }],
-    pharmacy_community: [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Clientes' }, { href: '/interactions', label: 'Interações' }, { href: '/counseling', label: 'Aconselhamento' }, { href: '/connect', label: 'Connect' }],
-    nursing_home:       [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Residentes' }, { href: '/mar', label: 'MAR' }, { href: '/rounds', label: 'Ronda' }, { href: '/connect', label: 'Connect' }],
-    clinic:             [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Doentes' }, { href: '/rounds', label: 'Ronda' }, { href: '/mar', label: 'MAR' }, { href: '/connect', label: 'Connect' }],
-    health_center:      [{ href: '/cockpit', label: 'Cockpit' }, { href: '/patients', label: 'Utentes' }, { href: '/rounds', label: 'Ronda' }, { href: '/mar', label: 'MAR' }, { href: '/connect', label: 'Connect' }],
-  }
-
-  const links = LINKS[institution]
-
-  return (
-    <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-      {links.map(link => {
-        const active = pathname === link.href || (link.href !== '/cockpit' && pathname.startsWith(link.href))
-        return (
-          <Link key={link.href} href={link.href} style={{
-            padding: '5px 10px', borderRadius: 6, fontSize: 13, fontWeight: active ? 700 : 500,
-            color: active ? 'white' : 'rgba(255,255,255,0.45)',
-            background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
-            textDecoration: 'none', transition: 'all 0.12s', letterSpacing: '-0.01em',
-            border: active ? '1px solid rgba(255,255,255,0.18)' : '1px solid transparent',
-          }}>{link.label}</Link>
-        )
-      })}
-      {clock && (
-        <div style={{ marginLeft: 8, padding: '4px 9px', borderRadius: 6, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
-          {clock}
-        </div>
-      )}
-    </nav>
-  )
-}
 
 // ─── Main Header ──────────────────────────────────────────────────────────────
 
@@ -802,26 +419,19 @@ export default function Header() {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
   const isHomepage = pathname === '/'
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
   const modeColor = modeMeta.color
   const isDark = user ? mode === 'clinical' : false
-
   const headerBg = isDark ? '#0f172a' : 'rgba(255,255,255,0.96)'
 
-  // Keyboard shortcuts
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         setSearchOpen(s => !s)
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-        e.preventDefault()
-        setShortcutsOpen(s => !s)
       }
     }
     document.addEventListener('keydown', fn)
@@ -829,7 +439,6 @@ export default function Header() {
   }, [])
 
   const closeSearch = useCallback(() => setSearchOpen(false), [])
-  const closeShortcuts = useCallback(() => setShortcutsOpen(false), [])
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   return (
@@ -843,56 +452,44 @@ export default function Header() {
         borderBottom: `1px solid ${isDark ? '#1e293b' : 'rgba(0,0,0,0.07)'}`,
         transition: 'background 0.25s, border-color 0.25s',
       }}>
-        <div style={{
-          height: '100%', padding: '0 20px',
-          display: 'flex', alignItems: 'center', gap: 0,
-        }}>
+        <div style={{ height: '100%', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* Logo */}
           <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: 7,
+              width: 26, height: 26, borderRadius: 6,
               background: isDark ? '#1e40af' : '#0d6e42',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.25s',
             }}>
-              <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
+              <svg width="13" height="13" viewBox="0 0 18 18" fill="none">
                 <path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
               </svg>
             </div>
-            <span style={{ fontSize: 16, fontWeight: 900, color: isDark ? 'white' : '#0f172a', letterSpacing: '-0.04em', transition: 'color 0.25s' }}>
+            <span style={{ fontSize: 15, fontWeight: 900, color: isDark ? 'white' : '#0f172a', letterSpacing: '-0.04em' }}>
               Phlox
             </span>
           </Link>
 
           {/* Logged-out nav */}
           {!loading && !user && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 20 }}>
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
               <Link href="/ferramentas" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Ferramentas</Link>
               <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
               <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>
             </nav>
           )}
 
-          {/* Clinical center nav */}
-          {!loading && user && isDark && (
-            <div className="clinical-center-nav" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-              <ClinicalHeaderNav pathname={pathname} />
-            </div>
-          )}
-
-          {/* Spacer (non-clinical) */}
-          {(!user || !isDark) && <div style={{ flex: 1 }} />}
+          <div style={{ flex: 1 }} />
 
           {/* Right controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
 
-            {/* Logged-in */}
             {!loading && user && (
               <>
-                {/* Search */}
+                {/* Search — desktop only */}
                 <button
                   onClick={() => setSearchOpen(true)}
+                  className="hdr-search-btn"
                   title="Pesquisar (⌘K)"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 7,
@@ -900,62 +497,43 @@ export default function Header() {
                     background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
                     cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.6)' : '#94a3b8',
-                    fontSize: 13, fontFamily: 'inherit', transition: 'all 0.15s',
+                    fontSize: 13, fontFamily: 'inherit',
                   }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
                   </svg>
                   <span className="hdr-search-label" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}>Pesquisar</span>
-                  <kbd className="hdr-search-kbd" style={{
-                    fontSize: 10, color: isDark ? 'rgba(255,255,255,0.35)' : '#cbd5e1',
-                    background: isDark ? 'rgba(255,255,255,0.06)' : 'white',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
-                    borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit',
-                  }}>⌘K</kbd>
+                  <kbd className="hdr-search-kbd" style={{ fontSize: 10, color: isDark ? 'rgba(255,255,255,0.35)' : '#cbd5e1', background: isDark ? 'rgba(255,255,255,0.06)' : 'white', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>⌘K</kbd>
                 </button>
 
-                {/* Notifications */}
                 <NotificationBell />
 
-                {/* User menu */}
                 <UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} />
 
-                {/* Hamburger — mobile only */}
-                <button
-                  onClick={() => setDrawerOpen(true)}
-                  className="hdr-hamburger"
-                  aria-label="Abrir menu"
-                  style={{
-                    width: 34, height: 34, display: 'none', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: 4,
-                    background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
-                    border: 'none', borderRadius: 7, cursor: 'pointer', flexShrink: 0,
-                  }}>
-                  <span style={{ width: 16, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
-                  <span style={{ width: 11, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
-                  <span style={{ width: 16, height: 1.5, background: isDark ? 'rgba(255,255,255,0.8)' : '#374151', borderRadius: 1, display: 'block' }} />
-                </button>
+                {/* Hamburger — mobile only, non-clinical only */}
+                {!isDark && (
+                  <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="hdr-hamburger"
+                    aria-label="Abrir menu"
+                    style={{
+                      width: 34, height: 34, display: 'none', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center', gap: 4,
+                      background: '#f1f5f9', border: 'none', borderRadius: 7,
+                      cursor: 'pointer', flexShrink: 0,
+                    }}>
+                    <span style={{ width: 16, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />
+                    <span style={{ width: 11, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />
+                    <span style={{ width: 16, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />
+                  </button>
+                )}
               </>
             )}
 
-            {/* Logged-out */}
             {!loading && !user && (
               <>
-                <Link href="/login" style={{
-                  padding: '7px 13px', fontSize: 13, fontWeight: 600,
-                  color: '#374151', textDecoration: 'none', borderRadius: 7,
-                  border: '1px solid #e2e8f0', transition: 'all 0.15s',
-                }}>
-                  Entrar
-                </Link>
-                <Link href="/login" style={{
-                  padding: '7px 15px', fontSize: 13, fontWeight: 800,
-                  background: '#0f172a', color: 'white',
-                  textDecoration: 'none', borderRadius: 7,
-                  whiteSpace: 'nowrap', transition: 'all 0.2s',
-                }}>
-                  Começar →
-                </Link>
+                <Link href="/login" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', borderRadius: 7, border: '1px solid #e2e8f0' }}>Entrar</Link>
+                <Link href="/login" style={{ padding: '7px 15px', fontSize: 13, fontWeight: 800, background: '#0f172a', color: 'white', textDecoration: 'none', borderRadius: 7, whiteSpace: 'nowrap' }}>Começar →</Link>
               </>
             )}
           </div>
@@ -963,98 +541,59 @@ export default function Header() {
 
         {/* Mode accent bar */}
         {!loading && user && (
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            height: 2, background: modeColor, opacity: 0.75,
-          }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: modeColor, opacity: 0.75 }} />
         )}
       </header>
 
       {/* Content spacer */}
       {!isHomepage && <div style={{ height: 56 }} />}
 
-      {/* Overlays */}
       {searchOpen && <SearchBar onClose={closeSearch} mode={mode} />}
-      {shortcutsOpen && <KeyboardShortcutsOverlay onClose={closeShortcuts} />}
 
       <MobileDrawer
         open={drawerOpen}
         onClose={closeDrawer}
         user={user as HeaderUser | null}
         signOut={signOut}
-        supabase={supabase}
       />
 
       <style>{`
-        @keyframes dropDown       { from { opacity:0; transform:translateX(-50%) translateY(-10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         @keyframes dropDown2      { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
         @keyframes slideInRight   { from { transform:translateX(100%); } to { transform:translateX(0); } }
-        @keyframes fadeInOverlay  { from { opacity:0; } to { opacity:1; } }
         @keyframes searchSlideDown { from { opacity:0; transform:translateY(-16px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes spin           { to { transform:rotate(360deg); } }
         @keyframes pulseRing      { 0% { box-shadow:0 0 0 0 rgba(13,148,136,0.35); } 70% { box-shadow:0 0 0 6px rgba(13,148,136,0); } 100% { box-shadow:0 0 0 0 rgba(13,148,136,0); } }
 
-        .mega-item:hover     { background:#f8fafc !important; }
         .um-item:hover       { background:#f8fafc !important; }
         .mob-item:hover      { background:#f8fafc !important; }
-        .qa-item:hover       { background:#f8fafc !important; }
         .srch-item:hover     { background:#f8fafc !important; }
         .srch-pop-item:hover { background:#f8fafc !important; border-color:#e2e8f0 !important; }
-        .hdr-search-btn:hover { background:#e9ecf0 !important; }
-        .hdr-nav-link:hover  { color:#0f172a !important; }
-        .hdr-logo:hover      { opacity:0.85; }
 
-        /* Focus ring for accessibility */
-        button:focus-visible,
-        a:focus-visible {
+        button:focus-visible, a:focus-visible {
           outline: 2px solid #0d9488;
           outline-offset: 2px;
           border-radius: 4px;
         }
 
-        /* Smooth mode color transitions */
-        .mode-pill {
-          transition: background 0.25s, color 0.25s, border-color 0.25s;
-        }
-
-        /* Desktop ≥769px: hide hamburger and mobile spacer */
+        /* Desktop: hide hamburger */
         @media (min-width:769px) {
-          .hdr-hamburger         { display:none !important; }
-          .hdr-spacer            { display:none !important; }
+          .hdr-hamburger { display:none !important; }
         }
-        /* Mobile ≤768px: hide desktop elements */
+        /* Mobile: show hamburger (for non-clinical), hide desktop-only search elements */
         @media (max-width:768px) {
-          .hdr-nav               { display:none !important; }
-          .hdr-mode-tabs         { display:none !important; }
-          .hdr-search-btn        { display:none !important; }
-          .hdr-mode-pill-compact { display:none !important; }
+          .hdr-hamburger     { display:flex !important; }
+          .hdr-search-btn    { display:none !important; }
+          .hdr-user-name     { display:none !important; }
+          .hdr-user-chevron  { display:none !important; }
         }
-        /* Medium desktop 769–1249px: hide full mode tabs, show compact pill */
-        @media (min-width:769px) and (max-width:1249px) {
-          .hdr-mode-tabs         { display:none !important; }
-          .hdr-mode-pill-compact { display:flex !important; }
-        }
-        /* Wide desktop ≥1250px: show full mode tabs, hide compact pill */
-        @media (min-width:1250px) {
-          .hdr-mode-pill-compact { display:none !important; }
-        }
-        /* Hide search label/kbd on narrower desktops */
+        /* Medium desktop: hide search label/kbd */
         @media (max-width:1100px) {
           .hdr-search-label { display:none !important; }
           .hdr-search-kbd   { display:none !important; }
         }
-        /* Clinical center nav: hide on mobile (sidebar handles nav there) */
-        @media (max-width:768px) {
-          .clinical-center-nav { display:none !important; }
-        }
         /* Notification bell pulse */
         .notif-bell-active {
           animation: pulseRing 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite;
-        }
-        /* Tool grid gap fix on small screens */
-        @media (max-width: 400px) {
-          .mob-tool-grid { gap: 4px !important; }
-          .hdr-search-btn { padding: 6px 8px !important; }
         }
         @media (prefers-reduced-motion: reduce) {
           * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

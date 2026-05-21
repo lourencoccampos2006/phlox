@@ -215,7 +215,7 @@ function PCNEForm({ patient, pharmacist, onSave, onCancel }: {
         Registo PCNE — {patient.name}
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+      <div className="pcne-form-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
         <div>
           <label style={label_style}>Problema (P)</label>
           <select value={form.problem_code} onChange={e => set('problem_code', e.target.value)} style={select_style}>
@@ -1099,7 +1099,11 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-        @media(max-width:768px){.rounds-grid{grid-template-columns:1fr!important;height:auto!important}}
+        @media(max-width:768px){
+          .rounds-grid{grid-template-columns:1fr!important;height:auto!important}
+          .pcne-form-grid{grid-template-columns:1fr!important}
+          .rounds-header-actions{flex-wrap:wrap}
+        }
       `}</style>
     </div>
   )

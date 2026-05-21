@@ -201,18 +201,19 @@ export default function QualityPage() {
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="quality-tabs" style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
             {[
-              { key: 'events' as const,        label: 'Eventos de segurança', badge: openCount },
+              { key: 'events' as const,        label: 'Eventos', badge: openCount },
               { key: 'interventions' as const, label: 'Intervenções' },
-              { key: 'analytics' as const,     label: 'Indicadores KPI' },
+              { key: 'analytics' as const,     label: 'KPIs' },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key)} style={{
-                padding: '7px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
+                padding: '8px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
                 background: tab === t.key ? '#fff' : 'transparent',
                 color: tab === t.key ? '#1d4ed8' : '#94a3b8',
-                fontWeight: tab === t.key ? 600 : 400, fontSize: 13,
-                display: 'flex', alignItems: 'center', gap: 6,
+                fontWeight: tab === t.key ? 600 : 400, fontSize: 14,
+                display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                minHeight: 40, fontFamily: 'inherit',
               }}>
                 {t.label}
                 {'badge' in t && (t.badge ?? 0) > 0 && (
@@ -230,21 +231,20 @@ export default function QualityPage() {
         {/* ═══ EVENTS ════════════════════════════════════════════════════════ */}
         {!loading && tab === 'events' && (
           <div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-              <select value={sevFilter} onChange={e => setSevFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13 }}>
+            <div className="quality-filters" style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={sevFilter} onChange={e => setSevFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, minHeight: 42 }}>
                 <option value="all">Todas as severidades</option>
                 {(Object.keys(SEV_META) as Severity[]).map(k => <option key={k} value={k}>{SEV_META[k].label}</option>)}
               </select>
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13 }}>
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, minHeight: 42 }}>
                 <option value="all">Todos os estados</option>
                 <option value="open">Abertos</option>
                 <option value="under_review">Em análise</option>
                 <option value="closed">Fechados</option>
               </select>
               <span style={{ color: '#64748b', fontSize: 13 }}>{filteredEvents.length} eventos</span>
-              <button onClick={openNewEvent} style={{ marginLeft: 'auto', padding: '9px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <button onClick={openNewEvent} style={{ marginLeft: 'auto', padding: '11px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, minHeight: 44, whiteSpace: 'nowrap' }}>
                 + Registar evento
-                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
               </button>
             </div>
 
@@ -323,9 +323,8 @@ export default function QualityPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button onClick={openNewIv} style={{ padding: '9px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <button onClick={openNewIv} style={{ padding: '11px 18px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, minHeight: 44 }}>
                 + Registar intervenção
-                <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
               </button>
             </div>
 
@@ -412,7 +411,7 @@ export default function QualityPage() {
                     ))}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div className="quality-charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     {/* Events by type */}
                     {Object.keys(byType).length > 0 && (
                       <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: '18px 20px' }}>
@@ -460,7 +459,7 @@ export default function QualityPage() {
       {showEventModal && (
         <Modal title={editEvent ? 'Editar evento' : 'Registar evento de segurança'} onClose={() => setShowEventModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="quality-form-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Tipo de evento</label>
                 <select style={inputStyle} value={eventForm.type} onChange={e => setEventForm(f => ({ ...f, type: e.target.value as EventType }))}>
@@ -474,7 +473,7 @@ export default function QualityPage() {
                 </select>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="quality-form-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Data</label>
                 <input style={inputStyle} type="date" value={eventForm.date} onChange={e => setEventForm(f => ({ ...f, date: e.target.value }))} />
@@ -494,7 +493,7 @@ export default function QualityPage() {
                 onChange={e => setEventForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Descreve o que aconteceu, contexto e medidas tomadas" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="quality-form-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Doente envolvido</label>
                 <input style={inputStyle} value={eventForm.patient_name || ''} onChange={e => setEventForm(f => ({ ...f, patient_name: e.target.value }))} placeholder="Nome do doente (opcional)" />
@@ -504,7 +503,7 @@ export default function QualityPage() {
                 <input style={inputStyle} value={eventForm.drug} onChange={e => setEventForm(f => ({ ...f, drug: e.target.value }))} placeholder="Ex: Insulina, Varfarina" />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="quality-form-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Serviço / Unidade</label>
                 <input style={inputStyle} value={eventForm.unit} onChange={e => setEventForm(f => ({ ...f, unit: e.target.value }))} placeholder="Ex: Medicina Interna, UCI" />
@@ -536,7 +535,7 @@ export default function QualityPage() {
                 {INTERVENTION_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div className="quality-iv-4col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Data</label>
                 <input style={inputStyle} type="date" value={ivForm.date} onChange={e => setIvForm(f => ({ ...f, date: e.target.value }))} />
@@ -568,9 +567,13 @@ export default function QualityPage() {
         </Modal>
       )}
       <style>{`
-        @media(max-width:768px){
-          .quality-form-grid{grid-template-columns:1fr!important}
-          .quality-stats{grid-template-columns:1fr 1fr!important}
+        @media(max-width:640px){
+          .quality-filters{flex-direction:column;align-items:stretch!important}
+          .quality-filters select{width:100%;font-size:16px!important}
+          .quality-filters button{margin-left:0!important;width:100%}
+          .quality-form-2col{grid-template-columns:1fr!important}
+          .quality-iv-4col{grid-template-columns:1fr 1fr!important}
+          .quality-charts-grid{grid-template-columns:1fr!important}
         }
         input:focus,textarea:focus,select:focus{border-color:#1d4ed8!important;outline:none;box-shadow:0 0 0 3px #1d4ed818}
       `}</style>
