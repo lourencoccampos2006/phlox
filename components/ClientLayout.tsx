@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react'
 const CLINICAL_PREFIXES = [
   '/cockpit', '/patients', '/rounds', '/mar', '/team',
   '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
+  '/assessments', '/care-log', '/residentes', '/handover',
 ]
 
 function ScrollToTop() {
@@ -68,6 +69,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         }
         @media (max-width: 768px) {
           .clinical-side-nav {
+            display: none !important;
+          }
+          .hdr-clinical-context {
             display: none !important;
           }
         }

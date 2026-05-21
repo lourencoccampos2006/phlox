@@ -486,24 +486,43 @@ export default function Header() {
 
             {!loading && user && (
               <>
+                {/* Clinical context bar (dark header only) */}
+                {isDark && (() => {
+                  const h = new Date().getHours()
+                  const shift = h >= 8 && h < 16 ? 'Manhã' : h >= 16 ? 'Tarde' : 'Noite'
+                  const shiftColor = h >= 8 && h < 16 ? '#fbbf24' : h >= 16 ? '#818cf8' : '#38bdf8'
+                  const dateStr = new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })
+                  return (
+                    <div className="hdr-clinical-context" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums' }}>{dateStr}</span>
+                      <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: shiftColor, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: shiftColor, display: 'inline-block' }} />
+                        Turno {shift}
+                      </span>
+                    </div>
+                  )
+                })()}
+
                 {/* Search — desktop only */}
                 <button
                   onClick={() => setSearchOpen(true)}
                   className="hdr-search-btn"
-                  title="Pesquisar (⌘K)"
+                  title="Pesquisar ferramentas (⌘K)"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 7,
-                    padding: '6px 12px', borderRadius: 9,
-                    background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                    display: 'flex', alignItems: 'center', gap: isDark ? 0 : 7,
+                    padding: isDark ? '7px' : '6px 14px', borderRadius: 9,
+                    background: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
-                    cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.6)' : '#94a3b8',
-                    fontSize: 13, fontFamily: 'inherit',
+                    cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8',
+                    fontSize: 13, fontFamily: 'inherit', minWidth: isDark ? 32 : 'auto',
+                    justifyContent: 'center',
                   }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
                   </svg>
-                  <span className="hdr-search-label" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}>Pesquisar</span>
-                  <kbd className="hdr-search-kbd" style={{ fontSize: 10, color: isDark ? 'rgba(255,255,255,0.35)' : '#cbd5e1', background: isDark ? 'rgba(255,255,255,0.06)' : 'white', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>⌘K</kbd>
+                  {!isDark && <span style={{ color: '#94a3b8' }}>Ferramentas e páginas...</span>}
+                  {!isDark && <kbd className="hdr-search-kbd" style={{ fontSize: 10, color: '#cbd5e1', background: 'white', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>⌘K</kbd>}
                 </button>
 
                 <NotificationBell />

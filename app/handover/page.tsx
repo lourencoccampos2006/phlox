@@ -10,6 +10,19 @@ type AdminStatus = 'administered' | 'refused' | 'held'
 interface PatientMedRow { id: string; name: string; dose: string | null; status: AdminStatus | null }
 interface PatientCard { id: string; name: string; age: number | null; conditions: string | null; allergies: string | null; meds: PatientMedRow[] }
 
+interface CareRecord {
+  id: string; patient_id: string; shift: string; date: string
+  vitals: { bp_sys?: number; bp_dia?: number; hr?: number; temp?: number; spo2?: number; glucose?: number } | null
+  nutrition: { appetite?: string } | null
+  skin: { integrity?: string; description?: string } | null
+  mood: { level?: number; behavior?: string } | null
+  notes?: string
+}
+
+interface ClinicalAlert {
+  patient_id: string; patient_name: string; level: 'critical' | 'warning' | 'info'; icon: string; message: string
+}
+
 const SHIFT_LABELS: Record<Shift, { label: string; time: string; color: string; bg: string; border: string }> = {
   manha: { label: 'Manhã', time: '07:00–14:00', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
   tarde: { label: 'Tarde', time: '14:00–21:00', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
@@ -32,6 +45,7 @@ export default function HandoverPage() {
   const [shift, setShift] = useState<Shift>(getCurrentShift())
   const [date, setDate] = useState(getToday())
   const [patients, setPatients] = useState<PatientCard[]>([])
+  const [careRecords, setCareRecords] = useState<CareRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [handoverText, setHandoverText] = useState('')
@@ -48,10 +62,12 @@ export default function HandoverPage() {
     const pIds = (rawPatients || []).map((p: any) => p.id)
     if (!pIds.length) { setPatients([]); setLoading(false); return }
 
-    const [{ data: rawMeds }, { data: rawRecords }] = await Promise.all([
+    const [{ data: rawMeds }, { data: rawRecords }, { data: rawCare }] = await Promise.all([
       supabase.from('patient_meds').select('id, patient_id, name, dose').eq('active', true).in('patient_id', pIds),
       supabase.from('mar_records').select('id, patient_id, med_id, status').eq('date', date).eq('shift', shift).in('patient_id', pIds),
+      supabase.from('care_records').select('id, patient_id, shift, date, vitals, nutrition, skin, mood, notes').eq('date', date).eq('shift', shift).in('patient_id', pIds),
     ])
+    setCareRecords(rawCare ?? [])
 
     const cards: PatientCard[] = (rawPatients || []).map((p: any) => ({
       id: p.id, name: p.name, age: p.age, conditions: p.conditions, allergies: p.allergies,
@@ -72,6 +88,30 @@ export default function HandoverPage() {
   const patientsWithPending = patients.filter(p => p.meds.some(m => !m.status))
   const patientsWithRefusals = patients.filter(p => p.meds.some(m => m.status === 'refused'))
   const patientsWithAllergies = patients.filter(p => p.allergies)
+
+  const patientNameMap = new Map(patients.map(p => [p.id, p.name]))
+  const clinicalAlerts: ClinicalAlert[] = careRecords.flatMap(rec => {
+    const name = patientNameMap.get(rec.patient_id) ?? 'Residente'
+    const als: ClinicalAlert[] = []
+    const v = rec.vitals
+    if (v) {
+      if (v.temp && v.temp >= 38.5) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'critical', icon: '🌡️', message: `Febre alta: ${v.temp}°C` })
+      else if (v.temp && v.temp >= 37.8) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'warning', icon: '🌡️', message: `Temperatura elevada: ${v.temp}°C` })
+      if (v.spo2 && v.spo2 < 90) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'critical', icon: '💨', message: `SpO₂ crítica: ${v.spo2}%` })
+      else if (v.spo2 && v.spo2 < 94) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'warning', icon: '💨', message: `SpO₂ baixa: ${v.spo2}%` })
+      if (v.bp_sys && v.bp_sys >= 180) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'critical', icon: '💓', message: `TA muito elevada: ${v.bp_sys}/${v.bp_dia} mmHg` })
+      else if (v.bp_sys && v.bp_sys >= 160) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'warning', icon: '💓', message: `TA elevada: ${v.bp_sys}/${v.bp_dia} mmHg` })
+      if (v.bp_sys && v.bp_sys < 90) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'critical', icon: '💓', message: `Hipotensão: ${v.bp_sys}/${v.bp_dia} mmHg` })
+      if (v.glucose && v.glucose > 300) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'critical', icon: '🩸', message: `Glicemia muito alta: ${v.glucose} mg/dL` })
+      else if (v.glucose && v.glucose < 60) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'critical', icon: '🩸', message: `Hipoglicemia: ${v.glucose} mg/dL` })
+    }
+    if (rec.skin?.integrity === 'ulcera') als.push({ patient_id: rec.patient_id, patient_name: name, level: 'warning', icon: '🩹', message: `Úlcera de pressão${rec.skin.description ? ` — ${rec.skin.description}` : ''}` })
+    else if (rec.skin?.integrity === 'ferida') als.push({ patient_id: rec.patient_id, patient_name: name, level: 'info', icon: '🩹', message: `Ferida registada${rec.skin.description ? ` — ${rec.skin.description}` : ''}` })
+    if (rec.nutrition?.appetite === 'recusou') als.push({ patient_id: rec.patient_id, patient_name: name, level: 'warning', icon: '🍽️', message: 'Recusou alimentação neste turno' })
+    if (rec.mood?.level && rec.mood.level <= 2) als.push({ patient_id: rec.patient_id, patient_name: name, level: 'info', icon: '😟', message: `Humor muito baixo (${rec.mood.level}/5)${rec.mood.behavior ? ` — ${rec.mood.behavior}` : ''}` })
+    return als
+  })
+  const criticalClinical = clinicalAlerts.filter(a => a.level === 'critical').length
 
   const generate = async () => {
     setGenerating(true); setError('')
@@ -167,10 +207,31 @@ export default function HandoverPage() {
                 ))}
               </div>
 
-              {/* Alerts section */}
+              {/* Clinical alerts from care records */}
+              {clinicalAlerts.length > 0 && (
+                <div style={{ background: criticalClinical > 0 ? '#fef2f2' : '#fffbeb', border: `1px solid ${criticalClinical > 0 ? '#fecaca' : '#fde68a'}`, borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: criticalClinical > 0 ? '#dc2626' : '#92400e', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {criticalClinical > 0 ? '🚨' : '⚠️'} Alertas clínicos deste turno
+                    {criticalClinical > 0 && <span style={{ fontSize: 10, background: '#dc2626', color: 'white', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>{criticalClinical} CRÍTICO{criticalClinical !== 1 ? 'S' : ''}</span>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {clinicalAlerts.map((a, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: a.level === 'critical' ? '#fee2e2' : a.level === 'warning' ? '#fff7ed' : '#f8fafc', border: `1px solid ${a.level === 'critical' ? '#fca5a5' : a.level === 'warning' ? '#fed7aa' : '#e2e8f0'}`, borderRadius: 7 }}>
+                        <span style={{ fontSize: 14, flexShrink: 0 }}>{a.icon}</span>
+                        <div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: a.level === 'critical' ? '#dc2626' : a.level === 'warning' ? '#92400e' : '#374151' }}>{a.patient_name}</span>
+                          <span style={{ fontSize: 12, color: '#374151' }}> — {a.message}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* MAR alerts section */}
               {(patientsWithPending.length > 0 || patientsWithRefusals.length > 0 || patientsWithAllergies.length > 0) && (
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px' }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Atenção no próximo turno</div>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Alertas MAR — próximo turno</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {patientsWithPending.map(p => (
                       <div key={p.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 7 }}>

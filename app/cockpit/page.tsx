@@ -46,6 +46,13 @@ interface Training {
   mandatory: boolean; seats_total: number; seats_taken: number
 }
 
+interface MarRecord {
+  id: string; patient_id: string; shift: string; date: string
+  status: 'administered' | 'refused' | 'held' | null
+}
+interface CareRecordLight { id: string; patient_id: string; shift: string; date: string }
+interface AssessmentLight { id: string; patient_id: string; scale: string; score: number; date: string }
+
 const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; href: string }[]> = {
   hospital: [
     { icon: '🔬', label: 'Console PK',    href: '/pk-dosing' },
@@ -72,10 +79,10 @@ const INST_QUICK_TOOLS: Record<InstitutionType, { icon: string; label: string; h
     { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
   nursing_home: [
+    { icon: '📋', label: 'Avaliações',    href: '/assessments' },
+    { icon: '📓', label: 'Reg. Diários',  href: '/care-log' },
+    { icon: '🔁', label: 'Pass. Turno',   href: '/handover' },
     { icon: '🛑', label: 'STOPP/START',   href: '/stopp-start' },
-    { icon: '⚕️', label: 'Polimedicação', href: '/polypharmacy' },
-    { icon: '🔄', label: 'Reconciliação', href: '/reconciliacao' },
-    { icon: '📋', label: 'Aconselhamento',href: '/counseling' },
     { icon: '⚠️', label: 'Notif. RAM',    href: '/adr-report' },
     { icon: '🔗', label: 'Connect',       href: '/connect' },
   ],
@@ -130,6 +137,9 @@ export default function Cockpit() {
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [trainings, setTrainings] = useState<Training[]>([])
   const [patientCount, setPatientCount] = useState<number>(0)
+  const [marRecords, setMarRecords] = useState<MarRecord[]>([])
+  const [careRecordsToday, setCareRecordsToday] = useState<CareRecordLight[]>([])
+  const [assessmentsRecent, setAssessmentsRecent] = useState<AssessmentLight[]>([])
 
   // Sync role from org profile on first load (only if not already set by user)
   useEffect(() => {
@@ -165,6 +175,21 @@ export default function Cockpit() {
       setLoading(false)
     })
   }, [user, supabase])
+
+  useEffect(() => {
+    if (!user || !supabase || institution !== 'nursing_home') return
+    const today = new Date().toISOString().split('T')[0]
+    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+    Promise.all([
+      supabase.from('mar_records').select('id,patient_id,shift,date,status').eq('user_id', user.id).eq('date', today),
+      supabase.from('care_records').select('id,patient_id,shift,date').eq('user_id', user.id).eq('date', today),
+      supabase.from('assessments').select('id,patient_id,scale,score,date').eq('user_id', user.id).gte('date', monthAgo),
+    ]).then(([mar, care, assess]) => {
+      setMarRecords(mar.data ?? [])
+      setCareRecordsToday(care.data ?? [])
+      setAssessmentsRecent(assess.data ?? [])
+    })
+  }, [user, supabase, institution])
 
   const alerts = useMemo((): Alert[] => {
     const list: Alert[] = []
@@ -235,8 +260,27 @@ export default function Cockpit() {
         })
       }
     }
+    if (institution === 'nursing_home') {
+      const h = new Date().getHours()
+      const shiftKey = h >= 7 && h < 14 ? 'manha' : h >= 14 && h < 21 ? 'tarde' : 'noite'
+      const shiftLabel = shiftKey === 'manha' ? 'Manhã' : shiftKey === 'tarde' ? 'Tarde' : 'Noite'
+      const assessedIds = new Set(assessmentsRecent.map(a => a.patient_id))
+      const unassessed = Math.max(0, patientCount - assessedIds.size)
+      const careThisShift = careRecordsToday.filter(c => c.shift === shiftKey).length
+      const marDone = marRecords.filter(m => m.status === 'administered').length
+      const marTotal = marRecords.length
+      if (unassessed > 0) {
+        list.push({ id: 'nh-assessments', priority: unassessed > 3 ? 'urgent' : 'normal', title: `Avaliar residentes: ${unassessed} sem avaliação nos últimos 30 dias`, category: 'clinical', action_href: '/assessments' })
+      }
+      if (patientCount > 0 && careThisShift < patientCount * 0.8) {
+        list.push({ id: 'nh-care', priority: 'normal', title: `Completar registos do turno ${shiftLabel}`, detail: `${patientCount - careThisShift} de ${patientCount} residentes sem registo diário`, category: 'clinical', action_href: '/care-log' })
+      }
+      if (marTotal > 0 && marDone < marTotal) {
+        list.push({ id: 'nh-mar', priority: marDone < marTotal * 0.5 ? 'urgent' : 'normal', title: `MAR: ${marTotal - marDone} dose${marTotal - marDone !== 1 ? 's' : ''} não registada${marTotal - marDone !== 1 ? 's' : ''}`, detail: `${marDone}/${marTotal} doses registadas hoje`, category: 'clinical', action_href: '/mar' })
+      }
+    }
     return list.filter(t => !completedTasks.has(t.id))
-  }, [shortages, safetyEvents, trainings, completedTasks])
+  }, [shortages, safetyEvents, trainings, completedTasks, institution, assessmentsRecent, careRecordsToday, marRecords, patientCount])
 
   const metrics = useMemo(() => {
     const onShift = team.filter(m => m.status === 'on_shift').length
@@ -258,6 +302,34 @@ export default function Cockpit() {
       { label: 'Próxima formação', value: nextTraining ? (daysUntil(nextTraining.date) ?? '—') : '—', unit: nextTraining ? ' dias' : '', sub: nextTraining ? nextTraining.name : 'Nenhuma obrigatória pendente', color: '#7c3aed', bg: '#faf5ff', action_href: '/team', icon: '🎓' },
     ]
   }, [team, shortages, safetyEvents, interventions, trainings])
+
+  const nursingMetrics = useMemo(() => {
+    if (institution !== 'nursing_home') return []
+    const h = new Date().getHours()
+    const shiftKey = h >= 7 && h < 14 ? 'manha' : h >= 14 && h < 21 ? 'tarde' : 'noite'
+    const shiftLabel = shiftKey === 'manha' ? 'Manhã' : shiftKey === 'tarde' ? 'Tarde' : 'Noite'
+    const marTotal = marRecords.length
+    const marDone = marRecords.filter(m => m.status === 'administered').length
+    const marPct = marTotal > 0 ? Math.round((marDone / marTotal) * 100) : null
+    const careThisShift = careRecordsToday.filter(c => c.shift === shiftKey).length
+    const carePct = patientCount > 0 ? Math.round((careThisShift / patientCount) * 100) : 0
+    const assessedIds = new Set(assessmentsRecent.map(a => a.patient_id))
+    const unassessed = Math.max(0, patientCount - assessedIds.size)
+    const highRiskIds = new Set(assessmentsRecent.filter(a =>
+      (a.scale === 'barthel' && a.score <= 60) ||
+      (a.scale === 'morse' && a.score >= 25) ||
+      (a.scale === 'braden' && a.score <= 14)
+    ).map(a => a.patient_id))
+    const onShift = team.filter(m => m.status === 'on_shift').length
+    return [
+      { label: 'Residentes', value: patientCount, unit: '', sub: patientCount > 0 ? 'No sistema' : 'Adicionar primeiro →', color: '#1d4ed8', bg: '#eff6ff', action_href: '/patients', icon: '🏠' },
+      { label: 'MAR hoje', value: marTotal > 0 ? `${marDone}/${marTotal}` : '—', unit: '', sub: marPct !== null ? `${marPct}% administradas` : 'Sem registos MAR', color: marPct !== null && marPct < 80 ? '#dc2626' : '#16a34a', bg: marPct !== null && marPct < 80 ? '#fef2f2' : '#f0fdf4', action_href: '/mar', icon: '💊' },
+      { label: `Reg. ${shiftLabel}`, value: careThisShift, unit: '', sub: patientCount > 0 ? `${carePct}% completos` : 'Sem residentes', color: carePct >= 80 ? '#16a34a' : '#ca8a04', bg: carePct >= 80 ? '#f0fdf4' : '#fffbeb', action_href: '/care-log', icon: '📓' },
+      { label: 'Aval. pendentes', value: unassessed, unit: '', sub: unassessed > 0 ? 'Sem avaliação (30d)' : 'Todos avaliados', color: unassessed > 0 ? '#ea580c' : '#16a34a', bg: unassessed > 0 ? '#fff7ed' : '#f0fdf4', action_href: '/assessments', icon: '📋' },
+      { label: 'Alto risco', value: highRiskIds.size, unit: '', sub: highRiskIds.size > 0 ? 'Requer atenção esp.' : 'Sem alto risco', color: highRiskIds.size > 0 ? '#7c3aed' : '#16a34a', bg: highRiskIds.size > 0 ? '#faf5ff' : '#f0fdf4', action_href: '/assessments', icon: '⚠️' },
+      { label: 'Equipa turno', value: team.length ? `${onShift}/${team.length}` : '—', unit: '', sub: `Turno ${shiftLabel}`, color: '#0d9488', bg: '#f0fdfa', action_href: '/team', icon: '👥' },
+    ]
+  }, [institution, patientCount, marRecords, careRecordsToday, assessmentsRecent, team])
 
   const now = new Date()
   const hour = now.getHours()
@@ -334,7 +406,9 @@ export default function Cockpit() {
                 if (institution === 'nursing_home') return [
                   { label: 'Residentes', href: '/patients' },
                   { label: 'MAR', href: '/mar' },
-                  { label: 'Connect', href: '/connect' },
+                  { label: 'Avaliações', href: '/assessments' },
+                  { label: 'Reg. Diários', href: '/care-log' },
+                  { label: 'Pass. Turno', href: '/handover' },
                 ]
                 return [
                   { label: 'Doentes', href: '/patients' },
@@ -453,7 +527,7 @@ export default function Cockpit() {
 
             {/* Metrics */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 20 }}>
-              {metrics.map(m => {
+              {(institution === 'nursing_home' ? nursingMetrics : metrics).map(m => {
                 const card = (
                   <div key={m.label} style={{
                     background: 'white', borderRadius: 12, border: '1px solid #e2e8f0',
