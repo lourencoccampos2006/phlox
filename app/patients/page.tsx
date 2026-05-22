@@ -125,7 +125,6 @@ export default function PatientsPage() {
     for (const row of rows) {
       const name = get(row, 'name')
       if (!name) continue
-      const notes = [get(row, 'contact') ? `Contacto emergência: ${get(row, 'contact')}` : '', get(row, 'room') ? `Quarto: ${get(row, 'room')}` : '', get(row, 'admission') ? `Admissão: ${get(row, 'admission')}` : ''].filter(Boolean).join(' · ') || null
       await supabase.from('patients').insert({
         user_id: user.id, name,
         age: parseInt(get(row, 'age')) || null,
@@ -133,7 +132,10 @@ export default function PatientsPage() {
         weight: parseFloat(get(row, 'weight')) || null,
         conditions: get(row, 'conditions') || null,
         allergies: get(row, 'allergies') || null,
-        notes,
+        notes: null,
+        room_number: get(row, 'room') || null,
+        admission_date: get(row, 'admission') || null,
+        emergency_contact: get(row, 'contact') || null,
       })
       done++; setImportDone(done)
     }
@@ -154,6 +156,9 @@ export default function PatientsPage() {
       conditions: newP.conditions.trim() || null,
       allergies: newP.allergies.trim() || null,
       notes: newP.notes.trim() || null,
+      room_number: newP.room_number.trim() || null,
+      admission_date: newP.admission_date || null,
+      emergency_contact: newP.emergency_contact.trim() || null,
     }).select().single()
     if (error) console.error('addPatient error:', error.message)
     if (data) {
@@ -161,6 +166,13 @@ export default function PatientsPage() {
     }
     setNewP({ name: '', age: '', sex: '', weight: '', height: '', creatinine: '', conditions: '', allergies: '', notes: '', room_number: '', admission_date: '', emergency_contact: '' })
     setAdding(false)
+  }
+
+  const deletePatient = async (id: string, name: string) => {
+    if (!user) return
+    if (!confirm(`Remover ${name}? Esta ação é permanente e apaga todos os dados associados.`)) return
+    await supabase.from('patients').delete().eq('id', id).eq('user_id', user.id)
+    load()
   }
 
   const conditionRiskScore = (p: Patient): number => {
@@ -501,8 +513,9 @@ export default function PatientsPage() {
                 {filtered.map((patient, i) => {
                   const badge = riskBadge(patient)
                   return (
-                    <Link key={patient.id} href={`/patients/${patient.id}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', textDecoration: 'none', borderBottom: i < filtered.length - 1 ? '1px solid var(--bg-3)' : 'none', transition: 'background 0.1s' }}
+                    <div key={patient.id} style={{ display: 'flex', alignItems: 'center', borderBottom: i < filtered.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
+                    <Link href={`/patients/${patient.id}`}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', textDecoration: 'none', transition: 'background 0.1s' }}
                       className="patient-row">
                       {/* Avatar */}
                       <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1d4ed8', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
@@ -559,6 +572,14 @@ export default function PatientsPage() {
                         )}
                       </div>
                     </Link>
+                    <button
+                      onClick={e => { e.preventDefault(); deletePatient(patient.id, patient.name) }}
+                      title="Remover residente"
+                      style={{ padding: '16px 14px', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', opacity: 0.4, fontSize: 16, flexShrink: 0, transition: 'opacity 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}
+                    >×</button>
+                    </div>
                   )
                 })}
               </div>

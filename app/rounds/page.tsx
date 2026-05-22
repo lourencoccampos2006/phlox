@@ -352,32 +352,26 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
       {/* Patient header */}
-      <div style={{ padding:'18px 20px', background:'#0f172a', flexShrink:0 }}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:12 }}>
+      <div style={{ padding:'16px 20px', background:'white', borderBottom:'1px solid #e2e8f0', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:10 }}>
           <div>
-            <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#475569', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:4 }}>Doente</div>
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:20, color:'#f8fafc', fontWeight:400, marginBottom:2 }}>{patient.name}</div>
-            <div style={{ fontSize:12, color:'#475569', fontFamily:'var(--font-mono)' }}>
-              {[patient.age?`${patient.age}a`:null, patient.sex==='M'?'Masc':patient.sex==='F'?'Fem':null, patient.conditions].filter(Boolean).join(' · ')}
+            <div style={{ fontSize:15, fontWeight:700, color:'#0f172a', marginBottom:2 }}>{patient.name}</div>
+            <div style={{ fontSize:12, color:'#64748b' }}>
+              {[patient.age?`${patient.age}a`:null, patient.sex==='M'?'Masc':patient.sex==='F'?'Fem':null].filter(Boolean).join(' · ')}
             </div>
+            {patient.conditions && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:240 }}>{patient.conditions}</div>}
           </div>
           {risk && (
-            <div style={{ background:RISK_STYLE[risk.level].bg, border:`1px solid ${RISK_STYLE[risk.level].border}`, borderRadius:8, padding:'10px 14px', textAlign:'center', flexShrink:0 }}>
-              <div style={{ fontSize:28, fontWeight:800, color:RISK_STYLE[risk.level].color, fontFamily:'var(--font-serif)', lineHeight:1 }}>{risk.score}</div>
-              <div style={{ fontSize:8, fontFamily:'var(--font-mono)', color:RISK_STYLE[risk.level].color, textTransform:'uppercase', letterSpacing:'0.08em', marginTop:3 }}>Risco {RISK_STYLE[risk.level].label}</div>
+            <div style={{ background:RISK_STYLE[risk.level].bg, border:`1px solid ${RISK_STYLE[risk.level].border}`, borderRadius:8, padding:'8px 12px', textAlign:'center', flexShrink:0 }}>
+              <div style={{ fontSize:22, fontWeight:800, color:RISK_STYLE[risk.level].color, lineHeight:1 }}>{risk.score}</div>
+              <div style={{ fontSize:9, color:RISK_STYLE[risk.level].color, textTransform:'uppercase', letterSpacing:'0.08em', marginTop:2 }}>{RISK_STYLE[risk.level].label}</div>
             </div>
           )}
         </div>
-
-        {/* Quick clinical data */}
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          {[
-            crcl ? `CrCl: ${crcl} mL/min` : null,
-            patient.weight ? `Peso: ${patient.weight}kg` : null,
-            patient.allergies ? `Alergias: ${patient.allergies}` : null,
-          ].filter(Boolean).map(item => (
-            <span key={item as string} style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'#64748b', background:'#1e293b', padding:'3px 8px', borderRadius:4 }}>{item}</span>
-          ))}
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          {crcl && <span style={{ fontSize:10, fontWeight:600, color:'#1e40af', background:'#eff6ff', border:'1px solid #bfdbfe', padding:'2px 7px', borderRadius:4 }}>CrCl {crcl} mL/min</span>}
+          {patient.weight && <span style={{ fontSize:10, color:'#374151', background:'#f8fafc', border:'1px solid #e2e8f0', padding:'2px 7px', borderRadius:4 }}>Peso {patient.weight}kg</span>}
+          {patient.allergies && <span style={{ fontSize:10, fontWeight:600, color:'#7c3aed', background:'#faf5ff', border:'1px solid #ddd6fe', padding:'2px 7px', borderRadius:4 }}>⚠ {patient.allergies}</span>}
         </div>
       </div>
 
@@ -669,6 +663,8 @@ export default function RoundsPage() {
         const condScore = conditionRisk(p)
         const score = Math.min(100, critical*30 + moderate*15 + Math.min(25, (pMeds||[]).length*3) + condScore)
         const level = score>=70?'critical':score>=45?'high':score>=20?'moderate':'low'
+        const riskLevelMap: Record<string,'CRITICO'|'ALTO'|'MODERADO'|'BAIXO'> = { critical:'CRITICO', high:'ALTO', moderate:'MODERADO', low:'BAIXO' }
+        supabase.from('patients').update({ risk_level: riskLevelMap[level], alert_count: critical + moderate, last_review: new Date().toISOString() }).eq('id', p.id).then(() => {})
         setRisks(prev => ({ ...prev, [p.id]: { score, level, alerts, summary: data.summary||'' } }))
       } catch {
         setRisks(prev => ({ ...prev, [p.id]: { score:0, level:'low', alerts:[], summary:'Erro na análise.' } }))
@@ -764,14 +760,7 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
     setGeneratingReport(false)
   }
 
-  const tabStyle = (t: string, active: boolean) => ({
-    padding:'10px 18px', background:'none', border:'none',
-    borderBottom:`2px solid ${active?'var(--green)':'transparent'}`,
-    cursor:'pointer', fontSize:11, fontWeight:700,
-    color:active?'var(--green)':'var(--ink-4)',
-    fontFamily:'var(--font-sans)', letterSpacing:'0.04em',
-    textTransform:'uppercase' as const, marginBottom:-1, whiteSpace:'nowrap' as const,
-  })
+  const tabStyle = (_t: string, _active: boolean) => ({}) // kept for compatibility — tabs now inline
 
   if (!isPro) return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -796,62 +785,40 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
 
 
       {/* Rounds header */}
-      <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b' }}>
-        <div className="page-container" style={{ paddingTop:20, paddingBottom:0 }}>
-          <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'#475569', marginBottom:10, display:'flex', alignItems:'center', gap:5 }}>
-            <Link href="/cockpit" style={{ color:'#475569', textDecoration:'none' }}>Cockpit</Link>
-            <span>›</span>
-            <span style={{ color:'#64748b' }}>Ronda</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14, flexWrap:'wrap' }}>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#475569', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:4, display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:7, height:7, borderRadius:'50%', background:'#22c55e', animation:'pulse 2s infinite' }} />
-                Phlox Rounds · Ronda farmacêutica
+      <div style={{ background:'white', borderBottom:'1px solid #e2e8f0', position:'sticky', top:0, zIndex:40 }}>
+        <div className="page-container" style={{ paddingTop:0, paddingBottom:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12, height:56 }}>
+            <span style={{ fontSize:16, fontWeight:800, color:'#0f172a', letterSpacing:'-0.02em' }}>Rounds</span>
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'4px 12px', textAlign:'center' }}>
+                <span style={{ fontSize:15, fontWeight:800, color:'#1e40af' }}>{patients.length}</span>
+                <span style={{ fontSize:10, color:'#94a3b8', marginLeft:5 }}>doentes</span>
               </div>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:'#f8fafc', fontWeight:400 }}>
-                {new Date().toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long' })}
-              </div>
-            </div>
-            <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:'#f8fafc' }}>{patients.length}</div>
-                <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>doentes</div>
-              </div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:'#dc2626' }}>
-                  {Object.values(risks).filter(r => r!=='loading' && (r as RiskScore).level==='critical').length}
+              {Object.values(risks).filter(r => r!=='loading' && (r as RiskScore).level==='critical').length > 0 && (
+                <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'4px 12px', textAlign:'center' }}>
+                  <span style={{ fontSize:15, fontWeight:800, color:'#dc2626' }}>{Object.values(risks).filter(r => r!=='loading' && (r as RiskScore).level==='critical').length}</span>
+                  <span style={{ fontSize:10, color:'#dc2626', marginLeft:5 }}>críticos</span>
                 </div>
-                <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>críticos</div>
-              </div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:'#f8fafc' }}>{interventions.filter(i => i.date===new Date().toISOString().split('T')[0]).length}</div>
-                <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>interv. hoje</div>
+              )}
+              <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'4px 12px', textAlign:'center' }}>
+                <span style={{ fontSize:15, fontWeight:800, color:'#374151' }}>{interventions.filter(i => i.date===new Date().toISOString().split('T')[0]).length}</span>
+                <span style={{ fontSize:10, color:'#94a3b8', marginLeft:5 }}>interv. hoje</span>
               </div>
             </div>
-          </div>
-          <div style={{ display:'flex', borderTop:'1px solid #1e293b', alignItems:'center' }}>
-            <button onClick={() => setTab('rounds')} style={tabStyle('rounds', tab==='rounds')}>Ronda</button>
-            <button onClick={() => setTab('report')} style={tabStyle('report', tab==='report')}>Relatório Mensal</button>
-            <button onClick={() => setTab('pendentes')} style={tabStyle('pendentes', tab==='pendentes')}>
-              {`Pendentes${interventions.filter(i=>i.outcome_code==='O0').length > 0 ? ` (${interventions.filter(i=>i.outcome_code==='O0').length})` : ''}`}
-            </button>
             <div style={{ flex:1 }} />
+            <div style={{ display:'flex', background:'#f1f5f9', borderRadius:8, padding:2, gap:0 }}>
+              <button onClick={() => setTab('rounds')} style={{ padding:'5px 12px', background:tab==='rounds'?'white':'transparent', color:tab==='rounds'?'#0f172a':'#64748b', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, boxShadow:tab==='rounds'?'0 1px 3px rgba(0,0,0,0.08)':undefined }}>Ronda</button>
+              <button onClick={() => setTab('report')} style={{ padding:'5px 12px', background:tab==='report'?'white':'transparent', color:tab==='report'?'#0f172a':'#64748b', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, boxShadow:tab==='report'?'0 1px 3px rgba(0,0,0,0.08)':undefined }}>Relatório</button>
+              <button onClick={() => setTab('pendentes')} style={{ padding:'5px 12px', background:tab==='pendentes'?'white':'transparent', color:tab==='pendentes'?'#0f172a':'#64748b', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700, boxShadow:tab==='pendentes'?'0 1px 3px rgba(0,0,0,0.08)':undefined }}>
+                Pendentes{interventions.filter(i=>i.outcome_code==='O0').length > 0 ? ` (${interventions.filter(i=>i.outcome_code==='O0').length})` : ''}
+              </button>
+            </div>
             <button
               onClick={() => {
-                const rows = [
-                  'Data,Doente,Problema,Causa,Intervenção,Resultado,Descrição',
-                  ...interventions.map(i => [
-                    i.date, i.patient_name, i.problem_code, i.cause_code, i.intervention_code, i.outcome_code,
-                    `"${(i.description||'').replace(/"/g,'""')}"`
-                  ].join(','))
-                ].join('\n')
-                const a = document.createElement('a')
-                a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows)
-                a.download = `pcne_${new Date().toISOString().slice(0,10)}.csv`
-                a.click()
+                const rows = ['Data,Doente,Problema,Causa,Intervenção,Resultado,Descrição',...interventions.map(i=>[i.date,i.patient_name,i.problem_code,i.cause_code,i.intervention_code,i.outcome_code,`"${(i.description||'').replace(/"/g,'""')}"`].join(','))].join('\n')
+                const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows); a.download = `pcne_${new Date().toISOString().slice(0,10)}.csv`; a.click()
               }}
-              style={{ padding:'6px 14px', background:'rgba(255,255,255,0.08)', color:'#94a3b8', border:'1px solid #334155', borderRadius:6, cursor:'pointer', fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, marginRight:16, whiteSpace:'nowrap' }}>
+              style={{ padding:'6px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:7, cursor:'pointer', fontSize:11, fontWeight:700, color:'#374151' }}>
               ↓ CSV
             </button>
           </div>

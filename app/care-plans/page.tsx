@@ -78,7 +78,7 @@ export default function CarePlansPage() {
     if (!user) return
     setLoading(true)
     const [{ data: pat }, { data: cp }] = await Promise.all([
-      supabase.from('patients').select('id,name,room_number,age').eq('user_id', user.id).order('name'),
+      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
       supabase.from('care_plans').select('*').eq('user_id', user.id),
     ])
     setPatients(pat || [])

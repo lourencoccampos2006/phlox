@@ -8,7 +8,7 @@ type ScaleType = 'barthel' | 'braden' | 'morse' | 'mmse' | 'mna'
 interface Patient { id: string; name: string; age?: number; room?: string }
 interface AssessmentRecord {
   id: string; patient_id: string; patient_name?: string
-  type: ScaleType; date: string; score: number; data: Record<string, number>
+  scale: ScaleType; date: string; score: number; answers: Record<string, number>
   notes?: string; evaluated_by?: string; created_at: string
 }
 
@@ -212,11 +212,10 @@ export default function AssessmentsPage() {
     const payload = {
       user_id: user.id,
       patient_id: patientId,
-      patient_name: pat?.name || '',
-      type: tab,
+      scale: tab,
       date,
       score: totalScore,
-      data: scores,
+      answers: scores,
       notes: notes || null,
       evaluated_by: evaluatedBy || null,
     }
@@ -227,8 +226,8 @@ export default function AssessmentsPage() {
     load()
   }
 
-  const patientRecords = records.filter(r => r.patient_id === patientId && r.type === tab)
-  const allTabRecords = records.filter(r => r.type === tab)
+  const patientRecords = records.filter(r => r.patient_id === patientId && r.scale === tab)
+  const allTabRecords = records.filter(r => r.scale === tab)
 
   const inputStyle: React.CSSProperties = { padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }

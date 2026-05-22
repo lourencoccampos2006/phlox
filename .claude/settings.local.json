@@ -19,7 +19,8 @@
       "Bash(Measure-Object -Line)",
       "Bash(grep -n \"patient-form-3col\\\\|style.*\\\\`\\\\|@media\" \"c:/Users/Fernando/phlox/app/patients/page.tsx\")",
       "PowerShell(\\(Get-Content \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\patients\\\\[id]\\\\page.tsx\"\\).Count)",
-      "PowerShell($path = 'c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\patients'; Get-ChildItem $path -Recurse | ForEach-Object { Write-Output \"$\\($_.FullName\\): $\\(\\($_ | Get-Content\\).Count\\) lines\" })"
+      "PowerShell($path = 'c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\patients'; Get-ChildItem $path -Recurse | ForEach-Object { Write-Output \"$\\($_.FullName\\): $\\(\\($_ | Get-Content\\).Count\\) lines\" })",
+      "PowerShell(Get-ChildItem c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\ -Directory | Where-Object { $_.Name -match \"equipa|team|schedule|turno|staff\" })"
     ]
   }
 }

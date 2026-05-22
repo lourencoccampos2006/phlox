@@ -1,658 +1,464 @@
 'use client'
 
-// app/residentes/page.tsx — Phlox Residentes
-// Gestão farmacoterapêutica de residentes de lar de idosos / IPSS.
-// O produto que converte lares em clientes institucionais a €199/mês.
-//
-// Funcionalidades:
-// - Lista de residentes com score de risco farmacoterapêutico
-// - Revisão automática AI de cada residente
-// - Alertas activos por prioridade
-// - Histórico de intervenções por residente
-// - Relatório mensal para a ACSS / DGS
-// - Export PDF por residente ou por instituição
-
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type RiskLevel = 'CRITICO' | 'ALTO' | 'MODERADO' | 'BAIXO'
 
 interface Resident {
-  id: string
-  name: string
-  age: number
-  room: string
+  id: string; name: string; age: number; room: string
   diagnosis: string
   medications: { name: string; dose: string; frequency: string; route?: string }[]
   allergies: string[]
-  weight?: number
-  creatinine?: number
-  last_review?: string
-  risk_level?: RiskLevel
-  alert_count?: number
-  alerts?: Alert[]
-  notes?: string
+  weight?: number; creatinine?: number
+  last_review?: string; risk_level?: RiskLevel; alert_count?: number
 }
-
-interface Alert {
-  id: string
-  priority: 'CRITICA' | 'ALTA' | 'MEDIA' | 'INFO'
-  category: string
-  title: string
-  description: string
-  action: string
-  drugs_involved: string[]
-  resolved: boolean
-  created_at: string
+interface ReviewFinding {
+  id: string; priority: 'CRITICA' | 'ALTA' | 'MEDIA' | 'INFO'; category: string
+  title: string; description: string; action: string; drugs_involved: string[]
 }
-
 interface ReviewResult {
   overall_risk: RiskLevel
-  findings: Alert[]
+  findings: ReviewFinding[]
   positives: string[]
   lab_monitoring: { test: string; frequency: string; reason: string }[]
   pharmacist_note: string
   next_review_weeks: number
 }
 
-// ─── Risk styles ──────────────────────────────────────────────────────────────
-const RISK_STYLE: Record<RiskLevel, { color: string; bg: string; border: string; label: string }> = {
+const RISK: Record<RiskLevel, { color: string; bg: string; border: string; label: string }> = {
   CRITICO:  { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', label: 'Crítico' },
   ALTO:     { color: '#92400e', bg: '#fffbeb', border: '#fde68a', label: 'Alto' },
   MODERADO: { color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe', label: 'Moderado' },
   BAIXO:    { color: '#14532d', bg: '#f0fdf5', border: '#bbf7d0', label: 'Baixo' },
 }
-
-const PRIORITY_STYLE: Record<string, { color: string; bg: string; border: string; dot: string }> = {
-  CRITICA: { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', dot: '#dc2626' },
-  ALTA:    { color: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '#d97706' },
-  MEDIA:   { color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6' },
-  INFO:    { color: '#14532d', bg: '#f0fdf5', border: '#bbf7d0', dot: '#16a34a' },
+const PRIORITY: Record<string, { color: string; bg: string; border: string }> = {
+  CRITICA: { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
+  ALTA:    { color: '#92400e', bg: '#fff7ed', border: '#fed7aa' },
+  MEDIA:   { color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe' },
+  INFO:    { color: '#14532d', bg: '#f0fdf5', border: '#bbf7d0' },
 }
 
-// ─── Resident card ────────────────────────────────────────────────────────────
-function ResidentCard({
-  resident,
-  onSelect,
-  onReview,
-  reviewing,
-}: {
-  resident: Resident
-  onSelect: () => void
-  onReview: () => void
-  reviewing: boolean
-}) {
-  const rs = RISK_STYLE[resident.risk_level || 'BAIXO']
-  const daysSinceReview = resident.last_review
-    ? Math.floor((Date.now() - new Date(resident.last_review).getTime()) / 86400000)
-    : null
-  const reviewOverdue = daysSinceReview !== null && daysSinceReview > 90
-
-  return (
-    <div style={{
-      background: 'white',
-      border: '1px solid var(--border)',
-      borderRadius: 12,
-      overflow: 'hidden',
-      transition: 'box-shadow 0.15s',
-    }}
-      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.07)')}
-      onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-
-      {/* Risk bar */}
-      <div style={{ height: 3, background: rs.color }} />
-
-      <div style={{ padding: '16px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{resident.name}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginTop: 2 }}>
-              {resident.age}a · Quarto {resident.room}
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: rs.color, background: rs.bg, border: `1px solid ${rs.border}`, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {rs.label}
-            </span>
-            {resident.alert_count !== undefined && resident.alert_count > 0 && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#991b1b', background: '#fee2e2', padding: '1px 6px', borderRadius: 3 }}>
-                {resident.alert_count} alerta{resident.alert_count > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Diagnosis */}
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.4, marginBottom: 10 }}>
-          {resident.diagnosis}
-        </div>
-
-        {/* Med count + last review */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>
-            {resident.medications.length} medicamento{resident.medications.length !== 1 ? 's' : ''}
-          </span>
-          {daysSinceReview !== null && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: reviewOverdue ? '#991b1b' : 'var(--ink-5)', background: reviewOverdue ? '#fee2e2' : 'transparent', padding: reviewOverdue ? '1px 5px' : 0, borderRadius: 3 }}>
-              {reviewOverdue ? `revisão em atraso (${daysSinceReview}d)` : `revista há ${daysSinceReview}d`}
-            </span>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onSelect}
-            style={{ flex: 1, padding: '8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'var(--font-sans)', transition: 'all 0.1s' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-3)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-2)')}>
-            Ver perfil
-          </button>
-          <button onClick={onReview} disabled={reviewing}
-            style={{ flex: 1, padding: '8px', background: reviewing ? 'var(--bg-3)' : (reviewOverdue ? '#991b1b' : 'var(--green)'), color: reviewing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, cursor: reviewing ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'opacity 0.15s' }}>
-            {reviewing ? 'A rever...' : 'Rever AI'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+function daysSince(iso?: string) {
+  if (!iso) return null
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
 }
 
-// ─── Resident detail panel ────────────────────────────────────────────────────
-function ResidentDetail({ resident, review, onBack, onReview, reviewing }: {
-  resident: Resident
-  review: ReviewResult | null
-  onBack: () => void
-  onReview: () => void
-  reviewing: boolean
-}) {
-  const handlePrint = () => {
-    if (!review) return
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html><html lang="pt-PT"><head><meta charset="utf-8">
-    <title>Revisão Farmacoterapêutica — ${resident.name}</title>
-    <style>
-      body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.6; color: #111; padding: 24px; max-width: 780px; margin: 0 auto; }
-      h1 { font-size: 16px; border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 12px; }
-      h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #666; margin: 16px 0 6px; }
-      .header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10px; color: #555; }
-      .risk { display: inline-block; font-weight: 700; padding: 2px 8px; border-radius: 3px; font-size: 10px; letter-spacing: .08em; }
-      .finding { margin-bottom: 8px; padding: 8px 10px; border-radius: 4px; border-left: 3px solid; break-inside: avoid; }
-      .finding-title { font-weight: 700; font-size: 11px; margin-bottom: 3px; }
-      .finding-desc { font-size: 10px; margin-bottom: 3px; }
-      .finding-action { font-size: 10px; font-style: italic; }
-      .med-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-      .med-table th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #ddd; padding: 4px 6px; color: #888; }
-      .med-table td { padding: 4px 6px; border-bottom: 1px solid #eee; font-size: 10px; }
-      .footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 9px; color: #aaa; display: flex; justify-content: space-between; }
-      @media print { body { padding: 12px; } }
-    </style></head><body>
-    <div class="header">
-      <div><strong>REVISÃO FARMACOTERAPÊUTICA</strong> — Phlox Residentes</div>
-      <div>${new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-    </div>
-    <h1>${resident.name}</h1>
-    <p><strong>Idade:</strong> ${resident.age} anos &nbsp;&nbsp; <strong>Quarto:</strong> ${resident.room} &nbsp;&nbsp; <strong>Diagnósticos:</strong> ${resident.diagnosis}</p>
-    ${resident.allergies.length ? `<p><strong style="color:#dc2626">Alergias:</strong> ${resident.allergies.join(', ')}</p>` : ''}
-    <span class="risk" style="background:${RISK_STYLE[review.overall_risk].bg};color:${RISK_STYLE[review.overall_risk].color};border:1px solid ${RISK_STYLE[review.overall_risk].border}">
-      Risco ${RISK_STYLE[review.overall_risk].label}
-    </span>
-    <h2>Medicação (${resident.medications.length} fármacos)</h2>
-    <table class="med-table">
-      <tr><th>Medicamento</th><th>Dose</th><th>Frequência</th><th>Via</th></tr>
-      ${resident.medications.map(m => `<tr><td>${m.name}</td><td>${m.dose}</td><td>${m.frequency}</td><td>${m.route || 'oral'}</td></tr>`).join('')}
-    </table>
-    <h2>Alertas e Observações (${review.findings.length})</h2>
-    ${review.findings.map(f => {
-      const ps = PRIORITY_STYLE[f.priority]
-      return `<div class="finding" style="background:${ps.bg};border-color:${ps.color}">
-        <div class="finding-title" style="color:${ps.color}">[${f.priority}] ${f.title}</div>
-        <div class="finding-desc">${f.description}</div>
-        <div class="finding-action">→ ${f.action}</div>
-      </div>`
-    }).join('')}
-    ${review.lab_monitoring.length ? `<h2>Monitorização Analítica</h2>
-    <table class="med-table">
-      <tr><th>Análise</th><th>Frequência</th><th>Motivo</th></tr>
-      ${review.lab_monitoring.map(l => `<tr><td>${l.test}</td><td>${l.frequency}</td><td>${l.reason}</td></tr>`).join('')}
-    </table>` : ''}
-    ${review.pharmacist_note ? `<h2>Nota do Farmacêutico</h2><p>${review.pharmacist_note}</p>` : ''}
-    <div class="footer">
-      <span>Gerado por Phlox Residentes · phloxclinical.com</span>
-      <span>Próxima revisão recomendada: ${review.next_review_weeks} semanas</span>
-    </div>
-    <div style="margin-top:20px;border-top:1px solid #ddd;padding-top:10px;display:flex;justify-content:space-between;font-size:10px;color:#999">
-      <span>Farmacêutico(a) responsável: _______________________</span>
-      <span>Assinatura: _______________________</span>
-    </div>
-    </body></html>`)
-    win.document.close()
-    setTimeout(() => { win.focus(); win.print() }, 300)
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 10 }}>
-        <button onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Voltar à lista
-        </button>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {review && (
-            <button onClick={handlePrint}
-              style={{ padding: '8px 16px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Imprimir relatório
-            </button>
-          )}
-          <button onClick={onReview} disabled={reviewing}
-            style={{ padding: '8px 16px', background: reviewing ? 'var(--bg-3)' : 'var(--green)', color: reviewing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: reviewing ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-            {reviewing ? 'A analisar...' : '↻ Nova revisão AI'}
-          </button>
-        </div>
-      </div>
-
-      {/* Patient header */}
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 4px' }}>{resident.name}</h1>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>
-              {resident.age} anos · Quarto {resident.room}
-              {resident.weight && ` · ${resident.weight} kg`}
-              {resident.creatinine && ` · Cr ${resident.creatinine} mg/dL`}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 6, lineHeight: 1.5 }}>{resident.diagnosis}</div>
-            {resident.allergies.length > 0 && (
-              <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
-                {resident.allergies.map(a => <span key={a} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#991b1b', background: '#fee2e2', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: 4 }}>Alergia: {a}</span>)}
-              </div>
-            )}
-          </div>
-          {review && (
-            <div style={{ ...RISK_STYLE[review.overall_risk], padding: '8px 16px', borderRadius: 8, border: `1px solid ${RISK_STYLE[review.overall_risk].border}` }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.7 }}>Risco global</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400 }}>{RISK_STYLE[review.overall_risk].label}</div>
-            </div>
-          )}
-        </div>
-
-        {/* Medications table */}
-        <div style={{ padding: '16px 24px' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Medicação ({resident.medications.length} fármacos)
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {resident.medications.map((med, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 80px', gap: 8, padding: '8px 10px', background: i % 2 === 0 ? 'var(--bg-2)' : 'white', borderRadius: 5, fontSize: 13, color: 'var(--ink)' }}>
-                <span style={{ fontWeight: 600 }}>{med.name}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-3)' }}>{med.dose}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{med.frequency}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)' }}>{med.route || 'oral'}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Review results */}
-      {!review && !reviewing && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '40px', textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 10 }}>Sem revisão recente</div>
-          <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
-            Clica em "Nova revisão AI" para analisar automaticamente a medicação deste residente.
-          </p>
-          <button onClick={onReview}
-            style={{ padding: '12px 28px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-            Analisar com AI
-          </button>
-        </div>
-      )}
-
-      {reviewing && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '40px', textAlign: 'center' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--green)', animation: 'spin 0.7s linear infinite', margin: '0 auto 16px' }} />
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>A analisar medicação</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>Verificar interações, doses, duplicações e monitorização necessária...</div>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </div>
-      )}
-
-      {review && !reviewing && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Alerts */}
-          {review.findings.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Alertas e observações — {review.findings.length} encontrados
-                </div>
-              </div>
-              <div style={{ padding: '16px' }}>
-                {review.findings
-                  .sort((a, b) => ['CRITICA', 'ALTA', 'MEDIA', 'INFO'].indexOf(a.priority) - ['CRITICA', 'ALTA', 'MEDIA', 'INFO'].indexOf(b.priority))
-                  .map((f, i) => {
-                    const ps = PRIORITY_STYLE[f.priority]
-                    return (
-                      <div key={i} style={{ background: ps.bg, border: `1px solid ${ps.border}`, borderLeft: `3px solid ${ps.dot}`, borderRadius: 8, padding: '14px 16px', marginBottom: 8 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: ps.color, lineHeight: 1.3 }}>{f.title}</div>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: ps.color, background: 'rgba(255,255,255,0.5)', padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, marginLeft: 8 }}>{f.priority}</span>
-                        </div>
-                        <p style={{ fontSize: 13, color: ps.color, lineHeight: 1.65, margin: '0 0 8px', opacity: 0.9 }}>{f.description}</p>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: ps.color, background: 'rgba(255,255,255,0.4)', padding: '6px 10px', borderRadius: 5 }}>
-                          <span style={{ flexShrink: 0, marginTop: 1 }}>→</span>
-                          <span style={{ fontWeight: 600 }}>{f.action}</span>
-                        </div>
-                        {f.drugs_involved?.length > 0 && (
-                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
-                            {f.drugs_involved.map(d => <span key={d} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: ps.color, background: 'rgba(255,255,255,0.5)', border: '1px solid currentColor', padding: '1px 6px', borderRadius: 3, opacity: 0.7 }}>{d}</span>)}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-              </div>
-            </div>
-          )}
-
-          {/* Lab monitoring */}
-          {review.lab_monitoring.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Monitorização analítica necessária</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {review.lab_monitoring.map((l, i) => (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 2fr', gap: 12, padding: '10px 20px', background: i % 2 === 0 ? 'white' : 'var(--bg-2)', alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{l.test}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#1d4ed8', background: '#eff6ff', padding: '2px 8px', borderRadius: 4, textAlign: 'center' }}>{l.frequency}</span>
-                    <span style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>{l.reason}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Pharmacist note */}
-          {review.pharmacist_note && (
-            <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderLeft: '3px solid var(--green)', borderRadius: 10, padding: '18px 20px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--green)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Nota do Farmacêutico</div>
-              <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.75, margin: '0 0 10px' }}>{review.pharmacist_note}</p>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>
-                Próxima revisão recomendada: {review.next_review_weeks} semanas
-              </div>
-            </div>
-          )}
-
-          {/* Positives */}
-          {review.positives?.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#0d6e42', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>Aspectos positivos da medicação</div>
-              {review.positives.map((p, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < review.positives.length - 1 ? 6 : 0 }}>
-                  <span style={{ color: '#0d6e42', flexShrink: 0 }}>✓</span>
-                  <span style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>{p}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ResidentesPage() {
   const { user, supabase } = useAuth()
-  const router = useRouter()
-  const [residents, setResidents] = useState<Resident[]>([])
-  const [selected, setSelected] = useState<Resident | null>(null)
-  const [reviews, setReviews] = useState<Record<string, ReviewResult>>({})
-  const [reviewing, setReviewing] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
-  const [riskFilter, setRiskFilter] = useState<string>('all')
-  const [showAddForm, setShowAddForm] = useState(false)
+  const canUse = ['pro', 'clinic'].includes((user as any)?.plan || '')
 
-  const plan = (user as any)?.plan || 'free'
-  const canUse = plan === 'pro' || plan === 'clinic'
+  const [residents, setResidents]   = useState<Resident[]>([])
+  const [selected, setSelected]     = useState<Resident | null>(null)
+  const [reviews, setReviews]       = useState<Record<string, ReviewResult>>({})
+  const [reviewing, setReviewing]   = useState<string | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState('')
+  const [search, setSearch]         = useState('')
+  const [riskFilter, setRiskFilter] = useState<'all' | RiskLevel>('all')
 
   useEffect(() => {
-    if (!user) return
-    if (!canUse) { setLoading(false); return }
-    loadResidents()
+    if (!user || !canUse) { setLoading(false); return }
+    load()
   }, [user])
 
-  const loadResidents = async () => {
+  const load = async () => {
     setLoading(true)
-    try {
-      const { data: patients, error: pErr } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('name')
-      if (pErr) throw new Error(pErr.message)
-
-      const patientIds = (patients || []).map((p: any) => p.id)
-      let medsByPatient: Record<string, any[]> = {}
-      if (patientIds.length > 0) {
-        const { data: meds } = await supabase
-          .from('patient_meds')
-          .select('*')
-          .in('patient_id', patientIds)
-        ;(meds || []).forEach((m: any) => {
-          if (!medsByPatient[m.patient_id]) medsByPatient[m.patient_id] = []
-          medsByPatient[m.patient_id].push(m)
-        })
-      }
-
-      const mapped: Resident[] = (patients || []).map((p: any) => {
-        const age = p.age ?? (p.dob ? Math.floor((Date.now() - new Date(p.dob).getTime()) / 31557600000) : 0)
-        const meds = (medsByPatient[p.id] || []).map((m: any) => ({
-          name: m.name || m.med_name || '',
-          dose: m.dose || '',
-          frequency: m.frequency || m.freq || '',
-          route: m.route || 'oral',
-        }))
-        return {
-          id: p.id,
-          name: p.name,
-          age,
-          room: p.room_number || p.room || '—',
-          diagnosis: p.conditions || p.diagnosis || p.notes || '—',
-          medications: meds,
-          allergies: p.allergies ? p.allergies.split(',').map((a: string) => a.trim()).filter(Boolean) : [],
-          weight: p.weight ?? undefined,
-          creatinine: p.creatinine ?? undefined,
-          last_review: p.last_review ?? undefined,
-          risk_level: p.risk_level ?? undefined,
-          alert_count: p.alert_count ?? 0,
-          notes: p.notes ?? undefined,
-        }
-      })
-      setResidents(mapped)
-    } catch (_e: any) {
-      setResidents([])
-    } finally {
-      setLoading(false)
+    const { data: pts } = await supabase.from('patients').select('*').eq('user_id', user!.id).order('name')
+    const ids = (pts || []).map((p: any) => p.id)
+    let medsMap: Record<string, any[]> = {}
+    if (ids.length) {
+      const { data: meds } = await supabase.from('patient_meds').select('*').eq('active', true).in('patient_id', ids)
+      ;(meds || []).forEach((m: any) => { if (!medsMap[m.patient_id]) medsMap[m.patient_id] = []; medsMap[m.patient_id].push(m) })
     }
+    const mapped: Resident[] = (pts || []).map((p: any) => ({
+      id: p.id, name: p.name,
+      age: p.age ?? (p.date_of_birth ? Math.floor((Date.now() - new Date(p.date_of_birth).getTime()) / 31557600000) : 0),
+      room: p.room_number || '—',
+      diagnosis: p.conditions || p.diagnosis || '—',
+      medications: (medsMap[p.id] || []).map((m: any) => ({ name: m.name, dose: m.dose || '', frequency: m.frequency || '', route: m.route || 'oral' })),
+      allergies: p.allergies ? p.allergies.split(/[,;]+/).map((a: string) => a.trim()).filter(Boolean) : [],
+      weight: p.weight ?? undefined, creatinine: p.creatinine ?? undefined,
+      last_review: p.last_review ?? undefined,
+      risk_level: p.risk_level ?? undefined,
+      alert_count: p.alert_count ?? 0,
+    }))
+    setResidents(mapped)
+    setLoading(false)
   }
 
-  const reviewResident = useCallback(async (resident: Resident) => {
-    setReviewing(resident.id)
-    setError('')
+  const review = useCallback(async (r: Resident) => {
+    setReviewing(r.id); setError('')
     try {
       const { data: sd } = await supabase.auth.getSession()
-      const token = sd?.session?.access_token
       const res = await fetch('/api/residentes/review', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: resident.name,
-          age: resident.age,
-          diagnosis: resident.diagnosis,
-          medications: resident.medications,
-          allergies: resident.allergies,
-          weight: resident.weight,
-          creatinine: resident.creatinine,
-        }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
+        body: JSON.stringify({ name: r.name, age: r.age, diagnosis: r.diagnosis, medications: r.medications, allergies: r.allergies, weight: r.weight, creatinine: r.creatinine }),
       })
       if (!res.ok) throw new Error((await res.json()).error || 'Erro')
       const data: ReviewResult = await res.json()
-      setReviews(prev => ({ ...prev, [resident.id]: data }))
-      // Update risk level
-      setResidents(prev => prev.map(r =>
-        r.id === resident.id
-          ? { ...r, risk_level: data.overall_risk, alert_count: data.findings.filter(f => f.priority === 'CRITICA' || f.priority === 'ALTA').length, last_review: new Date().toISOString() }
-          : r
-      ))
-    } catch (e: any) {
-      setError(e.message || 'Erro ao rever. Tenta novamente.')
-    } finally {
-      setReviewing(null)
-    }
+      setReviews(p => ({ ...p, [r.id]: data }))
+      setResidents(p => p.map(x => x.id === r.id ? { ...x, risk_level: data.overall_risk, alert_count: data.findings.filter(f => f.priority === 'CRITICA' || f.priority === 'ALTA').length, last_review: new Date().toISOString() } : x))
+    } catch (e: any) { setError(e.message || 'Erro ao rever') }
+    setReviewing(null)
   }, [supabase])
 
-  const filteredResidents = residents.filter(r => {
-    const matchSearch = !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.room.toLowerCase().includes(search.toLowerCase()) || r.diagnosis.toLowerCase().includes(search.toLowerCase())
-    const matchRisk = riskFilter === 'all' || r.risk_level === riskFilter
-    return matchSearch && matchRisk
+  const filtered = residents.filter(r => {
+    const q = search.toLowerCase()
+    return (!q || r.name.toLowerCase().includes(q) || r.room.toLowerCase().includes(q) || r.diagnosis.toLowerCase().includes(q))
+      && (riskFilter === 'all' || r.risk_level === riskFilter)
+  }).sort((a, b) => {
+    const order: Record<string, number> = { CRITICO: 0, ALTO: 1, MODERADO: 2, BAIXO: 3 }
+    return (order[a.risk_level || 'BAIXO'] ?? 3) - (order[b.risk_level || 'BAIXO'] ?? 3)
   })
 
   const stats = {
     total: residents.length,
     critical: residents.filter(r => r.risk_level === 'CRITICO').length,
     high: residents.filter(r => r.risk_level === 'ALTO').length,
-    overdue: residents.filter(r => {
-      if (!r.last_review) return true
-      return Math.floor((Date.now() - new Date(r.last_review).getTime()) / 86400000) > 90
-    }).length,
-    totalMeds: residents.reduce((s, r) => s + r.medications.length, 0),
+    overdue: residents.filter(r => !r.last_review || (daysSince(r.last_review) ?? 0) > 90).length,
+    meds: residents.reduce((s, r) => s + r.medications.length, 0),
   }
 
-  if (!canUse) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+  if (!canUse) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ maxWidth: 500, padding: '0 24px', textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#0f172a', marginBottom: 12 }}>Phlox Residentes</div>
+          <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 24 }}>Revisão farmacoterapêutica completa de todos os residentes — alertas automáticos, relatórios para o médico, conformidade ACSS.</p>
+          <Link href="/pricing" style={{ display: 'inline-block', background: '#2563eb', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Ver planos →</Link>
+        </div>
+      </div>
+    )
+  }
 
-      <div className="page-container page-body" style={{ maxWidth: 600 }}>
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 36px', textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 12, background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="1.8" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  if (selected) {
+    const rev = reviews[selected.id] ?? null
+    const days = daysSince(selected.last_review)
+    return (
+      <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+          <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 54 }}>
+              <button onClick={() => setSelected(null)}
+                style={{ fontSize: 13, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, padding: 0, fontFamily: 'var(--font-sans)' }}>
+                ← Residentes
+              </button>
+              <div style={{ height: 18, width: 1, background: '#e2e8f0' }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{selected.name}</span>
+              {selected.risk_level && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: RISK[selected.risk_level].color, background: RISK[selected.risk_level].bg, border: `1px solid ${RISK[selected.risk_level].border}`, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>
+                  {RISK[selected.risk_level].label}
+                </span>
+              )}
+              <div style={{ flex: 1 }} />
+              {rev && (
+                <button onClick={() => {
+                  const win = window.open('', '_blank')
+                  if (!win) return
+                  win.document.write(`<html><head><title>Revisão — ${selected.name}</title><style>body{font-family:Arial,sans-serif;font-size:11px;padding:24px;max-width:780px;margin:0 auto}h1{font-size:16px;border-bottom:2px solid #000;padding-bottom:6px}h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#666;margin:16px 0 6px}.finding{margin-bottom:8px;padding:8px 10px;border-radius:4px;border-left:3px solid;break-inside:avoid}@media print{body{padding:12px}}</style></head><body><h1>${selected.name}</h1><p>${selected.age} anos · Quarto ${selected.room} · ${selected.diagnosis}</p>${selected.allergies.length ? `<p><strong style="color:#dc2626">Alergias:</strong> ${selected.allergies.join(', ')}</p>` : ''}<h2>Medicação (${selected.medications.length})</h2><table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid #ddd;font-size:10px;color:#888"><th align="left">Medicamento</th><th align="left">Dose</th><th align="left">Frequência</th></tr>${selected.medications.map(m => `<tr style="border-bottom:1px solid #eee"><td>${m.name}</td><td>${m.dose}</td><td>${m.frequency}</td></tr>`).join('')}</table><h2>Alertas (${rev.findings.length})</h2>${rev.findings.map(f => `<div class="finding" style="background:${PRIORITY[f.priority]?.bg};border-color:${PRIORITY[f.priority]?.color}"><strong style="color:${PRIORITY[f.priority]?.color}">${f.title}</strong><br>${f.description}<br><em>→ ${f.action}</em></div>`).join('')}${rev.pharmacist_note ? `<h2>Nota do Farmacêutico</h2><p>${rev.pharmacist_note}</p>` : ''}<p style="margin-top:24px;font-size:10px;color:#aaa">Gerado por Phlox · phloxclinical.com · Próxima revisão: ${rev.next_review_weeks} semanas</p></body></html>`)
+                  win.document.close(); setTimeout(() => win.print(), 300)
+                }}
+                  style={{ padding: '6px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', cursor: 'pointer', fontWeight: 700 }}>
+                  Imprimir
+                </button>
+              )}
+              <button onClick={() => review(selected)} disabled={reviewing === selected.id}
+                style={{ padding: '6px 16px', background: reviewing === selected.id ? '#f1f5f9' : '#059669', color: reviewing === selected.id ? '#94a3b8' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: reviewing === selected.id ? 'not-allowed' : 'pointer' }}>
+                {reviewing === selected.id ? 'A analisar...' : rev ? '↻ Rever AI' : 'Analisar AI'}
+              </button>
+            </div>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, marginBottom: 12 }}>Phlox Residentes</h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.75, marginBottom: 8, maxWidth: 420, margin: '0 auto 12px' }}>
-            Gestão farmacoterapêutica completa dos residentes do teu lar ou IPSS.
-          </p>
-          <ul style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.9, margin: '0 0 28px', textAlign: 'left', maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', padding: '0 0 0 20px' }}>
-            <li>Revisão AI de todos os residentes em segundos</li>
-            <li>Alertas por prioridade: crítico, alto, médio</li>
-            <li>Monitorização analítica necessária por residente</li>
-            <li>Relatórios imprimíveis por residente para o médico</li>
-            <li>Dashboard de risco da instituição</li>
-            <li>Histórico de revisões farmacoterapêuticas</li>
-          </ul>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/pricing"
-              style={{ padding: '12px 28px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
-              Ver plano Pro →
-            </Link>
-            <Link href="/institucional"
-              style={{ padding: '12px 20px', background: 'white', color: 'var(--ink-2)', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>
-              Plano Institucional
+        </div>
+
+        <div className="page-container page-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Patient profile card */}
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '20px 24px' }}>
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{selected.name}</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>
+                  {selected.age} anos · Quarto {selected.room}
+                  {selected.weight ? ` · ${selected.weight} kg` : ''}
+                  {selected.creatinine ? ` · Cr ${selected.creatinine} mg/dL` : ''}
+                </div>
+                {selected.diagnosis !== '—' && <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{selected.diagnosis}</div>}
+                {selected.allergies.length > 0 && (
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+                    {selected.allergies.map(a => <span key={a} style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '2px 8px', borderRadius: 4 }}>⚠ {a}</span>)}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                {days !== null && (
+                  <span style={{ fontSize: 11, color: days > 90 ? '#dc2626' : '#64748b', background: days > 90 ? '#fee2e2' : '#f8fafc', border: `1px solid ${days > 90 ? '#fca5a5' : '#e2e8f0'}`, padding: '3px 9px', borderRadius: 5, fontWeight: days > 90 ? 700 : 400 }}>
+                    {days > 90 ? `Revisão em atraso — ${days}d` : `Revista há ${days}d`}
+                  </span>
+                )}
+                <Link href={`/patients`} style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none' }}>
+                  Editar em Doentes →
+                </Link>
+              </div>
+            </div>
+
+            {/* Medications table */}
+            {selected.medications.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                  Medicação activa — {selected.medications.length} fármacos
+                </div>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+                  {selected.medications.map((m, i) => (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, padding: '9px 14px', background: i % 2 === 0 ? 'white' : '#f8fafc', borderBottom: i < selected.medications.length - 1 ? '1px solid #f1f5f9' : 'none', fontSize: 13 }}>
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{m.name}</span>
+                      <span style={{ color: '#374151' }}>{m.dose || '—'}</span>
+                      <span style={{ color: '#64748b', fontSize: 12 }}>{m.frequency || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Review results */}
+          {reviewing === selected.id && (
+            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '48px', textAlign: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#059669', animation: 'spin 0.7s linear infinite', margin: '0 auto 16px' }} />
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 6 }}>A analisar medicação</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Verificar interações, doses, duplicações e monitorização necessária...</div>
+              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+            </div>
+          )}
+
+          {!rev && reviewing !== selected.id && (
+            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '48px', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 16 }}>🔍</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Sem revisão recente</div>
+              <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
+                Clica em "Analisar AI" para rever a medicação, detetar interações, doses inadequadas e critérios STOPP/START.
+              </p>
+              <button onClick={() => review(selected)} style={{ padding: '11px 28px', background: '#059669', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                Analisar com AI
+              </button>
+            </div>
+          )}
+
+          {rev && reviewing !== selected.id && (
+            <>
+              {/* Risk summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                <div style={{ background: RISK[rev.overall_risk].bg, border: `1px solid ${RISK[rev.overall_risk].border}`, borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: RISK[rev.overall_risk].color }}>{RISK[rev.overall_risk].label}</div>
+                  <div style={{ fontSize: 10, color: RISK[rev.overall_risk].color, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>Risco global</div>
+                </div>
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: rev.findings.filter(f => f.priority === 'CRITICA').length > 0 ? '#dc2626' : '#374151' }}>
+                    {rev.findings.filter(f => f.priority === 'CRITICA').length}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>Alertas críticos</div>
+                </div>
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#374151' }}>{rev.findings.length}</div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>Total alertas</div>
+                </div>
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#374151' }}>{rev.next_review_weeks}sem</div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>Próxima revisão</div>
+                </div>
+              </div>
+
+              {/* Findings */}
+              {rev.findings.length > 0 && (
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Alertas e observações
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '1px 7px', borderRadius: 10 }}>
+                      {rev.findings.filter(f => f.priority === 'CRITICA').length > 0 ? `${rev.findings.filter(f => f.priority === 'CRITICA').length} crítico(s)` : `${rev.findings.length} total`}
+                    </span>
+                  </div>
+                  <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[...rev.findings].sort((a, b) => ['CRITICA','ALTA','MEDIA','INFO'].indexOf(a.priority) - ['CRITICA','ALTA','MEDIA','INFO'].indexOf(b.priority)).map((f, i) => {
+                      const p = PRIORITY[f.priority] ?? PRIORITY.INFO
+                      return (
+                        <div key={i} style={{ background: p.bg, border: `1px solid ${p.border}`, borderLeft: `3px solid ${p.color}`, borderRadius: 8, padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: p.color, lineHeight: 1.3 }}>{f.title}</span>
+                            <span style={{ fontSize: 9, fontWeight: 800, color: p.color, background: 'rgba(255,255,255,0.6)', padding: '2px 6px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>{f.priority}</span>
+                          </div>
+                          <p style={{ fontSize: 12, color: p.color, lineHeight: 1.6, margin: '0 0 8px', opacity: 0.9 }}>{f.description}</p>
+                          <div style={{ fontSize: 12, color: p.color, background: 'rgba(255,255,255,0.4)', padding: '5px 9px', borderRadius: 5, fontWeight: 600 }}>
+                            → {f.action}
+                          </div>
+                          {f.drugs_involved?.length > 0 && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                              {f.drugs_involved.map(d => <span key={d} style={{ fontSize: 10, color: p.color, background: 'rgba(255,255,255,0.5)', border: '1px solid currentColor', padding: '1px 6px', borderRadius: 3, opacity: 0.8 }}>{d}</span>)}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Lab monitoring */}
+              {rev.lab_monitoring.length > 0 && (
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Monitorização analítica</span>
+                  </div>
+                  {rev.lab_monitoring.map((l, i) => (
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 2fr', gap: 12, padding: '10px 16px', background: i % 2 === 0 ? 'white' : '#f8fafc', borderBottom: i < rev.lab_monitoring.length - 1 ? '1px solid #f1f5f9' : 'none', alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{l.test}</span>
+                      <span style={{ fontSize: 11, color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: 4, textAlign: 'center' }}>{l.frequency}</span>
+                      <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>{l.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pharmacist note */}
+              {rev.pharmacist_note && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderLeft: '3px solid #059669', borderRadius: 10, padding: '16px 20px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Nota do Farmacêutico</div>
+                  <p style={{ fontSize: 14, color: '#0f172a', lineHeight: 1.75, margin: 0 }}>{rev.pharmacist_note}</p>
+                </div>
+              )}
+
+              {/* Positives */}
+              {rev.positives?.length > 0 && (
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Aspectos positivos</div>
+                  {rev.positives.map((pos, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < rev.positives.length - 1 ? 6 : 0 }}>
+                      <span style={{ color: '#059669', flexShrink: 0, fontWeight: 700 }}>✓</span>
+                      <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{pos}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
+      {/* Sticky header */}
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+        <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 54 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Revisão Farmacoterapêutica</span>
+            <div style={{ flex: 1 }} />
+            <Link href="/patients" style={{ padding: '6px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, color: '#374151', textDecoration: 'none', fontWeight: 600 }}>
+              Gerir doentes →
             </Link>
           </div>
         </div>
       </div>
-    </div>
-  )
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <div className="page-container page-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      <div className="page-container page-body">
-
-        {selected ? (
-          <ResidentDetail
-            resident={selected}
-            review={reviews[selected.id] || null}
-            onBack={() => setSelected(null)}
-            onReview={() => reviewResident(selected)}
-            reviewing={reviewing === selected.id}
-          />
-        ) : (
-          <>
-            {/* Header */}
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Plano Institucional</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3.5vw,36px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 10 }}>Phlox Residentes</h1>
-              <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.65, maxWidth: 560 }}>
-                Revisão farmacoterapêutica automatizada de todos os residentes. Identifica riscos, prioriza intervenções, gera relatórios para o médico.
-              </p>
+        {/* Stats strip */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+          {[
+            { label: 'Residentes', value: stats.total, color: '#1e40af', alert: false },
+            { label: 'Risco crítico', value: stats.critical, color: '#991b1b', alert: stats.critical > 0 },
+            { label: 'Risco alto', value: stats.high, color: '#92400e', alert: stats.high > 0 },
+            { label: 'Revisão em atraso', value: stats.overdue, color: '#d97706', alert: stats.overdue > 0 },
+            { label: 'Total fármacos', value: stats.meds, color: '#374151', alert: false },
+          ].map(k => (
+            <div key={k.label} style={{ background: k.alert ? (k.label === 'Risco crítico' ? '#fee2e2' : '#fffbeb') : 'white', border: `1px solid ${k.alert ? (k.label === 'Risco crítico' ? '#fca5a5' : '#fde68a') : '#e2e8f0'}`, borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
+              <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</div>
             </div>
+          ))}
+        </div>
 
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 24 }}>
-              {[
-                { label: 'Total de residentes', value: stats.total, color: 'var(--ink)', bg: 'white' },
-                { label: 'Risco crítico', value: stats.critical, color: '#991b1b', bg: '#fee2e2' },
-                { label: 'Risco alto', value: stats.high, color: '#92400e', bg: '#fffbeb' },
-                { label: 'Revisão em atraso', value: stats.overdue, color: '#1e40af', bg: '#eff6ff' },
-                { label: 'Total de fármacos', value: stats.totalMeds, color: 'var(--ink-2)', bg: 'var(--bg-2)' },
-              ].map(s => (
-                <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Search + filter */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Pesquisar por nome, quarto ou diagnóstico..."
-                style={{ flex: 1, minWidth: 200, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-              {(['all', 'CRITICO', 'ALTO', 'MODERADO', 'BAIXO'] as const).map(r => (
-                <button key={r} onClick={() => setRiskFilter(r)}
-                  style={{ padding: '8px 14px', border: `1.5px solid ${riskFilter === r ? (r === 'all' ? 'var(--ink)' : RISK_STYLE[r as RiskLevel]?.color || 'var(--ink)') : 'var(--border)'}`, borderRadius: 8, background: riskFilter === r ? (r === 'all' ? 'var(--ink)' : RISK_STYLE[r as RiskLevel]?.bg || 'var(--bg-2)') : 'white', color: riskFilter === r ? (r === 'all' ? 'white' : RISK_STYLE[r as RiskLevel]?.color || 'var(--ink)') : 'var(--ink-4)', fontSize: 12, fontWeight: riskFilter === r ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font-mono)', transition: 'all 0.12s' }}>
-                  {r === 'all' ? 'Todos' : r.charAt(0) + r.slice(1).toLowerCase()}
-                </button>
-              ))}
-              <button onClick={() => reviewResident(filteredResidents[0])} disabled={!!reviewing || filteredResidents.length === 0}
-                style={{ padding: '8px 16px', background: reviewing ? 'var(--bg-3)' : '#7c3aed', color: reviewing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: reviewing ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                {reviewing ? 'A rever...' : 'Rever todos com AI'}
+        {/* Search + filter */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Pesquisar por nome, quarto ou diagnóstico..."
+            style={{ flex: 1, minWidth: 200, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+          <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2 }}>
+            {(['all', 'CRITICO', 'ALTO', 'MODERADO', 'BAIXO'] as const).map(r => (
+              <button key={r} onClick={() => setRiskFilter(r)}
+                style={{ padding: '5px 11px', background: riskFilter === r ? (r === 'all' ? '#374151' : RISK[r]?.color || '#374151') : 'transparent', color: riskFilter === r ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, transition: 'all 0.1s' }}>
+                {r === 'all' ? 'Todos' : r.charAt(0) + r.slice(1).toLowerCase()}
               </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991b1b' }}>{error}</div>}
+
+        {/* Resident list — table format */}
+        {loading ? (
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '60px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>A carregar...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '60px', textAlign: 'center' }}>
+            <div style={{ fontSize: 36, marginBottom: 16 }}>🏥</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+              {residents.length === 0 ? 'Sem residentes' : 'Nenhum resultado'}
             </div>
-
-            {error && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991b1b', marginBottom: 14 }}>{error}</div>}
-
-            {loading ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
-                {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 180, borderRadius: 12 }} />)}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 12 }}>
-                {filteredResidents.map(r => (
-                  <ResidentCard key={r.id} resident={r}
-                    onSelect={() => setSelected(r)}
-                    onReview={() => reviewResident(r)}
-                    reviewing={reviewing === r.id} />
-                ))}
-                {filteredResidents.length === 0 && (
-                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--ink-4)', fontSize: 14 }}>
-                    Nenhum residente encontrado com esses filtros.
-                  </div>
-                )}
-              </div>
+            {residents.length === 0 && (
+              <Link href="/patients" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Adicionar doentes →</Link>
             )}
-          </>
+          </div>
+        ) : (
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+            {/* Table header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 80px 1fr 120px 160px', gap: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '9px 16px' }}>
+              {['Residente', 'Idade', 'Quarto', 'Diagnóstico', 'Medicação', 'Risco / Revisão'].map(h => (
+                <div key={h} style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
+              ))}
+            </div>
+            {filtered.map((r, i) => {
+              const rs = r.risk_level ? RISK[r.risk_level] : null
+              const days = daysSince(r.last_review)
+              const overdue = days === null || days > 90
+              return (
+                <div key={r.id}
+                  onClick={() => setSelected(r)}
+                  style={{ display: 'grid', gridTemplateColumns: '2fr 60px 80px 1fr 120px 160px', gap: 0, padding: '12px 16px', borderBottom: i < filtered.length - 1 ? '1px solid #f1f5f9' : 'none', alignItems: 'center', cursor: 'pointer', transition: 'background 0.1s', borderLeft: `3px solid ${rs ? rs.color : '#e2e8f0'}` }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{r.name}</div>
+                    {r.allergies.length > 0 && <div style={{ fontSize: 10, color: '#7c3aed', marginTop: 2 }}>⚠ {r.allergies.join(', ')}</div>}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#374151' }}>{r.age}a</div>
+                  <div style={{ fontSize: 13, color: '#374151' }}>{r.room}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{r.diagnosis}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: r.medications.length >= 5 ? '#d97706' : '#374151' }}>{r.medications.length} fármaco{r.medications.length !== 1 ? 's' : ''}</div>
+                    {r.medications.length >= 5 && <div style={{ fontSize: 10, color: '#d97706' }}>Polimedicação</div>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                    {rs ? (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: rs.color, background: rs.bg, border: `1px solid ${rs.border}`, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>
+                        {rs.label}
+                      </span>
+                    ) : (
+                      <button onClick={e => { e.stopPropagation(); review(r) }} disabled={reviewing === r.id}
+                        style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 4, cursor: 'pointer', textDecoration: 'none' }}>
+                        {reviewing === r.id ? 'A analisar...' : 'Analisar AI'}
+                      </button>
+                    )}
+                    <span style={{ fontSize: 10, color: overdue ? '#dc2626' : '#94a3b8', fontWeight: overdue ? 700 : 400 }}>
+                      {days === null ? 'Sem revisão' : overdue ? `Atraso ${days}d` : `${days}d atrás`}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

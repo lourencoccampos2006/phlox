@@ -87,9 +87,8 @@ function getStructure(inst: InstType): { sections: NavSection[]; bottomItems: Na
           title: 'Gestão',
           items: [
             { href: '/census',    label: 'Ocupação',       short: 'Ocup.',    icon: ICONS.census },
-            { href: '/schedule',  label: 'Escalas',        short: 'Escalas',  icon: ICONS.schedule },
-            { href: '/family',    label: 'Famílias',       short: 'Família',  icon: ICONS.family },
-            { href: '/team',      label: 'Equipa',         short: 'Equipa',   icon: ICONS.team },
+            { href: '/schedule',  label: 'Equipa & Escalas', short: 'Escalas',  icon: ICONS.schedule },
+            { href: '/family',    label: 'Famílias',         short: 'Família',  icon: ICONS.family },
             { href: '/roi',       label: 'Poupança',       short: 'ROI',      icon: ICONS.roi },
           ],
         },
@@ -119,7 +118,7 @@ function getStructure(inst: InstType): { sections: NavSection[]; bottomItems: Na
       { href: '/patients',          label: label,            short: 'Doentes', icon: ICONS.patients },
       { href: '/prescription-queue',label: 'Validação',      short: 'Valid.',  icon: ICONS.mar },
       { href: '/drug-intelligence', label: 'Farmacoterapia', short: 'Farma',   icon: ICONS.drug },
-      { href: '/team',              label: 'Equipa',         short: 'Equipa',  icon: ICONS.team },
+      { href: '/schedule',          label: 'Equipa',         short: 'Equipa',  icon: ICONS.team },
     ]
     return { sections: [{ items }], bottomItems: items }
   }
@@ -130,7 +129,7 @@ function getStructure(inst: InstType): { sections: NavSection[]; bottomItems: Na
       { href: '/patients',          label: label,            short: 'Clientes', icon: ICONS.patients },
       { href: '/interactions',      label: 'Interações',     short: 'Inter.',   icon: ICONS.connect },
       { href: '/drug-intelligence', label: 'Farmacoterapia', short: 'Farma',    icon: ICONS.drug },
-      { href: '/team',              label: 'Equipa',         short: 'Equipa',   icon: ICONS.team },
+      { href: '/schedule',          label: 'Equipa',         short: 'Equipa',   icon: ICONS.team },
     ]
     return { sections: [{ items }], bottomItems: items }
   }
@@ -141,7 +140,7 @@ function getStructure(inst: InstType): { sections: NavSection[]; bottomItems: Na
     { href: '/patients', label: label,     short: label,     icon: ICONS.patients },
     { href: '/mar',      label: 'MAR',     short: 'MAR',     icon: ICONS.mar },
     { href: '/rounds',   label: 'Ronda',   short: 'Ronda',   icon: ICONS.rounds },
-    { href: '/team',     label: 'Equipa',  short: 'Equipa',  icon: ICONS.team },
+    { href: '/schedule', label: 'Equipa',  short: 'Equipa',  icon: ICONS.team },
   ]
   const secItems: NavItem[] = [
     { href: '/quality',         label: 'Qualidade',     short: 'Qual.',   icon: ICONS.quality },
@@ -251,49 +250,154 @@ export function ClinicalSideNav() {
 export function ClinicalBottomNav() {
   const pathname = usePathname()
   const inst = useInstitution()
-  const { bottomItems } = getStructure(inst)
+  const { bottomItems, sections } = getStructure(inst)
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  // Show 4 pinned items + "Mais" button
+  const pinned = bottomItems.slice(0, 4)
+  const pinnedHrefs = new Set(pinned.map(i => i.href))
+  const isMoreActive = !pinnedHrefs.has(pathname) && sections.some(s => s.items.some(i => isActive(pathname, i.href)))
 
   return (
-    <nav className="clinical-bottom-nav" style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      height: 60,
-      background: '#0b1120',
-      borderTop: '1px solid rgba(255,255,255,0.07)',
-      display: 'flex', alignItems: 'stretch',
-      zIndex: 89,
-    }}>
-      {bottomItems.map(item => {
-        const active = isActive(pathname, item.href)
-        return (
-          <Link key={item.href} href={item.href} style={{
+    <>
+      <nav className="clinical-bottom-nav" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        height: 60,
+        background: '#0b1120',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', alignItems: 'stretch',
+        zIndex: 89,
+      }}>
+        {pinned.map(item => {
+          const active = isActive(pathname, item.href)
+          return (
+            <Link key={item.href} href={item.href} style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 3,
+              textDecoration: 'none',
+              background: active ? 'rgba(255,255,255,0.05)' : 'transparent',
+              WebkitTapHighlightColor: 'transparent',
+              position: 'relative',
+              transition: 'background 0.1s',
+            }}>
+              {active && (
+                <div style={{
+                  position: 'absolute', top: 0, left: '25%', right: '25%',
+                  height: 2, borderRadius: '0 0 2px 2px',
+                  background: '#3b82f6',
+                }} />
+              )}
+              {item.icon(active, 21)}
+              <span style={{
+                fontSize: 9.5, letterSpacing: '0.01em',
+                color: active ? '#fff' : 'rgba(255,255,255,0.38)',
+                fontWeight: active ? 600 : 400,
+                transition: 'color 0.12s',
+              }}>
+                {item.short}
+              </span>
+            </Link>
+          )
+        })}
+        {/* Mais button */}
+        <button
+          onClick={() => setMoreOpen(o => !o)}
+          style={{
             flex: 1,
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 3,
-            textDecoration: 'none',
-            background: active ? 'rgba(255,255,255,0.05)' : 'transparent',
+            background: moreOpen || isMoreActive ? 'rgba(255,255,255,0.05)' : 'transparent',
+            border: 'none', cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
             position: 'relative',
             transition: 'background 0.1s',
           }}>
-            {active && (
-              <div style={{
-                position: 'absolute', top: 0, left: '25%', right: '25%',
-                height: 2, borderRadius: '0 0 2px 2px',
-                background: '#3b82f6',
-              }} />
-            )}
-            {item.icon(active, 21)}
-            <span style={{
-              fontSize: 9.5, letterSpacing: '0.01em',
-              color: active ? '#fff' : 'rgba(255,255,255,0.38)',
-              fontWeight: active ? 600 : 400,
-              transition: 'color 0.12s',
-            }}>
-              {item.short}
-            </span>
-          </Link>
-        )
-      })}
-    </nav>
+          {(moreOpen || isMoreActive) && (
+            <div style={{
+              position: 'absolute', top: 0, left: '25%', right: '25%',
+              height: 2, borderRadius: '0 0 2px 2px',
+              background: moreOpen ? '#f59e0b' : '#3b82f6',
+            }} />
+          )}
+          <svg width={21} height={21} viewBox="0 0 24 24" fill="none"
+            stroke={moreOpen || isMoreActive ? '#fff' : 'rgba(255,255,255,0.38)'}
+            strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+          </svg>
+          <span style={{
+            fontSize: 9.5, letterSpacing: '0.01em',
+            color: moreOpen || isMoreActive ? '#fff' : 'rgba(255,255,255,0.38)',
+            fontWeight: moreOpen || isMoreActive ? 600 : 400,
+          }}>
+            Mais
+          </span>
+        </button>
+      </nav>
+
+      {/* More overlay */}
+      {moreOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 88,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end',
+          }}
+          onClick={() => setMoreOpen(false)}
+        >
+          <div
+            style={{
+              width: '100%',
+              background: '#0b1120',
+              borderTop: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '16px 16px 0 0',
+              padding: '12px 16px 76px',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: 36, height: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 2, margin: '0 auto 20px' }} />
+            {sections.map((section, si) => (
+              <div key={si} style={{ marginBottom: 20 }}>
+                {section.title && (
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8, paddingLeft: 4 }}>
+                    {section.title}
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  {section.items.map(item => {
+                    const active = isActive(pathname, item.href)
+                    return (
+                      <Link key={item.href} href={item.href}
+                        onClick={() => setMoreOpen(false)}
+                        style={{
+                          display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center', gap: 6,
+                          padding: '12px 8px',
+                          background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${active ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                          borderRadius: 10,
+                          textDecoration: 'none',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}>
+                        {item.icon(active, 22)}
+                        <span style={{
+                          fontSize: 10, textAlign: 'center', lineHeight: 1.3,
+                          color: active ? '#fff' : 'rgba(255,255,255,0.5)',
+                          fontWeight: active ? 600 : 400,
+                        }}>
+                          {item.short}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   )
 }

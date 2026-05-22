@@ -101,7 +101,7 @@ export default function IncidentsPage() {
     setLoading(true)
     const [{ data: inc }, { data: pat }] = await Promise.all([
       supabase.from('incidents').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false }),
-      supabase.from('patients').select('id,name,room_number').eq('user_id', user.id).order('name'),
+      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
     ])
     setPatients(pat || [])
     const patMap: Record<string, string> = {}

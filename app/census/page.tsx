@@ -53,12 +53,15 @@ export default function CensusPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Build room map
-  const occupiedRooms = new Set(patients.filter(p => p.room_number).map(p => p.room_number!))
-  const patientByRoom: Record<string, Patient> = {}
-  patients.forEach(p => { if (p.room_number) patientByRoom[p.room_number] = p })
+  // Normalize room number for comparison: "q3", "Q3", "3", "03" all → "3"
+  const normalizeRoom = (r: string) => r.replace(/^[qQ]/, '').replace(/^0+/, '') || r
 
-  // Generate room grid (1..totalBeds)
+  // Build room map
+  const occupiedRooms = new Set(patients.filter(p => p.room_number).map(p => normalizeRoom(p.room_number!)))
+  const patientByRoom: Record<string, Patient> = {}
+  patients.forEach(p => { if (p.room_number) patientByRoom[normalizeRoom(p.room_number)] = p })
+
+  // Generate room grid (1..totalBeds) OR use actual room numbers from patients if they don't fit the numeric range
   const rooms: Room[] = Array.from({ length: totalBeds }, (_, i) => {
     const num = String(i + 1)
     const resident = patientByRoom[num]
@@ -70,15 +73,30 @@ export default function CensusPage() {
     }
   })
 
+  // Add rooms for patients whose room_number doesn't fit in the numeric grid
+  const extraPatients = patients.filter(p => {
+    if (!p.room_number) return false
+    const n = parseInt(normalizeRoom(p.room_number))
+    return isNaN(n) || n > totalBeds
+  })
+  const extraRooms: Room[] = extraPatients.map(p => ({
+    number: p.room_number!,
+    capacity: 1,
+    resident: p,
+    status: 'occupied' as const,
+  }))
+
   const stats = {
     total: totalBeds,
     occupied: occupiedRooms.size,
     available: totalBeds - occupiedRooms.size,
     occupancyPct: totalBeds > 0 ? Math.round((occupiedRooms.size / totalBeds) * 100) : 0,
     withoutRoom: patients.filter(p => !p.room_number).length,
+    totalResidents: patients.length,
   }
 
-  const filtered = filter === 'all' ? rooms : filter === 'occupied' ? rooms.filter(r => r.status === 'occupied') : rooms.filter(r => r.status === 'available')
+  const allRooms = [...rooms, ...extraRooms]
+  const filtered = filter === 'all' ? allRooms : filter === 'occupied' ? allRooms.filter(r => r.status === 'occupied') : allRooms.filter(r => r.status === 'available')
 
   // Admissions sorted by date
   const recentAdmissions = [...patients].filter(p => p.admission_date).sort((a, b) => (b.admission_date || '').localeCompare(a.admission_date || ''))

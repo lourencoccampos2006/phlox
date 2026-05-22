@@ -4,161 +4,122 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-
 interface Patient {
-  id: string
-  name: string
-  age: number | null
-  conditions: string | null
-  allergies: string | null
+  id: string; name: string; age: number | null; room_number: string | null
+  conditions: string | null; allergies: string | null
 }
-
-
-const ANTICOAG_TERMS = ['varfarina','acenocumarol','warfarin','rivaroxabano','apixabano','dabigatrano','edoxabano','heparina','enoxaparina']
-const NSAID_TERMS = ['ibuprofeno','diclofenac','naproxeno','meloxicam','piroxicam','indometacina','celecoxib','etoricoxib']
-const SSRI_TERMS = ['fluoxetina','sertralina','paroxetina','citalopram','escitalopram','fluvoxamina']
-const MAOI_TERMS = ['fenelzina','tranilcipromina','isocarboxazida','moclobemida','rasagilina','selegilina']
-const DIGOXIN_TERMS = ['digoxina']
-const AMIO_TERMS = ['amiodarona']
-
-function checkAllergyWarning(allergies: string | null, medName: string): string | null {
-  if (!allergies) return null
-  const tokens = allergies.toLowerCase().split(/[,;/\s]+/).filter(t => t.length >= 4)
-  const name = medName.toLowerCase()
-  const hit = tokens.find(t => name.includes(t) || t.includes(name.split(' ')[0]))
-  return hit ? `Alergia documentada: "${hit}" — confirmar antes de administrar` : null
-}
-
-function checkInteractionWarnings(medName: string, otherMedNames: string[]): string[] {
-  const warnings: string[] = []
-  const n = medName.toLowerCase()
-  const others = otherMedNames.map(m => m.toLowerCase())
-  const has = (terms: string[], list: string[]) => list.some(m => terms.some(t => m.includes(t)))
-  const isNew = (terms: string[]) => terms.some(t => n.includes(t))
-
-  if (isNew(NSAID_TERMS) && has(ANTICOAG_TERMS, others))
-    warnings.push('AINE + anticoagulante — risco de hemorragia grave')
-  if (isNew(ANTICOAG_TERMS) && has(NSAID_TERMS, others))
-    warnings.push('Anticoagulante + AINE — risco de hemorragia grave')
-  if (isNew(SSRI_TERMS) && has(MAOI_TERMS, others))
-    warnings.push('ISRS + IMAO — risco de síndrome serotoninérgica GRAVE')
-  if (isNew(MAOI_TERMS) && has(SSRI_TERMS, others))
-    warnings.push('IMAO + ISRS — risco de síndrome serotoninérgica GRAVE')
-  if (isNew(DIGOXIN_TERMS) && has(AMIO_TERMS, others))
-    warnings.push('Digoxina + amiodarona — risco de toxicidade digitálica')
-  if (isNew(AMIO_TERMS) && has(DIGOXIN_TERMS, others))
-    warnings.push('Amiodarona + digoxina — risco de toxicidade digitálica')
-  return warnings
-}
-
-interface PatientMed {
-  id: string
-  name: string
-  dose: string | null
-  frequency: string | null
-  indication: string | null
-}
-
+interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null }
 type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held' | null
-
 interface AdminRecord {
-  id?: string
-  patient_id: string
-  med_id: string
-  shift: Shift
-  date: string
-  status: AdminStatus
-  notes: string
-  recorded_by: string
-  recorded_at: string
+  id?: string; patient_id: string; med_id: string; shift: Shift; date: string
+  status: AdminStatus; notes: string; recorded_by: string; recorded_at: string
 }
 
-const SHIFT_LABELS: Record<Shift, { label: string; time: string; color: string; bg: string }> = {
-  manha: { label: 'Manhã', time: '07:00–14:00', color: '#d97706', bg: '#fffbeb' },
-  tarde:  { label: 'Tarde',  time: '14:00–21:00', color: '#1d4ed8', bg: '#eff6ff' },
-  noite:  { label: 'Noite',  time: '21:00–07:00', color: '#6d28d9', bg: '#faf5ff' },
+const SHIFTS: Record<Shift, { label: string; time: string; color: string; light: string; border: string }> = {
+  manha: { label: 'Manhã',  time: '07–14h', color: '#d97706', light: '#fffbeb', border: '#fde68a' },
+  tarde: { label: 'Tarde',  time: '14–21h', color: '#2563eb', light: '#eff6ff', border: '#bfdbfe' },
+  noite: { label: 'Noite',  time: '21–07h', color: '#7c3aed', light: '#faf5ff', border: '#ddd6fe' },
+}
+const STATUS_CFG = {
+  administered: { label: 'Administrado', short: '✓', color: '#166534', bg: '#f0fdf4', border: '#86efac' },
+  refused:      { label: 'Recusado',     short: '✗', color: '#991b1b', bg: '#fef2f2', border: '#fca5a5' },
+  held:         { label: 'Suspenso',     short: '⏸', color: '#92400e', bg: '#fff7ed', border: '#fed7aa' },
 }
 
-const STATUS_LABELS: Record<NonNullable<AdminStatus>, { label: string; color: string; bg: string; border: string }> = {
-  administered: { label: 'Administrado',  color: 'var(--green-2)',  bg: 'var(--green-light)', border: 'var(--green-mid)' },
-  refused:      { label: 'Recusado',      color: '#dc2626',         bg: 'var(--red-light)',   border: '#fca5a5' },
-  held:         { label: 'Suspenso',      color: '#92400e',         bg: 'var(--amber-light)', border: '#fde68a' },
+const ANTICOAG = ['varfarina','acenocumarol','warfarin','rivaroxabano','apixabano','dabigatrano','heparina','enoxaparina']
+const NSAID    = ['ibuprofeno','diclofenac','naproxeno','meloxicam','piroxicam','indometacina','celecoxib']
+const SSRI     = ['fluoxetina','sertralina','paroxetina','citalopram','escitalopram','fluvoxamina']
+const MAOI     = ['fenelzina','tranilcipromina','moclobemida','rasagilina','selegilina']
+const DIGOXIN  = ['digoxina']
+const AMIO     = ['amiodarona']
+
+function allergyWarning(allergies: string | null, med: string): string | null {
+  if (!allergies) return null
+  const tokens = allergies.toLowerCase().split(/[,;/\s]+/).filter(t => t.length >= 4)
+  const hit = tokens.find(t => med.toLowerCase().includes(t) || t.includes(med.toLowerCase().split(' ')[0]))
+  return hit ? `Alergia documentada "${hit}" — confirmar antes de administrar` : null
+}
+function interactionWarnings(med: string, others: string[]): string[] {
+  const n = med.toLowerCase(); const o = others.map(x => x.toLowerCase())
+  const has = (terms: string[]) => o.some(x => terms.some(t => x.includes(t)))
+  const is = (terms: string[]) => terms.some(t => n.includes(t))
+  const w: string[] = []
+  if (is(NSAID) && has(ANTICOAG))    w.push('AINE + anticoagulante — risco de hemorragia grave')
+  if (is(ANTICOAG) && has(NSAID))    w.push('Anticoagulante + AINE — risco de hemorragia grave')
+  if (is(SSRI) && has(MAOI))         w.push('ISRS + IMAO — risco de síndrome serotoninérgica')
+  if (is(MAOI) && has(SSRI))         w.push('IMAO + ISRS — risco de síndrome serotoninérgica')
+  if (is(DIGOXIN) && has(AMIO))      w.push('Digoxina + amiodarona — risco de toxicidade')
+  if (is(AMIO) && has(DIGOXIN))      w.push('Amiodarona + digoxina — risco de toxicidade')
+  return w
 }
 
-function getToday() {
-  return new Date().toISOString().split('T')[0]
-}
-
+function getToday() { return new Date().toISOString().split('T')[0] }
 function getCurrentShift(): Shift {
   const h = new Date().getHours()
   if (h >= 7 && h < 14) return 'manha'
   if (h >= 14 && h < 21) return 'tarde'
   return 'noite'
 }
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+}
 
-// ─── Admin Cell ───────────────────────────────────────────────────────────────
-
-function AdminCell({
-  record,
-  onChange,
-}: {
-  record: AdminRecord | null
-  onChange: (status: AdminStatus, notes: string) => void
-}) {
+function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null; isSaving: boolean; onChange: (s: AdminStatus, notes: string) => void }) {
   const [open, setOpen] = useState(false)
   const [notes, setNotes] = useState(record?.notes || '')
 
   if (record?.status) {
-    const s = STATUS_LABELS[record.status]
+    const cfg = STATUS_CFG[record.status]
     return (
-      <div
-        style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 6, padding: '5px 9px', cursor: 'pointer', minWidth: 90 }}
-        onClick={() => setOpen(true)}>
-        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: s.color, letterSpacing: '0.06em' }}>{s.label}</div>
-        {record.notes && <div style={{ fontSize: 9, color: 'var(--ink-4)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{record.notes}</div>}
+      <>
+        <button onClick={() => setOpen(true)} style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 7, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: isSaving ? 0.5 : 1 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: cfg.color }}>{cfg.short}</span>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, letterSpacing: '0.02em' }}>{cfg.label}</div>
+            {record.recorded_at && <div style={{ fontSize: 9, color: '#94a3b8' }}>{fmtTime(record.recorded_at)}{record.recorded_by ? ` · ${record.recorded_by.split(' ')[0]}` : ''}</div>}
+          </div>
+        </button>
         {open && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)' }}
-            onClick={e => { e.stopPropagation(); setOpen(false) }}>
-            <div style={{ background: 'white', borderRadius: 12, padding: '20px', width: 280, boxShadow: '0 24px 64px rgba(0,0,0,0.15)' }}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', padding: 20 }}
+            onClick={() => setOpen(false)}>
+            <div style={{ background: 'white', borderRadius: 14, padding: 20, width: '100%', maxWidth: 300, boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
               onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Alterar registo</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                {(Object.keys(STATUS_LABELS) as NonNullable<AdminStatus>[]).map(st => {
-                  const sl = STATUS_LABELS[st]
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Alterar registo</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => {
+                  const c = STATUS_CFG[st]
                   return (
                     <button key={st} onClick={() => { onChange(st, notes); setOpen(false) }}
-                      style={{ padding: '8px 12px', background: sl.bg, border: `1px solid ${sl.border}`, borderRadius: 7, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 600, color: sl.color }}>
-                      {sl.label}
+                      style={{ padding: '10px 14px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 700, color: c.color }}>
+                      {c.short} {c.label}
                     </button>
                   )
                 })}
                 <button onClick={() => { onChange(null, ''); setOpen(false) }}
-                  style={{ padding: '8px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', textAlign: 'left', fontSize: 13, color: 'var(--ink-4)' }}>
+                  style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontSize: 12, color: '#64748b' }}>
                   Limpar registo
                 </button>
               </div>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
                 placeholder="Observação (opcional)"
-                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px', fontSize: 12, fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none' }} />
+                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 7, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none' }} />
+              {record.notes && <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>Nota actual: {record.notes}</div>}
             </div>
           </div>
         )}
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="mar-admin-btns">
-      {(Object.keys(STATUS_LABELS) as NonNullable<AdminStatus>[]).map(st => {
-        const sl = STATUS_LABELS[st]
+    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', opacity: isSaving ? 0.5 : 1 }}>
+      {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => {
+        const c = STATUS_CFG[st]
         return (
           <button key={st} onClick={() => onChange(st, '')}
-            title={sl.label}
-            style={{ padding: '6px 10px', minHeight: 38, border: `1px solid ${sl.border}`, borderRadius: 6, background: sl.bg, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: sl.color, fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {sl.label}
+            style={{ padding: '8px 12px', minHeight: 38, border: `1px solid ${c.border}`, borderRadius: 7, background: c.bg, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: c.color, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+            {c.short} {c.label}
           </button>
         )
       })}
@@ -166,30 +127,29 @@ function AdminCell({
   )
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
 export default function MARPage() {
   const { user, supabase } = useAuth()
-  const plan = (user?.plan || 'free') as string
-  const isPro = plan === 'pro' || plan === 'clinic'
+  const isPro = ['pro', 'clinic'].includes(user?.plan || '')
 
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [selectedPatient, setSelectedPatient] = useState<string>('')
-  const [meds, setMeds] = useState<PatientMed[]>([])
-  const [date, setDate] = useState(getToday())
-  const [shift, setShift] = useState<Shift>(getCurrentShift())
-  const [records, setRecords] = useState<AdminRecord[]>([])
-  const [saving, setSaving] = useState<string | null>(null)
-  const [allOmissions, setAllOmissions] = useState<{ name: string; missing: number }[]>([])
-  const [pendingWarning, setPendingWarning] = useState<{ medId: string; status: AdminStatus; notes: string; messages: string[] } | null>(null)
-  const [showMissedPanel, setShowMissedPanel] = useState(false)
-  const [allDayRecords, setAllDayRecords] = useState<{ patient_id: string; med_id: string; shift: Shift; status: string }[]>([])
-  const [allMedsMap, setAllMedsMap] = useState<Record<string, PatientMed[]>>({})
+  const [patients, setPatients]               = useState<Patient[]>([])
+  const [selectedId, setSelectedId]           = useState('')
+  const [meds, setMeds]                       = useState<PatientMed[]>([])
+  const [date, setDate]                       = useState(getToday())
+  const [shift, setShift]                     = useState<Shift>(getCurrentShift())
+  const [records, setRecords]                 = useState<AdminRecord[]>([])
+  const [saving, setSaving]                   = useState<string | null>(null)
+  const [pendingWarn, setPendingWarn]         = useState<{ medId: string; status: AdminStatus; notes: string; messages: string[] } | null>(null)
+  const [omissions, setOmissions]             = useState<{ name: string; id: string; missing: number }[]>([])
+  const [allMedsMap, setAllMedsMap]           = useState<Record<string, PatientMed[]>>({})
+  const [allDayRecs, setAllDayRecs]           = useState<{ patient_id: string; med_id: string; shift: Shift; status: string }[]>([])
+  const [showOmitDetail, setShowOmitDetail]   = useState(false)
 
-  // Keyboard: 1=manhã, 2=tarde, 3=noite, P=imprimir
+  const selectedPatient = patients.find(p => p.id === selectedId) ?? null
+
+  // Keyboard shortcuts
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === '1') setShift('manha')
       else if (e.key === '2') setShift('tarde')
       else if (e.key === '3') setShift('noite')
@@ -199,304 +159,178 @@ export default function MARPage() {
     return () => window.removeEventListener('keydown', fn)
   }, [])
 
-  // Load patients
   useEffect(() => {
     if (!user || !isPro) return
-    supabase.from('patients').select('id, name, age, conditions, allergies')
-      .eq('user_id', user.id)
-      .order('name', { ascending: true })
+    supabase.from('patients').select('id, name, age, room_number, conditions, allergies')
+      .eq('user_id', user.id).order('name')
       .then(({ data }) => setPatients(data || []))
   }, [user, isPro, supabase])
 
-  // Load meds when patient changes
   useEffect(() => {
-    if (!selectedPatient) { setMeds([]); return }
-    supabase.from('patient_meds')
-      .select('id, name, dose, frequency, indication')
-      .eq('patient_id', selectedPatient)
-      .eq('active', true)
+    if (!selectedId) { setMeds([]); return }
+    supabase.from('patient_meds').select('id, name, dose, frequency, indication')
+      .eq('patient_id', selectedId).eq('active', true)
       .then(({ data }) => setMeds(data || []))
-  }, [selectedPatient, supabase])
+  }, [selectedId, supabase])
 
-  // Load admin records for this patient/date/shift
   useEffect(() => {
-    if (!selectedPatient || !date) return
-    supabase.from('mar_records')
-      .select('*')
-      .eq('patient_id', selectedPatient)
-      .eq('date', date)
-      .eq('shift', shift)
+    if (!selectedId || !date) return
+    supabase.from('mar_records').select('*')
+      .eq('patient_id', selectedId).eq('date', date).eq('shift', shift)
       .then(({ data }) => setRecords(data || []))
-  }, [selectedPatient, date, shift, supabase])
+  }, [selectedId, date, shift, supabase])
 
-  // Calculate omissions + load all-day records for missed-dose panel
+  // Compute omissions across all patients
   useEffect(() => {
-    if (!user || !isPro || patients.length === 0) return
-    const patientIds = patients.map(p => p.id)
+    if (!user || !isPro || !patients.length) return
+    const ids = patients.map(p => p.id)
     Promise.all([
-      supabase.from('patient_meds').select('id, patient_id, name, dose, frequency').eq('active', true).in('patient_id', patientIds),
-      supabase.from('mar_records').select('patient_id, med_id, shift, status').eq('date', date).in('patient_id', patientIds),
-    ]).then(([{ data: allMeds }, { data: todayRecs }]) => {
-      const medsData: any[] = allMeds || []
-      const recsData = todayRecs || []
-
-      // Build meds map by patient
+      supabase.from('patient_meds').select('id, patient_id, name, dose, frequency').eq('active', true).in('patient_id', ids),
+      supabase.from('mar_records').select('patient_id, med_id, shift, status').eq('date', date).in('patient_id', ids),
+    ]).then(([{ data: allMeds }, { data: dayRecs }]) => {
+      const medsArr: any[] = allMeds || []
+      const recsArr = dayRecs || []
       const medsMap: Record<string, PatientMed[]> = {}
-      medsData.forEach((m: any) => {
-        if (!medsMap[m.patient_id]) medsMap[m.patient_id] = []
-        medsMap[m.patient_id].push(m)
-      })
+      medsArr.forEach((m: any) => { if (!medsMap[m.patient_id]) medsMap[m.patient_id] = []; medsMap[m.patient_id].push(m) })
       setAllMedsMap(medsMap)
-      setAllDayRecords(recsData)
-
-      // Compute per-shift omissions for the current shift banner
-      const recsThisShift = recsData.filter((r: any) => r.shift === shift)
-      const medsPerPatient: Record<string, number> = {}
-      medsData.forEach((m: any) => {
-        medsPerPatient[m.patient_id] = (medsPerPatient[m.patient_id] || 0) + 1
-      })
-      const recsPerPatient: Record<string, number> = {}
-      recsThisShift.forEach((r: any) => {
-        recsPerPatient[r.patient_id] = (recsPerPatient[r.patient_id] || 0) + 1
-      })
-      const omissions = patients
-        .map(p => ({ name: p.name, missing: (medsPerPatient[p.id] || 0) - (recsPerPatient[p.id] || 0) }))
-        .filter(o => o.missing > 0)
-        .sort((a, b) => b.missing - a.missing)
-      setAllOmissions(omissions)
+      setAllDayRecs(recsArr)
+      const omit = patients.map(p => {
+        const total   = (medsMap[p.id] || []).length
+        const done    = recsArr.filter((r: any) => r.patient_id === p.id && r.shift === shift).length
+        return { name: p.name, id: p.id, missing: total - done }
+      }).filter(o => o.missing > 0).sort((a, b) => b.missing - a.missing)
+      setOmissions(omit)
     })
   }, [patients, date, shift, user, isPro, supabase])
 
-  const getRecord = (medId: string) =>
-    records.find(r => r.med_id === medId && r.shift === shift) || null
+  const getRecord = (medId: string) => records.find(r => r.med_id === medId && r.shift === shift) ?? null
 
   const doAdmin = async (medId: string, status: AdminStatus, notes: string) => {
-    if (!user || !selectedPatient) return
+    if (!user || !selectedId) return
     setSaving(medId)
     const existing = getRecord(medId)
-    const record = {
-      patient_id: selectedPatient,
-      user_id: user.id,
-      med_id: medId,
-      shift,
-      date,
-      status,
-      notes,
-      recorded_by: (user as any).name || user.email,
-      recorded_at: new Date().toISOString(),
-    }
-    if (status === null && existing) {
+    const base = { patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() }
+    if (!status && existing) {
       await supabase.from('mar_records').delete().eq('id', (existing as any).id)
-      setRecords(prev => prev.filter(r => r.med_id !== medId || r.shift !== shift))
+      setRecords(p => p.filter(r => !(r.med_id === medId && r.shift === shift)))
     } else if (existing) {
-      const { data } = await supabase.from('mar_records').update({ status, notes, recorded_at: record.recorded_at })
-        .eq('id', (existing as any).id).select().single()
-      if (data) setRecords(prev => prev.map(r => r.med_id === medId && r.shift === shift ? data : r))
+      const { data } = await supabase.from('mar_records').update({ status, notes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
+      if (data) setRecords(p => p.map(r => r.med_id === medId && r.shift === shift ? data : r))
     } else if (status) {
-      const { data } = await supabase.from('mar_records').insert(record).select().single()
-      if (data) setRecords(prev => [...prev, data])
+      const { data } = await supabase.from('mar_records').insert(base).select().single()
+      if (data) setRecords(p => [...p, data])
     }
     setSaving(null)
   }
 
   const handleAdmin = async (medId: string, status: AdminStatus, notes: string) => {
-    if (!user || !selectedPatient) return
-    // Only safety-check on new 'administered' records
-    if (status === 'administered' && !getRecord(medId)) {
-      const patient = patients.find(p => p.id === selectedPatient)
+    if (status === 'administered' && !getRecord(medId) && selectedPatient) {
       const med = meds.find(m => m.id === medId)
-      if (patient && med) {
-        const otherAdministered = records
-          .filter(r => r.shift === shift && r.status === 'administered' && r.med_id !== medId)
-          .map(r => meds.find(m => m.id === r.med_id)?.name || '')
-          .filter(Boolean)
-        const allergyMsg = checkAllergyWarning(patient.allergies, med.name)
-        const interactionMsgs = checkInteractionWarnings(med.name, otherAdministered)
-        const messages = [...(allergyMsg ? [allergyMsg] : []), ...interactionMsgs]
-        if (messages.length > 0) {
-          setPendingWarning({ medId, status, notes, messages })
-          return
-        }
+      if (med) {
+        const otherAdministered = records.filter(r => r.shift === shift && r.status === 'administered' && r.med_id !== medId).map(r => meds.find(m => m.id === r.med_id)?.name || '').filter(Boolean)
+        const messages = [...(allergyWarning(selectedPatient.allergies, med.name) ? [allergyWarning(selectedPatient.allergies, med.name)!] : []), ...interactionWarnings(med.name, otherAdministered)]
+        if (messages.length) { setPendingWarn({ medId, status, notes, messages }); return }
       }
     }
     await doAdmin(medId, status, notes)
   }
 
   const administerAllPending = async () => {
-    if (!user || !selectedPatient) return
     const pending = meds.filter(m => !getRecord(m.id))
-    if (!pending.length) return
+    if (!pending.length || !user || !selectedId) return
     const now = new Date().toISOString()
-    const inserts = pending.map(m => ({
-      patient_id: selectedPatient, user_id: user.id, med_id: m.id, shift, date,
-      status: 'administered', notes: '',
-      recorded_by: (user as any).name || user.email,
-      recorded_at: now,
-    }))
-    const { data: inserted } = await supabase.from('mar_records').insert(inserts).select()
-    if (inserted) setRecords(prev => [...prev, ...inserted])
+    const inserts = pending.map(m => ({ patient_id: selectedId, user_id: user.id, med_id: m.id, shift, date, status: 'administered', notes: '', recorded_by: (user as any).name || user.email || '', recorded_at: now }))
+    const { data } = await supabase.from('mar_records').insert(inserts).select()
+    if (data) setRecords(p => [...p, ...data])
   }
 
   const administered = records.filter(r => r.shift === shift && r.status === 'administered').length
-  const total = meds.length
-  const pendingCount = total - records.filter(r => r.shift === shift && r.status).length
-
-  function formatTime(iso: string): string {
-    const d = new Date(iso)
-    return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
-  }
+  const totalMeds    = meds.length
+  const pendingCount = totalMeds - records.filter(r => r.shift === shift && r.status).length
+  const sl           = SHIFTS[shift]
 
   if (!isPro) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-        <div style={{ maxWidth: 600, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 14 }}>Registo de Administração de Medicação</div>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28 }}>
-            O MAR (Medication Administration Record) é a ferramenta obrigatória em lares e hospitais para registar cada administração de medicação — quem administrou, quando, e o que aconteceu.
-          </p>
-          <Link href="/pricing" style={{ display: 'inline-flex', background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
-            Activar Plano Pro →
-          </Link>
+      <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ maxWidth: 480, padding: '0 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>MAR</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: '#0f172a', marginBottom: 14 }}>Registo de Administração de Medicação</div>
+          <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 24 }}>Regista cada administração por turno. Sinaliza omissões, recusas e alertas de segurança automaticamente.</p>
+          <Link href="/pricing" style={{ display: 'inline-block', background: '#2563eb', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Ver planos →</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
 
+      {/* Top bar */}
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+        <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 56, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>MAR</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>Reg. Administração</span>
+            <div style={{ flex: 1 }} />
 
-      {/* MAR Header */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '14px 0' }}>
-        <div className="page-container">
-
-          {/* Title row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 17, color: 'var(--ink)', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>MAR</h1>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '2px 8px', borderRadius: 3 }}>Registo de Administração</span>
-              </div>
-              {selectedPatient && total > 0 && (
-                <div style={{ fontSize: 12, color: administered === total ? '#16a34a' : 'var(--ink-4)', fontWeight: 700, marginTop: 3 }}>
-                  {administered}/{total} administrados · turno da {SHIFT_LABELS[shift].label}
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => window.print()}
-                style={{ padding: '7px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                <span className="mar-print-label">Imprimir</span>
-              </button>
-              <Link href="/handover"
-                style={{ padding: '7px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#1d4ed8', fontFamily: 'var(--font-sans)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                Passagem →
-              </Link>
-            </div>
-          </div>
-
-          {/* Controls row */}
-          <div className="mar-controls">
-            {/* Patient selector */}
-            <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}
-              style={{ flex: 1, minWidth: 160, border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', color: selectedPatient ? 'var(--ink)' : 'var(--ink-4)' }}>
-              <option value="">Seleccionar doente...</option>
-              {patients.map(p => (
-                <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}</option>
+            {/* Shift tabs */}
+            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2 }}>
+              {(['manha', 'tarde', 'noite'] as Shift[]).map(s => (
+                <button key={s} onClick={() => setShift(s)}
+                  style={{ padding: '5px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.1s' }}>
+                  {SHIFTS[s].label}
+                </button>
               ))}
-            </select>
-
-            {/* Shift selector */}
-            <div style={{ display: 'flex', border: '1.5px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-              {(Object.keys(SHIFT_LABELS) as Shift[]).map(s => {
-                const sl = SHIFT_LABELS[s]
-                return (
-                  <button key={s} onClick={() => setShift(s)}
-                    style={{ padding: '10px 16px', background: shift === s ? sl.color : 'white', color: shift === s ? 'white' : 'var(--ink-4)', border: 'none', borderRight: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'all 0.12s', whiteSpace: 'nowrap' }}>
-                    {sl.label}
-                  </button>
-                )
-              })}
             </div>
 
-            {/* Date */}
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', flexShrink: 0 }} />
+              style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151' }} />
 
-            {/* Administer all pending */}
-            {selectedPatient && pendingCount > 0 && (
-              <button onClick={administerAllPending}
-                style={{ padding: '10px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                ✓ Todos ({pendingCount})
-              </button>
-            )}
+            <button onClick={() => window.print()}
+              style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600 }}>
+              Imprimir
+            </button>
+            <Link href="/handover"
+              style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Passagem →
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Omission banner */}
-      {allOmissions.length > 0 && (
-        <div style={{ background: allOmissions.length >= 3 ? '#fee2e2' : '#fef9c3', borderBottom: `1px solid ${allOmissions.length >= 3 ? '#fca5a5' : '#fde68a'}` }}>
-          <div className="page-container" style={{ padding: '10px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: allOmissions.length >= 3 ? '#dc2626' : '#d97706', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: allOmissions.length >= 3 ? '#991b1b' : '#854d0e' }}>
-                {allOmissions.reduce((s, o) => s + o.missing, 0)} doses em falta — turno {SHIFT_LABELS[shift].label}:
+      {/* Omissions banner */}
+      {omissions.length > 0 && (
+        <div style={{ background: omissions.length >= 3 ? '#fee2e2' : '#fffbeb', borderBottom: `1px solid ${omissions.length >= 3 ? '#fca5a5' : '#fde68a'}` }}>
+          <div className="page-container" style={{ paddingTop: 8, paddingBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: omissions.length >= 3 ? '#991b1b' : '#92400e' }}>
+                {omissions.reduce((s, o) => s + o.missing, 0)} doses em falta — {sl.label}
               </span>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-                {allOmissions.map(o => (
-                  <button key={o.name} onClick={() => {
-                    const p = patients.find(pt => pt.name === o.name)
-                    if (p) setSelectedPatient(p.id)
-                  }}
-                    style={{ padding: '3px 10px', background: 'white', border: '1px solid #fde68a', borderRadius: 14, fontSize: 12, color: '#854d0e', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-                    {o.name} ({o.missing})
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setShowMissedPanel(p => !p)}
-                style={{ padding: '4px 12px', background: showMissedPanel ? '#854d0e' : 'white', color: showMissedPanel ? 'white' : '#854d0e', border: '1px solid #d97706', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700, flexShrink: 0 }}>
-                {showMissedPanel ? '▲ Fechar' : '▼ Ver detalhe'}
+              {omissions.slice(0, 5).map(o => (
+                <button key={o.id} onClick={() => setSelectedId(o.id)}
+                  style={{ padding: '2px 9px', background: 'white', border: `1px solid ${omissions.length >= 3 ? '#fca5a5' : '#fde68a'}`, borderRadius: 12, fontSize: 11, color: omissions.length >= 3 ? '#991b1b' : '#92400e', cursor: 'pointer', fontWeight: 600 }}>
+                  {o.name} ({o.missing})
+                </button>
+              ))}
+              <button onClick={() => setShowOmitDetail(x => !x)}
+                style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                {showOmitDetail ? '▲ Fechar' : '▼ Detalhe'}
               </button>
             </div>
-
-            {/* Missed-dose detail panel */}
-            {showMissedPanel && (
-              <div style={{ marginTop: 10, background: 'white', border: '1px solid #fde68a', borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{ padding: '10px 14px', background: '#fef9c3', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Resumo de omissões — {SHIFT_LABELS[shift].label} · {date}
-                  </span>
-                  <button onClick={() => {
-                    const lines = allOmissions.map(o => {
-                      const p = patients.find(pt => pt.name === o.name)
-                      if (!p) return `${o.name}: ${o.missing} dose(s) em falta`
-                      const pMeds = allMedsMap[p.id] || []
-                      const missing = pMeds.filter(m => !allDayRecords.find(r => r.med_id === m.id && r.shift === shift))
-                      return `${o.name}: ${missing.map(m => m.name + (m.dose ? ' ' + m.dose : '')).join(', ')}`
-                    }).join('\n')
-                    navigator.clipboard.writeText(`OMISSÕES MAR — ${SHIFT_LABELS[shift].label} ${date}\n\n${lines}`)
-                  }}
-                    style={{ fontSize: 10, color: '#854d0e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                    ⎘ Copiar
-                  </button>
-                </div>
-                {allOmissions.map(o => {
-                  const p = patients.find(pt => pt.name === o.name)
-                  if (!p) return null
-                  const pMeds = allMedsMap[p.id] || []
-                  const missingMeds = pMeds.filter(m => !allDayRecords.find(r => r.med_id === m.id && r.shift === shift))
+            {showOmitDetail && (
+              <div style={{ marginTop: 8, background: 'white', border: '1px solid #fde68a', borderRadius: 8, overflow: 'hidden' }}>
+                {omissions.map(o => {
+                  const pMeds = allMedsMap[o.id] || []
+                  const missing = pMeds.filter(m => !allDayRecs.find(r => r.med_id === m.id && r.shift === shift))
                   return (
-                    <div key={o.name} style={{ padding: '10px 14px', borderBottom: '1px solid #fef9c3', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <button onClick={() => setSelectedPatient(p.id)}
-                        style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', padding: 0, flexShrink: 0, minWidth: 120, textAlign: 'left' }}>
+                    <div key={o.id} style={{ padding: '9px 14px', borderBottom: '1px solid #fef9c3', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <button onClick={() => setSelectedId(o.id)}
+                        style={{ fontSize: 13, fontWeight: 700, color: '#92400e', background: 'none', border: 'none', cursor: 'pointer', padding: 0, minWidth: 100, textAlign: 'left' }}>
                         {o.name} →
                       </button>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {missingMeds.map(m => (
-                          <span key={m.id} style={{ padding: '2px 8px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 4, fontSize: 11, color: '#92400e', fontFamily: 'var(--font-mono)' }}>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {missing.map(m => (
+                          <span key={m.id} style={{ padding: '1px 7px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 4, fontSize: 11, color: '#92400e' }}>
                             {m.name}{m.dose ? ` ${m.dose}` : ''}
                           </span>
                         ))}
@@ -510,205 +344,176 @@ export default function MARPage() {
         </div>
       )}
 
-      <div className="page-container page-body">
-        {!selectedPatient ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '60px 24px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-3)', fontWeight: 400, fontStyle: 'italic', marginBottom: 10 }}>
-              Selecciona um doente para começar
-            </div>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-              O MAR regista cada administração de medicação por turno. Cada registo fica assinado com o teu nome e hora.
-            </p>
-            {patients.length === 0 && (
-              <div style={{ marginTop: 20 }}>
-                <Link href="/dashboard?mode=pro" style={{ fontSize: 13, color: '#1d4ed8', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                  Criar doentes no Dashboard →
-                </Link>
+      <div className="page-container page-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Patient selector + info card */}
+        <div style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr auto' : '1fr', gap: 10, alignItems: 'start' }}>
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
+              style={{ flex: 1, minWidth: 200, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: selectedId ? '#0f172a' : '#94a3b8', background: 'white' }}>
+              <option value="">Selecionar residente...</option>
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` — Quarto ${p.room_number}` : ''}{p.age ? ` (${p.age}a)` : ''}</option>
+              ))}
+            </select>
+            {selectedPatient && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {selectedPatient.room_number && <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 9px', borderRadius: 5 }}>Qt. {selectedPatient.room_number}</span>}
+                {selectedPatient.allergies && <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '3px 9px', borderRadius: 5 }}>⚠ {selectedPatient.allergies}</span>}
+                {selectedPatient.conditions && <span style={{ fontSize: 11, color: '#64748b', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPatient.conditions}</span>}
               </div>
             )}
           </div>
+          {selectedId && pendingCount > 0 && (
+            <button onClick={administerAllPending}
+              style={{ padding: '9px 16px', background: '#059669', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', height: '100%' }}>
+              ✓ Todos em falta ({pendingCount})
+            </button>
+          )}
+        </div>
+
+        {/* MAR content */}
+        {!selectedId ? (
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '56px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 36, marginBottom: 14 }}>💊</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Seleciona um residente</div>
+            <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
+              O MAR regista cada administração de medicação por turno. Cada registo fica assinado com o teu nome e hora.
+            </p>
+          </div>
         ) : meds.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, color: 'var(--ink-4)', marginBottom: 16 }}>
-              Sem medicamentos registados para este doente.
-            </div>
-            <Link href={`/patients/${selectedPatient}`} style={{ fontSize: 13, color: '#1d4ed8', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-              Adicionar medicamentos ao perfil →
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>Sem medicamentos ativos para este residente</div>
+            <Link href={`/patients/${selectedId}`} style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}>
+              Adicionar medicamentos →
             </Link>
           </div>
         ) : (
-          <div>
-            {/* Shift info bar */}
-            <div style={{ background: SHIFT_LABELS[shift].bg, border: `1px solid ${SHIFT_LABELS[shift].color}30`, borderRadius: 8, padding: '10px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: SHIFT_LABELS[shift].color }}>
-                Turno da {SHIFT_LABELS[shift].label} · {SHIFT_LABELS[shift].time}
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+            {/* Shift header */}
+            <div style={{ background: sl.light, borderBottom: `1px solid ${sl.border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: sl.color }}>Turno da {sl.label} · {sl.time}</span>
+                <span style={{ fontSize: 12, color: sl.color, opacity: 0.7 }}>
+                  {new Date(date).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-                {new Date(date).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: administered === totalMeds ? '#059669' : sl.color }}>
+                  {administered}/{totalMeds}
+                </span>
+                <div style={{ width: 80, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${totalMeds > 0 ? (administered / totalMeds) * 100 : 0}%`, background: administered === totalMeds ? '#059669' : sl.color, borderRadius: 3, transition: 'width 0.3s' }} />
+                </div>
               </div>
             </div>
 
-            {/* MAR table */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-              {/* Table header — hidden on mobile */}
-              <div className="mar-table-header" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 220px', gap: 0, background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', padding: '10px 16px' }}>
-                {['Medicamento', 'Dose', 'Frequência', 'Registo'].map(h => (
-                  <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
-                ))}
-              </div>
+            {/* Column headers */}
+            <div className="mar-header-row" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px 260px', gap: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '8px 16px' }}>
+              {['Medicamento', 'Dose', 'Frequência', 'Registo'].map(h => (
+                <div key={h} style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
+              ))}
+            </div>
 
-              {/* Rows */}
-              {meds.map((med, i) => {
-                const rec = getRecord(med.id)
-                const isSaving = saving === med.id
+            {/* Rows */}
+            {meds.map((med, i) => {
+              const rec = getRecord(med.id)
+              const isSaving = saving === med.id
+              const isAdministered = rec?.status === 'administered'
+              return (
+                <div key={med.id} className="mar-med-row" style={{
+                  display: 'grid', gridTemplateColumns: '1fr 90px 110px 260px', gap: 0,
+                  padding: '13px 16px',
+                  borderBottom: i < meds.length - 1 ? '1px solid #f1f5f9' : 'none',
+                  alignItems: 'center',
+                  background: isAdministered ? '#fafffe' : 'white',
+                  opacity: isSaving ? 0.6 : 1,
+                  transition: 'opacity 0.15s, background 0.2s',
+                }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: isAdministered ? '#16a34a' : '#0f172a', letterSpacing: '-0.01em' }}>
+                      {med.name}
+                    </div>
+                    {med.indication && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{med.indication}</div>}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#374151' }}>{med.dose || '—'}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>{med.frequency || '—'}</div>
+                  <div>
+                    <AdminCell record={rec} isSaving={isSaving} onChange={(s, n) => handleAdmin(med.id, s, n)} />
+                    {rec?.notes && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>{rec.notes}</div>}
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Footer summary */}
+            <div style={{ padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+              {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => {
+                const count = records.filter(r => r.shift === shift && r.status === st).length
+                const c = STATUS_CFG[st]
                 return (
-                  <div key={med.id} className="mar-table-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 220px', gap: 0, padding: '12px 16px', borderBottom: i < meds.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'start', opacity: isSaving ? 0.6 : 1, transition: 'opacity 0.15s' }}>
-                    <div className="mar-col-name">
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{med.name}</div>
-                      {med.indication && <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{med.indication}</div>}
-                    </div>
-                    <div className="mar-col-dose" style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.dose || '—'}</div>
-                    <div className="mar-col-freq" style={{ fontSize: 13, color: 'var(--ink-2)', paddingTop: 2 }}>{med.frequency || '—'}</div>
-                    <div className="mar-col-admin">
-                      <AdminCell record={rec} onChange={(status, notes) => handleAdmin(med.id, status, notes)} />
-                      {rec?.recorded_at && (
-                        <div style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-                          {formatTime(rec.recorded_at)}{rec.recorded_by ? ` · ${rec.recorded_by.split(' ')[0]}` : ''}
-                          {rec.notes ? <span style={{ color: 'var(--ink-4)' }}> · {rec.notes}</span> : null}
-                        </div>
-                      )}
-                    </div>
+                  <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: c.color }} />
+                    <span style={{ fontSize: 11, color: '#64748b' }}>{c.label}: <strong style={{ color: '#374151' }}>{count}</strong></span>
                   </div>
                 )
               })}
-            </div>
-
-            {/* Summary footer */}
-            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
-              <div style={{ display: 'flex', gap: 20 }}>
-                {(Object.keys(STATUS_LABELS) as NonNullable<AdminStatus>[]).map(st => {
-                  const count = records.filter(r => r.shift === shift && r.status === st).length
-                  const sl = STATUS_LABELS[st]
-                  return (
-                    <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: sl.color }} />
-                      <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{sl.label}: <strong>{count}</strong></span>
-                    </div>
-                  )
-                })}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-                Registado por: {user?.name || user?.email}
+              <div style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8' }}>
+                {user?.email}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <style>{`
-        /* MAR controls: horizontal on desktop, stacked on mobile */
-        .mar-controls {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          align-items: center;
-        }
-        .mar-admin-btns {
-          display: flex;
-          gap: 5px;
-          flex-wrap: wrap;
-        }
-
-        @media (max-width: 640px) {
-          .mar-controls {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .mar-controls select,
-          .mar-controls input[type="date"] {
-            width: 100%;
-            font-size: 16px !important; /* prevent iOS zoom */
-          }
-          .mar-controls > div { /* shift selector */
-            display: flex;
-          }
-          .mar-controls > div button {
-            flex: 1;
-            padding: 12px 8px !important;
-            font-size: 14px !important;
-          }
-          .mar-table-header { display: none !important; }
-          .mar-table-row {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 4px !important;
-            padding: 14px 16px !important;
-          }
-          .mar-col-name { font-size: 15px; }
-          .mar-col-dose, .mar-col-freq {
-            display: inline !important;
-            font-size: 12px;
-            color: #64748b;
-            padding-top: 0 !important;
-          }
-          .mar-col-dose::after { content: ' · '; color: #94a3b8; }
-          .mar-col-admin { margin-top: 8px; }
-          .mar-admin-btns {
-            flex-direction: column;
-            gap: 6px;
-          }
-          .mar-admin-btns button {
-            width: 100%;
-            min-height: 48px !important;
-            font-size: 14px !important;
-            padding: 10px 16px !important;
-          }
-          .mar-print-label { display: none; }
-        }
-
-        @media print {
-          @page { size: A4 landscape; margin: 12mm; }
-          body { background: white !important; font-size: 11px !important; }
-          .no-print { display: none !important; }
-          .page-container { padding: 0 !important; max-width: none !important; }
-          div[style*="background: var(--bg-2)"] { background: white !important; }
-          div[style*="background: white"] { box-shadow: none !important; }
-        }
-      `}</style>
-
-      {/* Safety confirmation modal */}
-      {pendingWarning && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: '20px' }}>
-          <div style={{ background: 'white', borderRadius: 14, padding: '24px', width: '100%', maxWidth: 420, boxShadow: '0 32px 80px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>⚠️</div>
+      {/* Safety modal */}
+      {pendingWarn && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 14, padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 32px 80px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>⚠️</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#991b1b' }}>Alerta de segurança</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-              {pendingWarning.messages.map((msg, i) => (
+              {pendingWarn.messages.map((msg, i) => (
                 <div key={i} style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b', lineHeight: 1.5, fontWeight: 600 }}>
                   {msg}
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, marginBottom: 20 }}>
               Confirma que verificaste esta situação com o clínico responsável antes de administrar.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={async () => { const pw = pendingWarning; setPendingWarning(null); await doAdmin(pw.medId, pw.status, pw.notes) }}
-                style={{ flex: 1, padding: '11px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
-                Confirmar administração
+              <button onClick={async () => { const pw = pendingWarn; setPendingWarn(null); await doAdmin(pw.medId, pw.status, pw.notes) }}
+                style={{ flex: 1, padding: 11, background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                Confirmar mesmo assim
               </button>
-              <button
-                onClick={() => setPendingWarning(null)}
-                style={{ padding: '11px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+              <button onClick={() => setPendingWarn(null)}
+                style={{ padding: '11px 16px', background: 'white', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
                 Cancelar
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 640px) {
+          .mar-header-row { display: none !important; }
+          .mar-med-row {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            padding: 14px 16px !important;
+          }
+        }
+        @media print {
+          @page { size: A4 landscape; margin: 12mm; }
+          body { background: white !important; }
+          .page-container { max-width: none !important; padding: 0 !important; }
+        }
+      `}</style>
     </div>
   )
 }
