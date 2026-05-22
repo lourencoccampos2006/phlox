@@ -9,7 +9,8 @@ import { useState, useEffect } from 'react'
 const CLINICAL_PREFIXES = [
   '/cockpit', '/patients', '/rounds', '/mar', '/team',
   '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
-  '/assessments', '/care-log', '/residentes', '/handover', '/incidents',
+  '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
+  '/schedule', '/census', '/roi', '/activities', '/family',
 ]
 
 function ScrollToTop() {

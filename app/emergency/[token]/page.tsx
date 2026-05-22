@@ -144,7 +144,7 @@ export default function EmergencyCardPage() {
           {/* Footer */}
           <div style={{ background: '#f9fafb', borderTop: '1px solid #f3f4f6', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 11, color: '#9ca3af' }}>
-              Gerado pelo <strong style={{ color: '#dc2626' }}>Phlox</strong> · phlox-pi.vercel.app
+              Gerado pelo <strong style={{ color: '#dc2626' }}>Phlox</strong> · phloxclinical.com
             </div>
             <div style={{ fontSize: 10, color: '#d1d5db', fontFamily: 'monospace' }}>
               Digitalizar QR para versão mais recente

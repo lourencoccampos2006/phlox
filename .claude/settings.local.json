@@ -17,7 +17,9 @@
       "Bash(cd /mnt/c/Users/Fernando/phlox && npx tsc --noEmit 2>&1 | head -60)",
       "Bash(Get-Content \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\drug-intelligence\\\\page.tsx\")",
       "Bash(Measure-Object -Line)",
-      "Bash(grep -n \"patient-form-3col\\\\|style.*\\\\`\\\\|@media\" \"c:/Users/Fernando/phlox/app/patients/page.tsx\")"
+      "Bash(grep -n \"patient-form-3col\\\\|style.*\\\\`\\\\|@media\" \"c:/Users/Fernando/phlox/app/patients/page.tsx\")",
+      "PowerShell(\\(Get-Content \"c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\patients\\\\[id]\\\\page.tsx\"\\).Count)",
+      "PowerShell($path = 'c:\\\\Users\\\\Fernando\\\\phlox\\\\app\\\\patients'; Get-ChildItem $path -Recurse | ForEach-Object { Write-Output \"$\\($_.FullName\\): $\\(\\($_ | Get-Content\\).Count\\) lines\" })"
     ]
   }
 }

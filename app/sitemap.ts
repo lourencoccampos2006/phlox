@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-pi.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()

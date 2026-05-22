@@ -122,7 +122,7 @@ export default function CartaPage() {
     <h1>${currentType.label}</h1>
     <pre>${carta}</pre>
     <div class="footer">
-      <span>Gerado com Phlox Clinical · phlox-pi.vercel.app</span>
+      <span>Gerado com Phlox Clinical · phloxclinical.com</span>
       <span>Este documento deve ser revisto e assinado pelo profissional de saúde responsável</span>
     </div>
     </body></html>`)

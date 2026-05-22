@@ -13,4 +13,4 @@ Disallow: /turno
 Disallow: /mar
 Disallow: /arena
 
-Sitemap: https://phlox-pi.vercel.app/sitemap.xml
+Sitemap: https://phloxclinical.com/sitemap.xml

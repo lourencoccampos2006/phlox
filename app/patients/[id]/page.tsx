@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
 
 
 interface Patient {
@@ -41,14 +42,39 @@ interface Alert {
   action: string
 }
 
+interface NHAssessment { id: string; scale: string; score: number; level?: string; date: string; evaluated_by?: string; notes?: string }
+interface NHIncident { id: string; type: string; severity: string; date: string; time?: string; description: string; status: string }
+interface NHContact { id: string; name: string; relationship?: string; phone?: string; email?: string; is_emergency: boolean; is_legal_guardian: boolean; can_visit: boolean; notes?: string }
+
+const INC_LABELS: Record<string, string> = { fall: 'Queda', medication_error: 'Erro Medicação', pressure_ulcer: 'Úlcera Pressão', behavioral: 'Comportamental', choking: 'Engasgamento', infection: 'Infeção', other: 'Outro' }
+const SCALE_LABELS: Record<string, { name: string; max: number; unit: string }> = {
+  barthel: { name: 'Índice de Barthel', max: 100, unit: 'pts' },
+  braden:  { name: 'Escala de Braden', max: 23, unit: 'pts' },
+  morse:   { name: 'Escala de Morse', max: 125, unit: 'pts' },
+  mmse:    { name: 'MMSE', max: 30, unit: 'pts' },
+  mna:     { name: 'MNA', max: 14, unit: 'pts' },
+  lawton:  { name: 'Lawton', max: 8, unit: 'pts' },
+  gds:     { name: 'GDS-15', max: 15, unit: 'pts' },
+  norton:  { name: 'Escala de Norton', max: 20, unit: 'pts' },
+}
+
 export default function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, supabase } = useAuth()
   const router = useRouter()
+  const { institution } = useClinicPrefs()
+  const isNH = institution === 'nursing_home'
   const [patient, setPatient] = useState<Patient | null>(null)
   const [meds, setMeds] = useState<PatientMed[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'meds' | 'notes' | 'ai'>('overview')
+  const [tab, setTab] = useState<'overview' | 'meds' | 'notes' | 'ai' | 'assessments' | 'incidents' | 'contacts'>('overview')
+  // Nursing home data
+  const [nhAssessments, setNhAssessments] = useState<NHAssessment[]>([])
+  const [nhIncidents, setNhIncidents] = useState<NHIncident[]>([])
+  const [nhContacts, setNhContacts] = useState<NHContact[]>([])
+  const [showAddContact, setShowAddContact] = useState(false)
+  const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '', is_emergency: true, is_legal_guardian: false, can_visit: true, notes: '' })
+  const [savingContact, setSavingContact] = useState(false)
   const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '' })
   const [adding, setAdding] = useState(false)
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
@@ -69,12 +95,22 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       supabase.from('patients').select('*').eq('id', patientId).eq('user_id', user.id).single(),
       supabase.from('patient_meds').select('*').eq('patient_id', patientId).order('created_at', { ascending: false }),
     ])
-    if (!patientData) { router.push('/dashboard?mode=pro'); return }
+    if (!patientData) { router.push('/patients'); return }
     setPatient(patientData)
     setMeds(medsData || [])
     setEditData(patientData)
+    if (isNH) {
+      const [assessRes, incRes, contRes] = await Promise.all([
+        supabase.from('assessments').select('*').eq('patient_id', patientId).eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('incidents').select('*').eq('patient_id', patientId).eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('resident_contacts').select('*').eq('patient_id', patientId).eq('user_id', user.id).order('created_at', { ascending: true }),
+      ])
+      setNhAssessments(assessRes.data || [])
+      setNhIncidents(incRes.data || [])
+      setNhContacts(contRes.data || [])
+    }
     setLoading(false)
-  }, [user, supabase, patientId, router])
+  }, [user, supabase, patientId, router, isNH])
 
   useEffect(() => { load() }, [load])
 
@@ -226,7 +262,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
           {/* Back */}
           <Link href="/patients" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', marginBottom: 16 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-            Doentes
+            {isNH ? 'Residentes' : 'Doentes'}
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -296,7 +332,17 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
           </div>
 
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            {[['overview', 'Resumo'], ['meds', 'Medicação'], ['notes', 'Notas'], ['ai', 'IA']].map(([id, label]) => (
+            {([
+              ['overview', 'Resumo'],
+              ['meds', 'Medicação'],
+              ...(isNH ? [
+                ['assessments', 'Avaliações'],
+                ['incidents', 'Ocorrências'],
+                ['contacts', 'Contactos'],
+              ] : []),
+              ['notes', 'Notas'],
+              ['ai', 'IA'],
+            ] as [string, string][]).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>
                 {label}
                 {id === 'overview' && stoppCritical.length > 0 && (
@@ -304,6 +350,9 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                 )}
                 {id === 'overview' && riskLevel === 'critical' && (
                   <span style={{ marginLeft: 5, fontSize: 9, background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 3, fontWeight: 700 }}>!</span>
+                )}
+                {id === 'incidents' && nhIncidents.filter(i => i.status === 'open').length > 0 && (
+                  <span style={{ marginLeft: 5, fontSize: 9, background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 3, fontWeight: 700 }}>{nhIncidents.filter(i => i.status === 'open').length}</span>
                 )}
               </button>
             ))}
@@ -598,6 +647,185 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
           </div>
         )}
       </div>
+
+        {/* NH: Assessments */}
+        {tab === 'assessments' && isNH && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {nhAssessments.length} avaliações registadas
+              </div>
+              <Link href={`/assessments?patient=${patient.id}`}
+                style={{ padding: '8px 16px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
+                + Nova Avaliação
+              </Link>
+            </div>
+            {nhAssessments.length === 0 ? (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '40px', textAlign: 'center' }}>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>Sem avaliações registadas</div>
+                <Link href={`/assessments?patient=${patient.id}`} style={{ fontSize: 13, color: '#1d4ed8', textDecoration: 'none', fontWeight: 600 }}>Realizar primeira avaliação →</Link>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {nhAssessments.map(a => {
+                  const sc = SCALE_LABELS[a.scale]
+                  const pct = sc ? Math.round((a.score / sc.max) * 100) : 0
+                  return (
+                    <div key={a.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{sc?.name || a.scale}</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)' }}>{a.date}{a.evaluated_by ? ` · ${a.evaluated_by}` : ''}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', lineHeight: 1 }}>{a.score}<span style={{ fontSize: 11, color: 'var(--ink-5)', marginLeft: 3 }}>/{sc?.max}</span></div>
+                        {a.level && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', marginTop: 2 }}>{a.level}</div>}
+                      </div>
+                      <div style={{ width: 80 }}>
+                        <div style={{ height: 6, background: 'var(--bg-2)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: '#3b82f6', borderRadius: 3 }} />
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginTop: 2 }}>{pct}%</div>
+                      </div>
+                      {a.notes && <div style={{ width: '100%', fontSize: 12, color: 'var(--ink-4)', fontStyle: 'italic', borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>{a.notes}</div>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* NH: Incidents */}
+        {tab === 'incidents' && isNH && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {nhIncidents.filter(i => i.status === 'open').length} em aberto · {nhIncidents.length} total
+              </div>
+              <Link href={`/incidents`}
+                style={{ padding: '8px 16px', background: '#dc2626', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>
+                + Registar Ocorrência
+              </Link>
+            </div>
+            {nhIncidents.length === 0 ? (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '40px', textAlign: 'center' }}>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>✅</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)' }}>Sem ocorrências registadas</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {nhIncidents.map(inc => {
+                  const sevColor = inc.severity === 'critical' ? '#dc2626' : inc.severity === 'major' ? '#c2410c' : inc.severity === 'moderate' ? '#d97706' : '#6b7280'
+                  return (
+                    <div key={inc.id} style={{ background: 'white', border: `1px solid var(--border)`, borderLeft: `3px solid ${sevColor}`, borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{INC_LABELS[inc.type] || inc.type}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: sevColor, background: `${sevColor}18`, border: `1px solid ${sevColor}40`, padding: '1px 7px', borderRadius: 3, textTransform: 'uppercase' }}>{inc.severity}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: inc.status === 'open' ? '#dc2626' : inc.status === 'closed' ? '#16a34a' : '#d97706', background: inc.status === 'open' ? '#fee2e2' : inc.status === 'closed' ? '#f0fdf4' : '#fffbeb', padding: '1px 7px', borderRadius: 3, textTransform: 'uppercase' }}>{inc.status === 'open' ? 'Aberto' : inc.status === 'closed' ? 'Fechado' : 'Em revisão'}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginLeft: 'auto' }}>{inc.date}{inc.time ? ` ${inc.time}` : ''}</span>
+                        </div>
+                        <p style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, margin: 0 }}>{inc.description}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* NH: Contacts */}
+        {tab === 'contacts' && isNH && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{nhContacts.length} contactos</div>
+              <button onClick={() => setShowAddContact(true)}
+                style={{ padding: '8px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                + Novo Contacto
+              </button>
+            </div>
+
+            {showAddContact && (
+              <div style={{ background: 'white', border: '2px solid #0d9488', borderRadius: 10, padding: '16px', marginBottom: 16 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Novo Contacto</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  {[
+                    { key: 'name', label: 'Nome *', placeholder: 'Maria da Silva' },
+                    { key: 'relationship', label: 'Parentesco', placeholder: 'Filha, Cônjuge...' },
+                    { key: 'phone', label: 'Telefone', placeholder: '+351 9xx xxx xxx' },
+                    { key: 'email', label: 'Email', placeholder: 'email@exemplo.pt' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{f.label}</div>
+                      <input value={(contactForm as any)[f.key]} onChange={e => setContactForm(p => ({ ...p, [f.key]: e.target.value }))}
+                        placeholder={f.placeholder} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 6, padding: '7px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+                  {[
+                    { key: 'is_emergency', label: 'Contacto de emergência' },
+                    { key: 'is_legal_guardian', label: 'Representante legal' },
+                    { key: 'can_visit', label: 'Autorizado a visitar' },
+                  ].map(f => (
+                    <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: 'var(--ink-2)' }}>
+                      <input type="checkbox" checked={(contactForm as any)[f.key]} onChange={e => setContactForm(p => ({ ...p, [f.key]: e.target.checked }))}
+                        style={{ width: 14, height: 14, accentColor: '#0d9488' }} />
+                      {f.label}
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button disabled={savingContact || !contactForm.name.trim()} onClick={async () => {
+                    if (!user || !patientId) return
+                    setSavingContact(true)
+                    const { data } = await supabase.from('resident_contacts').insert({ ...contactForm, patient_id: patientId, user_id: user.id }).select().single()
+                    if (data) { setNhContacts(p => [...p, data]); setShowAddContact(false); setContactForm({ name: '', relationship: '', phone: '', email: '', is_emergency: true, is_legal_guardian: false, can_visit: true, notes: '' }) }
+                    setSavingContact(false)
+                  }} style={{ padding: '8px 16px', background: savingContact ? 'var(--bg-3)' : '#0d9488', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: savingContact ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    {savingContact ? 'A guardar...' : 'Guardar'}
+                  </button>
+                  <button onClick={() => setShowAddContact(false)} style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {nhContacts.length === 0 && !showAddContact ? (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '40px', textAlign: 'center' }}>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>👨‍👩‍👧</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>Sem contactos registados</div>
+                <p style={{ fontSize: 13, color: 'var(--ink-4)' }}>Adiciona a família e contactos de emergência.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {nhContacts.map(c => (
+                  <div key={c.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 3 }}>{c.name}</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{c.relationship || 'Parentesco não especificado'}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {c.is_emergency && <span style={{ fontSize: 10, background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>Emergência</span>}
+                        {c.is_legal_guardian && <span style={{ fontSize: 10, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>Rep. Legal</span>}
+                        {c.can_visit && <span style={{ fontSize: 10, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 4 }}>Visita autorizada</span>}
+                      </div>
+                    </div>
+                    {(c.phone || c.email) && (
+                      <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                        {c.phone && <a href={`tel:${c.phone}`} style={{ fontSize: 13, color: '#0d9488', textDecoration: 'none', fontWeight: 600 }}>📞 {c.phone}</a>}
+                        {c.email && <a href={`mailto:${c.email}`} style={{ fontSize: 13, color: '#1d4ed8', textDecoration: 'none' }}>✉ {c.email}</a>}
+                      </div>
+                    )}
+                    {c.notes && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 6, fontStyle: 'italic' }}>{c.notes}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       <style>{`
         .patient-action:hover { border-color: #1d4ed8 !important; background: var(--blue-light) !important; }

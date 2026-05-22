@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     // If table doesn't exist yet, return a mock URL (graceful degradation)
     if (error.code === '42P01') {
       return NextResponse.json({
-        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-pi.vercel.app'}/r/${id}`,
+        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'}/r/${id}`,
         id,
         note: 'Cria a tabela shared_results no Supabase para activar esta funcionalidade.'
       })
@@ -53,6 +53,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-pi.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
   return NextResponse.json({ url: `${baseUrl}/r/${id}`, id, expires_at: expiresAt })
 }

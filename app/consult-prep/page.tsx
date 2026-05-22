@@ -88,7 +88,7 @@ export default function ConsultPrepPage() {
     <h2>Perguntas para fazer ao médico</h2><ol>${briefing.questions_to_ask?.map(q=>`<li>${q}</li>`).join('')}</ol>
     ${briefing.medication_questions?.length ? `<h2>Perguntas sobre medicação</h2><ol>${briefing.medication_questions.map(q=>`<li>${q}</li>`).join('')}</ol>` : ''}
     <h2>O que mencionar</h2><ul>${briefing.things_to_mention?.map(t=>`<li>${t}</li>`).join('')}</ul>
-    <div class="footer"><span>Gerado por Phlox Clinical · phlox-pi.vercel.app</span><span>Leva este documento à consulta</span></div>
+    <div class="footer"><span>Gerado por Phlox Clinical · phloxclinical.com</span><span>Leva este documento à consulta</span></div>
     </body></html>`)
     win.document.close()
     setTimeout(() => { win.focus(); win.print() }, 300)

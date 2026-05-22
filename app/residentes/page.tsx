@@ -223,7 +223,7 @@ function ResidentDetail({ resident, review, onBack, onReview, reviewing }: {
     </table>` : ''}
     ${review.pharmacist_note ? `<h2>Nota do Farmacêutico</h2><p>${review.pharmacist_note}</p>` : ''}
     <div class="footer">
-      <span>Gerado por Phlox Residentes · phlox-pi.vercel.app</span>
+      <span>Gerado por Phlox Residentes · phloxclinical.com</span>
       <span>Próxima revisão recomendada: ${review.next_review_weeks} semanas</span>
     </div>
     <div style="margin-top:20px;border-top:1px solid #ddd;padding-top:10px;display:flex;justify-content:space-between;font-size:10px;color:#999">

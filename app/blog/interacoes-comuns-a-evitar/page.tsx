@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     description: 'As combinações de medicamentos que causam mais problemas em Portugal. Mecanismo, risco e alternativas.',
     type: 'article',
   },
-  alternates: { canonical: 'https://phlox-pi.vercel.app/blog/interacoes-comuns-a-evitar' },
+  alternates: { canonical: 'https://phloxclinical.com/blog/interacoes-comuns-a-evitar' },
 }
 
 const INTERACTIONS = [
@@ -135,11 +135,11 @@ function Schema() {
     "headline": "As 10 Interações Medicamentosas Mais Comuns em Portugal",
     "description": "Varfarina, estatinas, antibióticos, antidepressivos — as combinações perigosas mais frequentes em Portugal com mecanismo, risco e alternativas.",
     "author": { "@type": "Organization", "name": "Phlox Clinical" },
-    "publisher": { "@type": "Organization", "name": "Phlox Clinical", "url": "https://phlox-pi.vercel.app" },
+    "publisher": { "@type": "Organization", "name": "Phlox Clinical", "url": "https://phloxclinical.com" },
     "datePublished": "2026-01-15",
     "dateModified": "2026-01-15",
-    "url": "https://phlox-pi.vercel.app/blog/interacoes-comuns-a-evitar",
-    "mainEntityOfPage": "https://phlox-pi.vercel.app/blog/interacoes-comuns-a-evitar",
+    "url": "https://phloxclinical.com/blog/interacoes-comuns-a-evitar",
+    "mainEntityOfPage": "https://phloxclinical.com/blog/interacoes-comuns-a-evitar",
   }
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
 }

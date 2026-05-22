@@ -4,7 +4,7 @@ import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
 import ClientLayout from '@/components/ClientLayout'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phlox-pi.vercel.app'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
