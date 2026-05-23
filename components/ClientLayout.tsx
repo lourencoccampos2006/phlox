@@ -1,7 +1,7 @@
 'use client'
 
 import Header from '@/components/Header'
-import { ClinicalSidebar, ClinicalTopBar } from '@/components/ClinicalShell'
+import ClinicalLayout from '@/components/ClinicalLayout'
 import ClinicalCommandPalette from '@/components/ClinicalCommandPalette'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
@@ -48,22 +48,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   if (isClinical) {
     return (
       <>
-        <ClinicalSidebar />
-        <div className="clinical-shell">
-          <ClinicalTopBar />
-          <div id="app-main">{children}</div>
-        </div>
+        <ClinicalLayout>{children}</ClinicalLayout>
         <ClinicalCommandPalette />
         <ScrollToTop />
-        <style>{`
-          .clinical-shell { min-height: 100vh; }
-          @media (min-width: 769px) {
-            .clinical-shell { padding-left: 232px; }
-          }
-          @media (max-width: 768px) {
-            .cs-sidebar { display: none !important; }
-          }
-        `}</style>
       </>
     )
   }
