@@ -46,7 +46,7 @@ interface VisitRequest {
 interface Patient {
   id: string
   name: string
-  room?: string
+  room_number?: string
 }
 
 const MSG_TYPES = {
@@ -82,6 +82,7 @@ export default function FamilyPage() {
   const [selected, setSelected] = useState<FamilyMessage | null>(null)
   const [showCompose, setShowCompose] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [contactSearch, setContactSearch] = useState('')
 
   const [compose, setCompose] = useState({
     patient_id: '', contact_id: '', subject: '', body: '', type: 'update' as FamilyMessage['type'],
@@ -91,7 +92,7 @@ export default function FamilyPage() {
     if (!user) return
     setLoading(true)
     const [{ data: pats }, { data: ctcs }, { data: msgs }, { data: vsts }] = await Promise.all([
-      supabase.from('patients').select('id, name, room').eq('user_id', user.id).order('name'),
+      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
       supabase.from('resident_contacts').select('*').eq('user_id', user.id).order('name'),
       supabase.from('family_messages').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('visit_requests').select('*').eq('user_id', user.id).order('requested_date', { ascending: false }),
@@ -109,7 +110,7 @@ export default function FamilyPage() {
   const enrichedContacts: FamilyContact[] = contacts.map(c => ({
     ...c,
     patient_name: patients.find(p => p.id === c.patient_id)?.name,
-    patient_room: patients.find(p => p.id === c.patient_id)?.room,
+    patient_room: patients.find(p => p.id === c.patient_id)?.room_number,
   }))
 
   const enrichedMessages: FamilyMessage[] = messages.map(m => ({
@@ -224,7 +225,7 @@ export default function FamilyPage() {
         <>
           {/* Messages tab */}
           {tab === 'messages' && (
-            <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 16 }}>
+            <div className="family-msg-grid" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 16 }}>
               <div>
                 {enrichedMessages.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
@@ -331,55 +332,79 @@ export default function FamilyPage() {
           )}
 
           {/* Contacts tab */}
-          {tab === 'contacts' && (
-            <div>
-              {enrichedContacts.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-                  <div style={{ fontWeight: 600, color: '#374151' }}>Sem contactos familiares</div>
-                  <div style={{ fontSize: 13, marginTop: 4 }}>Adiciona contactos no perfil de cada residente</div>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                  {enrichedContacts.map(c => (
-                    <div key={c.id} style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0b1120' }}>{c.name}</div>
-                          {c.relationship && <div style={{ fontSize: 12, color: '#6b7280' }}>{c.relationship}</div>}
+          {tab === 'contacts' && (() => {
+            const ql = contactSearch.trim().toLowerCase()
+            const filtered = enrichedContacts.filter(c =>
+              !ql ||
+              c.name.toLowerCase().includes(ql) ||
+              (c.patient_name || '').toLowerCase().includes(ql) ||
+              (c.relationship || '').toLowerCase().includes(ql) ||
+              (c.phone || '').includes(ql)
+            )
+            // Group by resident
+            const groups = new Map<string, { patientName: string; room?: string; contacts: FamilyContact[] }>()
+            filtered.forEach(c => {
+              const key = c.patient_id || 'sem'
+              if (!groups.has(key)) groups.set(key, { patientName: c.patient_name || 'Sem residente', room: c.patient_room, contacts: [] })
+              groups.get(key)!.contacts.push(c)
+            })
+            const groupList = Array.from(groups.values()).sort((a, b) => a.patientName.localeCompare(b.patientName))
+            return (
+              <div>
+                {enrichedContacts.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
+                    <div style={{ fontWeight: 600, color: '#374151' }}>Sem contactos familiares</div>
+                    <div style={{ fontSize: 13, marginTop: 4 }}>Adiciona contactos no perfil de cada residente</div>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      value={contactSearch}
+                      onChange={e => setContactSearch(e.target.value)}
+                      placeholder="Pesquisar por contacto, residente, parentesco ou telefone..."
+                      style={{ width: '100%', maxWidth: 420, marginBottom: 18, padding: '9px 13px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    {groupList.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af', fontSize: 13 }}>Nenhum contacto corresponde a “{contactSearch}”.</div>
+                    ) : groupList.map(g => (
+                      <div key={g.patientName} style={{ marginBottom: 22 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{g.patientName}</span>
+                          {g.room && <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--font-mono)' }}>Quarto {g.room}</span>}
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>· {g.contacts.length} contacto{g.contacts.length !== 1 ? 's' : ''}</span>
+                          <div style={{ flex: 1, height: 1, background: '#f1f5f9' }} />
                         </div>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {c.is_emergency && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 20 }}>Urgência</span>}
-                          {c.is_legal_guardian && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 20 }}>Tutor</span>}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                          {g.contacts.map(c => (
+                            <div key={c.id} style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '14px 16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 6 }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 14, color: '#0b1120' }}>{c.name}</div>
+                                  {c.relationship && <div style={{ fontSize: 12, color: '#6b7280' }}>{c.relationship}</div>}
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                  {c.is_emergency && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 20 }}>Urgência</span>}
+                                  {c.is_legal_guardian && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 20 }}>Tutor</span>}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {c.phone && <a href={`tel:${c.phone}`} style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none' }}>{c.phone}</a>}
+                                {c.email && <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none' }}>{c.email}</a>}
+                              </div>
+                              <button
+                                onClick={() => { setCompose(prev => ({ ...prev, patient_id: c.patient_id, contact_id: c.id })); setShowCompose(true) }}
+                                style={{ marginTop: 10, width: '100%', padding: '7px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                              >Enviar mensagem</button>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>
-                        🏠 <strong>{c.patient_name}</strong>{c.patient_room ? ` · Q.${c.patient_room}` : ''}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {c.phone && (
-                          <a href={`tel:${c.phone}`} style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            📞 {c.phone}
-                          </a>
-                        )}
-                        {c.email && (
-                          <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            ✉️ {c.email}
-                          </a>
-                        )}
-                      </div>
-                      {c.email && (
-                        <button
-                          onClick={() => { setCompose(prev => ({ ...prev, patient_id: c.patient_id, contact_id: c.id })); setShowCompose(true) }}
-                          style={{ marginTop: 10, width: '100%', padding: '7px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                        >Enviar mensagem</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </>
+                )}
+              </div>
+            )
+          })()}
         </>
       )}
 
@@ -415,7 +440,7 @@ export default function FamilyPage() {
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Residente *</label>
                   <select value={compose.patient_id} onChange={e => setCompose(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
                     <option value="">Selecionar...</option>
-                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room ? ` (Q.${p.room})` : ''}</option>)}
+                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` (Q.${p.room_number})` : ''}</option>)}
                   </select>
                 </div>
                 <div>
@@ -459,6 +484,11 @@ export default function FamilyPage() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .family-msg-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }

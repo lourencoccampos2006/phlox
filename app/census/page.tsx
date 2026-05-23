@@ -35,18 +35,27 @@ export default function CensusPage() {
   const [view, setView] = useState<'map' | 'list' | 'admissions'>('map')
   const [filter, setFilter] = useState<'all' | 'occupied' | 'available'>('all')
 
-  // Room config — in a real app this would be stored in DB
+  // Room config — persisted locally per device
   const [totalBeds, setTotalBeds] = useState(30)
   const [showConfig, setShowConfig] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('phlox-total-beds')
+    if (stored) { const n = parseInt(stored); if (!isNaN(n)) setTotalBeds(n) }
+  }, [])
+  const updateTotalBeds = (n: number) => {
+    setTotalBeds(n)
+    try { localStorage.setItem('phlox-total-beds', String(n)) } catch { /* ignore */ }
+  }
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
     const { data } = await supabase
       .from('patients')
-      .select('id,name,age,sex,room_number,admission_date,conditions')
+      .select('*')
       .eq('user_id', user.id)
-      .order('room_number', { ascending: true, nullsFirst: false })
+      .order('name', { ascending: true })
     setPatients(data || [])
     setLoading(false)
   }, [user, supabase])
@@ -125,9 +134,9 @@ export default function CensusPage() {
         {showConfig && (
           <div style={{ background: 'white', border: '1.5px solid #3b82f6', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total de camas/quartos</div>
-            <input type="number" value={totalBeds} onChange={e => setTotalBeds(parseInt(e.target.value) || 30)} min={1} max={500}
+            <input type="number" value={totalBeds} onChange={e => updateTotalBeds(parseInt(e.target.value) || 30)} min={1} max={500}
               style={{ width: 80, border: '1.5px solid var(--border)', borderRadius: 7, padding: '6px 10px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-            <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>Este valor é temporário. Para persistir, regista as camas na base de dados.</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>Guardado neste dispositivo.</span>
             <button onClick={() => setShowConfig(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-4)', marginLeft: 'auto' }}>×</button>
           </div>
         )}

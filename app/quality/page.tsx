@@ -553,6 +553,15 @@ export default function QualityPage() {
                 <input style={inputStyle} type="number" min="0" step="0.01" value={ivForm.value_eur} onChange={e => setIvForm(f => ({ ...f, value_eur: parseFloat(e.target.value)||0 }))} />
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>Valor rápido:</span>
+              {[15, 30, 50, 120, 250].map(v => (
+                <button key={v} type="button" onClick={() => setIvForm(f => ({ ...f, value_eur: v }))}
+                  style={{ padding: '4px 11px', borderRadius: 16, border: `1.5px solid ${ivForm.value_eur === v ? '#1d4ed8' : '#e2e8f0'}`, background: ivForm.value_eur === v ? '#eff6ff' : 'white', color: ivForm.value_eur === v ? '#1d4ed8' : '#475569', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  €{v}
+                </button>
+              ))}
+            </div>
             <div>
               <label style={labelStyle}>Notas</label>
               <textarea style={{ ...inputStyle, height: 64, resize: 'vertical' }} value={ivForm.notes} onChange={e => setIvForm(f => ({ ...f, notes: e.target.value }))} />

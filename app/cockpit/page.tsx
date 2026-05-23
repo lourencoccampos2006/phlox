@@ -30,6 +30,10 @@ const INC_LABELS: Record<string, string> = {
 const SEV_COLOR: Record<string, string> = {
   minor: '#6b7280', moderate: '#d97706', major: '#dc2626', critical: '#7f1d1d',
 }
+const INST_LABELS: Record<string, string> = {
+  hospital: 'Hospital', clinic: 'Clínica', pharmacy_hospital: 'Farmácia Hospitalar',
+  pharmacy_community: 'Farmácia Comunitária', nursing_home: 'Lar / ERPI', health_center: 'Centro de Saúde',
+}
 
 function currentShift(): Shift {
   const h = new Date().getHours()
@@ -133,10 +137,47 @@ export default function CockpitPage() {
   const shiftCfg = SHIFTS[shift]
 
   if (!isNH) {
+    const instLabel = INST_LABELS[institution] || 'a tua instituição'
     return (
-      <div style={{ padding: '24px 20px', maxWidth: 900, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0b1120', marginBottom: 8 }}>Cockpit</h1>
-        <p style={{ color: '#6b7280', fontSize: 14 }}>Altera o tipo de instituição para Lar/ERPI para ver o dashboard clínico completo.</p>
+      <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#0b1120', letterSpacing: '-0.02em' }}>
+              {greet()}{NAME ? `, ${NAME}` : ''}.
+            </div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>{ptDate} · {ptTime}</div>
+          </div>
+        </div>
+
+        {/* Generic KPIs that work for any institution */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
+          {[
+            { label: 'Doentes',      value: loading ? '—' : patients.length,        color: '#0b1120', bg: '#f9fafb', border: '#e5e7eb', href: '/patients' },
+            { label: 'Ocorrências',  value: loading ? '—' : openIncidents.length,    color: openIncidents.length > 0 ? '#dc2626' : '#16a34a', bg: openIncidents.length > 0 ? '#fee2e2' : '#f0fdf4', border: openIncidents.length > 0 ? '#fecaca' : '#bbf7d0', href: '/incidents' },
+            { label: 'Equipa ativa', value: loading ? '—' : teamMembers.length,      color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', href: '/schedule' },
+          ].map(k => (
+            <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
+              <div style={{ background: k.bg, border: `1.5px solid ${k.border}`, borderRadius: 10, padding: '14px 16px', cursor: 'pointer' }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: k.color, letterSpacing: '-0.02em', lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 11, color: k.color, opacity: 0.75, marginTop: 4, fontWeight: 500 }}>{k.label}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Institution-type prompt */}
+        <div style={{ background: '#fff', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', marginBottom: 4 }}>Dashboard configurado para {instLabel}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
+              Geres um Lar ou ERPI? Muda o tipo de instituição nas Definições para desbloquear o painel clínico completo — turnos, MAR, avaliações e registos diários.
+            </div>
+          </div>
+          <Link href="/settings" style={{ textDecoration: 'none', padding: '10px 18px', background: '#1d4ed8', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            Configurar instituição →
+          </Link>
+        </div>
       </div>
     )
   }
@@ -161,6 +202,25 @@ export default function CockpitPage() {
         </div>
       </div>
 
+      {/* Feature highlights */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 16 }}>
+        {[
+          { href: '/hoje', title: 'Tarefas do Turno', sub: 'O que fazer agora', c: '#0d6e42', bg: '#f0fdf5', bd: '#bbf7d0' },
+          { href: '/ronda-guiada', title: 'Ronda Guiada', sub: 'Residente a residente', c: '#1d4ed8', bg: '#eff6ff', bd: '#bfdbfe' },
+          { href: '/painel', title: 'Painel do Lar', sub: 'Visão de gestão', c: '#7c3aed', bg: '#faf5ff', bd: '#e9d5ff' },
+        ].map(f => (
+          <Link key={f.href} href={f.href} style={{ textDecoration: 'none' }}>
+            <div style={{ background: f.bg, border: `1.5px solid ${f.bd}`, borderRadius: 12, padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: f.c }}>{f.title}</div>
+                <div style={{ fontSize: 11, color: f.c, opacity: 0.75, marginTop: 2 }}>{f.sub}</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={f.c} strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </Link>
+        ))}
+      </div>
+
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
         {[
@@ -169,7 +229,7 @@ export default function CockpitPage() {
           { label: 'Ocorrências',    value: loading ? '—' : openIncidents.length, color: openIncidents.length > 0 ? '#dc2626' : '#16a34a', bg: openIncidents.length > 0 ? '#fee2e2' : '#f0fdf4', border: openIncidents.length > 0 ? '#fecaca' : '#bbf7d0', href: '/incidents' },
           { label: 'Sem registo hoje', value: loading ? '—' : patientsWithoutCareToday.length, color: patientsWithoutCareToday.length > 0 ? '#d97706' : '#16a34a', bg: patientsWithoutCareToday.length > 0 ? '#fffbeb' : '#f0fdf4', border: patientsWithoutCareToday.length > 0 ? '#fde68a' : '#bbf7d0', href: '/care-log' },
           { label: 'Alto risco',     value: loading ? '—' : highRiskPatients.length, color: highRiskPatients.length > 0 ? '#dc2626' : '#6b7280', bg: highRiskPatients.length > 0 ? '#fef2f2' : '#f9fafb', border: highRiskPatients.length > 0 ? '#fecaca' : '#e5e7eb', href: '/rounds' },
-          { label: 'Equipa ativa',   value: loading ? '—' : teamMembers.length, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', href: '/team' },
+          { label: 'Equipa ativa',   value: loading ? '—' : teamMembers.length, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', href: '/schedule' },
         ].map(k => (
           <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
             <div style={{ background: k.bg, border: `1.5px solid ${k.border}`, borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'opacity 0.15s' }}>
@@ -180,7 +240,7 @@ export default function CockpitPage() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
+      <div className="cockpit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -303,6 +363,33 @@ export default function CockpitPage() {
             </div>
           )}
 
+          {/* Shift breakdown — today */}
+          <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 12 }}>Registos por turno · hoje</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {(['manha', 'tarde', 'noite'] as Shift[]).map(s => {
+                const cfg = SHIFTS[s]
+                const count = careToday.filter(r => r.shift === s).length
+                const pct = patients.length > 0 ? Math.round((new Set(careToday.filter(r => r.shift === s).map(r => r.patient_id)).size / patients.length) * 100) : 0
+                const isCurrent = s === shift
+                return (
+                  <div key={s}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, color: isCurrent ? cfg.color : '#6b7280', fontWeight: isCurrent ? 700 : 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.color, display: 'inline-block' }} />
+                        {cfg.short}{isCurrent ? ' · atual' : ''}
+                      </span>
+                      <span style={{ fontSize: 12, color: '#374151', fontWeight: 600 }}>{count} <span style={{ color: '#9ca3af', fontWeight: 400 }}>· {pct}%</span></span>
+                    </div>
+                    <div style={{ height: 5, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: cfg.color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Month stats */}
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 12 }}>Este mês</div>
@@ -324,7 +411,7 @@ export default function CockpitPage() {
           {teamMembers.length > 0 && (
             <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
-                Equipa <Link href="/team" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver →</Link>
+                Equipa <Link href="/schedule" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver →</Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {teamMembers.slice(0, 5).map(m => (

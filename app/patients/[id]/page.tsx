@@ -67,7 +67,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const [meds, setMeds] = useState<PatientMed[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'meds' | 'notes' | 'ai' | 'assessments' | 'incidents' | 'contacts'>('overview')
+  const [tab, setTab] = useState<'overview' | 'meds' | 'notes' | 'ai' | 'assessments' | 'incidents' | 'contacts' | 'cronologia'>('overview')
   // Nursing home data
   const [nhAssessments, setNhAssessments] = useState<NHAssessment[]>([])
   const [nhIncidents, setNhIncidents] = useState<NHIncident[]>([])
@@ -336,6 +336,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
               ['overview', 'Resumo'],
               ['meds', 'Medicação'],
               ...(isNH ? [
+                ['cronologia', 'Cronologia'],
                 ['assessments', 'Avaliações'],
                 ['incidents', 'Ocorrências'],
                 ['contacts', 'Contactos'],
@@ -826,6 +827,55 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
             )}
           </div>
         )}
+
+        {tab === 'cronologia' && isNH && (() => {
+          type Ev = { date: string; kind: string; color: string; bg: string; title: string; sub?: string }
+          const evs: Ev[] = []
+          nhIncidents.forEach(i => evs.push({
+            date: i.date, kind: 'Ocorrência', color: i.severity === 'critical' || i.severity === 'major' ? '#dc2626' : '#d97706', bg: '#fef2f2',
+            title: INC_LABELS[i.type] || i.type, sub: i.description || undefined,
+          }))
+          nhAssessments.forEach(a => {
+            const sc = SCALE_LABELS[a.scale]
+            evs.push({ date: a.date, kind: 'Avaliação', color: '#2563eb', bg: '#eff6ff', title: `${sc?.name || a.scale}: ${a.score}${sc?.unit ? ' ' + sc.unit : ''}`, sub: a.level || a.notes || undefined })
+          })
+          meds.filter(m => m.started_at).forEach(m => evs.push({
+            date: (m.started_at || '').slice(0, 10), kind: 'Medicação', color: '#0d6e42', bg: '#f0fdf5',
+            title: `Início · ${m.name}`, sub: [m.dose, m.frequency].filter(Boolean).join(' · ') || undefined,
+          }))
+          evs.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+          return (
+            <div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+                Cronologia 360 · {evs.length} eventos
+              </div>
+              {evs.length === 0 ? (
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 40, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>
+                  Sem eventos registados. Avaliações, ocorrências e início de medicação aparecem aqui automaticamente.
+                </div>
+              ) : (
+                <div style={{ position: 'relative', paddingLeft: 22 }}>
+                  <div style={{ position: 'absolute', left: 6, top: 6, bottom: 6, width: 2, background: 'var(--border)' }} />
+                  {evs.map((e, i) => (
+                    <div key={i} style={{ position: 'relative', marginBottom: 14 }}>
+                      <div style={{ position: 'absolute', left: -22, top: 4, width: 14, height: 14, borderRadius: '50%', background: 'white', border: `3px solid ${e.color}` }} />
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: e.color, background: e.bg, padding: '2px 8px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{e.kind}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)' }}>
+                            {e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{e.title}</div>
+                        {e.sub && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{e.sub}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
       <style>{`
         .patient-action:hover { border-color: #1d4ed8 !important; background: var(--blue-light) !important; }

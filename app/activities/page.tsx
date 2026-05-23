@@ -30,7 +30,7 @@ interface Participation {
 interface Patient {
   id: string
   name: string
-  room?: string
+  room_number?: string
 }
 
 const TYPES = [
@@ -82,7 +82,7 @@ export default function ActivitiesPage() {
     setLoading(true)
     const [{ data: acts }, { data: pats }] = await Promise.all([
       supabase.from('activities').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('start_time', { ascending: true }),
-      supabase.from('patients').select('id, name, room').eq('user_id', user.id).order('name'),
+      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
     ])
     setActivities(acts || [])
     setPatients(pats || [])
@@ -326,7 +326,7 @@ export default function ActivitiesPage() {
                       >
                         <div>
                           <span style={{ fontSize: 13, fontWeight: 500, color: '#0b1120' }}>{p.name}</span>
-                          {p.room && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>Q.{p.room}</span>}
+                          {p.room_number && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>Q.{p.room_number}</span>}
                         </div>
                         <button
                           onClick={() => toggleParticipation(p.id, !attended)}

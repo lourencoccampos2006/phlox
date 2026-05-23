@@ -51,7 +51,7 @@
   --r-xl: 28px;
 }
 
-html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-x: clip; }
 
 body {
   font-family: var(--font-sans);
@@ -545,6 +545,21 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
+
+/* ── Mobile safety net — prevent horizontal page scroll ─────────────────────── */
+@media (max-width: 768px) {
+  /* Wide data tables scroll inside their own wrapper, never the page */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+  /* Tables get a sane min so columns stay readable while scrolling inside wrapper */
+  .table-scroll table { min-width: 560px; }
+  /* Common detail/sidebar split layouts collapse to single column */
+  .split-sidebar { grid-template-columns: 1fr !important; }
+  /* Pre/code blocks wrap instead of forcing width */
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+}
+
+/* Reusable horizontal scroll wrapper for tables on any screen */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* Print utilities */
 @media print {
