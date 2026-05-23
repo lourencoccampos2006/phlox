@@ -529,23 +529,20 @@ export default function Header() {
 
                 <UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} />
 
-                {/* Hamburger — mobile only, non-clinical only */}
-                {!isDark && (
-                  <button
-                    onClick={() => setDrawerOpen(true)}
-                    className="hdr-hamburger"
-                    aria-label="Abrir menu"
-                    style={{
-                      width: 34, height: 34, display: 'none', flexDirection: 'column',
-                      alignItems: 'center', justifyContent: 'center', gap: 4,
-                      background: '#f1f5f9', border: 'none', borderRadius: 7,
-                      cursor: 'pointer', flexShrink: 0,
-                    }}>
-                    <span style={{ width: 16, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />
-                    <span style={{ width: 11, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />
-                    <span style={{ width: 16, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />
-                  </button>
-                )}
+                {/* Hamburger — mobile only (always available so there's a clear menu) */}
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="hdr-hamburger"
+                  aria-label="Abrir menu"
+                  style={{
+                    width: 34, height: 34, display: 'none', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 4,
+                    background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'transparent'}`, borderRadius: 7,
+                    cursor: 'pointer', flexShrink: 0,
+                  }}>
+                  {[16, 11, 16].map((w, i) => <span key={i} style={{ width: w, height: 1.5, background: isDark ? 'rgba(255,255,255,0.85)' : '#374151', borderRadius: 1, display: 'block' }} />)}
+                </button>
               </>
             )}
 

@@ -8,8 +8,7 @@ interface Dest { label: string; href: string; group: string; keywords?: string }
 
 const DESTINATIONS: Dest[] = [
   { label: 'Cockpit',                    href: '/cockpit',     group: 'Hoje',       keywords: 'painel dashboard inicio home' },
-  { label: 'Tarefas do Turno',           href: '/hoje',        group: 'Hoje',       keywords: 'tarefas inbox pendentes worklist hoje' },
-  { label: 'Ronda Guiada',               href: '/ronda-guiada', group: 'Hoje',      keywords: 'ronda guiada residente a residente visita' },
+  { label: 'Centro de Turno',            href: '/turno',       group: 'Hoje',       keywords: 'tarefas inbox pendentes ronda guiada passagem turno worklist' },
   { label: 'Registos Diários',           href: '/care-log',    group: 'Hoje',       keywords: 'cuidados diario notas' },
   { label: 'MAR — Administração',        href: '/mar',         group: 'Hoje',       keywords: 'medicacao toma administrar' },
   { label: 'Passagem de Turno',          href: '/handover',    group: 'Hoje',       keywords: 'turno passa shift' },
@@ -18,8 +17,7 @@ const DESTINATIONS: Dest[] = [
   { label: 'Planos de Cuidado',          href: '/care-plans',  group: 'Residentes', keywords: 'cuidados plano' },
   { label: 'Ocorrências',                href: '/incidents',   group: 'Residentes', keywords: 'incidentes quedas eventos' },
   { label: 'Atividades',                 href: '/activities',  group: 'Residentes', keywords: 'animacao ocupacao' },
-  { label: 'Painel do Lar',              href: '/painel',      group: 'Gestão',     keywords: 'painel coordenador ops board gestao tempo real ocupacao risco' },
-  { label: 'Ocupação',                   href: '/census',      group: 'Gestão',     keywords: 'camas quartos lotacao' },
+  { label: 'Ocupação',                   href: '/census',      group: 'Gestão',     keywords: 'camas quartos lotacao painel ocupacao' },
   { label: 'Equipa & Escalas',           href: '/schedule',    group: 'Gestão',     keywords: 'turnos equipa staff funcionarios' },
   { label: 'Famílias',                   href: '/family',      group: 'Gestão',     keywords: 'contactos visitas mensagens' },
   { label: 'Poupança / ROI',             href: '/roi',         group: 'Gestão',     keywords: 'retorno custo economia' },
@@ -31,7 +29,7 @@ const DESTINATIONS: Dest[] = [
 ]
 
 const QUICK_ACTIONS: Dest[] = [
-  { label: 'Iniciar ronda guiada', href: '/ronda-guiada', group: 'Ações', keywords: 'comecar ronda' },
+  { label: 'Abrir Centro de Turno', href: '/turno',     group: 'Ações', keywords: 'ronda tarefas passagem' },
   { label: 'Novo registo diário', href: '/care-log',    group: 'Ações', keywords: 'criar adicionar' },
   { label: 'Registar ocorrência', href: '/incidents',   group: 'Ações', keywords: 'criar nova queda' },
   { label: 'Nova avaliação',      href: '/assessments', group: 'Ações', keywords: 'criar barthel' },

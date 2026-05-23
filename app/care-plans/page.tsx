@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { printDoc, type PrintRecord, type PrintSection } from '@/lib/print'
 
 interface Patient { id: string; name: string; room_number?: string; age?: number }
 
@@ -140,78 +141,51 @@ export default function CarePlansPage() {
 
   const handlePrint = () => {
     if (!selected) return
-    const win = window.open('', '_blank')
-    if (!win) return
     const p = form
-    const plan = plans[selected.id] || form
-    win.document.write(`<!DOCTYPE html><html lang="pt-PT"><head><meta charset="utf-8">
-    <title>Plano de Cuidados — ${selected.name}</title>
-    <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.6; color: #111; padding: 24px; max-width: 800px; margin: 0 auto; }
-      .header { border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
-      .header-title { font-size: 18px; font-weight: bold; }
-      .header-sub { font-size: 10px; color: #666; }
-      .resident-info { background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 10px 14px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .info-item label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #888; display: block; }
-      .info-item span { font-size: 12px; font-weight: 600; }
-      .section { margin-bottom: 14px; break-inside: avoid; }
-      .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
-      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .field { margin-bottom: 8px; }
-      .field label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #888; display: block; margin-bottom: 2px; }
-      .field p { font-size: 11px; }
-      .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-      .chip { background: #e5e7eb; border-radius: 3px; padding: 2px 8px; font-size: 10px; }
-      .goal-list { list-style: none; }
-      .goal-list li { padding: 3px 0; font-size: 11px; }
-      .goal-list li::before { content: "✓ "; color: #16a34a; font-weight: bold; }
-      .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #ddd; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; font-size: 10px; }
-      .sig-line { border-bottom: 1px solid #111; margin-bottom: 4px; height: 28px; }
-      @media print { @page { margin: 15mm; } }
-    </style></head><body>
-    <div class="header">
-      <div>
-        <div class="header-title">Plano Individual de Cuidados</div>
-        <div class="header-sub">Phlox Clinical · phloxclinical.com</div>
-      </div>
-      <div class="header-sub">Atualizado a: ${new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-    </div>
-    <div class="resident-info">
-      <div class="info-item"><label>Residente</label><span>${selected.name}</span></div>
-      <div class="info-item"><label>Quarto</label><span>${selected.room_number || '—'}</span></div>
-      <div class="info-item"><label>Idade</label><span>${selected.age ? selected.age + ' anos' : '—'}</span></div>
-    </div>
-    <div class="two-col">
-      <div class="section">
-        <div class="section-title">Mobilidade e Autonomia</div>
-        ${p.mobility ? `<div class="field"><label>Nível de mobilidade</label><p>${p.mobility}</p></div>` : ''}
-        ${p.hygiene ? `<div class="field"><label>Higiene pessoal</label><p>${p.hygiene}</p></div>` : ''}
-        ${p.positioning_schedule ? `<div class="field"><label>Posicionamentos</label><p>${p.positioning_schedule}</p></div>` : ''}
-      </div>
-      <div class="section">
-        <div class="section-title">Alimentação e Nutrição</div>
-        ${p.diet_type ? `<div class="field"><label>Tipo de dieta</label><p>${p.diet_type}</p></div>` : ''}
-        ${p.diet_texture ? `<div class="field"><label>Textura</label><p>${p.diet_texture}</p></div>` : ''}
-        ${p.fluid_restriction ? `<div class="field"><label>Restrição hídrica</label><p>${p.fluid_restriction_ml ? p.fluid_restriction_ml + ' ml/dia' : 'Sim'}</p></div>` : ''}
-        ${p.nutrition_plan ? `<div class="field"><label>Plano nutricional</label><p>${p.nutrition_plan}</p></div>` : ''}
-      </div>
-    </div>
-    ${p.fall_prevention.length > 0 ? `<div class="section"><div class="section-title">Prevenção de Quedas</div><div class="chips">${p.fall_prevention.map(f => `<span class="chip">${f}</span>`).join('')}</div></div>` : ''}
-    ${p.pressure_ulcer_prevention.length > 0 ? `<div class="section"><div class="section-title">Prevenção de Úlceras de Pressão</div><div class="chips">${p.pressure_ulcer_prevention.map(f => `<span class="chip">${f}</span>`).join('')}</div></div>` : ''}
-    ${p.skin_care ? `<div class="section"><div class="section-title">Cuidados à Pele</div><p>${p.skin_care}</p></div>` : ''}
-    ${p.medication_notes ? `<div class="section"><div class="section-title">Notas de Medicação</div><p>${p.medication_notes}</p></div>` : ''}
-    ${p.behavioral_notes ? `<div class="section"><div class="section-title">Notas Comportamentais</div><p>${p.behavioral_notes}</p></div>` : ''}
-    ${p.family_visit_schedule ? `<div class="section"><div class="section-title">Visitas Familiares</div><p>${p.family_visit_schedule}</p></div>` : ''}
-    ${p.goals.length > 0 ? `<div class="section"><div class="section-title">Objetivos de Cuidado</div><ul class="goal-list">${p.goals.map(g => `<li>${g}</li>`).join('')}</ul></div>` : ''}
-    <div class="footer">
-      <div><div class="sig-line"></div><div>Responsável pelo Plano</div></div>
-      <div><div class="sig-line"></div><div>Diretor(a) Técnico(a)</div></div>
-      <div><div class="sig-line"></div><div>Data de revisão</div></div>
-    </div>
-    </body></html>`)
-    win.document.close()
-    setTimeout(() => { win.focus(); win.print() }, 300)
+    const sections: PrintSection[] = []
+
+    const autonomyFields = [
+      p.mobility && { label: 'Mobilidade', value: p.mobility },
+      p.hygiene && { label: 'Higiene', value: p.hygiene },
+      p.positioning_schedule && { label: 'Posicionamentos', value: p.positioning_schedule },
+    ].filter(Boolean) as { label: string; value: string }[]
+    const nutritionFields = [
+      p.diet_type && { label: 'Tipo de dieta', value: p.diet_type },
+      p.diet_texture && { label: 'Textura', value: p.diet_texture },
+      p.fluid_restriction && { label: 'Restrição hídrica', value: p.fluid_restriction_ml ? `${p.fluid_restriction_ml} ml/dia` : 'Sim' },
+      p.nutrition_plan && { label: 'Plano nutricional', value: p.nutrition_plan },
+    ].filter(Boolean) as { label: string; value: string }[]
+
+    sections.push({ heading: 'Perfil do residente', records: [{
+      title: selected.name,
+      fields: [
+        { label: 'Quarto', value: selected.room_number || '—' },
+        { label: 'Idade', value: selected.age ? `${selected.age} anos` : '—' },
+        { label: 'Atualizado', value: new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' }) },
+      ],
+    }] })
+    if (autonomyFields.length) sections.push({ heading: 'Mobilidade e autonomia', records: [{ title: 'Avaliação funcional', fields: autonomyFields }] })
+    if (nutritionFields.length) sections.push({ heading: 'Alimentação e nutrição', records: [{ title: 'Plano alimentar', fields: nutritionFields }] })
+    if (p.fall_prevention.length) sections.push({ heading: 'Prevenção de quedas', records: [{ title: `${p.fall_prevention.length} medidas`, bullets: p.fall_prevention }] })
+    if (p.pressure_ulcer_prevention.length) sections.push({ heading: 'Prevenção de úlceras de pressão', records: [{ title: `${p.pressure_ulcer_prevention.length} medidas`, bullets: p.pressure_ulcer_prevention }] })
+    const noteRecords: PrintRecord[] = []
+    if (p.skin_care) noteRecords.push({ title: 'Cuidados à pele', body: p.skin_care })
+    if (p.medication_notes) noteRecords.push({ title: 'Notas de medicação', body: p.medication_notes })
+    if (p.behavioral_notes) noteRecords.push({ title: 'Notas comportamentais', body: p.behavioral_notes })
+    if (p.family_visit_schedule) noteRecords.push({ title: 'Visitas familiares', body: p.family_visit_schedule })
+    if (noteRecords.length) sections.push({ heading: 'Cuidados e notas', records: noteRecords })
+    if (p.goals.length) sections.push({ heading: 'Objetivos de cuidado', records: [{ title: `${p.goals.length} objetivos`, bullets: p.goals }] })
+    sections.push({ heading: 'Assinaturas', records: [{ title: 'Validação', fields: [
+      { label: 'Responsável', value: '' }, { label: 'Diretor Técnico', value: '' }, { label: 'Data de revisão', value: '' },
+    ] }] })
+
+    printDoc({
+      docTitle: 'Plano Individual de Cuidados',
+      docSubtitle: `${selected.name}${selected.room_number ? ' · Quarto ' + selected.room_number : ''}`,
+      institution: 'Lar / ERPI',
+      sections,
+      footerNote: 'Plano individual de cuidados · Phlox',
+    })
   }
 
   const toggle = (field: 'fall_prevention' | 'pressure_ulcer_prevention', value: string) => {

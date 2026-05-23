@@ -202,24 +202,18 @@ export default function CockpitPage() {
         </div>
       </div>
 
-      {/* Feature highlights */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 16 }}>
-        {[
-          { href: '/hoje', title: 'Tarefas do Turno', sub: 'O que fazer agora', c: '#0d6e42', bg: '#f0fdf5', bd: '#bbf7d0' },
-          { href: '/ronda-guiada', title: 'Ronda Guiada', sub: 'Residente a residente', c: '#1d4ed8', bg: '#eff6ff', bd: '#bfdbfe' },
-          { href: '/painel', title: 'Painel do Lar', sub: 'Visão de gestão', c: '#7c3aed', bg: '#faf5ff', bd: '#e9d5ff' },
-        ].map(f => (
-          <Link key={f.href} href={f.href} style={{ textDecoration: 'none' }}>
-            <div style={{ background: f.bg, border: `1.5px solid ${f.bd}`, borderRadius: 12, padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: f.c }}>{f.title}</div>
-                <div style={{ fontSize: 11, color: f.c, opacity: 0.75, marginTop: 2 }}>{f.sub}</div>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={f.c} strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {/* Centro de Turno CTA */}
+      <Link href="/turno" style={{ textDecoration: 'none' }}>
+        <div style={{ background: '#0d6e42', borderRadius: 14, padding: '16px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>Centro de Turno</div>
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>Tarefas pendentes · ronda guiada · passagem de turno num só sítio</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.16)', padding: '8px 14px', borderRadius: 9, color: 'white', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+            Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+      </Link>
 
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>

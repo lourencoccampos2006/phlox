@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 type RiskLevel = 'CRITICO' | 'ALTO' | 'MODERADO' | 'BAIXO'
 
@@ -156,10 +157,44 @@ export default function ResidentesPage() {
               <div style={{ flex: 1 }} />
               {rev && (
                 <button onClick={() => {
-                  const win = window.open('', '_blank')
-                  if (!win) return
-                  win.document.write(`<html><head><title>Revisão — ${selected.name}</title><style>body{font-family:Arial,sans-serif;font-size:11px;padding:24px;max-width:780px;margin:0 auto}h1{font-size:16px;border-bottom:2px solid #000;padding-bottom:6px}h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#666;margin:16px 0 6px}.finding{margin-bottom:8px;padding:8px 10px;border-radius:4px;border-left:3px solid;break-inside:avoid}@media print{body{padding:12px}}</style></head><body><h1>${selected.name}</h1><p>${selected.age} anos · Quarto ${selected.room} · ${selected.diagnosis}</p>${selected.allergies.length ? `<p><strong style="color:#dc2626">Alergias:</strong> ${selected.allergies.join(', ')}</p>` : ''}<h2>Medicação (${selected.medications.length})</h2><table style="width:100%;border-collapse:collapse"><tr style="border-bottom:1px solid #ddd;font-size:10px;color:#888"><th align="left">Medicamento</th><th align="left">Dose</th><th align="left">Frequência</th></tr>${selected.medications.map(m => `<tr style="border-bottom:1px solid #eee"><td>${m.name}</td><td>${m.dose}</td><td>${m.frequency}</td></tr>`).join('')}</table><h2>Alertas (${rev.findings.length})</h2>${rev.findings.map(f => `<div class="finding" style="background:${PRIORITY[f.priority]?.bg};border-color:${PRIORITY[f.priority]?.color}"><strong style="color:${PRIORITY[f.priority]?.color}">${f.title}</strong><br>${f.description}<br><em>→ ${f.action}</em></div>`).join('')}${rev.pharmacist_note ? `<h2>Nota do Farmacêutico</h2><p>${rev.pharmacist_note}</p>` : ''}<p style="margin-top:24px;font-size:10px;color:#aaa">Gerado por Phlox · phloxclinical.com · Próxima revisão: ${rev.next_review_weeks} semanas</p></body></html>`)
-                  win.document.close(); setTimeout(() => win.print(), 300)
+                  const medRecord: PrintRecord = {
+                    title: `Medicação activa — ${selected.medications.length} fármacos`,
+                    bullets: selected.medications.map(m => `${m.name} — ${m.dose || 's/ dose'} · ${m.frequency || 's/ frequência'}${m.route ? ' · ' + m.route : ''}`),
+                  }
+                  const findingRecords: PrintRecord[] = rev.findings.map(f => ({
+                    title: f.title,
+                    tags: [{ label: f.priority, color: PRIORITY[f.priority]?.color || '#64748b' }],
+                    meta: f.category,
+                    body: `${f.description}\n→ Ação: ${f.action}`,
+                  }))
+                  const profile: PrintRecord = {
+                    title: selected.name,
+                    meta: selected.diagnosis !== '—' ? selected.diagnosis : undefined,
+                    fields: [
+                      { label: 'Idade', value: `${selected.age} anos` },
+                      { label: 'Quarto', value: selected.room || '—' },
+                      { label: 'Peso', value: selected.weight ? `${selected.weight} kg` : '—' },
+                      { label: 'Creatinina', value: selected.creatinine ? `${selected.creatinine} mg/dL` : '—' },
+                    ],
+                    bullets: selected.allergies.length ? [`Alergias: ${selected.allergies.join(', ')}`] : undefined,
+                  }
+                  printDoc({
+                    docTitle: 'Revisão Farmacoterapêutica',
+                    docSubtitle: `${selected.name} · ${selected.age} anos · Quarto ${selected.room}`,
+                    institution: 'Lar / ERPI',
+                    meta: [
+                      { label: 'fármacos', value: String(selected.medications.length) },
+                      { label: 'alertas', value: String(rev.findings.length) },
+                      { label: 'próxima revisão', value: `${rev.next_review_weeks} sem` },
+                    ],
+                    sections: [
+                      { heading: 'Perfil do residente', records: [profile] },
+                      { heading: 'Medicação', records: [medRecord] },
+                      { heading: `Alertas farmacoterapêuticos`, records: findingRecords.length ? findingRecords : [{ title: 'Sem alertas identificados' }] },
+                      ...(rev.pharmacist_note ? [{ heading: 'Nota do farmacêutico', records: [{ title: 'Parecer clínico', body: rev.pharmacist_note }] }] : []),
+                    ],
+                    footerNote: 'Revisão farmacoterapêutica · Phlox',
+                  })
                 }}
                   style={{ padding: '6px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', cursor: 'pointer', fontWeight: 700 }}>
                   Imprimir
