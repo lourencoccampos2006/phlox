@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { printDoc, type PrintRecord } from '@/lib/print'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 
 // ─── PCNE Classification v9.1 (simplified) ───────────────────────────────────
@@ -636,16 +637,25 @@ export default function RoundsPage() {
     setInterventions(ivs||[])
     setLoading(false)
 
+    // Helper: turn a numeric score into a level
+    const toLevel = (s: number): RiskScore['level'] => s >= 70 ? 'critical' : s >= 45 ? 'high' : s >= 20 ? 'moderate' : 'low'
+
     // Trigger risk analysis for each patient
     patientsWithCount.forEach(async (p: any) => {
       if (!p.id) return
-      setRisks(prev => ({ ...prev, [p.id]: 'loading' }))
+
+      // 1) INSTANT local pre-score (polimedicação + condições + idade) — sem esperar pela IA
+      const condScore = conditionRisk(p)
+      const localScore = Math.min(100, condScore + Math.min(30, (p.meds_count || 0) * 3))
+      setRisks(prev => ({ ...prev, [p.id]: { score: localScore, level: toLevel(localScore), alerts: [], summary: 'Risco local — a refinar com IA…' } }))
+
       const { data: pMeds } = await supabase.from('patient_meds')
         .select('id, name, dose, frequency, indication').eq('patient_id', p.id)
       setMeds(prev => ({ ...prev, [p.id]: pMeds || [] }))
 
       if ((pMeds||[]).length < 1) {
-        setRisks(prev => ({ ...prev, [p.id]: { score:0, level:'low', alerts:[], summary:'Sem medicamentos registados.' } }))
+        const s = Math.min(100, condScore)
+        setRisks(prev => ({ ...prev, [p.id]: { score: s, level: toLevel(s), alerts:[], summary: condScore > 0 ? 'Risco por condições clínicas. Sem medicamentos registados.' : 'Sem medicamentos registados.' } }))
         return
       }
 
@@ -656,18 +666,20 @@ export default function RoundsPage() {
           headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${sd.session?.access_token}` },
           body: JSON.stringify({ patient: p, medications: (pMeds||[]).map((m: any) => ({ name: m.name, dose: m.dose, frequency: m.frequency })) }),
         })
+        if (!res.ok) throw new Error('analyze failed')
         const data = await res.json()
         const alerts: PatientAlert[] = data.alerts || []
         const critical = alerts.filter(a => a.severity==='grave').length
         const moderate = alerts.filter(a => a.severity==='moderada').length
-        const condScore = conditionRisk(p)
         const score = Math.min(100, critical*30 + moderate*15 + Math.min(25, (pMeds||[]).length*3) + condScore)
-        const level = score>=70?'critical':score>=45?'high':score>=20?'moderate':'low'
+        const level = toLevel(score)
         const riskLevelMap: Record<string,'CRITICO'|'ALTO'|'MODERADO'|'BAIXO'> = { critical:'CRITICO', high:'ALTO', moderate:'MODERADO', low:'BAIXO' }
         supabase.from('patients').update({ risk_level: riskLevelMap[level], alert_count: critical + moderate, last_review: new Date().toISOString() }).eq('id', p.id).then(() => {})
         setRisks(prev => ({ ...prev, [p.id]: { score, level, alerts, summary: data.summary||'' } }))
       } catch {
-        setRisks(prev => ({ ...prev, [p.id]: { score:0, level:'low', alerts:[], summary:'Erro na análise.' } }))
+        // IA indisponível → manter o score local em vez de mostrar erro/zero
+        const s = Math.min(100, condScore + Math.min(30, (pMeds||[]).length * 3))
+        setRisks(prev => ({ ...prev, [p.id]: { score: s, level: toLevel(s), alerts: [], summary: 'Risco estimado localmente (IA indisponível).' } }))
       }
     })
   }, [user, supabase, isPro])
@@ -943,11 +955,33 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
                     📋 Copiar
                   </button>
                   <button onClick={() => {
-                    const win = window.open('', '_blank')
-                    if (win) { win.document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:32px">${report}</pre>`); win.document.close(); win.print() }
+                    const mi = interventions.filter(i => i.date.startsWith(reportMonth))
+                    const accepted = mi.filter(i => i.accepted === true).length
+                    const rate = mi.length > 0 ? Math.round(accepted / mi.length * 100) : 0
+                    const seen = new Set(mi.map(i => i.patient_id)).size
+                    const records: PrintRecord[] = mi.map(iv => ({
+                      title: iv.patient_name || 'Doente',
+                      meta: `${new Date(iv.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })} · ${iv.problem_code || ''} → ${iv.intervention_code || ''}`,
+                      tags: iv.accepted === true ? [{ label: 'Aceite', color: '#0d6e42' }] : iv.accepted === false ? [{ label: 'Não aceite', color: '#dc2626' }] : [{ label: 'Pendente', color: '#d97706' }],
+                      body: [iv.description, iv.recommendation ? `→ ${iv.recommendation}` : ''].filter(Boolean).join('\n'),
+                    }))
+                    const monthLabel = new Date(reportMonth + '-01T12:00:00').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+                    printDoc({
+                      docTitle: 'Relatório de Ronda Farmacêutica',
+                      docSubtitle: monthLabel,
+                      institution: 'Lar / ERPI',
+                      meta: [
+                        { label: 'intervenções', value: String(mi.length) },
+                        { label: 'aceites', value: String(accepted) },
+                        { label: 'taxa de aceitação', value: `${rate}%` },
+                        { label: 'doentes', value: String(seen) },
+                      ],
+                      sections: [{ heading: `Intervenções PCNE — ${monthLabel}`, records: records.length ? records : [{ title: 'Sem intervenções registadas neste mês' }] }],
+                      footerNote: 'Ronda farmacêutica · classificação PCNE · Phlox',
+                    })
                   }}
                     style={{ padding:'6px 12px', background:'var(--ink)', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'white' }}>
-                    🖨 Imprimir
+                    Imprimir
                   </button>
                 </div>
               </div>

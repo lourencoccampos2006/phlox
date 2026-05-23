@@ -140,7 +140,7 @@ export default function ResidentesPage() {
     const days = daysSince(selected.last_review)
     return (
       <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
-        <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+        <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 54, zIndex: 40 }}>
           <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 54 }}>
               <button onClick={() => setSelected(null)}
@@ -386,7 +386,7 @@ export default function ResidentesPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
       {/* Sticky header */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 54, zIndex: 40 }}>
         <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 54 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Revisão Farmacoterapêutica</span>

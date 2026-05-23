@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held'
@@ -155,7 +156,7 @@ export default function HandoverPage() {
     <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
 
       {/* Sticky top bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 54, zIndex: 40 }}>
         <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -187,7 +188,42 @@ export default function HandoverPage() {
                 ))}
               </div>
               {!loading && patients.length > 0 && (
-                <button onClick={() => window.print()}
+                <button onClick={() => {
+                  const records: PrintRecord[] = patients.map(p => {
+                    const v = p.care?.vitals
+                    const fields: { label: string; value: string }[] = [
+                      { label: 'Quarto', value: p.room_number ? `Q${p.room_number}` : '—' },
+                      { label: 'Idade', value: p.age ? `${p.age} anos` : '—' },
+                    ]
+                    if (v?.bp_sys && v?.bp_dia) fields.push({ label: 'TA', value: `${v.bp_sys}/${v.bp_dia}` })
+                    if (v?.hr) fields.push({ label: 'FC', value: `${v.hr} bpm` })
+                    if (v?.temp) fields.push({ label: 'Temp.', value: `${v.temp}°C` })
+                    if (v?.spo2) fields.push({ label: 'SpO₂', value: `${v.spo2}%` })
+                    const bullets: string[] = []
+                    if (p.allergies) bullets.push(`Alergias: ${p.allergies}`)
+                    const refused = p.meds.filter(m => m.status === 'refused').map(m => m.name)
+                    if (refused.length) bullets.push(`Recusou: ${refused.join(', ')}`)
+                    const pending = p.meds.filter(m => !m.status).length
+                    if (pending) bullets.push(`${pending} medicação(ões) por administrar`)
+                    if (p.extraNote) bullets.push(p.extraNote)
+                    return {
+                      title: p.name,
+                      meta: p.conditions || undefined,
+                      tags: p.flagged ? [{ label: 'Sinalizado', color: '#2563eb' }] : undefined,
+                      fields,
+                      bullets: bullets.length ? bullets : undefined,
+                      body: p.care?.notes || undefined,
+                    }
+                  })
+                  printDoc({
+                    docTitle: `Passagem de Turno · ${SHIFT_META[shift].label}`,
+                    docSubtitle: new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+                    institution: 'Lar / ERPI',
+                    meta: [{ label: 'residentes', value: String(patients.length) }, { label: 'sinalizados', value: String(patients.filter(p => p.flagged).length) }],
+                    sections: [{ heading: `Residentes — turno ${SHIFT_META[shift].label}`, records }],
+                    footerNote: 'Passagem de turno · Phlox',
+                  })
+                }}
                   style={{ padding: '5px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#374151', fontWeight: 600 }}>
                   Imprimir
                 </button>

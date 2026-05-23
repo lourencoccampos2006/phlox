@@ -43,6 +43,7 @@ const ICONS = {
   quality:   <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
   connect:   <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
   patients:  <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+  wound:     <><path d="M12 2a3 3 0 0 0-3 3c0 1.5 1 2.5 1 4s-1 2-1 3a3 3 0 0 0 6 0c0-1-1-1.5-1-3s1-2.5 1-4a3 3 0 0 0-3-3z"/><circle cx="12" cy="12" r="9"/></>,
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -72,6 +73,7 @@ const NH: NavSection[] = [
   ]},
   { title: 'Clínico', items: [
     { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
+    { href: '/feridas', label: 'Gestão de Feridas', icon: 'wound', badge: true },
     { href: '/rounds', label: 'Ronda Farmacêutica', icon: 'round' },
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
@@ -146,6 +148,34 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
   useEffect(() => {
     if (drawer) { const p = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = p } }
   }, [drawer])
+
+  const [showHelp, setShowHelp] = useState(false)
+
+  // Global keyboard shortcuts — "g then key" navigation (Linear-style)
+  useEffect(() => {
+    let gPending = false
+    let gTimer: ReturnType<typeof setTimeout>
+    const NAV: Record<string, string> = {
+      c: '/cockpit', t: '/turno', m: '/mar', d: '/care-log',
+      r: '/patients', f: '/feridas', e: '/schedule', o: '/incidents',
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === '?') { e.preventDefault(); setShowHelp(h => !h); return }
+      if (e.key === 'Escape') { setShowHelp(false); return }
+      if (gPending) {
+        gPending = false
+        const dest = NAV[e.key.toLowerCase()]
+        if (dest) { e.preventDefault(); router.push(dest) }
+        return
+      }
+      if (e.key === 'g' || e.key === 'G') { gPending = true; clearTimeout(gTimer); gTimer = setTimeout(() => { gPending = false }, 1200) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); clearTimeout(gTimer) }
+  }, [router])
 
   const sections = inst === 'nursing_home' ? NH : GENERIC
   const all = sections.flatMap(s => s.items)
@@ -287,6 +317,39 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
                   <span style={{ color: '#94a3b8' }}><Icon name={a.icon} size={17} /></span>
                   <span style={{ fontSize: 14, fontWeight: 500 }}>{a.label}</span>
                 </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ KEYBOARD SHORTCUTS HELP ═══ */}
+      {showHelp && (
+        <div onMouseDown={e => { if (e.target === e.currentTarget) setShowHelp(false) }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ width: 'min(440px, 100%)', background: '#fff', borderRadius: 14, boxShadow: '0 24px 70px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e6e8eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#0b1120' }}>Atalhos de teclado</span>
+              <button onClick={() => setShowHelp(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ padding: '14px 20px' }}>
+              {[
+                { keys: ['⌘', 'K'], label: 'Pesquisar / navegar' },
+                { keys: ['G', 'C'], label: 'Cockpit' },
+                { keys: ['G', 'T'], label: 'Centro de Turno' },
+                { keys: ['G', 'M'], label: 'MAR' },
+                { keys: ['G', 'D'], label: 'Registos Diários' },
+                { keys: ['G', 'R'], label: 'Residentes' },
+                { keys: ['G', 'F'], label: 'Gestão de Feridas' },
+                { keys: ['G', 'E'], label: 'Equipa & Escalas' },
+                { keys: ['G', 'O'], label: 'Ocorrências' },
+                { keys: ['?'], label: 'Esta ajuda' },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f4f6f8' }}>
+                  <span style={{ fontSize: 13, color: '#374151' }}>{s.label}</span>
+                  <span style={{ display: 'flex', gap: 4 }}>
+                    {s.keys.map((k, i) => <kbd key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 5, padding: '2px 8px', color: '#475569', fontWeight: 600 }}>{k}</kbd>)}
+                  </span>
+                </div>
               ))}
             </div>
           </div>

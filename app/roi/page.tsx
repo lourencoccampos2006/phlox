@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/components/AuthContext'
+import { printDoc } from '@/lib/print'
 
 interface Inputs {
   residents: number; staff: number; avgWage: number; softwareCost: number
@@ -70,20 +72,109 @@ function SavingsRow({ label, value, pct, last = false }: { label: string; value:
 }
 
 export default function ROIPage() {
+  const { user, supabase } = useAuth() as any
   const [inp, setInp] = useState<Inputs>({
     residents: 30, staff: 12, avgWage: 900, softwareCost: 199,
     fallsPerYear: 18, medErrorsPerYear: 12, docHoursPerShift: 1.5, shiftsPerMonth: 90,
   })
+  const [grounded, setGrounded] = useState<{ residents?: number; staff?: number; falls?: number; medErrors?: number } | null>(null)
+
+  // Ground the model in the lar's real data
+  const load = useCallback(async () => {
+    if (!user) return
+    const yearAgo = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
+    const [p, t, i] = await Promise.all([
+      supabase.from('patients').select('id,active').eq('user_id', user.id),
+      supabase.from('team_members').select('id').eq('user_id', user.id),
+      supabase.from('incidents').select('type,date').eq('user_id', user.id).gte('date', yearAgo),
+    ])
+    const residents = (p.data || []).filter((x: any) => x.active !== false).length
+    const staff = (t.data || []).length
+    const incs = i.data || []
+    const falls = incs.filter((x: any) => x.type === 'fall').length
+    const medErrors = incs.filter((x: any) => x.type === 'medication_error').length
+    const g = {
+      residents: residents || undefined,
+      staff: staff || undefined,
+      falls: incs.length ? falls : undefined,
+      medErrors: incs.length ? medErrors : undefined,
+    }
+    setGrounded(g)
+    setInp(prev => ({
+      ...prev,
+      residents: residents || prev.residents,
+      staff: staff || prev.staff,
+      fallsPerYear: incs.length ? falls : prev.fallsPerYear,
+      medErrorsPerYear: incs.length ? medErrors : prev.medErrorsPerYear,
+      shiftsPerMonth: staff ? staff * 22 : prev.shiftsPerMonth,
+    }))
+  }, [user, supabase])
+
+  useEffect(() => { load() }, [load])
+
   const r = calcSavings(inp)
   const f = (k: keyof Inputs, v: number) => setInp(p => ({ ...p, [k]: v }))
   const netMonthly = r.totalMonthly - inp.softwareCost
   const multiplier = inp.softwareCost > 0 ? (r.totalMonthly / inp.softwareCost) : 0
   const maxSaving = Math.max(r.medErrorSaving, r.fallSaving, r.docTimeSaving, r.famCommSaving, r.turnoverSaving)
 
+  const hasRealData = grounded && (grounded.residents || grounded.staff || grounded.falls !== undefined)
+
+  function printReport() {
+    const inst = (typeof window !== 'undefined' && localStorage.getItem('phlox-clinic-institution')) ? 'Lar / ERPI' : undefined
+    printDoc({
+      docTitle: 'Análise de Retorno sobre Investimento',
+      docSubtitle: 'Caso de negócio para a adoção do Phlox',
+      institution: inst,
+      meta: [
+        { label: 'poupança/mês', value: euro(r.totalMonthly) },
+        { label: 'retorno', value: `${multiplier.toFixed(1)}×` },
+        { label: 'ROI', value: `${r.roi}%` },
+      ],
+      sections: [
+        { heading: 'Pressupostos', note: hasRealData ? 'parcialmente extraídos dos vossos dados reais' : undefined, records: [{
+          title: 'Parâmetros operacionais',
+          fields: [
+            { label: 'Residentes', value: String(inp.residents) },
+            { label: 'Funcionários', value: String(inp.staff) },
+            { label: 'Salário médio', value: `${euro(inp.avgWage)}/mês` },
+            { label: 'Custo Phlox', value: `${euro(inp.softwareCost)}/mês` },
+            { label: 'Quedas/ano', value: String(inp.fallsPerYear) },
+            { label: 'Erros medicação/ano', value: String(inp.medErrorsPerYear) },
+            { label: 'Horas doc./turno', value: `${inp.docHoursPerShift}h` },
+            { label: 'Turnos/mês', value: String(inp.shiftsPerMonth) },
+          ],
+        }] },
+        { heading: 'Origem das poupanças (mensal)', records: [{
+          title: 'Decomposição',
+          fields: [
+            { label: 'Erros de medicação', value: euro(r.medErrorSaving) },
+            { label: 'Prevenção de quedas', value: euro(r.fallSaving) },
+            { label: 'Tempo de documentação', value: euro(r.docTimeSaving) },
+            { label: 'Conformidade', value: euro(r.complianceSaving) },
+            { label: 'Comunicação família', value: euro(r.famCommSaving) },
+            { label: 'Retenção de equipa', value: euro(r.turnoverSaving) },
+          ],
+        }] },
+        { heading: 'Resultado', records: [{
+          title: 'Impacto financeiro',
+          fields: [
+            { label: 'Poupança/mês', value: euro(r.totalMonthly) },
+            { label: 'Poupança/ano', value: euro(r.totalYearly) },
+            { label: 'Custo Phlox/mês', value: euro(inp.softwareCost) },
+            { label: 'Saldo líquido/mês', value: `${netMonthly >= 0 ? '+' : ''}${euro(netMonthly)}` },
+            { label: 'Retorno', value: `${multiplier.toFixed(1)}×` },
+            { label: 'Payback', value: `${r.paybackDays} dias` },
+          ],
+        }] },
+      ],
+      footerNote: 'Estimativas conservadoras · benchmarks ACSS/INR · Phlox',
+    })
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
 
-      {/* Header */}
       <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0' }}>
         <div className="page-container" style={{ paddingTop: 20, paddingBottom: 20 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -93,13 +184,20 @@ export default function ROIPage() {
           <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, marginTop: 6, maxWidth: 520 }}>
             Quantifica o impacto financeiro do Phlox no vosso lar. Ajusta os valores às vossas operações.
           </p>
+          {hasRealData && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
+              <span style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>
+                Pré-preenchido com os vossos dados reais{grounded?.residents ? ` · ${grounded.residents} residentes` : ''}{grounded?.staff ? ` · ${grounded.staff} funcionários` : ''}{grounded?.falls !== undefined ? ` · ${grounded.falls} quedas/ano` : ''}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="page-container page-body" style={{ maxWidth: 900 }}>
         <div className="roi-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
 
-          {/* Left: inputs */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -157,10 +255,8 @@ export default function ROIPage() {
             </div>
           </div>
 
-          {/* Right: results */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Main KPIs */}
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '20px', textAlign: 'center' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
                 Poupança estimada / mês
@@ -185,7 +281,6 @@ export default function ROIPage() {
               </div>
             </div>
 
-            {/* Net balance */}
             <div style={{ background: netMonthly > 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${netMonthly > 0 ? '#bbf7d0' : '#fca5a5'}`, borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: netMonthly > 0 ? '#166534' : '#991b1b' }}>
@@ -200,7 +295,6 @@ export default function ROIPage() {
               </div>
             </div>
 
-            {/* Savings breakdown */}
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Origem das poupanças — €/mês
@@ -223,15 +317,14 @@ export default function ROIPage() {
               </div>
             </div>
 
-            {/* CTA */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Link href="/connect"
                 style={{ flex: 1, padding: '11px 16px', background: '#2563eb', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
                 Falar com a equipa →
               </Link>
-              <button onClick={() => window.print()}
+              <button onClick={printReport}
                 style={{ padding: '11px 16px', background: 'white', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                Imprimir
+                Imprimir relatório
               </button>
             </div>
           </div>

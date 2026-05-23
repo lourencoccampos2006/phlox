@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { printDoc } from '@/lib/print'
 
 interface Patient { id: string; name: string; room_number?: string }
 
@@ -183,11 +184,49 @@ export default function IncidentsPage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
         <div className="page-container page-body" style={{ maxWidth: 720 }}>
-          <button onClick={() => setSelected(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0, marginBottom: 20 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Voltar à lista
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+            <button onClick={() => setSelected(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Voltar à lista
+            </button>
+            <button onClick={() => {
+              const fields = [
+                { label: 'Residente', value: selected.patient_name || '—' },
+                { label: 'Tipo', value: TYPE_LABELS[selected.type] || selected.type },
+                { label: 'Gravidade', value: ss.label },
+                { label: 'Estado', value: st.label },
+                { label: 'Data', value: `${selected.date}${selected.time ? ' às ' + selected.time : ''}` },
+                { label: 'Local', value: selected.location || '—' },
+              ]
+              const detail = [
+                { label: 'Descrição', value: selected.description },
+                selected.injuries && { label: 'Lesões', value: selected.injuries },
+                selected.witnesses && { label: 'Testemunhas', value: selected.witnesses },
+                selected.action_taken && { label: 'Ação imediata', value: selected.action_taken },
+                selected.reported_to && { label: 'Comunicado a', value: selected.reported_to },
+                selected.outcome && { label: 'Resultado', value: selected.outcome },
+                selected.root_cause && { label: 'Causa raiz', value: selected.root_cause },
+                selected.follow_up_required && { label: 'Seguimento', value: selected.follow_up_notes || 'Necessário' },
+                selected.created_by && { label: 'Registado por', value: selected.created_by },
+              ].filter(Boolean) as { label: string; value: string }[]
+              printDoc({
+                docTitle: 'Relatório de Ocorrência',
+                docSubtitle: `${TYPE_LABELS[selected.type] || selected.type} · ${selected.patient_name || ''}`,
+                institution: 'Lar / ERPI',
+                sections: [
+                  { heading: 'Identificação', records: [{ title: TYPE_LABELS[selected.type] || 'Ocorrência', tags: [{ label: ss.label, color: ss.color }], fields }] },
+                  { heading: 'Descrição e seguimento', records: [{ title: 'Detalhe da ocorrência', fields: detail }] },
+                  { heading: 'Assinaturas', records: [{ title: 'Validação', fields: [{ label: 'Responsável', value: '' }, { label: 'Diretor Técnico', value: '' }, { label: 'Data', value: '' }] }] },
+                ],
+                footerNote: 'Relatório de ocorrência · Phlox',
+              })
+            }}
+              style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: '#374151', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimir relatório
+            </button>
+          </div>
 
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ height: 4, background: ss.color }} />

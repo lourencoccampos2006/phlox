@@ -266,7 +266,7 @@ export default function MARPage() {
     <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
 
       {/* Top bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 54, zIndex: 40 }}>
         <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 56, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>MAR</span>

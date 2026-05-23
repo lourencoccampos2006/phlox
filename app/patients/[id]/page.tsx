@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import DrugReferenceButton from '@/components/DrugReferenceButton'
 
 
 interface Patient {
@@ -587,7 +588,10 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                         {[med.dose, med.frequency, med.indication ? `(${med.indication})` : null].filter(Boolean).join(' · ')}
                       </div>
                     </div>
-                    <button onClick={() => removeMed(med.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 18, padding: '2px 6px' }} className="remove-btn">×</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <DrugReferenceButton drug={med.name} />
+                      <button onClick={() => removeMed(med.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 18, padding: '2px 6px' }} className="remove-btn">×</button>
+                    </div>
                   </div>
                 ))}
               </div>

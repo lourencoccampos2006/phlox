@@ -22,6 +22,7 @@ const DESTINATIONS: Dest[] = [
   { label: 'Famílias',                   href: '/family',      group: 'Gestão',     keywords: 'contactos visitas mensagens' },
   { label: 'Poupança / ROI',             href: '/roi',         group: 'Gestão',     keywords: 'retorno custo economia' },
   { label: 'Revisão Farmacoterapêutica', href: '/residentes',  group: 'Clínico',    keywords: 'farmacoterapia revisao medicacao' },
+  { label: 'Gestão de Feridas',          href: '/feridas',     group: 'Clínico',    keywords: 'feridas ulceras pressao escaras pele penso npuap braden' },
   { label: 'Ronda Clínica',              href: '/rounds',      group: 'Clínico',    keywords: 'ronda visita risco' },
   { label: 'Qualidade',                  href: '/quality',     group: 'Clínico',    keywords: 'indicadores kpi' },
   { label: 'Connect',                    href: '/connect',     group: 'Clínico',    keywords: 'rede profissionais consulta' },

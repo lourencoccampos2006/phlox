@@ -527,7 +527,7 @@ export default function Header() {
 
                 <NotificationBell />
 
-                <UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} />
+                <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} /></span>
 
                 {/* Hamburger — mobile only (always available so there's a clear menu) */}
                 <button
@@ -601,6 +601,7 @@ export default function Header() {
           .hdr-search-btn    { display:none !important; }
           .hdr-user-name     { display:none !important; }
           .hdr-user-chevron  { display:none !important; }
+          .hdr-usermenu      { display:none !important; }
         }
         /* Medium desktop: hide search label/kbd */
         @media (max-width:1100px) {
