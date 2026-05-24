@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { useLiveData } from '@/lib/useLiveData'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
@@ -100,6 +101,9 @@ export default function CockpitPage() {
   }, [user, supabase, isNH, today])
 
   useEffect(() => { load() }, [load])
+
+  // Live dashboard: refresh when records change elsewhere or on return to app
+  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'patients'], userId: user?.id, onChange: load })
 
   // Stats
   const openIncidents = incidents.filter(i => i.status === 'open')

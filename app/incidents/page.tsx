@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useLiveData } from '@/lib/useLiveData'
 import { printDoc } from '@/lib/print'
 
 interface Patient { id: string; name: string; room_number?: string }
@@ -112,6 +113,8 @@ export default function IncidentsPage() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
+
+  useLiveData({ supabase, table: ['incidents', 'patients'], userId: user?.id, onChange: load })
 
   const save = async () => {
     if (!user) return

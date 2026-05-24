@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useLiveData } from '@/lib/useLiveData'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
@@ -122,6 +123,8 @@ export default function CareLogPage() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
+
+  useLiveData({ supabase, table: ['care_records', 'patients'], userId: user?.id, onChange: load })
 
   function resetForm() {
     setBpSys(''); setBpDia(''); setHr(''); setTemp(''); setSpo2(''); setGlucose(''); setWeight('')

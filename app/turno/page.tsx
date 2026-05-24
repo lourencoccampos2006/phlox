@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
 
 type Shift = 'manha' | 'tarde' | 'noite'
@@ -67,6 +68,8 @@ export default function TurnoPage() {
   }, [user, supabase, today])
 
   useEffect(() => { load() }, [load])
+
+  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents'], userId: user?.id, onChange: load })
 
   const nameOf = (id: string) => patients.find(p => p.id === id)?.name || 'Residente'
   const roomOf = (id: string) => { const r = patients.find(p => p.id === id)?.room_number; return r ? `Q${r}` : '' }

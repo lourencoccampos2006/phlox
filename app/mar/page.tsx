@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useLiveData } from '@/lib/useLiveData'
 import Link from 'next/link'
 
 interface Patient {
@@ -143,6 +144,10 @@ export default function MARPage() {
   const [allMedsMap, setAllMedsMap]           = useState<Record<string, PatientMed[]>>({})
   const [allDayRecs, setAllDayRecs]           = useState<{ patient_id: string; med_id: string; shift: Shift; status: string }[]>([])
   const [showOmitDetail, setShowOmitDetail]   = useState(false)
+  const [liveTick, setLiveTick]               = useState(0)
+
+  // Live updates: refresh MAR records when changed elsewhere or on return to app
+  useLiveData({ supabase, table: 'mar_records', userId: user?.id, enabled: !!user && isPro, onChange: () => setLiveTick(t => t + 1) })
 
   const selectedPatient = patients.find(p => p.id === selectedId) ?? null
 
@@ -178,7 +183,7 @@ export default function MARPage() {
     supabase.from('mar_records').select('*')
       .eq('patient_id', selectedId).eq('date', date).eq('shift', shift)
       .then(({ data }) => setRecords(data || []))
-  }, [selectedId, date, shift, supabase])
+  }, [selectedId, date, shift, supabase, liveTick])
 
   // Compute omissions across all patients
   useEffect(() => {
@@ -201,7 +206,7 @@ export default function MARPage() {
       }).filter(o => o.missing > 0).sort((a, b) => b.missing - a.missing)
       setOmissions(omit)
     })
-  }, [patients, date, shift, user, isPro, supabase])
+  }, [patients, date, shift, user, isPro, supabase, liveTick])
 
   const getRecord = (medId: string) => records.find(r => r.med_id === medId && r.shift === shift) ?? null
 
@@ -267,33 +272,31 @@ export default function MARPage() {
 
       {/* Top bar */}
       <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 54, zIndex: 40 }}>
-        <div className="page-container" style={{ paddingTop: 0, paddingBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 56, flexWrap: 'wrap' }}>
+        <div className="page-container mar-top" style={{ paddingTop: 10, paddingBottom: 10 }}>
+          {/* Row 1: title + secondary actions */}
+          <div className="mar-top-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>MAR</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>Reg. Administração</span>
+            <span className="mar-badge" style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>Reg. Administração</span>
             <div style={{ flex: 1 }} />
-
-            {/* Shift tabs */}
-            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2 }}>
-              {(['manha', 'tarde', 'noite'] as Shift[]).map(s => (
-                <button key={s} onClick={() => setShift(s)}
-                  style={{ padding: '5px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700, transition: 'all 0.1s' }}>
-                  {SHIFTS[s].label}
-                </button>
-              ))}
-            </div>
-
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151' }} />
-
-            <button onClick={() => window.print()}
-              style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600 }}>
+              style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151', minWidth: 0 }} />
+            <button onClick={() => window.print()} className="mar-print"
+              style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
               Imprimir
             </button>
-            <Link href="/handover"
+            <Link href="/handover" className="mar-passagem"
               style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               Passagem →
             </Link>
+          </div>
+          {/* Row 2: shift segmented control (full-width on mobile) */}
+          <div className="mar-shifts" style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2, marginTop: 8 }}>
+            {(['manha', 'tarde', 'noite'] as Shift[]).map(s => (
+              <button key={s} onClick={() => setShift(s)}
+                style={{ flex: 1, padding: '7px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, transition: 'all 0.1s' }}>
+                {SHIFTS[s].label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -347,7 +350,7 @@ export default function MARPage() {
       <div className="page-container page-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Patient selector + info card */}
-        <div style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr auto' : '1fr', gap: 10, alignItems: 'start' }}>
+        <div className="mar-selector" style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr auto' : '1fr', gap: 10, alignItems: 'start' }}>
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
               style={{ flex: 1, minWidth: 200, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: selectedId ? '#0f172a' : '#94a3b8', background: 'white' }}>
@@ -507,6 +510,9 @@ export default function MARPage() {
             gap: 8px !important;
             padding: 14px 16px !important;
           }
+          .mar-badge { display: none !important; }
+          .mar-print { display: none !important; }
+          .mar-selector { grid-template-columns: 1fr !important; }
         }
         @media print {
           @page { size: A4 landscape; margin: 12mm; }
