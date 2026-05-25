@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useEnabledTools } from '@/lib/useEnabledTools'
+import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 
 const ROLE_OPTIONS = [
   { value: 'pharmacist',  label: 'Farmacêutico' },
@@ -36,7 +38,7 @@ const INST_KEY = 'phlox-clinic-institution'
 export default function SettingsPage() {
   const { user, supabase } = useAuth()
   const router = useRouter()
-  const [tab, setTab] = useState<'profile' | 'institution' | 'connect' | 'account' | 'notifications'>('profile')
+  const [tab, setTab] = useState<'profile' | 'ferramentas' | 'institution' | 'connect' | 'account' | 'notifications'>('profile')
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
 
   useEffect(() => {
@@ -71,6 +73,11 @@ export default function SettingsPage() {
   const [inst, setInst] = useState<any>(INST_BLANK)
   const [instSaving, setInstSaving] = useState(false)
   const [instSaved, setInstSaved] = useState(false)
+
+  // Adaptive tool visibility (personal/caregiver/student)
+  const expMode: string = (user as any)?.experience_mode || 'personal'
+  const toolMode: ToolMode = (['personal', 'caregiver', 'student'].includes(expMode) ? expMode : 'personal') as ToolMode
+  const tools = useEnabledTools(toolMode)
 
   useEffect(() => {
     if (!user) return
@@ -215,6 +222,7 @@ export default function SettingsPage() {
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 14 }}>Definições</h1>
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
+            <button onClick={() => setTab('ferramentas')} style={tabStyle('ferramentas')}>Ferramentas</button>
             <button onClick={() => setTab('institution')} style={tabStyle('institution')}>Instituição</button>
             <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
@@ -281,6 +289,56 @@ export default function SettingsPage() {
               style={{ padding: '12px', background: saving ? 'var(--bg-3)' : saved ? '#0d6e42' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
               {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar alterações'}
             </button>
+          </div>
+        )}
+
+        {tab === 'ferramentas' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {expMode === 'clinical' ? (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Ferramentas clínicas</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6 }}>No modo clínico, as ferramentas adaptam-se automaticamente ao <strong>tipo de instituição</strong> (separador Instituição). O menu lateral mostra os painéis profissionais e de gestão do teu espaço.</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>As tuas ferramentas</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 4 }}>Por defeito mostramos só o essencial para o teu perfil. Ativa aqui o que mais precisares — o resto fica escondido para manter tudo simples.</div>
+                  {tools.customised && <button onClick={tools.reset} style={{ marginTop: 8, fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600, padding: 0 }}>Repor predefinições</button>}
+                </div>
+                {Object.entries(TOOL_CATEGORIES).filter(([cat]) => tools.all.some(t => t.category === cat)).map(([cat, meta]) => (
+                  <div key={cat} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{meta.label}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {tools.all.filter(t => t.category === cat).map(t => {
+                        const on = tools.isOn(t.id)
+                        const badge = PLAN_BADGE[t.plan]
+                        const isDefault = tools.defaults.includes(t.id)
+                        return (
+                          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--bg-3)' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</span>
+                                {badge && <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: badge.bg, padding: '1px 6px', borderRadius: 4 }}>{badge.label}</span>}
+                                {isDefault && <span style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>por defeito</span>}
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{t.desc}</div>
+                            </div>
+                            <button onClick={() => tools.toggle(t.id)} aria-label={on ? 'Desativar' : 'Ativar'}
+                              style={{ width: 42, height: 24, borderRadius: 12, background: on ? '#0d6e42' : 'var(--bg-3)', border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+                              <span style={{ position: 'absolute', top: 2, left: on ? 20 : 2, width: 20, height: 20, borderRadius: '50%', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
 
