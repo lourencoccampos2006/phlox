@@ -36,7 +36,7 @@ const INST_KEY = 'phlox-clinic-institution'
 export default function SettingsPage() {
   const { user, supabase } = useAuth()
   const router = useRouter()
-  const [tab, setTab] = useState<'profile' | 'connect' | 'account' | 'notifications'>('profile')
+  const [tab, setTab] = useState<'profile' | 'institution' | 'connect' | 'account' | 'notifications'>('profile')
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
 
   useEffect(() => {
@@ -58,6 +58,42 @@ export default function SettingsPage() {
     localStorage.setItem(INST_KEY, v)
     // Notify nav/cockpit in this tab (storage event only fires cross-tab)
     window.dispatchEvent(new StorageEvent('storage', { key: INST_KEY, newValue: v }))
+  }
+
+  // ── Institution profile (clinical personalisation) ──
+  const INST_BLANK = {
+    name: '', short_name: '', logo_url: '', accent_color: '#0d6e42',
+    director: '', phone: '', email: '', address: '', nif: '', total_beds: '',
+    shift_manha_start: '07:00', shift_manha_end: '14:00',
+    shift_tarde_start: '14:00', shift_tarde_end: '21:00',
+    shift_noite_start: '21:00', shift_noite_end: '07:00',
+  }
+  const [inst, setInst] = useState<any>(INST_BLANK)
+  const [instSaving, setInstSaving] = useState(false)
+  const [instSaved, setInstSaved] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('institution_settings').select('*').eq('user_id', user.id).maybeSingle()
+        if (data) setInst({ ...INST_BLANK, ...data, total_beds: data.total_beds ?? '' })
+      } catch { /* tabela ainda não criada */ }
+    })()
+  }, [user, supabase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setI = (k: string, v: any) => setInst((p: any) => ({ ...p, [k]: v }))
+  const saveInstitution = async () => {
+    if (!user) return
+    setInstSaving(true); setInstSaved(false)
+    const payload = { ...inst, user_id: user.id, type: instType, total_beds: inst.total_beds ? parseInt(inst.total_beds) : null, updated_at: new Date().toISOString() }
+    const { error } = await supabase.from('institution_settings').upsert(payload, { onConflict: 'user_id' })
+    setInstSaving(false)
+    if (!error) {
+      setInstSaved(true)
+      try { localStorage.setItem('phlox-institution-profile', JSON.stringify(payload)) } catch {}
+      setTimeout(() => setInstSaved(false), 3000)
+    }
   }
 
   const downloadExport = async (format: 'json' | 'csv') => {
@@ -179,6 +215,7 @@ export default function SettingsPage() {
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 14 }}>Definições</h1>
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
+            <button onClick={() => setTab('institution')} style={tabStyle('institution')}>Instituição</button>
             <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
@@ -244,6 +281,59 @@ export default function SettingsPage() {
               style={{ padding: '12px', background: saving ? 'var(--bg-3)' : saved ? '#0d6e42' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
               {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar alterações'}
             </button>
+          </div>
+        )}
+
+        {tab === 'institution' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Identidade da instituição</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 16 }}>Aparece em toda a plataforma e nos documentos impressos. Personaliza o teu espaço.</div>
+
+              {/* Logo preview + accent */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 12, background: inst.accent_color || '#0d6e42', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  {inst.logo_url ? <img src={inst.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <svg width="24" height="24" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/></svg>}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{inst.short_name || inst.name || 'A tua instituição'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>Pré-visualização do logótipo e cor</div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Cor</span>
+                  <input type="color" value={inst.accent_color || '#0d6e42'} onChange={e => setI('accent_color', e.target.value)} style={{ width: 36, height: 30, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', padding: 0 }} />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div><label style={lbl}>Nome completo</label><input value={inst.name} onChange={e => setI('name', e.target.value)} placeholder="Lar São José" style={inp} /></div>
+                <div><label style={lbl}>Nome curto</label><input value={inst.short_name} onChange={e => setI('short_name', e.target.value)} placeholder="São José" style={inp} /></div>
+                <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>URL do logótipo</label><input value={inst.logo_url} onChange={e => setI('logo_url', e.target.value)} placeholder="https://..." style={inp} /></div>
+                <div><label style={lbl}>Diretor(a) técnico(a)</label><input value={inst.director} onChange={e => setI('director', e.target.value)} placeholder="Dra. Ana Costa" style={inp} /></div>
+                <div><label style={lbl}>NIF</label><input value={inst.nif} onChange={e => setI('nif', e.target.value)} style={inp} /></div>
+                <div><label style={lbl}>Telefone</label><input value={inst.phone} onChange={e => setI('phone', e.target.value)} style={inp} /></div>
+                <div><label style={lbl}>Email</label><input value={inst.email} onChange={e => setI('email', e.target.value)} style={inp} /></div>
+                <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Morada</label><input value={inst.address} onChange={e => setI('address', e.target.value)} style={inp} /></div>
+                <div><label style={lbl}>Total de camas</label><input type="number" value={inst.total_beds} onChange={e => setI('total_beds', e.target.value)} style={inp} /></div>
+              </div>
+            </div>
+
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Horários dos turnos</div>
+              {([['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite']] as const).map(([k, label]) => (
+                <div key={k} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12, alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>{label}</span>
+                  <input type="time" value={inst[`shift_${k}_start`]} onChange={e => setI(`shift_${k}_start`, e.target.value)} style={inp} />
+                  <input type="time" value={inst[`shift_${k}_end`]} onChange={e => setI(`shift_${k}_end`, e.target.value)} style={inp} />
+                </div>
+              ))}
+            </div>
+
+            <button onClick={saveInstitution} disabled={instSaving}
+              style={{ padding: '12px', background: instSaving ? 'var(--bg-3)' : instSaved ? '#0d6e42' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              {instSaving ? 'A guardar...' : instSaved ? '✓ Guardado' : 'Guardar perfil da instituição'}
+            </button>
+            <div style={{ fontSize: 11, color: 'var(--ink-4)', textAlign: 'center' }}>Requer a migração <strong>sprint15_institution.sql</strong> no Supabase.</div>
           </div>
         )}
 

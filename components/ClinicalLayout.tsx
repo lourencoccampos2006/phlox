@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
+import { useInstitutionProfile } from '@/lib/useInstitutionProfile'
 
 // ════════════════════════════════════════════════════════════════════════════
 //  PHLOX CLINICAL LAYOUT — built from scratch, mobile-first, bulletproof.
@@ -128,6 +129,8 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const router = useRouter()
   const { user, signOut } = useAuth() as any
+  const profile = useInstitutionProfile()
+  const accent = profile?.accent_color || ACCENT
 
   const [inst, setInst] = useState<InstType>('nursing_home')
   const [drawer, setDrawer] = useState(false)
@@ -193,14 +196,17 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
     { label: 'Marcar turno', href: '/schedule', icon: 'schedule' as IconName },
   ]
 
+  const instName = profile?.short_name || profile?.name
   const Brand = ({ small }: { small?: boolean }) => (
     <Link href="/cockpit" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', minWidth: 0 }}>
-      <span style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/></svg>
+      <span style={{ width: 28, height: 28, borderRadius: 8, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+        {profile?.logo_url
+          ? <img src={profile.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <svg width="14" height="14" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/></svg>}
       </span>
       {!small && <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: '#0b1120', letterSpacing: '-0.03em', lineHeight: 1 }}>Phlox</span>
-        <span style={{ display: 'block', fontSize: 10, color: '#94a3b8', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{INST_LABELS[inst]}</span>
+        <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: '#0b1120', letterSpacing: '-0.03em', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instName || 'Phlox'}</span>
+        <span style={{ display: 'block', fontSize: 10, color: '#94a3b8', fontFamily: 'var(--font-mono)', marginTop: 2 }}>{instName ? 'Phlox' : INST_LABELS[inst]}</span>
       </span>}
     </Link>
   )
