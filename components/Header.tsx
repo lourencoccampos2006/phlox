@@ -260,7 +260,6 @@ function UserMenu({ user, signOut, supabase, isDark }: {
 
             {[
               { href: '/inicio',      label: 'Início',      icon: '🏠' },
-              { href: '/ferramentas', label: 'Ferramentas', icon: '🔧' },
               { href: '/settings',    label: 'Definições',  icon: '⚙️' },
             ].map(item => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="um-item"
@@ -376,9 +375,8 @@ function MobileDrawer({ open, onClose, user, signOut }: {
           )}
 
           {[
-            { href: '/ferramentas', label: 'Todas as ferramentas' },
-            { href: '/dashboard',   label: 'Painel de controlo' },
-            { href: '/settings',    label: 'Definições' },
+            { href: '/inicio',   label: 'Início' },
+            { href: '/settings', label: 'Definições' },
           ].map(item => (
             <Link key={item.href} href={item.href} onClick={onClose} className="mob-item"
               style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a', borderBottom: '1px solid #f8fafc' }}>

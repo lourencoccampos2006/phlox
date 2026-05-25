@@ -6,11 +6,18 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
+import { planName } from '@/lib/plans'
 
 // ─── Home adaptativa — mobile-first, lista limpa. Só mostra ferramentas ativas. ─
 
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 19 ? 'Boa tarde' : 'Boa noite' }
 function dateStr() { return new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' }) }
+
+const HERO: Record<ToolMode, { href: string; title: string; sub: string; cta: string; color: string }> = {
+  personal:  { href: '/mymeds',  title: 'A minha medicação', sub: 'Vê a tua lista, ativa lembretes e verifica interações.', cta: 'Abrir', color: '#0d9488' },
+  caregiver: { href: '/familia', title: 'Os perfis da família', sub: 'Gere a medicação e a saúde de quem cuidas, num só sítio.', cta: 'Abrir', color: '#b45309' },
+  student:   { href: '/arena',   title: 'Continuar a estudar', sub: 'Entra na Arena, treina casos e sobe de liga.', cta: 'Começar', color: '#7c3aed' },
+}
 
 export default function InicioPage() {
   const { user, loading } = useAuth() as any
@@ -43,13 +50,34 @@ export default function InicioPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '22px 16px 40px', boxSizing: 'border-box', width: '100%' }}>
 
-        {/* Greeting */}
-        <div style={{ marginBottom: 22 }}>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.15 }}>
-            {greeting()}{firstName ? `, ${firstName}` : ''}
-          </h1>
-          <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 4, textTransform: 'capitalize' }}>{dateStr()}</div>
+        {/* Greeting + plan chip */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.15 }}>
+              {greeting()}{firstName ? `, ${firstName}` : ''}
+            </h1>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 4, textTransform: 'capitalize' }}>{dateStr()}</div>
+          </div>
+          <Link href="/pricing" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', background: 'white', border: '1px solid var(--border)', borderRadius: 20, textDecoration: 'none' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isFree ? '#94a3b8' : '#0d6e42' }} />
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>Plano {planName(user?.plan)}</span>
+          </Link>
         </div>
+
+        {/* Hero — ação principal do modo */}
+        {(() => { const h = HERO[toolMode]; if (!h) return null; return (
+          <Link href={h.href} style={{ textDecoration: 'none' }}>
+            <div style={{ background: h.color, borderRadius: 16, padding: '20px 22px', marginBottom: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>{h.title}</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 4, lineHeight: 1.45 }}>{h.sub}</div>
+              </div>
+              <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.18)', color: 'white', padding: '8px 14px', borderRadius: 9, fontSize: 13, fontWeight: 700 }}>
+                {h.cta} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </span>
+            </div>
+          </Link>
+        )})()}
 
         {enabledTools.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '32px 20px', textAlign: 'center' }}>

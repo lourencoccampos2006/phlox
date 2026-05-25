@@ -8,8 +8,8 @@ export type Plan = 'free' | 'student' | 'pro' | 'clinic'
 
 // ─── Mensagens de upgrade por plano requerido ─────────────────────────────────
 const UPGRADE_MESSAGES: Record<Plan, string> = {
-  free:    'Esta funcionalidade está disponível no plano Grátis.',
-  student: 'Esta funcionalidade requer o plano Student (3,99€/mês).',
+  free:    'Disponível no plano Base.',
+  student: 'Esta funcionalidade requer o plano Plus (3,99€/mês).',
   pro:     'Esta funcionalidade requer o plano Pro (12,99€/mês).',
   clinic:  'Esta funcionalidade requer o plano Institucional.',
 }
@@ -20,10 +20,10 @@ const UPGRADE_MESSAGES: Record<Plan, string> = {
 export function planGateResponse(requiredPlan: Plan, featureName: string): NextResponse {
   return NextResponse.json({
     error: `${featureName} requer o plano ${
-      requiredPlan === 'student' ? 'Student (3,99€/mês)' :
+      requiredPlan === 'student' ? 'Plus (3,99€/mês)' :
       requiredPlan === 'pro'     ? 'Pro (12,99€/mês)' :
       requiredPlan === 'clinic'  ? 'Institucional (89€/mês)' :
-      requiredPlan
+      'Base'
     }.`,
     upgrade_required: true,
     required_plan: requiredPlan,
