@@ -20,6 +20,7 @@ const DESTINATIONS: Dest[] = [
   { label: 'Painel de Gestão',           href: '/gestao',      group: 'Gestão',     keywords: 'painel gestao coordenador ops board tempo real direcao' },
   { label: 'Ocupação',                   href: '/census',      group: 'Gestão',     keywords: 'camas quartos lotacao ocupacao' },
   { label: 'Equipa & Escalas',           href: '/schedule',    group: 'Gestão',     keywords: 'turnos equipa staff funcionarios' },
+  { label: 'Protocolos',                 href: '/protocolos',  group: 'Gestão',     keywords: 'protocolos checklist procedimentos quedas ulceras emergencia governança' },
   { label: 'Famílias',                   href: '/family',      group: 'Gestão',     keywords: 'contactos visitas mensagens' },
   { label: 'Poupança / ROI',             href: '/roi',         group: 'Gestão',     keywords: 'retorno custo economia' },
   { label: 'Revisão Farmacoterapêutica', href: '/residentes',  group: 'Clínico',    keywords: 'farmacoterapia revisao medicacao' },
