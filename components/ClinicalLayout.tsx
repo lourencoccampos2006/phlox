@@ -47,6 +47,7 @@ const ICONS = {
   wound:     <><path d="M12 2a3 3 0 0 0-3 3c0 1.5 1 2.5 1 4s-1 2-1 3a3 3 0 0 0 6 0c0-1-1-1.5-1-3s1-2.5 1-4a3 3 0 0 0-3-3z"/><circle cx="12" cy="12" r="9"/></>,
   board:     <><line x1="3" y1="3" x2="3" y2="21"/><rect x="7" y="13" width="3" height="6"/><rect x="12" y="9" width="3" height="10"/><rect x="17" y="5" width="3" height="14"/></>,
   protocol:  <><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12l2 2 4-4"/></>,
+  nutrition: <><path d="M3 12h4l3 8 4-16 3 8h4"/></>,
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -71,6 +72,7 @@ const NH: NavSection[] = [
   ]},
   { title: 'Clínico', items: [
     { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
+    { href: '/nutricao', label: 'Peso & Nutrição', icon: 'nutrition', badge: true },
     { href: '/rounds', label: 'Ronda Farmacêutica', icon: 'round' },
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
@@ -113,17 +115,19 @@ function shiftInfo() {
 }
 
 // ─── Nav link (shared) ───────────────────────────────────────────────────────
-function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
+function NavLink({ item, active, accent = ACCENT, onClick }: { item: NavItem; active: boolean; accent?: string; onClick?: () => void }) {
   return (
     <Link href={item.href} onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderRadius: 9,
+      display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, marginBottom: 1,
       textDecoration: 'none', position: 'relative',
-      background: active ? '#eef6f1' : 'transparent', color: active ? ACCENT : '#3f4754',
-    }}>
-      {active && <span style={{ position: 'absolute', left: 0, top: '24%', bottom: '24%', width: 3, borderRadius: '0 2px 2px 0', background: ACCENT }} />}
+      background: active ? accent + '14' : 'transparent', color: active ? accent : '#4a5260',
+      fontWeight: active ? 700 : 500, transition: 'background 0.12s, color 0.12s',
+    }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f3f5f7' }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
       <Icon name={item.icon} size={18} />
-      <span style={{ fontSize: 14, fontWeight: active ? 700 : 500, flex: 1, letterSpacing: '-0.01em' }}>{item.label}</span>
-      {item.badge && <span style={{ fontSize: 8, fontWeight: 800, color: '#7c3aed', background: '#f3e8ff', borderRadius: 4, padding: '1px 5px' }}>NOVO</span>}
+      <span style={{ fontSize: 14, flex: 1, letterSpacing: '-0.01em' }}>{item.label}</span>
+      {item.badge && <span title="Novo" style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />}
     </Link>
   )
 }
@@ -188,6 +192,7 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
   const all = sections.flatMap(s => s.items)
   const current = all.find(i => isActive(pathname, i.href))
   const title = current?.label || (pathname === '/settings' ? 'Definições' : pathname.startsWith('/patients/') ? 'Ficha do Residente' : 'Phlox')
+  const currentSection = sections.find(s => s.items.some(i => isActive(pathname, i.href)))?.title || ''
   const sh = shiftInfo()
   const firstName = user?.name?.split(' ')[0] || 'Conta'
   const initial = (user?.name?.[0] || 'U').toUpperCase()
@@ -234,7 +239,7 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
           {sections.map((s, i) => (
             <div key={i} style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: '#a3acb8', textTransform: 'uppercase', letterSpacing: '0.13em', padding: '8px 12px 5px' }}>{s.title}</div>
-              {s.items.map(it => <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} />)}
+              {s.items.map(it => <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} accent={accent} />)}
             </div>
           ))}
         </nav>
@@ -260,9 +265,13 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
         <button className="cl-mobile" onClick={() => setDrawer(true)} aria-label="Menu" style={{ width: 40, height: 40, borderRadius: 9, border: '1px solid #e6e8eb', background: '#fff', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        {/* brand on mobile / title on desktop */}
+        {/* title — mobile (single line) */}
         <span className="cl-mobile" style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-        <span className="cl-desktop" style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+        {/* breadcrumb + title — desktop */}
+        <span className="cl-desktop" style={{ flexDirection: 'column', flex: 1, minWidth: 0, lineHeight: 1.1 }}>
+          {currentSection && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{currentSection}</span>}
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+        </span>
 
         {/* shift (desktop) */}
         <span className="cl-desktop" style={{ alignItems: 'center', gap: 7, padding: '6px 11px', borderRadius: 9, background: sh.color + '12', border: `1px solid ${sh.color}26`, flexShrink: 0 }}>
@@ -270,7 +279,7 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
           <span style={{ fontSize: 12, fontWeight: 600, color: sh.color }}>Turno {sh.label}</span>
         </span>
         {/* quick add (desktop) */}
-        <button className="cl-desktop" onClick={() => setAddOpen(true)} style={{ alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: ACCENT, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+        <button className="cl-desktop" onClick={() => setAddOpen(true)} style={{ alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo
         </button>
@@ -304,7 +313,7 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
               {sections.map((s, i) => (
                 <div key={i} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 9, fontWeight: 700, color: '#a3acb8', textTransform: 'uppercase', letterSpacing: '0.13em', padding: '8px 12px 5px' }}>{s.title}</div>
-                  {s.items.map(it => <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} onClick={() => setDrawer(false)} />)}
+                  {s.items.map(it => <NavLink key={it.href} item={it} active={isActive(pathname, it.href)} accent={accent} onClick={() => setDrawer(false)} />)}
                 </div>
               ))}
             </nav>

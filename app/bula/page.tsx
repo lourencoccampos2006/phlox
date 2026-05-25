@@ -7,6 +7,8 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { useUsageLimit } from '@/lib/useUsageLimit'
+import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
 
 interface BulaResult {
   nome_medicamento: string
@@ -19,6 +21,8 @@ interface BulaResult {
 
 export default function BulaPage() {
   const { user } = useAuth()
+  const usage = useUsageLimit('bula')
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const [mode, setMode] = useState<'nome' | 'texto'>('nome')
   const [medicamento, setMedicamento] = useState('')
   const [texto, setTexto] = useState('')
@@ -29,6 +33,7 @@ export default function BulaPage() {
   async function translate() {
     const input = mode === 'nome' ? medicamento.trim() : texto.trim()
     if (!input) return
+    if (!usage.allowed) { setShowUpgrade(true); return }
     setLoading(true)
     setError(null)
     setResult(null)
@@ -39,6 +44,7 @@ export default function BulaPage() {
         body: JSON.stringify(mode === 'nome' ? { medicamento: input } : { texto: input }),
       })
       const data = await res.json()
+      if (res.ok) usage.increment()
       if (!res.ok) throw new Error(data.error || 'Erro desconhecido')
       setResult(data)
     } catch (e: any) {
@@ -107,10 +113,16 @@ export default function BulaPage() {
             />
           )}
 
+          {!usage.unlimited && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <UsageBadge remaining={usage.remaining} unlimited={usage.unlimited} />
+            </div>
+          )}
           <button onClick={translate} disabled={loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim())}
-            style={{ marginTop: 12, width: '100%', padding: '13px', background: loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim()) ? 'var(--bg-3)' : 'var(--ink)', color: loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim()) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', transition: 'background 0.15s' }}>
+            style={{ marginTop: 8, width: '100%', padding: '13px', background: loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim()) ? 'var(--bg-3)' : 'var(--ink)', color: loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim()) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', transition: 'background 0.15s' }}>
             {loading ? 'A traduzir...' : 'Traduzir bula'}
           </button>
+          <UpgradePrompt open={showUpgrade} onClose={() => setShowUpgrade(false)} toolLabel="Perceber uma bula" plan={usage.plan} limit={usage.limit} />
         </div>
 
         {error && (

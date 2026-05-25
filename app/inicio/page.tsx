@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { planName } from '@/lib/plans'
+import { areaOf } from '@/lib/studyAreas'
 
 // ─── Home adaptativa — mobile-first, lista limpa. Só mostra ferramentas ativas. ─
 
@@ -33,6 +34,9 @@ export default function InicioPage() {
   const toolMode: ToolMode = (['personal', 'caregiver', 'student'].includes(expMode) ? expMode : 'personal') as ToolMode
   const { enabledTools } = useEnabledTools(toolMode)
   const isFree = !user?.plan || user.plan === 'free'
+
+  const [studyArea, setStudyArea] = useState<string | null>(null)
+  useEffect(() => { try { setStudyArea(localStorage.getItem('phlox-student-area')) } catch { /* ignore */ } }, [])
 
   if (loading || !user || expMode === 'clinical') {
     return (
@@ -78,6 +82,24 @@ export default function InicioPage() {
             </div>
           </Link>
         )})()}
+
+        {/* Estudante — matérias do curso (adapta-se à área) */}
+        {toolMode === 'student' && (() => {
+          const a = areaOf(studyArea)
+          return (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: '0 2px' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Matérias · {a.label}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                {a.subjects.map(s => (
+                  <Link key={s} href={`/study?topic=${encodeURIComponent(s)}`} style={{ padding: '8px 13px', borderRadius: 9, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none' }}>{s}</Link>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {enabledTools.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '32px 20px', textAlign: 'center' }}>

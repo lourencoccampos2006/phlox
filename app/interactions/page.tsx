@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
+import { useUsageLimit } from '@/lib/useUsageLimit'
+import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
 
@@ -86,6 +88,8 @@ async function compressImageFile(file: File, maxDim = 1024, quality = 0.85): Pro
 
 export default function InteractionsPage() {
   const { user, supabase } = useAuth()
+  const usage = useUsageLimit('interactions')
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const [input, setInput] = useState('')
   const [drugs, setDrugs] = useState<string[]>([])
   const [result, setResult] = useState<any>(null)
@@ -197,6 +201,7 @@ export default function InteractionsPage() {
 
   const check = async () => {
     if (drugs.length < 2) return
+    if (!usage.allowed) { setShowUpgrade(true); return }
     setLoading(true); setError(''); setResult(null)
     try {
       const res = await fetch('/api/interactions', {
@@ -206,6 +211,7 @@ export default function InteractionsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+      usage.increment()
       setResult(data)
       saveHistory(data, drugs)
     } catch (e: any) {
@@ -272,9 +278,15 @@ export default function InteractionsPage() {
               )}
             </div>
 
+            {!usage.unlimited && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <UsageBadge remaining={usage.remaining} unlimited={usage.unlimited} />
+              </div>
+            )}
             <button onClick={check} disabled={drugs.length < 2 || loading} style={{ width: '100%', background: drugs.length >= 2 && !loading ? 'var(--green)' : 'var(--bg-3)', color: drugs.length >= 2 && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, padding: '12px', fontSize: 14, fontWeight: 600, cursor: drugs.length >= 2 && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', marginBottom: 20 }}>
               {loading ? 'A consultar...' : drugs.length < 2 ? 'Adiciona 2+ substâncias' : `Analisar ${drugs.length} substâncias`}
             </button>
+            <UpgradePrompt open={showUpgrade} onClose={() => setShowUpgrade(false)} toolLabel="Verificar interações" plan={usage.plan} limit={usage.limit} />
 
             <div>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 8 }}>Exemplos</div>

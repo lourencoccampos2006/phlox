@@ -95,6 +95,9 @@ export default function OnboardingPage() {
     if (profile === 'professional' && instType) {
       try { localStorage.setItem('phlox-clinic-institution', instType) } catch {}
     }
+    if (profile === 'student' && area) {
+      try { localStorage.setItem('phlox-student-area', area) } catch {}
+    }
     // 1) Colunas garantidas — completa o onboarding sempre
     await supabase.from('profiles').update({
       onboarded: true,

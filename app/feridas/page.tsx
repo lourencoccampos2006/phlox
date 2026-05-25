@@ -20,7 +20,7 @@ interface WAssessment {
   id: string; wound_id: string; date: string
   length_mm?: number | null; width_mm?: number | null; depth_mm?: number | null
   stage?: string | null; exudate?: string | null; tissue?: string | null; pain?: number | null
-  dressing?: string | null; notes?: string | null; assessed_by?: string | null
+  dressing?: string | null; notes?: string | null; assessed_by?: string | null; photo_url?: string | null
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -70,6 +70,47 @@ export default function FeridasPage() {
   const [wForm, setWForm] = useState<any>(emptyWound)
   const emptyAssess = { date: new Date().toISOString().slice(0, 10), length_mm: '', width_mm: '', depth_mm: '', stage: '', exudate: 'Escasso', tissue: 'Granulação', pain: '', dressing: '', notes: '', assessed_by: '' }
   const [aForm, setAForm] = useState<any>(emptyAssess)
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string>('')
+  const [uploadErr, setUploadErr] = useState('')
+  const [aiAnalyzing, setAiAnalyzing] = useState(false)
+  const [aiResult, setAiResult] = useState<any>(null)
+  const [aiErr, setAiErr] = useState('')
+
+  function fileToBase64(file: File): Promise<{ b64: string; mime: string }> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => { const s = String(r.result); resolve({ b64: s.split(',')[1] || '', mime: file.type || 'image/jpeg' }) }
+      r.onerror = reject
+      r.readAsDataURL(file)
+    })
+  }
+  async function analyzePhoto() {
+    if (!photo || !selected) return
+    setAiAnalyzing(true); setAiErr(''); setAiResult(null)
+    try {
+      const { b64, mime } = await fileToBase64(photo)
+      const res = await fetch('/api/wound-analysis', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: b64, mimeType: mime, context: { location: selected.location, type: TYPE_LABELS[selected.type] } }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro')
+      setAiResult(data)
+    } catch (e: any) { setAiErr(e.message || 'Não foi possível analisar.') }
+    finally { setAiAnalyzing(false) }
+  }
+  const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+  function applyAi() {
+    if (!aiResult) return
+    setAForm((f: any) => ({
+      ...f,
+      tissue: TISSUE.find(t => t.toLowerCase() === (aiResult.tissue || '').toLowerCase()) || f.tissue,
+      exudate: EXUDATE.find(e => e.toLowerCase() === (aiResult.exudate || '').toLowerCase()) || f.exudate,
+      stage: STAGES.includes(aiResult.suggested_stage) ? aiResult.suggested_stage : f.stage,
+      notes: [f.notes, aiResult.observations].filter(Boolean).join(f.notes ? ' · ' : ''),
+    }))
+  }
 
   const load = useCallback(async () => {
     if (!user) return
@@ -127,7 +168,21 @@ export default function FeridasPage() {
 
   async function addAssessment() {
     if (!user || !selected) return
-    setSaving(true)
+    setSaving(true); setUploadErr('')
+    // Upload da foto (best-effort) → Supabase Storage 'wounds'
+    let photoUrl: string | null = null
+    if (photo) {
+      try {
+        const ext = (photo.name.split('.').pop() || 'jpg').toLowerCase()
+        const path = `${user.id}/${selected.id}/${Date.now()}.${ext}`
+        const { error: upErr } = await supabase.storage.from('wounds').upload(path, photo, { upsert: false, contentType: photo.type || 'image/jpeg' })
+        if (upErr) throw upErr
+        const { data: pub } = supabase.storage.from('wounds').getPublicUrl(path)
+        photoUrl = pub?.publicUrl || null
+      } catch {
+        setUploadErr('Não foi possível guardar a foto (cria o bucket "wounds" no Supabase). A avaliação foi guardada sem foto.')
+      }
+    }
     await supabase.from('wound_assessments').insert({
       user_id: user.id, wound_id: selected.id, date: aForm.date,
       length_mm: aForm.length_mm ? parseFloat(aForm.length_mm) : null,
@@ -135,7 +190,7 @@ export default function FeridasPage() {
       depth_mm: aForm.depth_mm ? parseFloat(aForm.depth_mm) : null,
       stage: aForm.stage || null, exudate: aForm.exudate || null, tissue: aForm.tissue || null,
       pain: aForm.pain ? parseInt(aForm.pain) : null, dressing: aForm.dressing || null,
-      notes: aForm.notes || null, assessed_by: aForm.assessed_by || null,
+      notes: aForm.notes || null, assessed_by: aForm.assessed_by || null, photo_url: photoUrl,
     })
     // reflect latest measurement on the wound row
     await supabase.from('wounds').update({
@@ -146,7 +201,7 @@ export default function FeridasPage() {
       tissue: aForm.tissue || selected.tissue, dressing: aForm.dressing || selected.dressing,
       updated_at: new Date().toISOString(),
     }).eq('id', selected.id).eq('user_id', user.id)
-    setSaving(false); setShowAssess(false); setAForm(emptyAssess); load()
+    setSaving(false); setShowAssess(false); setAForm(emptyAssess); setPhoto(null); setPhotoPreview(''); load()
     setSelected(s => s ? { ...s } : s)
   }
 
@@ -240,6 +295,12 @@ export default function FeridasPage() {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginTop: 4 }}>{nameOf(w.patient_id)} {roomOf(w.patient_id)} · início {w.onset_date || '—'} · {daysSince(w.onset_date) ?? '—'} dias</div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {(() => {
+                    const tr = trend(w)
+                    if (!tr) return null
+                    const cfg = tr === 'down' ? { l: 'A melhorar', c: '#16a34a', bg: '#f0fdf4', a: '▼' } : tr === 'up' ? { l: 'A agravar', c: '#dc2626', bg: '#fef2f2', a: '▲' } : { l: 'Estável', c: '#64748b', bg: 'var(--bg-2)', a: '–' }
+                    return <span style={{ fontSize: 11, fontWeight: 700, color: cfg.c, background: cfg.bg, border: `1px solid ${cfg.c}33`, padding: '3px 10px', borderRadius: 6 }}>{cfg.a} {cfg.l}</span>
+                  })()}
                   {stg && <span style={{ fontSize: 11, fontWeight: 700, color: stg.color, background: stg.bg, padding: '3px 10px', borderRadius: 6 }}>{stg.label}</span>}
                   <span style={{ fontSize: 11, fontWeight: 700, color: sc.color, background: sc.bg, border: `1px solid ${sc.border}`, padding: '3px 10px', borderRadius: 6 }}>{sc.label}</span>
                 </div>
@@ -291,6 +352,11 @@ export default function FeridasPage() {
                 </div>
                 {x.dressing && <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>Penso: {x.dressing}</div>}
                 {x.notes && <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{x.notes}</div>}
+                {x.photo_url && (
+                  <a href={x.photo_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8 }}>
+                    <img src={x.photo_url} alt="Ferida" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -314,8 +380,56 @@ export default function FeridasPage() {
                 <div><span style={lbl}>Dor (0-10)</span><input type="number" min="0" max="10" value={aForm.pain} onChange={e => setAForm({ ...aForm, pain: e.target.value })} style={inp} /></div>
               </div>
               <div><span style={lbl}>Penso aplicado</span><input value={aForm.dressing} onChange={e => setAForm({ ...aForm, dressing: e.target.value })} placeholder="Ex: Hidrocolóide, espuma..." style={inp} /></div>
+              <div>
+                <span style={lbl}>Fotografia da ferida</span>
+                {photoPreview ? (
+                  <div>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <img src={photoPreview} alt="" style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
+                        <button onClick={() => { setPhoto(null); setPhotoPreview(''); setAiResult(null); setAiErr('') }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: 12, lineHeight: 1 }}>×</button>
+                      </div>
+                      <button onClick={analyzePhoto} disabled={aiAnalyzing} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1.5px solid #7c3aed', background: aiAnalyzing ? 'var(--bg-3)' : '#faf5ff', color: '#7c3aed', fontSize: 13, fontWeight: 700, cursor: aiAnalyzing ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 0-4 4c0 1.5.5 2 1 3M12 2a4 4 0 0 1 4 4c0 1.5-.5 2-1 3M8 13h8M9 17h6"/></svg>
+                        {aiAnalyzing ? 'A analisar foto…' : 'Analisar foto com IA'}
+                      </button>
+                    </div>
+                    {aiErr && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 8 }}>{aiErr}</div>}
+                    {aiResult && (
+                      <div style={{ marginTop: 10, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Análise por IA</span>
+                          <button onClick={applyAi} style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: 'white', border: '1px solid #e9d5ff', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Aplicar sugestões</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                          {aiResult.suggested_stage && aiResult.suggested_stage !== 'não aplicável' && <span style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', background: 'white', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5 }}>Estádio {aiResult.suggested_stage}</span>}
+                          {aiResult.tissue && <span style={{ fontSize: 11, color: '#6b21a8', background: 'white', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5 }}>{aiResult.tissue}</span>}
+                          {aiResult.exudate && <span style={{ fontSize: 11, color: '#6b21a8', background: 'white', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5 }}>exsudado {aiResult.exudate}</span>}
+                          {aiResult.infection_signs && <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: 5 }}>Possível infeção</span>}
+                        </div>
+                        {aiResult.observations && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>{aiResult.observations}</div>}
+                        {aiResult.infection_signs && aiResult.infection_notes && <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 4 }}>{aiResult.infection_notes}</div>}
+                        {Array.isArray(aiResult.recommendations) && aiResult.recommendations.length > 0 && (
+                          <ul style={{ margin: '8px 0 0', paddingLeft: 16, fontSize: 12, color: 'var(--ink-3)' }}>
+                            {aiResult.recommendations.map((r: string, i: number) => <li key={i} style={{ marginBottom: 2 }}>{r}</li>)}
+                          </ul>
+                        )}
+                        <div style={{ fontSize: 10, color: 'var(--ink-5)', marginTop: 8, fontStyle: 'italic' }}>{aiResult.disclaimer}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px', border: '1.5px dashed var(--border)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink-4)', fontSize: 13 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Tirar / escolher foto
+                    <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setPhotoPreview(URL.createObjectURL(f)) } }} />
+                  </label>
+                )}
+              </div>
               <div><span style={lbl}>Notas</span><textarea value={aForm.notes} onChange={e => setAForm({ ...aForm, notes: e.target.value })} rows={2} style={{ ...inp, resize: 'vertical' }} /></div>
               <div><span style={lbl}>Avaliado por</span><input value={aForm.assessed_by} onChange={e => setAForm({ ...aForm, assessed_by: e.target.value })} style={inp} /></div>
+              {uploadErr && <div style={{ fontSize: 11, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px' }}>{uploadErr}</div>}
               <button onClick={addAssessment} disabled={saving} style={{ padding: '11px', background: saving ? 'var(--bg-3)' : '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A guardar…' : 'Guardar avaliação'}</button>
             </div>
           </Modal>
