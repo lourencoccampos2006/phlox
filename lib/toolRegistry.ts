@@ -52,6 +52,7 @@ export const TOOLS: Tool[] = [
   { id: '/simulador',    label: 'Simulador clínico',             desc: 'Casos clínicos com IA',            category: 'study',      modes: ['student'], plan: 'pro' },
   { id: '/osce',         label: 'Treinar OSCE',                  desc: 'IA como doente, feedback real',    category: 'study',      modes: ['student'], plan: 'pro' },
   { id: '/progresso',    label: 'Ver o meu progresso',           desc: 'XP, streak e estatísticas',        category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/anatomia-3d',  label: 'Explorar em 3D',                desc: 'Modelos 3D interativos · AR',       category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
 ]
 
 export function toolsForMode(mode: ToolMode): Tool[] {

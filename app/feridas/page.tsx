@@ -77,19 +77,34 @@ export default function FeridasPage() {
   const [aiResult, setAiResult] = useState<any>(null)
   const [aiErr, setAiErr] = useState('')
 
-  function fileToBase64(file: File): Promise<{ b64: string; mime: string }> {
+  // Reduz a imagem no cliente (≤1024px, JPEG) — evita timeouts/payloads grandes na IA
+  function downscaleToBase64(file: File, maxDim = 1024, quality = 0.82): Promise<{ b64: string; mime: string }> {
     return new Promise((resolve, reject) => {
-      const r = new FileReader()
-      r.onload = () => { const s = String(r.result); resolve({ b64: s.split(',')[1] || '', mime: file.type || 'image/jpeg' }) }
-      r.onerror = reject
-      r.readAsDataURL(file)
+      const img = new window.Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let w = img.width, h = img.height
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim } else { w = Math.round(w * maxDim / h); h = maxDim }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Não foi possível processar a imagem.')); return }
+        ctx.drawImage(img, 0, 0, w, h)
+        const dataUrl = canvas.toDataURL('image/jpeg', quality)
+        resolve({ b64: dataUrl.split(',')[1] || '', mime: 'image/jpeg' })
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem.')) }
+      img.src = url
     })
   }
   async function analyzePhoto() {
     if (!photo || !selected) return
     setAiAnalyzing(true); setAiErr(''); setAiResult(null)
     try {
-      const { b64, mime } = await fileToBase64(photo)
+      const { b64, mime } = await downscaleToBase64(photo)
       const res = await fetch('/api/wound-analysis', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: b64, mimeType: mime, context: { location: selected.location, type: TYPE_LABELS[selected.type] } }),
