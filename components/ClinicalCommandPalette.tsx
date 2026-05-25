@@ -19,6 +19,8 @@ const DESTINATIONS: Dest[] = [
   { label: 'Atividades',                 href: '/activities',  group: 'Residentes', keywords: 'animacao ocupacao' },
   { label: 'Painel de Gestão',           href: '/gestao',      group: 'Gestão',     keywords: 'painel gestao coordenador ops board tempo real direcao' },
   { label: 'Agenda & Transportes',       href: '/agenda',      group: 'Gestão',     keywords: 'agenda consultas exames transportes terapias visitas calendario marcacoes' },
+  { label: 'Faturação & Mensalidades',   href: '/faturacao',   group: 'Gestão',     keywords: 'faturacao mensalidades comparticipacao pagamentos dividas financeiro recibo segurança social' },
+  { label: 'Documentos',                 href: '/documentos',  group: 'Gestão',     keywords: 'documentos contratos consentimentos rgpd processo ficheiros relatorios' },
   { label: 'Ocupação',                   href: '/census',      group: 'Gestão',     keywords: 'camas quartos lotacao ocupacao' },
   { label: 'Equipa & Escalas',           href: '/schedule',    group: 'Gestão',     keywords: 'turnos equipa staff funcionarios' },
   { label: 'Protocolos',                 href: '/protocolos',  group: 'Gestão',     keywords: 'protocolos checklist procedimentos quedas ulceras emergencia governança' },

@@ -50,6 +50,8 @@ const ICONS = {
   nutrition: <><path d="M3 12h4l3 8 4-16 3 8h4"/></>,
   agenda:    <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14l1.5 1.5"/><circle cx="12" cy="15" r="3"/></>,
   hydration: <><path d="M12 2.5S5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></>,
+  billing:   <><path d="M4 3h16a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></>,
+  docs:      <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>,
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -83,6 +85,8 @@ const NH: NavSection[] = [
   { title: 'Gestão do lar', items: [
     { href: '/gestao', label: 'Painel de Gestão', icon: 'board', badge: true },
     { href: '/agenda', label: 'Agenda & Transportes', icon: 'agenda', badge: true },
+    { href: '/faturacao', label: 'Faturação', icon: 'billing', badge: true },
+    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
     { href: '/census', label: 'Ocupação', icon: 'census' },
     { href: '/schedule', label: 'Equipa & Escalas', icon: 'schedule' },
     { href: '/protocolos', label: 'Protocolos', icon: 'protocol' },

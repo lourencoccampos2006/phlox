@@ -160,6 +160,8 @@ export async function aiJSON<T>(
 
 // ─── Gemini Vision: image analysis ───────────────────────────────────────────
 
+const VISION_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
+
 export async function callGeminiVision(
   prompt: string,
   imageBase64: string,
@@ -167,44 +169,41 @@ export async function callGeminiVision(
   opts: { maxTokens?: number; temperature?: number } = {}
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY não configurado. Adiciona a variável no Cloudflare.')
+  if (!apiKey) throw new Error('GEMINI_API_KEY não configurado no ambiente do servidor.')
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          role: 'user',
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType, data: imageBase64 } },
-          ],
-        }],
-        generationConfig: {
-          maxOutputTokens: opts.maxTokens || 1500,
-          temperature: opts.temperature ?? 0.1,
-        },
-      }),
-      signal: AbortSignal.timeout(30000),
+  const bodyStr = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: imageBase64 } }] }],
+    generationConfig: { maxOutputTokens: opts.maxTokens || 1500, temperature: opts.temperature ?? 0.1 },
+  })
+
+  let lastErr = 'tenta novamente'
+  // Tenta vários modelos — se um não estiver disponível para a chave (404), passa ao seguinte.
+  for (const model of VISION_MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: bodyStr, signal: AbortSignal.timeout(30000) }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        if (text) return text
+        lastErr = 'resposta vazia'
+        continue
+      }
+      const errData = await res.json().catch(() => ({} as any))
+      lastErr = errData?.error?.message || `HTTP ${res.status}`
+      // 404 (modelo não existe) → tenta próximo; 400/403 (chave/imagem) → erro definitivo
+      if (res.status === 404) continue
+      if (res.status === 429) throw new Error('Serviço sobrecarregado. Tenta daqui a pouco.')
+      throw new Error(lastErr)
+    } catch (e: any) {
+      lastErr = e?.message || lastErr
+      if (e?.name === 'TimeoutError') continue
+      // se foi erro de modelo inexistente continuamos; outros erros propagam após tentar todos
     }
-  )
-
-  if (res.status === 429) throw new Error('Serviço temporariamente sobrecarregado. Tenta daqui a pouco.')
-  if (res.status === 400) {
-    const errData = await res.json().catch(() => ({}))
-    throw new Error(`Imagem inválida: ${errData?.error?.message || 'formato não suportado'}`)
   }
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}))
-    throw new Error(`Erro Gemini ${res.status}: ${errData?.error?.message || 'tenta novamente'}`)
-  }
-
-  const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-  if (!text) throw new Error('Resposta vazia do serviço de visão. Tenta uma foto com melhor iluminação.')
-  return text
+  throw new Error(`Análise indisponível: ${lastErr}`)
 }
 
 export async function callGeminiVisionJSON<T>(

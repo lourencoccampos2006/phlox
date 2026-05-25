@@ -119,6 +119,28 @@ create table if not exists stock_items (
 alter table stock_items enable row level security;
 do $$ begin create policy "stock_items_own" on stock_items for all using (user_id = auth.uid()); exception when duplicate_object then null; end $$;
 
+-- ── billing_entries (sprint22) ───────────────────────────────────────────────
+create table if not exists billing_entries (
+  id uuid primary key default gen_random_uuid(), user_id uuid references profiles(id) on delete cascade,
+  patient_id uuid references patients(id) on delete cascade, month text not null,
+  fee numeric not null default 0, subsidy numeric not null default 0, extras numeric not null default 0, discount numeric not null default 0,
+  paid boolean not null default false, paid_date date, method text, notes text,
+  created_at timestamptz default now(), updated_at timestamptz default now(), unique (user_id, patient_id, month)
+);
+alter table billing_entries enable row level security;
+do $$ begin create policy "billing_entries_own" on billing_entries for all using (user_id = auth.uid()); exception when duplicate_object then null; end $$;
+
+-- ── documents (sprint23) ──────────────────────────────────────────────────────
+create table if not exists documents (
+  id uuid primary key default gen_random_uuid(), user_id uuid references profiles(id) on delete cascade,
+  patient_id uuid references patients(id) on delete cascade, name text not null, category text not null default 'outro',
+  file_path text not null, expiry_date date, notes text, created_at timestamptz default now()
+);
+alter table documents enable row level security;
+do $$ begin create policy "documents_own" on documents for all using (user_id = auth.uid()); exception when duplicate_object then null; end $$;
+insert into storage.buckets (id, name, public) values ('documents', 'documents', false) on conflict (id) do nothing;
+do $$ begin create policy "documents_rw_own" on storage.objects for all using (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text) with check (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text); exception when duplicate_object then null; end $$;
+
 -- ── Storage: bucket de fotos de feridas ──────────────────────────────────────
 insert into storage.buckets (id, name, public) values ('wounds', 'wounds', true) on conflict (id) do nothing;
 do $$ begin create policy "wounds_upload_own" on storage.objects for insert with check (bucket_id = 'wounds' and (storage.foldername(name))[1] = auth.uid()::text); exception when duplicate_object then null; end $$;

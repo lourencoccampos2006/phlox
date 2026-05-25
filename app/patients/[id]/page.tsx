@@ -8,6 +8,7 @@ import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import DrugReferenceButton from '@/components/DrugReferenceButton'
+import { analyzeResident, SEVERITY_STYLE as ECO_SEV } from '@/lib/residentSignals'
 
 
 interface Patient {
@@ -114,6 +115,50 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   }, [user, supabase, patientId, router, isNH])
 
   useEffect(() => { load() }, [load])
+
+  // ── Ecossistema: dados transversais para o estado clínico global ──
+  const [ecoWounds, setEcoWounds] = useState<{ status: string; stage?: string | null }[]>([])
+  const [ecoWeights, setEcoWeights] = useState<{ date: string; weight: number }[]>([])
+  const [ecoFluidToday, setEcoFluidToday] = useState<number | null>(null)
+  const [ecoBowelDays, setEcoBowelDays] = useState<number | null>(null)
+  const [ecoCareToday, setEcoCareToday] = useState<boolean | undefined>(undefined)
+
+  useEffect(() => {
+    if (!user || !patientId || !isNH) return
+    ;(async () => {
+      const todayD = new Date().toISOString().slice(0, 10)
+      try {
+        const { data } = await supabase.from('wounds').select('status,stage').eq('patient_id', patientId).eq('user_id', user.id)
+        if (data) setEcoWounds(data)
+      } catch { /* tabela pode não existir */ }
+      try {
+        const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
+        const { data } = await supabase.from('care_records').select('date,vitals,shift').eq('patient_id', patientId).eq('user_id', user.id).gte('date', since)
+        if (data) {
+          setEcoWeights(data.filter((c: any) => c.vitals?.weight).map((c: any) => ({ date: c.date, weight: Number(c.vitals.weight) })))
+          setEcoCareToday(data.some((c: any) => c.date === todayD))
+        }
+      } catch { /* ignore */ }
+      try {
+        const since = new Date(Date.now() - 14 * 86400000).toISOString()
+        const { data } = await supabase.from('hydration_logs').select('at,kind,fluid_ml').eq('patient_id', patientId).eq('user_id', user.id).gte('at', since)
+        if (data) {
+          setEcoFluidToday(data.filter((l: any) => l.kind === 'fluid' && l.at.slice(0, 10) === todayD).reduce((s: number, l: any) => s + (l.fluid_ml || 0), 0))
+          const b = data.filter((l: any) => l.kind === 'bowel').sort((a: any, c: any) => c.at.localeCompare(a.at))[0]
+          setEcoBowelDays(b ? Math.floor((Date.now() - new Date(b.at).getTime()) / 86400000) : null)
+        }
+      } catch { /* ignore */ }
+    })()
+  }, [user, supabase, patientId, isNH])
+
+  const ecoAnalysis = patient ? analyzeResident({
+    age: patient.age, conditions: patient.conditions, allergies: patient.allergies,
+    meds: meds.map(m => m.name),
+    incidents: nhIncidents.map(i => ({ type: i.type, severity: i.severity, status: i.status })),
+    assessments: nhAssessments.map(a => ({ scale: a.scale, date: a.date })),
+    wounds: ecoWounds, weightSeries: ecoWeights,
+    fluidToday: ecoFluidToday, lastBowelDays: ecoBowelDays, careLoggedToday: ecoCareToday,
+  }) : null
 
   // Calc CrCl if we have age, weight, creatinine, sex
   const crCl = patient?.age && patient?.weight && patient?.creatinine && patient?.sex
@@ -407,6 +452,37 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
         {/* OVERVIEW */}
         {tab === 'overview' && (
           <div>
+            {/* Estado Clínico Global — integra TODOS os dados do residente */}
+            {ecoAnalysis && (() => {
+              const lv = ECO_SEV[ecoAnalysis.level]
+              return (
+                <div style={{ background: 'white', border: `1px solid var(--border)`, borderLeft: `4px solid ${lv.color}`, borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: ecoAnalysis.signals.length ? 12 : 0, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: lv.color }} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Estado clínico global</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: lv.color, background: lv.bg, border: `1px solid ${lv.border}`, padding: '2px 9px', borderRadius: 6 }}>{lv.label}</span>
+                    </div>
+                    <span style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>{ecoAnalysis.summary}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {ecoAnalysis.signals.map((s, idx) => {
+                      const st = ECO_SEV[s.severity]
+                      return (
+                        <div key={idx} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '9px 11px', background: st.bg, border: `1px solid ${st.border}`, borderRadius: 9 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, marginTop: 5, flexShrink: 0 }} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: st.color }}>{s.title}</div>
+                            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 1, lineHeight: 1.45 }}>{s.detail}</div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Clinical data */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 12, marginBottom: 16 }}>
               {/* Diagnoses */}
