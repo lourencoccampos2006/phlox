@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import StockSection from '@/components/StockSection'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useInstitutionProfile } from '@/lib/useInstitutionProfile'
@@ -57,6 +58,7 @@ export default function GestaoPage() {
   const [shifts, setShifts] = useState<ShiftAssign[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [wounds, setWounds] = useState<Wound[]>([])
+  const [tab, setTab] = useState<'painel' | 'stock'>('painel')
 
   const d = today(), shift = curShift(), month = d.slice(0, 7)
   const totalBeds = profile?.total_beds || 30
@@ -155,6 +157,15 @@ export default function GestaoPage() {
             <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>Turno {SHIFT_LABEL[shift]}</span>
           </div>
         </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {([['painel', 'Painel'], ['stock', 'Stock & Validades']] as [typeof tab, string][]).map(([t, l]) => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 16px', borderRadius: 9, border: `1.5px solid ${tab === t ? '#0d6e42' : 'var(--border)'}`, background: tab === t ? '#eef6f1' : 'white', color: tab === t ? '#0d6e42' : 'var(--ink-4)', fontSize: 13, fontWeight: tab === t ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{l}</button>
+          ))}
+        </div>
+
+        {tab === 'stock' ? <StockSection /> : (<>
 
         {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -274,6 +285,7 @@ export default function GestaoPage() {
             </div>
           )}
         </div>
+        </>)}
       </div>
       <style>{`@media (max-width: 760px){ .gestao-grid { grid-template-columns: 1fr !important; } }`}</style>
     </div>
