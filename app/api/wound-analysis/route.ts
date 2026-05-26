@@ -19,7 +19,22 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const body = await req.json().catch(() => null)
-  if (!body?.imageBase64) return NextResponse.json({ error: 'Imagem obrigatória' }, { status: 400 })
+  // Aceita imagem em base64 OU o URL de uma foto já guardada (análise pós-submissão).
+  let imageBase64: string = body?.imageBase64 || ''
+  let mimeType: string = body?.mimeType || 'image/jpeg'
+  if (!imageBase64 && body?.imageUrl) {
+    try {
+      const r = await fetch(body.imageUrl, { signal: AbortSignal.timeout(15000) })
+      if (!r.ok) throw new Error('fetch')
+      const buf = Buffer.from(await r.arrayBuffer())
+      if (buf.length > 6_000_000) return NextResponse.json({ error: 'Imagem demasiado grande.' }, { status: 400 })
+      mimeType = r.headers.get('content-type') || 'image/jpeg'
+      imageBase64 = buf.toString('base64')
+    } catch {
+      return NextResponse.json({ error: 'Não foi possível carregar a foto guardada.' }, { status: 400 })
+    }
+  }
+  if (!imageBase64) return NextResponse.json({ error: 'Imagem obrigatória' }, { status: 400 })
 
   const ctx = body.context || {}
   const prompt = `És enfermeiro(a) especialista em viabilidade tecidular e tratamento de feridas, a apoiar uma equipa de um lar/ERPI em Portugal.
@@ -40,7 +55,7 @@ Responde APENAS com JSON válido em português de Portugal:
 Sê objetivo e prudente. Esta análise é de APOIO e não substitui a avaliação presencial por um profissional.`
 
   try {
-    const result = await callGeminiVisionJSON<WoundAI>(prompt, body.imageBase64, body.mimeType || 'image/jpeg', { maxTokens: 1200 })
+    const result = await callGeminiVisionJSON<WoundAI>(prompt, imageBase64, mimeType, { maxTokens: 1200 })
     return NextResponse.json({ ...result, disclaimer: 'Análise de apoio por IA — confirmar sempre com avaliação presencial.' })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Não foi possível analisar a imagem.' }, { status: 500 })

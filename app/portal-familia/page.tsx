@@ -73,7 +73,12 @@ export default function FamilyPortalPage() {
       const qs = `code=${encodeURIComponent(c)}${vDigits ? `&verify=${encodeURIComponent(vDigits)}` : ''}`
       const res = await fetch(`/api/family-portal?${qs}`)
       const data = await res.json()
-      if (!res.ok) { setErr(data.error || 'Erro'); setPatient(null); setEntered(''); localStorage.removeItem('phlox-familia-code'); return }
+      if (!res.ok) {
+        setErr(data.error || 'Erro')
+        // Só esquece o código se for DEFINITIVAMENTE inválido (404). Erros de config/rede mantêm a sessão.
+        if (res.status === 404) { setPatient(null); setEntered(''); localStorage.removeItem('phlox-familia-code'); localStorage.removeItem('phlox-familia-verify') }
+        return
+      }
       if (data.needsVerify) {
         setNeedsVerify(true); setVerifyName(data.patientName || '')
         if (data.error) setErr(data.error)

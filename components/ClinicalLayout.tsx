@@ -260,6 +260,9 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
             <div style={{ fontSize: 10, color: '#94a3b8' }}>{user?.plan === 'clinic' ? 'Institucional' : user?.plan === 'pro' ? 'Pro' : 'Conta'}</div>
           </div>
           <Link href="/settings" title="Definições" style={{ width: 30, height: 30, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}><Icon name="settings" size={15} /></Link>
+          <button onClick={() => signOut()} title="Sair" style={{ width: 30, height: 30, borderRadius: 8, background: '#fef2f2', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', cursor: 'pointer', flexShrink: 0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
         </div>
       </aside>
 
@@ -292,6 +295,10 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
           Novo
         </button>
         <span style={{ flexShrink: 0 }}><NotificationBell /></span>
+        {/* Sair (sempre visível, mobile + desktop) */}
+        <button onClick={() => signOut()} title="Sair" aria-label="Sair" style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, border: '1px solid #fecaca', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
       </header>
 
       {/* ═══ CONTENT ═══ */}

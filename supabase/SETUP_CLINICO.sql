@@ -79,8 +79,9 @@ create table if not exists wound_assessments (
   id uuid primary key default gen_random_uuid(), user_id uuid references profiles(id) on delete cascade,
   wound_id uuid references wounds(id) on delete cascade, date date not null default current_date,
   length_mm numeric, width_mm numeric, depth_mm numeric, stage text, exudate text, tissue text, pain int,
-  dressing text, notes text, assessed_by text, photo_url text, created_at timestamptz default now()
+  dressing text, notes text, assessed_by text, photo_url text, ai_report jsonb, created_at timestamptz default now()
 );
+alter table wound_assessments add column if not exists ai_report jsonb;  -- relatório IA guardado (sprint27)
 alter table wound_assessments enable row level security;
 do $$ begin create policy "wound_assessments_own" on wound_assessments for all using (user_id = auth.uid()); exception when duplicate_object then null; end $$;
 

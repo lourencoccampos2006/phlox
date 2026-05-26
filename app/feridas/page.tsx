@@ -21,6 +21,7 @@ interface WAssessment {
   length_mm?: number | null; width_mm?: number | null; depth_mm?: number | null
   stage?: string | null; exudate?: string | null; tissue?: string | null; pain?: number | null
   dressing?: string | null; notes?: string | null; assessed_by?: string | null; photo_url?: string | null
+  ai_report?: any
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -76,6 +77,9 @@ export default function FeridasPage() {
   const [aiAnalyzing, setAiAnalyzing] = useState(false)
   const [aiResult, setAiResult] = useState<any>(null)
   const [aiErr, setAiErr] = useState('')
+  // Análise pós-submissão (sobre uma avaliação já guardada, com foto)
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
+  const [storedAiErr, setStoredAiErr] = useState<Record<string, string>>({})
 
   // Reduz a imagem no cliente (≤1024px, JPEG) — evita timeouts/payloads grandes na IA
   function downscaleToBase64(file: File, maxDim = 1024, quality = 0.82): Promise<{ b64: string; mime: string }> {
@@ -114,6 +118,23 @@ export default function FeridasPage() {
       setAiResult(data)
     } catch (e: any) { setAiErr(e.message || 'Não foi possível analisar.') }
     finally { setAiAnalyzing(false) }
+  }
+  // Analisa a foto JÁ GUARDADA de uma avaliação e persiste o relatório
+  async function analyzeStored(assessment: any, wound: Wound) {
+    if (!assessment.photo_url) return
+    setAnalyzingId(assessment.id); setStoredAiErr(p => ({ ...p, [assessment.id]: '' }))
+    try {
+      const res = await fetch('/api/wound-analysis', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: assessment.photo_url, context: { location: wound.location, type: TYPE_LABELS[wound.type] } }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro')
+      const { error } = await supabase.from('wound_assessments').update({ ai_report: data }).eq('id', assessment.id)
+      if (error) throw new Error('Relatório obtido mas não foi possível guardar (correr SETUP_CLINICO.sql).')
+      setAssessments((prev: any[]) => prev.map(a => a.id === assessment.id ? { ...a, ai_report: data } : a))
+    } catch (e: any) { setStoredAiErr(p => ({ ...p, [assessment.id]: e.message || 'Falhou' })) }
+    finally { setAnalyzingId(null) }
   }
   const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s
   function applyAi() {
@@ -249,11 +270,22 @@ export default function FeridasPage() {
       ],
       body: w.notes || undefined,
     }]
-    const evolution: PrintRecord[] = a.map(x => ({
-      title: new Date(x.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }),
-      meta: [x.stage ? `Categoria ${x.stage}` : '', area(x.length_mm, x.width_mm) != null ? `${area(x.length_mm, x.width_mm)} cm²` : '', x.exudate ? `exsudado ${x.exudate.toLowerCase()}` : ''].filter(Boolean).join(' · '),
-      body: x.notes || undefined,
-    }))
+    const evolution: PrintRecord[] = a.map(x => {
+      const r = x.ai_report
+      const aiBullets = r ? [
+        r.suggested_stage && r.suggested_stage !== 'não aplicável' ? `IA: estádio sugerido ${r.suggested_stage}` : '',
+        r.tissue ? `IA: tecido ${r.tissue}` : '',
+        r.exudate ? `IA: exsudado ${r.exudate}` : '',
+        r.infection_signs ? `IA: possível infeção — ${r.infection_notes || 'ver foto'}` : '',
+        ...(Array.isArray(r.recommendations) ? r.recommendations.map((rec: string) => `IA: ${rec}`) : []),
+      ].filter(Boolean) : []
+      return {
+        title: new Date(x.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }),
+        meta: [x.stage ? `Categoria ${x.stage}` : '', area(x.length_mm, x.width_mm) != null ? `${area(x.length_mm, x.width_mm)} cm²` : '', x.exudate ? `exsudado ${x.exudate.toLowerCase()}` : '', x.photo_url ? 'com foto' : ''].filter(Boolean).join(' · '),
+        body: [x.notes, r?.observations].filter(Boolean).join(' — ') || undefined,
+        bullets: aiBullets.length ? aiBullets : undefined,
+      }
+    })
     printDoc({
       docTitle: 'Registo de Ferida',
       docSubtitle: `${nameOf(w.patient_id)} · ${TYPE_LABELS[w.type]} · ${w.location}`,
@@ -368,9 +400,35 @@ export default function FeridasPage() {
                 {x.dressing && <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>Penso: {x.dressing}</div>}
                 {x.notes && <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{x.notes}</div>}
                 {x.photo_url && (
-                  <a href={x.photo_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8 }}>
-                    <img src={x.photo_url} alt="Ferida" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
-                  </a>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                    <a href={x.photo_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
+                      <img src={x.photo_url} alt="Ferida" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                    </a>
+                    {!x.ai_report && (
+                      <button onClick={() => analyzeStored(x, w)} disabled={analyzingId === x.id}
+                        style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7c3aed', fontSize: 12, fontWeight: 700, cursor: analyzingId === x.id ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        {analyzingId === x.id ? 'A analisar…' : '✨ Analisar foto com IA'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {storedAiErr[x.id] && <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 6 }}>{storedAiErr[x.id]}</div>}
+                {x.ai_report && (
+                  <div style={{ marginTop: 8, padding: '10px 12px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Análise IA (guardada)</div>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {x.ai_report.suggested_stage && x.ai_report.suggested_stage !== 'não aplicável' && <span style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', background: 'white', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5 }}>Estádio {x.ai_report.suggested_stage}</span>}
+                      {x.ai_report.tissue && <span style={{ fontSize: 11, color: '#6b21a8', background: 'white', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5 }}>{x.ai_report.tissue}</span>}
+                      {x.ai_report.exudate && <span style={{ fontSize: 11, color: '#6b21a8', background: 'white', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5 }}>exsudado {x.ai_report.exudate}</span>}
+                      {x.ai_report.infection_signs && <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: 5 }}>Possível infeção</span>}
+                    </div>
+                    {x.ai_report.observations && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>{x.ai_report.observations}</div>}
+                    {Array.isArray(x.ai_report.recommendations) && x.ai_report.recommendations.length > 0 && (
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 16, fontSize: 12, color: 'var(--ink-3)' }}>
+                        {x.ai_report.recommendations.map((r: string, i: number) => <li key={i} style={{ marginBottom: 2 }}>{r}</li>)}
+                      </ul>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
