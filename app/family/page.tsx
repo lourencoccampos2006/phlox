@@ -643,6 +643,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
   const [photo, setPhoto] = useState<File | null>(null)
   const [wb, setWb] = useState<{ mood?: string; meals?: string; activity?: string }>({})
   const [sending, setSending] = useState(false)
+  const [prefilling, setPrefilling] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   const patient = patients.find((p: Patient) => p.id === patientId)
@@ -738,6 +739,29 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
     } finally { setSending(false) }
   }
 
+  // Boletim pré-preenchido com os dados reais do dia (motor de ecossistema → comunicação)
+  async function prefillFromToday() {
+    if (!patientId) return
+    setPrefilling(true)
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const { data } = await supabase.from('care_records').select('vitals,mood,nutrition,date,created_at')
+        .eq('user_id', user.id).eq('patient_id', patientId).eq('date', today)
+        .order('created_at', { ascending: false }).limit(1)
+      const rec = (data || [])[0]
+      const next: { mood?: string; meals?: string; activity?: string } = {}
+      if (rec?.mood?.level != null) next.mood = rec.mood.level >= 4 ? 'bom' : rec.mood.level === 3 ? 'razoavel' : 'mau'
+      const ap = rec?.nutrition?.appetite
+      if (ap) next.meals = ap === 'Bom' ? 'tudo' : ap === 'Razoável' ? 'parte' : 'pouco'
+      // atividade: heurística simples a partir de notas comportamentais
+      const beh = (rec?.mood?.behavior || rec?.mood?.activities || '').toLowerCase()
+      if (beh) next.activity = /cama|acamad|deita|prostrad/.test(beh) ? 'na_cama' : /agita|inquiet|deambul|passe|ativ/.test(beh) ? 'ativo' : 'calmo'
+      setWb(next)
+      setMode('wellbeing')
+      if (!Object.keys(next).length) setText('Sem registo do dia ainda — preenche manualmente.')
+    } finally { setPrefilling(false) }
+  }
+
   return (
     <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 320px)', minHeight: 420 }}>
       {/* Lista de residentes */}
@@ -818,6 +842,10 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
 
               {mode === 'wellbeing' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                  <button onClick={prefillFromToday} disabled={prefilling}
+                    style={{ alignSelf: 'flex-start', padding: '5px 11px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>
+                    {prefilling ? '…' : '✨ Pré-preencher do registo de hoje'}
+                  </button>
                   {([['Humor', MOOD_OPTS, 'mood'], ['Refeições', MEALS_OPTS, 'meals'], ['Atividade', ACTIVITY_OPTS, 'activity']] as const).map(([lab, opts, key]) => (
                     <div key={key}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{lab}</div>
