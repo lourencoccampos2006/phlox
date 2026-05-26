@@ -656,12 +656,16 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
     supabase.from('patients').select('family_code').eq('id', patientId).single()
       .then(({ data }: any) => setFamilyCode(data?.family_code || null))
   }, [patientId, supabase])
+  const [codeErr, setCodeErr] = useState('')
   async function genCode() {
     if (!patientId) return
-    setCodeBusy(true)
+    setCodeBusy(true); setCodeErr('')
     const code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
     const { error } = await supabase.from('patients').update({ family_code: code }).eq('id', patientId).eq('user_id', user.id)
     if (!error) setFamilyCode(code)
+    else if (/column .*family_code.* does not exist/i.test(error.message) || (error as any).code === '42703')
+      setCodeErr('O Portal Família ainda não está ativo. É preciso correr o SETUP_CLINICO.sql no Supabase (cria a coluna family_code).')
+    else setCodeErr('Não foi possível gerar o código: ' + error.message)
     setCodeBusy(false)
   }
 
@@ -819,6 +823,9 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
                 </button>
               )}
             </div>
+            {codeErr && (
+              <div style={{ padding: '9px 14px', background: '#fef2f2', borderBottom: '1px solid #fecaca', fontSize: 12.5, color: '#991b1b' }}>{codeErr}</div>
+            )}
 
             {/* Mensagens */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', background: '#fafbfc' }}>

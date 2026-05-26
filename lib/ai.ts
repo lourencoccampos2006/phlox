@@ -160,7 +160,9 @@ export async function aiJSON<T>(
 
 // ─── Gemini Vision: image analysis ───────────────────────────────────────────
 
-const VISION_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
+// Modelos atuais (jan 2026). gemini-1.5-* foi descontinuado na v1beta → removido.
+// Os -lite são os mais baratos; ficam à frente para minimizar custo.
+const VISION_MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
 
 export async function callGeminiVision(
   prompt: string,
@@ -193,17 +195,23 @@ export async function callGeminiVision(
       }
       const errData = await res.json().catch(() => ({} as any))
       lastErr = errData?.error?.message || `HTTP ${res.status}`
-      // 404 (modelo não existe) → tenta próximo; 400/403 (chave/imagem) → erro definitivo
-      if (res.status === 404) continue
-      if (res.status === 429) throw new Error('Serviço sobrecarregado. Tenta daqui a pouco.')
-      throw new Error(lastErr)
+      const msg = lastErr.toLowerCase()
+      // Erros DEFINITIVOS da chave → parar já (não adianta tentar outros modelos):
+      if (msg.includes('api key not valid') || msg.includes('api_key_invalid') || msg.includes('permission') && msg.includes('denied'))
+        throw new Error('Chave Gemini inválida ou sem permissões. Verifica a GEMINI_API_KEY e se a Generative Language API está ativada no projeto Google.')
+      // 404 (modelo não existe p/ esta chave) ou 400 (modelo não suporta) → tenta o próximo modelo
+      if (res.status === 404 || res.status === 400) continue
+      if (res.status === 429) { lastErr = 'quota/limite atingido'; continue }
+      // outros (403, 5xx) → tenta o próximo também, antes de desistir
+      continue
     } catch (e: any) {
+      if (e?.message?.includes('Chave Gemini inválida')) throw e
       lastErr = e?.message || lastErr
       if (e?.name === 'TimeoutError') continue
-      // se foi erro de modelo inexistente continuamos; outros erros propagam após tentar todos
+      continue
     }
   }
-  throw new Error(`Análise indisponível: ${lastErr}`)
+  throw new Error(`Análise por imagem indisponível (${lastErr}). Tenta novamente; se persistir, a chave Gemini pode estar sem acesso a modelos de visão.`)
 }
 
 export async function callGeminiVisionJSON<T>(

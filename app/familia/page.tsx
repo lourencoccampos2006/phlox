@@ -106,6 +106,18 @@ export default function FamiliaPage() {
       </div>
 
       <div className="page-container page-body">
+        {/* Atalho: Portal Família (lar) — comunicar com a instituição do ente querido */}
+        <Link href="/portal-familia" style={{ textDecoration: 'none', display: 'block', marginBottom: 16 }}>
+          <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>💬</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e40af' }}>O seu familiar está num lar?</div>
+              <div style={{ fontSize: 12.5, color: '#3b5bdb', lineHeight: 1.45 }}>Entre no Portal Família com o código que a instituição lhe deu — veja atualizações, fotos e fale com a equipa.</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e40af" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </Link>
+
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 12 }} />)}
