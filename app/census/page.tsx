@@ -39,13 +39,29 @@ export default function CensusPage() {
   const [totalBeds, setTotalBeds] = useState(30)
   const [showConfig, setShowConfig] = useState(false)
 
+  // Estado manual de quartos vazios (manutenção/reservado) — por dispositivo
+  const [roomOverrides, setRoomOverrides] = useState<Record<string, 'maintenance' | 'reserved'>>({})
+
   useEffect(() => {
     const stored = localStorage.getItem('phlox-total-beds')
     if (stored) { const n = parseInt(stored); if (!isNaN(n)) setTotalBeds(n) }
+    try { const o = localStorage.getItem('phlox-room-overrides'); if (o) setRoomOverrides(JSON.parse(o)) } catch { /* ignore */ }
   }, [])
   const updateTotalBeds = (n: number) => {
     setTotalBeds(n)
     try { localStorage.setItem('phlox-total-beds', String(n)) } catch { /* ignore */ }
+  }
+  // Ciclo: disponível → manutenção → reservado → disponível (só para quartos vazios)
+  const cycleRoomStatus = (num: string) => {
+    setRoomOverrides(prev => {
+      const cur = prev[num]
+      const next = { ...prev }
+      if (!cur) next[num] = 'maintenance'
+      else if (cur === 'maintenance') next[num] = 'reserved'
+      else delete next[num]
+      try { localStorage.setItem('phlox-room-overrides', JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
   }
 
   const load = useCallback(async () => {
@@ -78,7 +94,7 @@ export default function CensusPage() {
       number: num,
       capacity: 1,
       resident,
-      status: resident ? 'occupied' : 'available',
+      status: resident ? 'occupied' : (roomOverrides[num] || 'available'),
     }
   })
 
@@ -95,13 +111,19 @@ export default function CensusPage() {
     status: 'occupied' as const,
   }))
 
+  // contar overrides apenas em quartos vazios dentro do range
+  const emptyOverrides = Object.entries(roomOverrides).filter(([num]) => {
+    const n = parseInt(num); return !isNaN(n) && n <= totalBeds && !occupiedRooms.has(num)
+  })
+  const blocked = emptyOverrides.length  // manutenção + reservado
   const stats = {
     total: totalBeds,
     occupied: occupiedRooms.size,
-    available: totalBeds - occupiedRooms.size,
+    available: Math.max(0, totalBeds - occupiedRooms.size - blocked),
     occupancyPct: totalBeds > 0 ? Math.round((occupiedRooms.size / totalBeds) * 100) : 0,
     withoutRoom: patients.filter(p => !p.room_number).length,
     totalResidents: patients.length,
+    blocked,
   }
 
   const allRooms = [...rooms, ...extraRooms]
@@ -155,6 +177,7 @@ export default function CensusPage() {
               {[
                 { v: stats.occupied, l: 'Ocupadas', c: '#1d4ed8', bg: '#eff6ff' },
                 { v: stats.available, l: 'Disponíveis', c: '#16a34a', bg: '#f0fdf4' },
+                ...(stats.blocked > 0 ? [{ v: stats.blocked, l: 'Bloqueadas', c: '#dc2626', bg: '#fef2f2' }] : []),
                 { v: stats.withoutRoom, l: 'Sem quarto', c: '#d97706', bg: '#fffbeb' },
               ].map(s => (
                 <div key={s.l} style={{ textAlign: 'center', background: s.bg, borderRadius: 8, padding: '8px 14px' }}>
@@ -195,8 +218,12 @@ export default function CensusPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(110px,1fr))', gap: 8 }}>
             {filtered.map(room => {
               const sc = STATUS_CFG[room.status]
+              const empty = !room.resident
               return (
-                <div key={room.number} style={{ background: sc.bg, border: `1.5px solid ${sc.border}`, borderRadius: 10, padding: '10px 12px', minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div key={room.number}
+                  onClick={empty ? () => cycleRoomStatus(room.number) : undefined}
+                  title={empty ? 'Tocar para alternar: Disponível → Manutenção → Reservado' : undefined}
+                  style={{ background: sc.bg, border: `1.5px solid ${sc.border}`, borderRadius: 10, padding: '10px 12px', minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: empty ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: sc.color }}>Q{room.number}</span>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: sc.color, flexShrink: 0 }} />
@@ -209,7 +236,7 @@ export default function CensusPage() {
                       {room.resident.age && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', marginTop: 2 }}>{room.resident.age}a</div>}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 10, color: sc.color, fontWeight: 500 }}>{sc.label}</div>
+                    <div style={{ fontSize: 10, color: sc.color, fontWeight: 600 }}>{sc.label}{room.status !== 'available' ? ' ·' : ''} <span style={{ fontWeight: 400, opacity: 0.7 }}>{room.status === 'available' ? 'tocar p/ alterar' : ''}</span></div>
                   )}
                 </div>
               )

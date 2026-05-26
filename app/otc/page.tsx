@@ -55,7 +55,7 @@ function PhotoCapture({ onCapture, loading = false }: {
           Foto de erupção, embalagem, ferida, etc.
         </div>
       </div>
-      <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
     </div>
   )

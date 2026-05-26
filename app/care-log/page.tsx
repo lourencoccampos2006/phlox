@@ -135,6 +135,23 @@ export default function CareLogPage() {
     setNotes('')
   }
 
+  // Último registo do residente selecionado (para pré-preenchimento)
+  const lastRecord = patientId ? records.find(r => r.patient_id === patientId) : null
+  function prefillFromLast() {
+    const r = lastRecord; if (!r) return
+    const v = r.vitals || {}, n = r.nutrition || {}, c = r.continence || {}, m = r.mood || {}, s = r.skin || {}
+    setBpSys(v.bp_sys != null ? String(v.bp_sys) : ''); setBpDia(v.bp_dia != null ? String(v.bp_dia) : '')
+    setHr(v.hr != null ? String(v.hr) : ''); setTemp(v.temp != null ? String(v.temp) : '')
+    setSpo2(v.spo2 != null ? String(v.spo2) : ''); setGlucose(v.glucose != null ? String(v.glucose) : '')
+    setWeight(v.weight != null ? String(v.weight) : '')
+    setBreakfast(n.breakfast ?? null); setLunch(n.lunch ?? null); setDinner(n.dinner ?? null)
+    setFluidMl(n.fluid_ml != null ? String(n.fluid_ml) : ''); setAppetite(n.appetite || '')
+    setUrinary(c.urinary || ''); setBowel(c.bowel || '')
+    setMood(m.level ?? null); setActivities(m.activities || ''); setBehavior(m.behavior || '')
+    setSkin(s.integrity || ''); setSkinNotes(s.description || '')
+    // notas NÃO se copiam — cada turno tem as suas
+  }
+
   async function save() {
     if (!user || !patientId) return
     setSaving(true)
@@ -231,6 +248,12 @@ export default function CareLogPage() {
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp()} />
               </div>
             </div>
+            {patientId && lastRecord && (
+              <button onClick={prefillFromLast} type="button"
+                style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 8, border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                ⤵ Copiar do último registo <span style={{ fontWeight: 400, color: '#6b7280' }}>({lastRecord.date}{lastRecord.shift ? ` · ${SHIFTS[lastRecord.shift as Shift]?.label || lastRecord.shift}` : ''})</span>
+              </button>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Turno</label>

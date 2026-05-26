@@ -39,8 +39,14 @@ export const TOOLS: Tool[] = [
 
   // ── Perceber ──
   { id: '/ai',           label: 'Tirar uma dúvida de saúde',     desc: 'Assistente Phlox',                 category: 'understand', modes: ['personal', 'caregiver', 'student'], default: ['personal'], plan: 'free_limited' },
+  { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Foto da caixa → explicação simples', category: 'understand', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/receita',      label: 'Decifrar a receita médica',     desc: 'Foto da receita → tomas explicadas', category: 'understand', modes: ['personal', 'caregiver'], default: ['caregiver'], plan: 'free_limited' },
   { id: '/bula',         label: 'Perceber uma bula',             desc: 'Texto técnico em linguagem simples', category: 'understand', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/labs',         label: 'Perceber as minhas análises',   desc: 'O que cada valor significa',       category: 'understand', modes: ['personal', 'caregiver'], plan: 'free_limited' },
+
+  // ── A minha saúde (novas) ──
+  { id: '/triagem',      label: 'Devo ir ao médico?',            desc: 'Orientação: casa, médico ou urgências', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/preventivo',   label: 'Estou em dia com a saúde?',     desc: 'Vacinas e rastreios por idade',    category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'Gerir os perfis da família',    desc: 'Um perfil por familiar',           category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'free' },

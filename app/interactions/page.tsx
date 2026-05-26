@@ -47,7 +47,7 @@ function PhotoCapture({ onCapture, loading = false }: {
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 2 }}>{loading ? 'A processar...' : '📷 Foto da caixa / blister'}</div>
         <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>Tira foto à caixa e identificamos o medicamento</div>
       </div>
-      <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
     </div>
   )

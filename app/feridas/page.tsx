@@ -495,7 +495,7 @@ export default function FeridasPage() {
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px', border: '1.5px dashed var(--border)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink-4)', fontSize: 13 }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                     Tirar / escolher foto
-                    <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
                       onChange={e => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setPhotoPreview(URL.createObjectURL(f)) } }} />
                   </label>
                 )}

@@ -245,6 +245,30 @@ export default function EquipaPage() {
     setShifts(p => p.filter(s => s.id !== id))
   }
 
+  const [copying, setCopying] = useState(false)
+  // Copia a escala da semana anterior para esta (escalas repetem-se → poupa imenso tempo)
+  async function copyPreviousWeek() {
+    if (!user || copying) return
+    const prevStart = new Date(weekDates[0]); prevStart.setDate(prevStart.getDate() - 7)
+    const prevEnd = new Date(weekDates[6]); prevEnd.setDate(prevEnd.getDate() - 7)
+    setCopying(true)
+    try {
+      const { data: prev } = await supabase.from('shift_assignments').select('team_member_id,date,shift,notes')
+        .eq('user_id', user.id).gte('date', fmt(prevStart)).lte('date', fmt(prevEnd))
+      if (!prev || prev.length === 0) { alert('A semana anterior não tem escala para copiar.'); return }
+      // chaves já existentes nesta semana (evitar duplicar)
+      const existing = new Set(shifts.map(s => `${s.team_member_id}|${s.date}|${s.shift}`))
+      const rows = prev.map((p: any) => {
+        const d = new Date(p.date + 'T12:00:00'); d.setDate(d.getDate() + 7)
+        return { user_id: user.id, team_member_id: p.team_member_id, date: fmt(d), shift: p.shift, notes: p.notes || null }
+      }).filter((r: any) => !existing.has(`${r.team_member_id}|${r.date}|${r.shift}`))
+      if (rows.length === 0) { alert('Esta semana já tem a escala da semana anterior.'); return }
+      const { error } = await supabase.from('shift_assignments').insert(rows)
+      if (!error) load()
+      else alert('Não foi possível copiar: ' + error.message)
+    } finally { setCopying(false) }
+  }
+
   function byDayShift(date: string, sk: Shift) { return shifts.filter(s => s.date === date && s.shift === sk) }
 
   const gaps = weekDates.filter(d => SHIFTS.some(sk => byDayShift(fmt(d), sk).length === 0)).length
@@ -465,6 +489,10 @@ export default function EquipaPage() {
                 <button onClick={() => setWeekBase(new Date())}
                   style={{ padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 6, background: 'white', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>
                   Hoje
+                </button>
+                <button onClick={copyPreviousWeek} disabled={copying} title="Copiar a escala da semana anterior"
+                  style={{ padding: '5px 11px', border: '1px solid #bfdbfe', borderRadius: 6, background: '#eff6ff', fontSize: 11, fontWeight: 700, cursor: copying ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', color: '#2563eb' }}>
+                  {copying ? 'A copiar…' : '⤵ Copiar semana anterior'}
                 </button>
               </div>
               <div style={{ display: 'flex', gap: 16 }}>

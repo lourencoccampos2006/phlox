@@ -295,7 +295,7 @@ export default function FamilyPortalPage() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                     <label style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 10, border: `1.5px solid ${photo ? '#2563eb' : '#e5e7eb'}`, background: photo ? '#eff6ff' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 20 }} title="Anexar foto">
                       📷
-                      <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
                     </label>
                     <textarea value={text} onChange={e => setText(e.target.value)} rows={1} placeholder={`Mensagem à equipa de ${active.name.split(' ')[0]}…`}
                       style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />

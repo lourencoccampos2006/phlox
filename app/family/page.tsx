@@ -872,7 +872,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
                 {(mode === 'message' || mode === 'update') && (
                   <label style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 9, border: `1.5px solid ${photo ? '#2563eb' : '#e5e7eb'}`, background: photo ? '#eff6ff' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18 }} title="Anexar foto">
                     📷
-                    <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
                   </label>
                 )}
                 <textarea value={text} onChange={e => setText(e.target.value)} rows={1}

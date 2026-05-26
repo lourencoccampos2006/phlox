@@ -154,7 +154,7 @@ Omeprazol 20mg
                 <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>Tirar/seleccionar foto</div>
                 <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>JPG, PNG — receita ou caixa do medicamento</div>
               </div>
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleImage(f) }} />
             </div>
 

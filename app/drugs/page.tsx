@@ -232,7 +232,7 @@ export default function DrugsPage() {
               </svg>
               {photoLoading ? 'A identificar medicamento...' : 'Tirar foto à caixa para identificar'}
             </button>
-            <input id="drug-photo-input" type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+            <input id="drug-photo-input" type="file" accept="image/*" style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) handleDrugPhoto(f) }} />
           </div>
           {suggestions.length > 0 && (

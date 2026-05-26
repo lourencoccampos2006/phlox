@@ -1078,7 +1078,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
             <div style={{ padding: 20 }}>
               {/* Captura/upload */}
               <label style={{ display: 'block', border: `1.5px dashed ${rxPhoto ? '#4338ca' : 'var(--border)'}`, borderRadius: 12, padding: rxPhoto ? 10 : '28px 16px', textAlign: 'center', cursor: 'pointer', background: rxPhoto ? '#f5f3ff' : 'var(--bg-2)' }}>
-                <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                <input type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) { setRxPhoto(f); setRxResult(null); setRxErr('') } }} />
                 {rxPhoto ? (
                   <div style={{ fontSize: 13, color: '#4338ca', fontWeight: 600 }}>📄 {rxPhoto.name} · toca para trocar</div>

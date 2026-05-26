@@ -1098,8 +1098,8 @@ export default function MyMedsPage() {
                 </div>
               </div>
 
-              {/* hidden file input — capture=environment abre câmara no mobile */}
-              <input ref={scanInputRef} type="file" accept="image/*" capture="environment"
+              {/* hidden file input — abre câmara OU galeria/ficheiros no mobile */}
+              <input ref={scanInputRef} type="file" accept="image/*"
                 style={{ display:'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) scanPrescription(f); e.target.value = '' }} />
 
