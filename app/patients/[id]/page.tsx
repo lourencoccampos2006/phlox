@@ -265,8 +265,12 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       }
     })
     const { data } = await supabase.from('patient_meds').insert(rows).select()
-    if (data) setMeds(p => [...data, ...p])
+    let merged = meds
+    if (data) { merged = [...data, ...meds]; setMeds(merged) }
     setRxAdding(false); setRxOpen(false); setRxPhoto(null); setRxResult(null); setRxSel({})
+    // Após adicionar, corre logo a análise de interações/STOPP do perfil atualizado
+    setTab('overview')
+    analyzeProfile(merged)
   }
 
   const removeMed = async (id: string) => {
@@ -274,8 +278,9 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     setMeds(p => p.filter(m => m.id !== id))
   }
 
-  const analyzeProfile = async () => {
-    if (meds.length < 2 || !patientId) return
+  const analyzeProfile = async (medsOverride?: any[]) => {
+    const medList = medsOverride || meds
+    if (medList.length < 2 || !patientId) return
     setAnalyzing(true)
     try {
       const { data: sd } = await supabase.auth.getSession()
@@ -283,7 +288,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
       const res = await fetch('/api/patients/analyze', {
         method: 'POST', headers,
-        body: JSON.stringify({ patient, medications: meds })
+        body: JSON.stringify({ patient, medications: medList })
       })
       const data = await res.json()
       if (res.ok && data.alerts) {
@@ -641,7 +646,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
 
             {/* Analyze button */}
             {meds.length >= 2 && (
-              <button onClick={analyzeProfile} disabled={analyzing}
+              <button onClick={() => analyzeProfile()} disabled={analyzing}
                 style={{ width: '100%', padding: '14px', background: analyzing ? 'var(--bg-3)' : '#1d4ed8', color: analyzing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: analyzing ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', transition: 'background 0.15s' }}>
                 {analyzing ? 'A analisar perfil...' : `Analisar ${meds.length} medicamentos — detectar alertas →`}
               </button>

@@ -294,6 +294,10 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo
         </button>
+        {/* Pesquisar residente (abre a paleta) — sempre visível */}
+        <button onClick={() => window.dispatchEvent(new Event('phlox:cmdk'))} title="Pesquisar residente" aria-label="Pesquisar" style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, border: '1px solid #e6e8eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
         <span style={{ flexShrink: 0 }}><NotificationBell /></span>
         {/* Sair (sempre visível, mobile + desktop) */}
         <button onClick={() => signOut()} title="Sair" aria-label="Sair" style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, border: '1px solid #fecaca', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
