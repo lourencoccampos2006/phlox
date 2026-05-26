@@ -58,18 +58,28 @@ export default function HidratacaoPage() {
     setSaving(false); setBowelFor(null); load()
   }
 
+  // Meta proporcional à hora do dia (entre as 8h e as 21h): evita alarme falso de manhã.
+  function expectedByNow(): number {
+    const h = new Date().getHours()
+    if (h < 8) return 0
+    if (h >= 21) return FLUID_GOAL
+    return Math.round(FLUID_GOAL * ((h - 8) / (21 - 8)))
+  }
+  const expected = expectedByNow()
+
   const rows = patients.map(p => {
     const fluid = fluidToday(p.id)
     const lb = lastBowel(p.id)
-    const dehydration = fluid < 1000 // alerta se < 1000ml até agora
+    // "Atrasado" = está abaixo de 70% do esperado para esta hora (e já passou das 10h)
+    const behind = expected > 0 && new Date().getHours() >= 10 && fluid < expected * 0.7
     const constipation = lb.days != null && lb.days >= 3
-    return { p, fluid, lb, dehydration, constipation, alert: constipation || (lb.days === null) }
+    return { p, fluid, lb, dehydration: behind, constipation, alert: constipation || (lb.days === null) }
   })
   const filtered = rows.filter(r => !search || r.p.name.toLowerCase().includes(search.toLowerCase()))
-  filtered.sort((a, b) => Number(b.constipation) - Number(a.constipation) || a.fluid - b.fluid || a.p.name.localeCompare(b.p.name))
+  filtered.sort((a, b) => Number(b.constipation) - Number(a.constipation) || Number(b.dehydration) - Number(a.dehydration) || a.fluid - b.fluid || a.p.name.localeCompare(b.p.name))
 
   const stats = {
-    lowFluid: rows.filter(r => r.fluid < 1000).length,
+    lowFluid: rows.filter(r => r.dehydration).length,
     constip: rows.filter(r => r.constipation).length,
     noBowelData: rows.filter(r => r.lb.days === null).length,
   }
@@ -94,7 +104,7 @@ export default function HidratacaoPage() {
           <>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
               {[
-                { n: stats.lowFluid, l: 'Ingestão baixa hoje', c: '#2563eb', bg: '#eff6ff', bd: '#bfdbfe' },
+                { n: stats.lowFluid, l: 'Atrasados na hidratação', c: '#d97706', bg: '#fffbeb', bd: '#fde68a' },
                 { n: stats.constip, l: 'Sem dejeção ≥3 dias', c: '#dc2626', bg: '#fef2f2', bd: '#fca5a5' },
                 { n: stats.noBowelData, l: 'Sem registo de dejeção', c: '#64748b', bg: 'white', bd: 'var(--border)' },
               ].map(s => (
@@ -111,11 +121,11 @@ export default function HidratacaoPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 12 }} />)}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {filtered.map(({ p, fluid, lb, constipation }) => {
+                {filtered.map(({ p, fluid, lb, constipation, dehydration }) => {
                   const pct = Math.min(100, Math.round((fluid / FLUID_GOAL) * 100))
-                  const fluidColor = fluid >= FLUID_GOAL ? '#16a34a' : fluid >= 1000 ? '#2563eb' : '#d97706'
+                  const fluidColor = fluid >= FLUID_GOAL ? '#16a34a' : dehydration ? '#d97706' : '#2563eb'
                   return (
-                    <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${constipation ? '#dc2626' : 'var(--border)'}`, borderRadius: 10, padding: '12px 16px' }}>
+                    <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${constipation ? '#dc2626' : dehydration ? '#d97706' : 'var(--border)'}`, borderRadius: 10, padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 140 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name} {p.room_number && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontWeight: 400 }}>Q{p.room_number}</span>}</div>
@@ -135,8 +145,8 @@ export default function HidratacaoPage() {
                         </div>
                         {/* Quick actions */}
                         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-                          {[150, 250].map(ml => (
-                            <button key={ml} onClick={() => addFluid(p.id, ml)} style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+{ml}ml</button>
+                          {[150, 250, 500].map(ml => (
+                            <button key={ml} onClick={() => addFluid(p.id, ml)} style={{ padding: '7px 9px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+{ml}</button>
                           ))}
                           <button onClick={() => setBowelFor(bowelFor === p.id ? null : p.id)} style={{ padding: '7px 11px', borderRadius: 8, border: `1px solid ${bowelFor === p.id ? '#0d6e42' : 'var(--border)'}`, background: bowelFor === p.id ? '#eef6f1' : 'white', color: bowelFor === p.id ? '#0d6e42' : 'var(--ink-3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Dejeção</button>
                         </div>

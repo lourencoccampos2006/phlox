@@ -15,18 +15,21 @@ export async function POST(req: NextRequest) {
   const image = body?.image as string | undefined
   const mimeType = String(body?.mimeType || 'image/jpeg')
 
-  // If image provided, use Gemini to describe the symptom first
+  // Se vier imagem, descreve o que se vê (sintoma visível). Linguagem objetiva,
+  // sem diagnosticar a partir da foto — só descrever, para o passo seguinte decidir.
   let effectiveSymptom = symptom
   if (image && !symptom) {
     try {
       const description = await callGeminiVision(
-        'Descreve em português o que vês nesta imagem relacionado com saúde — sintoma visível, erupção, ferida, medicamento, etc. Sê conciso (1-2 frases).',
-        image, mimeType, { maxTokens: 150 }
+        'Descreve OBJETIVAMENTE em português apenas o que é visível nesta imagem relacionado com saúde (ex: "erupção avermelhada no antebraço", "embalagem de paracetamol"). NÃO faças diagnóstico nem adivinhes a causa. Se não for claro, diz "não é possível identificar". Máx 1 frase.',
+        image, mimeType, { maxTokens: 120 }
       )
       effectiveSymptom = description.trim()
     } catch (e) {
       effectiveSymptom = 'sintoma não identificado'
     }
+    if (/não é possível identificar|nao e possivel/i.test(effectiveSymptom))
+      return NextResponse.json({ error: 'Não consegui perceber o sintoma na foto. Descreve por palavras.' }, { status: 400 })
   }
 
   try {
@@ -67,9 +70,9 @@ Regras:
       },
       {
         role: 'user',
-        content: `Sintoma: ${symptom}`,
+        content: `Sintoma: ${effectiveSymptom}`,
       },
-    ], { maxTokens: 1200, temperature: 0.1 })
+    ], { maxTokens: 1200, temperature: 0 })
 
     return NextResponse.json(result)
   } catch (err: any) {

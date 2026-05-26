@@ -1,9 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiJSON, callGeminiVision } from '@/lib/ai'
+import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
+import { resolveDrugName } from '@/lib/drugNames'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
-// "O que é este medicamento?" — explica um medicamento em linguagem simples,
-// para pessoas sem formação clínica. Aceita nome OU foto da caixa.
+// "O que é este medicamento?" — explicação simples e CONSISTENTE.
+// Estrutura única: nome, princípio ativo e foto convergem no mesmo esquema.
+// Anti-alucinação: temperature 0, regras estritas, confiança honesta.
+
+const SCHEMA = `{
+  "identified": "nome comercial reconhecido (ou o princípio ativo se for esse o input)",
+  "active": "princípio ativo (DCI) — string única e correta",
+  "what_it_is": "classe terapêutica explicada em 1 frase simples (ex: 'um anti-inflamatório que alivia dores e baixa a febre')",
+  "what_it_treats": ["indicação concreta e correta", "..."],
+  "symptoms": ["sintoma típico para que é usado", "..."],
+  "how_to_take": "como se costuma tomar, linguagem simples",
+  "prescription": "sem receita | com receita médica | com receita médica especial",
+  "common_side_effects": ["efeito secundário comum"],
+  "cautions": ["cuidado importante"],
+  "avoid_if": ["situação em que não deve tomar sem falar com médico"],
+  "good_to_know": "dica prática (1 frase)",
+  "confidence": "alta | media | baixa"
+}`
+
+const RULES = `REGRAS CRÍTICAS (a tua resposta tem de ser factualmente correta):
+- Baseia-te SÓ no princípio ativo. Identifica primeiro a substância ativa (DCI) e responde a partir dela — é a substância que determina para que serve, NÃO o nome comercial.
+- Se NÃO tiveres a certeza absoluta de qual é o medicamento ou a sua substância ativa: confidence="baixa", NÃO inventes indicações, e em "good_to_know" diz para confirmar na farmácia. É MUITO melhor admitir incerteza do que indicar uma utilização errada.
+- NUNCA adivinhes a indicação a partir do som/nome do medicamento.
+- "what_it_treats" tem de corresponder às indicações reais e aprovadas da substância ativa em Portugal (Infomed/folheto).
+- Linguagem de quem fala com um familiar, simples, PT-PT, sem jargão por explicar.
+- Responde APENAS com JSON válido, sem markdown.`
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
@@ -13,57 +38,42 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body?.name && !body?.image) return NextResponse.json({ error: 'Nome ou foto obrigatório' }, { status: 400 })
 
-  let name = String(body?.name || '').trim().slice(0, 120)
+  const name = String(body?.name || '').trim().slice(0, 120)
   const image = body?.image as string | undefined
   const mimeType = String(body?.mimeType || 'image/jpeg')
 
-  // Foto da caixa → extrair o nome/substância primeiro
-  if (image && !name) {
-    try {
-      name = (await callGeminiVision(
-        'Esta é a foto de uma embalagem/caixa de medicamento. Indica APENAS o nome do medicamento e a dosagem que vês (ex: "Ben-u-ron 1000 mg"). Se não conseguires ler, responde "ilegível".',
-        image, mimeType, { maxTokens: 60 }
-      )).trim().replace(/^["']|["']$/g, '')
-    } catch {
-      return NextResponse.json({ error: 'Não foi possível ler a caixa. Tenta uma foto mais nítida ou escreve o nome.' }, { status: 400 })
-    }
-    if (/ileg[íi]vel/i.test(name) || name.length < 2) return NextResponse.json({ error: 'Não consegui identificar o medicamento na foto. Escreve o nome.' }, { status: 400 })
-  }
-
   try {
-    const result = await aiJSON<any>([
-      {
-        role: 'system',
-        content: `És um farmacêutico português que explica medicamentos a pessoas SEM formação em saúde, de forma simples, calorosa e clara. Usa português de Portugal. NUNCA uses jargão sem explicar.
+    let result: any
 
-Responde APENAS com JSON válido (sem markdown):
-{
-  "identified": "nome e dosagem do medicamento conforme reconhecido",
-  "active": "substância ativa em linguagem simples",
-  "what_it_is": "o que é, em 1 frase simples (ex: 'um analgésico e antipirético, ou seja, tira dores e baixa a febre')",
-  "what_it_treats": ["doença ou problema concreto que trata", "..."],
-  "symptoms": ["sintoma para o qual costuma ser usado", "..."],
-  "how_to_take": "como se costuma tomar, em linguagem simples (ex: 'um comprimido com água, podendo repetir de 8 em 8 horas')",
-  "prescription": "sem receita | com receita médica | com receita médica especial",
-  "common_side_effects": ["efeito secundário comum e como é sentido"],
-  "cautions": ["cuidado importante para o utente (ex: 'não tomar com álcool', 'cuidado se tem problemas no fígado')"],
-  "avoid_if": ["situação em que NÃO deve tomar sem falar com o médico"],
-  "good_to_know": "uma dica prática ou tranquilizadora, 1 frase",
-  "confidence": "alta | media | baixa"
-}
+    if (image && !name) {
+      // ── FOTO: um único passo de visão. A IA lê a caixa INTEIRA (nome, dosagem,
+      //    substância ativa e indicações impressas) e responde já com o esquema. ──
+      const prompt = `És um farmacêutico português. Esta é a foto de uma embalagem de medicamento.
+Lê com atenção TODO o texto visível: nome comercial, dosagem, e sobretudo a SUBSTÂNCIA ATIVA / princípio ativo (geralmente em letras pequenas, ex: "ibuprofeno", "paracetamol"). A substância ativa é o que determina para que serve.
+Se a caixa estiver ilegível ou não for um medicamento, devolve confidence="baixa" e deixa "what_it_treats" vazio.
 
-Regras:
-- Linguagem de quem fala com um familiar, não com um médico.
-- Sê concreto sobre QUE doenças/sintomas trata.
-- Em "prescription", diz claramente se precisa de receita em Portugal.
-- Se não reconheceres o medicamento com segurança, confidence="baixa" e diz no "good_to_know" para confirmar na farmácia.
-- Termina sempre lembrando que isto é informação geral e não substitui o farmacêutico/médico (mete isso no "good_to_know").`,
-      },
-      { role: 'user', content: `Medicamento: ${name}` },
-    ], { maxTokens: 1100, temperature: 0.15 })
+Explica para uma pessoa sem formação clínica. ${RULES}
 
-    return NextResponse.json({ ...result, queried: name })
+Esquema:
+${SCHEMA}`
+      result = await callGeminiVisionJSON<any>(prompt, image, mimeType, { maxTokens: 1200 })
+    } else {
+      // ── NOME ou PRINCÍPIO ATIVO: resolve marca→DCI localmente como pista, depois texto. ──
+      const resolved = resolveDrugName(name)
+      const hint = resolved ? `\n\nPista (base local PT): o nome "${name}" corresponde provavelmente ao princípio ativo "${resolved.dci}". Confirma com o teu conhecimento; se não bater certo, ignora a pista.` : ''
+      result = await aiJSON<any>([
+        { role: 'system', content: `És um farmacêutico português que explica medicamentos a pessoas sem formação clínica, com rigor factual.\n\n${RULES}\n\nEsquema:\n${SCHEMA}` },
+        { role: 'user', content: `Medicamento ou princípio ativo: "${name}".${hint}\n\nIdentifica o princípio ativo e explica a partir dele.` },
+      ], { maxTokens: 1100, temperature: 0 })
+    }
+
+    if (!result || typeof result !== 'object') throw new Error('Resposta inválida')
+    return NextResponse.json({
+      ...result,
+      queried: name || result.identified || '',
+      disclaimer: 'Informação geral de apoio — confirma sempre com o teu farmacêutico ou médico.',
+    })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Erro. Tenta novamente.' }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Não foi possível. Tenta com o nome escrito ou uma foto mais nítida.' }, { status: 500 })
   }
 }

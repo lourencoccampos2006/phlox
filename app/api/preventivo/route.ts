@@ -43,7 +43,7 @@ Regras:
 - Linguagem simples, encorajadora, sem alarmismo.${conditions ? `\n\nCondições: ${conditions}` : ''}`,
       },
       { role: 'user', content: `Idade: ${age}. Sexo: ${sex || 'não indicado'}.` },
-    ], { maxTokens: 1200, temperature: 0.15 })
+    ], { maxTokens: 1200, temperature: 0 })
     return NextResponse.json(result)
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro. Tenta novamente.' }, { status: 500 })

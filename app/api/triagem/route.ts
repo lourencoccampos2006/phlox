@@ -45,7 +45,7 @@ Regras:
 - Linguagem simples, sem termos técnicos.${ctx ? `\n\nContexto: ${ctx}` : ''}`,
       },
       { role: 'user', content: complaint },
-    ], { maxTokens: 900, temperature: 0.1 })
+    ], { maxTokens: 900, temperature: 0 })
     return NextResponse.json(result)
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro. Tenta novamente.' }, { status: 500 })

@@ -49,14 +49,17 @@ Devolve APENAS JSON válido com esta estrutura exacta:
     "idosos": "ajuste de dose/risco/precauções",
     "gravidas": "seguro/contraindicado/categoria de risco"
   },
-  "interacoes": ["lista de interações com álcool, alimentos e medicamentos comuns (máx 5)"]
-}`,
+  "interacoes": ["lista de interações com álcool, alimentos e medicamentos comuns (máx 5)"],
+  "confidence": "alta | media | baixa"
+}
+
+RIGOR: Identifica primeiro o princípio ativo (DCI) e responde a partir dele — é a substância que determina para que serve. Se te derem só um nome e NÃO tiveres a certeza de qual é o medicamento/substância, confidence="baixa" e NÃO inventes "para_que_serve"; diz para confirmar na farmácia. Nunca adivinhes a utilização pelo som do nome. Se te derem o texto completo da bula, baseia-te nele.`,
       },
       {
         role: 'user',
         content: `Traduz esta bula para linguagem simples:\n\n${input}`,
       },
-    ], { maxTokens: 1200, temperature: 0.1 })
+    ], { maxTokens: 1200, temperature: 0 })
 
     return NextResponse.json(result)
   } catch (e: any) {
