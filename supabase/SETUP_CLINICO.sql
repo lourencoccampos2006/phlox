@@ -20,6 +20,11 @@ alter table patients add column if not exists last_review timestamptz;
 alter table patients add column if not exists height numeric;
 alter table patients add column if not exists active boolean default true;
 create index if not exists patients_room_idx on patients(user_id, room_number);
+alter table patients add column if not exists family_code text;  -- portal família (sprint26)
+create unique index if not exists patients_family_code_idx on patients(family_code) where family_code is not null;
+
+-- ── Horário de toma por turno (sprint24) ─────────────────────────────────────
+alter table patient_meds add column if not exists shifts text[];  -- ex: ['manha','noite']; null = todos os turnos
 
 -- ── Onboarding / perfil (sprint17) ───────────────────────────────────────────
 alter table profiles add column if not exists institution_type text;
@@ -140,6 +145,23 @@ alter table documents enable row level security;
 do $$ begin create policy "documents_own" on documents for all using (user_id = auth.uid()); exception when duplicate_object then null; end $$;
 insert into storage.buckets (id, name, public) values ('documents', 'documents', false) on conflict (id) do nothing;
 do $$ begin create policy "documents_rw_own" on storage.objects for all using (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text) with check (bucket_id = 'documents' and (storage.foldername(name))[1] = auth.uid()::text); exception when duplicate_object then null; end $$;
+
+-- ── Phlox Família: fio de conversa lar↔família por residente (sprint25) ───────
+create table if not exists family_thread_messages (
+  id uuid primary key default gen_random_uuid(), user_id uuid references profiles(id) on delete cascade,
+  patient_id uuid references patients(id) on delete cascade,
+  author_side text not null default 'staff', author_name text, contact_id uuid,
+  kind text not null default 'message', content text, photo_url text,
+  mood text, meals text, activity text, metadata jsonb,
+  read_by_family boolean default false, read_by_staff boolean default true, created_at timestamptz default now()
+);
+alter table family_thread_messages enable row level security;
+do $$ begin create policy "family_thread_own" on family_thread_messages for all using (user_id = auth.uid()); exception when duplicate_object then null; end $$;
+create index if not exists family_thread_idx on family_thread_messages(user_id, patient_id, created_at);
+do $$ begin alter publication supabase_realtime add table family_thread_messages; exception when others then null; end $$;
+insert into storage.buckets (id, name, public) values ('family', 'family', true) on conflict (id) do nothing;
+do $$ begin create policy "family_upload_own" on storage.objects for insert with check (bucket_id = 'family' and (storage.foldername(name))[1] = auth.uid()::text); exception when duplicate_object then null; end $$;
+do $$ begin create policy "family_read_public" on storage.objects for select using (bucket_id = 'family'); exception when duplicate_object then null; end $$;
 
 -- ── Storage: bucket de fotos de feridas ──────────────────────────────────────
 insert into storage.buckets (id, name, public) values ('wounds', 'wounds', true) on conflict (id) do nothing;

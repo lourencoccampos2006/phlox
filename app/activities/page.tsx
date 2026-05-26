@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { printDoc } from '@/lib/print'
 
 interface Activity {
   id: string
@@ -140,6 +141,88 @@ export default function ActivitiesPage() {
     }
   }
 
+  async function markAllPresent() {
+    if (!selected) return
+    const existingIds = new Set(participations.map(p => p.patient_id))
+    const toInsert = patients.filter(p => !existingIds.has(p.id)).map(p => ({ activity_id: selected.id, patient_id: p.id, attended: true, user_id: user.id }))
+    const toUpdate = participations.filter(p => !p.attended)
+    if (toUpdate.length) await supabase.from('activity_participations').update({ attended: true }).in('id', toUpdate.map(p => p.id))
+    let inserted: Participation[] = []
+    if (toInsert.length) { const { data } = await supabase.from('activity_participations').insert(toInsert).select(); inserted = data || [] }
+    setParticipations(prev => [...prev.map(p => ({ ...p, attended: true })), ...inserted])
+  }
+
+  async function deleteActivity(act: Activity) {
+    if (!confirm(`Apagar a atividade "${act.title}"? Esta ação não pode ser revertida.`)) return
+    await supabase.from('activity_participations').delete().eq('activity_id', act.id)
+    await supabase.from('activities').delete().eq('id', act.id)
+    setActivities(prev => prev.filter(a => a.id !== act.id))
+    if (selected?.id === act.id) setSelected(null)
+  }
+
+  const [printingReport, setPrintingReport] = useState(false)
+  async function printMonthlyReport() {
+    setPrintingReport(true)
+    try {
+      const m = today.slice(0, 7)
+      const monthActs = activities.filter(a => a.date.slice(0, 7) === m && a.status !== 'cancelled')
+      const ids = monthActs.map(a => a.id)
+      let parts: Participation[] = []
+      if (ids.length) { const { data } = await supabase.from('activity_participations').select('*').in('activity_id', ids); parts = data || [] }
+      const attendedParts = parts.filter(p => p.attended)
+      // por tipo
+      const byType: Record<string, { count: number; attend: number }> = {}
+      monthActs.forEach(a => {
+        byType[a.type] ||= { count: 0, attend: 0 }
+        byType[a.type].count++
+        byType[a.type].attend += attendedParts.filter(p => p.activity_id === a.id).length
+      })
+      // por residente
+      const byPatient: Record<string, number> = {}
+      attendedParts.forEach(p => { byPatient[p.patient_id] = (byPatient[p.patient_id] || 0) + 1 })
+      const lowPart = patients.filter(p => (byPatient[p.id] || 0) <= 1)
+
+      const monthLabel = new Date(today + 'T12:00:00').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+      printDoc({
+        docTitle: 'Relatório Mensal de Animação Sociocultural',
+        docSubtitle: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+        institution: 'Lar / ERPI',
+        meta: [
+          { label: 'atividades', value: String(monthActs.length) },
+          { label: 'participações', value: String(attendedParts.length) },
+          { label: 'média/atividade', value: monthActs.length ? (attendedParts.length / monthActs.length).toFixed(1) : '0' },
+        ],
+        sections: [
+          {
+            heading: 'Atividades por tipo',
+            records: Object.entries(byType).sort((a, b) => b[1].count - a[1].count).map(([type, v]) => ({
+              title: `${typeFor(type).label} — ${v.count} sessõ${v.count !== 1 ? 'es' : 'e'}`,
+              fields: [{ label: 'Participações', value: String(v.attend) }, { label: 'Média', value: (v.attend / v.count).toFixed(1) }],
+            })),
+          },
+          {
+            heading: 'Registo de sessões',
+            records: monthActs.sort((a, b) => a.date.localeCompare(b.date)).map(a => ({
+              title: `${new Date(a.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })} — ${a.title}`,
+              tags: [{ label: typeFor(a.type).label, color: '#334155' }],
+              fields: [
+                { label: 'Hora', value: a.start_time + (a.end_time ? `–${a.end_time}` : '') },
+                { label: 'Presenças', value: String(attendedParts.filter(p => p.activity_id === a.id).length) },
+                ...(a.responsible ? [{ label: 'Dinamizador', value: a.responsible }] : []),
+              ],
+            })),
+          },
+          ...(lowPart.length ? [{
+            heading: 'Residentes com baixa participação (≤1 atividade)',
+            records: [{ title: `${lowPart.length} residente(s)`, bullets: lowPart.map(p => `${p.name}${p.room_number ? ` · Q${p.room_number}` : ''} — ${byPatient[p.id] || 0} participaçõe(s)`) }],
+          }] : []),
+          { heading: 'Validação', records: [{ title: 'Responsável pela animação', fields: [{ label: 'Nome', value: '' }, { label: 'Assinatura', value: '' }, { label: 'Data', value: '' }] }] },
+        ],
+        footerNote: 'Relatório de animação sociocultural · Phlox',
+      })
+    } finally { setPrintingReport(false) }
+  }
+
   const today = todayStr()
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
@@ -171,12 +254,21 @@ export default function ActivitiesPage() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Atividades</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Planeamento e registo de participação dos residentes</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-        >
-          + Nova Atividade
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={printMonthlyReport}
+            disabled={printingReport}
+            style={{ padding: '10px 16px', background: '#fff', color: '#2563eb', border: '1.5px solid #bfdbfe', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+          >
+            {printingReport ? 'A gerar…' : '🖨 Relatório mensal'}
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+          >
+            + Nova Atividade
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -220,7 +312,7 @@ export default function ActivitiesPage() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 360px' : '1fr', gap: 16 }}>
+      <div className="act-grid" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 360px' : '1fr', gap: 16 }}>
         {/* Activity list */}
         <div>
           {loading ? (
@@ -282,7 +374,10 @@ export default function ActivitiesPage() {
                     <div style={{ fontSize: 12, color: t.color, fontWeight: 500 }}>{t.label}</div>
                   </div>
                 </div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 18 }}>×</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button onClick={() => deleteActivity(selected)} title="Apagar atividade" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 14, padding: '2px 6px' }}>🗑</button>
+                  <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 18 }}>×</button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16, fontSize: 13, color: '#374151' }}>
@@ -309,9 +404,11 @@ export default function ActivitiesPage() {
 
               {/* Participations */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Participação</span>
-                  <span style={{ color: '#16a34a' }}>{attendedCount} presentes</span>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Participação · <span style={{ color: '#16a34a' }}>{attendedCount} presentes</span></span>
+                  {patients.length > 0 && (
+                    <button onClick={markAllPresent} style={{ padding: '3px 9px', borderRadius: 5, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}>✓ Todos</button>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {patients.length === 0 ? (
@@ -418,6 +515,12 @@ export default function ActivitiesPage() {
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .act-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }

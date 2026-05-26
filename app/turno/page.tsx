@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 type Tab = 'tarefas' | 'ronda' | 'passagem'
@@ -36,7 +37,6 @@ const PRIO_CFG: Record<Prio, { color: string; bg: string; border: string; dot: s
 function getToday() { return new Date().toISOString().slice(0, 10) }
 function getShift(): Shift { const h = new Date().getHours(); if (h >= 7 && h < 14) return 'manha'; if (h >= 14 && h < 21) return 'tarde'; return 'noite' }
 function roomKey(r?: string | null) { if (!r) return 999999; const n = parseInt(String(r).replace(/[^0-9]/g, '')); return isNaN(n) ? 999998 : n }
-const isHighRisk = (p: Patient) => ['CRITICO', 'ALTO'].includes((p.risk_level || '').toUpperCase()) || p.fall_risk === 'high' || p.pressure_risk === 'high'
 
 export default function TurnoPage() {
   const { user, supabase } = useAuth() as any
@@ -47,6 +47,13 @@ export default function TurnoPage() {
   const [mar, setMar] = useState<MarRec[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
+  // Ecosystem batch → risk engine
+  const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
+  const [woundsByPt, setWoundsByPt] = useState<Record<string, { status: string; stage?: string | null }[]>>({})
+  const [weightsByPt, setWeightsByPt] = useState<Record<string, { date: string; weight: number }[]>>({})
+  const [fluidByPt, setFluidByPt] = useState<Record<string, number>>({})
+  const [bowelByPt, setBowelByPt] = useState<Record<string, number>>({})
+  const [vitalsByPt, setVitalsByPt] = useState<Record<string, any>>({})
 
   const today = getToday()
   const shift = getShift()
@@ -55,24 +62,77 @@ export default function TurnoPage() {
     if (!user) return
     setLoading(true)
     const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
-    const [p, c, m, i, a] = await Promise.all([
+    const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
+    const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
+    const [p, c, m, i, a, meds, w, allCare, hyd] = await Promise.all([
       supabase.from('patients').select('*').eq('user_id', user.id),
       supabase.from('care_records').select('patient_id,shift,date,notes,mood').eq('user_id', user.id).eq('date', today),
       supabase.from('mar_records').select('patient_id,shift,date,status').eq('user_id', user.id).eq('date', today),
       supabase.from('incidents').select('id,patient_id,type,severity,status,date,description').eq('user_id', user.id).neq('status', 'closed'),
       supabase.from('assessments').select('patient_id,scale,date').eq('user_id', user.id).gte('date', since),
+      supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
+      supabase.from('wounds').select('patient_id,status,stage').eq('user_id', user.id),
+      supabase.from('care_records').select('patient_id,date,vitals').eq('user_id', user.id).gte('date', since365),
+      supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml').eq('user_id', user.id).gte('at', since14),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false).sort((a: Patient, b: Patient) => roomKey(a.room_number) - roomKey(b.room_number) || a.name.localeCompare(b.name)))
     setCare(c.data || []); setMar(m.data || []); setIncidents(i.data || []); setAssessments(a.data || [])
+
+    const md: Record<string, string[]> = {}
+    ;(meds.data || []).forEach((x: any) => { (md[x.patient_id] ||= []).push(x.name) })
+    setMedsByPt(md)
+    const wd: Record<string, { status: string; stage?: string | null }[]> = {}
+    ;(w.data || []).forEach((x: any) => { (wd[x.patient_id] ||= []).push({ status: x.status, stage: x.stage }) })
+    setWoundsByPt(wd)
+    const wt: Record<string, { date: string; weight: number }[]> = {}
+    const vitLatest: Record<string, { date: string; v: any }> = {}
+    ;(allCare.data || []).forEach((x: any) => {
+      if (x.vitals?.weight) (wt[x.patient_id] ||= []).push({ date: x.date, weight: Number(x.vitals.weight) })
+      const v = x.vitals
+      if (v && (v.temp != null || v.spo2 != null || v.bp_sys != null || v.hr != null)) {
+        if (!vitLatest[x.patient_id] || x.date > vitLatest[x.patient_id].date) vitLatest[x.patient_id] = { date: x.date, v }
+      }
+    })
+    setWeightsByPt(wt)
+    const vit: Record<string, any> = {}
+    Object.entries(vitLatest).forEach(([pid, { date, v }]) => { if (Date.now() - new Date(date).getTime() <= 3 * 86400000) vit[pid] = { ...v, at: date } })
+    setVitalsByPt(vit)
+    const fl: Record<string, number> = {}; const bLast: Record<string, string> = {}
+    ;(hyd.data || []).forEach((l: any) => {
+      if (l.kind === 'fluid' && l.at.slice(0, 10) === today) fl[l.patient_id] = (fl[l.patient_id] || 0) + (l.fluid_ml || 0)
+      if (l.kind === 'bowel' && (!bLast[l.patient_id] || l.at > bLast[l.patient_id])) bLast[l.patient_id] = l.at
+    })
+    setFluidByPt(fl)
+    const bw: Record<string, number> = {}
+    Object.entries(bLast).forEach(([pid, at]) => { bw[pid] = Math.floor((Date.now() - new Date(at).getTime()) / 86400000) })
+    setBowelByPt(bw)
+
     setLoading(false)
   }, [user, supabase, today])
 
   useEffect(() => { load() }, [load])
 
-  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'wounds', 'hydration_logs', 'patient_meds'], userId: user?.id, onChange: load })
 
   const nameOf = (id: string) => patients.find(p => p.id === id)?.name || 'Residente'
   const roomOf = (id: string) => { const r = patients.find(p => p.id === id)?.room_number; return r ? `Q${r}` : '' }
+
+  // ── Risk map: one analysis per resident, reused across tabs (same engine as Cockpit/ficha) ──
+  const riskByPt: Record<string, { score: number; level: Severity; signals: Signal[]; summary: string }> = {}
+  patients.forEach(p => {
+    riskByPt[p.id] = analyzeResident({
+      age: p.age, conditions: p.conditions, allergies: p.allergies,
+      meds: medsByPt[p.id] || [],
+      incidents: incidents.filter(i => i.patient_id === p.id).map(i => ({ type: i.type, severity: i.severity, status: i.status })),
+      assessments: assessments.filter(a => a.patient_id === p.id).map(a => ({ scale: a.scale, date: a.date })),
+      wounds: woundsByPt[p.id] || [],
+      weightSeries: weightsByPt[p.id] || [],
+      fluidToday: fluidByPt[p.id] ?? null,
+      lastBowelDays: bowelByPt[p.id] ?? null,
+      careLoggedToday: care.some(c => c.patient_id === p.id),
+      latestVitals: vitalsByPt[p.id] ?? null,
+    })
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
@@ -99,9 +159,9 @@ export default function TurnoPage() {
         ) : tab === 'tarefas' ? (
           <TarefasTab patients={patients} care={care} mar={mar} incidents={incidents} assessments={assessments} shift={shift} nameOf={nameOf} roomOf={roomOf} />
         ) : tab === 'ronda' ? (
-          <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} />
+          <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} riskByPt={riskByPt} />
         ) : (
-          <PassagemTab patients={patients} care={care} mar={mar} incidents={incidents} shift={shift} nameOf={nameOf} roomOf={roomOf} />
+          <PassagemTab patients={patients} care={care} mar={mar} incidents={incidents} shift={shift} nameOf={nameOf} roomOf={roomOf} riskByPt={riskByPt} />
         )}
       </div>
     </div>
@@ -193,16 +253,22 @@ function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf
 
 // ─── RONDA ──────────────────────────────────────────────────────────────────
 
-function RondaTab({ patients, shift, today, supabase, user }: any) {
+function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
   const [idx, setIdx] = useState(0)
   const [status, setStatus] = useState<StatusTag | null>(null)
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState<Record<string, StatusTag>>({})
   const [finished, setFinished] = useState(false)
+  const [byRisk, setByRisk] = useState(true)
 
-  const total = patients.length
-  const current = patients[idx]
+  // Ronda priorizada: residentes mais críticos primeiro (motor de ecossistema)
+  const ordered = byRisk
+    ? [...patients].sort((a: Patient, b: Patient) => (riskByPt[b.id]?.score || 0) - (riskByPt[a.id]?.score || 0))
+    : patients
+  const total = ordered.length
+  const current = ordered[idx]
+  const curRisk = current ? riskByPt[current.id] : null
   function reset() { setStatus(null); setNote('') }
   function advance() { reset(); if (idx + 1 >= total) setFinished(true); else setIdx(i => i + 1) }
 
@@ -224,7 +290,7 @@ function RondaTab({ patients, shift, today, supabase, user }: any) {
           <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 4 }}>{Object.keys(done).length} de {total} registados</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-          {patients.map((p: Patient) => {
+          {ordered.map((p: Patient) => {
             const d = done[p.id]; const cfg = d ? STATUS_CFG[d] : null
             return (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
@@ -240,27 +306,54 @@ function RondaTab({ patients, shift, today, supabase, user }: any) {
     )
   }
 
-  const hr = current && isHighRisk(current)
+  const lv = curRisk ? SEVERITY_STYLE[curRisk.level as Severity] : null
+  const attentionSignals: Signal[] = curRisk ? curRisk.signals.filter((s: Signal) => s.severity === 'critical' || s.severity === 'warning') : []
+  const highlight = curRisk && (curRisk.level === 'critical' || curRisk.level === 'warning')
   return (
     <div>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7, alignItems: 'center' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ronda</span>
-          <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>{idx + 1} de {total}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => { setByRisk(v => !v); setIdx(0) }} style={{ fontSize: 11, fontWeight: 600, color: byRisk ? '#0d6e42' : 'var(--ink-4)', background: byRisk ? '#eef6f1' : 'white', border: `1px solid ${byRisk ? '#0d6e42' : 'var(--border)'}`, borderRadius: 7, padding: '4px 9px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {byRisk ? '↓ Por risco' : '↓ Por quarto'}
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>{idx + 1} de {total}</span>
+          </div>
         </div>
         <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.round((idx / total) * 100)}%`, background: '#0d6e42', borderRadius: 3, transition: 'width 0.3s' }} /></div>
       </div>
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', background: hr ? '#fef2f2' : 'var(--bg-2)' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', background: highlight ? lv!.bg : 'var(--bg-2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
             <div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>{current.name}</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>{current.room_number ? `Quarto ${current.room_number}` : 'Sem quarto'}{current.age ? ` · ${current.age} anos` : ''}</div>
             </div>
-            {hr && <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', padding: '3px 10px', borderRadius: 20 }}>Alto risco</span>}
+            {lv && curRisk.level !== 'good' && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: lv.color, background: lv.bg, border: `1px solid ${lv.border}`, padding: '3px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
+                {lv.label} · {curRisk.score}
+              </span>
+            )}
           </div>
-          {current.allergies && <div style={{ marginTop: 12, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12.5, color: '#92400e' }}><strong>Alergias:</strong> {current.allergies}</div>}
+          {attentionSignals.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {attentionSignals.slice(0, 4).map((s: Signal, i: number) => {
+                const ss = SEVERITY_STYLE[s.severity as Severity]
+                return (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '7px 10px', background: ss.bg, border: `1px solid ${ss.border}`, borderRadius: 8 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: ss.color, flexShrink: 0, marginTop: 5 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: ss.color }}>{s.title}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.4 }}>{s.detail}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {current.allergies && !attentionSignals.some((s: Signal) => s.kind === 'allergy') && <div style={{ marginTop: 12, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12.5, color: '#92400e' }}><strong>Alergias:</strong> {current.allergies}</div>}
           {current.conditions && <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--ink-3)' }}>{current.conditions}</div>}
         </div>
         <div style={{ padding: 20 }}>
@@ -288,7 +381,7 @@ function RondaTab({ patients, shift, today, supabase, user }: any) {
 
 // ─── PASSAGEM ───────────────────────────────────────────────────────────────
 
-function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf }: any) {
+function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, riskByPt }: any) {
   const [signedBy, setSignedBy] = useState('')
 
   const careByPt: Record<string, CareRec> = {}
@@ -297,20 +390,25 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf }: 
   incidents.forEach((i: Incident) => { (incByPt[i.patient_id] = incByPt[i.patient_id] || []).push(i) })
   const refusedByPt = new Set(mar.filter((m: MarRec) => m.status === 'refused').map((m: MarRec) => m.patient_id))
 
-  // priority score for ordering
+  // priority order = motor de ecossistema (score), com desempate por med recusada / sem registo
   const scored = patients.map((p: Patient) => {
-    let s = 0
-    if (incByPt[p.id]?.some(i => i.severity === 'critical' || i.severity === 'major')) s += 100
-    if (refusedByPt.has(p.id)) s += 50
-    if (isHighRisk(p)) s += 30
-    if (!careByPt[p.id]) s += 10
+    const r = riskByPt[p.id]
+    let s = (r?.score || 0) * 2
+    if (refusedByPt.has(p.id)) s += 40
+    if (!careByPt[p.id]) s += 8
     return { p, s }
   }).sort((a: any, b: any) => b.s - a.s)
 
   function statusOf(p: Patient): { label: string; color: string } {
-    if (incByPt[p.id]?.some(i => i.severity === 'critical' || i.severity === 'major')) return { label: 'Alerta', color: '#dc2626' }
-    if (refusedByPt.has(p.id) || isHighRisk(p)) return { label: 'Vigiar', color: '#d97706' }
+    const r = riskByPt[p.id]
+    if (r?.level === 'critical') return { label: 'Alerta', color: '#dc2626' }
+    if (r?.level === 'warning' || refusedByPt.has(p.id)) return { label: 'Vigiar', color: '#d97706' }
     return { label: 'Estável', color: '#16a34a' }
+  }
+  const sigBullets = (p: Patient): string[] => {
+    const r = riskByPt[p.id]
+    if (!r) return []
+    return r.signals.filter((s: Signal) => s.severity === 'critical' || s.severity === 'warning').map((s: Signal) => s.title)
   }
 
   function doPrint() {
@@ -324,6 +422,7 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf }: 
       ]
       const bullets: string[] = []
       if (p.allergies) bullets.push(`Alergias: ${p.allergies}`)
+      sigBullets(p).forEach((t: string) => bullets.push(t))
       if (refusedByPt.has(p.id)) bullets.push('Medicação recusada neste turno')
       incs.forEach(i => bullets.push(`Ocorrência: ${INC_LABELS[i.type] || i.type}${i.description ? ' — ' + i.description : ''}`))
       if (!cr) bullets.push('Sem registo diário neste turno')
@@ -368,7 +467,7 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf }: 
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {scored.map(({ p }: any) => {
-          const st = statusOf(p); const cr = careByPt[p.id]; const incs = incByPt[p.id] || []
+          const st = statusOf(p); const cr = careByPt[p.id]
           return (
             <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${st.color}`, borderRadius: 10, padding: '12px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
@@ -378,11 +477,18 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf }: 
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.color + '12', border: `1px solid ${st.color}33`, padding: '2px 9px', borderRadius: 6 }}>{st.label}</span>
               </div>
-              {(p.allergies || incs.length > 0 || refusedByPt.has(p.id) || !cr) && (
+              {sigBullets(p).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                  {(riskByPt[p.id]?.signals || []).filter((s: Signal) => s.severity === 'critical' || s.severity === 'warning').map((s: Signal, i: number) => {
+                    const ss = SEVERITY_STYLE[s.severity as Severity]
+                    return <span key={i} style={{ fontSize: 10.5, fontWeight: 600, color: ss.color, background: ss.bg, border: `1px solid ${ss.border}`, padding: '2px 7px', borderRadius: 5 }}>{s.title}</span>
+                  })}
+                </div>
+              )}
+              {(p.allergies || refusedByPt.has(p.id) || !cr) && (
                 <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: 'var(--ink-3)' }}>
                   {p.allergies && <li style={{ color: '#92400e' }}>Alergias: {p.allergies}</li>}
                   {refusedByPt.has(p.id) && <li style={{ color: '#dc2626' }}>Medicação recusada neste turno</li>}
-                  {incs.map((i: Incident) => <li key={i.id} style={{ color: '#b45309' }}>Ocorrência: {INC_LABELS[i.type] || i.type}{i.description ? ` — ${i.description}` : ''}</li>)}
                   {!cr && <li style={{ color: '#94a3b8' }}>Sem registo diário neste turno</li>}
                 </ul>
               )}

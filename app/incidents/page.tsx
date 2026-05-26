@@ -89,6 +89,7 @@ export default function IncidentsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Incident | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [filterType, setFilterType] = useState('all')
@@ -116,6 +117,26 @@ export default function IncidentsPage() {
 
   useLiveData({ supabase, table: ['incidents', 'patients'], userId: user?.id, onChange: load })
 
+  // Cria (após confirmação) uma mensagem de alerta no Portal Família para uma ocorrência grave
+  const maybeNotifyFamily = async (patientId: string, type: string, severity: string) => {
+    const patName = patients.find(p => p.id === patientId)?.name || 'o/a residente'
+    const sevLabel = SEV_STYLE[severity]?.label || severity
+    if (!confirm(`Ocorrência ${sevLabel.toLowerCase()} registada para ${patName}.\n\nComunicar à família agora (cria mensagem no Portal Família)?`)) return
+    // contacto de urgência (se existir) deste residente
+    const { data: contacts } = await supabase.from('resident_contacts').select('id,is_emergency').eq('user_id', user!.id).eq('patient_id', patientId)
+    const emergency = (contacts || []).find((c: any) => c.is_emergency) || (contacts || [])[0]
+    await supabase.from('family_messages').insert({
+      user_id: user!.id,
+      patient_id: patientId,
+      contact_id: emergency?.id || null,
+      subject: `Comunicação — ${TYPE_LABELS[type] || 'ocorrência'} (${patName})`,
+      body: `Informamos que ocorreu um incidente (${TYPE_LABELS[type] || type}, gravidade ${sevLabel.toLowerCase()}) com ${patName}. A equipa prestou de imediato a assistência necessária e ${patName} está a ser acompanhado(a). Estamos disponíveis para esclarecer qualquer questão.`,
+      type: 'alert',
+      direction: 'sent',
+      read: true,
+    })
+  }
+
   const save = async () => {
     if (!user) return
     setSaving(true)
@@ -142,12 +163,22 @@ export default function IncidentsPage() {
         follow_up_notes: form.follow_up_notes || null,
         root_cause: form.root_cause || null,
         created_by: form.created_by || null,
-        status: 'open',
       }
 
-      const { error: dbErr } = await supabase.from('incidents').insert(payload)
-      if (dbErr) throw new Error(dbErr.message)
+      if (editingId) {
+        const { error: dbErr } = await supabase.from('incidents').update(payload).eq('id', editingId).eq('user_id', user.id)
+        if (dbErr) throw new Error(dbErr.message)
+        setSelected(prev => prev && prev.id === editingId ? { ...prev, ...payload } as Incident : prev)
+      } else {
+        const { error: dbErr } = await supabase.from('incidents').insert({ ...payload, status: 'open' })
+        if (dbErr) throw new Error(dbErr.message)
+        // Ocorrência grave/crítica → propor comunicar à família (exigência legal de comunicação)
+        if (form.severity === 'major' || form.severity === 'critical') {
+          await maybeNotifyFamily(payload.patient_id, form.type, form.severity)
+        }
+      }
       setShowForm(false)
+      setEditingId(null)
       setForm({ ...EMPTY_FORM })
       load()
     } catch (e: any) {
@@ -155,6 +186,19 @@ export default function IncidentsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const openEdit = (inc: Incident) => {
+    setEditingId(inc.id)
+    setForm({
+      patient_id: inc.patient_id, date: inc.date, time: inc.time || '',
+      type: inc.type, severity: inc.severity, location: inc.location || '',
+      description: inc.description, witnesses: inc.witnesses || '', injuries: inc.injuries || '',
+      action_taken: inc.action_taken || '', reported_to: inc.reported_to || '', outcome: inc.outcome || '',
+      follow_up_required: inc.follow_up_required, follow_up_notes: inc.follow_up_notes || '',
+      root_cause: inc.root_cause || '', created_by: inc.created_by || '',
+    })
+    setSaveError(''); setShowForm(true)
   }
 
   const updateStatus = async (id: string, status: string) => {
@@ -193,6 +237,12 @@ export default function IncidentsPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               Voltar à lista
             </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => openEdit(selected)}
+              style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: '#374151', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar
+            </button>
             <button onClick={() => {
               const fields = [
                 { label: 'Residente', value: selected.patient_name || '—' },
@@ -229,6 +279,7 @@ export default function IncidentsPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Imprimir relatório
             </button>
+            </div>
           </div>
 
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
@@ -391,8 +442,8 @@ export default function IncidentsPage() {
             onClick={e => { if (e.target === e.currentTarget) setShowForm(false) }}>
             <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 680, maxHeight: '92vh', overflow: 'auto', padding: '24px 24px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Nova Ocorrência</h2>
-                <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editingId ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
+                <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
               </div>
 
               {saveError && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, padding: '9px 13px', fontSize: 13, color: '#991b1b', marginBottom: 14 }}>{saveError}</div>}
@@ -463,6 +514,17 @@ export default function IncidentsPage() {
                 </div>
 
                 <div style={{ gridColumn: '1/-1' }}>
+                  <Label>Resultado / desfecho</Label>
+                  <input value={form.outcome} onChange={e => f('outcome', e.target.value)} placeholder="Ex: Sem lesões, vigilância 24h, ida ao hospital..." style={inputStyle} />
+                </div>
+
+                <div style={{ gridColumn: '1/-1' }}>
+                  <Label>Causa raiz (investigação)</Label>
+                  <textarea value={form.root_cause} onChange={e => f('root_cause', e.target.value)} placeholder="Análise da causa: porque aconteceu? (piso, calçado, medicação, supervisão...)" rows={2}
+                    style={{ ...inputStyle, resize: 'vertical' }} />
+                </div>
+
+                <div style={{ gridColumn: '1/-1' }}>
                   <Label>Registado por</Label>
                   <input value={form.created_by} onChange={e => f('created_by', e.target.value)} placeholder="Nome do profissional..." style={inputStyle} />
                 </div>
@@ -485,13 +547,13 @@ export default function IncidentsPage() {
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowForm(false)}
+                <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }) }}
                   style={{ padding: '10px 20px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>
                   Cancelar
                 </button>
                 <button onClick={save} disabled={saving}
                   style={{ padding: '10px 24px', background: saving ? 'var(--bg-3)' : '#dc2626', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  {saving ? 'A guardar...' : 'Registar ocorrência'}
+                  {saving ? 'A guardar...' : editingId ? 'Guardar alterações' : 'Registar ocorrência'}
                 </button>
               </div>
             </div>

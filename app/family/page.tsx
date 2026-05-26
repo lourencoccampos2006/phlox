@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 
 interface FamilyContact {
@@ -73,7 +73,7 @@ const TEMPLATES = [
 
 export default function FamilyPage() {
   const { user, supabase } = useAuth() as any
-  const [tab, setTab] = useState<'messages' | 'visits' | 'contacts'>('messages')
+  const [tab, setTab] = useState<'conversa' | 'messages' | 'visits' | 'contacts'>('conversa')
   const [contacts, setContacts] = useState<FamilyContact[]>([])
   const [messages, setMessages] = useState<FamilyMessage[]>([])
   const [visits, setVisits] = useState<VisitRequest[]>([])
@@ -86,6 +86,13 @@ export default function FamilyPage() {
 
   const [compose, setCompose] = useState({
     patient_id: '', contact_id: '', subject: '', body: '', type: 'update' as FamilyMessage['type'],
+  })
+
+  const [showVisit, setShowVisit] = useState(false)
+  const [savingVisit, setSavingVisit] = useState(false)
+  const [visitForm, setVisitForm] = useState({
+    patient_id: '', contact_id: '', requested_date: new Date().toISOString().slice(0, 10),
+    requested_time: new Date().toTimeString().slice(0, 5), notes: '', status: 'completed' as VisitRequest['status'],
   })
 
   const load = useCallback(async () => {
@@ -105,6 +112,19 @@ export default function FamilyPage() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
+
+  // Não-lidas: respostas da família por ler pela equipa, por residente
+  const [unreadByPt, setUnreadByPt] = useState<Record<string, number>>({})
+  const loadUnread = useCallback(async () => {
+    if (!user) return
+    const { data } = await supabase.from('family_thread_messages')
+      .select('patient_id').eq('user_id', user.id).eq('author_side', 'family').eq('read_by_staff', false)
+    const counts: Record<string, number> = {}
+    ;(data || []).forEach((r: any) => { counts[r.patient_id] = (counts[r.patient_id] || 0) + 1 })
+    setUnreadByPt(counts)
+  }, [user, supabase])
+  useEffect(() => { loadUnread() }, [loadUnread])
+  const totalUnread = Object.values(unreadByPt).reduce((s, n) => s + n, 0)
 
   // Enrich contacts with patient names
   const enrichedContacts: FamilyContact[] = contacts.map(c => ({
@@ -162,6 +182,25 @@ export default function FamilyPage() {
     setVisits(prev => prev.map(v => v.id === id ? { ...v, status } : v))
   }
 
+  const visitContacts = visitForm.patient_id ? enrichedContacts.filter(c => c.patient_id === visitForm.patient_id) : []
+  async function saveVisit() {
+    if (!visitForm.patient_id || !user) return
+    setSavingVisit(true)
+    await supabase.from('visit_requests').insert({
+      user_id: user.id,
+      patient_id: visitForm.patient_id,
+      contact_id: visitForm.contact_id || null,
+      requested_date: visitForm.requested_date,
+      requested_time: visitForm.requested_time || '00:00',
+      notes: visitForm.notes || null,
+      status: visitForm.status,
+    })
+    setSavingVisit(false)
+    setShowVisit(false)
+    setVisitForm({ patient_id: '', contact_id: '', requested_date: new Date().toISOString().slice(0, 10), requested_time: new Date().toTimeString().slice(0, 5), notes: '', status: 'completed' })
+    load()
+  }
+
   const unreadCount = messages.filter(m => !m.read && m.direction === 'received').length
   const pendingVisits = visits.filter(v => v.status === 'pending').length
 
@@ -199,7 +238,8 @@ export default function FamilyPage() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1.5px solid #e5e7eb' }}>
         {([
-          ['messages', 'Mensagens'],
+          ['conversa', 'Conversa'],
+          ['messages', 'Comunicados'],
           ['visits',   'Visitas'],
           ['contacts', 'Contactos'],
         ] as const).map(([t, l]) => (
@@ -209,6 +249,9 @@ export default function FamilyPage() {
             style={{ padding: '10px 18px', border: 'none', borderBottom: `2px solid ${tab === t ? '#2563eb' : 'transparent'}`, background: 'none', color: tab === t ? '#2563eb' : '#6b7280', fontWeight: tab === t ? 600 : 400, fontSize: 14, cursor: 'pointer', marginBottom: -1.5 }}
           >
             {l}
+            {t === 'conversa' && totalUnread > 0 && (
+              <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{totalUnread}</span>
+            )}
             {t === 'visits' && pendingVisits > 0 && (
               <span style={{ marginLeft: 6, background: '#d97706', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{pendingVisits}</span>
             )}
@@ -223,6 +266,12 @@ export default function FamilyPage() {
         <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>A carregar...</div>
       ) : (
         <>
+          {/* Conversa tab — fio em tempo real lar↔família por residente */}
+          {tab === 'conversa' && (
+            <FamilyThread patients={patients} contacts={enrichedContacts} user={user} supabase={supabase}
+              unreadByPt={unreadByPt} onRead={(pid: string) => setUnreadByPt(prev => { const n = { ...prev }; delete n[pid]; return n })} />
+          )}
+
           {/* Messages tab */}
           {tab === 'messages' && (
             <div className="family-msg-grid" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 16 }}>
@@ -292,6 +341,13 @@ export default function FamilyPage() {
           {/* Visits tab */}
           {tab === 'visits' && (
             <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>Livro de visitas e pedidos das famílias.</div>
+                <button onClick={() => { setVisitForm(f => ({ ...f, patient_id: '', contact_id: '' })); setShowVisit(true) }}
+                  style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  + Registar visita
+                </button>
+              </div>
               {enrichedVisits.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍👩‍👧</div>
@@ -484,11 +540,352 @@ export default function FamilyPage() {
           </div>
         </div>
       )}
+      {/* Registar visita modal */}
+      {showVisit && (
+        <div onClick={e => { if (e.target === e.currentTarget) setShowVisit(false) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Registar visita</h2>
+              <button onClick={() => setShowVisit(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="vf-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Residente *</label>
+                  <select value={visitForm.patient_id} onChange={e => setVisitForm(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                    <option value="">Selecionar...</option>
+                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` (Q.${p.room_number})` : ''}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Visitante</label>
+                  <select value={visitForm.contact_id} onChange={e => setVisitForm(p => ({ ...p, contact_id: e.target.value }))} disabled={!visitForm.patient_id} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                    <option value="">Familiar / outro</option>
+                    {visitContacts.map(c => <option key={c.id} value={c.id}>{c.name}{c.relationship ? ` (${c.relationship})` : ''}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Data *</label>
+                  <input type="date" value={visitForm.requested_date} onChange={e => setVisitForm(p => ({ ...p, requested_date: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Hora</label>
+                  <input type="time" value={visitForm.requested_time} onChange={e => setVisitForm(p => ({ ...p, requested_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Estado</label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {(Object.entries(VISIT_STATUS) as [VisitRequest['status'], typeof VISIT_STATUS.pending][]).map(([key, cfg]) => (
+                    <button key={key} onClick={() => setVisitForm(p => ({ ...p, status: key }))}
+                      style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${visitForm.status === key ? cfg.color : '#e5e7eb'}`, background: visitForm.status === key ? cfg.bg : '#fff', color: visitForm.status === key ? cfg.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>{cfg.label}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Notas</label>
+                <textarea value={visitForm.notes} onChange={e => setVisitForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Ex: trouxe roupa lavada, almoçou com o residente..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <button onClick={saveVisit} disabled={!visitForm.patient_id || savingVisit}
+                style={{ padding: '12px 20px', background: visitForm.patient_id ? '#7c3aed' : '#e5e7eb', color: visitForm.patient_id ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: visitForm.patient_id ? 'pointer' : 'default', marginTop: 4 }}>
+                {savingVisit ? 'A guardar...' : 'Registar visita'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @media (max-width: 768px) {
           .family-msg-grid { grid-template-columns: 1fr !important; }
+          .vf-grid { grid-template-columns: 1fr !important; }
+          .ft-grid { grid-template-columns: 1fr !important; height: auto !important; }
+          .ft-list { max-height: 220px; }
         }
       `}</style>
+    </div>
+  )
+}
+
+// ─── Phlox Família: fio de conversa lar↔família por residente ──────────────────
+
+interface ThreadMsg {
+  id: string; patient_id: string; author_side: 'staff' | 'family'; author_name?: string
+  kind: 'message' | 'update' | 'wellbeing' | 'photo' | 'milestone' | 'system'
+  content?: string; photo_url?: string; mood?: string; meals?: string; activity?: string
+  created_at: string
+}
+
+const MOOD_OPTS = [
+  { v: 'bom', label: 'Bem-disposto(a)', emoji: '😊' },
+  { v: 'razoavel', label: 'Razoável', emoji: '😐' },
+  { v: 'mau', label: 'Em baixo', emoji: '😔' },
+]
+const MEALS_OPTS = [
+  { v: 'tudo', label: 'Comeu tudo', emoji: '🍽️' },
+  { v: 'parte', label: 'Comeu parte', emoji: '🥄' },
+  { v: 'pouco', label: 'Comeu pouco', emoji: '⚠️' },
+]
+const ACTIVITY_OPTS = [
+  { v: 'ativo', label: 'Ativo(a)', emoji: '🚶' },
+  { v: 'calmo', label: 'Tranquilo(a)', emoji: '🛋️' },
+  { v: 'na_cama', label: 'Mais na cama', emoji: '🛏️' },
+]
+const optLabel = (arr: { v: string; label: string; emoji: string }[], v?: string) => arr.find(o => o.v === v)
+
+function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }: any) {
+  const [patientId, setPatientId] = useState('')
+  const [msgs, setMsgs] = useState<ThreadMsg[]>([])
+  const [loading, setLoading] = useState(false)
+  const [mode, setMode] = useState<'message' | 'update' | 'wellbeing'>('message')
+  const [text, setText] = useState('')
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [wb, setWb] = useState<{ mood?: string; meals?: string; activity?: string }>({})
+  const [sending, setSending] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  const patient = patients.find((p: Patient) => p.id === patientId)
+  const ptContacts = contacts.filter((c: FamilyContact) => c.patient_id === patientId)
+
+  const [familyCode, setFamilyCode] = useState<string | null>(null)
+  const [codeBusy, setCodeBusy] = useState(false)
+  useEffect(() => {
+    if (!patientId) { setFamilyCode(null); return }
+    supabase.from('patients').select('family_code').eq('id', patientId).single()
+      .then(({ data }: any) => setFamilyCode(data?.family_code || null))
+  }, [patientId, supabase])
+  async function genCode() {
+    if (!patientId) return
+    setCodeBusy(true)
+    const code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
+    const { error } = await supabase.from('patients').update({ family_code: code }).eq('id', patientId).eq('user_id', user.id)
+    if (!error) setFamilyCode(code)
+    setCodeBusy(false)
+  }
+
+  const loadThread = useCallback(async (pid: string) => {
+    if (!pid) { setMsgs([]); return }
+    setLoading(true)
+    const { data } = await supabase.from('family_thread_messages').select('*')
+      .eq('user_id', user.id).eq('patient_id', pid).order('created_at', { ascending: true })
+    setMsgs(data || [])
+    setLoading(false)
+    // marcar respostas da família como lidas pela equipa
+    const unread = (data || []).filter((m: ThreadMsg & { read_by_staff?: boolean }) => m.author_side === 'family' && (m as any).read_by_staff === false)
+    if (unread.length) {
+      await supabase.from('family_thread_messages').update({ read_by_staff: true })
+        .eq('patient_id', pid).eq('author_side', 'family').eq('read_by_staff', false)
+      onRead?.(pid)
+    }
+  }, [supabase, user])
+
+  useEffect(() => { loadThread(patientId) }, [patientId, loadThread])
+
+  // Realtime para o residente selecionado
+  useEffect(() => {
+    if (!patientId) return
+    const ch = supabase.channel(`fam-thread-${patientId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'family_thread_messages', filter: `patient_id=eq.${patientId}` },
+        (payload: any) => setMsgs(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new as ThreadMsg]))
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [patientId, supabase])
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
+
+  function downscale(file: File, maxDim = 1280, q = 0.82): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image(); const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let w = img.width, h = img.height
+        if (w > maxDim || h > maxDim) { if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim } else { w = Math.round(w * maxDim / h); h = maxDim } }
+        const c = document.createElement('canvas'); c.width = w; c.height = h
+        const ctx = c.getContext('2d'); if (!ctx) { reject(new Error('img')); return }
+        ctx.drawImage(img, 0, 0, w, h); resolve(c.toDataURL('image/jpeg', q))
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')) }
+      img.src = url
+    })
+  }
+
+  async function send() {
+    if (!patientId || sending) return
+    if (mode === 'message' && !text.trim() && !photo) return
+    if (mode === 'wellbeing' && !wb.mood && !wb.meals && !wb.activity) return
+    setSending(true)
+    try {
+      let photo_url: string | null = null
+      if (photo) {
+        const dataUrl = await downscale(photo)
+        const blob = await (await fetch(dataUrl)).blob()
+        const path = `${user.id}/${patientId}/${Date.now()}.jpg`
+        const up = await supabase.storage.from('family').upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+        if (!up.error) photo_url = supabase.storage.from('family').getPublicUrl(path).data.publicUrl
+      }
+      const row: any = {
+        user_id: user.id, patient_id: patientId, author_side: 'staff',
+        author_name: user.name || user.email || 'Equipa',
+        kind: mode === 'wellbeing' ? 'wellbeing' : photo_url ? 'photo' : mode === 'update' ? 'update' : 'message',
+        content: text.trim() || null, photo_url,
+        mood: wb.mood || null, meals: wb.meals || null, activity: wb.activity || null,
+        read_by_family: false,
+      }
+      const { data } = await supabase.from('family_thread_messages').insert(row).select().single()
+      if (data) setMsgs(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+      setText(''); setPhoto(null); setWb({}); setMode('message')
+    } finally { setSending(false) }
+  }
+
+  return (
+    <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 320px)', minHeight: 420 }}>
+      {/* Lista de residentes */}
+      <div className="ft-list" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflowY: 'auto' }}>
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Residentes</div>
+        {patients.length === 0 ? (
+          <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>Sem residentes.</div>
+        ) : patients.map((p: Patient) => {
+          const active = p.id === patientId
+          const nContacts = contacts.filter((c: FamilyContact) => c.patient_id === p.id).length
+          return (
+            <button key={p.id} onClick={() => setPatientId(p.id)}
+              style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', border: 'none', borderBottom: '1px solid #f9fafb', background: active ? '#eff6ff' : '#fff', cursor: 'pointer' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: active ? '#2563eb' : '#f1f5f9', color: active ? '#fff' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{p.name.charAt(0)}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{p.room_number ? `Q.${p.room_number} · ` : ''}{nContacts} familiar{nContacts !== 1 ? 'es' : ''}</div>
+              </div>
+              {(unreadByPt?.[p.id] || 0) > 0 && (
+                <span style={{ flexShrink: 0, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadByPt[p.id]}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Fio */}
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {!patientId ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: 8, padding: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 36 }}>💬</div>
+            <div style={{ fontWeight: 600, color: '#374151' }}>Seleciona um residente</div>
+            <div style={{ fontSize: 13, maxWidth: 320, lineHeight: 1.5 }}>Conversa direta com a família, com atualizações, fotos e boletins de bem-estar — tudo registado no Phlox.</div>
+          </div>
+        ) : (
+          <>
+            {/* Cabeçalho */}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{patient?.name}{patient?.room_number ? ` · Q.${patient.room_number}` : ''}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{ptContacts.length ? ptContacts.map((c: FamilyContact) => c.name).join(', ') : 'Sem familiares ligados'}</div>
+              </div>
+              {familyCode ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Código família</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#2563eb', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>{familyCode}</div>
+                  </div>
+                  <button onClick={() => { navigator.clipboard?.writeText(`Acompanhe ${patient?.name} no Phlox: ${typeof window !== 'undefined' ? window.location.origin : ''}/portal-familia · código ${familyCode}`); }}
+                    title="Copiar convite" style={{ padding: '7px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copiar convite</button>
+                </div>
+              ) : (
+                <button onClick={genCode} disabled={codeBusy} style={{ padding: '7px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {codeBusy ? '…' : 'Gerar código de acesso família'}
+                </button>
+              )}
+            </div>
+
+            {/* Mensagens */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', background: '#fafbfc' }}>
+              {loading ? (
+                <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 20 }}>A carregar…</div>
+              ) : msgs.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 24, lineHeight: 1.6 }}>
+                  Ainda sem conversa. Partilha a primeira atualização — uma foto do dia, um recado, ou o boletim de bem-estar.
+                </div>
+              ) : msgs.map(m => <ThreadBubble key={m.id} m={m} />)}
+              <div ref={endRef} />
+            </div>
+
+            {/* Compositor */}
+            <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 14px', background: '#fff' }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                {([['message', '💬 Mensagem'], ['update', '📋 Atualização'], ['wellbeing', '🌤️ Boletim de bem-estar']] as const).map(([k, l]) => (
+                  <button key={k} onClick={() => setMode(k)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${mode === k ? '#2563eb' : '#e5e7eb'}`, background: mode === k ? '#eff6ff' : '#fff', color: mode === k ? '#2563eb' : '#6b7280' }}>{l}</button>
+                ))}
+              </div>
+
+              {mode === 'wellbeing' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                  {([['Humor', MOOD_OPTS, 'mood'], ['Refeições', MEALS_OPTS, 'meals'], ['Atividade', ACTIVITY_OPTS, 'activity']] as const).map(([lab, opts, key]) => (
+                    <div key={key}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{lab}</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {opts.map(o => {
+                          const on = (wb as any)[key] === o.v
+                          return <button key={o.v} onClick={() => setWb(p => ({ ...p, [key]: on ? undefined : o.v }))}
+                            style={{ padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer', border: `1.5px solid ${on ? '#2563eb' : '#e5e7eb'}`, background: on ? '#eff6ff' : '#fff', color: on ? '#2563eb' : '#374151', fontWeight: on ? 600 : 400 }}>{o.emoji} {o.label}</button>
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                {(mode === 'message' || mode === 'update') && (
+                  <label style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 9, border: `1.5px solid ${photo ? '#2563eb' : '#e5e7eb'}`, background: photo ? '#eff6ff' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18 }} title="Anexar foto">
+                    📷
+                    <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                  </label>
+                )}
+                <textarea value={text} onChange={e => setText(e.target.value)} rows={1}
+                  placeholder={mode === 'wellbeing' ? 'Nota opcional para a família…' : mode === 'update' ? 'Atualização do dia para a família…' : 'Escreve uma mensagem…'}
+                  style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
+                <button onClick={send} disabled={sending}
+                  style={{ flexShrink: 0, padding: '10px 16px', background: sending ? '#e5e7eb' : '#2563eb', color: sending ? '#9ca3af' : '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: sending ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  {sending ? '…' : 'Enviar'}
+                </button>
+              </div>
+              {photo && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 6 }}>📎 {photo.name} <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 11 }}>remover</button></div>}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ThreadBubble({ m }: { m: ThreadMsg }) {
+  const isStaff = m.author_side === 'staff'
+  const time = new Date(m.created_at).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return (
+    <div style={{ display: 'flex', justifyContent: isStaff ? 'flex-start' : 'flex-end', marginBottom: 12 }}>
+      <div style={{ maxWidth: '78%' }}>
+        <div style={{ background: isStaff ? '#fff' : '#2563eb', color: isStaff ? '#0b1120' : '#fff', border: isStaff ? '1px solid #e5e7eb' : 'none', borderRadius: isStaff ? '4px 14px 14px 14px' : '14px 4px 14px 14px', padding: '10px 13px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+          {m.kind === 'wellbeing' ? (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.7, marginBottom: 6 }}>Boletim de bem-estar</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {[optLabel(MOOD_OPTS, m.mood), optLabel(MEALS_OPTS, m.meals), optLabel(ACTIVITY_OPTS, m.activity)].filter(Boolean).map((o: any, i) => (
+                  <div key={i} style={{ fontSize: 13 }}>{o.emoji} {o.label}</div>
+                ))}
+              </div>
+              {m.content && <div style={{ fontSize: 13, marginTop: 7, lineHeight: 1.5 }}>{m.content}</div>}
+            </div>
+          ) : (
+            <>
+              {m.kind === 'update' && <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.65, marginBottom: 4 }}>📋 Atualização</div>}
+              {m.photo_url && <img src={m.photo_url} alt="foto" style={{ width: '100%', borderRadius: 8, marginBottom: m.content ? 7 : 0, display: 'block' }} />}
+              {m.content && <div style={{ fontSize: 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
+            </>
+          )}
+        </div>
+        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3, textAlign: isStaff ? 'left' : 'right' }}>
+          {m.author_name || (isStaff ? 'Equipa' : 'Família')} · {time}
+        </div>
+      </div>
     </div>
   )
 }

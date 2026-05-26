@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { useLiveData } from '@/lib/useLiveData'
+import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
 interface Patient {
   id: string; name: string; room_number?: string; age?: number
-  conditions?: string; fall_risk?: string; pressure_risk?: string
+  conditions?: string; allergies?: string; fall_risk?: string; pressure_risk?: string
 }
 interface Incident { id: string; type: string; severity: string; status: string; date: string; patient_id: string }
 interface CareRec { id: string; patient_id: string; shift: Shift; date: string }
@@ -61,6 +62,13 @@ export default function CockpitPage() {
   const [marRecs, setMarRecs] = useState<MarRec[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  // Ecosystem data (batch, for risk engine)
+  const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
+  const [woundsByPt, setWoundsByPt] = useState<Record<string, { status: string; stage?: string | null }[]>>({})
+  const [weightsByPt, setWeightsByPt] = useState<Record<string, { date: string; weight: number }[]>>({})
+  const [vitalsByPt, setVitalsByPt] = useState<Record<string, { temp?: number; spo2?: number; bp_sys?: number; hr?: number; at?: string }>>({})
+  const [fluidByPt, setFluidByPt] = useState<Record<string, number>>({})
+  const [bowelByPt, setBowelByPt] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(new Date())
 
@@ -83,9 +91,17 @@ export default function CockpitPage() {
       supabase.from('team_members').select('id,name,role,status').eq('user_id', user.id).eq('status', 'active'),
     ]
     if (isNH) {
+      const since60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+      const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
+      const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
       queries.push(
         supabase.from('mar_records').select('id,patient_id,shift,date,status').eq('user_id', user.id).eq('date', today),
-        supabase.from('assessments').select('id,patient_id,scale,score,date').eq('user_id', user.id).gte('date', new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)),
+        supabase.from('assessments').select('id,patient_id,scale,score,date').eq('user_id', user.id).gte('date', since60),
+        // ── Ecosystem batch (risk engine) ──
+        supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
+        supabase.from('wounds').select('patient_id,status,stage').eq('user_id', user.id),
+        supabase.from('care_records').select('patient_id,date,vitals').eq('user_id', user.id).gte('date', since365),
+        supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml').eq('user_id', user.id).gte('at', since14),
       )
     }
     const results = await Promise.all(queries)
@@ -96,6 +112,43 @@ export default function CockpitPage() {
     if (isNH) {
       setMarRecs(results[4]?.data || [])
       setAssessments(results[5]?.data || [])
+
+      // meds by patient (patient_meds has no user_id on some rows → fall back gracefully)
+      const meds: Record<string, string[]> = {}
+      ;(results[6]?.data || []).forEach((m: any) => { (meds[m.patient_id] ||= []).push(m.name) })
+      setMedsByPt(meds)
+
+      const wounds: Record<string, { status: string; stage?: string | null }[]> = {}
+      ;(results[7]?.data || []).forEach((w: any) => { (wounds[w.patient_id] ||= []).push({ status: w.status, stage: w.stage }) })
+      setWoundsByPt(wounds)
+
+      const weights: Record<string, { date: string; weight: number }[]> = {}
+      const vitalsLatest: Record<string, { date: string; v: any }> = {}
+      ;(results[8]?.data || []).forEach((c: any) => {
+        if (c.vitals?.weight) (weights[c.patient_id] ||= []).push({ date: c.date, weight: Number(c.vitals.weight) })
+        const v = c.vitals
+        if (v && (v.temp != null || v.spo2 != null || v.bp_sys != null || v.hr != null)) {
+          if (!vitalsLatest[c.patient_id] || c.date > vitalsLatest[c.patient_id].date) vitalsLatest[c.patient_id] = { date: c.date, v }
+        }
+      })
+      setWeightsByPt(weights)
+      const vit: Record<string, any> = {}
+      // only trust vitals from the last 3 days for "current" signals
+      Object.entries(vitalsLatest).forEach(([pid, { date, v }]) => {
+        if (Date.now() - new Date(date).getTime() <= 3 * 86400000) vit[pid] = { ...v, at: date }
+      })
+      setVitalsByPt(vit)
+
+      const fluid: Record<string, number> = {}
+      const bowelLast: Record<string, string> = {}
+      ;(results[9]?.data || []).forEach((l: any) => {
+        if (l.kind === 'fluid' && l.at.slice(0, 10) === today) fluid[l.patient_id] = (fluid[l.patient_id] || 0) + (l.fluid_ml || 0)
+        if (l.kind === 'bowel' && (!bowelLast[l.patient_id] || l.at > bowelLast[l.patient_id])) bowelLast[l.patient_id] = l.at
+      })
+      setFluidByPt(fluid)
+      const bowel: Record<string, number> = {}
+      Object.entries(bowelLast).forEach(([pid, at]) => { bowel[pid] = Math.floor((Date.now() - new Date(at).getTime()) / 86400000) })
+      setBowelByPt(bowel)
     }
     setLoading(false)
   }, [user, supabase, isNH, today])
@@ -103,7 +156,7 @@ export default function CockpitPage() {
   useEffect(() => { load() }, [load])
 
   // Live dashboard: refresh when records change elsewhere or on return to app
-  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'patients', 'wounds', 'hydration_logs', 'patient_meds'], userId: user?.id, onChange: load })
 
   // Stats
   const openIncidents = incidents.filter(i => i.status === 'open')
@@ -115,8 +168,30 @@ export default function CockpitPage() {
   const patientsWithoutCareToday = patients.filter(p => !patientsWithCareToday.has(p.id))
   const patientsWithCareThisShift = new Set(careThisShift.map(r => r.patient_id))
 
-  // High risk patients (open incident OR has risk flags)
+  // ── Ecosystem risk engine: analyze EVERY resident, consistent with the chart ──
+  const ranked = patients.map(p => {
+    const a = analyzeResident({
+      age: p.age, conditions: p.conditions, allergies: p.allergies,
+      meds: medsByPt[p.id] || [],
+      incidents: incidents.filter(i => i.patient_id === p.id).map(i => ({ type: i.type, severity: i.severity, status: i.status })),
+      assessments: assessments.filter(x => x.patient_id === p.id).map(x => ({ scale: x.scale, date: x.date })),
+      wounds: woundsByPt[p.id] || [],
+      weightSeries: weightsByPt[p.id] || [],
+      fluidToday: fluidByPt[p.id] ?? null,
+      lastBowelDays: bowelByPt[p.id] ?? null,
+      careLoggedToday: patientsWithCareToday.has(p.id),
+      latestVitals: vitalsByPt[p.id] ?? null,
+    })
+    return { p, ...a }
+  }).sort((a, b) => b.score - a.score)
+
+  const criticalResidents = ranked.filter(r => r.level === 'critical')
+  const warningResidents = ranked.filter(r => r.level === 'warning')
+  const attentionResidents = ranked.filter(r => r.level === 'critical' || r.level === 'warning')
+
+  // High risk patients (engine critical/warning OR open incident OR risk flags)
   const highRiskPatients = patients.filter(p =>
+    attentionResidents.some(r => r.p.id === p.id) ||
     openIncidents.some(i => i.patient_id === p.id) ||
     p.fall_risk === 'high' || p.pressure_risk === 'high'
   )
@@ -226,7 +301,7 @@ export default function CockpitPage() {
           { label: 'Registos hoje',  value: loading ? '—' : careToday.length, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', href: '/care-log' },
           { label: 'Ocorrências',    value: loading ? '—' : openIncidents.length, color: openIncidents.length > 0 ? '#dc2626' : '#16a34a', bg: openIncidents.length > 0 ? '#fee2e2' : '#f0fdf4', border: openIncidents.length > 0 ? '#fecaca' : '#bbf7d0', href: '/incidents' },
           { label: 'Sem registo hoje', value: loading ? '—' : patientsWithoutCareToday.length, color: patientsWithoutCareToday.length > 0 ? '#d97706' : '#16a34a', bg: patientsWithoutCareToday.length > 0 ? '#fffbeb' : '#f0fdf4', border: patientsWithoutCareToday.length > 0 ? '#fde68a' : '#bbf7d0', href: '/care-log' },
-          { label: 'Alto risco',     value: loading ? '—' : highRiskPatients.length, color: highRiskPatients.length > 0 ? '#dc2626' : '#6b7280', bg: highRiskPatients.length > 0 ? '#fef2f2' : '#f9fafb', border: highRiskPatients.length > 0 ? '#fecaca' : '#e5e7eb', href: '/rounds' },
+          { label: 'Críticos',       value: loading ? '—' : criticalResidents.length, color: criticalResidents.length > 0 ? '#dc2626' : '#16a34a', bg: criticalResidents.length > 0 ? '#fef2f2' : '#f0fdf4', border: criticalResidents.length > 0 ? '#fecaca' : '#bbf7d0', href: '/rounds' },
           { label: 'Equipa ativa',   value: loading ? '—' : teamMembers.length, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', href: '/schedule' },
         ].map(k => (
           <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
@@ -241,6 +316,58 @@ export default function CockpitPage() {
       <div className="cockpit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* ── Central de Risco: motor de ecossistema aplicado a todos os residentes ── */}
+          {!loading && attentionResidents.length > 0 && (
+            <div style={{ background: '#fff', border: '1.5px solid #fecaca', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid #fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#0b1120', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  Central de risco
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 7px', borderRadius: 5 }}>{criticalResidents.length} crítico{criticalResidents.length !== 1 ? 's' : ''}</span>
+                  {warningResidents.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: '#fffbeb', padding: '2px 7px', borderRadius: 5 }}>{warningResidents.length} a vigiar</span>}
+                </div>
+                <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>análise automática</span>
+              </div>
+              <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                {attentionResidents.slice(0, 12).map(({ p, score, level, signals, summary }) => {
+                  const st = SEVERITY_STYLE[level]
+                  const top = signals.filter(s => s.severity === 'critical' || s.severity === 'warning').slice(0, 2)
+                  return (
+                    <Link key={p.id} href={`/patients/${p.id}`} style={{ display: 'block', padding: '11px 18px', borderBottom: '1px solid #f9fafb', textDecoration: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 9, background: st.bg, border: `1.5px solid ${st.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: st.color, lineHeight: 1 }}>{score}</span>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0b1120', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {p.name}
+                            {p.room_number && <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 400 }}>Q.{p.room_number}</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: st.color, fontWeight: 600 }}>{summary}</div>
+                        </div>
+                      </div>
+                      {top.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7, paddingLeft: 50 }}>
+                          {top.map((s, i) => {
+                            const ss = SEVERITY_STYLE[s.severity]
+                            return <span key={i} style={{ fontSize: 10.5, fontWeight: 600, color: ss.color, background: ss.bg, border: `1px solid ${ss.border}`, padding: '2px 7px', borderRadius: 5 }}>{s.title}</span>
+                          })}
+                          {signals.filter(s => s.severity === 'critical' || s.severity === 'warning').length > 2 && (
+                            <span style={{ fontSize: 10.5, color: '#9ca3af', padding: '2px 4px' }}>+{signals.filter(s => s.severity === 'critical' || s.severity === 'warning').length - 2}</span>
+                          )}
+                        </div>
+                      )}
+                    </Link>
+                  )
+                })}
+                {attentionResidents.length > 12 && (
+                  <Link href="/rounds" style={{ display: 'block', padding: '10px 18px', textAlign: 'center', fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+                    Ver os {attentionResidents.length} residentes em alerta →
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Residents needing attention this shift */}
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>

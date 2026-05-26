@@ -9,7 +9,7 @@ interface Patient {
   id: string; name: string; age: number | null; room_number: string | null
   conditions: string | null; allergies: string | null
 }
-interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null }
+interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null }
 type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held' | null
 interface AdminRecord {
@@ -53,6 +53,11 @@ function interactionWarnings(med: string, others: string[]): string[] {
   if (is(DIGOXIN) && has(AMIO))      w.push('Digoxina + amiodarona — risco de toxicidade')
   if (is(AMIO) && has(DIGOXIN))      w.push('Amiodarona + digoxina — risco de toxicidade')
   return w
+}
+
+// Med é devido neste turno? (shifts vazio/null = todos os turnos, compat. retro)
+function dueInShift(med: { shifts?: string[] | null }, shift: Shift): boolean {
+  return !med.shifts || med.shifts.length === 0 || med.shifts.includes(shift)
 }
 
 function getToday() { return new Date().toISOString().split('T')[0] }
@@ -173,7 +178,7 @@ export default function MARPage() {
 
   useEffect(() => {
     if (!selectedId) { setMeds([]); return }
-    supabase.from('patient_meds').select('id, name, dose, frequency, indication')
+    supabase.from('patient_meds').select('id, name, dose, frequency, indication, shifts')
       .eq('patient_id', selectedId).eq('active', true)
       .then(({ data }) => setMeds(data || []))
   }, [selectedId, supabase])
@@ -190,7 +195,7 @@ export default function MARPage() {
     if (!user || !isPro || !patients.length) return
     const ids = patients.map(p => p.id)
     Promise.all([
-      supabase.from('patient_meds').select('id, patient_id, name, dose, frequency').eq('active', true).in('patient_id', ids),
+      supabase.from('patient_meds').select('id, patient_id, name, dose, frequency, shifts').eq('active', true).in('patient_id', ids),
       supabase.from('mar_records').select('patient_id, med_id, shift, status').eq('date', date).in('patient_id', ids),
     ]).then(([{ data: allMeds }, { data: dayRecs }]) => {
       const medsArr: any[] = allMeds || []
@@ -200,9 +205,10 @@ export default function MARPage() {
       setAllMedsMap(medsMap)
       setAllDayRecs(recsArr)
       const omit = patients.map(p => {
-        const total   = (medsMap[p.id] || []).length
-        const done    = recsArr.filter((r: any) => r.patient_id === p.id && r.shift === shift).length
-        return { name: p.name, id: p.id, missing: total - done }
+        const dueMeds = (medsMap[p.id] || []).filter(m => dueInShift(m, shift))
+        const doneIds = new Set(recsArr.filter((r: any) => r.patient_id === p.id && r.shift === shift).map((r: any) => r.med_id))
+        const missing = dueMeds.filter(m => !doneIds.has(m.id)).length
+        return { name: p.name, id: p.id, missing }
       }).filter(o => o.missing > 0).sort((a, b) => b.missing - a.missing)
       setOmissions(omit)
     })
@@ -240,8 +246,11 @@ export default function MARPage() {
     await doAdmin(medId, status, notes)
   }
 
+  const shiftMeds = meds.filter(m => dueInShift(m, shift))
+  const otherShiftMeds = meds.filter(m => !dueInShift(m, shift))
+
   const administerAllPending = async () => {
-    const pending = meds.filter(m => !getRecord(m.id))
+    const pending = shiftMeds.filter(m => !getRecord(m.id))
     if (!pending.length || !user || !selectedId) return
     const now = new Date().toISOString()
     const inserts = pending.map(m => ({ patient_id: selectedId, user_id: user.id, med_id: m.id, shift, date, status: 'administered', notes: '', recorded_by: (user as any).name || user.email || '', recorded_at: now }))
@@ -249,9 +258,10 @@ export default function MARPage() {
     if (data) setRecords(p => [...p, ...data])
   }
 
-  const administered = records.filter(r => r.shift === shift && r.status === 'administered').length
-  const totalMeds    = meds.length
-  const pendingCount = totalMeds - records.filter(r => r.shift === shift && r.status).length
+  const shiftMedIds  = new Set(shiftMeds.map(m => m.id))
+  const administered = records.filter(r => r.shift === shift && r.status === 'administered' && shiftMedIds.has(r.med_id)).length
+  const totalMeds    = shiftMeds.length
+  const pendingCount = totalMeds - records.filter(r => r.shift === shift && r.status && shiftMedIds.has(r.med_id)).length
   const sl           = SHIFTS[shift]
 
   if (!isPro) {
@@ -323,7 +333,7 @@ export default function MARPage() {
             {showOmitDetail && (
               <div style={{ marginTop: 8, background: 'white', border: '1px solid #fde68a', borderRadius: 8, overflow: 'hidden' }}>
                 {omissions.map(o => {
-                  const pMeds = allMedsMap[o.id] || []
+                  const pMeds = (allMedsMap[o.id] || []).filter(m => dueInShift(m, shift))
                   const missing = pMeds.filter(m => !allDayRecs.find(r => r.med_id === m.id && r.shift === shift))
                   return (
                     <div key={o.id} style={{ padding: '9px 14px', borderBottom: '1px solid #fef9c3', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -418,8 +428,12 @@ export default function MARPage() {
               ))}
             </div>
 
-            {/* Rows */}
-            {meds.map((med, i) => {
+            {/* Rows — só medicação devida neste turno */}
+            {shiftMeds.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: '#94a3b8' }}>
+                Sem medicação prescrita para o turno da {sl.label}.
+              </div>
+            ) : shiftMeds.map((med, i) => {
               const rec = getRecord(med.id)
               const isSaving = saving === med.id
               const isAdministered = rec?.status === 'administered'
@@ -427,7 +441,7 @@ export default function MARPage() {
                 <div key={med.id} className="mar-med-row" style={{
                   display: 'grid', gridTemplateColumns: '1fr 90px 110px 260px', gap: 0,
                   padding: '13px 16px',
-                  borderBottom: i < meds.length - 1 ? '1px solid #f1f5f9' : 'none',
+                  borderBottom: i < shiftMeds.length - 1 ? '1px solid #f1f5f9' : 'none',
                   alignItems: 'center',
                   background: isAdministered ? '#fafffe' : 'white',
                   opacity: isSaving ? 0.6 : 1,
@@ -448,6 +462,21 @@ export default function MARPage() {
                 </div>
               )
             })}
+
+            {/* Medicação de outros turnos (informativo, não conta para omissões) */}
+            {otherShiftMeds.length > 0 && (
+              <details style={{ borderTop: '1px solid #f1f5f9' }}>
+                <summary style={{ padding: '10px 16px', fontSize: 12, color: '#94a3b8', cursor: 'pointer', listStyle: 'none', fontWeight: 600 }}>
+                  + {otherShiftMeds.length} med. de outros turnos (não devida agora)
+                </summary>
+                {otherShiftMeds.map(med => (
+                  <div key={med.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 16px', borderTop: '1px solid #f8fafc', opacity: 0.7 }}>
+                    <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600, flex: 1 }}>{med.name}{med.dose ? ` · ${med.dose}` : ''}</span>
+                    <span style={{ fontSize: 10.5, color: '#94a3b8' }}>{(med.shifts || []).map(s => SHIFTS[s as Shift]?.label || s).join(', ')}</span>
+                  </div>
+                ))}
+              </details>
+            )}
 
             {/* Footer summary */}
             <div style={{ padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>

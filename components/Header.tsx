@@ -419,6 +419,8 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
 
   const isHomepage = pathname === '/'
+  // Portal público do familiar — página standalone, sem header da app
+  const isFamilyPortal = pathname === '/portal-familia' || pathname.startsWith('/portal-familia/')
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
   const modeColor = modeMeta.color
@@ -438,6 +440,8 @@ export default function Header() {
 
   const closeSearch = useCallback(() => setSearchOpen(false), [])
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  if (isFamilyPortal) return null
 
   return (
     <>

@@ -25,6 +25,7 @@ export interface ResidentInput {
   fluidToday?: number | null
   lastBowelDays?: number | null
   careLoggedToday?: boolean
+  latestVitals?: { temp?: number; spo2?: number; bp_sys?: number; hr?: number; at?: string } | null
 }
 
 const BZD = ['diazepam', 'lorazepam', 'alprazolam', 'midazolam', 'clonazepam', 'oxazepam', 'bromazepam', 'flurazepam']
@@ -77,6 +78,16 @@ export function analyzeResident(i: ResidentInput): { score: number; level: Sever
   // ── Hidratação / eliminação ──
   if (i.lastBowelDays != null && i.lastBowelDays >= 3) signals.push({ kind: 'bowel', severity: 'warning', title: 'Sem dejeção há ' + i.lastBowelDays + ' dias', detail: 'Risco de obstipação — avaliar e atuar conforme protocolo.' })
   if (i.fluidToday != null && i.fluidToday < 600) signals.push({ kind: 'fluid', severity: 'warning', title: 'Ingestão hídrica baixa hoje', detail: `${i.fluidToday} ml registados — risco de desidratação.` })
+
+  // ── Sinais vitais (último registo) ──
+  const v = i.latestVitals
+  if (v) {
+    if (v.temp != null && v.temp >= 38) signals.push({ kind: 'vital', severity: v.temp >= 39 ? 'critical' : 'warning', title: `Febre ${v.temp.toFixed(1)}°C`, detail: 'Temperatura elevada no último registo — avaliar foco infecioso.' })
+    if (v.spo2 != null && v.spo2 < 92) signals.push({ kind: 'vital', severity: v.spo2 < 88 ? 'critical' : 'warning', title: `SpO₂ ${v.spo2}%`, detail: 'Saturação baixa — vigiar oxigenação e função respiratória.' })
+    if (v.bp_sys != null && v.bp_sys >= 180) signals.push({ kind: 'vital', severity: 'warning', title: `TA sistólica ${v.bp_sys} mmHg`, detail: 'Tensão arterial elevada — confirmar e reavaliar.' })
+    if (v.bp_sys != null && v.bp_sys > 0 && v.bp_sys < 90) signals.push({ kind: 'vital', severity: 'warning', title: `TA sistólica ${v.bp_sys} mmHg`, detail: 'Hipotensão — risco de queda e hipoperfusão.' })
+    if (v.hr != null && (v.hr >= 110 || (v.hr > 0 && v.hr < 50))) signals.push({ kind: 'vital', severity: 'warning', title: `FC ${v.hr} bpm`, detail: v.hr >= 110 ? 'Taquicardia — investigar causa.' : 'Bradicardia — vigiar e rever fármacos.' })
+  }
 
   // ── Avaliações ──
   const barthel = (i.assessments || []).filter(a => a.scale === 'barthel').sort((a, b) => b.date.localeCompare(a.date))[0]

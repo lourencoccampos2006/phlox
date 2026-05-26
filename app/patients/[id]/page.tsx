@@ -35,6 +35,7 @@ interface PatientMed {
   frequency: string | null
   indication: string | null
   started_at: string | null
+  shifts?: string[] | null
 }
 
 interface Alert {
@@ -77,9 +78,17 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const [showAddContact, setShowAddContact] = useState(false)
   const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '', is_emergency: true, is_legal_guardian: false, can_visit: true, notes: '' })
   const [savingContact, setSavingContact] = useState(false)
-  const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '' })
+  const [newMed, setNewMed] = useState<{ name: string; dose: string; frequency: string; indication: string; shifts: string[] }>({ name: '', dose: '', frequency: '', indication: '', shifts: [] })
   const [adding, setAdding] = useState(false)
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
+  // ── Leitura de prescrição por foto (IA) ──
+  const [rxOpen, setRxOpen] = useState(false)
+  const [rxPhoto, setRxPhoto] = useState<File | null>(null)
+  const [rxAnalyzing, setRxAnalyzing] = useState(false)
+  const [rxErr, setRxErr] = useState('')
+  const [rxResult, setRxResult] = useState<{ meds: any[]; warnings: string[]; observations: string } | null>(null)
+  const [rxSel, setRxSel] = useState<Record<number, boolean>>({})
+  const [rxAdding, setRxAdding] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState<Partial<Patient>>({})
@@ -121,6 +130,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const [ecoWeights, setEcoWeights] = useState<{ date: string; weight: number }[]>([])
   const [ecoFluidToday, setEcoFluidToday] = useState<number | null>(null)
   const [ecoBowelDays, setEcoBowelDays] = useState<number | null>(null)
+  const [ecoVitals, setEcoVitals] = useState<{ temp?: number; spo2?: number; bp_sys?: number; hr?: number; at?: string } | null>(null)
   const [ecoCareToday, setEcoCareToday] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
@@ -137,6 +147,9 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
         if (data) {
           setEcoWeights(data.filter((c: any) => c.vitals?.weight).map((c: any) => ({ date: c.date, weight: Number(c.vitals.weight) })))
           setEcoCareToday(data.some((c: any) => c.date === todayD))
+          const withVit = data.filter((c: any) => c.vitals && (c.vitals.temp != null || c.vitals.spo2 != null || c.vitals.bp_sys != null || c.vitals.hr != null))
+            .sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
+          if (withVit && Date.now() - new Date(withVit.date).getTime() <= 3 * 86400000) setEcoVitals({ ...withVit.vitals, at: withVit.date })
         }
       } catch { /* ignore */ }
       try {
@@ -158,6 +171,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     assessments: nhAssessments.map(a => ({ scale: a.scale, date: a.date })),
     wounds: ecoWounds, weightSeries: ecoWeights,
     fluidToday: ecoFluidToday, lastBowelDays: ecoBowelDays, careLoggedToday: ecoCareToday,
+    latestVitals: ecoVitals,
   }) : null
 
   // Calc CrCl if we have age, weight, creatinine, sex
@@ -185,15 +199,74 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       dose: newMed.dose || null,
       frequency: newMed.frequency || null,
       indication: newMed.indication || null,
+      shifts: newMed.shifts.length ? newMed.shifts : null,
     }).select().single()
     if (error) console.error('addMed error:', error.message)
     if (data) {
       setMeds(p => [data, ...p])
       // updated_at is handled automatically by trigger
     }
-    setNewMed({ name: '', dose: '', frequency: '', indication: '' })
+    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [] })
     setSuggestions([])
     setAdding(false)
+  }
+
+  // ── Prescrição por foto ──
+  function rxDownscale(file: File, maxDim = 1280, quality = 0.85): Promise<{ b64: string; mime: string }> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let w = img.width, h = img.height
+        if (w > maxDim || h > maxDim) { if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim } else { w = Math.round(w * maxDim / h); h = maxDim } }
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Não foi possível processar a imagem.')); return }
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve({ b64: (canvas.toDataURL('image/jpeg', quality).split(',')[1]) || '', mime: 'image/jpeg' })
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem.')) }
+      img.src = url
+    })
+  }
+  async function rxAnalyze() {
+    if (!rxPhoto) return
+    setRxAnalyzing(true); setRxErr(''); setRxResult(null); setRxSel({})
+    try {
+      const { b64, mime } = await rxDownscale(rxPhoto)
+      const res = await fetch('/api/prescription-analysis', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: b64, mimeType: mime }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro')
+      setRxResult(data)
+      // pré-selecionar tudo o que tem nome
+      const sel: Record<number, boolean> = {}
+      ;(data.meds || []).forEach((m: any, i: number) => { if (m.name?.trim()) sel[i] = true })
+      setRxSel(sel)
+    } catch (e: any) { setRxErr(e.message || 'Não foi possível analisar a prescrição.') }
+    finally { setRxAnalyzing(false) }
+  }
+  async function rxAddSelected() {
+    if (!rxResult || !patientId || !user) return
+    const chosen = rxResult.meds.filter((_, i) => rxSel[i] && rxResult.meds[i].name?.trim())
+    if (!chosen.length) return
+    setRxAdding(true)
+    const rows = chosen.map(m => {
+      const resolved = resolveDrugName(m.name)
+      return {
+        patient_id: patientId, user_id: user.id,
+        name: resolved ? resolved.dci : String(m.name).trim(),
+        dose: m.dose || null, frequency: m.frequency || null, indication: m.indication || null,
+        shifts: Array.isArray(m.shifts) && m.shifts.length ? m.shifts.filter((s: string) => ['manha', 'tarde', 'noite'].includes(s)) : null,
+      }
+    })
+    const { data } = await supabase.from('patient_meds').insert(rows).select()
+    if (data) setMeds(p => [...data, ...p])
+    setRxAdding(false); setRxOpen(false); setRxPhoto(null); setRxResult(null); setRxSel({})
   }
 
   const removeMed = async (id: string) => {
@@ -614,7 +687,14 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
             )}
             {/* Add med */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', marginBottom: 12, position: 'relative' }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Adicionar medicamento</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Adicionar medicamento</div>
+                <button type="button" onClick={() => { setRxOpen(true); setRxPhoto(null); setRxResult(null); setRxErr('') }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #c7d2fe', background: '#eef2ff', color: '#4338ca', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                  Ler prescrição (IA)
+                </button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 120px 120px auto', gap: 8, marginBottom: 8 }}>
                 <div style={{ position: 'relative' }}>
                   <input value={newMed.name}
@@ -647,6 +727,20 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                   {adding ? '...' : 'Add'}
                 </button>
               </div>
+              {/* Horário de toma (turnos) — alimenta o MAR */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600 }}>Tomar no turno:</span>
+                {([['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite']] as [string, string][]).map(([s, l]) => {
+                  const on = newMed.shifts.includes(s)
+                  return (
+                    <button key={s} type="button" onClick={() => setNewMed(p => ({ ...p, shifts: on ? p.shifts.filter(x => x !== s) : [...p.shifts, s] }))}
+                      style={{ padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', border: `1.5px solid ${on ? '#1d4ed8' : 'var(--border)'}`, background: on ? '#eff6ff' : 'white', color: on ? '#1d4ed8' : 'var(--ink-4)' }}>
+                      {l}
+                    </button>
+                  )
+                })}
+                <span style={{ fontSize: 10.5, color: 'var(--ink-5)' }}>{newMed.shifts.length === 0 ? 'Sem seleção = todos os turnos' : ''}</span>
+              </div>
             </div>
 
             {/* Med list */}
@@ -663,6 +757,13 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                       <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                         {[med.dose, med.frequency, med.indication ? `(${med.indication})` : null].filter(Boolean).join(' · ')}
                       </div>
+                      {med.shifts && med.shifts.length > 0 && (
+                        <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
+                          {med.shifts.map(s => (
+                            <span key={s} style={{ fontSize: 9.5, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: 4, textTransform: 'capitalize' }}>{s === 'manha' ? 'Manhã' : s === 'tarde' ? 'Tarde' : 'Noite'}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <DrugReferenceButton drug={med.name} />
@@ -956,6 +1057,97 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
             </div>
           )
         })()}
+
+      {/* ── Modal: Ler prescrição por foto (IA) ── */}
+      {rxOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 16 }} onClick={() => !rxAnalyzing && !rxAdding && setRxOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Ler prescrição por foto</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>A IA extrai a medicação. Confirma sempre antes de adicionar.</div>
+              </div>
+              <button onClick={() => !rxAnalyzing && !rxAdding && setRxOpen(false)} style={{ background: 'none', border: 'none', fontSize: 22, color: 'var(--ink-5)', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ padding: 20 }}>
+              {/* Captura/upload */}
+              <label style={{ display: 'block', border: `1.5px dashed ${rxPhoto ? '#4338ca' : 'var(--border)'}`, borderRadius: 12, padding: rxPhoto ? 10 : '28px 16px', textAlign: 'center', cursor: 'pointer', background: rxPhoto ? '#f5f3ff' : 'var(--bg-2)' }}>
+                <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setRxPhoto(f); setRxResult(null); setRxErr('') } }} />
+                {rxPhoto ? (
+                  <div style={{ fontSize: 13, color: '#4338ca', fontWeight: 600 }}>📄 {rxPhoto.name} · toca para trocar</div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink-3)' }}>Tirar foto ou escolher imagem</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>Receita, prescrição ou caixa/rótulo</div>
+                  </div>
+                )}
+              </label>
+
+              {rxPhoto && !rxResult && (
+                <button onClick={rxAnalyze} disabled={rxAnalyzing}
+                  style={{ width: '100%', marginTop: 12, padding: 12, background: rxAnalyzing ? 'var(--bg-3)' : '#4338ca', color: rxAnalyzing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: rxAnalyzing ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  {rxAnalyzing ? 'A analisar…' : 'Analisar prescrição →'}
+                </button>
+              )}
+
+              {rxErr && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 12.5, color: '#991b1b' }}>{rxErr}</div>}
+
+              {/* Resultado */}
+              {rxResult && (
+                <div style={{ marginTop: 16 }}>
+                  {rxResult.warnings?.length > 0 && (
+                    <div style={{ marginBottom: 12, padding: '9px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
+                      {rxResult.warnings.map((w, i) => <div key={i}>⚠ {w}</div>)}
+                    </div>
+                  )}
+                  {rxResult.meds.length === 0 ? (
+                    <div style={{ padding: 16, textAlign: 'center', fontSize: 13, color: 'var(--ink-4)' }}>Não foi possível extrair medicação. Tenta uma foto mais nítida.</div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Medicação detetada — confirma e seleciona</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        {rxResult.meds.map((m, i) => {
+                          const on = !!rxSel[i]
+                          const conf = m.confidence === 'alta' ? { c: '#16a34a', l: 'alta' } : m.confidence === 'baixa' ? { c: '#dc2626', l: 'baixa' } : { c: '#d97706', l: 'média' }
+                          const allergyHit = patient?.allergies && String(m.name || '').toLowerCase() && patient.allergies.toLowerCase().split(/[,;/\s]+/).some(t => t.length >= 4 && String(m.name).toLowerCase().includes(t))
+                          return (
+                            <label key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', border: `1.5px solid ${on ? '#c7d2fe' : 'var(--border)'}`, background: on ? '#f5f3ff' : 'white', borderRadius: 10, cursor: 'pointer' }}>
+                              <input type="checkbox" checked={on} onChange={() => setRxSel(s => ({ ...s, [i]: !s[i] }))} style={{ marginTop: 3, accentColor: '#4338ca' }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{m.name || '(sem nome)'}</span>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: conf.c }}>{conf.l}</span>
+                                  {allergyHit && <span style={{ fontSize: 10, fontWeight: 700, color: '#991b1b', background: '#fee2e2', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: 4 }}>⚠ alergia?</span>}
+                                </div>
+                                <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 2 }}>
+                                  {[m.dose, m.frequency, m.indication ? `(${m.indication})` : null].filter(Boolean).join(' · ') || '—'}
+                                </div>
+                                {Array.isArray(m.shifts) && m.shifts.length > 0 && (
+                                  <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
+                                    {m.shifts.map((s: string) => <span key={s} style={{ fontSize: 9.5, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: 4 }}>{s === 'manha' ? 'Manhã' : s === 'tarde' ? 'Tarde' : 'Noite'}</span>)}
+                                  </div>
+                                )}
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                      <button onClick={rxAddSelected} disabled={rxAdding || Object.values(rxSel).every(v => !v)}
+                        style={{ width: '100%', marginTop: 14, padding: 12, background: rxAdding || Object.values(rxSel).every(v => !v) ? 'var(--bg-3)' : '#1d4ed8', color: rxAdding || Object.values(rxSel).every(v => !v) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: rxAdding ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        {rxAdding ? 'A adicionar…' : `Adicionar ${Object.values(rxSel).filter(Boolean).length} à medicação`}
+                      </button>
+                      <div style={{ fontSize: 10.5, color: 'var(--ink-5)', marginTop: 8, textAlign: 'center' }}>Extração de apoio por IA — confirma com a prescrição original.</div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .patient-action:hover { border-color: #1d4ed8 !important; background: var(--blue-light) !important; }

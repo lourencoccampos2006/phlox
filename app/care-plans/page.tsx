@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc, type PrintRecord, type PrintSection } from '@/lib/print'
+import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
 
-interface Patient { id: string; name: string; room_number?: string; age?: number }
+interface Patient { id: string; name: string; room_number?: string; age?: number; conditions?: string | null; allergies?: string | null }
 
 interface CarePlan {
   id?: string
@@ -74,6 +75,8 @@ export default function CarePlansPage() {
   const [search, setSearch] = useState('')
   const [newGoal, setNewGoal] = useState('')
   const [printing, setPrinting] = useState(false)
+  const [riskSignals, setRiskSignals] = useState<Signal[] | null>(null)
+  const [riskLevel, setRiskLevel] = useState<Severity>('good')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -106,6 +109,62 @@ export default function CarePlansPage() {
     }
     setSaveOk(false)
     setSaveError('')
+    loadRisk(patient)
+  }
+
+  // Carrega o estado clínico do residente e corre o motor → sugestões de cuidado
+  const loadRisk = async (patient: Patient) => {
+    setRiskSignals(null); setRiskLevel('good')
+    if (!user) return
+    const todayD = new Date().toISOString().slice(0, 10)
+    const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
+    const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
+    try {
+      const [meds, w, inc, care, hyd, assess] = await Promise.all([
+        supabase.from('patient_meds').select('name').eq('patient_id', patient.id).eq('user_id', user.id),
+        supabase.from('wounds').select('status,stage').eq('patient_id', patient.id).eq('user_id', user.id),
+        supabase.from('incidents').select('type,severity,status').eq('patient_id', patient.id).eq('user_id', user.id).neq('status', 'closed'),
+        supabase.from('care_records').select('date,vitals').eq('patient_id', patient.id).eq('user_id', user.id).gte('date', since365),
+        supabase.from('hydration_logs').select('at,kind,fluid_ml').eq('patient_id', patient.id).eq('user_id', user.id).gte('at', since14),
+        supabase.from('assessments').select('scale,date').eq('patient_id', patient.id).eq('user_id', user.id),
+      ])
+      const careData = care.error ? [] : (care.data || [])
+      const weights = careData.filter((c: any) => c.vitals?.weight).map((c: any) => ({ date: c.date, weight: Number(c.vitals.weight) }))
+      const vitCand = careData.filter((c: any) => c.vitals && (c.vitals.temp != null || c.vitals.spo2 != null || c.vitals.bp_sys != null || c.vitals.hr != null)).sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
+      const latestVitals = vitCand && Date.now() - new Date(vitCand.date).getTime() <= 3 * 86400000 ? { ...vitCand.vitals, at: vitCand.date } : null
+      const hydData = hyd.error ? [] : (hyd.data || [])
+      const fluidToday = hydData.filter((l: any) => l.kind === 'fluid' && l.at.slice(0, 10) === todayD).reduce((s: number, l: any) => s + (l.fluid_ml || 0), 0)
+      const bowel = hydData.filter((l: any) => l.kind === 'bowel').sort((a: any, b: any) => b.at.localeCompare(a.at))[0]
+      const a = analyzeResident({
+        age: patient.age, conditions: patient.conditions, allergies: patient.allergies,
+        meds: (meds.error ? [] : meds.data || []).map((m: any) => m.name),
+        wounds: w.error ? [] : (w.data || []),
+        incidents: inc.error ? [] : (inc.data || []),
+        assessments: assess.error ? [] : (assess.data || []),
+        weightSeries: weights,
+        fluidToday: hydData.length ? fluidToday : null,
+        lastBowelDays: bowel ? Math.floor((Date.now() - new Date(bowel.at).getTime()) / 86400000) : null,
+        latestVitals,
+      })
+      setRiskSignals(a.signals.filter(s => s.severity === 'critical' || s.severity === 'warning'))
+      setRiskLevel(a.level)
+    } catch { setRiskSignals([]) }
+  }
+
+  // Mapeia um sinal do motor → sugestões aplicáveis ao plano de cuidados
+  function suggestionsFor(sig: Signal): { goals?: string[]; fall?: string[]; pu?: string[]; note?: { field: 'skin_care' | 'nutrition_plan' | 'medication_notes' | 'behavioral_notes'; text: string } } {
+    switch (sig.kind) {
+      case 'wound': return { pu: ['Mudança de posição cada 2h', 'Vigilância de zonas de pressão', 'Registo de posicionamentos'], goals: ['Promover a cicatrização da ferida e prevenir novas lesões'], note: { field: 'skin_care', text: 'Ferida ativa — seguir protocolo de penso e vigiar evolução.' } }
+      case 'weight': return { goals: ['Recuperar/estabilizar o peso corporal'], note: { field: 'nutrition_plan', text: 'Perda de peso detetada — reforço calórico/proteico e registo de ingestão.' } }
+      case 'fluid': return { goals: ['Garantir hidratação adequada (>1500 ml/dia salvo restrição)'], note: { field: 'nutrition_plan', text: 'Ingestão hídrica baixa — oferecer líquidos a intervalos regulares.' } }
+      case 'bowel': return { goals: ['Restabelecer trânsito intestinal regular'], note: { field: 'nutrition_plan', text: 'Vigiar eliminação — reforço de fibra e hidratação; atuar conforme protocolo de obstipação.' } }
+      case 'poly': return { goals: ['Rever a medicação (STOPP/START) com o médico'], note: { field: 'medication_notes', text: 'Polimedicação — proposta de revisão farmacoterapêutica.' } }
+      case 'stopp': case 'inter': return { fall: ['Avaliação Morse regular', 'Supervisão na mobilização'], note: { field: 'medication_notes', text: sig.title + ' — confirmar com o médico.' } }
+      case 'vital': return { note: { field: 'medication_notes', text: sig.title + ' — vigiar sinais vitais e reavaliar.' } }
+      case 'incident': return { fall: ['Avaliação Morse regular', 'Supervisão na mobilização', 'Alarme de cama'], goals: ['Prevenir recorrência da ocorrência registada'] }
+      case 'cond': return { goals: ['Vigilância clínica reforçada da condição de alto risco'] }
+      default: return {}
+    }
   }
 
   const save = async () => {
@@ -207,6 +266,22 @@ export default function CarePlansPage() {
     setForm(prev => ({ ...prev, goals: prev.goals.filter((_, idx) => idx !== i) }))
   }
 
+  // Aplica todas as sugestões de um sinal ao formulário (sem duplicar)
+  const applySuggestion = (sig: Signal) => {
+    const s = suggestionsFor(sig)
+    setForm(prev => {
+      const next = { ...prev }
+      if (s.goals) next.goals = Array.from(new Set([...prev.goals, ...s.goals]))
+      if (s.fall) next.fall_prevention = Array.from(new Set([...prev.fall_prevention, ...s.fall]))
+      if (s.pu) next.pressure_ulcer_prevention = Array.from(new Set([...prev.pressure_ulcer_prevention, ...s.pu]))
+      if (s.note) {
+        const cur = (prev[s.note.field] || '') as string
+        if (!cur.includes(s.note.text)) next[s.note.field] = (cur ? cur + '\n' : '') + s.note.text
+      }
+      return next
+    })
+  }
+
   const filteredPatients = patients.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.room_number || '').includes(search)
   )
@@ -268,7 +343,40 @@ export default function CarePlansPage() {
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {/* ── Sugestões do motor de ecossistema ── */}
+          {riskSignals && riskSignals.length > 0 && (
+            <div style={{ background: 'white', border: `1.5px solid ${SEVERITY_STYLE[riskLevel].border}`, borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 15 }}>🧩</span>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sugestões a partir do estado clínico</div>
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 12 }}>O Phlox detetou estes sinais. Toca em <strong>Aplicar</strong> para adicionar as medidas/objetivos ao plano.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {riskSignals.map((sig, i) => {
+                  const st = SEVERITY_STYLE[sig.severity]
+                  const s = suggestionsFor(sig)
+                  const items = [...(s.goals || []), ...(s.fall || []), ...(s.pu || []), ...(s.note ? [s.note.text] : [])]
+                  if (!items.length) return null
+                  return (
+                    <div key={i} style={{ border: `1px solid ${st.border}`, background: st.bg, borderRadius: 10, padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: st.color }}>{sig.title}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.45 }}>{sig.detail}</div>
+                          <ul style={{ margin: '7px 0 0', paddingLeft: 16 }}>
+                            {items.slice(0, 4).map((it, k) => <li key={k} style={{ fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 1 }}>{it}</li>)}
+                          </ul>
+                        </div>
+                        <button onClick={() => applySuggestion(sig)} style={{ flexShrink: 0, padding: '6px 13px', background: st.color, color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Aplicar</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="cp-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
             {/* Mobility & Hygiene */}
             <Section title="Mobilidade e Autonomia" icon="🚶">
@@ -390,6 +498,11 @@ export default function CarePlansPage() {
 
           <div style={{ height: 32 }} />
         </div>
+        <style>{`
+          @media (max-width: 768px) {
+            .cp-grid { grid-template-columns: 1fr !important; }
+          }
+        `}</style>
       </div>
     )
   }

@@ -6,11 +6,13 @@ import StockSection from '@/components/StockSection'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useInstitutionProfile } from '@/lib/useInstitutionProfile'
+import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
 interface Patient {
   id: string; name: string; room_number?: string | null; age?: number | null
+  conditions?: string | null; allergies?: string | null
   risk_level?: string | null; fall_risk?: string | null; pressure_risk?: string | null
   admission_date?: string | null; discharge_date?: string | null; active?: boolean
 }
@@ -29,7 +31,6 @@ const SHIFT_COLOR: Record<Shift, string> = { manha: '#d97706', tarde: '#2563eb',
 
 const today = () => new Date().toISOString().slice(0, 10)
 const curShift = (): Shift => { const h = new Date().getHours(); if (h >= 7 && h < 14) return 'manha'; if (h >= 14 && h < 21) return 'tarde'; return 'noite' }
-const isHighRisk = (p: Patient) => ['CRITICO', 'ALTO'].includes((p.risk_level || '').toUpperCase()) || p.fall_risk === 'high' || p.pressure_risk === 'high'
 
 function Ring({ pct, color, label, sub, size = 78 }: { pct: number; color: string; label: string; sub: string; size?: number }) {
   const r = (size - 9) / 2, c = 2 * Math.PI * r, off = c - (Math.min(pct, 100) / 100) * c
@@ -58,6 +59,11 @@ export default function GestaoPage() {
   const [shifts, setShifts] = useState<ShiftAssign[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [wounds, setWounds] = useState<Wound[]>([])
+  const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
+  const [weightsByPt, setWeightsByPt] = useState<Record<string, { date: string; weight: number }[]>>({})
+  const [vitalsByPt, setVitalsByPt] = useState<Record<string, any>>({})
+  const [fluidByPt, setFluidByPt] = useState<Record<string, number>>({})
+  const [bowelByPt, setBowelByPt] = useState<Record<string, number>>({})
   const [tab, setTab] = useState<'painel' | 'stock'>('painel')
 
   const d = today(), shift = curShift(), month = d.slice(0, 7)
@@ -67,8 +73,10 @@ export default function GestaoPage() {
     if (!user) return
     setLoading(true)
     const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
+    const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
+    const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
     const yearStart = `${new Date().getFullYear()}-01-01`
-    const [p, c, m, i, t, sa, a, w] = await Promise.all([
+    const [p, c, m, i, t, sa, a, w, meds, allCare, hyd] = await Promise.all([
       supabase.from('patients').select('*').eq('user_id', user.id),
       supabase.from('care_records').select('patient_id,shift,date').eq('user_id', user.id).eq('date', d),
       supabase.from('mar_records').select('patient_id,shift,date,status').eq('user_id', user.id).eq('date', d),
@@ -77,22 +85,68 @@ export default function GestaoPage() {
       supabase.from('shift_assignments').select('team_member_id,shift,date').eq('user_id', user.id).eq('date', d),
       supabase.from('assessments').select('patient_id,scale,date').eq('user_id', user.id).gte('date', since),
       supabase.from('wounds').select('id,patient_id,status,stage').eq('user_id', user.id),
+      supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
+      supabase.from('care_records').select('patient_id,date,vitals').eq('user_id', user.id).gte('date', since365),
+      supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml').eq('user_id', user.id).gte('at', since14),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false))
     setCare(c.data || []); setMar(m.data || []); setIncidents(i.data || [])
     setTeam(t.data || []); setShifts(sa.data || []); setAssessments(a.data || [])
     setWounds(w.error ? [] : (w.data || []))
+
+    const md: Record<string, string[]> = {}
+    ;(meds.error ? [] : meds.data || []).forEach((x: any) => { (md[x.patient_id] ||= []).push(x.name) })
+    setMedsByPt(md)
+    const wt: Record<string, { date: string; weight: number }[]> = {}
+    const vitLatest: Record<string, { date: string; v: any }> = {}
+    ;(allCare.error ? [] : allCare.data || []).forEach((x: any) => {
+      if (x.vitals?.weight) (wt[x.patient_id] ||= []).push({ date: x.date, weight: Number(x.vitals.weight) })
+      const v = x.vitals
+      if (v && (v.temp != null || v.spo2 != null || v.bp_sys != null || v.hr != null)) {
+        if (!vitLatest[x.patient_id] || x.date > vitLatest[x.patient_id].date) vitLatest[x.patient_id] = { date: x.date, v }
+      }
+    })
+    setWeightsByPt(wt)
+    const vit: Record<string, any> = {}
+    Object.entries(vitLatest).forEach(([pid, { date, v }]) => { if (Date.now() - new Date(date).getTime() <= 3 * 86400000) vit[pid] = { ...v, at: date } })
+    setVitalsByPt(vit)
+    const fl: Record<string, number> = {}; const bLast: Record<string, string> = {}
+    ;(hyd.error ? [] : hyd.data || []).forEach((l: any) => {
+      if (l.kind === 'fluid' && l.at.slice(0, 10) === d) fl[l.patient_id] = (fl[l.patient_id] || 0) + (l.fluid_ml || 0)
+      if (l.kind === 'bowel' && (!bLast[l.patient_id] || l.at > bLast[l.patient_id])) bLast[l.patient_id] = l.at
+    })
+    setFluidByPt(fl)
+    const bw: Record<string, number> = {}
+    Object.entries(bLast).forEach(([pid, at]) => { bw[pid] = Math.floor((Date.now() - new Date(at).getTime()) / 86400000) })
+    setBowelByPt(bw)
     setLoading(false)
   }, [user, supabase, d])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: ['patients', 'care_records', 'mar_records', 'incidents', 'team_members', 'shift_assignments', 'wounds'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['patients', 'care_records', 'mar_records', 'incidents', 'team_members', 'shift_assignments', 'wounds', 'patient_meds', 'hydration_logs'], userId: user?.id, onChange: load })
+
+  // ── Motor de ecossistema: risco por residente (consistente com Cockpit/Turno/ficha) ──
+  const ranked = patients.map(p => {
+    const a = analyzeResident({
+      age: p.age, conditions: p.conditions, allergies: p.allergies,
+      meds: medsByPt[p.id] || [],
+      incidents: incidents.filter(x => x.patient_id === p.id && x.status !== 'closed').map(x => ({ type: x.type, severity: x.severity, status: x.status })),
+      assessments: assessments.filter(x => x.patient_id === p.id).map(x => ({ scale: x.scale, date: x.date })),
+      wounds: wounds.filter(x => x.patient_id === p.id).map(x => ({ status: x.status, stage: x.stage })),
+      weightSeries: weightsByPt[p.id] || [],
+      fluidToday: fluidByPt[p.id] ?? null,
+      lastBowelDays: bowelByPt[p.id] ?? null,
+      latestVitals: vitalsByPt[p.id] ?? null,
+    })
+    return { p, ...a }
+  }).sort((a, b) => b.score - a.score)
+  const criticalCount = ranked.filter(r => r.level === 'critical').length
+  const warningCount = ranked.filter(r => r.level === 'warning').length
 
   // ── Derived metrics ──
   const occupied = patients.filter(p => p.room_number).length
   const occupancyPct = totalBeds > 0 ? Math.round((occupied / totalBeds) * 100) : 0
   const onShift = team.filter(m => m.status === 'on_shift' || m.status === 'active').length
-  const highRisk = patients.filter(isHighRisk)
   const openInc = incidents.filter(i => i.status !== 'closed')
   const activeWounds = wounds.filter(w => w.status !== 'healed')
   const severeWounds = activeWounds.filter(w => w.stage === 'III' || w.stage === 'IV' || w.stage === 'unstageable')
@@ -124,6 +178,7 @@ export default function GestaoPage() {
   // ── Consolidated alerts feed ──
   interface Alert { id: string; prio: number; color: string; cat: string; text: string; href: string }
   const alerts: Alert[] = []
+  if (criticalCount > 0) alerts.push({ id: 'risk-crit', prio: 0, color: '#dc2626', cat: 'Risco clínico crítico', text: `${criticalCount} residente${criticalCount !== 1 ? 's' : ''} a precisar de atenção prioritária`, href: '/rounds' })
   openInc.filter(i => i.severity === 'critical' || i.severity === 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 0, color: '#dc2626', cat: 'Ocorrência grave', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)} ${roomOf(i.patient_id)}`, href: '/incidents' }))
   severeWounds.forEach(w => alerts.push({ id: `w${w.id}`, prio: 1, color: '#991b1b', cat: `Ferida Cat. ${w.stage}`, text: `${nameOf(w.patient_id)} ${roomOf(w.patient_id)}`, href: '/feridas' }))
   openInc.filter(i => i.severity !== 'critical' && i.severity !== 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 2, color: '#d97706', cat: 'Ocorrência aberta', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)}`, href: '/incidents' }))
@@ -172,7 +227,7 @@ export default function GestaoPage() {
           {[
             { label: 'Ocupação', value: `${occupied}/${totalBeds}`, sub: `${occupancyPct}%`, color: occupancyPct >= 90 ? '#dc2626' : '#0d6e42', href: '/census' },
             { label: 'Equipa em serviço', value: onShift, sub: `de ${team.length}`, color: '#2563eb', href: '/schedule' },
-            { label: 'Alto risco', value: highRisk.length, sub: 'residentes', color: highRisk.length ? '#dc2626' : '#16a34a', href: '/rounds' },
+            { label: 'Risco crítico', value: criticalCount, sub: warningCount ? `+${warningCount} a vigiar` : 'residentes', color: criticalCount ? '#dc2626' : warningCount ? '#d97706' : '#16a34a', href: '/rounds' },
             { label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? '#dc2626' : '#16a34a', href: '/incidents' },
             { label: 'Feridas ativas', value: activeWounds.length, sub: severeWounds.length ? `${severeWounds.length} cat. III/IV` : 'acompanhamento', color: severeWounds.length ? '#991b1b' : '#d97706', href: '/feridas' },
           ].map(k => (
@@ -197,6 +252,34 @@ export default function GestaoPage() {
               <Ring pct={loading ? 0 : carePct} color="#2563eb" label="Registos diários" sub={`${careThisShift.size}/${patients.length}`} />
               <Ring pct={loading ? 0 : marPct} color="#0d6e42" label="MAR administrado" sub={`${marDone.size}/${patients.length}`} />
             </div>
+          </div>
+
+          {/* Residentes de maior risco — motor de ecossistema */}
+          <div style={{ ...card, gridColumn: '1 / -1' }}>
+            {secTitle(`Residentes de maior risco${criticalCount + warningCount ? ` · ${criticalCount + warningCount}` : ''}`, '/rounds')}
+            {loading ? (
+              <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>A analisar…</div>
+            ) : ranked.filter(r => r.level === 'critical' || r.level === 'warning').length === 0 ? (
+              <div style={{ fontSize: 12, color: '#16a34a' }}>Nenhum residente com sinais de alerta neste momento.</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+                {ranked.filter(r => r.level === 'critical' || r.level === 'warning').slice(0, 9).map(({ p, score, level, signals }) => {
+                  const st = SEVERITY_STYLE[level as Severity]
+                  const top = (signals as Signal[]).filter(s => s.severity === 'critical' || s.severity === 'warning').slice(0, 2)
+                  return (
+                    <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 10, padding: '10px 12px', border: `1px solid ${st.border}`, background: st.bg, borderRadius: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: 'white', border: `1.5px solid ${st.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: st.color }}>{score}</span>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}{p.room_number ? ` · Q${p.room_number}` : ''}</div>
+                        <div style={{ fontSize: 11, color: st.color, fontWeight: 600 }}>{top.map(s => s.title).join(' · ') || st.label}</div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Movimento + avaliações */}

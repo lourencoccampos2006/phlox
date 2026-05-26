@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { printDoc } from '@/lib/print'
 
 type ScaleType = 'barthel' | 'braden' | 'morse' | 'mmse' | 'mna'
 
@@ -156,6 +157,23 @@ const SCALES: Record<ScaleType, { label: string; max: number; desc: string; colo
   mna:      { label: 'MNA — Triagem',        max: 14,  desc: 'Mini Nutritional Assessment — estado nutricional', color: '#16a34a' },
 }
 
+// Direção clínica: para Morse (quedas) maior pontuação = pior; nas restantes maior = melhor.
+const BETTER_WHEN_HIGHER: Record<ScaleType, boolean> = { barthel: true, braden: true, morse: false, mmse: true, mna: true }
+
+// Tendência entre pontuação atual e a anterior, interpretada clinicamente.
+function trendInfo(scale: ScaleType, current: number, prev: number | null) {
+  if (prev == null) return null
+  const delta = current - prev
+  if (delta === 0) return { arrow: '→', label: 'sem alteração', color: '#64748b', delta }
+  const improved = BETTER_WHEN_HIGHER[scale] ? delta > 0 : delta < 0
+  return {
+    arrow: delta > 0 ? '▲' : '▼',
+    label: `${improved ? 'melhorou' : 'agravou'} ${Math.abs(delta)} pts`,
+    color: improved ? '#16a34a' : '#dc2626',
+    delta,
+  }
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function AssessmentsPage() {
   const { user, supabase } = useAuth()
@@ -226,8 +244,53 @@ export default function AssessmentsPage() {
     load()
   }
 
+  function printHistory() {
+    const recs = [...patientRecords].sort((a, b) => (b.date + b.created_at).localeCompare(a.date + a.created_at))
+    if (!recs.length) return
+    const pat = patients.find(p => p.id === patientId)
+    const levelOf = (s: number) => (tab === 'barthel' ? barthelLevel(s) : tab === 'braden' ? bradenLevel(s) : tab === 'morse' ? morseLevel(s) : tab === 'mmse' ? mmseLevel(s) : mnaLevel(s)).label
+    printDoc({
+      docTitle: `${SCALES[tab].label} — ${pat?.name || 'Residente'}`,
+      docSubtitle: SCALES[tab].desc,
+      author: evaluatedBy || undefined,
+      meta: [
+        { label: 'avaliações', value: String(recs.length) },
+        { label: 'última', value: recs[0].date },
+        { label: 'resultado', value: `${recs[0].score}/${SCALES[tab].max} · ${levelOf(recs[0].score)}` },
+      ],
+      sections: [{
+        heading: 'Histórico de avaliações',
+        records: recs.map(r => {
+          const t = trendInfo(tab, r.score, prevScoreOf(r))
+          return {
+            title: `${r.date} — ${r.score}/${SCALES[tab].max} pts`,
+            tags: [{ label: levelOf(r.score), color: '#334155' }],
+            fields: [
+              { label: 'Avaliado por', value: r.evaluated_by || '—' },
+              ...(t ? [{ label: 'Tendência', value: `${t.arrow} ${t.label}` }] : []),
+            ],
+            body: r.notes || undefined,
+          }
+        }),
+      }],
+      footerNote: `Avaliações clínicas · ${SCALES[tab].label} · Phlox`,
+    })
+  }
+
   const patientRecords = records.filter(r => r.patient_id === patientId && r.scale === tab)
   const allTabRecords = records.filter(r => r.scale === tab)
+
+  // Tendência: pontuação atual (em edição) vs. última registada para este residente+escala
+  const lastRecord = patientId ? [...patientRecords].sort((a, b) => (b.date + b.created_at).localeCompare(a.date + a.created_at))[0] : null
+  const liveTrend = patientId && lastRecord ? trendInfo(tab, totalScore, lastRecord.score) : null
+  // Histórico ordenado por data asc → para calcular tendência de cada registo vs o anterior
+  const sortedAsc = [...(patientId ? patientRecords : allTabRecords)].sort((a, b) => (a.date + a.created_at).localeCompare(b.date + b.created_at))
+  const prevScoreOf = (rec: AssessmentRecord): number | null => {
+    if (!patientId) return null
+    const samePt = sortedAsc.filter(x => x.patient_id === rec.patient_id)
+    const idx = samePt.findIndex(x => x.id === rec.id)
+    return idx > 0 ? samePt[idx - 1].score : null
+  }
 
   const inputStyle: React.CSSProperties = { padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }
@@ -301,6 +364,11 @@ export default function AssessmentsPage() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: level.color, background: level.bg, padding: '3px 10px', borderRadius: 20, marginTop: 4, display: 'inline-block' }}>
                       {level.label}
                     </div>
+                    {liveTrend && (
+                      <div style={{ fontSize: 11, fontWeight: 700, color: liveTrend.color, marginTop: 5 }}>
+                        {liveTrend.arrow} {liveTrend.label} <span style={{ color: '#94a3b8', fontWeight: 500 }}>vs. {lastRecord!.date}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Progress bar */}
@@ -402,9 +470,14 @@ export default function AssessmentsPage() {
             {/* RIGHT: History */}
             <div>
               <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', position: 'sticky', top: 76 }}>
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Histórico</div>
-                  <div style={{ fontSize: 12, color: '#64748b' }}>{patientId ? patientRecords.length : allTabRecords.length} avaliações</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {patientId && patientRecords.length > 0 && (
+                      <button onClick={printHistory} style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>Imprimir</button>
+                    )}
+                    <div style={{ fontSize: 12, color: '#64748b' }}>{patientId ? patientRecords.length : allTabRecords.length} aval.</div>
+                  </div>
                 </div>
                 <div style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
                   {(patientId ? patientRecords : allTabRecords).length === 0 ? (
@@ -414,10 +487,14 @@ export default function AssessmentsPage() {
                     </div>
                   ) : (patientId ? patientRecords : allTabRecords).map(r => {
                     const lvl = tab === 'barthel' ? barthelLevel(r.score) : tab === 'braden' ? bradenLevel(r.score) : tab === 'morse' ? morseLevel(r.score) : tab === 'mmse' ? mmseLevel(r.score) : mnaLevel(r.score)
+                    const rTrend = trendInfo(tab, r.score, prevScoreOf(r))
                     return (
                       <div key={r.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f8fafc' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{r.score} pts</div>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 7 }}>
+                            {r.score} pts
+                            {rTrend && <span style={{ fontSize: 11, fontWeight: 700, color: rTrend.color }}>{rTrend.arrow} {rTrend.delta > 0 ? '+' : ''}{rTrend.delta}</span>}
+                          </div>
                           <div style={{ fontSize: 11, fontWeight: 700, color: lvl.color, background: lvl.bg, padding: '1px 8px', borderRadius: 10 }}>{lvl.label}</div>
                         </div>
                         {!patientId && r.patient_name && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>{r.patient_name}</div>}
