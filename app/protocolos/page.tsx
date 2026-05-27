@@ -122,7 +122,27 @@ export default function ProtocolosPage() {
   useEffect(() => { load() }, [load])
   useLiveData({ supabase, table: 'protocols', userId: user?.id, onChange: load })
 
-  function openNew() { setForm(blank); setEditId(null); setShowEditor(true) }
+  const [aiTopic, setAiTopic] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiErr, setAiErr] = useState('')
+  async function generateAI() {
+    if (!aiTopic.trim()) return
+    setAiBusy(true); setAiErr('')
+    try {
+      const res = await fetch('/api/protocolo-lar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: aiTopic.trim() }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro')
+      setForm({
+        title: data.title || aiTopic.trim(),
+        category: data.category || 'other',
+        description: data.description || '',
+        steps: (Array.isArray(data.steps) && data.steps.length ? data.steps : [{ text: '', critical: false }]).map((s: any) => ({ text: String(s.text || ''), critical: !!s.critical })),
+      })
+    } catch (e: any) { setAiErr(e.message || 'Não foi possível gerar.') }
+    finally { setAiBusy(false) }
+  }
+
+  function openNew() { setForm(blank); setEditId(null); setAiTopic(''); setAiErr(''); setShowEditor(true) }
   function openEdit(p: Protocol) { setForm({ title: p.title, category: p.category, description: p.description || '', steps: p.steps.length ? p.steps : [{ text: '', critical: false }] }); setEditId(p.id); setShowEditor(true) }
   function useTemplate(t: Omit<Protocol, 'id' | 'active'>) { setForm({ title: t.title, category: t.category, description: t.description || '', steps: t.steps }); setEditId(null); setShowTemplates(false); setShowEditor(true) }
 
@@ -265,6 +285,18 @@ export default function ProtocolosPage() {
       {showEditor && (
         <Modal title={editId ? 'Editar protocolo' : 'Novo protocolo'} onClose={() => setShowEditor(false)} wide>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {!editId && (
+              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', marginBottom: 8 }}>✨ Gerar com IA</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input value={aiTopic} onChange={e => setAiTopic(e.target.value)} onKeyDown={e => e.key === 'Enter' && generateAI()} placeholder="Ex: gestão de comportamento agitado, surto de gastroenterite…"
+                    style={{ flex: 1, border: '1.5px solid #e9d5ff', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
+                  <button onClick={generateAI} disabled={aiBusy || !aiTopic.trim()} style={{ padding: '0 16px', background: aiTopic.trim() && !aiBusy ? '#7c3aed' : 'var(--bg-3)', color: aiTopic.trim() && !aiBusy ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: aiTopic.trim() && !aiBusy ? 'pointer' : 'default', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>{aiBusy ? 'A gerar…' : 'Gerar'}</button>
+                </div>
+                {aiErr && <div style={{ fontSize: 12, color: '#991b1b', marginTop: 6 }}>{aiErr}</div>}
+                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 6 }}>Gera um rascunho que podes rever e adaptar antes de guardar.</div>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
               <div><span style={lbl}>Título *</span><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: Atuação na Queda" style={inp} /></div>
               <div><span style={lbl}>Categoria</span><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={inp}>{CAT_KEYS.map(c => <option key={c} value={c}>{CATS[c].label}</option>)}</select></div>

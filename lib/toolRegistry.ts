@@ -33,6 +33,7 @@ export const TOOLS: Tool[] = [
 
   // ── A minha saúde ──
   { id: '/vitals',       label: 'Acompanhar tensão, peso e açúcar', desc: 'Registo e tendências',          category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
+  { id: '/sintomas',     label: 'Como me sinto hoje?',           desc: 'Diário de sintomas e bem-estar',   category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/objetivos',    label: 'Definir objetivos de saúde',    desc: 'Metas e acompanhamento',           category: 'health',     modes: ['personal'], plan: 'free' },
   { id: '/relatorio',    label: 'Como correu a minha semana?',   desc: 'Relatório semanal por IA',         category: 'health',     modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/passport',     label: 'Cartão de emergência',          desc: 'QR code com a minha info vital',   category: 'health',     modes: ['personal', 'caregiver'], default: ['caregiver'], plan: 'free' },
@@ -47,6 +48,7 @@ export const TOOLS: Tool[] = [
   // ── A minha saúde (novas) ──
   { id: '/triagem',      label: 'Devo ir ao médico?',            desc: 'Orientação: casa, médico ou urgências', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/preventivo',   label: 'Estou em dia com a saúde?',     desc: 'Vacinas e rastreios por idade',    category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
+  { id: '/socorros',     label: 'O que faço numa emergência?',   desc: 'Primeiros socorros passo a passo', category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'Gerir os perfis da família',    desc: 'Um perfil por familiar',           category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'free' },

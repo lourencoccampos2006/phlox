@@ -75,7 +75,15 @@ export async function POST(req: NextRequest) {
   }
 
   const { data, error } = await supabase.from('vitals').insert(record).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Coluna profile_id em falta → migração não aplicada
+    if (/column .*profile_id.* does not exist/i.test(error.message) || error.code === '42703')
+      return NextResponse.json({ error: 'O registo por familiar ainda não está ativo. Aplica a migração profile_id (supabase/migrations/20260520_add_profile_id_to_vitals.sql).' }, { status: 503 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  // Segurança: se era para um familiar mas o profile_id não ficou gravado, avisa.
+  if (profileId && (data as any)?.profile_id == null)
+    return NextResponse.json({ error: 'O registo não foi associado ao familiar (coluna profile_id em falta). Aplica a migração.' }, { status: 503 })
   return NextResponse.json(data)
 }
 
