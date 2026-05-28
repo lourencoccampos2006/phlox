@@ -12,6 +12,7 @@ const CLINICAL_PREFIXES = [
   '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
   '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
   '/schedule', '/census', '/roi', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos',
+  '/indicacao', '/soap', '/rastreios',
 ]
 
 function ScrollToTop() {

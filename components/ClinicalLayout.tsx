@@ -52,6 +52,9 @@ const ICONS = {
   hydration: <><path d="M12 2.5S5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></>,
   billing:   <><path d="M4 3h16a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></>,
   docs:      <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>,
+  counter:   <><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><line x1="9" y1="21" x2="9" y2="14"/><line x1="15" y1="21" x2="15" y2="14"/></>,
+  soap:      <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13l2 2 4-4"/></>,
+  screen:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 11l2 2 4-4"/></>,
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -94,18 +97,87 @@ const NH: NavSection[] = [
     { href: '/roi', label: 'Poupança', icon: 'roi' },
   ]},
 ]
+// Farmácia comunitária — foco no atendimento ao balcão + gestão.
+const PHARMACY: NavSection[] = [
+  { title: 'Atendimento', items: [
+    { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/indicacao', label: 'Indicação Farmacêutica', icon: 'counter', badge: true },
+    { href: '/interactions', label: 'Verificar Interações', icon: 'drug' },
+    { href: '/patients', label: 'Utentes / Fichas', icon: 'patients' },
+    { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
+  ]},
+  { title: 'Clínico', items: [
+    { href: '/rastreios', label: 'Rastreios & Vacinas', icon: 'screen', badge: true },
+    { href: '/rounds', label: 'Ronda Farmacêutica', icon: 'round' },
+    { href: '/connect', label: 'Connect', icon: 'connect' },
+  ]},
+  { title: 'Gestão', items: [
+    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
+    { href: '/schedule', label: 'Equipa & Escalas', icon: 'schedule' },
+    { href: '/quality', label: 'Qualidade', icon: 'quality' },
+  ]},
+]
+// Clínica / consultório — foco na consulta.
+const CLINIC: NavSection[] = [
+  { title: 'Consulta', items: [
+    { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/patients', label: 'Doentes', icon: 'patients' },
+    { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
+    { href: '/agenda', label: 'Agenda', icon: 'agenda', badge: true },
+  ]},
+  { title: 'Clínico', items: [
+    { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
+    { href: '/rastreios', label: 'Rastreios & Vacinas', icon: 'screen', badge: true },
+    { href: '/connect', label: 'Connect', icon: 'connect' },
+  ]},
+  { title: 'Gestão', items: [
+    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+    { href: '/faturacao', label: 'Faturação', icon: 'billing' },
+    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
+    { href: '/schedule', label: 'Equipa', icon: 'schedule' },
+  ]},
+]
+// Centro de Saúde / USF — foco em prevenção e listas de utentes.
+const HEALTH_CENTER: NavSection[] = [
+  { title: 'Cuidados', items: [
+    { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/patients', label: 'Utentes', icon: 'patients' },
+    { href: '/rastreios', label: 'Rastreios & Vacinas', icon: 'screen', badge: true },
+    { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
+    { href: '/agenda', label: 'Agenda', icon: 'agenda', badge: true },
+  ]},
+  { title: 'Clínico', items: [
+    { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
+    { href: '/rounds', label: 'Ronda Clínica', icon: 'round' },
+    { href: '/quality', label: 'Qualidade', icon: 'quality' },
+    { href: '/connect', label: 'Connect', icon: 'connect' },
+  ]},
+  { title: 'Gestão', items: [
+    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
+    { href: '/schedule', label: 'Equipa', icon: 'schedule' },
+  ]},
+]
+// Hospital / farmácia hospitalar — base clínica genérica.
 const GENERIC: NavSection[] = [
   { title: 'Clínico', items: [
     { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
     { href: '/patients', label: 'Doentes', icon: 'patients' },
     { href: '/mar', label: 'Administração', icon: 'mar' },
     { href: '/rounds', label: 'Ronda', icon: 'round' },
-    { href: '/drug-intelligence', label: 'Farmacoterapia', icon: 'drug' },
+    { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
+    { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
 ]
+
+const NAV_BY_INST: Record<InstType, NavSection[]> = {
+  nursing_home: NH, pharmacy_community: PHARMACY, clinic: CLINIC,
+  health_center: HEALTH_CENTER, hospital: GENERIC, pharmacy_hospital: GENERIC,
+}
 const INST_LABELS: Record<InstType, string> = {
   hospital: 'Hospital', clinic: 'Clínica', pharmacy_hospital: 'Farmácia Hosp.',
   pharmacy_community: 'Farmácia', nursing_home: 'Lar / ERPI', health_center: 'Centro de Saúde',
@@ -196,7 +268,7 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
     return () => { window.removeEventListener('keydown', onKey); clearTimeout(gTimer) }
   }, [router])
 
-  const sections = inst === 'nursing_home' ? NH : GENERIC
+  const sections = NAV_BY_INST[inst] || GENERIC
   const all = sections.flatMap(s => s.items)
   const current = all.find(i => isActive(pathname, i.href))
   const title = current?.label || (pathname === '/settings' ? 'Definições' : pathname.startsWith('/patients/') ? 'Ficha do Residente' : 'Phlox')

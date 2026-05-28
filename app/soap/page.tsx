@@ -42,7 +42,7 @@ export default function SoapPage() {
   ] as const
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', paddingTop: 56 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <div style={{ background: 'linear-gradient(135deg,#dc2626,#ef4444)', padding: '26px 24px 22px' }}>
         <div className="page-container">
           <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Clínica · Consulta</div>

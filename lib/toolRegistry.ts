@@ -53,8 +53,10 @@ export const TOOLS: Tool[] = [
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'Gerir os perfis da família',    desc: 'Um perfil por familiar',           category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'free' },
+  { id: '/preparar-consulta', label: 'Preparar uma ida ao médico', desc: 'Folha de perguntas e sintomas',   category: 'health',     modes: ['personal', 'caregiver'], default: ['caregiver'], plan: 'free' },
 
   // ── Estudar & treinar ──
+  { id: '/comunidade',   label: 'Comunidade de estudantes',      desc: 'Dúvidas, recursos e ajuda entre pares', category: 'study', modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/arena',        label: 'Competir na Arena',             desc: 'Ligas Bronze → Diamante',          category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
   { id: '/study',        label: 'Estudar com flashcards',        desc: '200+ tópicos, repetição espaçada', category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/tutor',        label: 'AI Tutor',                      desc: 'Explicações passo a passo',        category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
