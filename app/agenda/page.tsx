@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 type ApptType = 'consulta' | 'exame' | 'terapia' | 'visita_medica' | 'transporte' | 'reuniao' | 'vacina' | 'outro'
 type ApptStatus = 'scheduled' | 'done' | 'cancelled'
@@ -112,6 +113,30 @@ export default function AgendaPage() {
     return dt.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
   }
 
+  // Folha de transportes do dia — para o motorista/coordenação
+  function printTransports() {
+    const list = appts.filter(a => a.date === today && a.transport && a.status === 'scheduled')
+      .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
+    if (list.length === 0) { alert('Sem transportes agendados para hoje.'); return }
+    const records: PrintRecord[] = list.map(a => ({
+      title: `${a.time || '--:--'} · ${nameOf(a.patient_id)}${roomOf(a.patient_id) ? ` (${roomOf(a.patient_id)})` : ''}`,
+      fields: [
+        { label: 'Motivo', value: `${TYPES[a.type].label}${a.speciality ? ' — ' + a.speciality : ''}` },
+        { label: 'Destino', value: a.location || '—' },
+        ...(a.responsible ? [{ label: 'Acompanhante', value: a.responsible }] : []),
+      ],
+      ...(a.transport_notes ? { body: a.transport_notes } : {}),
+    }))
+    printDoc({
+      docTitle: 'Folha de Transportes',
+      docSubtitle: new Date(today + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+      institution: 'Lar / ERPI',
+      meta: [{ label: 'transportes', value: String(list.length) }],
+      sections: [{ heading: 'Saídas de hoje', records }],
+      footerNote: 'Folha de transportes · Phlox',
+    })
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 880 }}>
@@ -121,7 +146,10 @@ export default function AgendaPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Agenda Clínica & Transportes</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Consultas, exames, terapias, visitas e transportes — por residente, num só sítio.</p>
           </div>
-          <button onClick={openNew} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Agendar</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={printTransports} style={{ padding: '10px 14px', background: 'white', border: `1.5px solid ${stats.transportes ? '#d97706' : 'var(--border)'}`, color: stats.transportes ? '#d97706' : 'var(--ink-4)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🚐 Folha de transportes{stats.transportes ? ` (${stats.transportes})` : ''}</button>
+            <button onClick={openNew} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Agendar</button>
+          </div>
         </div>
 
         {tableMissing ? (

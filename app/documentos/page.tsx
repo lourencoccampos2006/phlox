@@ -30,6 +30,7 @@ export default function DocumentosPage() {
   const [loading, setLoading] = useState(true)
   const [tableMissing, setTableMissing] = useState(false)
   const [search, setSearch] = useState('')
+  const [expFilter, setExpFilter] = useState<'all' | 'expiring' | 'expired'>('all')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -80,7 +81,16 @@ export default function DocumentosPage() {
     load()
   }
 
-  const filtered = docs.filter(d => !search || d.name.toLowerCase().includes(search.toLowerCase()) || nameOf(d.patient_id).toLowerCase().includes(search.toLowerCase()))
+  const matchesExp = (d: Doc, f: 'all' | 'expiring' | 'expired') => {
+    if (f === 'all') return true
+    const n = daysTo(d.expiry_date)
+    if (n == null) return false
+    return f === 'expired' ? n < 0 : (n >= 0 && n <= 30)
+  }
+  const filtered = docs.filter(d =>
+    (!search || d.name.toLowerCase().includes(search.toLowerCase()) || nameOf(d.patient_id).toLowerCase().includes(search.toLowerCase()))
+    && matchesExp(d, expFilter)
+  )
   const expiring = docs.filter(d => { const n = daysTo(d.expiry_date); return n != null && n >= 0 && n <= 30 }).length
   const expired = docs.filter(d => { const n = daysTo(d.expiry_date); return n != null && n < 0 }).length
 
@@ -109,8 +119,9 @@ export default function DocumentosPage() {
         ) : (
           <>
             <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              {expired > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '5px 11px', borderRadius: 8 }}>{expired} expirado(s)</span>}
-              {expiring > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '5px 11px', borderRadius: 8 }}>{expiring} a expirar (≤30d)</span>}
+              {expired > 0 && <button onClick={() => setExpFilter(f => f === 'expired' ? 'all' : 'expired')} style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: expFilter === 'expired' ? '#fee2e2' : '#fef2f2', border: `1.5px solid ${expFilter === 'expired' ? '#dc2626' : '#fca5a5'}`, padding: '5px 11px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{expired} expirado(s)</button>}
+              {expiring > 0 && <button onClick={() => setExpFilter(f => f === 'expiring' ? 'all' : 'expiring')} style={{ fontSize: 12, fontWeight: 700, color: '#d97706', background: expFilter === 'expiring' ? '#fef3c7' : '#fffbeb', border: `1.5px solid ${expFilter === 'expiring' ? '#d97706' : '#fde68a'}`, padding: '5px 11px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{expiring} a expirar (≤30d)</button>}
+              {expFilter !== 'all' && <button onClick={() => setExpFilter('all')} style={{ fontSize: 12, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>limpar filtro</button>}
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar documento ou residente..." style={{ ...inp, width: 260, flex: '0 1 260px', marginLeft: 'auto' }} />
             </div>
 

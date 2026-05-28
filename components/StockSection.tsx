@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 type Cat = 'medicamento' | 'penso' | 'material' | 'suplemento' | 'outro'
 interface Item {
@@ -74,6 +75,46 @@ export default function StockSection() {
   const expiring = enriched.filter(({ it }) => { const d = daysTo(it.expiry_date); return d != null && d >= 0 && d <= 30 }).length
   const low = enriched.filter(({ it }) => (it.min_quantity || 0) > 0 && it.quantity <= (it.min_quantity || 0)).length
 
+  // Lista de compras: artigos abaixo do mínimo ou expirados, com sugestão de reposição
+  const toRestock = items.filter(it => {
+    const d = daysTo(it.expiry_date)
+    const lowStock = (it.min_quantity || 0) > 0 && it.quantity <= (it.min_quantity || 0)
+    return lowStock || (d != null && d < 0)
+  })
+  function printShoppingList() {
+    if (toRestock.length === 0) { alert('Sem artigos para repor de momento.'); return }
+    const records: PrintRecord[] = toRestock
+      .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
+      .map(it => {
+        const d = daysTo(it.expiry_date)
+        const min = it.min_quantity || 0
+        // sugestão: repor para o dobro do mínimo (ou +10 un se sem mínimo definido)
+        const suggested = min > 0 ? Math.max(0, Math.ceil(min * 2 - it.quantity)) : 10
+        const reasons = [
+          min > 0 && it.quantity <= min ? `stock baixo (${it.quantity}/${min} ${it.unit})` : '',
+          d != null && d < 0 ? 'expirado — substituir' : '',
+        ].filter(Boolean).join(' · ')
+        return {
+          title: it.name,
+          fields: [
+            { label: 'Categoria', value: CATS[it.category] },
+            { label: 'Em stock', value: `${it.quantity} ${it.unit}` },
+            { label: 'Encomendar', value: `${suggested} ${it.unit}` },
+            ...(it.location ? [{ label: 'Local', value: it.location }] : []),
+          ],
+          ...(reasons ? { body: reasons } : {}),
+        }
+      })
+    printDoc({
+      docTitle: 'Lista de Compras / Reposição',
+      docSubtitle: new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' }),
+      institution: 'Lar / ERPI',
+      meta: [{ label: 'artigos a repor', value: String(toRestock.length) }],
+      sections: [{ heading: 'A encomendar', records }],
+      footerNote: 'Lista de reposição de stock · Phlox',
+    })
+  }
+
   if (tableMissing) {
     return <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
       <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Stock por configurar</div>
@@ -102,7 +143,8 @@ export default function StockSection() {
           <button key={f} onClick={() => setFilter(f)} style={{ padding: '6px 13px', borderRadius: 8, border: `1.5px solid ${filter === f ? '#0d6e42' : 'var(--border)'}`, background: filter === f ? '#eef6f1' : 'white', color: filter === f ? '#0d6e42' : 'var(--ink-4)', fontSize: 12, fontWeight: filter === f ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{f === 'all' ? 'Todos' : 'Só alertas'}</button>
         ))}
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar..." style={{ ...inp, width: 180, flex: '0 1 180px' }} />
-        <button onClick={openNew} style={{ marginLeft: 'auto', padding: '8px 14px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Artigo</button>
+        <button onClick={printShoppingList} style={{ marginLeft: 'auto', padding: '8px 14px', background: 'white', border: `1.5px solid ${toRestock.length ? '#0d6e42' : 'var(--border)'}`, color: toRestock.length ? '#0d6e42' : 'var(--ink-4)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🛒 Lista de compras{toRestock.length ? ` (${toRestock.length})` : ''}</button>
+        <button onClick={openNew} style={{ padding: '8px 14px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Artigo</button>
       </div>
 
       {loading ? (

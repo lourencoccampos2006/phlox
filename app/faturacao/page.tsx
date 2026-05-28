@@ -107,6 +107,37 @@ export default function FaturacaoPage() {
     })
   }
 
+  // Recibo individual de mensalidade para entregar à família
+  function printReceipt(e: Entry) {
+    const mLabel = new Date(e.month + '-01T12:00:00').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+    const lines: PrintRecord[] = [{
+      title: `Mensalidade — ${mLabel}`,
+      fields: [
+        { label: 'Mensalidade', value: euro(e.fee) },
+        ...(e.extras ? [{ label: 'Extras', value: euro(e.extras) }] : []),
+        ...(e.subsidy ? [{ label: 'Comparticipação', value: `- ${euro(e.subsidy)}` }] : []),
+        ...(e.discount ? [{ label: 'Desconto', value: `- ${euro(e.discount)}` }] : []),
+        { label: 'TOTAL A PAGAR', value: euro(due(e)) },
+      ],
+      ...(e.notes ? { body: e.notes } : {}),
+    }]
+    printDoc({
+      docTitle: e.paid ? 'Recibo de Mensalidade' : 'Aviso de Pagamento',
+      docSubtitle: nameOf(e.patient_id),
+      institution: 'Lar / ERPI',
+      meta: [
+        { label: 'estado', value: e.paid ? 'PAGO' : 'PENDENTE' },
+        ...(e.paid && e.paid_date ? [{ label: 'pago em', value: e.paid_date }] : []),
+        ...(e.method ? [{ label: 'método', value: e.method }] : []),
+      ],
+      sections: [
+        { heading: 'Detalhe', records: lines },
+        { heading: 'Validação', records: [{ title: 'Assinaturas', fields: [{ label: 'Recebido por', value: '' }, { label: 'Data', value: '' }] }] },
+      ],
+      footerNote: `${e.paid ? 'Recibo' : 'Aviso'} de mensalidade · Phlox`,
+    })
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 940 }}>
@@ -171,6 +202,9 @@ export default function FaturacaoPage() {
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                       <button onClick={() => togglePaid(e)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${e.paid ? '#bbf7d0' : '#fde68a'}`, background: e.paid ? '#f0fdf4' : '#fffbeb', color: e.paid ? '#16a34a' : '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
                         {e.paid ? '✓ Pago' : 'Marcar pago'}
+                      </button>
+                      <button onClick={() => printReceipt(e)} title={e.paid ? 'Imprimir recibo' : 'Imprimir aviso de pagamento'} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                       </button>
                       <button onClick={() => setEdit(e)} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
