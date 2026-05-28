@@ -9,6 +9,7 @@ import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import DrugReferenceButton from '@/components/DrugReferenceButton'
 import { analyzeResident, SEVERITY_STYLE as ECO_SEV } from '@/lib/residentSignals'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 
 interface Patient {
@@ -130,7 +131,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const [ecoWeights, setEcoWeights] = useState<{ date: string; weight: number }[]>([])
   const [ecoFluidToday, setEcoFluidToday] = useState<number | null>(null)
   const [ecoBowelDays, setEcoBowelDays] = useState<number | null>(null)
-  const [ecoVitals, setEcoVitals] = useState<{ temp?: number; spo2?: number; bp_sys?: number; hr?: number; at?: string } | null>(null)
+  const [ecoVitals, setEcoVitals] = useState<{ temp?: number; spo2?: number; bp_sys?: number; bp_dia?: number; hr?: number; at?: string } | null>(null)
   const [ecoCareToday, setEcoCareToday] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
@@ -178,6 +179,53 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const crCl = patient?.age && patient?.weight && patient?.creatinine && patient?.sex
     ? Math.round(((140 - patient.age) * patient.weight * (patient.sex === 'F' ? 0.85 : 1)) / (72 * patient.creatinine))
     : null
+
+  // Ficha-resumo A4 do residente (consulta médica, ambulância, handover, inspeção)
+  function printChart() {
+    if (!patient) return
+    const p: any = patient
+    const v = ecoVitals
+    const idFields = [
+      { label: 'Idade', value: patient.age != null ? `${patient.age} anos` : '—' },
+      ...(p.room_number ? [{ label: 'Quarto', value: String(p.room_number) }] : []),
+      { label: 'Sexo', value: patient.sex === 'F' ? 'Feminino' : patient.sex === 'M' ? 'Masculino' : '—' },
+      ...(patient.weight ? [{ label: 'Peso', value: `${patient.weight} kg` }] : []),
+      ...(crCl ? [{ label: 'ClCr estimada', value: `${crCl} mL/min` }] : []),
+      ...(p.emergency_contact ? [{ label: 'Contacto urgência', value: `${p.emergency_contact}${p.emergency_phone ? ' · ' + p.emergency_phone : ''}` }] : []),
+    ]
+    const sections: any[] = [
+      { heading: 'Identificação', records: [{ title: patient.name, fields: idFields }] },
+    ]
+    if (patient.allergies) sections.push({ heading: 'Alergias', records: [{ title: '⚠ Alergias', body: patient.allergies }] })
+    if (patient.conditions) sections.push({ heading: 'Condições / Diagnósticos', records: [{ title: 'Histórico clínico', body: patient.conditions }] })
+    sections.push({
+      heading: `Medicação ativa (${meds.length})`,
+      records: meds.length
+        ? meds.map(m => ({ title: m.name, meta: [m.dose, m.frequency].filter(Boolean).join(' · ') || undefined, ...(m.indication ? { body: `Indicação: ${m.indication}` } : {}) }))
+        : [{ title: 'Sem medicação registada' }],
+    })
+    if (v) sections.push({
+      heading: 'Últimos sinais vitais',
+      records: [{ title: v.at ? `Registo de ${v.at}` : 'Recente', fields: [
+        ...(v.temp != null ? [{ label: 'Temp', value: `${v.temp}°C` }] : []),
+        ...(v.bp_sys != null ? [{ label: 'TA', value: `${v.bp_sys}/${v.bp_dia ?? '—'} mmHg` }] : []),
+        ...(v.hr != null ? [{ label: 'FC', value: `${v.hr} bpm` }] : []),
+        ...(v.spo2 != null ? [{ label: 'SpO₂', value: `${v.spo2}%` }] : []),
+      ] }],
+    })
+    if (ecoAnalysis && ecoAnalysis.signals.length) {
+      const top = ecoAnalysis.signals.filter(s => s.severity === 'critical' || s.severity === 'warning')
+      if (top.length) sections.push({ heading: `Estado clínico — ${ECO_SEV[ecoAnalysis.level].label}`, records: [{ title: ecoAnalysis.summary, bullets: top.map(s => `${s.title}: ${s.detail}`) }] })
+    }
+    sections.push({ heading: 'Validação', records: [{ title: 'Assinaturas', fields: [{ label: 'Profissional', value: '' }, { label: 'Data', value: '' }] }] })
+    printDoc({
+      docTitle: 'Ficha do Residente',
+      docSubtitle: `${patient.name}${p.room_number ? ' · Quarto ' + p.room_number : ''}`,
+      institution: 'Lar / ERPI',
+      sections,
+      footerNote: 'Ficha-resumo do residente · Phlox',
+    })
+  }
 
   // Run STOPP/START when patient data is ready
   useEffect(() => {
@@ -438,6 +486,11 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
               <button onClick={() => setEditing(!editing)}
                 style={{ padding: '7px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                 Editar
+              </button>
+              <button onClick={printChart} title="Imprimir ficha-resumo"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Imprimir
               </button>
               <Link href="/rounds"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', background: 'white', color: '#1d4ed8', border: '1px solid #bfdbfe', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700 }}>

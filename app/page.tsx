@@ -372,6 +372,53 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ─── FEATURE GRID (premium) ────────────────────────────────────────── */}
+      <section style={{ background: 'white', padding: 'clamp(64px,8vw,110px) 0' }}>
+        <div className="page-container">
+          <RevealSection>
+            <div style={{ textAlign: 'center', maxWidth: 620, margin: '0 auto clamp(36px,5vw,56px)' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#16a34a', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 14 }}>Porquê Phlox</div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,4vw,48px)', color: '#1d1d1f', fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1.12, margin: 0 }}>
+                Uma plataforma que se <span style={{ color: '#16a34a', fontStyle: 'italic' }}>adapta a si</span>.
+              </h2>
+            </div>
+          </RevealSection>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,280px),1fr))', gap: 18 }}>
+            {[
+              { icon: '🧠', title: 'Inteligência clínica real', body: 'Interações, doses, escalas e protocolos baseados em fontes verificáveis — não em palpites.', c: '#16a34a' },
+              { icon: '📷', title: 'Basta uma foto', body: 'Fotografa a caixa, a receita ou uma ferida. A IA lê, percebe e explica em segundos.', c: '#2563eb' },
+              { icon: '👨‍👩‍👧', title: 'Toda a família num lugar', body: 'Um perfil por familiar. Medicação, sintomas e sinais vitais sempre organizados.', c: '#b45309' },
+              { icon: '🏥', title: 'Feito para instituições', body: 'Lares, farmácias, clínicas e centros de saúde — fluxos de trabalho a sério, em português.', c: '#7c3aed' },
+              { icon: '🎓', title: 'Estudar e treinar', body: 'Arena, simuladores, flashcards e atlas 3D. Aprende como um especialista treina.', c: '#0891b2' },
+              { icon: '🔒', title: 'Privado e seguro', body: 'Os teus dados são teus. Acesso controlado, auditável e em conformidade com o RGPD.', c: '#0d6e42' },
+            ].map((f, i) => (
+              <RevealSection key={f.title} delay={i * 0.05}>
+                <div className="feat-card" style={{ background: 'white', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 18, padding: '26px 24px', height: '100%', transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s' }}>
+                  <div style={{ width: 46, height: 46, borderRadius: 12, background: `${f.c}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 16 }}>{f.icon}</div>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1d1d1f', margin: '0 0 8px', letterSpacing: '-0.01em' }}>{f.title}</h3>
+                  <p style={{ fontSize: 14.5, color: '#6e6e73', lineHeight: 1.65, margin: 0 }}>{f.body}</p>
+                </div>
+              </RevealSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── MARQUEE (animated band) ───────────────────────────────────────── */}
+      <div style={{ background: '#0d6e42', overflow: 'hidden', padding: '16px 0' }}>
+        <div className="marquee-track" style={{ display: 'flex', gap: 40, whiteSpace: 'nowrap', width: 'max-content' }}>
+          {[...Array(2)].map((_, dup) => (
+            <div key={dup} style={{ display: 'flex', gap: 40, alignItems: 'center' }} aria-hidden={dup === 1}>
+              {['Interações medicamentosas', 'Doses pediátricas', 'Escalas clínicas', 'Análise de feridas por IA', 'Leitor de receitas', 'Atlas 3D', 'Simulador clínico', 'MAR digital', 'Portal família', 'Calculadoras', 'Primeiros socorros'].map(t => (
+                <span key={t + dup} style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.92)', fontFamily: 'var(--font-sans)' }}>
+                  {t}<span style={{ color: 'rgba(255,255,255,0.4)' }}>✦</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ─── 4 PERSONAS ────────────────────────────────────────────────────── */}
       <PersonaSection
         bg="#0f172a"
@@ -482,9 +529,19 @@ export default function HomePage() {
         .persona-cta:hover { opacity:0.85; transform:translateY(-2px); }
         .final-cta:hover { opacity:0.9; transform:translateY(-2px); }
         .footer-lp-link:hover { color:#9ca3af !important; }
+        .feat-card:hover { transform:translateY(-4px); box-shadow:0 16px 40px rgba(0,0,0,0.08); border-color:rgba(0,0,0,0.12) !important; }
+        @keyframes marquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+        .marquee-track { animation: marquee 26s linear infinite; }
+        .marquee-track:hover { animation-play-state: paused; }
         @media(max-width:900px) {
           .demo-grid { grid-template-columns:1fr !important; }
           .persona-grid { grid-template-columns:1fr !important; }
+        }
+        @media(max-width:560px) {
+          .hero-cta-primary, .hero-cta-ghost { width:100%; justify-content:center; box-sizing:border-box; }
+        }
+        @media(prefers-reduced-motion: reduce) {
+          .marquee-track { animation:none; }
         }
       `}</style>
     </div>

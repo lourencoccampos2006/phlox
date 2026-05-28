@@ -49,6 +49,7 @@ export const TOOLS: Tool[] = [
   { id: '/triagem',      label: 'Devo ir ao médico?',            desc: 'Orientação: casa, médico ou urgências', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/preventivo',   label: 'Estou em dia com a saúde?',     desc: 'Vacinas e rastreios por idade',    category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/socorros',     label: 'O que faço numa emergência?',   desc: 'Primeiros socorros passo a passo', category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/health-pass',  label: 'Mostrar a minha saúde (QR)',    desc: 'QR para o médico/farmácia ver tudo', category: 'health',   modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'Gerir os perfis da família',    desc: 'Um perfil por familiar',           category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'free' },

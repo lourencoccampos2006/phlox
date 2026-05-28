@@ -374,10 +374,10 @@ function MobileDrawer({ open, onClose, user, signOut }: {
             </div>
           )}
 
-          {[
-            { href: '/inicio',   label: 'Início' },
-            { href: '/settings', label: 'Definições' },
-          ].map(item => (
+          {(user
+            ? [{ href: '/inicio', label: 'Início' }, { href: '/settings', label: 'Definições' }]
+            : [{ href: '/ferramentas', label: 'Ferramentas' }, { href: '/pricing', label: 'Preços' }, { href: '/about', label: 'Sobre' }]
+          ).map(item => (
             <Link key={item.href} href={item.href} onClick={onClose} className="mob-item"
               style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a', borderBottom: '1px solid #f8fafc' }}>
               {item.label}
@@ -421,6 +421,7 @@ export default function Header() {
   const isHomepage = pathname === '/'
   // Portal público do familiar — página standalone, sem header da app
   const isFamilyPortal = pathname === '/portal-familia' || pathname.startsWith('/portal-familia/')
+    || pathname === '/hp' || pathname.startsWith('/hp/')
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
   const modeColor = modeMeta.color
@@ -474,7 +475,7 @@ export default function Header() {
 
           {/* Logged-out nav */}
           {!loading && !user && (
-            <nav style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
+            <nav className="hdr-lo-nav" style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
               <Link href="/ferramentas" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Ferramentas</Link>
               <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
               <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>
@@ -550,8 +551,15 @@ export default function Header() {
 
             {!loading && !user && (
               <>
-                <Link href="/login" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', borderRadius: 7, border: '1px solid #e2e8f0' }}>Entrar</Link>
-                <Link href="/login" style={{ padding: '7px 15px', fontSize: 13, fontWeight: 800, background: '#0f172a', color: 'white', textDecoration: 'none', borderRadius: 7, whiteSpace: 'nowrap' }}>Começar →</Link>
+                <Link href="/login" className="hdr-lo-entrar" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', borderRadius: 7, border: '1px solid #e2e8f0' }}>Entrar</Link>
+                <Link href="/login" style={{ padding: '8px 16px', fontSize: 13, fontWeight: 800, background: '#0f172a', color: 'white', textDecoration: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}>Começar →</Link>
+                {/* Hamburger — só mobile, para aceder a Ferramentas/Preços/Sobre */}
+                <button onClick={() => setDrawerOpen(true)} className="hdr-hamburger" aria-label="Abrir menu"
+                  style={{ width: 36, height: 36, display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: '#f1f5f9', border: '1px solid transparent', borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}>
+                  <span style={{ width: 16, height: 2, background: '#374151', borderRadius: 2 }} />
+                  <span style={{ width: 16, height: 2, background: '#374151', borderRadius: 2 }} />
+                  <span style={{ width: 16, height: 2, background: '#374151', borderRadius: 2 }} />
+                </button>
               </>
             )}
           </div>
@@ -604,6 +612,8 @@ export default function Header() {
           .hdr-user-name     { display:none !important; }
           .hdr-user-chevron  { display:none !important; }
           .hdr-usermenu      { display:none !important; }
+          .hdr-lo-nav        { display:none !important; }
+          .hdr-lo-entrar     { display:none !important; }
         }
         /* Medium desktop: hide search label/kbd */
         @media (max-width:1100px) {

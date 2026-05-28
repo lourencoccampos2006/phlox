@@ -32,6 +32,9 @@ const DESTINATIONS: Dest[] = [
   { label: 'Hidratação & Eliminação',    href: '/hidratacao',  group: 'Clínico',    keywords: 'hidratacao agua liquidos dejecao bristol obstipacao desidratacao eliminacao' },
   { label: 'Ronda Clínica',              href: '/rounds',      group: 'Clínico',    keywords: 'ronda visita risco' },
   { label: 'Qualidade',                  href: '/quality',     group: 'Clínico',    keywords: 'indicadores kpi' },
+  { label: 'Indicação Farmacêutica',     href: '/indicacao',   group: 'Clínico',    keywords: 'indicacao farmacia balcao otc automedicacao aconselhamento sintoma queixa farmaceutico comunitaria' },
+  { label: 'Nota Clínica SOAP',          href: '/soap',        group: 'Clínico',    keywords: 'soap nota consulta clinica medico subjetivo objetivo avaliacao plano processo registo' },
+  { label: 'Gestão de Rastreios',        href: '/rastreios',   group: 'Clínico',    keywords: 'rastreios vacinas dgs mama colo utero colon psof mamografia citologia prevencao centro saude usf' },
   { label: 'Connect',                    href: '/connect',     group: 'Clínico',    keywords: 'rede profissionais consulta' },
   { label: 'Definições',                 href: '/settings',    group: 'Conta',      keywords: 'configuracoes conta perfil instituicao tipo' },
 ]
