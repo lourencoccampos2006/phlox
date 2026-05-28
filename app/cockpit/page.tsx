@@ -217,6 +217,33 @@ export default function CockpitPage() {
 
   if (!isNH) {
     const instLabel = INST_LABELS[institution] || 'a tua instituição'
+    // Ações principais por tipo de instituição (alinhadas com a navegação)
+    const ACTIONS: Record<string, { href: string; label: string; desc: string; color: string; bg: string }[]> = {
+      pharmacy_community: [
+        { href: '/indicacao', label: 'Indicação Farmacêutica', desc: 'Aconselhar um utente ao balcão', color: '#1d4ed8', bg: '#eff6ff' },
+        { href: '/interactions', label: 'Verificar Interações', desc: 'Cruzar medicação do utente', color: '#0891b2', bg: '#ecfeff' },
+        { href: '/rastreios', label: 'Rastreios & Vacinas', desc: 'O que está em falta', color: '#16a34a', bg: '#f0fdf4' },
+        { href: '/residentes', label: 'Rev. Farmacoterapêutica', desc: 'Revisão da medicação', color: '#7c3aed', bg: '#faf5ff' },
+      ],
+      clinic: [
+        { href: '/soap', label: 'Nota Clínica SOAP', desc: 'Estruturar a consulta', color: '#dc2626', bg: '#fef2f2' },
+        { href: '/agenda', label: 'Agenda', desc: 'Consultas de hoje', color: '#1d4ed8', bg: '#eff6ff' },
+        { href: '/rastreios', label: 'Rastreios & Vacinas', desc: 'Por utente', color: '#16a34a', bg: '#f0fdf4' },
+        { href: '/patients', label: 'Doentes', desc: 'Fichas e histórico', color: '#0b1120', bg: '#f9fafb' },
+      ],
+      health_center: [
+        { href: '/rastreios', label: 'Rastreios & Vacinas', desc: 'Plano DGS por utente', color: '#16a34a', bg: '#f0fdf4' },
+        { href: '/soap', label: 'Nota Clínica SOAP', desc: 'Estruturar a consulta', color: '#dc2626', bg: '#fef2f2' },
+        { href: '/agenda', label: 'Agenda', desc: 'Marcações', color: '#1d4ed8', bg: '#eff6ff' },
+        { href: '/patients', label: 'Utentes', desc: 'Lista e fichas', color: '#0b1120', bg: '#f9fafb' },
+      ],
+    }
+    const actions = ACTIONS[institution] || [
+      { href: '/patients', label: 'Doentes', desc: 'Fichas e histórico', color: '#0b1120', bg: '#f9fafb' },
+      { href: '/soap', label: 'Nota Clínica SOAP', desc: 'Estruturar a consulta', color: '#dc2626', bg: '#fef2f2' },
+      { href: '/rounds', label: 'Ronda', desc: 'Por risco', color: '#1d4ed8', bg: '#eff6ff' },
+      { href: '/connect', label: 'Connect', desc: 'Rede de profissionais', color: '#0891b2', bg: '#ecfeff' },
+    ]
     return (
       <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
         {/* Top bar */}
@@ -225,14 +252,14 @@ export default function CockpitPage() {
             <div style={{ fontSize: 22, fontWeight: 700, color: '#0b1120', letterSpacing: '-0.02em' }}>
               {greet()}{NAME ? `, ${NAME}` : ''}.
             </div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>{ptDate} · {ptTime}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>{ptDate} · {ptTime} · {instLabel}</div>
           </div>
         </div>
 
-        {/* Generic KPIs that work for any institution */}
+        {/* KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'Doentes',      value: loading ? '—' : patients.length,        color: '#0b1120', bg: '#f9fafb', border: '#e5e7eb', href: '/patients' },
+            { label: institution === 'pharmacy_community' || institution === 'health_center' ? 'Utentes' : 'Doentes', value: loading ? '—' : patients.length, color: '#0b1120', bg: '#f9fafb', border: '#e5e7eb', href: '/patients' },
             { label: 'Ocorrências',  value: loading ? '—' : openIncidents.length,    color: openIncidents.length > 0 ? '#dc2626' : '#16a34a', bg: openIncidents.length > 0 ? '#fee2e2' : '#f0fdf4', border: openIncidents.length > 0 ? '#fecaca' : '#bbf7d0', href: '/incidents' },
             { label: 'Equipa ativa', value: loading ? '—' : teamMembers.length,      color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', href: '/schedule' },
           ].map(k => (
@@ -245,17 +272,33 @@ export default function CockpitPage() {
           ))}
         </div>
 
-        {/* Institution-type prompt */}
-        <div style={{ background: '#fff', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', marginBottom: 4 }}>Dashboard configurado para {instLabel}</div>
-            <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
-              Geres um Lar ou ERPI? Muda o tipo de instituição nas Definições para desbloquear o painel clínico completo — turnos, MAR, avaliações e registos diários.
-            </div>
+        {/* Ações principais — adaptadas à instituição */}
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Ações principais</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,220px), 1fr))', gap: 10, marginBottom: 20 }}>
+          {actions.map(a => (
+            <Link key={a.href} href={a.href} style={{ textDecoration: 'none' }}>
+              <div style={{ background: a.bg, border: `1.5px solid ${a.color}22`, borderRadius: 12, padding: '16px 18px', cursor: 'pointer', height: '100%' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: a.color }}>{a.label}</div>
+                <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 4, lineHeight: 1.45 }}>{a.desc}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Open incidents (se houver) */}
+        {openIncidents.length > 0 && (
+          <div style={{ background: '#fff', border: '1.5px solid #fecaca', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #fef2f2', fontWeight: 700, fontSize: 13, color: '#dc2626' }}>{openIncidents.length} ocorrência(s) em aberto</div>
+            {openIncidents.slice(0, 5).map(inc => (
+              <Link key={inc.id} href="/incidents" style={{ display: 'block', padding: '10px 16px', borderBottom: '1px solid #fef2f2', textDecoration: 'none', fontSize: 13, color: '#0b1120' }}>
+                {INC_LABELS[inc.type] || inc.type} · {patients.find(p => p.id === inc.patient_id)?.name || 'Doente'}
+              </Link>
+            ))}
           </div>
-          <Link href="/settings" style={{ textDecoration: 'none', padding: '10px 18px', background: '#1d4ed8', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
-            Configurar instituição →
-          </Link>
+        )}
+
+        <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
+          Gere um Lar/ERPI? <Link href="/settings" style={{ color: '#1d4ed8', textDecoration: 'none', fontWeight: 600 }}>Muda o tipo de instituição</Link> para o painel completo.
         </div>
       </div>
     )
