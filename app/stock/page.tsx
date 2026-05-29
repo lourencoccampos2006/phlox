@@ -11,6 +11,7 @@ import { useLiveData } from '@/lib/useLiveData'
 interface Item {
   id: string; name: string; category: string; quantity: number; min_quantity: number
   unit?: string | null; expiry_date?: string | null; location?: string | null; updated_at: string
+  barcode?: string | null; ref?: string | null; price?: number | null; tax_rate?: number | null
 }
 
 const CATS: Record<string, { label: string; icon: string; color: string }> = {
@@ -35,7 +36,7 @@ export default function StockPage() {
   const [filter, setFilter] = useState('all')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const blank = { name: '', category: 'medicamento', quantity: '', min_quantity: '', unit: '', expiry: '', location: '' }
+  const blank = { name: '', category: 'medicamento', quantity: '', min_quantity: '', unit: '', expiry: '', location: '', barcode: '', ref: '', price: '', tax_rate: '23' }
   const [form, setForm] = useState<any>(blank)
 
   const load = useCallback(async () => {
@@ -57,6 +58,8 @@ export default function StockPage() {
       user_id: user.id, name: form.name.trim(), category: form.category,
       quantity: Number(form.quantity) || 0, min_quantity: Number(form.min_quantity) || 0,
       unit: form.unit.trim() || null, expiry_date: form.expiry || null, location: form.location.trim() || null,
+      barcode: form.barcode.trim() || null, ref: form.ref.trim() || null,
+      price: parseFloat(form.price) || 0, tax_rate: parseFloat(form.tax_rate) || 0,
     }).select().single()
     if (!error && data) { setItems(p => [...p, data].sort((a, b) => a.name.localeCompare(b.name))); setShowForm(false); setForm(blank) }
     else setErr(error?.message || 'Erro')
@@ -140,6 +143,8 @@ export default function StockPage() {
                             {isLow && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>Stock baixo</span>}
                           </div>
                           <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                            {it.price ? <span style={{ color: '#0d6e42', fontWeight: 700 }}>{(Math.round(it.price * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}€</span> : null}
+                            {it.barcode && <span>▮ {it.barcode}</span>}
                             {it.location && <span>📍 {it.location}</span>}
                             {it.min_quantity > 0 && <span>mín. {it.min_quantity}{it.unit ? ` ${it.unit}` : ''}</span>}
                             {d !== null && <span style={{ color: expColor!, fontWeight: 600 }}>{d < 0 ? `expirado há ${-d}d` : `validade em ${d}d`}</span>}
@@ -184,6 +189,18 @@ export default function StockPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div><span style={lbl}>Validade</span><input type="date" value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} style={inp} /></div>
                 <div><span style={lbl}>Localização</span><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Ex: Armário A2" style={inp} /></div>
+              </div>
+              {/* Venda / POS — código de barras e preço */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 2 }}>
+                <span style={{ ...lbl, marginBottom: 8 }}>Venda (Ponto de Venda)</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <div><span style={lbl}>Código de barras (EAN/CNP)</span><input value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} placeholder="560..." data-pos-scan style={inp} /></div>
+                  <div><span style={lbl}>Referência / SKU</span><input value={form.ref} onChange={e => setForm({ ...form, ref: e.target.value })} placeholder="Interna" style={inp} /></div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div><span style={lbl}>PVP (€)</span><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" style={inp} /></div>
+                  <div><span style={lbl}>IVA %</span><input type="number" value={form.tax_rate} onChange={e => setForm({ ...form, tax_rate: e.target.value })} style={inp} /></div>
+                </div>
               </div>
               <button onClick={add} disabled={saving} style={{ padding: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : 'Adicionar produto'}</button>
             </div>

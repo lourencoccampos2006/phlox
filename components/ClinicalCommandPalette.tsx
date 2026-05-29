@@ -36,6 +36,7 @@ const DESTINATIONS: Dest[] = [
   { label: 'Nota Clínica SOAP',          href: '/soap',        group: 'Clínico',    keywords: 'soap nota consulta clinica medico subjetivo objetivo avaliacao plano processo registo' },
   { label: 'Gestão de Rastreios',        href: '/rastreios',   group: 'Clínico',    keywords: 'rastreios vacinas dgs mama colo utero colon psof mamografia citologia prevencao centro saude usf' },
   { label: 'Connect',                    href: '/connect',     group: 'Clínico',    keywords: 'rede profissionais consulta' },
+  { label: 'Ponto de Venda (POS)',       href: '/vendas',      group: 'Operações',  keywords: 'vendas pos caixa balcao codigo barras leitor scanner recibo fatura preco dispensa venda registadora' },
   { label: 'Sala de Espera',             href: '/sala-espera', group: 'Operações',  keywords: 'sala espera fila check-in chegada recepcao secretaria walk-in atendimento sem conta' },
   { label: 'Tarefas da Equipa',          href: '/tarefas-equipa', group: 'Operações', keywords: 'tarefas equipa limpeza manutencao cozinha secretaria quadro kanban afazeres' },
   { label: 'Stock & Validades',          href: '/stock',       group: 'Operações',  keywords: 'stock existencias validades prazos rutura encomendas epi consumiveis inventario' },

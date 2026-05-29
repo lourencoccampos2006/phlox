@@ -61,6 +61,7 @@ const ICONS = {
   shield:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4M12 16h.01"/></>,
   consent:   <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></>,
   box:       <><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></>,
+  pos:       <><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M2 11h20"/><path d="M7 3h10l1 4H6z"/><circle cx="8" cy="16" r="1"/></>,
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -113,6 +114,7 @@ const NH: NavSection[] = [
 const PHARMACY: NavSection[] = [
   { title: 'Atendimento', items: [
     { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/vendas', label: 'Ponto de Venda', icon: 'pos', badge: true },
     { href: '/atendimentos', label: 'Atendimentos', icon: 'encounter', badge: true },
     { href: '/indicacao', label: 'Indicação Farmacêutica', icon: 'counter', badge: true },
     { href: '/interactions', label: 'Verificar Interações', icon: 'drug' },
@@ -153,9 +155,10 @@ const CLINIC: NavSection[] = [
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
   { title: 'Operações', items: [
+    { href: '/vendas', label: 'Ponto de Venda', icon: 'pos', badge: true },
+    { href: '/faturacao', label: 'Atos & Recibos', icon: 'billing' },
     { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
     { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
-    { href: '/faturacao', label: 'Faturação', icon: 'billing' },
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },
     { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
   ]},
@@ -183,6 +186,7 @@ const HEALTH_CENTER: NavSection[] = [
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
   { title: 'Operações', items: [
+    { href: '/faturacao', label: 'Atos & Recibos', icon: 'billing', badge: true },
     { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
     { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },

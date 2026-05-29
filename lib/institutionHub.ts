@@ -48,6 +48,7 @@ const T = {
   reconciliacao: { href: '/reconciliacao', label: 'Reconciliação terapêutica', desc: 'Antes/depois da transição de cuidados', icon: '🔄', roles: ['pharmacist', 'doctor', 'nurse'] as ClinicalRole[] },
 
   // Operações & gestão (NOVAS / existentes)
+  vendas:     { href: '/vendas', label: 'Ponto de venda', desc: 'POS com código de barras e recibo', icon: '🧾', isNew: true },
   tarefas:    { href: '/tarefas-equipa', label: 'Tarefas da equipa', desc: 'Quadro de tarefas — todas as funções', icon: '✅', isNew: true },
   stock:      { href: '/stock', label: 'Stock & validades', desc: 'Existências, prazos e ruturas', icon: '📦', isNew: true },
   schedule:   { href: '/schedule', label: 'Escalas & turnos', desc: 'Quem está de serviço', icon: '🗓️' },
@@ -78,7 +79,7 @@ export const INSTITUTION_HUB: Record<InstitutionType, HubSection[]> = {
       T.indicacao, T.interactions, T.rastreios,
     ]},
     { id: 'operacoes', title: SECTION_META.operacoes.title, hint: 'Gerir a farmácia', tools: [
-      T.stock, T.tarefas, T.schedule, T.roi,
+      T.vendas, T.stock, T.tarefas, T.schedule, T.roi,
     ]},
     { id: 'legal', title: SECTION_META.legal.title, hint: 'Obrigações da farmácia', tools: [
       T.conformidade, T.consentimentos, T.incidents,
@@ -112,7 +113,8 @@ export const INSTITUTION_HUB: Record<InstitutionType, HubSection[]> = {
       T.soap, T.patients, T.rastreios, T.interactions,
     ]},
     { id: 'operacoes', title: SECTION_META.operacoes.title, hint: 'Gerir a clínica', tools: [
-      { href: '/faturacao', label: 'Faturação & recibos', desc: 'Atos, valores e recibos', icon: '💶', isNew: true, roles: ['administrator', 'coordinator'] },
+      T.vendas,
+      { href: '/faturacao', label: 'Atos & recibos', desc: 'Atos, valores e recibos', icon: '💶', roles: ['administrator', 'coordinator'] },
       T.tarefas, T.stock, T.schedule, T.roi,
     ]},
     { id: 'legal', title: SECTION_META.legal.title, hint: 'Consentimentos e RGPD', tools: [

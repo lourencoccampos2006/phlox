@@ -13,7 +13,7 @@ const CLINICAL_PREFIXES = [
   '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
   '/schedule', '/census', '/roi', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos',
   '/indicacao', '/soap', '/rastreios', '/atendimentos',
-  '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock',
+  '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config',
 ]
 
 function ScrollToTop() {
