@@ -1,341 +1,270 @@
 'use client'
 
+// Indicadores & Desempenho — painel de ANALYTICS REAL da instituição (substitui a
+// antiga "calculadora de poupança", que era só argumento de venda e inútil para quem
+// já usa o Phlox). Lê os dados reais e mostra tendências e KPIs ESPECÍFICOS por tipo:
+//  • farmácia / clínica / CSP → receita, ticket médio, vendas por tipo/método, atividade
+//  • lar / hospital → ocupação, adesão ao MAR, registos por turno, ocorrências
+// Tudo a partir dos dados existentes — zero sliders de hipóteses.
+
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc } from '@/lib/print'
 
-interface Inputs {
-  residents: number; staff: number; avgWage: number; softwareCost: number
-  fallsPerYear: number; medErrorsPerYear: number; docHoursPerShift: number; shiftsPerMonth: number
+const euro = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}€`
+const euro2 = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`
+const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+async function safe(p: any): Promise<any[] | null> { try { const { data, error } = await p; if (error) return null; return data || [] } catch { return null } }
+
+// últimos 6 meses como chaves YYYY-MM
+function last6Months(): string[] {
+  const out: string[] = []
+  const d = new Date()
+  for (let i = 5; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); out.push(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`) }
+  return out
 }
+const mLabel = (key: string) => MONTH_LABELS[parseInt(key.slice(5, 7)) - 1]
 
-function calcSavings(inp: Inputs) {
-  const medErrorSaving  = inp.medErrorsPerYear * 180 * 0.6
-  const fallSaving      = inp.fallsPerYear * 320 * 0.35
-  const docTimeSaving   = inp.shiftsPerMonth * (inp.docHoursPerShift * 0.4) * (inp.avgWage / 160)
-  const complianceSaving = 400
-  const famCommSaving   = inp.residents * 2 * (10 / 60) * (inp.avgWage / 160) * 12
-  const turnoverSaving  = 0.5 * inp.avgWage
-  const totalYearly     = medErrorSaving + fallSaving + docTimeSaving * 12 + complianceSaving + famCommSaving + turnoverSaving
-  const totalMonthly    = totalYearly / 12
-  const roi             = inp.softwareCost > 0 ? Math.round((totalMonthly / inp.softwareCost) * 100) : 0
-  const paybackDays     = inp.softwareCost > 0 && totalMonthly > 0 ? Math.round((inp.softwareCost / totalMonthly) * 30) : 0
-  return {
-    medErrorSaving: medErrorSaving / 12, fallSaving: fallSaving / 12,
-    docTimeSaving, complianceSaving: complianceSaving / 12,
-    famCommSaving: famCommSaving / 12, turnoverSaving: turnoverSaving / 12,
-    totalMonthly, totalYearly, roi, paybackDays,
-  }
-}
-
-function euro(v: number) { return `€${Math.round(v).toLocaleString('pt-PT')}` }
-
-function InputRow({ label, hint, value, min, max, step, onChange, format }: {
-  label: string; hint?: string; value: number; min: number; max: number; step: number
-  onChange: (v: number) => void; format?: (v: number) => string
-}) {
+function TrendBars({ data, color, fmt }: { data: { key: string; value: number }[]; color: string; fmt?: (v: number) => string }) {
+  const max = Math.max(1, ...data.map(d => d.value))
   return (
-    <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{label}</span>
-          {hint && <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>{hint}</span>}
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 120, padding: '0 2px' }}>
+      {data.map(d => (
+        <div key={d.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-3)', fontVariantNumeric: 'tabular-nums' }}>{fmt ? fmt(d.value) : d.value}</span>
+          <div style={{ width: '100%', maxWidth: 38, height: `${Math.max(4, (d.value / max) * 86)}px`, background: color, borderRadius: '5px 5px 0 0', transition: 'height 0.4s ease' }} />
+          <span style={{ fontSize: 10, color: 'var(--ink-5)' }}>{mLabel(d.key)}</span>
         </div>
-        <span style={{ fontSize: 14, fontWeight: 800, color: '#1e40af', fontVariantNumeric: 'tabular-nums' }}>
-          {format ? format(value) : value}
-        </span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        style={{ width: '100%', accentColor: '#2563eb', cursor: 'pointer', height: 4 }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-        <span style={{ fontSize: 9, color: '#cbd5e1' }}>{format ? format(min) : min}</span>
-        <span style={{ fontSize: 9, color: '#cbd5e1' }}>{format ? format(max) : max}</span>
-      </div>
+      ))}
     </div>
   )
 }
 
-function SavingsRow({ label, value, pct, last = false }: { label: string; value: number; pct: number; last?: boolean }) {
-  return (
-    <div style={{ padding: '10px 0', borderBottom: last ? 'none' : '1px solid #f1f5f9' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-        <span style={{ fontSize: 12, color: '#374151' }}>{label}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>{euro(value)}</span>
-      </div>
-      <div style={{ height: 4, background: '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: '#059669', borderRadius: 2, transition: 'width 0.4s ease' }} />
-      </div>
-    </div>
-  )
-}
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
 
-export default function ROIPage() {
+export default function IndicadoresPage() {
   const { user, supabase } = useAuth() as any
-  const [inp, setInp] = useState<Inputs>({
-    residents: 30, staff: 12, avgWage: 900, softwareCost: 199,
-    fallsPerYear: 18, medErrorsPerYear: 12, docHoursPerShift: 1.5, shiftsPerMonth: 90,
-  })
-  const [grounded, setGrounded] = useState<{ residents?: number; staff?: number; falls?: number; medErrors?: number } | null>(null)
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const isRevenue = cfg.revenue === 'pos_sales' || cfg.revenue === 'fee_for_service'
+  const isLar = institution === 'nursing_home'
 
-  // Ground the model in the lar's real data
+  const [loading, setLoading] = useState(true)
+  const [sales, setSales] = useState<any[]>([])
+  const [encounters, setEncounters] = useState<any[]>([])
+  const [incidents, setIncidents] = useState<any[]>([])
+  const [patients, setPatients] = useState<any[]>([])
+  const [team, setTeam] = useState<any[]>([])
+  const [care, setCare] = useState<any[]>([])
+  const [mar, setMar] = useState<any[]>([])
+
+  const months = last6Months()
+  const sinceMonth = months[0] + '-01'
+
   const load = useCallback(async () => {
     if (!user) return
-    const yearAgo = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
-    const [p, t, i] = await Promise.all([
-      supabase.from('patients').select('id,active').eq('user_id', user.id),
-      supabase.from('team_members').select('id').eq('user_id', user.id),
-      supabase.from('incidents').select('type,date').eq('user_id', user.id).gte('date', yearAgo),
+    setLoading(true)
+    const sinceISO = new Date(sinceMonth + 'T00:00:00').toISOString()
+    const [sl, enc, inc, p, t, cr, mr] = await Promise.all([
+      isRevenue ? safe(supabase.from('sales').select('at,kind,gross,discount,method').eq('user_id', user.id).gte('at', sinceISO)) : Promise.resolve([]),
+      cfg.hasWalkins ? safe(supabase.from('encounters').select('at,type').eq('user_id', user.id).gte('at', sinceISO)) : Promise.resolve([]),
+      safe(supabase.from('incidents').select('type,severity,date').eq('user_id', user.id).gte('date', sinceMonth)),
+      safe(supabase.from('patients').select('id,active,admission_date,discharge_date').eq('user_id', user.id)),
+      safe(supabase.from('team_members').select('id,status').eq('user_id', user.id)),
+      isLar ? safe(supabase.from('care_records').select('date,shift').eq('user_id', user.id).gte('date', sinceMonth)) : Promise.resolve([]),
+      isLar ? safe(supabase.from('mar_records').select('date,status').eq('user_id', user.id).gte('date', sinceMonth)) : Promise.resolve([]),
     ])
-    const residents = (p.data || []).filter((x: any) => x.active !== false).length
-    const staff = (t.data || []).length
-    const incs = i.data || []
-    const falls = incs.filter((x: any) => x.type === 'fall').length
-    const medErrors = incs.filter((x: any) => x.type === 'medication_error').length
-    const g = {
-      residents: residents || undefined,
-      staff: staff || undefined,
-      falls: incs.length ? falls : undefined,
-      medErrors: incs.length ? medErrors : undefined,
-    }
-    setGrounded(g)
-    setInp(prev => ({
-      ...prev,
-      residents: residents || prev.residents,
-      staff: staff || prev.staff,
-      fallsPerYear: incs.length ? falls : prev.fallsPerYear,
-      medErrorsPerYear: incs.length ? medErrors : prev.medErrorsPerYear,
-      shiftsPerMonth: staff ? staff * 22 : prev.shiftsPerMonth,
-    }))
-  }, [user, supabase])
+    setSales(sl || []); setEncounters(enc || []); setIncidents(inc || [])
+    setPatients((p || []).filter((x: any) => x.active !== false)); setTeam(t || [])
+    setCare(cr || []); setMar(mr || [])
+    setLoading(false)
+  }, [user, supabase, sinceMonth, isRevenue, isLar, cfg.hasWalkins])
 
   useEffect(() => { load() }, [load])
 
-  const r = calcSavings(inp)
-  const f = (k: keyof Inputs, v: number) => setInp(p => ({ ...p, [k]: v }))
-  const netMonthly = r.totalMonthly - inp.softwareCost
-  const multiplier = inp.softwareCost > 0 ? (r.totalMonthly / inp.softwareCost) : 0
-  const maxSaving = Math.max(r.medErrorSaving, r.fallSaving, r.docTimeSaving, r.famCommSaving, r.turnoverSaving)
+  const net = (s: any) => Math.max(0, (Number(s.gross) || 0) - (Number(s.discount) || 0))
+  const monthKey = (iso: string) => iso.slice(0, 7)
 
-  const hasRealData = grounded && (grounded.residents || grounded.staff || grounded.falls !== undefined)
+  // ── Receita ──
+  const revByMonth = months.map(k => ({ key: k, value: sales.filter(s => monthKey(s.at) === k).reduce((a, s) => a + net(s), 0) }))
+  const txByMonth = months.map(k => ({ key: k, value: sales.filter(s => monthKey(s.at) === k).length }))
+  const revTotal = sales.reduce((a, s) => a + net(s), 0)
+  const txTotal = sales.length
+  const avgTicket = txTotal ? revTotal / txTotal : 0
+  const thisM = months[months.length - 1]
+  const prevM = months[months.length - 2]
+  const revThis = revByMonth[revByMonth.length - 1]?.value || 0
+  const revPrev = revByMonth[revByMonth.length - 2]?.value || 0
+  const revDelta = revPrev > 0 ? Math.round(((revThis - revPrev) / revPrev) * 100) : 0
+  const byMethod: Record<string, number> = {}; sales.forEach(s => { byMethod[s.method] = (byMethod[s.method] || 0) + net(s) })
+  const byKind: Record<string, number> = {}; sales.forEach(s => { byKind[s.kind] = (byKind[s.kind] || 0) + net(s) })
+
+  // ── Atividade (atendimentos / encounters) ──
+  const encByMonth = months.map(k => ({ key: k, value: encounters.filter(e => monthKey(e.at) === k).length }))
+
+  // ── Ocorrências ──
+  const incByMonth = months.map(k => ({ key: k, value: incidents.filter(i => (i.date || '').slice(0, 7) === k).length }))
+  const incTotal = incidents.length
+  const fallsTotal = incidents.filter(i => i.type === 'fall').length
+
+  // ── Lar: adesão MAR + registos ──
+  const marDone = mar.filter(m => m.status === 'administered').length
+  const marPct = mar.length ? Math.round((marDone / mar.length) * 100) : 0
+  const careByMonth = months.map(k => ({ key: k, value: care.filter(c => (c.date || '').slice(0, 7) === k).length }))
+  const admissions6m = patients.filter(p => months.includes((p.admission_date || '').slice(0, 7))).length
+
+  const onShift = team.filter(m => m.status === 'on_shift' || m.status === 'active').length
+  const METHOD_LABEL: Record<string, string> = { dinheiro: 'Dinheiro', multibanco: 'Multibanco', mbway: 'MB WAY', transferencia: 'Transf.', comparticipado: 'Compart.', isento: 'Isento' }
+  const KIND_LABEL: Record<string, string> = { venda: 'Vendas', dispensa: 'Dispensa', rastreio: 'Rastreios', consulta: 'Consultas', ato: 'Atos', outro: 'Outros' }
+
+  // ── KPIs de topo (por tipo) ──
+  const kpis: { label: string; value: string; sub?: string; color: string; delta?: number }[] = []
+  if (isRevenue) {
+    kpis.push({ label: `Receita · ${mLabel(thisM)}`, value: euro(revThis), color: '#0d6e42', delta: revDelta })
+    kpis.push({ label: 'Receita 6 meses', value: euro(revTotal), color: '#0b1120' })
+    kpis.push({ label: 'Ticket médio', value: euro2(avgTicket), sub: `${txTotal} movimentos`, color: '#2563eb' })
+  }
+  if (cfg.hasWalkins) kpis.push({ label: 'Atendimentos 6m', value: String(encounters.length), color: '#7c3aed' })
+  if (isLar) {
+    kpis.push({ label: `${cfg.personNounPlural}`, value: String(patients.length), color: '#0b1120' })
+    kpis.push({ label: 'Adesão MAR', value: `${marPct}%`, sub: 'doses administradas', color: marPct >= 90 ? '#16a34a' : '#d97706' })
+    kpis.push({ label: 'Admissões 6m', value: String(admissions6m), color: '#2563eb' })
+  }
+  kpis.push({ label: 'Ocorrências 6m', value: String(incTotal), sub: fallsTotal ? `${fallsTotal} quedas` : undefined, color: incTotal ? '#d97706' : '#16a34a' })
+  kpis.push({ label: 'Equipa ativa', value: `${onShift}/${team.length}`, color: '#0891b2' })
 
   function printReport() {
-    const inst = (typeof window !== 'undefined' && localStorage.getItem('phlox-clinic-institution')) ? 'Lar / ERPI' : undefined
     printDoc({
-      docTitle: 'Análise de Retorno sobre Investimento',
-      docSubtitle: 'Caso de negócio para a adoção do Phlox',
-      institution: inst,
+      docTitle: 'Indicadores & Desempenho',
+      docSubtitle: `${cfg.unitNoun} · últimos 6 meses`,
       meta: [
-        { label: 'poupança/mês', value: euro(r.totalMonthly) },
-        { label: 'retorno', value: `${multiplier.toFixed(1)}×` },
-        { label: 'ROI', value: `${r.roi}%` },
+        ...(isRevenue ? [{ label: 'receita 6m', value: euro(revTotal) }, { label: 'ticket médio', value: euro2(avgTicket) }] : []),
+        ...(isLar ? [{ label: 'adesão MAR', value: `${marPct}%` }] : []),
+        { label: 'ocorrências', value: String(incTotal) },
       ],
       sections: [
-        { heading: 'Pressupostos', note: hasRealData ? 'parcialmente extraídos dos vossos dados reais' : undefined, records: [{
-          title: 'Parâmetros operacionais',
-          fields: [
-            { label: 'Residentes', value: String(inp.residents) },
-            { label: 'Funcionários', value: String(inp.staff) },
-            { label: 'Salário médio', value: `${euro(inp.avgWage)}/mês` },
-            { label: 'Custo Phlox', value: `${euro(inp.softwareCost)}/mês` },
-            { label: 'Quedas/ano', value: String(inp.fallsPerYear) },
-            { label: 'Erros medicação/ano', value: String(inp.medErrorsPerYear) },
-            { label: 'Horas doc./turno', value: `${inp.docHoursPerShift}h` },
-            { label: 'Turnos/mês', value: String(inp.shiftsPerMonth) },
-          ],
-        }] },
-        { heading: 'Origem das poupanças (mensal)', records: [{
-          title: 'Decomposição',
-          fields: [
-            { label: 'Erros de medicação', value: euro(r.medErrorSaving) },
-            { label: 'Prevenção de quedas', value: euro(r.fallSaving) },
-            { label: 'Tempo de documentação', value: euro(r.docTimeSaving) },
-            { label: 'Conformidade', value: euro(r.complianceSaving) },
-            { label: 'Comunicação família', value: euro(r.famCommSaving) },
-            { label: 'Retenção de equipa', value: euro(r.turnoverSaving) },
-          ],
-        }] },
-        { heading: 'Resultado', records: [{
-          title: 'Impacto financeiro',
-          fields: [
-            { label: 'Poupança/mês', value: euro(r.totalMonthly) },
-            { label: 'Poupança/ano', value: euro(r.totalYearly) },
-            { label: 'Custo Phlox/mês', value: euro(inp.softwareCost) },
-            { label: 'Saldo líquido/mês', value: `${netMonthly >= 0 ? '+' : ''}${euro(netMonthly)}` },
-            { label: 'Retorno', value: `${multiplier.toFixed(1)}×` },
-            { label: 'Payback', value: `${r.paybackDays} dias` },
-          ],
-        }] },
+        ...(isRevenue ? [{ heading: 'Receita por mês', records: [{ title: 'Tendência', fields: revByMonth.map(d => ({ label: mLabel(d.key), value: euro(d.value) })) }] }] : []),
+        ...(isRevenue && Object.keys(byKind).length ? [{ heading: 'Por tipo', records: [{ title: '', fields: Object.entries(byKind).map(([k, v]) => ({ label: KIND_LABEL[k] || k, value: euro(v) })) }] }] : []),
+        ...(isLar ? [{ heading: 'Operação', records: [{ title: '', fields: [{ label: 'Adesão MAR', value: `${marPct}%` }, { label: 'Registos 6m', value: String(care.length) }, { label: 'Admissões 6m', value: String(admissions6m) }] }] }] : []),
+        { heading: 'Ocorrências por mês', records: [{ title: '', fields: incByMonth.map(d => ({ label: mLabel(d.key), value: String(d.value) })) }] },
       ],
-      footerNote: 'Estimativas conservadoras · benchmarks ACSS/INR · Phlox',
+      footerNote: 'Indicadores reais · Phlox',
     })
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
-
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0' }}>
-        <div className="page-container" style={{ paddingTop: 20, paddingBottom: 20 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Gestão · Retorno sobre Investimento
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <div className="page-container page-body" style={{ maxWidth: 1000 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · {cfg.unitNoun}</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Indicadores & Desempenho</h1>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Os teus números reais dos últimos 6 meses — {isRevenue ? 'receita, atividade' : 'operação, qualidade'} e tendências.</p>
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>Calculadora de Poupança</div>
-          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, marginTop: 6, maxWidth: 520 }}>
-            Quantifica o impacto financeiro do Phlox no vosso lar. Ajusta os valores às vossas operações.
-          </p>
-          {hasRealData && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
-              <span style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>
-                Pré-preenchido com os vossos dados reais{grounded?.residents ? ` · ${grounded.residents} residentes` : ''}{grounded?.staff ? ` · ${grounded.staff} funcionários` : ''}{grounded?.falls !== undefined ? ` · ${grounded.falls} quedas/ano` : ''}
-              </span>
+          <button onClick={printReport} style={{ padding: '9px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: '#374151' }}>Imprimir relatório</button>
+        </div>
+
+        {/* KPIs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 16 }}>
+          {kpis.map(k => (
+            <div key={k.label} style={{ ...card, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: k.color, lineHeight: 1 }}>{loading ? '—' : k.value}</span>
+                {k.delta !== undefined && k.delta !== 0 && !loading && (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: k.delta > 0 ? '#16a34a' : '#dc2626' }}>{k.delta > 0 ? '▲' : '▼'} {Math.abs(k.delta)}%</span>
+                )}
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 6 }}>{k.label}</div>
+              {k.sub && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 2 }}>{k.sub}</div>}
+            </div>
+          ))}
+        </div>
+
+        <div className="ind-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+          {/* Receita por mês */}
+          {isRevenue && (
+            <div style={{ ...card, gridColumn: '1 / -1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Receita por mês</span>
+                <Link href="/faturacao" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Abrir caixa →</Link>
+              </div>
+              {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={revByMonth} color="#0d6e42" fmt={euro} />}
             </div>
           )}
-        </div>
-      </div>
 
-      <div className="page-container page-body" style={{ maxWidth: 900 }}>
-        <div className="roi-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Sobre o lar
-              </div>
-              <div style={{ padding: '16px', paddingBottom: 2 }}>
-                <InputRow label="Residentes" hint="capacidade actual" value={inp.residents} min={5} max={200} step={5} onChange={v => f('residents', v)} />
-                <InputRow label="Funcionários" hint="total" value={inp.staff} min={2} max={60} step={1} onChange={v => f('staff', v)} />
-                <InputRow label="Salário médio" value={inp.avgWage} min={700} max={2000} step={50} onChange={v => f('avgWage', v)} format={euro} />
-                <div style={{ paddingBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Custo do Phlox</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#1e40af' }}>{euro(inp.softwareCost)}/mês</span>
-                  </div>
-                  <input type="range" min={99} max={499} step={50} value={inp.softwareCost}
-                    onChange={e => f('softwareCost', parseFloat(e.target.value))}
-                    style={{ width: '100%', accentColor: '#2563eb', cursor: 'pointer', height: 4 }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                    <span style={{ fontSize: 9, color: '#cbd5e1' }}>€99</span>
-                    <span style={{ fontSize: 9, color: '#cbd5e1' }}>€499</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Operações — estimativas anuais
-              </div>
-              <div style={{ padding: '16px', paddingBottom: 2 }}>
-                <InputRow label="Quedas por ano" value={inp.fallsPerYear} min={0} max={60} step={1} onChange={v => f('fallsPerYear', v)} />
-                <InputRow label="Erros de medicação" hint="doses erradas, omissões" value={inp.medErrorsPerYear} min={0} max={50} step={1} onChange={v => f('medErrorsPerYear', v)} />
-                <InputRow label="Horas doc. por turno" value={inp.docHoursPerShift} min={0.5} max={4} step={0.25} onChange={v => f('docHoursPerShift', v)} format={v => `${v}h`} />
-                <div style={{ paddingBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                    <div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>Turnos/mês</span>
-                      <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>total equipa</span>
+          {/* Vendas por tipo */}
+          {isRevenue && Object.keys(byKind).length > 0 && (
+            <div style={card}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 12 }}>Por tipo</div>
+              {(() => { const mx = Math.max(1, ...Object.values(byKind)); return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  {Object.entries(byKind).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                    <div key={k}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                        <span style={{ color: 'var(--ink-3)' }}>{KIND_LABEL[k] || k}</span><span style={{ fontWeight: 700, color: 'var(--ink)' }}>{euro(v)}</span>
+                      </div>
+                      <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${(v / mx) * 100}%`, background: '#0d6e42', borderRadius: 3 }} /></div>
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#1e40af' }}>{inp.shiftsPerMonth}</span>
-                  </div>
-                  <input type="range" min={10} max={300} step={5} value={inp.shiftsPerMonth}
-                    onChange={e => f('shiftsPerMonth', parseFloat(e.target.value))}
-                    style={{ width: '100%', accentColor: '#2563eb', cursor: 'pointer', height: 4 }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                    <span style={{ fontSize: 9, color: '#cbd5e1' }}>10</span>
-                    <span style={{ fontSize: 9, color: '#cbd5e1' }}>300</span>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              ) })()}
             </div>
+          )}
 
-            <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6, padding: '0 4px' }}>
-              Valores baseados em estudos do setor e benchmarks de lares portugueses (ACSS, INR). Estimativas conservadoras.
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                Poupança estimada / mês
-              </div>
-              <div style={{ fontSize: 48, fontWeight: 800, color: '#059669', lineHeight: 1, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                {euro(r.totalMonthly)}
-              </div>
-              <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
-                {euro(r.totalYearly)} por ano
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                {[
-                  { label: 'Retorno', value: `${multiplier.toFixed(1)}×` },
-                  { label: 'Payback', value: `${r.paybackDays}d` },
-                  { label: 'ROI', value: `${r.roi}%` },
-                ].map(k => (
-                  <div key={k.label} style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 8px' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: netMonthly > 0 ? '#059669' : '#374151', lineHeight: 1 }}>{k.value}</div>
-                    <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ background: netMonthly > 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${netMonthly > 0 ? '#bbf7d0' : '#fca5a5'}`, borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: netMonthly > 0 ? '#166534' : '#991b1b' }}>
-                  {netMonthly > 0 ? 'Saldo positivo mensal' : 'Investimento mensal'}
+          {/* Métodos de pagamento */}
+          {isRevenue && Object.keys(byMethod).length > 0 && (
+            <div style={card}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 12 }}>Métodos de pagamento</div>
+              {(() => { const mx = Math.max(1, ...Object.values(byMethod)); return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  {Object.entries(byMethod).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                    <div key={k}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                        <span style={{ color: 'var(--ink-3)' }}>{METHOD_LABEL[k] || k}</span><span style={{ fontWeight: 700, color: 'var(--ink)' }}>{euro(v)}</span>
+                      </div>
+                      <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${(v / mx) * 100}%`, background: '#2563eb', borderRadius: 3 }} /></div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                  Poupança {euro(r.totalMonthly)} − custo {euro(inp.softwareCost)}
-                </div>
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: netMonthly > 0 ? '#059669' : '#dc2626' }}>
-                {netMonthly > 0 ? '+' : ''}{euro(netMonthly)}
-              </div>
+              ) })()}
             </div>
+          )}
 
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Origem das poupanças — €/mês
-              </div>
-              <div style={{ padding: '12px 16px' }}>
-                <SavingsRow label="Redução de erros de medicação"  value={r.medErrorSaving}  pct={r.medErrorSaving / maxSaving * 100} />
-                <SavingsRow label="Prevenção de quedas"            value={r.fallSaving}       pct={r.fallSaving / maxSaving * 100} />
-                <SavingsRow label="Tempo de documentação"          value={r.docTimeSaving}    pct={r.docTimeSaving / maxSaving * 100} />
-                <SavingsRow label="Conformidade regulatória"       value={r.complianceSaving} pct={r.complianceSaving / maxSaving * 100} />
-                <SavingsRow label="Comunicação com familiares"     value={r.famCommSaving}    pct={r.famCommSaving / maxSaving * 100} />
-                <SavingsRow label="Retenção de funcionários"       value={r.turnoverSaving}   pct={r.turnoverSaving / maxSaving * 100} last />
-              </div>
-              <div style={{ padding: '12px 16px', borderTop: '2px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Total poupança / mês</span>
-                <span style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>{euro(r.totalMonthly)}</span>
-              </div>
-              <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: '#64748b' }}>Custo Phlox / mês</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#dc2626' }}>−{euro(inp.softwareCost)}</span>
-              </div>
+          {/* Atividade (atendimentos) */}
+          {cfg.hasWalkins && (
+            <div style={card}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 14 }}>Atendimentos por mês</div>
+              {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={encByMonth} color="#7c3aed" />}
             </div>
+          )}
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Link href="/connect"
-                style={{ flex: 1, padding: '11px 16px', background: '#2563eb', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
-                Falar com a equipa →
-              </Link>
-              <button onClick={printReport}
-                style={{ padding: '11px 16px', background: 'white', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                Imprimir relatório
-              </button>
+          {/* Lar: registos por mês */}
+          {isLar && (
+            <div style={card}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 14 }}>Registos de cuidado por mês</div>
+              {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={careByMonth} color="#2563eb" />}
             </div>
+          )}
+
+          {/* Ocorrências por mês — todas */}
+          <div style={{ ...card, gridColumn: isRevenue ? 'auto' : '1 / -1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Ocorrências por mês</span>
+              <Link href="/incidents" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver →</Link>
+            </div>
+            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={incByMonth} color="#d97706" />}
           </div>
         </div>
-      </div>
 
-      <style>{`
-        @media (max-width: 640px) {
-          .roi-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
+        <div style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', padding: '18px 0', lineHeight: 1.6 }}>
+          Indicadores calculados a partir dos teus dados reais. {isRevenue ? 'Receita precisa de vendas/atos registados em Faturação.' : 'Quanto mais registas, mais fiáveis ficam.'}
+        </div>
+      </div>
+      <style>{`@media (max-width: 760px){ .ind-grid { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   )
 }

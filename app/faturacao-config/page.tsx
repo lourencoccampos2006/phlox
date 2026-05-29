@@ -32,6 +32,7 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 export default function FaturacaoConfigPage() {
   const { user, supabase } = useAuth() as any
   const [s, setS] = useState<Settings>({ provider: 'export', doc_type: 'fatura_recibo', auto_emit: false, default_tax: 23 })
+  const [fiscal, setFiscal] = useState({ company_name: '', nif: '', address: '', default_series: 'A', default_doc_type: 'FS', atcud_code: '' })
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
   const [saved, setSaved] = useState('')
@@ -39,15 +40,37 @@ export default function FaturacaoConfigPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data, error } = await supabase.from('invoice_settings').select('*').eq('user_id', user.id).maybeSingle()
-    if (error && /relation .*invoice_settings.* does not exist/i.test(error.message)) setMissing(true)
-    else if (data) setS({ provider: data.provider || 'export', api_key: data.api_key, account_id: data.account_id, doc_type: data.doc_type || 'fatura_recibo', series: data.series, auto_emit: !!data.auto_emit, default_tax: data.default_tax ?? 23 })
+    const [is, fs] = await Promise.all([
+      supabase.from('invoice_settings').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('fiscal_settings').select('*').eq('user_id', user.id).maybeSingle(),
+    ])
+    if (is.error && /relation .*invoice_settings.* does not exist/i.test(is.error.message)) setMissing(true)
+    else if (is.data) { const data = is.data; setS({ provider: data.provider || 'export', api_key: data.api_key, account_id: data.account_id, doc_type: data.doc_type || 'fatura_recibo', series: data.series, auto_emit: !!data.auto_emit, default_tax: data.default_tax ?? 23 }) }
+    if (fs.data) setFiscal({ company_name: fs.data.company_name || '', nif: fs.data.nif || '', address: fs.data.address || '', default_series: fs.data.default_series || 'A', default_doc_type: fs.data.default_doc_type || 'FS', atcud_code: '' })
+    // código ATCUD da série corrente (ano atual)
+    const yr = new Date().getFullYear()
+    const sr = await supabase.from('doc_series').select('atcud_code').eq('user_id', user.id).eq('series', fs.data?.default_series || 'A').eq('doc_type', fs.data?.default_doc_type || 'FS').eq('year', yr).maybeSingle()
+    if (sr.data?.atcud_code) setFiscal(f => ({ ...f, atcud_code: sr.data.atcud_code }))
     setLoading(false)
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
 
+  async function saveFiscal() {
+    await supabase.from('fiscal_settings').upsert({
+      user_id: user.id, company_name: fiscal.company_name || null, nif: fiscal.nif || null, address: fiscal.address || null,
+      default_series: fiscal.default_series || 'A', default_doc_type: fiscal.default_doc_type || 'FS', updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+    // garante a série do ano e grava o código ATCUD validado pela AT
+    const yr = new Date().getFullYear()
+    await supabase.from('doc_series').upsert({
+      user_id: user.id, doc_type: fiscal.default_doc_type || 'FS', series: fiscal.default_series || 'A', year: yr,
+      atcud_code: fiscal.atcud_code || null,
+    }, { onConflict: 'user_id,doc_type,series,year' })
+  }
+
   async function save() {
+    await saveFiscal()
     const { error } = await supabase.from('invoice_settings').upsert({
       user_id: user.id, provider: s.provider, api_key: s.api_key || null, account_id: s.account_id || null,
       doc_type: s.doc_type, series: s.series || null, auto_emit: s.auto_emit, default_tax: s.default_tax,
@@ -77,6 +100,28 @@ export default function FaturacaoConfigPage() {
           <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Identidade fiscal — alimenta ATCUD / QR Code AT */}
+            <div style={card}>
+              <span style={lbl}>Identidade fiscal (talão / ATCUD / QR)</span>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 10, lineHeight: 1.45 }}>Usada nos talões e no QR Code (formato AT). O código ATCUD é o que a AT te dá ao comunicar a série.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ gridColumn: '1 / -1' }}><span style={lbl}>Nome da entidade</span><input value={fiscal.company_name} onChange={e => setFiscal({ ...fiscal, company_name: e.target.value })} placeholder="Ex: Farmácia Central, Lda." style={inp} /></div>
+                <div><span style={lbl}>NIF emitente</span><input value={fiscal.nif} onChange={e => setFiscal({ ...fiscal, nif: e.target.value.replace(/\D/g, '').slice(0, 9) })} inputMode="numeric" placeholder="500000000" style={inp} /></div>
+                <div>
+                  <span style={lbl}>Tipo de documento</span>
+                  <select value={fiscal.default_doc_type} onChange={e => setFiscal({ ...fiscal, default_doc_type: e.target.value })} style={inp as any}>
+                    <option value="FS">Fatura Simplificada (FS)</option>
+                    <option value="FR">Fatura-Recibo (FR)</option>
+                    <option value="FT">Fatura (FT)</option>
+                    <option value="RG">Recibo (RG)</option>
+                  </select>
+                </div>
+                <div><span style={lbl}>Série</span><input value={fiscal.default_series} onChange={e => setFiscal({ ...fiscal, default_series: e.target.value })} placeholder="A" style={inp} /></div>
+                <div><span style={lbl}>Código ATCUD da série</span><input value={fiscal.atcud_code} onChange={e => setFiscal({ ...fiscal, atcud_code: e.target.value })} placeholder="ex: CSDF7T5H" style={inp} /></div>
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 9, lineHeight: 1.5 }}>Sem código ATCUD, o talão usa "AT-{'{nº}'}" e indica que não é fiscalmente validado. O documento fiscal definitivo sai do software certificado.</div>
+            </div>
+
             <div style={card}>
               <span style={lbl}>Software / método</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>

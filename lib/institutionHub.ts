@@ -53,7 +53,7 @@ const T = {
   stock:      { href: '/stock', label: 'Stock & validades', desc: 'Existências, prazos e ruturas', icon: '📦', isNew: true },
   schedule:   { href: '/schedule', label: 'Escalas & turnos', desc: 'Quem está de serviço', icon: '🗓️' },
   team:       { href: '/team', label: 'Equipa', desc: 'Membros, funções e contactos', icon: '👥' },
-  roi:        { href: '/roi', label: 'Indicadores & ROI', desc: 'Atividade e impacto', icon: '💹', roles: ['administrator', 'coordinator', 'pharmacist_director'] as ClinicalRole[] },
+  roi:        { href: '/roi', label: 'Indicadores & desempenho', desc: 'Receita, atividade e tendências reais', icon: '📊', roles: ['administrator', 'coordinator', 'pharmacist_director'] as ClinicalRole[] },
 
   // Secretaria & doentes (NOVAS)
   salaEspera: { href: '/sala-espera', label: 'Sala de espera', desc: 'Check-in e fila — mesmo sem conta Phlox', icon: '🪑', isNew: true },

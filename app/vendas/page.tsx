@@ -13,10 +13,11 @@ import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useWedgeScanner, cameraScanAvailable, startCameraScan } from '@/lib/barcode'
-import { toCSV, toSAFTLike, type SaleRecord, type SaleLine } from '@/lib/posExport'
-import { printDoc, type PrintRecord } from '@/lib/print'
+import { toCSV, type SaleRecord, type SaleLine } from '@/lib/posExport'
+import { buildSAFT, type SaftSale } from '@/lib/saft'
+import { qrImageUrl } from '@/lib/fiscal'
 
-interface StockItem { id: string; name: string; barcode?: string | null; ref?: string | null; price?: number | null; tax_rate?: number | null; quantity: number; unit?: string | null; category?: string | null }
+interface StockItem { id: string; name: string; barcode?: string | null; ref?: string | null; price?: number | null; tax_rate?: number | null; quantity: number; unit?: string | null; category?: string | null; min_quantity?: number | null }
 interface CartLine { stock_id?: string; barcode?: string; name: string; qty: number; unit_price: number; discount: number; tax_rate: number; stockLeft?: number }
 
 const euro = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`
@@ -52,7 +53,7 @@ export default function VendasPage() {
     if (!user) return
     setLoading(true)
     const [st, se] = await Promise.all([
-      supabase.from('stock_items').select('id,name,barcode,ref,price,tax_rate,quantity,unit,category').eq('user_id', user.id),
+      supabase.from('stock_items').select('id,name,barcode,ref,price,tax_rate,quantity,unit,category,min_quantity').eq('user_id', user.id),
       supabase.from('invoice_settings').select('*').eq('user_id', user.id).maybeSingle(),
     ])
     if (st.error) { if (/relation .*stock_items.* does not exist/i.test(st.error.message)) setMissing(true); setStock([]) }
@@ -135,20 +136,46 @@ export default function VendasPage() {
         }
       }
 
-      // emissão automática opcional
       const saleRec: SaleRecord = { id: sale.id, at: sale.at || new Date().toISOString(), kind: sale.kind, person_name: person, nif, method, gross: grossSum, discount: discSum, tax_rate: avgTax, lines: cart.map(toLine) }
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+
+      // 1) Finalização fiscal interna — nº de documento, cadeia de hash, ATCUD e QR (formato AT)
+      let fiscal: { docNo?: string; atcud?: string; qrData?: string; hash4?: string } = {}
+      try {
+        const fr = await fetch('/api/fiscal/finalize', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ saleId: sale.id }) })
+        const fj = await fr.json()
+        if (fr.ok) fiscal = fj
+      } catch { /* segue sem nº fiscal interno */ }
+
+      // 2) Emissão automática opcional no software certificado
       let emitted = ''
       if (settings?.auto_emit && settings?.provider && settings.provider !== 'export' && settings?.api_key) {
         try {
-          const t = (await supabase.auth.getSession()).data.session?.access_token
-          const r = await fetch('/api/invoicing/emit', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }, body: JSON.stringify({ sale: saleRec }) })
+          const r = await fetch('/api/invoicing/emit', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sale: { ...saleRec, doc_number: fiscal.docNo } }) })
           const j = await r.json()
           if (r.ok) emitted = j.docNumber || j.ref || 'emitido'
         } catch { /* segue sem emissão */ }
       }
-      printReceipt(saleRec, emitted)
+      printReceipt(saleRec, emitted, fiscal)
+
+      // 3) Webhooks de saída (fire-and-forget) — venda criada + documento emitido + stock baixo
+      try {
+        const post = (event: string, data: any) => fetch('/api/webhooks/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ event, data }) })
+        post('sale.created', { id: sale.id, total: grossSum - discSum, method, lines: cart.length, docNo: fiscal.docNo })
+        if (fiscal.docNo) post('document.issued', { docNo: fiscal.docNo, atcud: fiscal.atcud, total: grossSum - discSum })
+        for (const l of cart) {
+          if (l.stock_id && l.stockLeft != null) {
+            const left = Math.max(0, l.stockLeft - l.qty)
+            const prod = stock.find(s => s.id === l.stock_id)
+            if (prod && (prod as any).min_quantity != null && left <= Number((prod as any).min_quantity) && Number((prod as any).min_quantity) > 0) {
+              post('stock.low', { name: l.name, barcode: l.barcode, quantity: left, min: (prod as any).min_quantity })
+            }
+          }
+        }
+      } catch { /* webhooks são best-effort */ }
+
       setCart([]); setNif(''); setPerson('')
-      flash(emitted ? `Venda emitida (${emitted})` : 'Venda registada')
+      flash(emitted ? `Emitido (${emitted})` : fiscal.docNo ? `Registado · ${fiscal.docNo}` : 'Venda registada')
       load()
     } catch (e: any) {
       flash(String(e?.message || 'Erro').slice(0, 60))
@@ -157,38 +184,87 @@ export default function VendasPage() {
 
   const toLine = (l: CartLine): SaleLine => ({ name: l.name, qty: l.qty, unit_price: l.unit_price, discount: l.discount || 0, tax_rate: l.tax_rate })
 
-  function printReceipt(s: SaleRecord, emitted: string) {
-    const records: PrintRecord[] = (s.lines || []).map(l => ({
-      title: `${l.name}${l.qty > 1 ? ` ×${l.qty}` : ''}`,
-      fields: [{ label: 'Preço', value: euro(l.unit_price) }, ...(l.discount ? [{ label: 'Desc.', value: euro(l.discount) }] : []), { label: 'Total', value: euro(Math.max(0, l.qty * l.unit_price - l.discount)) }],
-    }))
-    printDoc({
-      docTitle: emitted ? 'Recibo' : 'Talão de Venda',
-      docSubtitle: cfg.unitNoun,
-      meta: [
-        { label: 'data', value: new Date(s.at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' }) },
-        { label: 'total', value: euro(Math.max(0, s.gross - s.discount)) },
-        { label: 'método', value: METHOD_LABEL[s.method] || s.method },
-        ...(s.nif ? [{ label: 'NIF', value: s.nif }] : []),
-        ...(emitted ? [{ label: 'documento', value: emitted }] : [{ label: 'aviso', value: 'Sem valor fiscal' }]),
-      ],
-      sections: [{ heading: 'Artigos', records: records.length ? records : [{ title: 'Sem artigos' }] }],
-      footerNote: emitted ? 'Recibo · Phlox' : 'Talão interno (sem valor fiscal). Documento fiscal emitido pelo software certificado.',
-    })
+  // Talão estilo POS (58/80mm) com ATCUD + QR Code AT — como num recibo certificado.
+  function printReceipt(s: SaleRecord, emitted: string, fiscal?: { docNo?: string; atcud?: string; qrData?: string }) {
+    const esc = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const totalNet = Math.max(0, s.gross - s.discount)
+    const linesHtml = (s.lines || []).map(l => {
+      const lt = Math.max(0, l.qty * l.unit_price - l.discount)
+      return `<tr><td>${esc(l.name)}${l.qty > 1 ? ` <b>×${l.qty}</b>` : ''}${l.discount ? `<br><small>desc. ${euro(l.discount)}</small>` : ''}</td><td class="r">${euro(lt)}</td></tr>`
+    }).join('')
+    const taxTot = (s.lines || []).reduce((a, l) => { const lt = Math.max(0, l.qty * l.unit_price - l.discount); return a + (l.tax_rate > 0 ? lt - lt / (1 + l.tax_rate / 100) : 0) }, 0)
+    const qr = fiscal?.qrData ? `<div class="qr"><img src="${qrImageUrl(fiscal.qrData, 160)}" width="130" height="130" alt="QR"/></div>` : ''
+    const docLine = fiscal?.docNo ? `<div class="doc">${esc(fiscal.docNo)}</div>` : ''
+    const atcud = fiscal?.atcud ? `<div class="atcud">ATCUD: ${esc(fiscal.atcud)}</div>` : ''
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(fiscal?.docNo || 'Talão')}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  body { font-family: 'Courier New', monospace; font-size: 12px; color: #000; width: 72mm; margin: 0 auto; }
+  .c { text-align: center } .r { text-align: right } .muted { color: #555 }
+  h1 { font-size: 15px; margin: 0 0 2px } .doc { font-weight: bold; font-size: 13px; margin-top: 6px }
+  .atcud { font-size: 11px; margin: 2px 0 }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 }
+  td { padding: 2px 0; vertical-align: top } small { font-size: 10px; color: #555 }
+  .sep { border-top: 1px dashed #000; margin: 6px 0 }
+  .tot { font-size: 16px; font-weight: bold }
+  .qr { text-align: center; margin: 8px 0 }
+  .foot { font-size: 10px; color: #555; text-align: center; margin-top: 8px; line-height: 1.4 }
+</style></head><body onload="window.print()">
+  <div class="c"><h1>${esc(cfg.unitNoun)}</h1>${docLine}${atcud}
+    <div class="muted">${new Date(s.at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}</div>
+    ${s.nif ? `<div class="muted">NIF cliente: ${esc(s.nif)}</div>` : ''}
+  </div>
+  <div class="sep"></div>
+  <table>${linesHtml || '<tr><td>Sem artigos</td></tr>'}</table>
+  <div class="sep"></div>
+  <table>
+    <tr><td>IVA incluído</td><td class="r">${euro(taxTot)}</td></tr>
+    <tr><td>Método</td><td class="r">${esc(METHOD_LABEL[s.method] || s.method)}</td></tr>
+    <tr class="tot"><td>TOTAL</td><td class="r">${euro(totalNet)}</td></tr>
+  </table>
+  ${qr}
+  <div class="foot">${emitted ? `Documento fiscal: ${esc(emitted)}` : 'Talão de gestão. O documento fiscal é emitido pelo software certificado.'}<br>Processado por Phlox</div>
+</body></html>`
+    const w = window.open('', '_blank', 'width=380,height=640')
+    if (w) { w.document.write(html); w.document.close() }
   }
 
   async function exportToday(kind: 'csv' | 'saft') {
     const start = new Date(); start.setHours(0, 0, 0, 0)
+    const today = new Date().toISOString().slice(0, 10)
     const { data } = await supabase.from('sales').select('*').eq('user_id', user.id).gte('at', start.toISOString()).order('at')
-    const sales: SaleRecord[] = (data || []).map((s: any) => ({ id: s.id, at: s.at, kind: s.kind, person_name: s.person_name, nif: s.nif, method: s.method, gross: s.gross, discount: s.discount, tax_rate: s.tax_rate, doc_number: s.doc_number }))
-    if (sales.length === 0) { flash('Sem vendas hoje para exportar.'); return }
-    const content = kind === 'csv' ? toCSV(sales) : toSAFTLike(sales, { name: cfg.unitNoun })
-    const blob = new Blob([content], { type: kind === 'csv' ? 'text/csv;charset=utf-8' : 'application/xml' })
+    const rows = data || []
+    if (rows.length === 0) { flash('Sem vendas hoje para exportar.'); return }
+    let content = '', ext = 'csv', mime = 'text/csv;charset=utf-8'
+    if (kind === 'csv') {
+      const sales: SaleRecord[] = rows.map((s: any) => ({ id: s.id, at: s.at, kind: s.kind, person_name: s.person_name, nif: s.nif, method: s.method, gross: s.gross, discount: s.discount, tax_rate: s.tax_rate, doc_number: s.doc_no }))
+      content = toCSV(sales)
+    } else {
+      // SAF-T (PT) real — precisa das linhas de cada venda
+      const ids = rows.map((s: any) => s.id)
+      const { data: itemRows } = await supabase.from('sale_items').select('sale_id,name,qty,unit_price,discount,tax_rate,barcode').in('sale_id', ids)
+      const byS: Record<string, any[]> = {}; (itemRows || []).forEach((it: any) => { (byS[it.sale_id] ||= []).push(it) })
+      const saft: SaftSale[] = rows.map((s: any) => {
+        const its = byS[s.id] || []
+        const lines = (its.length ? its : [{ name: s.description || s.kind, qty: 1, unit_price: Math.max(0, s.gross - s.discount), discount: 0, tax_rate: s.tax_rate || 0 }]).map((l: any) => {
+          const rate = Number(l.tax_rate) || 0
+          const unitNet = rate > 0 ? Number(l.unit_price) / (1 + rate / 100) : Number(l.unit_price)
+          return { name: l.name, qty: Number(l.qty) || 1, unitPriceNet: unitNet, taxRate: rate, discount: Number(l.discount) || 0, productCode: l.barcode || undefined }
+        })
+        const gross = Math.max(0, (Number(s.gross) || 0) - (Number(s.discount) || 0))
+        const rate = Number(s.tax_rate) || 0
+        const net = rate > 0 ? gross / (1 + rate / 100) : gross
+        return { docNo: s.doc_no || `SEM/${s.id.slice(0, 6)}`, docType: s.doc_type || 'FS', date: new Date(s.at).toISOString().slice(0, 10), status: s.doc_status, customerName: s.person_name, customerNif: s.nif, hash: s.doc_hash, atcud: s.atcud, netTotal: net, taxTotal: gross - net, grossTotal: gross, lines }
+      })
+      content = buildSAFT({ name: cfg.unitNoun, nif: settings?.nif }, saft, { from: today, to: today })
+      ext = 'xml'; mime = 'application/xml'
+    }
+    const blob = new Blob([content], { type: mime })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `phlox-vendas-${new Date().toISOString().slice(0, 10)}.${kind === 'csv' ? 'csv' : 'xml'}`; a.click(); URL.revokeObjectURL(url)
-    const total = sales.reduce((acc, s) => acc + Math.max(0, s.gross - s.discount), 0)
-    await supabase.from('fiscal_exports').insert({ user_id: user.id, kind, rows: sales.length, total, ref: a.download, status: 'ok' }).then(() => {}, () => {})
-    flash(`Exportado ${sales.length} venda(s)`)
+    const a = document.createElement('a'); a.href = url; a.download = `phlox-${kind === 'saft' ? 'saft' : 'vendas'}-${today}.${ext}`; a.click(); URL.revokeObjectURL(url)
+    const total = rows.reduce((acc: number, s: any) => acc + Math.max(0, s.gross - s.discount), 0)
+    await supabase.from('fiscal_exports').insert({ user_id: user.id, kind, rows: rows.length, total, ref: a.download, status: 'ok' }).then(() => {}, () => {})
+    flash(`Exportado ${rows.length} venda(s)`)
   }
 
   if (missing) return (

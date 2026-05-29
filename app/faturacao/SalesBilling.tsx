@@ -14,6 +14,7 @@ interface Sale {
   id: string; at: string; kind: string; description?: string | null; person_name?: string | null
   qty: number; gross: number; discount: number; tax_rate: number; method: string; paid: boolean
   professional?: string | null; notes?: string | null
+  doc_no?: string | null; doc_status?: string | null; nif?: string | null
 }
 
 const euro = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`
@@ -94,6 +95,22 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
   async function del(id: string) {
     await supabase.from('sales').delete().eq('id', id)
     setSales(p => p.filter(x => x.id !== id))
+  }
+  // Documento finalizado não se apaga — emite-se uma NOTA DE CRÉDITO que o anula.
+  async function creditNote(s: Sale) {
+    if (!confirm(`Emitir nota de crédito que anula ${s.doc_no}? O documento original mantém-se no histórico (exigência fiscal).`)) return
+    const gross = net(s)
+    const { data: nc, error } = await supabase.from('sales').insert({
+      user_id: user.id, kind: s.kind, doc_type: 'NC', description: `Anulação de ${s.doc_no}`,
+      person_name: s.person_name || null, nif: s.nif || null, qty: 1,
+      gross, discount: 0, tax_rate: s.tax_rate, method: s.method, paid: true,
+      doc_status: 'nota_credito', annuls_id: s.id, professional: user?.name || null,
+    }).select().single()
+    if (error || !nc) { alert(error?.message || 'Erro a emitir nota de crédito'); return }
+    await supabase.from('sales').update({ doc_status: 'anulado' }).eq('id', s.id)
+    const token = (await supabase.auth.getSession()).data.session?.access_token
+    try { await fetch('/api/fiscal/finalize', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ saleId: nc.id, docType: 'NC' }) }) } catch { /* segue */ }
+    load()
   }
 
   const total = sales.reduce((a, s) => a + net(s), 0)
@@ -212,29 +229,36 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {sales.map(s => {
                   const kind = KINDS.find(k => k.k === s.kind) || KINDS[KINDS.length - 1]
+                  const finalized = !!s.doc_no
+                  const annulled = s.doc_status === 'anulado'
+                  const isNC = s.doc_status === 'nota_credito'
                   return (
-                    <div key={s.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${kind.color}`, borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div key={s.id} style={{ background: annulled ? '#fafafa' : 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${isNC ? '#dc2626' : kind.color}`, borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', opacity: annulled ? 0.7 : 1 }}>
                       <div style={{ flex: 1, minWidth: 140 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 10.5, fontWeight: 700, color: kind.color, background: kind.color + '14', padding: '2px 8px', borderRadius: 5 }}>{kind.label}</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{s.description || s.person_name || '—'}</span>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: isNC ? '#dc2626' : kind.color, background: (isNC ? '#dc2626' : kind.color) + '14', padding: '2px 8px', borderRadius: 5 }}>{isNC ? 'Nota de crédito' : kind.label}</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', textDecoration: annulled ? 'line-through' : 'none' }}>{s.description || s.person_name || '—'}</span>
                           {s.qty > 1 && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>×{s.qty}</span>}
+                          {annulled && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>ANULADO</span>}
                         </div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 2 }}>
-                          {new Date(s.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} · {METHOD_LABEL[s.method] || s.method}{s.person_name && s.description ? ` · ${s.person_name}` : ''}{s.professional ? ` · ${s.professional}` : ''}
+                          {s.doc_no ? <strong>{s.doc_no} · </strong> : ''}{new Date(s.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} · {METHOD_LABEL[s.method] || s.method}{s.person_name && s.description ? ` · ${s.person_name}` : ''}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{euro(net(s))}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: isNC ? '#dc2626' : 'var(--ink)' }}>{isNC ? '−' : ''}{euro(net(s))}</div>
                         {s.discount > 0 && <div style={{ fontSize: 10, color: 'var(--ink-5)' }}>desc. {euro(s.discount)}</div>}
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                         {!s.paid && <button onClick={() => togglePaid(s)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #fde68a', background: '#fffbeb', color: '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>Marcar pago</button>}
-                        {s.paid && <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700 }}>✓ pago</span>}
+                        {s.paid && !isNC && <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700 }}>✓ pago</span>}
                         <button onClick={() => printReceipt(s)} title="Imprimir recibo" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                         </button>
-                        <button onClick={() => del(s.id)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 17 }}>×</button>
+                        {finalized && !annulled && !isNC && (
+                          <button onClick={() => creditNote(s)} title="Emitir nota de crédito (anula o documento)" style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>NC</button>
+                        )}
+                        {!finalized && <button onClick={() => del(s.id)} title="Eliminar (rascunho não finalizado)" style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 17 }}>×</button>}
                       </div>
                     </div>
                   )

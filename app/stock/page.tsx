@@ -4,9 +4,10 @@
 // Transversal: medicamentos, consumíveis, EPI, produtos de limpeza.
 // Alertas de stock baixo e validade próxima — útil da farmácia ao lar e à clínica.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { buildProducts, type ImportedProduct } from '@/lib/productImport'
 
 interface Item {
   id: string; name: string; category: string; quantity: number; min_quantity: number
@@ -38,6 +39,48 @@ export default function StockPage() {
   const [saving, setSaving] = useState(false)
   const blank = { name: '', category: 'medicamento', quantity: '', min_quantity: '', unit: '', expiry: '', location: '', barcode: '', ref: '', price: '', tax_rate: '23' }
   const [form, setForm] = useState<any>(blank)
+  // Importação em massa
+  const [importing, setImporting] = useState(false)
+  const [preview, setPreview] = useState<{ products: ImportedProduct[]; cols: string[] } | null>(null)
+  const [importBusy, setImportBusy] = useState(false)
+  const [importMsg, setImportMsg] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const { products, columns } = buildProducts(String(reader.result || ''))
+      setPreview({ products, cols: Object.keys(columns) })
+      setImportMsg(products.length ? `${products.length} produto(s) detetado(s).` : 'Não consegui detetar produtos. Verifica o ficheiro.')
+    }
+    reader.readAsText(file, 'utf-8')
+  }
+
+  async function runImport() {
+    if (!preview || !user || preview.products.length === 0) return
+    setImportBusy(true); setImportMsg('A importar…')
+    let ok = 0, fail = 0
+    // mapa de barcodes existentes para decidir update vs insert
+    const existingByBarcode: Record<string, string> = {}
+    items.forEach(it => { if (it.barcode) existingByBarcode[it.barcode] = it.id })
+    for (const p of preview.products) {
+      const row: any = {
+        user_id: user.id, name: p.name, category: p.category && CAT_KEYS.includes(p.category) ? p.category : 'medicamento',
+        barcode: p.barcode || null, ref: p.ref || null,
+        price: p.price ?? 0, cost: p.cost ?? 0, tax_rate: p.tax_rate ?? 23,
+        quantity: p.quantity ?? 0, min_quantity: p.min_quantity ?? 0, unit: p.unit || null,
+        updated_at: new Date().toISOString(),
+      }
+      let res
+      if (p.barcode && existingByBarcode[p.barcode]) res = await supabase.from('stock_items').update(row).eq('id', existingByBarcode[p.barcode])
+      else res = await supabase.from('stock_items').insert(row)
+      if (res.error) fail++; else ok++
+    }
+    setImportMsg(`Importados ${ok}${fail ? ` · ${fail} falharam` : ''}.`)
+    setImportBusy(false)
+    setTimeout(() => { setImporting(false); setPreview(null); setImportMsg(''); load() }, 1200)
+  }
 
   const load = useCallback(async () => {
     if (!user) return
@@ -91,7 +134,10 @@ export default function StockPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Stock & validades</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Existências, ruturas e prazos — de medicamentos a EPI e produtos de limpeza.</p>
           </div>
-          <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Produto</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => { setImporting(true); setPreview(null); setImportMsg('') }} style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Importar CSV</button>
+            <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Produto</button>
+          </div>
         </div>
 
         {missing ? (
@@ -204,6 +250,43 @@ export default function StockPage() {
               </div>
               <button onClick={add} disabled={saving} style={{ padding: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : 'Adicionar produto'}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {importing && (
+        <div onMouseDown={ev => { if (ev.target === ev.currentTarget && !importBusy) setImporting(false) }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Importar produtos (CSV)</h2>
+              <button onClick={() => !importBusy && setImporting(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
+            </div>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5, margin: '0 0 14px' }}>Aceita exports de <strong>Sifarma</strong>, ERP genéricos ou Excel guardado como CSV. Deteta automaticamente as colunas (CNP/EAN, designação, PVP, IVA, stock). Atualiza por código de barras; novos são criados.</p>
+
+            <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={onFile} style={{ display: 'none' }} />
+            <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 14, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--bg-2)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#374151', fontFamily: 'var(--font-sans)' }}>
+              📄 Escolher ficheiro CSV
+            </button>
+
+            {importMsg && <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: importMsg.includes('Não') || importMsg.includes('falharam') ? '#dc2626' : '#16a34a' }}>{importMsg}</div>}
+
+            {preview && preview.products.length > 0 && (
+              <>
+                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--ink-5)' }}>Colunas detetadas: {preview.cols.join(', ') || 'posicional'}</div>
+                <div style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
+                  {preview.products.slice(0, 30).map((p, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '7px 12px', borderBottom: '1px solid var(--bg-2)', fontSize: 12.5 }}>
+                      <span style={{ minWidth: 0, color: 'var(--ink-2)' }}>{p.name}{p.barcode ? <span style={{ color: 'var(--ink-5)' }}> · {p.barcode}</span> : ''}</span>
+                      <span style={{ flexShrink: 0, fontWeight: 700, color: '#0d6e42' }}>{p.price != null ? `${p.price.toFixed(2)}€` : '—'}</span>
+                    </div>
+                  ))}
+                  {preview.products.length > 30 && <div style={{ padding: '7px 12px', fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center' }}>+{preview.products.length - 30} mais</div>}
+                </div>
+                <button onClick={runImport} disabled={importBusy} style={{ width: '100%', marginTop: 14, padding: 13, background: importBusy ? 'var(--bg-3)' : '#0d6e42', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  {importBusy ? 'A importar…' : `Importar ${preview.products.length} produto(s)`}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
