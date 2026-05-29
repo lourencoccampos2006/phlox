@@ -60,8 +60,17 @@ export async function POST(req: NextRequest) {
       if (!r.ok) throw new Error(j?.errors || `Vendus ${r.status}`)
       ref = String(j?.id || '')
       docNumber = String(j?.number || '')
+    } else if (cfg.provider === 'keyinvoice') {
+      // KeyInvoice API SOAP/REST — endpoint genérico de criação de documento.
+      const r = await fetch('https://api.keyinvoice.com/v3/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apikey: cfg.api_key, account: cfg.account_id, method: 'documents_create', document: toInvoiceXpress(sale).invoice }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(j?.error || `KeyInvoice ${r.status}`)
+      ref = String(j?.id || j?.document_id || '')
     } else {
-      return NextResponse.json({ error: 'Provedor não suportado para emissão automática.' }, { status: 400 })
+      return NextResponse.json({ error: 'Este provedor usa exportação de ficheiro (não emissão automática). Usa o botão Exportar.' }, { status: 400 })
     }
 
     // marca a venda como exportada/emitida + auditoria

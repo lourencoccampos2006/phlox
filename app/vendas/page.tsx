@@ -41,6 +41,8 @@ export default function VendasPage() {
   const [method, setMethod] = useState('dinheiro')
   const [nif, setNif] = useState('')
   const [person, setPerson] = useState('')
+  const [mbwayPhone, setMbwayPhone] = useState('')
+  const [payInfo, setPayInfo] = useState<{ kind: 'mb' | 'mbway'; entity?: string; reference?: string; amount?: string; phone?: string; demo?: boolean } | null>(null)
   const [toast, setToast] = useState('')
   const [camOpen, setCamOpen] = useState(false)
   const [camErr, setCamErr] = useState('')
@@ -147,6 +149,21 @@ export default function VendasPage() {
         if (fr.ok) fiscal = fj
       } catch { /* segue sem nº fiscal interno */ }
 
+      // 1b) Pagamento — gera referência MB ou pedido MB WAY conforme o método
+      let pay: typeof payInfo = null
+      if (method === 'multibanco' || method === 'mbway') {
+        try {
+          const provider = method === 'mbway' ? 'mbway' : 'mb_referencia'
+          const pr = await fetch('/api/payments/charge', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ saleId: sale.id, provider, phone: mbwayPhone }) })
+          const pj = await pr.json()
+          if (pr.ok) {
+            if (provider === 'mb_referencia') pay = { kind: 'mb', entity: pj.entity, reference: pj.reference, amount: pj.amount, demo: pj.demo }
+            else pay = { kind: 'mbway', phone: pj.phone }
+          } else if (pj.needsSetup) flash('Configura a Entidade Multibanco em Pagamentos.')
+        } catch { /* segue sem pagamento eletrónico */ }
+      }
+      setPayInfo(pay)
+
       // 2) Emissão automática opcional no software certificado
       let emitted = ''
       if (settings?.auto_emit && settings?.provider && settings.provider !== 'export' && settings?.api_key) {
@@ -156,7 +173,7 @@ export default function VendasPage() {
           if (r.ok) emitted = j.docNumber || j.ref || 'emitido'
         } catch { /* segue sem emissão */ }
       }
-      printReceipt(saleRec, emitted, fiscal)
+      printReceipt(saleRec, emitted, fiscal, pay)
 
       // 3) Webhooks de saída (fire-and-forget) — venda criada + documento emitido + stock baixo
       try {
@@ -174,8 +191,8 @@ export default function VendasPage() {
         }
       } catch { /* webhooks são best-effort */ }
 
-      setCart([]); setNif(''); setPerson('')
-      flash(emitted ? `Emitido (${emitted})` : fiscal.docNo ? `Registado · ${fiscal.docNo}` : 'Venda registada')
+      setCart([]); setNif(''); setPerson(''); setMbwayPhone('')
+      flash(pay?.kind === 'mb' ? 'Referência MB gerada' : pay?.kind === 'mbway' ? 'Pedido MB WAY enviado' : emitted ? `Emitido (${emitted})` : fiscal.docNo ? `Registado · ${fiscal.docNo}` : 'Venda registada')
       load()
     } catch (e: any) {
       flash(String(e?.message || 'Erro').slice(0, 60))
@@ -185,7 +202,7 @@ export default function VendasPage() {
   const toLine = (l: CartLine): SaleLine => ({ name: l.name, qty: l.qty, unit_price: l.unit_price, discount: l.discount || 0, tax_rate: l.tax_rate })
 
   // Talão estilo POS (58/80mm) com ATCUD + QR Code AT — como num recibo certificado.
-  function printReceipt(s: SaleRecord, emitted: string, fiscal?: { docNo?: string; atcud?: string; qrData?: string }) {
+  function printReceipt(s: SaleRecord, emitted: string, fiscal?: { docNo?: string; atcud?: string; qrData?: string }, pay?: typeof payInfo) {
     const esc = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const totalNet = Math.max(0, s.gross - s.discount)
     const linesHtml = (s.lines || []).map(l => {
@@ -222,6 +239,8 @@ export default function VendasPage() {
     <tr><td>Método</td><td class="r">${esc(METHOD_LABEL[s.method] || s.method)}</td></tr>
     <tr class="tot"><td>TOTAL</td><td class="r">${euro(totalNet)}</td></tr>
   </table>
+  ${pay?.kind === 'mb' ? `<div class="sep"></div><div class="c"><div style="font-weight:bold">Pagamento Multibanco</div><div>Entidade: <b>${esc(pay.entity)}</b></div><div>Referência: <b>${esc(pay.reference)}</b></div><div>Montante: <b>${euro(totalNet)}</b></div>${pay.demo ? '<div class="muted" style="font-size:9px">Entidade de demonstração — configure a entidade real (SIBS).</div>' : ''}</div>` : ''}
+  ${pay?.kind === 'mbway' ? `<div class="sep"></div><div class="c"><div style="font-weight:bold">MB WAY</div><div>Pedido enviado para <b>${esc(pay.phone)}</b></div><div class="muted" style="font-size:10px">Confirme no telemóvel.</div></div>` : ''}
   ${qr}
   <div class="foot">${emitted ? `Documento fiscal: ${esc(emitted)}` : 'Talão de gestão. O documento fiscal é emitido pelo software certificado.'}<br>Processado por Phlox</div>
 </body></html>`
@@ -397,6 +416,16 @@ export default function VendasPage() {
                 <input value={nif} onChange={e => setNif(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="NIF (opcional)" inputMode="numeric" style={{ ...inp, padding: '8px 10px', fontSize: 12.5 }} />
                 <input value={person} onChange={e => setPerson(e.target.value)} placeholder={`${cfg.personNoun} (opc.)`} style={{ ...inp, padding: '8px 10px', fontSize: 12.5 }} />
               </div>
+              {method === 'mbway' && (
+                <input value={mbwayPhone} onChange={e => setMbwayPhone(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="Telemóvel MB WAY (9XXXXXXXX)" inputMode="numeric" style={{ ...inp, padding: '8px 10px', fontSize: 12.5, marginBottom: 10 }} />
+              )}
+              {payInfo && (
+                <div style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 9, background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: 12.5, color: '#1e40af' }}>
+                  {payInfo.kind === 'mb'
+                    ? <><strong>Multibanco</strong> · Ent. {payInfo.entity} · Ref. {payInfo.reference} · {payInfo.amount}€{payInfo.demo ? ' (demo)' : ''}</>
+                    : <><strong>MB WAY</strong> · pedido enviado para {payInfo.phone}. Confirma no telemóvel.</>}
+                </div>
+              )}
               <button onClick={finalize} disabled={cart.length === 0 || finishing} style={{ width: '100%', padding: 13, background: cart.length === 0 ? 'var(--bg-3)' : '#0d6e42', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: cart.length === 0 ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                 {finishing ? 'A finalizar…' : `Finalizar · ${euro(subtotal)}`}
               </button>

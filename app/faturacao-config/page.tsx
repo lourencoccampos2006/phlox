@@ -18,6 +18,8 @@ const PROVIDERS: { id: string; label: string; desc: string; needsKey: boolean; n
   { id: 'invoicexpress', label: 'InvoiceXpress', desc: 'Emite a fatura-recibo automaticamente via API.', needsKey: true, needsAccount: true, help: 'Conta = subdomínio (ex: aminhaempresa). Chave em Definições › API.' },
   { id: 'moloni', label: 'Moloni', desc: 'Emite o documento automaticamente via API.', needsKey: true, needsAccount: true, help: 'Conta = company_id. Usa um access_token válido.' },
   { id: 'vendus', label: 'Vendus', desc: 'Emite o documento automaticamente via API.', needsKey: true, help: 'Chave de API em Definições › Integrações.' },
+  { id: 'keyinvoice', label: 'KeyInvoice', desc: 'Emite o documento automaticamente via API.', needsKey: true, needsAccount: true, help: 'Conta = utilizador API; chave = token KeyInvoice.' },
+  { id: 'jasmin', label: 'Jasmin / Cegid (CSV)', desc: 'Exporta um CSV de movimentos para importar no Jasmin.', needsKey: false },
   { id: 'sage_csv', label: 'Sage / PHC (CSV)', desc: 'Exporta um CSV no formato lançável nestes ERP.', needsKey: false },
 ]
 const DOC_TYPES = [
@@ -33,6 +35,7 @@ export default function FaturacaoConfigPage() {
   const { user, supabase } = useAuth() as any
   const [s, setS] = useState<Settings>({ provider: 'export', doc_type: 'fatura_recibo', auto_emit: false, default_tax: 23 })
   const [fiscal, setFiscal] = useState({ company_name: '', nif: '', address: '', default_series: 'A', default_doc_type: 'FS', atcud_code: '' })
+  const [pay, setPay] = useState({ provider: 'manual', entity: '', sub_entity: '', api_key: '' })
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
   const [saved, setSaved] = useState('')
@@ -40,10 +43,12 @@ export default function FaturacaoConfigPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [is, fs] = await Promise.all([
+    const [is, fs, ps] = await Promise.all([
       supabase.from('invoice_settings').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('fiscal_settings').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('payment_settings').select('*').eq('user_id', user.id).maybeSingle(),
     ])
+    if (ps.data) setPay({ provider: ps.data.provider || 'manual', entity: ps.data.entity || '', sub_entity: ps.data.sub_entity || '', api_key: ps.data.api_key || '' })
     if (is.error && /relation .*invoice_settings.* does not exist/i.test(is.error.message)) setMissing(true)
     else if (is.data) { const data = is.data; setS({ provider: data.provider || 'export', api_key: data.api_key, account_id: data.account_id, doc_type: data.doc_type || 'fatura_recibo', series: data.series, auto_emit: !!data.auto_emit, default_tax: data.default_tax ?? 23 }) }
     if (fs.data) setFiscal({ company_name: fs.data.company_name || '', nif: fs.data.nif || '', address: fs.data.address || '', default_series: fs.data.default_series || 'A', default_doc_type: fs.data.default_doc_type || 'FS', atcud_code: '' })
@@ -69,8 +74,16 @@ export default function FaturacaoConfigPage() {
     }, { onConflict: 'user_id,doc_type,series,year' })
   }
 
+  async function savePayments() {
+    await supabase.from('payment_settings').upsert({
+      user_id: user.id, provider: pay.provider, entity: pay.entity || null, sub_entity: pay.sub_entity || null, api_key: pay.api_key || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+  }
+
   async function save() {
     await saveFiscal()
+    await savePayments()
     const { error } = await supabase.from('invoice_settings').upsert({
       user_id: user.id, provider: s.provider, api_key: s.api_key || null, account_id: s.account_id || null,
       doc_type: s.doc_type, series: s.series || null, auto_emit: s.auto_emit, default_tax: s.default_tax,
@@ -120,6 +133,27 @@ export default function FaturacaoConfigPage() {
                 <div><span style={lbl}>Código ATCUD da série</span><input value={fiscal.atcud_code} onChange={e => setFiscal({ ...fiscal, atcud_code: e.target.value })} placeholder="ex: CSDF7T5H" style={inp} /></div>
               </div>
               <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 9, lineHeight: 1.5 }}>Sem código ATCUD, o talão usa "AT-{'{nº}'}" e indica que não é fiscalmente validado. O documento fiscal definitivo sai do software certificado.</div>
+            </div>
+
+            {/* Pagamentos — MB WAY / Referência Multibanco / gateways */}
+            <div style={card}>
+              <span style={lbl}>Pagamentos (POS)</span>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 10, lineHeight: 1.45 }}>Como o POS cobra. Para Referência Multibanco precisas da tua Entidade (atribuída pela SIBS). MB WAY/cartão via gateway (Easypay/SIBS).</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {[['manual', 'Manual / TPA'], ['mb_referencia', 'Referência MB'], ['mbway', 'MB WAY'], ['easypay', 'Easypay'], ['sibs', 'SIBS']].map(([id, label]) => (
+                  <button key={id} onClick={() => setPay({ ...pay, provider: id })} style={{ padding: '7px 12px', borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${pay.provider === id ? '#0d6e42' : 'var(--border)'}`, background: pay.provider === id ? '#eef6f1' : 'white', color: pay.provider === id ? '#0d6e42' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{label}</button>
+                ))}
+              </div>
+              {(pay.provider === 'mb_referencia' || pay.provider === 'sibs') && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <div><span style={lbl}>Entidade MB (5 díg.)</span><input value={pay.entity} onChange={e => setPay({ ...pay, entity: e.target.value.replace(/\D/g, '').slice(0, 5) })} placeholder="12345" style={inp} /></div>
+                  <div><span style={lbl}>Subentidade (opc.)</span><input value={pay.sub_entity} onChange={e => setPay({ ...pay, sub_entity: e.target.value })} style={inp} /></div>
+                </div>
+              )}
+              {(pay.provider === 'mbway' || pay.provider === 'easypay' || pay.provider === 'sibs') && (
+                <div><span style={lbl}>Chave de API do gateway</span><input type="password" value={pay.api_key} onChange={e => setPay({ ...pay, api_key: e.target.value })} placeholder="••••••••" style={inp} /></div>
+              )}
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 9, lineHeight: 1.5 }}>Sem chave de gateway, o MB WAY regista a intenção (confirmação manual) e a Referência MB é gerada com a tua entidade.</div>
             </div>
 
             <div style={card}>
