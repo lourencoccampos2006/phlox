@@ -54,6 +54,17 @@ export async function GET(req: NextRequest) {
   out.profile = { name: card?.name || 'Doente', blood_type: card?.blood_type || null, emergency_contact: card?.emergency_contact || null }
   if (sect.includes('allergies')) out.allergies = card?.allergies || null
 
+  if (sect.includes('conditions')) {
+    // Só perfis familiares têm uma coluna de condições/diagnósticos dedicada.
+    // (Conta própria não tem store de condições — fica vazio em vez de falhar.)
+    if (pid) {
+      const { data } = await sb.from('family_profiles').select('conditions').eq('id', pid).maybeSingle()
+      out.conditions = data?.conditions || null
+    } else {
+      out.conditions = null
+    }
+  }
+
   if (sect.includes('meds')) {
     const tbl = pid ? 'family_profile_meds' : 'personal_meds'
     const { data } = pid
@@ -91,23 +102,48 @@ export async function POST(req: NextRequest) {
   if (!['medication', 'appointment', 'note', 'visit'].includes(kind)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
   const sb = admin()
 
+  // Se o profissional tiver Phlox, pode mandar o seu token → liga a conta dele.
+  let staffId: string | null = null, staffName = ''
+  if (body.staffToken) {
+    try {
+      const su = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${body.staffToken}` } } })
+      const { data: u } = await su.auth.getUser()
+      if (u?.user) {
+        staffId = u.user.id
+        const { data: prof } = await su.from('profiles').select('name').eq('id', staffId).maybeSingle()
+        staffName = prof?.name || u.user.email || ''
+      }
+    } catch { /* token inválido → segue como convidado */ }
+  }
+  const fromName = staffName || String(body.from || '').slice(0, 80) || null
+
   // 'visit' = registar a ida (vantagem dual). Outras = devolução pendente de aceitação.
   if (kind === 'visit') {
     await sb.from('health_visits').insert({
       user_id: s.user_id, profile_id: s.profile_id, source: 'healthpass',
-      professional_name: String(body.from || '').slice(0, 80) || null,
+      professional_name: fromName,
       professional_role: String(body.role || '').slice(0, 60) || null,
       institution: String(body.institution || '').slice(0, 80) || null,
       institution_type: String(body.institution_type || '').slice(0, 40) || null,
       reason: String(body.reason || '').slice(0, 200) || null,
       notes: String(body.note || '').slice(0, 600) || null,
     })
-    return NextResponse.json({ ok: true })
+    // Profissional com Phlox → regista também no histórico de atendimentos da instituição dele
+    if (staffId) {
+      await sb.from('encounters').insert({
+        user_id: staffId, source: 'healthpass', type: 'consulta',
+        person_name: String(body.patientName || '').slice(0, 80) || null,
+        reason: String(body.reason || '').slice(0, 300) || null,
+        action: String(body.note || '').slice(0, 600) || null,
+        professional: staffName || null,
+      }).then(() => {}, () => {}) // tabela pode não existir → ignora
+    }
+    return NextResponse.json({ ok: true, linked: !!staffId })
   }
 
   await sb.from('health_pass_returns').insert({
     session_id: s.id, user_id: s.user_id, profile_id: s.profile_id, kind,
-    payload: body.payload || {}, from_professional: String(body.from || '').slice(0, 80) || null,
+    payload: body.payload || {}, from_professional: fromName,
   })
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, linked: !!staffId })
 }

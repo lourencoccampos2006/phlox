@@ -6,6 +6,9 @@ import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { useLiveData } from '@/lib/useLiveData'
 import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
+import InstitutionHub from '@/components/InstitutionHub'
+import OperationalPulse from '@/components/OperationalPulse'
+import { roleFocusLine } from '@/lib/institutionHub'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
@@ -85,11 +88,13 @@ export default function CockpitPage() {
     if (!user) return
     setLoading(true)
     const queries: Promise<any>[] = [
-      supabase.from('patients').select('id,name,room_number,age,conditions,fall_risk,pressure_risk').eq('user_id', user.id).eq('active', true).order('room_number', { nullsFirst: false }),
+      supabase.from('patients').select('id,name,room_number,age,conditions,allergies,fall_risk,pressure_risk').eq('user_id', user.id).eq('active', true).order('room_number', { nullsFirst: false }),
       supabase.from('incidents').select('id,type,severity,status,date,patient_id').eq('user_id', user.id).gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
       supabase.from('care_records').select('id,patient_id,shift,date').eq('user_id', user.id).eq('date', today),
       supabase.from('team_members').select('id,name,role,status').eq('user_id', user.id).eq('status', 'active'),
+      supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
     ]
+    const MEDS_IDX = 4
     if (isNH) {
       const since60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
       const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
@@ -97,8 +102,7 @@ export default function CockpitPage() {
       queries.push(
         supabase.from('mar_records').select('id,patient_id,shift,date,status').eq('user_id', user.id).eq('date', today),
         supabase.from('assessments').select('id,patient_id,scale,score,date').eq('user_id', user.id).gte('date', since60),
-        // ── Ecosystem batch (risk engine) ──
-        supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
+        // ── Ecosystem batch (risk engine; meds já carregados na base) ──
         supabase.from('wounds').select('patient_id,status,stage').eq('user_id', user.id),
         supabase.from('care_records').select('patient_id,date,vitals').eq('user_id', user.id).gte('date', since365),
         supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml').eq('user_id', user.id).gte('at', since14),
@@ -109,14 +113,15 @@ export default function CockpitPage() {
     setIncidents(results[1].data || [])
     setCareRecs(results[2].data || [])
     setTeamMembers(results[3].data || [])
-    if (isNH) {
-      setMarRecs(results[4]?.data || [])
-      setAssessments(results[5]?.data || [])
 
-      // meds by patient (patient_meds has no user_id on some rows → fall back gracefully)
-      const meds: Record<string, string[]> = {}
-      ;(results[6]?.data || []).forEach((m: any) => { (meds[m.patient_id] ||= []).push(m.name) })
-      setMedsByPt(meds)
+    // meds by patient — carregado para TODAS as instituições (motor de risco no cockpit)
+    const meds: Record<string, string[]> = {}
+    ;(results[MEDS_IDX]?.data || []).forEach((m: any) => { (meds[m.patient_id] ||= []).push(m.name) })
+    setMedsByPt(meds)
+
+    if (isNH) {
+      setMarRecs(results[5]?.data || [])
+      setAssessments(results[6]?.data || [])
 
       const wounds: Record<string, { status: string; stage?: string | null }[]> = {}
       ;(results[7]?.data || []).forEach((w: any) => { (wounds[w.patient_id] ||= []).push({ status: w.status, stage: w.stage }) })
@@ -217,33 +222,6 @@ export default function CockpitPage() {
 
   if (!isNH) {
     const instLabel = INST_LABELS[institution] || 'a tua instituição'
-    // Ações principais por tipo de instituição (alinhadas com a navegação)
-    const ACTIONS: Record<string, { href: string; label: string; desc: string; color: string; bg: string }[]> = {
-      pharmacy_community: [
-        { href: '/indicacao', label: 'Indicação Farmacêutica', desc: 'Aconselhar um utente ao balcão', color: '#1d4ed8', bg: '#eff6ff' },
-        { href: '/interactions', label: 'Verificar Interações', desc: 'Cruzar medicação do utente', color: '#0891b2', bg: '#ecfeff' },
-        { href: '/rastreios', label: 'Rastreios & Vacinas', desc: 'O que está em falta', color: '#16a34a', bg: '#f0fdf4' },
-        { href: '/residentes', label: 'Rev. Farmacoterapêutica', desc: 'Revisão da medicação', color: '#7c3aed', bg: '#faf5ff' },
-      ],
-      clinic: [
-        { href: '/soap', label: 'Nota Clínica SOAP', desc: 'Estruturar a consulta', color: '#dc2626', bg: '#fef2f2' },
-        { href: '/agenda', label: 'Agenda', desc: 'Consultas de hoje', color: '#1d4ed8', bg: '#eff6ff' },
-        { href: '/rastreios', label: 'Rastreios & Vacinas', desc: 'Por utente', color: '#16a34a', bg: '#f0fdf4' },
-        { href: '/patients', label: 'Doentes', desc: 'Fichas e histórico', color: '#0b1120', bg: '#f9fafb' },
-      ],
-      health_center: [
-        { href: '/rastreios', label: 'Rastreios & Vacinas', desc: 'Plano DGS por utente', color: '#16a34a', bg: '#f0fdf4' },
-        { href: '/soap', label: 'Nota Clínica SOAP', desc: 'Estruturar a consulta', color: '#dc2626', bg: '#fef2f2' },
-        { href: '/agenda', label: 'Agenda', desc: 'Marcações', color: '#1d4ed8', bg: '#eff6ff' },
-        { href: '/patients', label: 'Utentes', desc: 'Lista e fichas', color: '#0b1120', bg: '#f9fafb' },
-      ],
-    }
-    const actions = ACTIONS[institution] || [
-      { href: '/patients', label: 'Doentes', desc: 'Fichas e histórico', color: '#0b1120', bg: '#f9fafb' },
-      { href: '/soap', label: 'Nota Clínica SOAP', desc: 'Estruturar a consulta', color: '#dc2626', bg: '#fef2f2' },
-      { href: '/rounds', label: 'Ronda', desc: 'Por risco', color: '#1d4ed8', bg: '#eff6ff' },
-      { href: '/connect', label: 'Connect', desc: 'Rede de profissionais', color: '#0891b2', bg: '#ecfeff' },
-    ]
     return (
       <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
         {/* Top bar */}
@@ -253,6 +231,7 @@ export default function CockpitPage() {
               {greet()}{NAME ? `, ${NAME}` : ''}.
             </div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>{ptDate} · {ptTime} · {instLabel}</div>
+            <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 2 }}>{roleFocusLine(institution, role)}</div>
           </div>
         </div>
 
@@ -272,18 +251,38 @@ export default function CockpitPage() {
           ))}
         </div>
 
-        {/* Ações principais — adaptadas à instituição */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>Ações principais</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,220px), 1fr))', gap: 10, marginBottom: 20 }}>
-          {actions.map(a => (
-            <Link key={a.href} href={a.href} style={{ textDecoration: 'none' }}>
-              <div style={{ background: a.bg, border: `1.5px solid ${a.color}22`, borderRadius: 12, padding: '16px 18px', cursor: 'pointer', height: '100%' }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: a.color }}>{a.label}</div>
-                <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 4, lineHeight: 1.45 }}>{a.desc}</div>
-              </div>
-            </Link>
-          ))}
+        {/* Pulso operacional — sinais vivos das ferramentas de operações/legal */}
+        <OperationalPulse supabase={supabase} userId={user?.id} institution={institution} />
+
+        {/* Ecossistema completo da instituição — secções organizadas e adaptadas */}
+        <div style={{ marginBottom: 20 }}>
+          <InstitutionHub institution={institution} role={role} />
         </div>
+
+        {/* Doentes a vigiar — motor de risco (polifarmácia, interações, condições) */}
+        {attentionResidents.length > 0 && (
+          <div style={{ background: '#fff', border: '1.5px solid #fde68a', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #fffbeb', fontWeight: 700, fontSize: 13, color: '#0b1120', display: 'flex', alignItems: 'center', gap: 8 }}>
+              Doentes a vigiar
+              {criticalResidents.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 7px', borderRadius: 5 }}>{criticalResidents.length} crítico{criticalResidents.length !== 1 ? 's' : ''}</span>}
+            </div>
+            {attentionResidents.slice(0, 8).map(({ p, score, level, signals }) => {
+              const st = SEVERITY_STYLE[level]
+              const top = signals.filter(s => s.severity === 'critical' || s.severity === 'warning').slice(0, 2)
+              return (
+                <Link key={p.id} href={`/patients/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid #f9fafb', textDecoration: 'none' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, background: st.bg, border: `1.5px solid ${st.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: st.color }}>{score}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: st.color, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{top.map(s => s.title).join(' · ') || st.label}</div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
 
         {/* Open incidents (se houver) */}
         {openIncidents.length > 0 && (
@@ -355,6 +354,9 @@ export default function CockpitPage() {
           </Link>
         ))}
       </div>
+
+      {/* Pulso operacional — sala de espera, tarefas, stock, conformidade num relance */}
+      <OperationalPulse supabase={supabase} userId={user?.id} institution={institution} />
 
       <div className="cockpit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
         {/* Left column */}
@@ -598,6 +600,13 @@ export default function CockpitPage() {
           )}
 
         </div>
+      </div>
+
+      {/* Ecossistema do lar — gestão, famílias, legal e equipa (para além do cuidado) */}
+      <div style={{ marginTop: 28, paddingTop: 22, borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>O lar como um todo</div>
+        <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Para além do cuidado clínico — gestão, famílias, conformidade e equipa.</div>
+        <InstitutionHub institution={institution} role={role} />
       </div>
 
       <style>{`

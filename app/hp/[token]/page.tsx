@@ -4,12 +4,14 @@
 // que o doente diz, e vê o resumo clínico partilhado. Pode registar a visita e devolver dados.
 
 import { useState, useEffect, useCallback, use } from 'react'
+import { useAuth } from '@/components/AuthContext'
 
 interface Data {
   profile: { name: string; blood_type?: string | null; emergency_contact?: string | null }
   sections: string[]
   sessionId: string
   allergies?: string | null
+  conditions?: string | null
   meds?: { name: string; dose?: string; frequency?: string; indication?: string }[]
   symptoms?: { at: string; feeling?: number; symptoms?: string[]; pain?: number; temperature?: number; notes?: string }[]
   vitals?: { recorded_at: string; hr?: number; bp_sys?: number; bp_dia?: number; spo2?: number; temp?: number; glucose?: number; weight?: number }[]
@@ -20,6 +22,7 @@ const FEELING: Record<number, string> = { 1: '😣 Muito mal', 2: '😕 Mal', 3:
 
 export default function HealthPassPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
+  const { user, supabase } = useAuth() as any
   const [pin, setPin] = useState('')
   const [step, setStep] = useState<'pin' | 'view' | 'gone'>('pin')
   const [data, setData] = useState<Data | null>(null)
@@ -32,6 +35,9 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
   const [reason, setReason] = useState('')
   const [returnNote, setReturnNote] = useState('')
   const [done, setDone] = useState('')
+
+  // Se o profissional já tem sessão Phlox, pré-preenche o nome
+  useEffect(() => { if (user?.name && !from) setFrom(user.name) }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch(`/api/health-pass?token=${encodeURIComponent(token)}`).then(r => r.json().then(d => ({ ok: r.ok, status: r.status, d })))
@@ -55,11 +61,13 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
   }, [pin, token])
 
   async function action(kind: 'visit' | 'note', payload: any, label: string) {
+    let staffToken = ''
+    try { if (user) staffToken = (await supabase.auth.getSession()).data.session?.access_token || '' } catch { /* convidado */ }
     const res = await fetch('/api/health-pass', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, pin, kind, from, ...payload }),
+      body: JSON.stringify({ token, pin, kind, from, staffToken, patientName: data?.profile?.name, ...payload }),
     })
-    if (res.ok) { setDone(label); setTimeout(() => setDone(''), 2500) }
+    if (res.ok) { setDone(label + (user ? ' (no teu Phlox também)' : '')); setTimeout(() => setDone(''), 3000) }
   }
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: '#f1f5f9', fontFamily: 'system-ui,-apple-system,sans-serif' }
@@ -97,21 +105,37 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
 
   return (
     <div style={wrap}>
-      <div style={{ background: '#0f172a', color: '#fff', padding: '16px 18px', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 600 }}>Phlox · Health Pass</div>
-          <div style={{ fontSize: 19, fontWeight: 800 }}>{data.profile.name}</div>
-          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
-            {data.profile.blood_type ? `Grupo ${data.profile.blood_type} · ` : ''}{data.profile.emergency_contact ? `Emergência: ${data.profile.emergency_contact}` : ''}
+      <div className="hp-noprint" style={{ background: '#0f172a', color: '#fff', padding: '16px 18px', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 600 }}>Phlox · Health Pass</div>
+            <div style={{ fontSize: 19, fontWeight: 800 }}>{data.profile.name}</div>
+            <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>
+              {data.profile.blood_type ? `Grupo ${data.profile.blood_type} · ` : ''}{data.profile.emergency_contact ? `Emergência: ${data.profile.emergency_contact}` : ''}
+            </div>
           </div>
+          <button onClick={() => window.print()} style={{ flexShrink: 0, background: 'rgba(255,255,255,0.14)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>🖨 Imprimir</button>
         </div>
       </div>
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Banner: ligado à conta do médico OU convite */}
+        <div className="hp-noprint" style={{ background: user ? '#f0fdf4' : '#eff6ff', border: `1px solid ${user ? '#bbf7d0' : '#bfdbfe'}`, borderRadius: 12, padding: '10px 14px', fontSize: 12.5, color: user ? '#15803d' : '#1d4ed8', lineHeight: 1.5 }}>
+          {user
+            ? <>✓ Sessão Phlox de <strong>{user.name}</strong> — ao registar a visita, ela fica também no teu histórico de atendimentos.</>
+            : <>Também usas o Phlox? <a href="/login" style={{ color: '#1d4ed8', fontWeight: 700 }}>Inicia sessão</a> para registar esta visita no teu histórico e devolver dados ao doente.</>}
+        </div>
         {has('allergies') && (
           <div style={{ ...card, borderColor: data.allergies ? '#fca5a5' : '#e5e7eb', background: data.allergies ? '#fef2f2' : '#fff' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: data.allergies ? '#b91c1c' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>⚠ Alergias</div>
             <div style={{ fontSize: 14, color: data.allergies ? '#991b1b' : '#64748b', fontWeight: data.allergies ? 700 : 400 }}>{data.allergies || 'Sem alergias conhecidas'}</div>
+          </div>
+        )}
+
+        {has('conditions') && (
+          <div style={{ ...card, borderColor: data.conditions ? '#fcd34d' : '#e5e7eb', background: data.conditions ? '#fffbeb' : '#fff' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: data.conditions ? '#b45309' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Condições / diagnósticos</div>
+            <div style={{ fontSize: 14, color: data.conditions ? '#92400e' : '#94a3b8', fontWeight: data.conditions ? 600 : 400, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{data.conditions || 'Sem condições registadas'}</div>
           </div>
         )}
 
@@ -161,7 +185,7 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
         ) : <div style={{ fontSize: 13, color: '#94a3b8' }}>Sem visitas registadas.</div>))}
 
         {/* Ações do profissional */}
-        <div style={{ ...card, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+        <div className="hp-noprint" style={{ ...card, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Registar esta visita no Phlox do doente</div>
           <input value={from} onChange={e => setFrom(e.target.value)} placeholder="O seu nome / instituição" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #d1fae5', borderRadius: 9, fontSize: 13.5, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }} />
           <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Motivo da visita" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #d1fae5', borderRadius: 9, fontSize: 13.5, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }} />
@@ -176,6 +200,7 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
 
         <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', lineHeight: 1.5, padding: '4px 0 20px' }}>Dados partilhados temporariamente pelo doente via Phlox · não os reproduza sem autorização.</div>
       </div>
+      <style>{`@media print { .hp-noprint { display: none !important } body { background: #fff !important } }`}</style>
     </div>
   )
 }

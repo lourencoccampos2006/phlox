@@ -55,6 +55,12 @@ const ICONS = {
   counter:   <><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><line x1="9" y1="21" x2="9" y2="14"/><line x1="15" y1="21" x2="15" y2="14"/></>,
   soap:      <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13l2 2 4-4"/></>,
   screen:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 11l2 2 4-4"/></>,
+  encounter: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></>,
+  queue:     <><circle cx="12" cy="7" r="3"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/><path d="M4 11h2M18 11h2M4.5 15h1.5M18 15h1.5"/></>,
+  tasks:     <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8l2 2 3-3"/><path d="M7 15l2 2 3-3"/><line x1="14" y1="9" x2="17" y2="9"/><line x1="14" y1="16" x2="17" y2="16"/></>,
+  shield:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4M12 16h.01"/></>,
+  consent:   <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></>,
+  box:       <><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></>,
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
 }
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -87,20 +93,27 @@ const NH: NavSection[] = [
   ]},
   { title: 'Gestão do lar', items: [
     { href: '/gestao', label: 'Painel de Gestão', icon: 'board', badge: true },
+    { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
+    { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
     { href: '/agenda', label: 'Agenda & Transportes', icon: 'agenda', badge: true },
     { href: '/faturacao', label: 'Faturação', icon: 'billing', badge: true },
-    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
     { href: '/census', label: 'Ocupação', icon: 'census' },
     { href: '/schedule', label: 'Equipa & Escalas', icon: 'schedule' },
     { href: '/protocolos', label: 'Protocolos', icon: 'protocol' },
     { href: '/family', label: 'Famílias', icon: 'family' },
     { href: '/roi', label: 'Poupança', icon: 'roi' },
   ]},
+  { title: 'Legal & documentos', items: [
+    { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
+    { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
+    { href: '/documentos', label: 'Documentos', icon: 'docs' },
+  ]},
 ]
 // Farmácia comunitária — foco no atendimento ao balcão + gestão.
 const PHARMACY: NavSection[] = [
   { title: 'Atendimento', items: [
     { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/atendimentos', label: 'Atendimentos', icon: 'encounter', badge: true },
     { href: '/indicacao', label: 'Indicação Farmacêutica', icon: 'counter', badge: true },
     { href: '/interactions', label: 'Verificar Interações', icon: 'drug' },
     { href: '/patients', label: 'Utentes / Fichas', icon: 'patients' },
@@ -111,17 +124,25 @@ const PHARMACY: NavSection[] = [
     { href: '/rounds', label: 'Ronda Farmacêutica', icon: 'round' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
-  { title: 'Gestão', items: [
-    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
-    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
+  { title: 'Operações', items: [
+    { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
+    { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
     { href: '/schedule', label: 'Equipa & Escalas', icon: 'schedule' },
+    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
+  ]},
+  { title: 'Legal', items: [
+    { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
+    { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
+    { href: '/documentos', label: 'Documentos', icon: 'docs' },
   ]},
 ]
 // Clínica / consultório — foco na consulta.
 const CLINIC: NavSection[] = [
   { title: 'Consulta', items: [
     { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/sala-espera', label: 'Sala de Espera', icon: 'queue', badge: true },
+    { href: '/atendimentos', label: 'Atendimentos', icon: 'encounter', badge: true },
     { href: '/patients', label: 'Doentes', icon: 'patients' },
     { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
     { href: '/agenda', label: 'Agenda', icon: 'agenda', badge: true },
@@ -131,17 +152,25 @@ const CLINIC: NavSection[] = [
     { href: '/rastreios', label: 'Rastreios & Vacinas', icon: 'screen', badge: true },
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
-  { title: 'Gestão', items: [
-    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+  { title: 'Operações', items: [
+    { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
+    { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
     { href: '/faturacao', label: 'Faturação', icon: 'billing' },
-    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },
+    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+  ]},
+  { title: 'Legal', items: [
+    { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
+    { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
+    { href: '/documentos', label: 'Documentos', icon: 'docs' },
   ]},
 ]
 // Centro de Saúde / USF — foco em prevenção e listas de utentes.
 const HEALTH_CENTER: NavSection[] = [
   { title: 'Cuidados', items: [
     { href: '/cockpit', label: 'Cockpit', icon: 'cockpit' },
+    { href: '/sala-espera', label: 'Sala de Espera', icon: 'queue', badge: true },
+    { href: '/atendimentos', label: 'Atendimentos', icon: 'encounter', badge: true },
     { href: '/patients', label: 'Utentes', icon: 'patients' },
     { href: '/rastreios', label: 'Rastreios & Vacinas', icon: 'screen', badge: true },
     { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
@@ -153,10 +182,16 @@ const HEALTH_CENTER: NavSection[] = [
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
-  { title: 'Gestão', items: [
-    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
-    { href: '/documentos', label: 'Documentos', icon: 'docs', badge: true },
+  { title: 'Operações', items: [
+    { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
+    { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },
+    { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+  ]},
+  { title: 'Legal', items: [
+    { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
+    { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
+    { href: '/documentos', label: 'Documentos', icon: 'docs' },
   ]},
 ]
 // Hospital / farmácia hospitalar — base clínica genérica.
@@ -169,8 +204,17 @@ const GENERIC: NavSection[] = [
     { href: '/residentes', label: 'Rev. Farmacoterapêutica', icon: 'drug' },
     { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
-    { href: '/schedule', label: 'Equipa', icon: 'schedule' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
+  ]},
+  { title: 'Operações', items: [
+    { href: '/sala-espera', label: 'Sala de Espera', icon: 'queue', badge: true },
+    { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
+    { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
+    { href: '/schedule', label: 'Equipa', icon: 'schedule' },
+  ]},
+  { title: 'Legal', items: [
+    { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
+    { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
   ]},
 ]
 
@@ -277,13 +321,46 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
   const firstName = user?.name?.split(' ')[0] || 'Conta'
   const initial = (user?.name?.[0] || 'U').toUpperCase()
 
-  const quickActions = [
-    { label: 'Centro de Turno', href: '/turno', icon: 'turno' as IconName },
-    { label: 'Registo diário', href: '/care-log', icon: 'carelog' as IconName },
-    { label: 'Registar ocorrência', href: '/incidents', icon: 'incidents' as IconName },
-    { label: 'Nova avaliação', href: '/assessments', icon: 'assess' as IconName },
-    { label: 'Marcar turno', href: '/schedule', icon: 'schedule' as IconName },
-  ]
+  const QUICK_ACTIONS: Record<InstType, { label: string; href: string; icon: IconName }[]> = {
+    nursing_home: [
+      { label: 'Centro de Turno', href: '/turno', icon: 'turno' },
+      { label: 'Registo diário', href: '/care-log', icon: 'carelog' },
+      { label: 'Registar ocorrência', href: '/incidents', icon: 'incidents' },
+      { label: 'Nova avaliação', href: '/assessments', icon: 'assess' },
+      { label: 'Marcar turno', href: '/schedule', icon: 'schedule' },
+    ],
+    pharmacy_community: [
+      { label: 'Registar atendimento', href: '/atendimentos', icon: 'encounter' },
+      { label: 'Indicação farmacêutica', href: '/indicacao', icon: 'counter' },
+      { label: 'Verificar interações', href: '/interactions', icon: 'drug' },
+      { label: 'Rastreios & vacinas', href: '/rastreios', icon: 'screen' },
+    ],
+    clinic: [
+      { label: 'Registar atendimento', href: '/atendimentos', icon: 'encounter' },
+      { label: 'Nota clínica SOAP', href: '/soap', icon: 'soap' },
+      { label: 'Marcar consulta', href: '/agenda', icon: 'agenda' },
+      { label: 'Novo doente', href: '/patients', icon: 'patients' },
+    ],
+    health_center: [
+      { label: 'Registar atendimento', href: '/atendimentos', icon: 'encounter' },
+      { label: 'Rastreios & vacinas', href: '/rastreios', icon: 'screen' },
+      { label: 'Nota clínica SOAP', href: '/soap', icon: 'soap' },
+      { label: 'Marcar consulta', href: '/agenda', icon: 'agenda' },
+    ],
+    hospital: [
+      { label: 'Nota clínica SOAP', href: '/soap', icon: 'soap' },
+      { label: 'Administração (MAR)', href: '/mar', icon: 'mar' },
+      { label: 'Ronda', href: '/rounds', icon: 'round' },
+      { label: 'Novo doente', href: '/patients', icon: 'patients' },
+    ],
+    pharmacy_hospital: [
+      { label: 'Administração (MAR)', href: '/mar', icon: 'mar' },
+      { label: 'Verificar interações', href: '/interactions', icon: 'drug' },
+      { label: 'Ronda', href: '/rounds', icon: 'round' },
+      { label: 'Novo doente', href: '/patients', icon: 'patients' },
+    ],
+  }
+  const quickActions = QUICK_ACTIONS[inst] || QUICK_ACTIONS.nursing_home
 
   const instName = profile?.short_name || profile?.name
   const Brand = ({ small }: { small?: boolean }) => (
