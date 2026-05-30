@@ -155,9 +155,9 @@ export default function AboutPage() {
             <Link href="/login" style={{ background: 'var(--ink)', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
               Criar conta grátis →
             </Link>
-            <a href="mailto:hello@phlox-clinical.com" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: '1px solid var(--border)' }}>
-              Falar com a equipa
-            </a>
+            <Link href="/pricing" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: '1px solid var(--border)' }}>
+              Ver planos
+            </Link>
           </div>
         </div>
       </section>

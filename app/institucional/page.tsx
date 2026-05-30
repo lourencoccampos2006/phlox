@@ -75,10 +75,10 @@ export default function InstitucionalPage() {
               Ward colaborativo. Passagem de turno automática. Registo PCNE. Comunicação inter-profissional estruturada. Por 89€/mês para toda a equipa — sem limite de utilizadores.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a href="mailto:hello@phlox-clinical.com"
+              <Link href="/checkout?plan=clinic"
                 style={{ padding: '13px 28px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 800, letterSpacing: '0.01em', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                Falar com a equipa →
-              </a>
+                Ativar plano Institucional →
+              </Link>
               <Link href="/login"
                 style={{ padding: '13px 22px', background: 'transparent', color: '#64748b', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, border: '1px solid #334155' }}>
                 Experimentar grátis
@@ -95,10 +95,10 @@ export default function InstitucionalPage() {
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'white', fontWeight: 400 }}>89€</span>
             <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/mês · utilizadores ilimitados · sem fidelização</span>
           </div>
-          <a href="mailto:hello@phlox-clinical.com"
+          <Link href="/checkout?plan=clinic"
             style={{ fontSize: 13, fontWeight: 700, color: 'white', textDecoration: 'none', fontFamily: 'var(--font-sans)', padding: '8px 18px', background: 'rgba(255,255,255,0.15)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)' }}>
-            Pedir demo →
-          </a>
+            Começar →
+          </Link>
         </div>
       </div>
 
@@ -211,13 +211,13 @@ export default function InstitucionalPage() {
             Pronto para substituir o papel e o WhatsApp clínico?
           </h2>
           <p style={{ fontSize: 15, color: '#475569', marginBottom: 32, lineHeight: 1.7 }}>
-            89€/mês por instituição. Utilizadores ilimitados. Cancela quando quiseres. Começamos com uma demo de 30 minutos.
+            89€/mês por instituição. Utilizadores ilimitados. Cancela quando quiseres, no próprio site.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="mailto:hello@phlox-clinical.com?subject=Demo Phlox Institucional"
+            <Link href="/checkout?plan=clinic"
               style={{ padding: '13px 28px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              Marcar demo gratuita →
-            </a>
+              Ativar agora →
+            </Link>
             <Link href="/pricing"
               style={{ padding: '13px 20px', background: 'transparent', color: '#475569', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, border: '1px solid #334155' }}>
               Ver preços

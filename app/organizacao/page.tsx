@@ -125,10 +125,10 @@ export default function OrganizacaoPage() {
             <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 28 }}>
               O plano institucional permite que toda a tua equipa — farmacêuticos, médicos, enfermeiros — aceda ao Phlox com uma única subscrição centralizada. Dashboard multi-utilizador, MAR digital, auditoria completa.
             </p>
-            <a href="mailto:hello@phlox-clinical.com?subject=Licença Institucional"
+            <Link href="/checkout?plan=clinic"
               style={{ display: 'inline-block', background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
-              Falar com a equipa →
-            </a>
+              Ativar plano Institucional →
+            </Link>
             <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>ou <Link href="/pricing#institucional" style={{ color: '#1d4ed8', textDecoration: 'none' }}>ver preços institucionais</Link></div>
           </div>
         </div>
@@ -279,12 +279,12 @@ export default function OrganizacaoPage() {
               </div>
               <div style={{ padding: '16px 20px' }}>
                 <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 16 }}>
-                  A faturação é gerida directamente pela equipa Phlox. Para alterações ao plano, número de membros ou dados de faturação, contacta-nos.
+                  A subscrição é gerida no teu painel. Para alterar o plano ou cancelar, vai a Definições — sem necessidade de email.
                 </div>
-                <a href="mailto:hello@phlox-clinical.com?subject=Faturação Institucional"
+                <Link href="/settings"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '10px 18px', borderRadius: 7, fontSize: 13, fontWeight: 700 }}>
-                  Contactar suporte →
-                </a>
+                  Gerir subscrição →
+                </Link>
               </div>
             </div>
           </div>

@@ -47,24 +47,35 @@ export async function POST(req: NextRequest) {
   const obj = event.data?.object
 
   switch (event.type) {
-    // Payment completed — upgrade user
+    // Payment completed — upgrade user + store Stripe IDs (para cancelar no site)
     case 'checkout.session.completed': {
       const userId = obj.metadata?.user_id
       const plan = obj.metadata?.plan
       if (userId && plan) {
-        await getSupabase().from('profiles').update({ plan }).eq('id', userId)
+        await getSupabase().from('profiles').update({
+          plan,
+          stripe_customer_id: obj.customer || null,
+          stripe_subscription_id: obj.subscription || null,
+          plan_status: 'active',
+        }).eq('id', userId)
         console.log(`Upgraded user ${userId} to ${plan}`)
       }
       break
     }
 
-    // Subscription active — ensure plan is set
+    // Subscription active/updated — ensure plan + renewal + (un)cancel state
     case 'customer.subscription.updated': {
       const userId = obj.metadata?.user_id
       const plan = obj.metadata?.plan
       const status = obj.status
-      if (userId && plan && status === 'active') {
-        await getSupabase().from('profiles').update({ plan }).eq('id', userId)
+      if (userId) {
+        const patch: any = {
+          stripe_subscription_id: obj.id,
+          plan_status: obj.cancel_at_period_end ? 'canceling' : (status === 'active' ? 'active' : status),
+          plan_renews_at: obj.current_period_end ? new Date(obj.current_period_end * 1000).toISOString() : null,
+        }
+        if (plan && status === 'active' && !obj.cancel_at_period_end) patch.plan = plan
+        await getSupabase().from('profiles').update(patch).eq('id', userId)
       }
       break
     }
@@ -73,7 +84,7 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.deleted': {
       const userId = obj.metadata?.user_id
       if (userId) {
-        await getSupabase().from('profiles').update({ plan: 'free' }).eq('id', userId)
+        await getSupabase().from('profiles').update({ plan: 'free', plan_status: 'canceled', stripe_subscription_id: null }).eq('id', userId)
         console.log(`Downgraded user ${userId} to free`)
       }
       break

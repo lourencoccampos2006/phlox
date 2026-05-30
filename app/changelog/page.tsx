@@ -8,9 +8,37 @@ export const metadata: Metadata = {
 
 const RELEASES = [
   {
+    version: '2.9',
+    date: '2026-05-30',
+    tag: 'Mais recente',
+    tagColor: '#0d6e42',
+    items: [
+      { type: 'new', text: '/status — página pública de estado com verificação em tempo real da base de dados e da autenticação. Indicador vivo no rodapé' },
+      { type: 'new', text: '/seguranca — modelo técnico de segurança: TLS 1.3, AES-256 em repouso, RLS por linha, hospedagem na União Europeia, política de backups e retenção' },
+      { type: 'improved', text: 'Rodapé com selos de confiança (Hospedado na UE, Stripe, Supabase) e atalhos para Estado, Changelog e Segurança' },
+    ],
+  },
+  {
+    version: '2.8',
+    date: '2026-05-29',
+    tag: null,
+    tagColor: '#2563eb',
+    items: [
+      { type: 'new', text: 'Motor fiscal — ATCUD, QR Code no formato oficial da AT, numeração sequencial atómica por série, cadeia SHA-256 entre documentos, SAF-T (PT) com a estrutura oficial' },
+      { type: 'new', text: 'Notas de crédito — estorno do documento com cadeia, em vez de eliminação (exigência fiscal)' },
+      { type: 'new', text: 'POS — Ponto de Venda com leitor teclado-wedge, câmara do telemóvel (BarcodeDetector) e pesquisa manual' },
+      { type: 'new', text: 'Pagamentos — Referência Multibanco com algoritmo de check-digit oficial (991) e MB WAY com gateway Easypay' },
+      { type: 'new', text: 'Conectores de faturação — InvoiceXpress, Moloni, Vendus, KeyInvoice, Jasmin, Sage (CSV)' },
+      { type: 'new', text: 'Webhooks de saída assinados (HMAC-SHA256) para venda criada, documento emitido e stock baixo' },
+      { type: 'new', text: 'Importação de produtos em massa por CSV — auto-deteta colunas de exports Sifarma e ERP genéricos' },
+      { type: 'new', text: 'Plano Institucional disponível em checkout (Stripe) — cancelamento direto no site' },
+      { type: 'fixed', text: 'Acesso a ferramentas pagas bloqueado a nível de rota (não bastava esconder o botão)' },
+    ],
+  },
+  {
     version: '2.7',
     date: '2026-05-20',
-    tag: 'Mais recente',
+    tag: null,
     tagColor: '#2563eb',
     items: [
       { type: 'new', text: '/antibiotics — antibioterapia empírica: 1.ª/2.ª linha, cobertura MRSA/ESBL, step-down IV→oral, duração, ajuste renal, stewardship. Baseado em ESCMID/EUCAST 2024, IDSA, DGS PPCIRA' },

@@ -5,45 +5,26 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
+// Preços e nomes vêm de lib/plans.ts (fonte única). priceId resolvido server-side.
+import { planById } from '@/lib/plans'
+
+const eur = (v: number) => `${v.toFixed(2).replace('.', ',')}€`
+const buildPlan = (id: 'student' | 'pro' | 'clinic', color: string) => {
+  const p = planById(id)
+  return {
+    name: p.name,
+    monthly: { price: eur(p.price.monthly), period: '/mês', priceId: `${id}_monthly` },
+    annual:  { price: eur(p.price.annual), period: '/mês · faturado anualmente', priceId: `${id}_annual` },
+    color,
+    features: p.features,
+    audience: p.audience,
+  }
+}
+
 const PLANS = {
-  student: {
-    name: 'Student',
-    monthly: { price: '3,99€', period: '/mês', priceId: process.env.NEXT_PUBLIC_STRIPE_STUDENT_MONTHLY || 'student_monthly' },
-    annual:  { price: '2,99€', period: '/mês · faturado anualmente', priceId: process.env.NEXT_PUBLIC_STRIPE_STUDENT_ANNUAL || 'student_annual' },
-    color: '#7c3aed',
-    features: [
-      'Tudo do plano Grátis sem limites',
-      'Phlox Arena — ligas Bronze a Diamante',
-      'Phlox OSCE — 6 cursos, AI como doente',
-      'Phlox Hive — inteligência colectiva',
-      'Plataforma de estudo — 10 domínios, 200+ tópicos',
-      'Flashcards com repetição espaçada (SRS)',
-      'Casos clínicos — todas as áreas',
-      'AI Tutor socrático',
-      'Modo Exame — formato nacional',
-      'Turno Virtual — 16 especialidades',
-      'Histórico ilimitado · Sem anúncios',
-    ],
-  },
-  pro: {
-    name: 'Pro',
-    monthly: { price: '14,99€', period: '/mês', priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY || 'pro_monthly' },
-    annual:  { price: '11,99€', period: '/mês · faturado anualmente', priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL || 'pro_annual' },
-    color: '#0d6e42',
-    features: [
-      'Tudo do Student',
-      'Phlox Ward — ficha clínica colaborativa',
-      'Phlox Connect — comunicação inter-profissional',
-      'Phlox Rounds — ronda farmacêutica + PCNE',
-      'Phlox Care Plan — plano farmacológico',
-      'Phlox Consulta — copiloto bidirecional',
-      'Doentes e Utentes ilimitados',
-      'MAR digital por turno',
-      'Reconciliação Medicamentosa',
-      'Export PDF · Relatórios mensais',
-      'Phlox AI Clínico Pro',
-    ],
-  },
+  student: buildPlan('student', '#7c3aed'),
+  pro: buildPlan('pro', '#0d6e42'),
+  clinic: buildPlan('clinic', '#1d4ed8'),
 } as const
 
 type PlanKey = keyof typeof PLANS

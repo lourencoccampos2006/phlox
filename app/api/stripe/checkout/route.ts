@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
       student_annual:  process.env.STRIPE_STUDENT_ANNUAL,
       pro_monthly:     process.env.STRIPE_PRO_MONTHLY,
       pro_annual:      process.env.STRIPE_PRO_ANNUAL,
+      clinic_monthly:  process.env.STRIPE_CLINIC_MONTHLY,
+      clinic_annual:   process.env.STRIPE_CLINIC_ANNUAL,
     }
 
     const priceId = PRICE_MAP[priceKey]

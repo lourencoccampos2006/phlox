@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
+import { planById, planName } from '@/lib/plans'
 
 const ROLE_OPTIONS = [
   { value: 'pharmacist',  label: 'Farmacêutico' },
@@ -40,6 +41,21 @@ export default function SettingsPage() {
   const router = useRouter()
   const [tab, setTab] = useState<'profile' | 'ferramentas' | 'institution' | 'connect' | 'account' | 'notifications'>('profile')
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
+  const [cancelBusy, setCancelBusy] = useState(false)
+  const [cancelMsg, setCancelMsg] = useState('')
+
+  async function cancelSubscription(immediate = false) {
+    if (!confirm(immediate ? 'Cancelar já e perder o acesso imediatamente?' : 'Cancelar a subscrição no fim do período pago? Manténs o acesso até lá.')) return
+    setCancelBusy(true); setCancelMsg('')
+    try {
+      const t = (await supabase.auth.getSession()).data.session?.access_token
+      const r = await fetch('/api/stripe/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }, body: JSON.stringify({ immediate }) })
+      const j = await r.json()
+      if (r.ok) setCancelMsg(j.immediate ? 'Subscrição cancelada.' : 'Cancelamento agendado para o fim do período. Manténs o acesso até lá.')
+      else setCancelMsg(j.error || 'Não foi possível cancelar.')
+    } catch { setCancelMsg('Erro de ligação.') }
+    setCancelBusy(false)
+  }
 
   useEffect(() => {
     if (!('Notification' in window)) { setPushPerm('unsupported'); return }
@@ -597,19 +613,29 @@ export default function SettingsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Plano actual</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', textTransform: 'capitalize' }}>{user?.plan || 'Grátis'}</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>{planName(user?.plan)}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>
-                    {user?.plan === 'free' ? 'Ferramentas básicas' : user?.plan === 'student' ? '3,99€/mês' : user?.plan === 'pro' ? '14,99€/mês' : 'Plano institucional'}
+                    {!user?.plan || user?.plan === 'free' ? 'Ferramentas básicas, com anúncios' : `${planById(user.plan).price.monthly.toFixed(2).replace('.', ',')}€/mês`}
                   </div>
                 </div>
-                {(user?.plan === 'free' || user?.plan === 'student') && (
+                {(!user?.plan || user?.plan === 'free' || user?.plan === 'student') && (
                   <Link href="/pricing" style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700 }}>
                     Fazer upgrade
                   </Link>
                 )}
               </div>
+              {(user?.plan === 'student' || user?.plan === 'pro' || user?.plan === 'clinic') && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  {cancelMsg && <div style={{ fontSize: 12.5, color: cancelMsg.includes('cancelad') || cancelMsg.includes('agendad') ? '#16a34a' : '#dc2626', marginBottom: 10 }}>{cancelMsg}</div>}
+                  <button onClick={() => cancelSubscription(false)} disabled={cancelBusy}
+                    style={{ padding: '8px 14px', background: 'white', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 7, cursor: cancelBusy ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                    {cancelBusy ? 'A processar…' : 'Cancelar subscrição'}
+                  </button>
+                  <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 8, lineHeight: 1.5 }}>Cancela no fim do período pago — manténs o acesso até lá. Sem emails, sem fidelização.</div>
+                </div>
+              )}
             </div>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Sessão</div>

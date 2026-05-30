@@ -1,8 +1,11 @@
 'use client'
 
 import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 import ClinicalLayout from '@/components/ClinicalLayout'
 import ClinicalCommandPalette from '@/components/ClinicalCommandPalette'
+import PlanGate from '@/components/PlanGate'
+import { planForRoute } from '@/lib/planRoutes'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useState, useEffect } from 'react'
@@ -47,20 +50,31 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const isClinical = mode === 'clinical' &&
     CLINICAL_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
 
+  // Bloqueio de acesso por plano — a página paga só renderiza se o plano chegar.
+  const gate = planForRoute(pathname)
+  const gated = (node: React.ReactNode) => gate
+    ? <PlanGate min={gate.min} tool={gate.tool} note={gate.note}>{node}</PlanGate>
+    : node
+
   if (isClinical) {
     return (
       <>
-        <ClinicalLayout>{children}</ClinicalLayout>
+        <ClinicalLayout>{gated(children)}</ClinicalLayout>
         <ClinicalCommandPalette />
         <ScrollToTop />
       </>
     )
   }
 
+  // Rotas que já têm o seu próprio rodapé (ou são de leitura focada sem rodapé)
+  const SKIP_FOOTER = ['/', '/login', '/checkout']
+  const showFooter = !SKIP_FOOTER.some(p => pathname === p || pathname.startsWith(p + '/'))
+
   return (
     <>
       <Header />
-      <div id="app-main">{children}</div>
+      <div id="app-main">{gated(children)}</div>
+      {showFooter && <Footer />}
       <ScrollToTop />
     </>
   )

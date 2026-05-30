@@ -150,9 +150,9 @@ export default function ApiDocsPage() {
         {/* Contact */}
         <div style={{ marginTop:24, padding:'20px', background:'var(--ink)', borderRadius:10, textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'#f8fafc', marginBottom:8 }}>Integração institucional?</div>
-          <p style={{ fontSize:13, color:'#64748b', marginBottom:14 }}>Para planos de API com maior rate limit, suporte dedicado ou integração com Sifarma/SClínico, contacta-nos.</p>
-          <a href="mailto:api@phlox-clinical.com" style={{ display:'inline-block', background:'#1d4ed8', color:'white', textDecoration:'none', padding:'10px 22px', borderRadius:7, fontSize:13, fontWeight:700 }}>
-            api@phlox-clinical.com
+          <p style={{ fontSize:13, color:'#64748b', marginBottom:14 }}>Liga o Phlox ao teu software via webhooks assinados (HMAC) e exportações compatíveis com Sifarma/ERP.</p>
+          <a href="/webhooks" style={{ display:'inline-block', background:'#1d4ed8', color:'white', textDecoration:'none', padding:'10px 22px', borderRadius:7, fontSize:13, fontWeight:700 }}>
+            Configurar integrações →
           </a>
         </div>
       </div>
