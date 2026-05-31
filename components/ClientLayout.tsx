@@ -17,6 +17,7 @@ const CLINICAL_PREFIXES = [
   '/schedule', '/census', '/roi', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos',
   '/indicacao', '/soap', '/rastreios', '/atendimentos',
   '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
+  '/insights', '/copiloto', '/reach',
 ]
 
 function ScrollToTop() {
@@ -67,7 +68,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   // Rotas que já têm o seu próprio rodapé (ou são de leitura focada sem rodapé)
-  const SKIP_FOOTER = ['/', '/login', '/checkout']
+  const SKIP_FOOTER = ['/', '/login', '/checkout', '/v', '/hp']
   const showFooter = !SKIP_FOOTER.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   return (

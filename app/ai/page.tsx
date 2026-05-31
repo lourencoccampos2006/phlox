@@ -168,8 +168,8 @@ function MessageBubble({ msg }: { msg: Message }) {
 
   if (isUser) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <div style={{ maxWidth: '75%', background: 'var(--green)', borderRadius: '16px 16px 4px 16px', padding: '12px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 18 }}>
+        <div style={{ maxWidth: '78%', background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', borderRadius: '18px 18px 4px 18px', padding: '12px 16px', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.45)' }}>
           <p style={{ fontSize: 14, color: 'white', lineHeight: 1.6, margin: 0 }}>{msg.content}</p>
         </div>
       </div>
@@ -177,9 +177,9 @@ function MessageBubble({ msg }: { msg: Message }) {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-start' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
+    <div style={{ display: 'flex', gap: 12, marginBottom: 22, alignItems: 'flex-start' }}>
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, boxShadow: '0 4px 12px rgba(13,110,66,0.25)' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         {msg.thinking && (
@@ -238,13 +238,13 @@ function MessageBubble({ msg }: { msg: Message }) {
 
 function TypingIndicator() {
   return (
-    <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-start' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
+    <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start' }}>
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(13,110,66,0.25)' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
       </div>
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 16px 16px 16px', padding: '14px 16px', display: 'flex', gap: 5, alignItems: 'center' }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '6px 16px 16px 16px', padding: '14px 18px', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 2px 8px rgba(8,12,24,0.04)' }}>
         {[0, 1, 2].map(i => (
-          <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />
+          <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#0d6e42', animation: `typingBounce 1.4s ${i * 0.16}s infinite ease-in-out` }} />
         ))}
       </div>
     </div>
@@ -510,74 +510,82 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
       {!isStudent ? (
         <UpgradeGate />
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 800, width: '100%', margin: '0 auto', padding: '0 20px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 840, width: '100%', margin: '0 auto', padding: '0 22px' }}>
 
-          {/* Top bar */}
-          <div style={{ padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  Phlox AI
+          {/* Top bar — refined */}
+          <div className="ai-topbar" style={{ padding: '20px 0 18px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <div className="ai-mark" style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 6px 18px rgba(13,110,66,0.25)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-                  {familyProfile
-                    ? `Perfil familiar · ${patientCtx?.meds.length || 0} medicamentos`
-                    : `Farmacologista clínico · ${patientCtx?.meds.length || 0} medicamentos no perfil`}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: 'var(--ink)', letterSpacing: '-0.015em', fontWeight: 400, lineHeight: 1 }}>Phlox AI</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 10.5, fontWeight: 700, color: '#15803d', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', animation: 'pulse 2s infinite' }} /> ONLINE
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3, fontFamily: 'var(--font-sans)' }}>
+                    {familyProfile
+                      ? <>Perfil familiar · <strong style={{ color: 'var(--ink-3)' }}>{patientCtx?.meds.length || 0}</strong> medicamentos</>
+                      : <>Farmacologista clínico · <strong style={{ color: 'var(--ink-3)' }}>{patientCtx?.meds.length || 0}</strong> medicamentos no perfil</>}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {messages.length > 1 && (
-                <button onClick={() => setMessages([])}
-                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
-                  Nova conversa
-                </button>
-              )}
-              {familyProfile ? (
-                <Link href={`/perfil/${profileId}`}
-                  style={{ background: 'none', border: '1px solid #ddd6fe', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: '#6d28d9', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
-                  Ver perfil
-                </Link>
-              ) : (
-                <Link href="/dashboard?tab=meds"
-                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
-                  Editar medicamentos
-                </Link>
-              )}
-              {familyProfile && (
-                <Link href="/ai"
-                  style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 10px', fontSize: 11, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>
-                  Meu perfil
-                </Link>
-              )}
-            </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {messages.length > 1 && (
+                  <button onClick={() => setMessages([])}
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    + Nova conversa
+                  </button>
+                )}
+                {familyProfile ? (
+                  <Link href={`/perfil/${profileId}`}
+                    style={{ background: 'white', border: '1px solid #ddd6fe', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#6d28d9', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                    Ver perfil
+                  </Link>
+                ) : (
+                  <Link href="/dashboard?tab=meds"
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#0d6e42', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                    Editar medicação
+                  </Link>
+                )}
+                {familyProfile && (
+                  <Link href="/ai"
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                    Meu perfil
+                  </Link>
+                )}
+              </div>
             </div>
             {familyProfile && (
-              <div style={{ marginTop: 10, padding: '7px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 6, fontSize: 12, color: '#7c3aed', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
-                A conversar sobre: {familyProfile.name}
+              <div style={{ marginTop: 12, padding: '8px 14px', background: 'linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%)', border: '1px solid #e9d5ff', borderRadius: 9, fontSize: 12.5, color: '#6d28d9', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                A conversar sobre <strong style={{ marginLeft: 3 }}>{familyProfile.name}</strong>
               </div>
             )}
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0 12px', minHeight: 0 }}>
             {messages.length === 0 && ctxLoaded && (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ marginBottom: 16 }}>
-                  <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
-                    <rect width="28" height="28" rx="6" fill="var(--green)" opacity="0.15"/>
-                    <path d="M14 6v16M7 14h14" stroke="var(--green)" strokeWidth="2.2" strokeLinecap="round"/>
-                  </svg>
+              <div style={{ padding: '32px 0 16px', textAlign: 'center' }}>
+                {/* Hero */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 18, background: 'radial-gradient(circle at 30% 30%, #16a34a 0%, #0d6e42 100%)', marginBottom: 18, boxShadow: '0 12px 30px rgba(13,110,66,0.25)', position: 'relative' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
+                  <div style={{ position: 'absolute', inset: -6, borderRadius: 22, border: '1px solid #bbf7d0', opacity: 0.6, pointerEvents: 'none' }} />
                 </div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-2)', marginBottom: 20 }}>Como posso ajudar?</div>
-                <div className="card-grid-2" style={{ gap: 8, textAlign: 'left', maxWidth: 600, margin: '0 auto' }}>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 6px' }}>Como posso ajudar?</h2>
+                <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: '0 0 24px', lineHeight: 1.55 }}>
+                  Pergunta sobre a tua medicação, sintomas ou um caso clínico. Tenho contexto do teu perfil.
+                </p>
+                <div className="ai-empty-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 270px), 1fr))', gap: 9, textAlign: 'left', maxWidth: 620, margin: '0 auto' }}>
                   {suggestionsToShow.map(p => (
-                    <button key={p} onClick={() => sendMessage(p)}
-                      style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 14px', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4, fontFamily: 'var(--font-sans)' }}>
-                      {p}
+                    <button key={p} onClick={() => sendMessage(p)} className="ai-suggest"
+                      style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 11, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', display: 'flex', gap: 10, alignItems: 'flex-start', transition: 'all 0.15s ease' }}>
+                      <span style={{ color: '#0d6e42', flexShrink: 0, marginTop: 1, fontWeight: 800 }}>→</span>
+                      <span style={{ minWidth: 0 }}>{p}</span>
                     </button>
                   ))}
                 </div>
@@ -599,49 +607,50 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div style={{ padding: '16px 0 20px', borderTop: '1px solid var(--border)' }}>
+          {/* Input — refined */}
+          <div style={{ padding: '14px 0 22px', borderTop: '1px solid var(--border)' }}>
             {messages.length > 0 && messages.length < 4 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
                 {(familyProfile
                   ? ['Há contra-indicações com a idade?', 'Quais os efeitos adversos a vigiar?', 'Precisa de ajuste de dose?', 'É seguro tomar tudo junto?']
                   : ['Posso tomar com álcool?', 'Quais os efeitos adversos?', 'É seguro na gravidez?', 'Qual a dose correcta?']
                 ).map(s => (
-                  <button key={s} onClick={() => sendMessage(s)}
-                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 12px', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                  <button key={s} onClick={() => sendMessage(s)} className="ai-chip"
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 20, padding: '6px 13px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s ease' }}>
                     {s}
                   </button>
                 ))}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'white', border: '1px solid var(--border-2)', borderRadius: 12, padding: '10px 14px' }}>
+            <div className="ai-input-card" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'white', border: '1.5px solid var(--border)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 0 rgba(8,12,24,0.02), 0 8px 24px -16px rgba(8,12,24,0.12)', transition: 'border-color 0.15s, box-shadow 0.15s' }}>
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={e => {
                   setInput(e.target.value)
                   e.target.style.height = 'auto'
-                  e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'
+                  e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={familyProfile ? `Pergunta sobre ${familyProfile.name}...` : 'Pergunta ao teu farmacologista clínico...'}
+                placeholder={familyProfile ? `Pergunta sobre ${familyProfile.name}…` : 'Pergunta ao teu farmacologista clínico…'}
                 rows={1}
-                style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', lineHeight: 1.5, maxHeight: 140, overflow: 'auto' }}
+                style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14.5, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', lineHeight: 1.55, maxHeight: 160, overflow: 'auto', padding: '4px 0' }}
               />
               <button
                 onClick={() => sendMessage()}
                 disabled={!input.trim() || isTyping}
-                style={{ background: input.trim() && !isTyping ? 'var(--green)' : 'var(--bg-3)', color: input.trim() && !isTyping ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, width: 36, height: 36, cursor: input.trim() && !isTyping ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
-                ↑
+                aria-label="Enviar"
+                style={{ background: input.trim() && !isTyping ? 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)' : 'var(--bg-3)', color: input.trim() && !isTyping ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 10, width: 38, height: 38, cursor: input.trim() && !isTyping ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.1s ease, box-shadow 0.15s', boxShadow: input.trim() && !isTyping ? '0 4px 12px rgba(13,110,66,0.3)' : 'none' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
               </button>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 7 }}>
-              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-                Enter para enviar · Shift+Enter para nova linha
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 9, padding: '0 4px' }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
+                <kbd style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>Enter</kbd> enviar · <kbd style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>Shift+Enter</kbd> nova linha
               </div>
               {input.length > 80 && (
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: input.length > 900 ? '#ef4444' : 'var(--ink-4)' }}>
+                <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: input.length > 900 ? '#dc2626' : 'var(--ink-5)' }}>
                   {input.length}/1000
                 </div>
               )}
@@ -652,6 +661,10 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
 
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes typingBounce { 0%,80%,100%{transform:translateY(0); opacity:0.5} 40%{transform:translateY(-4px); opacity:1} }
+        .ai-input-card:focus-within { border-color: #0d6e42; box-shadow: 0 0 0 4px rgba(13,110,66,0.08), 0 8px 24px -16px rgba(13,110,66,0.18); }
+        .ai-suggest:hover { border-color: #0d6e42; background: #f8fdfb; transform: translateY(-1px); }
+        .ai-chip:hover { border-color: #0d6e42; color: #0d6e42; }
       `}</style>
     </div>
   )

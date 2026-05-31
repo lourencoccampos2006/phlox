@@ -422,6 +422,7 @@ export default function Header() {
   // Portal público do familiar — página standalone, sem header da app
   const isFamilyPortal = pathname === '/portal-familia' || pathname.startsWith('/portal-familia/')
     || pathname === '/hp' || pathname.startsWith('/hp/')
+    || pathname === '/v' || pathname.startsWith('/v/')
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
   const modeColor = modeMeta.color

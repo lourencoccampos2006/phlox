@@ -8,6 +8,7 @@ import { useLiveData } from '@/lib/useLiveData'
 import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
 import InstitutionHub from '@/components/InstitutionHub'
 import OperationalPulse from '@/components/OperationalPulse'
+import LivePulseBadge from '@/components/LivePulseBadge'
 import { roleFocusLine } from '@/lib/institutionHub'
 
 type Shift = 'manha' | 'tarde' | 'noite'
@@ -233,6 +234,7 @@ export default function CockpitPage() {
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>{ptDate} · {ptTime} · {instLabel}</div>
             <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 2 }}>{roleFocusLine(institution, role)}</div>
           </div>
+          <LivePulseBadge />
         </div>
 
         {/* KPIs */}

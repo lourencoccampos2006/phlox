@@ -8,9 +8,35 @@ export const metadata: Metadata = {
 
 const RELEASES = [
   {
+    version: '3.1',
+    date: '2026-05-31',
+    tag: 'Mais recente',
+    tagColor: '#0d6e42',
+    items: [
+      { type: 'new', text: '/reach — convites e referrals: cada utilizador tem o seu código, ambos ganham 1 mês quando o convidado faz upgrade' },
+      { type: 'new', text: '/api/pulse (Server-Sent Events) — KPIs ao vivo no cockpit: receita do dia, fila, tarefas. Atualização em tempo real sem polling' },
+      { type: 'new', text: 'Signed Documents — documentos assinados (HMAC-SHA256) com URL pública /v/{id} para verificação por qualquer pessoa, sem login necessário' },
+      { type: 'improved', text: '/ai — interface redesenhada: header com logo gradient, hero generoso no empty state, bolhas e input mais polidos, nova animação de typing' },
+    ],
+  },
+  {
+    version: '3.0',
+    date: '2026-05-31',
+    tag: null,
+    tagColor: '#0d6e42',
+    items: [
+      { type: 'new', text: '/trust — Trust Center: estado, segurança, RGPD, subprocessadores e descarga de DPA num único sítio' },
+      { type: 'new', text: '/trust/dpa — gerador de Contrato de Subcontratante (Art. 28.º RGPD) personalizado por NIF, com cláusulas standard e subprocessadores' },
+      { type: 'new', text: '/insights (Pro) — benchmarks anonimizados contra o pool do mesmo tipo de instituição (k-anonymity ≥ 5) com mediana, p25, p75, p90' },
+      { type: 'new', text: '/copiloto (Pro) — AI Copilot ancorado no Decision Engine; cada recomendação cita a regra (R1, R7…). Não inventa interações' },
+      { type: 'new', text: '/exportar-dados — portabilidade Art. 20.º RGPD: descarrega tudo num JSON estruturado' },
+      { type: 'improved', text: 'Rodapé global passa a destacar o Trust Center' },
+    ],
+  },
+  {
     version: '2.9',
     date: '2026-05-30',
-    tag: 'Mais recente',
+    tag: null,
     tagColor: '#0d6e42',
     items: [
       { type: 'new', text: '/status — página pública de estado com verificação em tempo real da base de dados e da autenticação. Indicador vivo no rodapé' },

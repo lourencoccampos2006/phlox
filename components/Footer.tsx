@@ -49,6 +49,7 @@ export default function Footer() {
             ['Inicia sessão', '/login'],
           ]} />
           <FootCol title="Confiança" links={[
+            ['Trust Center', '/trust'],
             ['Estado', '/status'],
             ['Segurança', '/seguranca'],
             ['Changelog', '/changelog'],
