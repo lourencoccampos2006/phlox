@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { areaOf } from '@/lib/studyAreas'
 
@@ -8,6 +8,8 @@ interface Result {
   concept: string; simple: string; exam: string; clinical: string
   analogy: string; key_points: string[]; common_mistake: string
 }
+interface HistoryItem { concept: string; at: string }
+const LS_KEY = 'phlox-explica-history'
 
 export default function ExplicaPage() {
   const { user } = useAuth() as any
@@ -17,6 +19,15 @@ export default function ExplicaPage() {
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
   const [level, setLevel] = useState<'simple' | 'exam' | 'clinical'>('simple')
+  const [history, setHistory] = useState<HistoryItem[]>([])
+
+  useEffect(() => { try { const r = localStorage.getItem(LS_KEY); if (r) setHistory(JSON.parse(r)) } catch { /* noop */ } }, [])
+
+  function persistHistory(concept: string) {
+    const next: HistoryItem[] = [{ concept, at: new Date().toISOString() }, ...history.filter(h => h.concept !== concept)].slice(0, 8)
+    setHistory(next)
+    try { localStorage.setItem(LS_KEY, JSON.stringify(next)) } catch { /* noop */ }
+  }
 
   async function run(c?: string) {
     const cp = (c ?? concept).trim(); if (!cp) return
@@ -26,7 +37,7 @@ export default function ExplicaPage() {
       const res = await fetch('/api/explica', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ concept: cp, area: area.label }) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
-      setResult(data)
+      setResult(data); persistHistory(cp)
     } catch (e: any) { setError(e.message || 'Não foi possível.') }
     finally { setLoading(false) }
   }
@@ -55,6 +66,19 @@ export default function ExplicaPage() {
           </div>
           {error && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{error}</div>}
         </div>
+
+        {history.length > 0 && !result && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7, fontFamily: 'var(--font-mono)' }}>Já explicaste</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {history.map(h => (
+                <button key={h.concept} onClick={() => run(h.concept)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#581c87', background: 'white', border: '1px solid #e9d5ff', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                  ↻ {h.concept}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {result && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

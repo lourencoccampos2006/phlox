@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import ClinicalLayout from '@/components/ClinicalLayout'
 import ClinicalCommandPalette from '@/components/ClinicalCommandPalette'
 import PlanGate from '@/components/PlanGate'
+import ToolUseTracker from '@/components/ToolUseTracker'
 import { planForRoute } from '@/lib/planRoutes'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
@@ -17,7 +18,7 @@ const CLINICAL_PREFIXES = [
   '/schedule', '/census', '/roi', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos',
   '/indicacao', '/soap', '/rastreios', '/atendimentos',
   '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
-  '/insights', '/copiloto', '/reach',
+  '/insights', '/copiloto', '/reach', '/brief', '/calc', '/codes',
 ]
 
 function ScrollToTop() {
@@ -60,6 +61,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   if (isClinical) {
     return (
       <>
+        <ToolUseTracker />
         <ClinicalLayout>{gated(children)}</ClinicalLayout>
         <ClinicalCommandPalette />
         <ScrollToTop />
@@ -67,12 +69,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     )
   }
 
-  // Rotas que já têm o seu próprio rodapé (ou são de leitura focada sem rodapé)
-  const SKIP_FOOTER = ['/', '/login', '/checkout', '/v', '/hp']
-  const showFooter = !SKIP_FOOTER.some(p => pathname === p || pathname.startsWith(p + '/'))
+  // O rodapé só aparece em páginas públicas / institucionais — nunca em ferramentas.
+  // Em ferramentas (dashboard, mymeds, ai, family, etc.) é distrativo e desformata.
+  const SHOW_FOOTER_ON = [
+    '/about', '/pricing', '/trust', '/seguranca', '/status', '/changelog',
+    '/terms', '/privacy', '/api-docs', '/institucional', '/organizacao',
+    '/blog', '/contato',
+  ]
+  const showFooter = SHOW_FOOTER_ON.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   return (
     <>
+      <ToolUseTracker />
       <Header />
       <div id="app-main">{gated(children)}</div>
       {showFooter && <Footer />}

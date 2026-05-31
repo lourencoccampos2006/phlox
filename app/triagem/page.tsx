@@ -97,7 +97,24 @@ export default function TriagemPage() {
 
             {result.reassurance && <div style={{ ...card, background: 'var(--bg-2)' }}><div style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>💙 {result.reassurance}</div></div>}
 
-            <div style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center', lineHeight: 1.5 }}>Orientação geral, não substitui avaliação médica. Em dúvida liga SNS24 · 808 24 24 24.</div>
+            {/* Acções rápidas — sempre presentes para o utilizador agir */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+              <a href="tel:808242424" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: '#0891b2', color: 'white', borderRadius: 9, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                📞 Ligar SNS24 (808 24 24 24)
+              </a>
+              {(result.level === 'urgencias' || result.level === 'centro_saude') && (
+                <a href="https://www.google.com/maps/search/?api=1&query=hospital+ou+centro+de+saúde+mais+próximo" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: 'white', color: '#0b1120', border: '1.5px solid var(--border)', borderRadius: 9, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                  🗺 Mais perto de mim
+                </a>
+              )}
+              {result.level === 'farmacia' && (
+                <a href="https://www.google.com/maps/search/?api=1&query=farmácia+de+serviço" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: 'white', color: '#0b1120', border: '1.5px solid var(--border)', borderRadius: 9, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+                  🗺 Farmácia de serviço
+                </a>
+              )}
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center', lineHeight: 1.5 }}>Orientação geral, não substitui avaliação médica.</div>
           </div>
         )}
       </div>

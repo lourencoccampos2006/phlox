@@ -8,6 +8,10 @@ import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { planName } from '@/lib/plans'
 import { areaOf } from '@/lib/studyAreas'
+import PersonaSwitcher from '@/components/PersonaSwitcher'
+import MyTopTools from '@/components/MyTopTools'
+import PinnedToolsBar from '@/components/PinnedToolsBar'
+import FocusModeToggle from '@/components/FocusModeToggle'
 
 // ─── Home adaptativa — mobile-first, lista limpa. Só mostra ferramentas ativas. ─
 
@@ -55,7 +59,7 @@ export default function InicioPage() {
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '22px 16px 40px', boxSizing: 'border-box', width: '100%' }}>
 
         {/* Greeting + plan chip */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.15 }}>
               {greeting()}{firstName ? `, ${firstName}` : ''}
@@ -67,6 +71,15 @@ export default function InicioPage() {
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>Plano {planName(user?.plan)}</span>
           </Link>
         </div>
+
+        {/* Quick switcher de persona + Focus Mode */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+          <PersonaSwitcher />
+          <FocusModeToggle />
+        </div>
+
+        {/* Atalhos fixos do utilizador (até 6 escolhidos por ele) */}
+        <PinnedToolsBar />
 
         {/* Hero — ação principal do modo */}
         {(() => { const h = HERO[toolMode]; if (!h) return null; return (
@@ -82,6 +95,9 @@ export default function InicioPage() {
             </div>
           </Link>
         )})()}
+
+        {/* Top tools — atalhos para o que o utilizador mais usa (aprende localmente) */}
+        <MyTopTools />
 
         {/* Estudante — matérias do curso (adapta-se à área) */}
         {toolMode === 'student' && (() => {

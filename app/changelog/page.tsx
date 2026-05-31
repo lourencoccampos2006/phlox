@@ -8,9 +8,25 @@ export const metadata: Metadata = {
 
 const RELEASES = [
   {
-    version: '3.1',
+    version: '3.2',
     date: '2026-05-31',
     tag: 'Mais recente',
+    tagColor: '#0d6e42',
+    items: [
+      { type: 'new', text: '/brief — sumário diário inteligente com KPIs do dia, itens a precisar de atenção, sugestão personalizada e novidades' },
+      { type: 'new', text: '/calc — Calc Hub com 22 calculadoras clínicas determinísticas: CrCl, eGFR CKD-EPI 2021, IMC, BSA, CHA₂DS₂-VASc, HAS-BLED, qSOFA, NEWS2, Wells DVT/EP, MELD-Na, GCS, Centor, ABCD², Padua, Light, Bishop, e mais' },
+      { type: 'new', text: '/codes — gerador de QR codes (link, texto, WiFi, vCard, email) personalizável (tamanho, cor, margem) e descarregável em PNG' },
+      { type: 'new', text: 'Phlox Voice — input por voz na /ai usando Web Speech API em português de Portugal' },
+      { type: 'new', text: 'Sistema de notificações in-app (toast) com 4 tipos (success, error, info, warn), animação subtil e auto-dismiss' },
+      { type: 'improved', text: 'Markdown nas respostas da AI — os asteriscos agora viram bold/italic em vez de aparecerem crus' },
+      { type: 'improved', text: 'Footer agora só aparece em páginas públicas/marketing (Trust, About, Pricing…) — deixou de desformatar as ferramentas' },
+      { type: 'improved', text: 'Header com logo gradient verde e tipografia serif refinada, alinhado com o resto da identidade visual' },
+    ],
+  },
+  {
+    version: '3.1',
+    date: '2026-05-31',
+    tag: null,
     tagColor: '#0d6e42',
     items: [
       { type: 'new', text: '/reach — convites e referrals: cada utilizador tem o seu código, ambos ganham 1 mês quando o convidado faz upgrade' },

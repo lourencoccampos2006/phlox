@@ -240,6 +240,45 @@ export default function QuickCheckPage() {
                 </div>
               )}
 
+              {/* Acções — guardar / partilhar com médico / imprimir */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 12 }}>
+                <button
+                  onClick={() => {
+                    const lines: string[] = []
+                    lines.push('Análise de medicação — Phlox')
+                    lines.push(`Data: ${new Date().toLocaleDateString('pt-PT')}`)
+                    lines.push('')
+                    lines.push('Medicamentos:')
+                    lines.push(input)
+                    lines.push('')
+                    if (result.overall) lines.push(`Resumo: ${result.overall.title} — ${result.overall.summary}`)
+                    if (result.findings?.length) {
+                      lines.push('')
+                      lines.push('Pontos relevantes:')
+                      result.findings.forEach((f: any) => lines.push(`• ${f.title}: ${f.explanation}${f.action ? ` — ${f.action}` : ''}`))
+                    }
+                    if (result.positives?.length) {
+                      lines.push('')
+                      lines.push('Positivos:')
+                      result.positives.forEach((p: string) => lines.push(`+ ${p}`))
+                    }
+                    navigator.clipboard.writeText(lines.join('\n'))
+                  }}
+                  style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                  📋 Copiar resumo (para médico)
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                  🖨 Imprimir / PDF
+                </button>
+                <button
+                  onClick={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                  style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                  Nova análise
+                </button>
+              </div>
+
               <div style={{ padding: '12px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
                 Análise gerada por IA com base em dados RxNorm/NIH. Informação educacional — confirma sempre com o teu médico ou farmacêutico.
               </div>

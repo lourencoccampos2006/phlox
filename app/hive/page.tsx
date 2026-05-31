@@ -245,19 +245,30 @@ export default function HivePage() {
             </p>
           </div>
 
-          {/* Stats bar */}
+          {/* Stats bar + acção */}
           {!loading && insights.length > 0 && (
-            <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Tópicos analisados', value: insights.length },
-                { label: 'Tópico mais difícil', value: hardest[0]?.topic?.slice(0, 20) || '—' },
-                { label: 'Taxa de erro média', value: `${Math.round(insights.reduce((a,i) => a + i.error_rate, 0) / Math.max(1, insights.length))}%` },
-              ].map(s => (
-                <div key={s.label}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#f8fafc' }}>{s.value}</div>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
-                </div>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Tópicos analisados', value: insights.length },
+                  { label: 'Tópico mais difícil', value: hardest[0]?.topic?.slice(0, 20) || '—' },
+                  { label: 'Taxa de erro média', value: `${Math.round(insights.reduce((a,i) => a + i.error_rate, 0) / Math.max(1, insights.length))}%` },
+                ].map(s => (
+                  <div key={s.label}>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#f8fafc' }}>{s.value}</div>
+                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const text = `📚 Phlox Hive — ${insights.length} tópicos analisados pelos estudantes de saúde. Erro médio: ${Math.round(insights.reduce((a,i) => a + i.error_rate, 0) / Math.max(1, insights.length))}%. Estudar com dados é melhor.`
+                  if ((navigator as any).share) (navigator as any).share({ title: 'Phlox Hive', text, url: location.href }).catch(() => {})
+                  else navigator.clipboard.writeText(`${text} ${location.href}`)
+                }}
+                style={{ padding: '8px 14px', background: 'rgba(124,58,237,0.15)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                ⇪ Partilhar
+              </button>
             </div>
           )}
 

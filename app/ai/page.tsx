@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import Markdown from '@/components/Markdown'
+import MicButton from '@/components/MicButton'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -17,6 +19,7 @@ interface Message {
   thinking?: string
   sources?: string[]
   actions?: Action[]
+  imageUrl?: string                  // pré-visualização da imagem enviada (data: URL)
 }
 
 interface Action {
@@ -169,8 +172,16 @@ function MessageBubble({ msg }: { msg: Message }) {
   if (isUser) {
     return (
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 18 }}>
-        <div style={{ maxWidth: '78%', background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', borderRadius: '18px 18px 4px 18px', padding: '12px 16px', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.45)' }}>
-          <p style={{ fontSize: 14, color: 'white', lineHeight: 1.6, margin: 0 }}>{msg.content}</p>
+        <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+          {msg.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={msg.imageUrl} alt="enviada" style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', objectFit: 'cover', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.35)' }} />
+          )}
+          {(msg.content && msg.content !== '(imagem)') && (
+            <div style={{ background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', borderRadius: '18px 18px 4px 18px', padding: '12px 16px', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.45)' }}>
+              <p style={{ fontSize: 14, color: 'white', lineHeight: 1.6, margin: 0 }}>{msg.content}</p>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -194,9 +205,9 @@ function MessageBubble({ msg }: { msg: Message }) {
             {msg.thinking}
           </div>
         )}
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 16px 16px 16px', padding: '14px 16px' }}>
-          <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-            {msg.content}
+        <div style={{ background: 'white', border: '1px solid #eef0f3', borderRadius: '6px 18px 18px 18px', padding: '16px 20px', boxShadow: '0 2px 8px -2px rgba(8,12,24,0.04)' }}>
+          <div style={{ fontSize: 14.5, color: '#1a202c', lineHeight: 1.7 }}>
+            <Markdown text={msg.content} />
           </div>
         </div>
         {msg.sources && msg.sources.length > 0 && (
@@ -273,9 +284,87 @@ function AIChat() {
   const [ctxLoaded, setCtxLoaded] = useState(false)
   const [familyProfile, setFamilyProfile] = useState<FamilyProfileCtx | null>(null)
   const [clinicalPatient, setClinicalPatient] = useState<PatientContext['clinicalPatient'] | null>(null)
+  // Imagem pendente para enviar com a próxima mensagem (preview no input)
+  const [pendingImage, setPendingImage] = useState<{ dataUrl: string; mime: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const initialQuerySent = useRef(false)
+
+  // Comprime + converte para dataURL (limita ao máximo 1600px de lado)
+  async function fileToImage(file: File): Promise<{ dataUrl: string; mime: string } | null> {
+    if (!file.type.startsWith('image/')) return null
+    return new Promise(resolve => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const img = new Image()
+        img.onload = () => {
+          const max = 1600
+          const ratio = Math.min(1, max / Math.max(img.width, img.height))
+          const w = Math.round(img.width * ratio), h = Math.round(img.height * ratio)
+          const c = document.createElement('canvas'); c.width = w; c.height = h
+          const ctx = c.getContext('2d'); if (!ctx) { resolve(null); return }
+          ctx.drawImage(img, 0, 0, w, h)
+          const dataUrl = c.toDataURL('image/jpeg', 0.85)
+          resolve({ dataUrl, mime: 'image/jpeg' })
+        }
+        img.onerror = () => resolve(null)
+        img.src = String(reader.result || '')
+      }
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function onFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (!f) return
+    const img = await fileToImage(f); if (img) setPendingImage(img)
+    e.target.value = ''
+  }
+
+  // Paste — colar imagem do clipboard
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items; if (!items) return
+      for (const it of Array.from(items)) {
+        if (it.type.startsWith('image/')) {
+          const f = it.getAsFile(); if (!f) continue
+          e.preventDefault()
+          fileToImage(f).then(img => { if (img) setPendingImage(img) })
+          return
+        }
+      }
+    }
+    window.addEventListener('paste', onPaste as any)
+    return () => window.removeEventListener('paste', onPaste as any)
+  }, [])
+
+  async function sendImageMessage() {
+    if (!pendingImage || isTyping) return
+    const question = input.trim()
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: question || '(imagem)', timestamp: new Date(), imageUrl: pendingImage.dataUrl }
+    setMessages(prev => [...prev, userMsg])
+    setInput(''); setIsTyping(true)
+    const imageBase64 = pendingImage.dataUrl.split(',')[1] || ''
+    const mime = pendingImage.mime
+    setPendingImage(null)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sessionData.session?.access_token) headers['Authorization'] = `Bearer ${sessionData.session.access_token}`
+      const res = await fetch('/api/ai-vision', {
+        method: 'POST', headers,
+        body: JSON.stringify({ imageBase64, mimeType: mime, question, experienceMode: (user as any)?.experience_mode || 'personal' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: data.text, timestamp: new Date() }])
+    } catch (e: any) {
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: `Não consegui analisar a imagem. ${String(e?.message || e).slice(0, 200)}`, timestamp: new Date() }])
+    } finally {
+      setIsTyping(false)
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -504,13 +593,13 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
       })()
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
 
 
       {!isStudent ? (
         <UpgradeGate />
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 840, width: '100%', margin: '0 auto', padding: '0 22px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 880, width: '100%', margin: '0 auto', padding: '0 22px' }}>
 
           {/* Top bar — refined */}
           <div className="ai-topbar" style={{ padding: '20px 0 18px', borderBottom: '1px solid var(--border)' }}>
@@ -623,6 +712,21 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               </div>
             )}
 
+            {/* Preview da imagem anexada */}
+            {pendingImage && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 12, marginBottom: 10 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={pendingImage.dataUrl} alt="" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid white' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>Imagem pronta a enviar</div>
+                  <div style={{ fontSize: 11.5, color: '#475569', marginTop: 2 }}>Escreve uma pergunta opcional (ex: "que medicamento é?") e carrega em ↑</div>
+                </div>
+                <button onClick={() => setPendingImage(null)} aria-label="Remover" style={{ background: 'white', border: '1px solid #bbf7d0', borderRadius: 7, padding: '6px 10px', fontSize: 11.5, fontWeight: 700, color: '#15803d', cursor: 'pointer' }}>Remover</button>
+              </div>
+            )}
+
+            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={onFilePick} style={{ display: 'none' }} />
+
             <div className="ai-input-card" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'white', border: '1.5px solid var(--border)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 0 rgba(8,12,24,0.02), 0 8px 24px -16px rgba(8,12,24,0.12)', transition: 'border-color 0.15s, box-shadow 0.15s' }}>
               <textarea
                 ref={inputRef}
@@ -632,16 +736,32 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                   e.target.style.height = 'auto'
                   e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
                 }}
-                onKeyDown={handleKeyDown}
-                placeholder={familyProfile ? `Pergunta sobre ${familyProfile.name}…` : 'Pergunta ao teu farmacologista clínico…'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (pendingImage) sendImageMessage()
+                    else if (input.trim() && !isTyping) sendMessage()
+                  }
+                }}
+                placeholder={pendingImage ? 'Pergunta sobre a imagem (opcional)…' : familyProfile ? `Pergunta sobre ${familyProfile.name}…` : 'Pergunta — ou cola/anexa uma foto…'}
                 rows={1}
                 style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14.5, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent', lineHeight: 1.55, maxHeight: 160, overflow: 'auto', padding: '4px 0' }}
               />
               <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || isTyping}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Anexar imagem"
+                title="Anexar foto (ou colar com Ctrl+V)"
+                style={{ width: 38, height: 38, borderRadius: 10, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </button>
+              <MicButton onTranscript={(t) => { setInput(prev => (prev ? prev + ' ' : '') + t); setTimeout(() => inputRef.current?.focus(), 10) }} />
+              <button
+                onClick={() => pendingImage ? sendImageMessage() : sendMessage()}
+                disabled={(!pendingImage && !input.trim()) || isTyping}
                 aria-label="Enviar"
-                style={{ background: input.trim() && !isTyping ? 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)' : 'var(--bg-3)', color: input.trim() && !isTyping ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 10, width: 38, height: 38, cursor: input.trim() && !isTyping ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.1s ease, box-shadow 0.15s', boxShadow: input.trim() && !isTyping ? '0 4px 12px rgba(13,110,66,0.3)' : 'none' }}>
+                style={{ background: ((pendingImage || input.trim()) && !isTyping) ? 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)' : 'var(--bg-3)', color: ((pendingImage || input.trim()) && !isTyping) ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 10, width: 38, height: 38, cursor: ((pendingImage || input.trim()) && !isTyping) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.1s ease, box-shadow 0.15s', boxShadow: ((pendingImage || input.trim()) && !isTyping) ? '0 4px 12px rgba(13,110,66,0.3)' : 'none' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
               </button>
             </div>

@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
 import ClientLayout from '@/components/ClientLayout'
+import { ToastProvider } from '@/components/Toast'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
 
@@ -65,10 +66,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AuthProvider>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
-          <CookieBanner />
+          <ToastProvider>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+            <CookieBanner />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

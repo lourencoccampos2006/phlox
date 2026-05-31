@@ -561,6 +561,11 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
 /* Reusable horizontal scroll wrapper for tables on any screen */
 .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+/* Phlox Focus Mode — esconde elementos não-essenciais quando o utilizador ativa Foco.
+   Marcar elementos com .focus-hide e desaparecem. */
+body.phlox-focus .focus-hide { display: none !important; }
+body.phlox-focus .focus-mute { opacity: 0.55; }
+
 /* Print utilities */
 @media print {
   .no-print, header, nav, footer, [role="navigation"] { display: none !important; }

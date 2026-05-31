@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { printDoc } from '@/lib/print'
+import { downloadICS } from '@/lib/ics'
 import ProfileSelector from '@/components/ProfileSelector'
 
 interface Result {
@@ -88,7 +89,21 @@ export default function PrepararConsultaPage() {
             <div style={{ ...card, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ fontSize: 14.5, color: '#14532d', lineHeight: 1.6 }}>{result.summary}</div>
-                <button onClick={print} style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: '#15803d', background: 'white', border: '1px solid #bbf7d0', borderRadius: 7, padding: '5px 11px', cursor: 'pointer' }}>Imprimir</button>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                  <button onClick={print} style={{ fontSize: 12, fontWeight: 700, color: '#15803d', background: 'white', border: '1px solid #bbf7d0', borderRadius: 7, padding: '5px 11px', cursor: 'pointer' }}>Imprimir</button>
+                  <button onClick={() => {
+                    // Cria um evento de calendário 7 dias depois ao meio-dia (utilizador ajusta no app)
+                    const start = new Date(); start.setDate(start.getDate() + 7); start.setHours(12, 0, 0, 0)
+                    const description = [
+                      result.summary,
+                      result.timeline?.length ? '\n— CRONOLOGIA —\n' + result.timeline.join('\n') : '',
+                      result.symptoms_to_mention?.length ? '\n— A REFERIR —\n' + result.symptoms_to_mention.join('\n') : '',
+                      result.questions_to_ask?.length ? '\n— PERGUNTAS —\n' + result.questions_to_ask.join('\n') : '',
+                      result.to_bring?.length ? '\n— LEVAR —\n' + result.to_bring.join('\n') : '',
+                    ].filter(Boolean).join('\n')
+                    downloadICS([{ title: `Consulta médica${profile?.type === 'family' ? ` — ${profile.name}` : ''}`, description, start, durationMin: 30, alarmMinBefore: 60 }], 'consulta.ics', 'Phlox')
+                  }} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: 'white', border: '1px solid #bfdbfe', borderRadius: 7, padding: '5px 11px', cursor: 'pointer' }}>📅 Calendário</button>
+                </div>
               </div>
             </div>
             {block('Cronologia', result.timeline, '📅', '#1d4ed8', '#2563eb')}

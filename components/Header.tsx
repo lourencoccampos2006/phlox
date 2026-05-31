@@ -259,8 +259,14 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             </div>
 
             {[
-              { href: '/inicio',      label: 'Início',      icon: '🏠' },
-              { href: '/settings',    label: 'Definições',  icon: '⚙️' },
+              { href: '/inicio',          label: 'Início',                  icon: '🏠' },
+              { href: '/brief',           label: 'Brief de hoje',           icon: '☀' },
+              { href: '/calc',            label: 'Calculadoras clínicas',   icon: '∑' },
+              { href: '/reach',           label: 'Convidar amigos',         icon: '🎁' },
+              { href: '/auditoria',       label: 'Audit Trail',             icon: '⛓' },
+              { href: '/exportar-dados',  label: 'Exportar os meus dados',  icon: '⬇' },
+              { href: '/trust',           label: 'Trust Center',            icon: '🛡' },
+              { href: '/settings',        label: 'Definições',              icon: '⚙️' },
             ].map(item => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="um-item"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none' }}>
@@ -458,18 +464,19 @@ export default function Header() {
       }}>
         <div style={{ height: '100%', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
 
-          {/* Logo */}
-          <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none', flexShrink: 0 }}>
+          {/* Logo — alinhado com o resto da identidade (gradient verde + serif) */}
+          <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
-              width: 26, height: 26, borderRadius: 6,
-              background: isDark ? '#1e40af' : '#0d6e42',
+              width: 28, height: 28, borderRadius: 8,
+              background: isDark ? 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)' : 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isDark ? 'none' : '0 2px 6px -2px rgba(13,110,66,0.35)',
             }}>
-              <svg width="13" height="13" viewBox="0 0 18 18" fill="none">
-                <path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 3v18M3 12h18"/>
               </svg>
             </div>
-            <span style={{ fontSize: 15, fontWeight: 900, color: isDark ? 'white' : '#0f172a', letterSpacing: '-0.04em' }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: isDark ? 'white' : '#0b1120', letterSpacing: '-0.015em' }}>
               Phlox
             </span>
           </Link>
@@ -479,6 +486,7 @@ export default function Header() {
             <nav className="hdr-lo-nav" style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
               <Link href="/ferramentas" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Ferramentas</Link>
               <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
+              <Link href="/trust"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Trust</Link>
               <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>
             </nav>
           )}
