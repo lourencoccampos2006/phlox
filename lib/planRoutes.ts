@@ -9,7 +9,12 @@ export interface PlanRoute { prefix: string; min: PlanId; tool: string; note?: s
 
 // Ordenado do mais específico para o mais genérico (o 1º match ganha).
 export const PLAN_ROUTES: PlanRoute[] = [
+  // ── Institucional ──
+  { prefix: '/api-keys', min: 'clinic', tool: 'Chaves de API', note: 'API pública com chaves rotáveis, scopes e rate limit por chave.' },
+  { prefix: '/sso-config', min: 'clinic', tool: 'SSO Empresarial', note: 'SAML/OIDC com Microsoft Entra ID, Google Workspace e Okta.' },
+
   // ── Pro (individual avançado) ──
+  { prefix: '/motor-clinico', min: 'pro', tool: 'Decision Engine', note: 'Motor de regras clínicas determinístico, com 25+ regras (STOPP/Beers/renal/QTc/anticolinérgico).' },
   { prefix: '/reconciliacao', min: 'pro', tool: 'Reconciliação Terapêutica', note: 'Reconciliação de medicação na transição de cuidados.' },
   { prefix: '/simulador', min: 'pro', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação.' },
   { prefix: '/med-review', min: 'pro', tool: 'Revisão da Medicação', note: 'Revisão farmacoterapêutica avançada.' },

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { buildFiscalDoc, type DocType } from '@/lib/fiscal'
+import { recordAudit } from '@/lib/auditServer'
 
 // Finaliza fiscalmente uma venda: aloca nº sequencial da série (atómico),
 // encadeia o hash com o documento anterior, gera ATCUD + QR (formato AT).
@@ -65,6 +66,13 @@ export async function POST(req: NextRequest) {
     atcud: fiscal.atcud, qr_data: fiscal.qrData, finalized_at: fiscal.finalizedAt,
   }).eq('id', saleId).eq('user_id', userId)
   if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 })
+
+  // Audit trail
+  recordAudit({
+    user_id: userId, action: docType === 'NC' ? 'credit_note.issued' : 'sale.finalized',
+    category: 'billing', resource: 'sale', resource_id: saleId,
+    detail: { docNo: fiscal.docNo, atcud: fiscal.atcud, gross },
+  }).catch(() => { /* silent */ })
 
   return NextResponse.json({ ok: true, docNo: fiscal.docNo, atcud: fiscal.atcud, qrData: fiscal.qrData, hash4: fiscal.hash4, seq })
 }

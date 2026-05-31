@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { recordAudit } from '@/lib/auditServer'
 
 // Cancela a subscrição do utilizador no site (sem email). Por defeito, cancela no
 // FIM do período pago (mantém o acesso até lá). `immediate: true` cancela já.
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     })
     if (!r.ok) throw new Error((await r.json())?.error?.message || 'Falha ao agendar cancelamento')
     await admin.from('profiles').update({ plan_status: 'canceling' }).eq('id', user.id)
+    recordAudit({ user_id: user.id, action: 'plan.changed', category: 'settings', detail: { type: 'cancel_at_period_end', sub: subId } }).catch(() => {})
     return NextResponse.json({ ok: true, cancelAtPeriodEnd: true })
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e).slice(0, 200) }, { status: 502 })

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { signPayload } from '@/lib/webhooks'
+import { recordAudit } from '@/lib/auditServer'
 
 // Dispara um evento para os webhooks do utilizador subscritos a esse evento.
 // Assina com HMAC-SHA256 (X-Phlox-Signature). Regista cada entrega.
@@ -56,5 +57,6 @@ export async function POST(req: NextRequest) {
     await sb.from('webhook_endpoints').update({ last_status: status, last_at: ts }).eq('id', ep.id).then(() => {}, () => {})
     results.push({ endpoint: ep.url, status, ok })
   }
+  recordAudit({ user_id: userId, action: 'webhook.dispatched', category: 'integration', detail: { event, endpoints: endpoints.length, ok: results.filter(r => r.ok).length } }).catch(() => {})
   return NextResponse.json({ ok: true, delivered: results.filter(r => r.ok).length, results })
 }
