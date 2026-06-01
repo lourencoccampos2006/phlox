@@ -259,14 +259,11 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             </div>
 
             {[
-              { href: '/inicio',          label: 'Início',                  icon: '🏠' },
-              { href: '/brief',           label: 'Brief de hoje',           icon: '☀' },
-              { href: '/calc',            label: 'Calculadoras clínicas',   icon: '∑' },
-              { href: '/reach',           label: 'Convidar amigos',         icon: '🎁' },
-              { href: '/auditoria',       label: 'Audit Trail',             icon: '⛓' },
-              { href: '/exportar-dados',  label: 'Exportar os meus dados',  icon: '⬇' },
-              { href: '/trust',           label: 'Trust Center',            icon: '🛡' },
-              { href: '/settings',        label: 'Definições',              icon: '⚙️' },
+              { href: '/inicio',     label: 'Início',       icon: '🏠' },
+              { href: '/ferramentas',label: 'Ferramentas',  icon: '🧰' },
+              { href: '/guardados',  label: 'Guardados',    icon: '★' },
+              { href: '/calendario', label: 'Calendário',   icon: '📅' },
+              { href: '/settings',   label: 'Definições',   icon: '⚙️' },
             ].map(item => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="um-item"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none' }}>

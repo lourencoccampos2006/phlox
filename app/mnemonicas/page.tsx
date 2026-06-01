@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { areaOf } from '@/lib/studyAreas'
+import SaveButton from '@/components/SaveButton'
 
 interface Result {
   topic: string; items: string[]; mnemonic: string
@@ -127,9 +128,9 @@ export default function MnemonicasPage() {
 
             {/* Ações */}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 4 }}>
-              <button onClick={toggleSave} style={{ padding: '9px 16px', borderRadius: 8, border: `1.5px solid ${isSaved ? '#7c3aed' : 'var(--border)'}`, background: isSaved ? '#faf5ff' : 'white', color: isSaved ? '#7c3aed' : 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                {isSaved ? '★ Guardada' : '☆ Guardar'}
-              </button>
+              <SaveButton kind="mnemonic" title={`${result.topic}: ${result.mnemonic}`}
+                preview={result.tip || result.alt} data={result}
+                href="/mnemonicas" color="#7c3aed" />
               <button onClick={copyText} style={{ padding: '9px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'white', color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 {copyOk ? '✓ Copiada' : 'Copiar'}
               </button>

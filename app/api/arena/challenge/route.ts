@@ -1,8 +1,13 @@
+// app/api/arena/challenge/route.ts
+// Atualizado 2026-05-31: aplica QUIZ_RULES_PT e inspectQuestion. Cada caso da
+// Arena passa por sanity-check antes de ser servido; se houver flags, vão na
+// resposta para a UI mostrar aviso e o utilizador poder reportar erro.
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { createClient } from '@supabase/supabase-js'
+import { QUIZ_RULES_PT, inspectQuestion } from '@/lib/quizQuality'
 
 const DOMAIN_CTX: Record<string, string> = {
   farmacologia: 'farmacologia clínica — mecanismos, interações, efeitos adversos, decisão terapêutica',
@@ -38,26 +43,33 @@ export async function POST(req: NextRequest) {
   const result = await aiJSON<any>([
     {
       role: 'system',
-      content: `Crias casos clínicos para a Phlox Arena — competição de conhecimento para estudantes de saúde. Nível: ${DIFF_INST[difficulty] || DIFF_INST.medio}. Área: ${ctx}. Responde APENAS com JSON válido sem markdown, em português PT-PT.
+      content: `Crias casos clínicos para a Phlox Arena — competição de conhecimento para estudantes de saúde. Nível: ${DIFF_INST[difficulty] || DIFF_INST.medio}. Área: ${ctx}.
 
+${QUIZ_RULES_PT}
+
+Responde APENAS com JSON válido sem markdown, em PT-PT:
 {
   "title": "título breve do caso (máx 8 palavras)",
   "presentation": "apresentação clínica concisa e realista (2-3 frases com dados concretos)",
   "question": "pergunta clínica directa — o que escolhes?",
   "options": [
-    { "label": "opção A concisa", "is_correct": false, "explanation": "porquê errada — 1 frase" },
-    { "label": "opção B concisa", "is_correct": true, "explanation": "porquê correcta — fundamentação" },
-    { "label": "opção C concisa", "is_correct": false, "explanation": "porquê errada — 1 frase" },
-    { "label": "opção D concisa", "is_correct": false, "explanation": "porquê errada — 1 frase" }
+    { "label": "opção A concisa", "is_correct": false, "explanation": "porquê errada — 1 frase com mecanismo" },
+    { "label": "opção B concisa", "is_correct": true,  "explanation": "porquê correcta — fundamentação com mecanismo" },
+    { "label": "opção C concisa", "is_correct": false, "explanation": "porquê errada — 1 frase com mecanismo" },
+    { "label": "opção D concisa", "is_correct": false, "explanation": "porquê errada — 1 frase com mecanismo" }
   ],
   "learning_point": "pearl clínico específico e memorável — 1 frase",
-  "reference": "guideline ou fonte (ex: ESC 2023, DGS, UpToDate)"
+  "reference": "guideline ou fonte real (omite se não tens certeza absoluta)"
 }
 
-Exactamente 4 opções, exactamente 1 correcta, plausíveis. Língua: português PT-PT.`,
+EXATAMENTE 4 opções, EXATAMENTE 1 correcta. Cumpre TODAS as regras acima.`,
     },
-    { role: 'user', content: `Gera um caso de ${ctx}, dificuldade: ${difficulty}` },
-  ], { maxTokens: 1000, temperature: 0.6 })
+    { role: 'user', content: `Gera um caso de ${ctx}, dificuldade: ${difficulty}. Cumpre TODAS as regras anti-erro.` },
+  ], { maxTokens: 1200, temperature: 0.4 })
+
+  // Sanity-check antes de servir
+  const insp = inspectQuestion(result as any)
+  if (!insp.ok) (result as any).quality_flags = insp.flags
 
   // Save to Supabase using the user's token
   const id = crypto.randomUUID()

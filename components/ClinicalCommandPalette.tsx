@@ -46,6 +46,8 @@ const DESTINATIONS: Dest[] = [
   { label: 'Insights & Benchmarks (Pro)', href: '/insights',    group: 'Gestão',     keywords: 'insights benchmarks comparar pool mediana percentil anonymized analytics setor' },
   { label: 'Trust Center',                href: '/trust',       group: 'Legal',      keywords: 'trust center confiabilidade rgpd dpa subprocessadores estado seguranca' },
   { label: 'Exportar os meus dados',      href: '/exportar-dados', group: 'Conta',   keywords: 'rgpd portabilidade export download dados pessoais artigo 20' },
+  { label: 'Guardados — biblioteca',        href: '/guardados',   group: 'Conta',      keywords: 'guardados favoritos biblioteca mnemonica explicacao analise consulta save' },
+  { label: 'Calendário Phlox',              href: '/calendario',  group: 'Conta',      keywords: 'calendario eventos consulta exame lembrete agenda ics apple google' },
   { label: 'Hidratação — registar água',    href: '/agua',        group: 'Conta',      keywords: 'agua hidratacao copo litros meta dia' },
   { label: 'Peso — registar e ver tendência', href: '/pesar',     group: 'Conta',      keywords: 'peso kg balanca grafico tendencia mensal vitais imc' },
   { label: 'Importar Apple Health',         href: '/health-import', group: 'Conta',    keywords: 'apple health import iphone xml ta peso tensao saude vital' },

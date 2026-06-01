@@ -1,5 +1,9 @@
+// app/api/study/flashcards/route.ts
+// Atualizado 2026-05-31: reforço PT-PT e exigência de mecanismo/referência
+// real nas respostas. Não usa inspectQuestion (formato front/back).
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
+import { QUIZ_RULES_PT } from '@/lib/quizQuality'
 
 const cache = new Map<string, any>()
 
@@ -30,7 +34,11 @@ export async function POST(request: NextRequest) {
     const result = await aiJSON<{ flashcards: { front: string; back: string }[] }>([
       {
         role: 'system',
-        content: `Cria flashcards pedagógicos para estudantes de ${ctx}. Responde APENAS com JSON válido: {"flashcards":[{"front":"pergunta clara e concisa","back":"resposta detalhada com pontos-chave"}]}. Cria exactamente 12 flashcards. As perguntas devem ser variadas: mecanismos, definições, critérios, doses, complicações, diagnóstico diferencial. As respostas devem ser completas mas concisas. Língua: português PT-PT.`,
+        content: `Cria flashcards pedagógicos para estudantes de ${ctx}.
+
+${QUIZ_RULES_PT}
+
+Responde APENAS com JSON válido: {"flashcards":[{"front":"pergunta clara e concisa","back":"resposta com mecanismo/fundamentação"}]}. Cria EXATAMENTE 12 flashcards. Perguntas variadas: mecanismos, definições, critérios diagnósticos, doses, complicações, diagnóstico diferencial. Respostas completas mas concisas, com mecanismo quando aplicável. Língua: PT-PT.`,
       },
       {
         role: 'user',

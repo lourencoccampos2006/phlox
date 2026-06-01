@@ -19,6 +19,8 @@ const CLINICAL_PREFIXES = [
   '/indicacao', '/soap', '/rastreios', '/atendimentos',
   '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
   '/insights', '/copiloto', '/reach', '/brief', '/calc', '/codes',
+  '/guardados', '/calendario',
+  '/clinico360',
 ]
 
 function ScrollToTop() {

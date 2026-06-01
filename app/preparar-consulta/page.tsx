@@ -4,10 +4,12 @@
 // para levar ao médico. Por perfil ativo. Imprimível.
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { printDoc } from '@/lib/print'
 import { downloadICS } from '@/lib/ics'
 import ProfileSelector from '@/components/ProfileSelector'
+import SaveButton from '@/components/SaveButton'
 
 interface Result {
   summary: string; timeline: string[]; questions_to_ask: string[]
@@ -102,7 +104,11 @@ export default function PrepararConsultaPage() {
                       result.to_bring?.length ? '\n— LEVAR —\n' + result.to_bring.join('\n') : '',
                     ].filter(Boolean).join('\n')
                     downloadICS([{ title: `Consulta médica${profile?.type === 'family' ? ` — ${profile.name}` : ''}`, description, start, durationMin: 30, alarmMinBefore: 60 }], 'consulta.ics', 'Phlox')
-                  }} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: 'white', border: '1px solid #bfdbfe', borderRadius: 7, padding: '5px 11px', cursor: 'pointer' }}>📅 Calendário</button>
+                  }} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: 'white', border: '1px solid #bfdbfe', borderRadius: 7, padding: '5px 11px', cursor: 'pointer' }}>📅 Apple/Google</button>
+                  <Link href={`/calendario?prefill=consult&title=${encodeURIComponent('Consulta médica' + (profile?.type === 'family' ? ` — ${profile.name}` : ''))}`} style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', background: 'white', border: '1px solid #bbf7d0', borderRadius: 7, padding: '5px 11px', textDecoration: 'none' }}>📆 Phlox</Link>
+                  <SaveButton kind="consult_prep" size="sm" color="#15803d"
+                    title={`Consulta${profile?.type === 'family' ? ` — ${profile.name}` : ''}`}
+                    preview={result.summary} data={{ profile, result, notes }} href="/preparar-consulta" />
                 </div>
               </div>
             </div>

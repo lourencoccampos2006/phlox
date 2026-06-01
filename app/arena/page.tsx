@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import ReportQuizError from '@/components/ReportQuizError'
 
 interface Challenge {
   id: string; title: string; domain: string; difficulty: 'facil'|'medio'|'dificil'|'especialista'
@@ -16,6 +17,7 @@ interface CaseData {
   title?: string; presentation: string; question: string
   options: { label: string; is_correct: boolean; explanation: string }[]
   learning_point: string; reference?: string
+  quality_flags?: string[]
 }
 interface LeaderboardEntry {
   user_id: string; display_name: string; total_xp: number
@@ -202,9 +204,19 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
           {!submitted && <TimerBar total={totalTime} remaining={remaining} />}
         </div>
         <div style={{ padding:'20px 18px' }}>
+          {ch.case_data.quality_flags && ch.case_data.quality_flags.length > 0 && (
+            <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:7, padding:'7px 10px', marginBottom:12, fontSize:11.5, color:'#92400e' }}>
+              <strong>⚠ Caso com sinais de qualidade suspeitos —</strong> verifica com cuidado e usa o botão "Reportar" abaixo se confirmares erro.
+            </div>
+          )}
           <p style={{ fontSize:15, color:'var(--ink)', lineHeight:1.8, marginBottom:16, fontFamily:'var(--font-serif)' }}>{ch.case_data.presentation}</p>
-          <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'12px 14px', marginBottom:16 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:'#1d4ed8', lineHeight:1.5 }}>{ch.case_data.question}</div>
+          <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'12px 14px', marginBottom:16, display:'flex', gap:10, alignItems:'flex-start' }}>
+            <div style={{ fontSize:14, fontWeight:700, color:'#1d4ed8', lineHeight:1.5, flex:1 }}>{ch.case_data.question}</div>
+            <ReportQuizError
+              source="arena"
+              sourceKey={ch.id || `arena:${ch.case_data.question.slice(0, 80)}`}
+              qualityFlags={ch.case_data.quality_flags}
+              snapshot={ch.case_data} />
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {ch.case_data.options.map((opt, i) => {

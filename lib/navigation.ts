@@ -30,18 +30,31 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'health', label: 'Saúde', color: '#e11d48',
     tools: [
+      { href: '/saude360',  icon: '🌐', label: 'Saúde 360°',           desc: 'Adesão + análises + agenda num só ecrã', badge: 'Premium' },
+      { href: '/risco',     icon: '🎯', label: 'Perfil de risco',      desc: 'SCORE2, STOPP, ACB com referências', badge: 'Premium' },
+      { href: '/vault',     icon: '🔒', label: 'Cofre de saúde',       desc: 'Documentos com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Sinais vitais',        desc: 'Tensão, pulso, peso' },
-      { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde', desc: 'QR code de emergência' },
-      { href: '/labs',      icon: '🧪', label: 'Perceber análises',   desc: 'O que cada valor significa' },
-      { href: '/objetivos', icon: '🎯', label: 'Objetivos',           desc: 'Metas e acompanhamento' },
-      { href: '/relatorio', icon: '📊', label: 'Relatório semanal',   desc: 'IA analisa a tua semana', badge: 'Novo' },
-      { href: '/ai',        icon: '🤖', label: 'Phlox AI',            desc: 'Qualquer dúvida de saúde' },
+      { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'QR code de emergência' },
+      { href: '/labs',      icon: '🧪', label: 'Perceber análises',    desc: 'O que cada valor significa' },
+      { href: '/objetivos', icon: '🎯', label: 'Objetivos',            desc: 'Metas e acompanhamento' },
+      { href: '/relatorio', icon: '📊', label: 'Relatório semanal',    desc: 'IA analisa a tua semana' },
+      { href: '/ai',        icon: '🤖', label: 'Phlox AI',             desc: 'Qualquer dúvida de saúde' },
+    ],
+  },
+  {
+    id: 'caregiver', label: 'Cuidador', color: '#b45309',
+    tools: [
+      { href: '/familia360', icon: '👨‍👩‍👧', label: 'Família 360°',     desc: 'Inbox · Reconciliação · Zarit · Auditor', badge: 'Premium' },
+      { href: '/familia',    icon: '🏠',   label: 'Família',            desc: 'Dashboard dos familiares' },
+      { href: '/perfis',     icon: '👤',   label: 'Perfis',             desc: 'Gerir perfis familiares' },
+      { href: '/dose-crianca', icon: '🧒', label: 'Dose pediátrica',    desc: 'Por peso e por medicamento' },
     ],
   },
   {
     id: 'clinical', label: 'Clínico', color: '#2563eb',
     tools: [
-      { href: '/cockpit',            icon: '🎛️', label: 'Cockpit Operacional', desc: 'Dashboard do turno · Alertas · KPIs', badge: 'Novo' },
+      { href: '/clinico360',         icon: '🌐', label: 'Clínico 360°',        desc: 'Pulse · Risk · Stewardship · Benchmark · Audit', badge: 'Premium' },
+      { href: '/cockpit',            icon: '🎛️', label: 'Cockpit Operacional', desc: 'Dashboard do turno · Alertas · KPIs' },
       { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',   desc: 'Formulário · DDD · Ruturas · Custos', badge: 'Novo' },
       { href: '/quality',            icon: '📊', label: 'Central de Qualidade', desc: 'KPIs · Segurança · Intervenções', badge: 'Novo' },
       { href: '/team',               icon: '👥', label: 'Gestão de Equipa',    desc: 'Turnos · Vagas · Competências · Formação', badge: 'Novo' },
@@ -72,6 +85,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'student', label: 'Estudante', color: '#7c3aed',
     tools: [
+      { href: '/study360',  icon: '🎓', label: 'Estudo 360°',      desc: 'SRS, plano AI, Pomodoro, métricas', badge: 'Premium' },
+      { href: '/biblioteca', icon: '📚', label: 'Biblioteca',       desc: 'PDFs e slides → resumo + perguntas', badge: 'Premium' },
       { href: '/arena',     icon: '🏆', label: 'Arena',            desc: 'Ligas Bronze → Diamante' },
       { href: '/simulador', icon: '🎮', label: 'Simulador clínico', desc: 'Casos com IA' },
       { href: '/osce',      icon: '🎯', label: 'OSCE',             desc: 'IA como doente' },

@@ -35,7 +35,8 @@ export default function BriefPage() {
   const { user, supabase } = useAuth() as any
   const [b, setB] = useState<Brief | null>(null)
   const [loading, setLoading] = useState(true)
-  const now = new Date()
+  // Estabilizado por useState — não muda entre renders, mas é fresco por mount.
+  const [now] = useState(() => new Date())
 
   const load = useCallback(async () => {
     if (!user) return

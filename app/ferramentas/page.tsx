@@ -11,12 +11,7 @@ const FEATURED = [
   { href: '/oracle',       icon: '🤖', label: 'Oracle AI',            desc: 'IA clínica para SOAP, revisão terapêutica e intervenção PCNE', color: '#2563eb', tag: 'Clínico' },
 ]
 
-const STATS = [
-  { label: 'Ferramentas', value: '40+' },
-  { label: 'Áreas clínicas', value: '4' },
-  { label: 'Utilizadores', value: '12k+' },
-  { label: 'Avaliação', value: '4.9★' },
-]
+// Estatísticas calculadas dinamicamente (sem números falsos).
 
 export default function FerramentasPage() {
   const [query, setQuery] = useState('')
@@ -53,14 +48,16 @@ export default function FerramentasPage() {
             {totalTools} ferramentas organizadas por área. Medicina, farmácia e saúde pessoal num único lugar.
           </p>
 
-          {/* Stats row */}
+          {/* Stats row — só números reais */}
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
-            {STATS.map(s => (
-              <div key={s.label}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: 'white', letterSpacing: '-0.04em', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{s.label}</div>
-              </div>
-            ))}
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'white', letterSpacing: '-0.04em', lineHeight: 1 }}>{totalTools}</div>
+              <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>Ferramentas</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'white', letterSpacing: '-0.04em', lineHeight: 1 }}>{NAV_CATEGORIES.length}</div>
+              <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>Categorias</div>
+            </div>
           </div>
 
           {/* Search */}

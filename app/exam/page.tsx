@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import ReportQuizError from '@/components/ReportQuizError'
 
 const EXAM_CONFIGS = [
   { id: 'fc10', label: '10 perguntas — Aquecimento', questions: 10, time: 600,  difficulty: 'Misto', desc: '10 min' },
@@ -44,7 +45,15 @@ function UpgradeGate() {
 }
 
 type ExamState = 'config' | 'running' | 'done'
-type Question = { question: string; options: string[]; correct: number; explanation: string; class: string }
+type Question = { question: string; options: string[]; correct: number; explanation: string; class: string; reference?: string; quality_flags?: string[] }
+
+// Chave estável para reportar uma pergunta — hash simples do texto.
+function questionKey(q: Question) {
+  let h = 0
+  const s = `${q.class}|${q.question}|${(q.options || []).join('|')}`
+  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0 }
+  return `exam:${q.class}:${(h >>> 0).toString(36)}`
+}
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
@@ -243,7 +252,20 @@ export default function ExamPage() {
             </div>
 
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '24px 20px', marginBottom: 14 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>{questions[current].class}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{questions[current].class}</div>
+                <ReportQuizError
+                  source="exam"
+                  sourceKey={questionKey(questions[current])}
+                  qualityFlags={questions[current].quality_flags}
+                  snapshot={questions[current]} />
+              </div>
+              {questions[current].quality_flags && questions[current].quality_flags!.length > 0 && (
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '7px 10px', marginBottom: 12, fontSize: 11.5, color: '#92400e', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: 800 }}>⚠ Esta pergunta tem sinais de qualidade suspeitos —</span>
+                  <span>verifica com cuidado e usa o botão "Reportar" se confirmares erro.</span>
+                </div>
+              )}
               <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', lineHeight: 1.55, margin: '0 0 20px' }}>
                 {questions[current].question}
               </p>

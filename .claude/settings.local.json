@@ -30,7 +30,9 @@
       "PowerShell($b = \"c:\\\\Users\\\\Fernando\\\\phlox\\\\.next\\\\BUILD_ID\"; if \\(Test-Path $b\\) { \"BUILD OK — \" + \\(Get-Content $b\\) + \" @ \" + \\(Get-Item $b\\).LastWriteTime } else { \"NO BUILD_ID\" })",
       "Bash(grep -n \"## Tech Stack\" /c/Users/Fernando/.claude/projects/c--Users-Fernando-phlox/memory/project_state.md | head -1)",
       "Bash(cd /c/Users/Fernando/phlox/app && ls -d */ | head -80 | sort)",
-      "Bash(grep -n \"^## Tech Stack$\" /c/Users/Fernando/.claude/projects/c--Users-Fernando-phlox/memory/project_state.md)"
+      "Bash(grep -n \"^## Tech Stack$\" /c/Users/Fernando/.claude/projects/c--Users-Fernando-phlox/memory/project_state.md)",
+      "Bash(grep -iE '^\\(mymeds|interactions|vitals|passport|bula|ai|diary|reminders|wellness|inicio|symptoms|sintomas|familia|family|carteira-saude|prescricao|prescricoes|consult|consulta|preparar\\)$')",
+      "Bash(grep -iE '^\\(familia|family|perfis|schedule|caregiver|dose-crianca|emergency-doses|connect|community\\)$')"
     ]
   }
 }

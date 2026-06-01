@@ -1,7 +1,12 @@
+// app/api/cases/route.ts
+// Atualizado 2026-05-31: reforço de prompt com QUIZ_RULES_PT (PT-PT, uma só
+// correta clara, referências reais, mecanismo) para reduzir respostas erradas
+// nos Casos Clínicos.
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { QUIZ_RULES_PT } from '@/lib/quizQuality'
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
@@ -27,7 +32,11 @@ export async function POST(req: NextRequest) {
   const result = await aiJSON<any>([
     {
       role: 'system',
-      content: `És um clínico especialista e professor de ${ctx}. Crias casos clínicos pedagógicos e realistas. Responde APENAS com JSON válido, sem markdown, em português PT-PT.
+      content: `És um clínico especialista e professor de ${ctx}. Crias casos clínicos pedagógicos e realistas.
+
+${QUIZ_RULES_PT}
+
+Responde APENAS com JSON válido, sem markdown, em PT-PT.
 
 JSON esperado:
 {

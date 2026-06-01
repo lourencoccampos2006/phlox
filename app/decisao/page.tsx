@@ -13,7 +13,7 @@ import Link from 'next/link'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Phase = 'menu' | 'briefing' | 'active' | 'result'
-type Severity = 'stable' | 'worsening' | 'critical' | 'improving' | 'resolved'
+type Severity = 'stable' | 'worsening' | 'critical' | 'improving' | 'resolved' | 'deceased'
 
 interface Vital {
   name: string
@@ -43,7 +43,7 @@ interface PatientState {
 interface Action {
   id: string
   label: string
-  category: 'exam' | 'treatment' | 'consult' | 'monitor' | 'discharge'
+  category: 'exam' | 'treatment' | 'consult' | 'monitor' | 'discharge' | 'free'
   consequence_preview?: string  // dica opcional
 }
 
@@ -128,6 +128,46 @@ const CASE_CONFIGS: CaseConfig[] = [
     color: '#0891b2',
     estimated_minutes: 20,
   },
+  {
+    id: 'anaphylaxis',
+    title: 'Edema labial e estridor após antibiótico',
+    specialty: 'Urgência',
+    difficulty: 'intern',
+    difficultyLabel: 'Interno',
+    description: 'Mulher de 28 anos, 15 min após 1ª toma de amoxicilina. TA 78/40, estridor, SpO2 89%. Cada minuto conta.',
+    color: '#dc2626',
+    estimated_minutes: 12,
+  },
+  {
+    id: 'ischemic_stroke',
+    title: 'Hemiparesia direita há 1h45',
+    specialty: 'Neurologia',
+    difficulty: 'resident',
+    difficultyLabel: 'Residente',
+    description: 'Homem 64 anos, NIHSS 14, dentro da janela. TAC sem hemorragia. Trombolisar? Trombectomia? Janela e checklist.',
+    color: '#0d6e42',
+    estimated_minutes: 20,
+  },
+  {
+    id: 'hyperkalemia',
+    title: 'Hipercaliémia com alterações ECG',
+    specialty: 'Nefrologia',
+    difficulty: 'resident',
+    difficultyLabel: 'Residente',
+    description: 'Homem 76 anos, DRC4, K+ 7.2, T apiculadas e QRS largo. Ordem das intervenções importa — estabilizar antes de tudo.',
+    color: '#b45309',
+    estimated_minutes: 18,
+  },
+  {
+    id: 'opioid_overdose',
+    title: 'FR 6 e miose puntiforme em oncológico',
+    specialty: 'Urgência',
+    difficulty: 'intern',
+    difficultyLabel: 'Interno',
+    description: 'Homem 58 anos em morfina LP. FR 6/min, SpO2 82%. Dose de naloxona, via, repetição — escolhas que matam ou salvam.',
+    color: '#1d4ed8',
+    estimated_minutes: 14,
+  },
 ]
 
 // ─── Vital badge component ────────────────────────────────────────────────────
@@ -170,6 +210,36 @@ function EventEntry({ event }: { event: CaseEvent }) {
           <p style={{ fontSize: 13, color: s.color, lineHeight: 1.6, margin: 0 }}>{event.content}</p>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Free-text action input ───────────────────────────────────────────────────
+// Permite ao utilizador escrever qualquer ação clínica que queira tentar,
+// mesmo as que o motor não listou (incluindo absurdas — o doente reage como
+// um doente real reagiria, é assim que se aprende em segurança).
+function FreeActionInput({ onSubmit, disabled }: { onSubmit: (txt: string) => void; disabled: boolean }) {
+  const [val, setVal] = useState('')
+  const submit = () => {
+    const t = val.trim()
+    if (!t || disabled) return
+    onSubmit(t)
+    setVal('')
+  }
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <input
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submit() }}
+        placeholder="Ex: Adrenalina 0.5 mg IM lateral coxa; ou pedir TAC-CE; ou chamar anestesia…"
+        disabled={disabled}
+        style={{ flex: 1, padding: '8px 12px', border: '1.5px solid #475569', borderRadius: 7, fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }}
+      />
+      <button onClick={submit} disabled={!val.trim() || disabled}
+        style={{ padding: '8px 14px', background: val.trim() && !disabled ? '#475569' : 'var(--bg-3)', color: val.trim() && !disabled ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, cursor: val.trim() && !disabled ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+        Fazer →
+      </button>
     </div>
   )
 }
@@ -237,9 +307,12 @@ export default function DecisaoPage() {
     }
   }
 
-  const takeAction = async (action: Action) => {
+  const takeAction = async (action: Action, freeText?: string) => {
     if (!patient || !selectedCase) return
     setActionLoading(true)
+
+    const isFree = action.category === 'free'
+    const labelShown = isFree ? (freeText || '').trim() : action.label
 
     try {
       const { data: sd } = await supabase.auth.getSession()
@@ -248,7 +321,7 @@ export default function DecisaoPage() {
       addEvent({
         time: timeElapsed,
         type: 'action',
-        content: `Decisão: ${action.label}`,
+        content: `Decisão: ${labelShown}${isFree ? '  (texto livre)' : ''}`,
         severity: 'info',
       })
 
@@ -257,11 +330,11 @@ export default function DecisaoPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           case_id: selectedCase.id,
-          action_id: action.id,
-          action_label: action.label,
+          action_label: isFree ? freeText : action.label,
+          free_text: isFree ? freeText : undefined,
           current_patient: patient,
           time_elapsed: timeElapsed,
-          previous_events: events.slice(-6).map(e => e.content),
+          previous_events: events.slice(-8).map(e => e.content),
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
@@ -270,38 +343,56 @@ export default function DecisaoPage() {
       // Update patient state
       setPatient(data.updated_patient)
 
-      // Add consequence events
+      // Tempo do estado atualizado vem da AI (acrescenta minutos realistas)
+      if (typeof data.updated_patient?.time_elapsed === 'number' && data.updated_patient.time_elapsed > timeElapsed) {
+        setTimeElapsed(data.updated_patient.time_elapsed)
+      }
+
+      // Consequência imediata + mecanismo fisiopatológico
       if (data.immediate_consequence) {
-        addEvent({
-          time: timeElapsed,
-          type: 'update',
-          content: data.immediate_consequence,
-          severity: data.severity || 'info',
-        })
+        const sev: CaseEvent['severity'] = data.severity === 'death' ? 'critical' : data.severity || 'info'
+        const txt = data.mechanism
+          ? `${data.immediate_consequence}\n\n→ Porquê: ${data.mechanism}${data.evidence_note ? `\n→ Referência: ${data.evidence_note}` : ''}`
+          : data.immediate_consequence
+        addEvent({ time: timeElapsed, type: 'update', content: txt, severity: sev })
       }
 
       if (data.lab_results) {
-        addEvent({
-          time: timeElapsed + 1,
-          type: 'result',
-          content: `Resultados: ${data.lab_results}`,
-          severity: 'info',
-        })
+        addEvent({ time: timeElapsed + 1, type: 'result', content: `Resultados: ${data.lab_results}`, severity: 'info' })
       }
 
       if (data.alert) {
-        addEvent({
-          time: timeElapsed + 2,
-          type: 'alert',
-          content: data.alert,
-          severity: 'critical',
-        })
+        addEvent({ time: timeElapsed + 2, type: 'alert', content: data.alert, severity: 'critical' })
       }
 
-      // Check if case ended
+      // Quando o caso acaba, chama o /end para ter debriefing completo.
+      // Cobre estabilizado, óbito, alta — qualquer terminação.
       if (data.case_ended) {
         if (timerRef.current) clearInterval(timerRef.current)
-        setFinalScore(data.final_score)
+        // Mostra evento de fim no log
+        if (data.end_reason) {
+          addEvent({ time: timeElapsed, type: 'system', content: `Fim do caso: ${data.end_reason}`, severity: data.severity === 'death' ? 'critical' : 'info' })
+        }
+        // Trigger debriefing
+        try {
+          const { data: sd2 } = await supabase.auth.getSession()
+          const token2 = sd2?.session?.access_token
+          const r2 = await fetch('/api/decisao/end', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token2}` },
+            body: JSON.stringify({
+              case_id: selectedCase.id,
+              patient_final: data.updated_patient,
+              events: [...events.map(e => e.content), `Acção final: ${labelShown}`, data.immediate_consequence || ''].filter(Boolean),
+              time_elapsed: timeElapsed,
+              end_reason: data.end_reason,
+            }),
+          })
+          if (r2.ok) {
+            const d2 = await r2.json()
+            setFinalScore(d2.final_score)
+          }
+        } catch { /* fallback: deixa null, página de resultado lida com isso */ }
         setPhase('result')
       }
 
@@ -350,12 +441,13 @@ export default function DecisaoPage() {
     setError('')
   }
 
-  const severityMeta = {
+  const severityMeta: Record<Severity, { label: string; color: string; bg: string; border: string }> = {
     stable: { label: 'Estável', color: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0' },
     improving: { label: 'A melhorar', color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
     worsening: { label: 'A piorar', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
     critical: { label: 'Crítico', color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
     resolved: { label: 'Resolvido', color: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0' },
+    deceased: { label: 'Óbito', color: '#0b1120', bg: '#1f2937', border: '#0b1120' },
   }
 
   // ── MENU ────────────────────────────────────────────────────────────────────
@@ -523,6 +615,11 @@ export default function DecisaoPage() {
       consult: 'Consultar',
       monitor: 'Monitorizar',
       discharge: 'Destino',
+      free: 'Outra acção (livre)',
+    }
+    const catColors: Record<string, string> = {
+      exam: '#1d4ed8', treatment: '#0d6e42', consult: '#7c3aed',
+      monitor: '#b45309', discharge: 'var(--ink)', free: '#475569',
     }
 
     return (
@@ -622,22 +719,29 @@ export default function DecisaoPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {Object.entries(actionCategories).map(([cat, actions]) => (
-                    <div key={cat}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{catLabels[cat] || cat}</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {actions.map(action => (
-                          <button key={action.id} onClick={() => takeAction(action)}
-                            style={{ padding: '7px 14px', background: 'white', border: `1.5px solid ${cat === 'treatment' ? '#0d6e42' : cat === 'exam' ? '#1d4ed8' : cat === 'consult' ? '#7c3aed' : 'var(--border)'}`, borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: cat === 'treatment' ? '#0d6e42' : cat === 'exam' ? '#1d4ed8' : cat === 'consult' ? '#7c3aed' : 'var(--ink-3)', fontFamily: 'var(--font-sans)', transition: 'all 0.1s', position: 'relative' }}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.08)' }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
-                            title={action.consequence_preview}>
-                            {action.label}
-                          </button>
-                        ))}
+                  {Object.entries(actionCategories).map(([cat, actions]) => {
+                    const c = catColors[cat] || 'var(--ink-3)'
+                    return (
+                      <div key={cat}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{catLabels[cat] || cat}</div>
+                        {cat === 'free' ? (
+                          <FreeActionInput onSubmit={(txt) => takeAction(actions[0], txt)} disabled={actionLoading} />
+                        ) : (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {actions.map(action => (
+                              <button key={action.id} onClick={() => takeAction(action)}
+                                style={{ padding: '7px 14px', background: 'white', border: `1.5px solid ${c}`, borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: c, fontFamily: 'var(--font-sans)', transition: 'all 0.1s', position: 'relative' }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.08)' }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
+                                title={action.consequence_preview}>
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -649,26 +753,41 @@ export default function DecisaoPage() {
   }
 
   // ── RESULT ──────────────────────────────────────────────────────────────────
-  if (phase === 'result' && finalScore && selectedCase) return (
+  if (phase === 'result' && selectedCase) {
+    const fs = finalScore || { score: 0, grade: 'Sem avaliação', overall_feedback: 'O motor de avaliação não respondeu. Os eventos do caso estão acima.', outcome: 'desconhecido' }
+    const died = fs.outcome === 'óbito' || patient?.severity === 'deceased'
+    return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
 
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
         {/* Score */}
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
-          <div style={{ background: '#0f172a', padding: '28px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#475569', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 16 }}>Caso concluído</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 72, color: '#f8fafc', lineHeight: 1 }}>{finalScore.score}<span style={{ fontSize: 24, color: '#475569' }}>/100</span></div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 800, color: finalScore.score >= 80 ? '#22c55e' : finalScore.score >= 60 ? '#d97706' : '#ef4444', marginTop: 8 }}>
-              {finalScore.grade}
+          <div style={{ background: died ? '#1f2937' : '#0f172a', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: died ? '#fca5a5' : '#475569', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 16 }}>
+              {died ? '✟ Doente faleceu' : 'Caso concluído'}
             </div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 72, color: '#f8fafc', lineHeight: 1 }}>{fs.score}<span style={{ fontSize: 24, color: '#475569' }}>/100</span></div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 800, color: fs.score >= 80 ? '#22c55e' : fs.score >= 60 ? '#d97706' : '#ef4444', marginTop: 8 }}>
+              {fs.grade}
+            </div>
+            {fs.outcome_summary && (
+              <p style={{ fontSize: 13, color: '#cbd5e1', marginTop: 14, maxWidth: 520, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.55 }}>{fs.outcome_summary}</p>
+            )}
           </div>
           <div style={{ padding: '24px' }}>
-            <p style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 20 }}>{finalScore.overall_feedback}</p>
+            <p style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 20 }}>{fs.overall_feedback}</p>
 
-            {finalScore.correct_decisions?.length > 0 && (
+            {fs.time_assessment && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '3px solid #d97706', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#d97706', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Análise de tempo</div>
+                <div style={{ fontSize: 13, color: '#78350f', lineHeight: 1.55 }}>{fs.time_assessment}</div>
+              </div>
+            )}
+
+            {fs.correct_decisions?.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#0d6e42', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Decisões correctas</div>
-                {finalScore.correct_decisions.map((d: string, i: number) => (
+                {fs.correct_decisions.map((d: string, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 7, marginBottom: 6 }}>
                     <span style={{ color: '#0d6e42', fontSize: 14, flexShrink: 0 }}>✓</span>
                     <span style={{ fontSize: 13, color: '#14532d', lineHeight: 1.5 }}>{d}</span>
@@ -677,10 +796,10 @@ export default function DecisaoPage() {
               </div>
             )}
 
-            {finalScore.critical_errors?.length > 0 && (
+            {fs.critical_errors?.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#dc2626', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Erros críticos — o que nunca fazer</div>
-                {finalScore.critical_errors.map((e: string, i: number) => (
+                {fs.critical_errors.map((e: string, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, marginBottom: 6 }}>
                     <span style={{ color: '#dc2626', fontSize: 14, flexShrink: 0 }}>✗</span>
                     <span style={{ fontSize: 13, color: '#7f1d1d', lineHeight: 1.5 }}>{e}</span>
@@ -689,15 +808,38 @@ export default function DecisaoPage() {
               </div>
             )}
 
-            {finalScore.teaching_points?.length > 0 && (
-              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderLeft: '3px solid #7c3aed', borderRadius: 8, padding: '16px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#7c3aed', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Pontos de aprendizagem</div>
-                {finalScore.teaching_points.map((tp: string, i: number) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < finalScore.teaching_points.length - 1 ? 8 : 0 }}>
-                    <span style={{ color: '#7c3aed', fontSize: 12, flexShrink: 0, marginTop: 1 }}>◆</span>
-                    <span style={{ fontSize: 13, color: '#5b21b6', lineHeight: 1.6 }}>{tp}</span>
+            {fs.missed_opportunities?.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#b45309', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>O que faltou</div>
+                {fs.missed_opportunities.map((m: string, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 7, marginBottom: 6 }}>
+                    <span style={{ color: '#b45309', fontSize: 14, flexShrink: 0 }}>!</span>
+                    <span style={{ fontSize: 13, color: '#78350f', lineHeight: 1.5 }}>{m}</span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {fs.teaching_points?.length > 0 && (
+              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderLeft: '3px solid #7c3aed', borderRadius: 8, padding: '16px', marginBottom: 16 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#7c3aed', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>Pontos de aprendizagem</div>
+                {fs.teaching_points.map((tp: string, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < fs.teaching_points.length - 1 ? 8 : 0 }}>
+                    <span style={{ color: '#7c3aed', fontSize: 12, flexShrink: 0, marginTop: 1 }}>◆</span>
+                    <span style={{ fontSize: 13, color: '#5b21b6', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{tp}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {fs.key_references?.length > 0 && (
+              <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Referências</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {fs.key_references.map((r: string, i: number) => (
+                    <span key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-3)', background: 'white', border: '1px solid var(--border)', padding: '3px 9px', borderRadius: 10 }}>{r}</span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -715,7 +857,8 @@ export default function DecisaoPage() {
         </div>
       </div>
     </div>
-  )
+    )
+  }
 
   return null
 }

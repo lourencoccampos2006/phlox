@@ -4,6 +4,7 @@
 // Não diagnostica; diz onde procurar ajuda (casa/farmácia/centro de saúde/urgências/112).
 
 import { useState } from 'react'
+import SaveButton from '@/components/SaveButton'
 
 interface Result {
   level: '112' | 'urgencias' | 'centro_saude' | 'farmacia' | 'casa'
@@ -114,6 +115,12 @@ export default function TriagemPage() {
               )}
             </div>
 
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+              <SaveButton kind="triage" color="#e11d48"
+                title={result.headline || complaint.slice(0, 80)}
+                preview={result.why || result.timeframe}
+                data={{ complaint, result }} href="/triagem" />
+            </div>
             <div style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center', lineHeight: 1.5 }}>Orientação geral, não substitui avaliação médica.</div>
           </div>
         )}

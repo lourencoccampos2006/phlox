@@ -5,6 +5,7 @@ import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile } from '@/lib/profileContext'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import SaveButton from '@/components/SaveButton'
 
 // Ferramenta para TODOS: cola a lista de medicamentos, recebe análise em PT simples
 // Sem conta, sem fricção. O hook para converter pessoas normais e médicos ocupados.
@@ -272,6 +273,10 @@ export default function QuickCheckPage() {
                   style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                   🖨 Imprimir / PDF
                 </button>
+                <SaveButton kind="med_check"
+                  title={`Análise: ${input.split('\n').filter(Boolean).slice(0, 2).join(', ').slice(0, 80)}${input.split('\n').filter(Boolean).length > 2 ? '…' : ''}`}
+                  preview={result.overall?.summary || result.overall?.title}
+                  data={{ input, result }} href="/quickcheck" />
                 <button
                   onClick={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                   style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>

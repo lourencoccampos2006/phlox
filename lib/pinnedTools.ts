@@ -20,6 +20,8 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   { path: '/agua',              label: 'Hidratação',             icon: '💧', group: 'Pessoal' },
   { path: '/pesar',             label: 'Peso',                   icon: '⚖',  group: 'Pessoal' },
   { path: '/health-import',     label: 'Importar Apple Health',  icon: '📥', group: 'Pessoal' },
+  { path: '/guardados',         label: 'Guardados',              icon: '★',  group: 'Pessoal' },
+  { path: '/calendario',        label: 'Calendário',             icon: '📅', group: 'Pessoal' },
   // Cuidador
   { path: '/familia',           label: 'Perfis de família',      icon: '👨‍👩‍👧', group: 'Cuidador' },
   // Estudante

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { areaOf } from '@/lib/studyAreas'
+import SaveButton from '@/components/SaveButton'
 
 interface Result {
   concept: string; simple: string; exam: string; clinical: string
@@ -100,6 +101,11 @@ export default function ExplicaPage() {
               </div>
             )}
             {result.common_mistake && <div style={{ ...card, background: '#fffbeb', borderColor: '#fde68a' }}><div style={{ fontSize: 13.5, color: '#92400e', lineHeight: 1.6 }}>⚠️ Erro comum: {result.common_mistake}</div></div>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 4 }}>
+              <SaveButton kind="explanation" title={result.concept || concept}
+                preview={result.simple?.slice(0, 200)} href="/explica"
+                data={result} color="#7c3aed" />
+            </div>
           </div>
         )}
       </div>
