@@ -282,6 +282,69 @@ function AIChat() {
   const [isTyping, setIsTyping] = useState(false)
   const [patientCtx, setPatientCtx] = useState<PatientContext | null>(null)
   const [ctxLoaded, setCtxLoaded] = useState(false)
+  // 2026-06-01: o utilizador pediu que a AI fosse um chat normal — guarda
+  // conversas anteriores e permite escolher se queremos contexto pessoal.
+  const [chatId, setChatId] = useState<string>(() => `c_${Date.now().toString(36)}`)
+  const [includeContext, setIncludeContext] = useState<boolean>(true)
+  const [showHistory, setShowHistory] = useState(false)
+  const [savedChats, setSavedChats] = useState<{ id: string; title: string; updated: number; count: number }[]>([])
+
+  // Auto-guarda o chat atual em localStorage sempre que muda. Limpa lista
+  // antiga ao mesmo tempo (cap 25 chats).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (messages.length < 2) return
+    try {
+      const key = `phlox-ai-chat:${chatId}`
+      const title = messages.find(m => m.role === 'user')?.content?.slice(0, 80) || 'Conversa'
+      const payload = {
+        id: chatId, title, updated: Date.now(), count: messages.length,
+        messages: messages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp })),
+      }
+      localStorage.setItem(key, JSON.stringify(payload))
+      // Mantém index global
+      const idx = JSON.parse(localStorage.getItem('phlox-ai-chats') || '[]') as any[]
+      const others = idx.filter(c => c.id !== chatId)
+      const next = [{ id: chatId, title, updated: payload.updated, count: messages.length }, ...others].slice(0, 25)
+      localStorage.setItem('phlox-ai-chats', JSON.stringify(next))
+      setSavedChats(next)
+    } catch { /* quota */ }
+  }, [messages, chatId])
+
+  // Carrega a lista de chats anteriores quando abre o painel
+  useEffect(() => {
+    if (!showHistory) return
+    try {
+      const idx = JSON.parse(localStorage.getItem('phlox-ai-chats') || '[]') as any[]
+      setSavedChats(idx)
+    } catch {}
+  }, [showHistory])
+
+  function openSavedChat(id: string) {
+    try {
+      const raw = localStorage.getItem(`phlox-ai-chat:${id}`)
+      if (!raw) return
+      const p = JSON.parse(raw)
+      setChatId(id)
+      setMessages((p.messages || []).map((m: any) => ({ ...m, id: m.id || `r${Math.random()}`, timestamp: new Date(m.timestamp || Date.now()) })))
+      setShowHistory(false)
+    } catch {}
+  }
+  function newChat() {
+    setChatId(`c_${Date.now().toString(36)}`)
+    setMessages([])
+    setShowHistory(false)
+  }
+  function deleteSavedChat(id: string) {
+    try {
+      localStorage.removeItem(`phlox-ai-chat:${id}`)
+      const idx = JSON.parse(localStorage.getItem('phlox-ai-chats') || '[]') as any[]
+      const next = idx.filter(c => c.id !== id)
+      localStorage.setItem('phlox-ai-chats', JSON.stringify(next))
+      setSavedChats(next)
+      if (id === chatId) newChat()
+    } catch {}
+  }
   const [familyProfile, setFamilyProfile] = useState<FamilyProfileCtx | null>(null)
   const [clinicalPatient, setClinicalPatient] = useState<PatientContext['clinicalPatient'] | null>(null)
   // Imagem pendente para enviar com a próxima mensagem (preview no input)
@@ -527,13 +590,15 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
         headers['Authorization'] = `Bearer ${sessionData.session.access_token}`
       }
 
+      // 2026-06-01: contexto pessoal é opt-in. Antes assumia sempre que o
+      // utilizador queria falar da sua medicação, mas o pedido "tirar dúvida
+      // de saúde" pode ser sobre qualquer tema.
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
-          patientContext: patientCtx,
-          // ─── NOVO: enviar experience_mode para persona da AI ───
+          patientContext: includeContext ? patientCtx : null,
           experienceMode: (user as any)?.experience_mode || 'personal',
         }),
       })
@@ -623,12 +688,19 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {messages.length > 1 && (
-                  <button onClick={() => setMessages([])}
-                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    + Nova conversa
-                  </button>
-                )}
+                <button onClick={newChat}
+                  style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  + Nova conversa
+                </button>
+                <button onClick={() => setShowHistory(s => !s)}
+                  style={{ background: showHistory ? 'var(--ink)' : 'white', color: showHistory ? 'white' : 'var(--ink-3)', border: `1px solid ${showHistory ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  💬 Histórico ({savedChats.length})
+                </button>
+                {/* Toggle de contexto pessoal */}
+                <button onClick={() => setIncludeContext(c => !c)} title={includeContext ? 'A AI conhece a tua medicação e perfil' : 'Modo anónimo: não enviar contexto pessoal'}
+                  style={{ background: includeContext ? '#f0fdf4' : 'white', color: includeContext ? '#0d6e42' : 'var(--ink-3)', border: `1px solid ${includeContext ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  {includeContext ? '✓ Com o meu Phlox' : '◻ Anónimo'}
+                </button>
                 {familyProfile ? (
                   <Link href={`/perfil/${profileId}`}
                     style={{ background: 'white', border: '1px solid #ddd6fe', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#6d28d9', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
@@ -681,6 +753,29 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               </div>
             )}
 
+            {showHistory && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Conversas anteriores</div>
+                  <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>
+                </div>
+                {savedChats.length === 0 ? (
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-5)', textAlign: 'center', padding: 12 }}>Sem conversas guardadas ainda.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {savedChats.map(c => (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: c.id === chatId ? 'var(--bg-2)' : 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
+                        <button onClick={() => openSavedChat(c.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', minWidth: 0, padding: 0, fontFamily: 'var(--font-sans)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{c.count} msg · {new Date(c.updated).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                        </button>
+                        <button onClick={() => deleteSavedChat(c.id)} title="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 14, padding: '0 4px' }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
             {messages.length > 0 && messages[messages.length - 1].actions?.map(action =>
               action.prompt ? (

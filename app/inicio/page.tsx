@@ -159,7 +159,7 @@ export default function InicioPage() {
         )}
 
         {/* Add more */}
-        <Link href="/settings" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '13px', background: 'white', border: '1.5px dashed var(--border)', borderRadius: 12, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
+        <Link href="/settings/tools" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '13px', background: 'white', border: '1.5px dashed var(--border)', borderRadius: 12, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar mais ferramentas
         </Link>

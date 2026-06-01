@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
 import { useInstitutionProfile } from '@/lib/useInstitutionProfile'
@@ -454,6 +454,10 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
         <span style={{ flexShrink: 0 }}><NotificationBell /></span>
+        {/* Avatar dropdown — Início · Guardados · Calendário · Clínico 360° · Modo · Definições.
+            Antes em modo clínico não havia maneira de chegar a estes — só no /ferramentas
+            que não é acessível em mobile. */}
+        <ClinicalUserMenu />
         {/* Sair (sempre visível, mobile + desktop) */}
         <button onClick={() => signOut()} title="Sair" aria-label="Sair" style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, border: '1px solid #fecaca', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -565,6 +569,94 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
           .cl-add-sheet { left: auto; right: 16px; bottom: auto; top: ${TOPBAR_H + 6}px; width: 240px; border-radius: 12px; box-shadow: 0 16px 50px rgba(0,0,0,0.16); border: 1px solid #e6e8eb; }
         }
       `}</style>
+    </div>
+  )
+}
+
+// ─── ClinicalUserMenu ─────────────────────────────────────────────────────────
+// Dropdown que dá acesso a Início, Guardados, Calendário, Clínico 360°,
+// Definições e Mudar modo a partir do header do cockpit. Antes não existia.
+function ClinicalUserMenu() {
+  const { user, signOut, supabase } = useAuth() as any
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [open])
+
+  const initial = (user?.name || user?.email || '?').charAt(0).toUpperCase()
+  const ITEMS: { href: string; label: string; icon: string }[] = [
+    { href: '/inicio',      label: 'Início',         icon: '🏠' },
+    { href: '/clinico360',  label: 'Clínico 360°',   icon: '🌐' },
+    { href: '/ferramentas', label: 'Todas as ferramentas', icon: '🧰' },
+    { href: '/guardados',   label: 'Guardados',      icon: '★' },
+    { href: '/calendario',  label: 'Calendário',     icon: '📅' },
+    { href: '/settings/tools', label: 'Personalizar ferramentas', icon: '🛠' },
+    { href: '/settings',    label: 'Definições',     icon: '⚙️' },
+  ]
+
+  async function switchMode(m: 'personal'|'caregiver'|'student'|'clinical') {
+    if (!user?.id) return
+    await supabase.from('profiles').update({ experience_mode: m }).eq('id', user.id)
+    setOpen(false)
+    // Recarrega para aplicar layout do novo modo
+    window.location.href = '/inicio'
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} aria-label="Menu do utilizador"
+        style={{
+          width: 38, height: 38, borderRadius: '50%',
+          background: '#1d4ed8', color: 'white', border: '1px solid #1d4ed8',
+          cursor: 'pointer', fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{initial}</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 1900,
+          width: 260, maxWidth: 'calc(100vw - 20px)', background: 'white',
+          border: '1px solid #e6e8eb', borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid #e6e8eb', background: '#f8fafc' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || '—'}</div>
+            <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
+          </div>
+          {ITEMS.map(it => (
+            <Link key={it.href} href={it.href} onClick={() => setOpen(false)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
+                fontSize: 13, color: '#0b1120', textDecoration: 'none', borderBottom: '1px solid #f1f5f9',
+              }}>
+              <span style={{ fontSize: 14, width: 18 }}>{it.icon}</span>
+              <span style={{ fontWeight: 600 }}>{it.label}</span>
+            </Link>
+          ))}
+          <div style={{ padding: '10px 14px', background: '#fafbfc' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Mudar modo</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {(['personal','caregiver','student','clinical'] as const).map(m => {
+                const label = ({personal: 'Pessoal', caregiver: 'Cuidador', student: 'Estudante', clinical: 'Clínico'} as const)[m]
+                const active = user?.experience_mode === m
+                return (
+                  <button key={m} onClick={() => switchMode(m)} disabled={active}
+                    style={{
+                      padding: '5px 10px', borderRadius: 999,
+                      background: active ? '#0b1120' : 'white',
+                      color: active ? 'white' : '#475569',
+                      border: `1px solid ${active ? '#0b1120' : '#e6e8eb'}`,
+                      fontSize: 11.5, fontWeight: 700, cursor: active ? 'default' : 'pointer', fontFamily: 'var(--font-sans)',
+                    }}>{label}</button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

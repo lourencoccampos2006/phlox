@@ -3,8 +3,9 @@
 // "Devo ir ao médico ou às urgências?" — orientação de triagem simples e prudente.
 // Não diagnostica; diz onde procurar ajuda (casa/farmácia/centro de saúde/urgências/112).
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SaveButton from '@/components/SaveButton'
+import { consumeReopen } from '@/lib/saves'
 
 interface Result {
   level: '112' | 'urgencias' | 'centro_saude' | 'farmacia' | 'casa'
@@ -27,6 +28,12 @@ export default function TriagemPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+
+  // Reabrir conteúdo vindo de /guardados
+  useEffect(() => {
+    const d = consumeReopen<Result & { input?: string }>()
+    if (d) { setResult(d); if (d.input) setComplaint(d.input) }
+  }, [])
 
   async function run(text?: string) {
     const c = (text ?? complaint).trim()

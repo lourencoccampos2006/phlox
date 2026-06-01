@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useAuth } from '@/components/AuthContext'
+import { useToast } from '@/components/Toast'
 // ─── NOVO: ProfileSelector para pré-carregar contexto clínico do perfil ───
 
 // PDF.js via CDN — loaded dynamically to avoid SSR issues
@@ -32,7 +34,6 @@ async function extractPdfText(file: File): Promise<string> {
   })
 }
 import Link from 'next/link'
-import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
 
@@ -183,9 +184,48 @@ function ReportView({ report }: { report: LabReport }) {
   const overall = OVERALL_STYLE[report.overall_status]
   const abnormal = report.values.filter(v => v.status !== 'NORMAL')
   const normal = report.values.filter(v => v.status === 'NORMAL')
+  const { user, supabase } = useAuth() as any
+  const toast = useToast()
+  const [savedToVault, setSavedToVault] = useState(false)
+  const [savingVault, setSavingVault] = useState(false)
+
+  // 2026-06-01: o utilizador pediu botão para guardar no cofre — antes só
+  // imprimia / salvava em /guardados local. Agora vai para health_vault.
+  async function saveToVault() {
+    if (!user?.id || savedToVault) return
+    setSavingVault(true)
+    // Constrói texto pesquisável a partir do relatório
+    const body_text = [
+      report.patient_summary,
+      '',
+      ...report.values.map(v => `${v.name}: ${v.value} ${v.unit || ''} (${v.status})${v.reference ? ` [ref: ${v.reference}]` : ''}`),
+      '',
+      ...(report.key_findings || []).map((k: string) => `• ${k}`),
+    ].join('\n').slice(0, 6000)
+    const today = new Date().toISOString().slice(0, 10)
+    const title = `Análises ${today}${abnormal.length ? ` (${abnormal.length} fora)` : ''}`
+    const { error } = await supabase.from('health_vault').insert({
+      user_id: user.id, title, category: 'exam',
+      notes: report.overall_status,
+      body_text,
+      issued_at: today,
+    })
+    setSavingVault(false)
+    if (error) { toast.error(error.message); return }
+    setSavedToVault(true)
+    toast.success('Análises guardadas no cofre.')
+  }
 
   return (
     <div className="fade-in">
+
+      {/* Botão guardar no cofre */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10, gap: 6 }}>
+        <button onClick={saveToVault} disabled={savedToVault || savingVault}
+          style={{ padding: '8px 14px', background: savedToVault ? '#f0fdf4' : 'white', color: savedToVault ? '#16a34a' : '#0d6e42', border: `1.5px solid ${savedToVault ? '#bbf7d0' : '#bbf7d0'}`, borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: savedToVault || savingVault ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          {savedToVault ? '✓ No cofre' : savingVault ? 'A guardar…' : '🔒 Guardar no cofre'}
+        </button>
+      </div>
 
       {/* Overall status */}
       <div style={{ background: overall.bg, border: `2px solid ${overall.bar}`, borderRadius: 8, padding: '20px 22px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-start' }}>

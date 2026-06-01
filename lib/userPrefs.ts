@@ -9,16 +9,20 @@ const LS_KEY = 'phlox-prefs-v1'
 
 interface Prefs {
   hiddenTools: string[]
+  promotedTools: string[]
 }
 
 function read(): Prefs {
-  if (typeof window === 'undefined') return { hiddenTools: [] }
+  if (typeof window === 'undefined') return { hiddenTools: [], promotedTools: [] }
   try {
     const raw = localStorage.getItem(LS_KEY)
-    if (!raw) return { hiddenTools: [] }
+    if (!raw) return { hiddenTools: [], promotedTools: [] }
     const p = JSON.parse(raw)
-    return { hiddenTools: Array.isArray(p?.hiddenTools) ? p.hiddenTools : [] }
-  } catch { return { hiddenTools: [] } }
+    return {
+      hiddenTools: Array.isArray(p?.hiddenTools) ? p.hiddenTools : [],
+      promotedTools: Array.isArray(p?.promotedTools) ? p.promotedTools : [],
+    }
+  } catch { return { hiddenTools: [], promotedTools: [] } }
 }
 
 function write(p: Prefs) {
@@ -37,4 +41,15 @@ export function setHidden(href: string, hidden: boolean) {
   if (!hidden) p.hiddenTools = p.hiddenTools.filter(h => h !== href)
   write(p)
 }
-export function resetHidden() { write({ hiddenTools: [] }) }
+export function resetHidden() { write({ hiddenTools: [], promotedTools: read().promotedTools }) }
+
+// Ferramentas que o utilizador escolheu mostrar no Hub apesar de não estarem
+// promovidas por defeito (estão na lista EXTRA_TOOLS_BY_MODE).
+export function getPromotedTools(): string[] { return read().promotedTools }
+export function isPromoted(href: string): boolean { return read().promotedTools.includes(href) }
+export function setPromoted(href: string, promoted: boolean) {
+  const p = read()
+  if (promoted && !p.promotedTools.includes(href)) p.promotedTools.push(href)
+  if (!promoted) p.promotedTools = p.promotedTools.filter(h => h !== href)
+  write(p)
+}

@@ -126,9 +126,8 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       tools: [
         { href: '/perfis',             label: 'Perfis Familiares',       sub: 'Medicação, alergias e saúde de cada familiar' },
         { href: '/mymeds',             label: 'Medicamentos',            sub: 'Lista completa · lembretes · verificação' },
-        { href: '/calendario-meds',    label: 'Calendário de Toma',      sub: 'Horários semanais · imprimir · partilhar' },
+        { href: '/calendario-meds',    label: 'A que horas devo tomar?', sub: 'Horários semanais · IA · imprimir · partilhar', badge: 'Novo' },
         { href: '/adherencia',         label: 'Adesão à Medicação',      sub: 'Quem tomou o quê · padrões · falhas' },
-        { href: '/schedule',           label: 'Horário Inteligente',     sub: 'A AI cria o horário ideal para cada familiar', badge: 'Novo' },
         { href: '/consult-prep',       label: 'Preparar Consulta',       sub: 'As perguntas certas para o médico · imprimir' },
       ],
     },
@@ -180,7 +179,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
       color: '#0d6e42',
       tools: [
         { href: '/mymeds',        label: 'Os Meus Medicamentos',   sub: 'Lista · lembretes · verificação automática' },
-        { href: '/schedule',      label: 'Horário Inteligente',    sub: 'A AI cria o horário perfeito para a tua medicação', badge: 'Novo' },
+        { href: '/calendario-meds', label: 'A que horas devo tomar?', sub: 'A AI cria o horário perfeito para a tua medicação', badge: 'Novo' },
         { href: '/adherencia',    label: 'Adesão à Medicação',     sub: 'Registo · padrões · insights pessoais' },
         { href: '/diary',         label: 'Diário de Saúde',        sub: 'Sintomas diários · bem-estar · notas' },
       ],

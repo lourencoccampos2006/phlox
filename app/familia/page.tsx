@@ -58,9 +58,13 @@ export default function FamiliaPage() {
       const profileList = p ?? []
       setProfiles(profileList)
       if (profileList.length > 0) {
-        const { data: m } = await supabase.from('family_profile_meds')
-          .select('id,profile_id,name,dose,frequency,reminder_times')
+        // 2026-06-01: select('*') é defensivo — se uma coluna pedida não
+        // existir (ex: reminder_times), Supabase devolve erro e data fica
+        // null, dando a falsa impressão de "sem medicamentos".
+        const { data: m, error } = await supabase.from('family_profile_meds')
+          .select('*')
           .in('profile_id', profileList.map((x: any) => x.id))
+        if (error) console.error('[familia] meds load:', error)
         setAllMeds(m ?? [])
       }
       setLoading(false)

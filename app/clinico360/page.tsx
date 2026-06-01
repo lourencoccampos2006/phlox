@@ -12,7 +12,34 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { rankPatientsByRisk, abxConsumption } from '@/lib/clinicalIntel'
 
-type Tab = 'pulse' | 'risk' | 'abx' | 'bench' | 'audit'
+type Tab = 'pulse' | 'risk' | 'abx' | 'bench' | 'audit' | 'tools'
+
+// Ferramentas profissionais agregadas aqui — atalho único em vez de cada uma
+// numa página solta no nav. 2026-06-01.
+const PRO_TOOLS = [
+  { group: 'Cálculos & PK',          items: [
+    { href: '/calculos',     icon: '🧮', label: 'Calculadoras',     desc: 'CrCl · IBW · eGFR · Child-Pugh' },
+    { href: '/calculators',  icon: '🔢', label: 'Outras escalas',   desc: 'CURB-65 · MEWS · VTE · CKD' },
+    { href: '/pk-dosing',    icon: '🔬', label: 'Console PK',       desc: 'Vancomicina AUC · aminoglicosídeos' },
+  ]},
+  { group: 'Antibioterapia',         items: [
+    { href: '/antibiotics',  icon: '💉', label: 'Empírica + alvo',  desc: 'MRSA/ESBL · stewardship' },
+    { href: '/stopp-start',  icon: '🛑', label: 'STOPP/START',      desc: 'v3 2023 + Beers' },
+  ]},
+  { group: 'Nutrição & misturas',    items: [
+    { href: '/tpn',              icon: '🧪', label: 'Nutrição parentérica', desc: 'ASPEN 2022 · rótulo PDF' },
+    { href: '/iv-compatibility', icon: '🧫', label: 'Compatibilidade IV',   desc: 'Y-site · mistura · seringa' },
+    { href: '/electrolytes',     icon: '⚡', label: 'Eletrólitos',          desc: 'K · Na · Mg · Ca' },
+    { href: '/emergency-doses',  icon: '🚨', label: 'Doses de urgência',    desc: 'Por peso e tempo' },
+  ]},
+  { group: 'Validação & farmacovigilância', items: [
+    { href: '/prescription-queue', icon: '📬', label: 'Fila de validação',  desc: 'Revisão clínica · audit trail' },
+    { href: '/adr-report',         icon: '⚠️', label: 'Notificar RAM',     desc: 'WHO-UMC · INFARMED' },
+    { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',  desc: 'Formulário · DDD · ruturas · custos' },
+    { href: '/drug-info',          icon: '💊', label: 'Info de fármaco',    desc: 'Monografia completa' },
+    { href: '/counseling',         icon: '🗒', label: 'Aconselhamento',     desc: 'Folha ao doente' },
+  ]},
+]
 
 // Benchmarks publicados (Norma DGS, INFARMED, Surviving Sepsis 2021, etc.)
 const QUALITY_BENCHMARKS = [
@@ -57,6 +84,7 @@ export default function Clinico360() {
             ['abx',   '💉 Stewardship'],
             ['bench', '📊 Benchmark'],
             ['audit', '📜 Audit Trail'],
+            ['tools', '🧰 Ferramentas Pro'],
           ] as [Tab, string][]).map(([id, l]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ padding: '10px 14px', background: tab === id ? '#eff6ff' : 'white', border: 'none', borderBottom: `2.5px solid ${tab === id ? '#1d4ed8' : 'transparent'}`, fontSize: 13, fontWeight: tab === id ? 800 : 600, color: tab === id ? '#1d4ed8' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>{l}</button>
@@ -68,7 +96,38 @@ export default function Clinico360() {
         {tab === 'abx' && <AbxTab />}
         {tab === 'bench' && <BenchTab />}
         {tab === 'audit' && <AuditTab />}
+        {tab === 'tools' && <ToolsTab />}
       </div>
+    </div>
+  )
+}
+
+// ─── Tools Pro tab ────────────────────────────────────────────────────────────
+function ToolsTab() {
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.55, marginBottom: 14 }}>
+        Atalho rápido para o que normalmente está espalhado pelo menu. Tudo aqui está aqui aglomerado e acessível por baixo do mesmo header.
+      </p>
+      {PRO_TOOLS.map(group => (
+        <div key={group.group} style={{ marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+            {group.group}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 8 }}>
+            {group.items.map(t => (
+              <Link key={t.href} href={t.href}
+                style={{ display: 'flex', gap: 10, padding: '12px 14px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, textDecoration: 'none' }}>
+                <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{t.icon}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1120' }}>{t.label}</div>
+                  <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>{t.desc}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

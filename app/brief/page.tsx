@@ -95,19 +95,51 @@ export default function BriefPage() {
     }))
 
     // ── sugestão de hoje ──────────────────────────────────────────────────────
+    // 2026-06-01: sugestões agora seguem o MODO (experience_mode), não o plano.
+    // O utilizador (em modo cuidador) recebia "Lança movimento de POS" o que
+    // não fazia sentido. Cada modo tem o seu pool de sugestões; caem para a
+    // primeira condição que match.
+    const mode = user?.experience_mode || 'personal'
     let suggestion: Brief['suggestion'] = null
-    if (incidents.length > 2) suggestion = { title: 'Foco em qualidade hoje', desc: `Há ${incidents.length} ocorrências abertas. Vale a pena fechar 1 ou 2.`, href: '/incidents', cta: 'Abrir ocorrências' }
-    else if (overdueT > 0) suggestion = { title: 'Põe as tarefas em dia', desc: `${overdueT} tarefa(s) em atraso esperam por ti.`, href: '/tarefas-equipa', cta: 'Ver tarefas' }
-    else if ((sales.length === 0) && user?.experience_mode !== 'personal' && user?.experience_mode !== 'student') suggestion = { title: 'Sem caixa hoje?', desc: 'Lança o primeiro movimento — fica registado e pronto a exportar.', href: '/vendas', cta: 'Abrir POS' }
-    else suggestion = { title: 'Convida um amigo', desc: 'Cada amigo que faz upgrade vale 1 mês para ti. Partilha o teu código.', href: '/reach', cta: 'Phlox Reach' }
 
-    // ── novidades ─────────────────────────────────────────────────────────────
-    const whats_new = [
-      { title: 'Trust Center', href: '/trust' },
-      { title: 'AI Copilot ancorado no Decision Engine', href: '/copiloto' },
-      { title: 'Insights anonimizados (Pro)', href: '/insights' },
-      { title: 'POS com QR Code AT + SAF-T', href: '/vendas' },
-    ]
+    if (mode === 'clinical') {
+      if (incidents.length > 2) suggestion = { title: 'Foco em qualidade hoje', desc: `Há ${incidents.length} ocorrências abertas. Vale a pena fechar 1 ou 2.`, href: '/incidents', cta: 'Abrir ocorrências' }
+      else if (overdueT > 0) suggestion = { title: 'Põe as tarefas em dia', desc: `${overdueT} tarefa(s) em atraso esperam por ti.`, href: '/tarefas-equipa', cta: 'Ver tarefas' }
+      else suggestion = { title: 'Vê o teu Clínico 360°', desc: 'Pulse do turno, ranking de risco e audit num só ecrã.', href: '/clinico360', cta: 'Abrir 360°' }
+    } else if (mode === 'caregiver') {
+      if (overdueT > 0) suggestion = { title: 'Tarefas em atraso', desc: `${overdueT} pendentes nos familiares.`, href: '/familia360', cta: 'Abrir Família 360°' }
+      else suggestion = { title: 'Como vais a aguentar?', desc: 'Faz a escala Zarit-12 em 3 min — a sobrecarga do cuidador é real.', href: '/familia360?tab=burden', cta: 'Avaliar sobrecarga' }
+    } else if (mode === 'student') {
+      suggestion = { title: 'Cartões para rever', desc: 'O algoritmo de revisão espaçada espera por ti no Estudo 360°.', href: '/study360', cta: 'Rever agora' }
+    } else {
+      // personal
+      suggestion = { title: 'Perfil de risco', desc: 'Vê SCORE2, ACB e flags STOPP a partir do que já tens no Phlox.', href: '/risco', cta: 'Calcular risco' }
+    }
+
+    // ── novidades por modo ────────────────────────────────────────────────────
+    const NEWS_BY_MODE: Record<string, { title: string; href: string }[]> = {
+      clinical: [
+        { title: 'Clínico 360° (Pulse · Risk · Stewardship · Audit)', href: '/clinico360' },
+        { title: 'Reportar erros em quizzes / casos', href: '/clinico360' },
+        { title: 'Mode isolation: vês só o que é teu', href: '/settings/tools' },
+      ],
+      caregiver: [
+        { title: 'Família 360° (Inbox · Reconciliação · Zarit)', href: '/familia360' },
+        { title: 'Cofre de saúde com partilha por código', href: '/vault' },
+        { title: 'Refill por familiar — sabe quando acaba', href: '/familia360' },
+      ],
+      student: [
+        { title: 'Biblioteca: PDFs e slides → resumos + perguntas', href: '/biblioteca' },
+        { title: 'Estudo 360°: SRS, plano AI, Pomodoro', href: '/study360' },
+        { title: 'Phlox Decisão: simulador com morte possível', href: '/simulador' },
+      ],
+      personal: [
+        { title: 'Saúde 360°: adesão, sparklines, refill', href: '/saude360' },
+        { title: 'Cofre de saúde: anexa PDFs e imagens', href: '/vault' },
+        { title: 'Risco pessoal: SCORE2, ACB, STOPP', href: '/risco' },
+      ],
+    }
+    const whats_new = NEWS_BY_MODE[mode] || NEWS_BY_MODE.personal
 
     const date = now.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     setB({

@@ -28,7 +28,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/mymeds',       icon: '💊', label: 'Os meus medicamentos', desc: 'Lista, lembretes e adesão' },
       { href: '/interactions', icon: '🔍', label: 'Verificar interações',  desc: 'Qualquer combinação' },
       { href: '/food-drug',    icon: '🥗', label: 'Alimentos a evitar',   desc: 'O que não misturar' },
-      { href: '/schedule',     icon: '⏰', label: 'Horário inteligente',  desc: 'IA cria o horário ideal', badge: 'Novo' },
+      { href: '/calendario-meds', icon: '⏰', label: 'A que horas devo tomar?', desc: 'Horário ideal de toma · IA', badge: 'Novo' },
       { href: '/bula',         icon: '📄', label: 'Perceber uma bula',    desc: 'Em linguagem simples' },
       { href: '/optimizer',    icon: '⚡', label: 'Otimizar prescrição',  desc: 'Genéricos, STOPP/START', badge: 'Novo' },
     ],
@@ -36,6 +36,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'health', label: 'Saúde', color: '#e11d48',
     tools: [
+      { href: '/saude-agora', icon: '🚨', label: 'Saúde agora',          desc: 'Devo ir ao médico? Primeiros socorros · 112' },
       { href: '/saude360',  icon: '🌐', label: 'Saúde 360°',           desc: 'Adesão + análises + agenda num só ecrã', badge: 'Premium' },
       { href: '/risco',     icon: '🎯', label: 'Perfil de risco',      desc: 'SCORE2, STOPP, ACB com referências', badge: 'Premium' },
       { href: '/vault',     icon: '🔒', label: 'Cofre de saúde',       desc: 'Documentos com partilha por código', badge: 'Premium' },
@@ -160,6 +161,58 @@ export function getAllToolsForMode(mode: Mode): (NavTool & { categoryLabel: stri
   )
 }
 
+/**
+ * Ferramentas que existem na app mas não estão promovidas no Hub. O utilizador
+ * pode ativá-las em /settings/tools. Ficam por modo, com etiqueta clara.
+ * 2026-06-01: adicionada por feedback explícito do utilizador — "há ferramentas
+ * que não são acessíveis de lado nenhum".
+ */
+export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
+  personal: [
+    { href: '/diary',         icon: '📓', label: 'Diário de saúde',     desc: 'Sintomas diários · bem-estar · notas' },
+    { href: '/objetivos',     icon: '🎯', label: 'Objetivos de saúde',  desc: 'Metas e acompanhamento' },
+    { href: '/preparar-consulta', icon: '📋', label: 'Preparar consulta', desc: 'Perguntas certas para o médico' },
+    { href: '/sintomas',      icon: '🩹', label: 'Diário de sintomas',  desc: 'Regista episódios com gatilhos' },
+    { href: '/cartao-emergencia', icon: '🆘', label: 'Cartão de emergência', desc: 'Cartão visual estilo Wallet' },
+    { href: '/dose-crianca',  icon: '🧒', label: 'Dose pediátrica',     desc: 'Por peso e medicamento' },
+    { href: '/timeline',      icon: '📈', label: 'Histórico clínico',   desc: 'Evolução ao longo do tempo' },
+  ],
+  caregiver: [
+    { href: '/preparar-consulta', icon: '📋', label: 'Preparar consulta', desc: 'Perguntas para o médico do familiar' },
+    { href: '/diary',         icon: '📓', label: 'Diário',              desc: 'Registo diário do familiar' },
+    { href: '/sintomas',      icon: '🩹', label: 'Diário de sintomas',  desc: 'Episódios com gatilhos' },
+    { href: '/dose-crianca',  icon: '🧒', label: 'Dose pediátrica',     desc: 'Para crianças por peso' },
+    { href: '/timeline',      icon: '📈', label: 'Histórico',           desc: 'Evolução clínica' },
+  ],
+  student: [
+    { href: '/explica',       icon: '✨', label: 'Explica-me',          desc: 'Explicação rápida de conceito' },
+    { href: '/mnemonicas',    icon: '🧠', label: 'Mnemónicas',          desc: 'Memorizar com cantilenas' },
+    { href: '/exam',          icon: '📝', label: 'Modo exame',          desc: 'Simulação real com timer' },
+    { href: '/decisao',       icon: '⚡', label: 'Phlox Decisão',       desc: 'Caso evolutivo com consequências' },
+  ],
+  clinical: [
+    { href: '/calculos',      icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK' },
+    { href: '/calculators',   icon: '🔢', label: 'Outras calculadoras', desc: 'CURB-65, MEWS, VTE' },
+    { href: '/pk-dosing',     icon: '🔬', label: 'Console PK',          desc: 'Vancomicina AUC, aminoglicosídeos' },
+    { href: '/antibiotics',   icon: '💉', label: 'Antibioterapia',      desc: 'Empírica + stewardship' },
+    { href: '/stopp-start',   icon: '🛑', label: 'STOPP/START',         desc: 'v3 + Beers' },
+    { href: '/tpn',           icon: '🧪', label: 'Nutrição parentérica',desc: 'ASPEN 2022' },
+    { href: '/prescription-queue', icon: '📬', label: 'Fila de validação', desc: 'Revisão clínica' },
+    { href: '/adr-report',    icon: '⚠️', label: 'Notificar RAM',       desc: 'WHO-UMC + INFARMED' },
+    { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intelligence', desc: 'Formulário, DDD, ruturas' },
+    { href: '/counseling',    icon: '🗒', label: 'Aconselhamento',      desc: 'Folha informativa ao doente' },
+    { href: '/iv-compatibility', icon: '🧪', label: 'Compatibilidade IV', desc: 'Y-site, mistura, seringa' },
+    { href: '/electrolytes',  icon: '⚡', label: 'Eletrólitos',         desc: 'Protocolos K, Na, Mg, Ca' },
+    { href: '/emergency-doses', icon: '🚨', label: 'Doses de urgência', desc: 'Por peso e tempo' },
+    { href: '/nota-clinica',  icon: '🗒', label: 'Nota clínica SOAP',   desc: 'Estruturada com IA' },
+    { href: '/handover',      icon: '🔁', label: 'Passa-turno',         desc: 'Relatório IA' },
+    { href: '/drug-info',     icon: '💊', label: 'Info de fármaco',     desc: 'Monografia' },
+    { href: '/protocol',      icon: '📑', label: 'Protocolos',          desc: 'ESC, ADA, NICE, DGS' },
+    { href: '/med-review',    icon: '🔍', label: 'Revisão de medicação', desc: 'Análise completa' },
+    { href: '/carta',         icon: '✉', label: 'Carta de alta',       desc: 'Farmacoterapêutica' },
+  ],
+}
+
 export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   personal: [
     { href: '/mymeds',       icon: '💊', label: 'Medicação',   desc: 'Lista e lembretes de hoje' },
@@ -174,7 +227,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/perfis',       icon: '👤',   label: 'Perfis',     desc: 'Gerir perfis familiares' },
     { href: '/mymeds',       icon: '💊',   label: 'Medicação',  desc: 'Lista e lembretes' },
     { href: '/interactions', icon: '🔍',   label: 'Verificar',  desc: 'São seguros juntos?' },
-    { href: '/schedule',     icon: '⏰',   label: 'Horário',    desc: 'Horário ideal por perfil' },
+    { href: '/calendario-meds', icon: '⏰',   label: 'Horário de toma', desc: 'A que horas devo tomar cada medicamento' },
     { href: '/ai',           icon: '🤖',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
   ],
   clinical: [

@@ -332,10 +332,24 @@ export default function MyMedsPage() {
   const takeDose = async (medId: string, status: 'taken'|'skipped' = 'taken') => {
     if (!user) return
     const today = todayStr()
-    const { data } = await supabase.from('med_logs').insert({
+    // 2026-06-01: O utilizador reportou que Tomar/Ignorar "não funciona".
+    // Antes silenciávamos erros. Agora: tentamos optimistic update + mostramos
+    // erro se o insert falhar (RLS / schema).
+    const optimistic: DoseLog = {
+      id: `tmp-${Date.now()}`, med_id: medId, date: today,
+      logged_at: new Date().toISOString(), status,
+    }
+    setTodayLogs(prev => [...prev, optimistic])
+    const { data, error } = await supabase.from('med_logs').insert({
       user_id: user.id, med_id: medId, date: today, status,
     }).select().single()
-    if (data) setTodayLogs(prev => [...prev, data as DoseLog])
+    if (error) {
+      // Rollback optimistic + avisa
+      setTodayLogs(prev => prev.filter(l => l.id !== optimistic.id))
+      alert(`Não foi possível registar a toma: ${error.message}`)
+      return
+    }
+    if (data) setTodayLogs(prev => prev.map(l => l.id === optimistic.id ? (data as DoseLog) : l))
   }
 
   // ─── Auto-check ───────────────────────────────────────────────────────────────
@@ -1357,11 +1371,16 @@ function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null
           lineHeight: 1,
         }}>📦</button>
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
-          width: 240, background: 'white', border: '1px solid var(--border)', borderRadius: 10,
-          boxShadow: '0 8px 28px rgba(0,0,0,0.12)', padding: 12,
-        }}>
+        <>
+          {/* Backdrop em mobile para fechar ao tocar fora */}
+          <div onClick={() => setOpen(false)} className="refill-backdrop"
+            style={{ position: 'fixed', inset: 0, zIndex: 19, background: 'transparent' }} />
+          <div className="refill-popover" style={{
+            position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
+            width: 260, maxWidth: 'calc(100vw - 32px)', background: 'white',
+            border: '1px solid var(--border)', borderRadius: 10,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.18)', padding: 12,
+          }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>📦 Stock e ritmo</div>
           <label style={{ display: 'block', fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Comprimidos restantes</label>
           <input value={pills} onChange={e => setPills(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric"
@@ -1385,6 +1404,7 @@ function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null
               style={{ padding: '6px 12px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 6, fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>Guardar</button>
           </div>
         </div>
+        </>
       )}
     </div>
   )

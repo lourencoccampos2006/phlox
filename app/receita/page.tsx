@@ -2,8 +2,16 @@
 
 // "Decifrar a receita médica" — foto da receita → explica cada medicamento em
 // linguagem simples e monta um horário de tomas, para o doente/família.
+//
+// 2026-06-01: adicionado botão "Associar à minha medicação" — antes o
+// utilizador via a explicação mas tinha de adicionar tudo manualmente.
 
 import { useState } from 'react'
+import { useAuth } from '@/components/AuthContext'
+import { useToast } from '@/components/Toast'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import Link from 'next/link'
 
 interface RxItem { name: string; what_for: string; how: string; times: string[]; with_food: string; caution: string }
 interface Result { meds: RxItem[]; summary: string; warnings: string[]; disclaimer?: string }
@@ -35,10 +43,51 @@ function downscale(file: File, maxDim = 1400, q = 0.85): Promise<{ b64: string; 
 const matchSlot = (times: string[], slot: string) => (times || []).some(t => t.toLowerCase().includes(slot))
 
 export default function ReceitaPage() {
+  const { user, supabase } = useAuth() as any
+  const toast = useToast()
+  const [profile, setProfile] = useState<ActiveProfile | null>(getActiveProfile())
   const [photo, setPhoto] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+  const [assoc, setAssoc] = useState<{ assigned: number; total: number } | null>(null)
+  const [associng, setAssocing] = useState(false)
+
+  function timesToFrequency(times?: string[]): string {
+    if (!times || !times.length) return ''
+    const n = times.length
+    if (n === 1) return '1x/dia'
+    if (n === 2) return '2x/dia'
+    if (n === 3) return '3x/dia'
+    return `${n}x/dia`
+  }
+
+  // Associa todos os medicamentos da receita ao perfil ativo.
+  async function associate() {
+    if (!user?.id || !result?.meds?.length || associng) return
+    setAssocing(true)
+    const isFamily = profile?.type === 'family'
+    let assigned = 0
+    for (const m of result.meds) {
+      // Dose: extrair do nome quando possível (ex: "Brufen 400 mg")
+      const dose = (m.name.match(/\d+[.,]?\d*\s*(mg|mcg|g|UI)/i) || [null])[0] || ''
+      const frequency = timesToFrequency(m.times)
+      const payload = {
+        name: m.name.replace(/\s+\d+[.,]?\d*\s*(mg|mcg|g|UI).*/i, '').trim() || m.name,
+        dose: dose || null,
+        frequency: frequency || null,
+        indication: m.what_for || null,
+      }
+      const { error: e } = isFamily
+        ? await supabase.from('family_profile_meds').insert({ ...payload, profile_id: profile.id, user_id: user.id })
+        : await supabase.from('personal_meds').insert({ ...payload, user_id: user.id })
+      if (!e) assigned++
+    }
+    setAssoc({ assigned, total: result.meds.length })
+    setAssocing(false)
+    if (assigned === result.meds.length) toast.success(`${assigned} medicamento(s) adicionados.`)
+    else toast.error(`${assigned}/${result.meds.length} adicionados — alguns falharam.`)
+  }
 
   async function run() {
     if (!photo) return
@@ -58,10 +107,13 @@ export default function ReceitaPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', paddingTop: 56 }}>
       <div style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)', padding: '26px 24px 22px' }}>
-        <div className="page-container">
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Perceber</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Decifrar a receita médica</h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 520, lineHeight: 1.5 }}>Tira uma foto à receita e explicamos cada medicamento em palavras simples, com o horário das tomas.</p>
+        <div className="page-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Perceber</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Decifrar a receita médica</h1>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 520, lineHeight: 1.5 }}>Tira uma foto e explicamos cada medicamento, horário e como associar ao teu perfil ou ao de um familiar.</p>
+          </div>
+          {user && <div style={{ background: 'white', borderRadius: 10, padding: 3 }}><ProfileSelector onChange={p => setProfile(p)} /></div>}
         </div>
       </div>
 
@@ -83,6 +135,25 @@ export default function ReceitaPage() {
 
         {result && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {result.meds && result.meds.length > 0 && user && (
+              <div style={{ ...card, background: '#0d6e42', borderColor: '#0d6e42', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ color: 'white' }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>{assoc ? `✓ ${assoc.assigned}/${assoc.total} associado(s)` : `Associar à medicação ${profile?.type === 'family' ? `de ${profile.name}` : 'pessoal'}`}</div>
+                  <div style={{ fontSize: 11.5, opacity: 0.85, marginTop: 2 }}>Adiciona automaticamente ao Phlox — sem digitar.</div>
+                </div>
+                {assoc ? (
+                  <Link href={profile?.type === 'family' ? '/familia' : '/mymeds'}
+                    style={{ padding: '9px 16px', background: 'white', color: '#0d6e42', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>
+                    Abrir →
+                  </Link>
+                ) : (
+                  <button onClick={associate} disabled={associng}
+                    style={{ padding: '9px 16px', background: 'white', color: '#0d6e42', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: associng ? 'wait' : 'pointer' }}>
+                    {associng ? 'A associar…' : '+ Associar tudo'}
+                  </button>
+                )}
+              </div>
+            )}
             {result.summary && <div style={{ ...card, background: '#faf5ff', borderColor: '#e9d5ff' }}><div style={{ fontSize: 14, color: '#6b21a8', lineHeight: 1.6 }}>{result.summary}</div></div>}
             {result.warnings?.length > 0 && (
               <div style={{ ...card, background: '#fffbeb', borderColor: '#fde68a', padding: '10px 14px' }}>

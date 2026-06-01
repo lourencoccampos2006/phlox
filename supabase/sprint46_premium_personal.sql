@@ -85,29 +85,11 @@ do $$ begin
 exception when undefined_table then null; end $$;
 
 -- ── Adesão heatmap ──────────────────────────────────────────────────────────
--- Reaproveita med_logs se existe. Se não existir, cria.
-create table if not exists med_logs (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references auth.users(id) on delete cascade,
-  med_id       uuid,
-  med_name     text,
-  taken_at     timestamptz not null default now(),
-  status       text not null default 'taken' check (status in ('taken','skipped','late')),
-  notes        text
-);
-
--- CORREÇÃO 2: Garante que as colunas existem caso a tabela med_logs já exista para evitar o erro 42703
+-- A tabela med_logs já existe desde a sprint3 (schema: date + logged_at + status).
+-- 2026-06-01: Acrescenta-se APENAS a coluna med_name (informativa) e índices
+-- — não se mexe nas colunas existentes para não partir compatibilidade.
 do $$ begin
-  alter table med_logs add column if not exists med_id uuid;
   alter table med_logs add column if not exists med_name text;
-  alter table med_logs add column if not exists taken_at timestamptz not null default now();
-  alter table med_logs add column if not exists status text not null default 'taken' check (status in ('taken','skipped','late'));
-  alter table med_logs add column if not exists notes text;
 exception when undefined_table then null; end $$;
 
-create index if not exists med_logs_user_idx on med_logs(user_id, taken_at desc);
-alter table med_logs enable row level security;
-do $$ begin
-  create policy "med_logs_own" on med_logs for all
-    using (user_id = auth.uid()) with check (user_id = auth.uid());
-exception when duplicate_object then null; end $$;
+create index if not exists med_logs_user_date_idx on med_logs(user_id, date desc);
