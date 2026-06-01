@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import DrugAutocomplete from '@/components/DrugAutocomplete'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,10 @@ interface ScanResult {
   }
   quick_answer: string           // A resposta à pergunta "posso tomar?" em 1 frase
   myth_bust?: string             // mito comum sobre este medicamento (opcional)
+  // 2026-06-01:
+  requires_prescription?: { necessaria: boolean; nota: string }
+  confidence?: 'alta' | 'media' | 'baixa'
+  fallback_advice?: string
 }
 
 // ─── Safety badge ─────────────────────────────────────────────────────────────
@@ -107,13 +112,39 @@ function ResultCard({ result, hasMeds }: { result: ScanResult; hasMeds: boolean 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
 
         {/* Drug header */}
-        <div style={{ background: 'var(--green)', padding: '20px 22px' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', marginBottom: 4 }}>
-            {result.brand_names.length > 0 && result.brand_names.join(' · ')}
+        <div style={{ background: result.confidence === 'baixa' ? '#b45309' : 'var(--green)', padding: '20px 22px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em' }}>
+              {result.brand_names.length > 0 && result.brand_names.join(' · ')}
+            </div>
+            {result.confidence && result.confidence !== 'alta' && (
+              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'white', background: 'rgba(0,0,0,0.18)', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                ⚠ confiança {result.confidence}
+              </span>
+            )}
           </div>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'white', margin: '0 0 8px' }}>{result.name}</h2>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.6 }}>{result.quick_answer}</p>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'white', margin: '4px 0 8px' }}>{result.name}</h2>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', margin: 0, lineHeight: 1.6 }}>{result.quick_answer}</p>
+          {result.requires_prescription && (
+            <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: 'white', background: result.requires_prescription.necessaria ? 'rgba(220,38,38,0.85)' : 'rgba(22,163,74,0.85)', padding: '5px 11px', borderRadius: 999 }}>
+              {result.requires_prescription.necessaria ? '🩺 Precisa de receita' : '✓ Venda livre (MNSRM)'}
+            </div>
+          )}
         </div>
+
+        {/* Aviso fallback — confidence baixa */}
+        {result.fallback_advice && (
+          <div style={{ background: '#fffbeb', borderBottom: '1px solid #fde68a', padding: '12px 18px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <div style={{ fontSize: 13, color: '#78350f', lineHeight: 1.55 }}>{result.fallback_advice}</div>
+          </div>
+        )}
+
+        {result.requires_prescription?.nota && (
+          <div style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)', padding: '10px 18px', fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+            {result.requires_prescription.nota}
+          </div>
+        )}
 
         {/* Mode toggle */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
@@ -296,20 +327,21 @@ export default function ScannerPage() {
             Escreve qualquer medicamento. Sabe o que é, como tomar, o que evitar — e se é seguro com a tua medicação.
           </p>
 
-          <div style={{ display: 'flex', gap: 8, background: 'white', border: '2px solid var(--border-2)', borderRadius: 8, padding: 6, marginBottom: 16 }}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && scan()}
-              placeholder="Ex: ibuprofeno, amoxicilina, omeprazol..."
-              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, fontFamily: 'var(--font-sans)', color: 'var(--ink)', padding: '6px 8px', background: 'transparent' }}
-              autoFocus
-            />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <DrugAutocomplete
+                value={query}
+                onChange={setQuery}
+                onPick={(dci) => { setQuery(dci); scan(dci) }}
+                placeholder="Ex: ibuprofeno, brufen, omeprazol…"
+                autoFocus
+                helper="Carrega em uma sugestão para verificar imediatamente."
+                inputStyle={{ background: 'white', borderColor: 'var(--border-2)', fontSize: 15 }}
+              />
+            </div>
             <button onClick={() => scan()} disabled={!query.trim() || loading}
-              style={{ background: query.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: query.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: query.trim() && !loading ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
-              {loading ? '...' : 'Verificar →'}
+              style={{ background: query.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: query.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, padding: '12px 18px', fontSize: 14, fontWeight: 700, cursor: query.trim() && !loading ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {loading ? '…' : 'Verificar →'}
             </button>
           </div>
 

@@ -4,11 +4,12 @@
 // Tradutor de Bula — gratuito, sem login obrigatório.
 // Converte texto de bulas em linguagem simples para doentes.
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
+import DrugAutocomplete from '@/components/DrugAutocomplete'
 
 interface BulaResult {
   nome_medicamento: string
@@ -17,31 +18,61 @@ interface BulaResult {
   quando_ir_ao_medico: string[]
   seguranca_especial: { criancas: string; idosos: string; gravidas: string }
   interacoes: string[]
+  /** 2026-06-01: novo — alguns medicamentos têm doses MNSRM (sem receita) e
+   *  doses sujeitas a receita (ex: ibuprofeno 200/400 vs 600/800 mg). */
+  receita_medica?: { necessaria: boolean; nota: string }
 }
 
 export default function BulaPage() {
   const { user } = useAuth()
   const usage = useUsageLimit('bula')
   const [showUpgrade, setShowUpgrade] = useState(false)
-  const [mode, setMode] = useState<'nome' | 'texto'>('nome')
+  const [mode, setMode] = useState<'nome' | 'texto' | 'foto'>('nome')
   const [medicamento, setMedicamento] = useState('')
   const [texto, setTexto] = useState('')
+  const [foto, setFoto] = useState<File | null>(null)
   const [result, setResult] = useState<BulaResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fotoRef = useRef<HTMLInputElement>(null)
+
+  // 2026-06-01: aceita foto da bula. Converte em data URL e envia base64
+  // — o endpoint /api/bula precisa de aceitar imageBase64 + mimeType.
+  async function fileToBase64(file: File): Promise<{ b64: string; mime: string }> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => {
+        const s = String(r.result || '')
+        const idx = s.indexOf(',')
+        resolve({ b64: idx >= 0 ? s.slice(idx + 1) : s, mime: file.type || 'image/jpeg' })
+      }
+      r.onerror = reject
+      r.readAsDataURL(file)
+    })
+  }
 
   async function translate() {
-    const input = mode === 'nome' ? medicamento.trim() : texto.trim()
-    if (!input) return
     if (!usage.allowed) { setShowUpgrade(true); return }
-    setLoading(true)
-    setError(null)
-    setResult(null)
+    setLoading(true); setError(null); setResult(null)
     try {
+      let body: any
+      if (mode === 'nome') {
+        const v = medicamento.trim()
+        if (!v) { setLoading(false); return }
+        body = { medicamento: v }
+      } else if (mode === 'texto') {
+        const v = texto.trim()
+        if (!v) { setLoading(false); return }
+        body = { texto: v }
+      } else {
+        if (!foto) { setLoading(false); return }
+        const { b64, mime } = await fileToBase64(foto)
+        body = { imageBase64: b64, mimeType: mime }
+      }
       const res = await fetch('/api/bula', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mode === 'nome' ? { medicamento: input } : { texto: input }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (res.ok) usage.increment()
@@ -85,7 +116,7 @@ export default function BulaPage() {
 
         {/* Tabs modo */}
         <div style={{ display: 'flex', gap: 0, marginBottom: 14, background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: 4 }}>
-          {([['nome', 'Nome do medicamento'], ['texto', 'Colar texto da bula']] as const).map(([m, label]) => (
+          {([['nome', 'Nome'], ['texto', 'Colar texto'], ['foto', '📷 Foto']] as const).map(([m, label]) => (
             <button key={m} onClick={() => setMode(m)}
               style={{ flex: 1, padding: '8px 12px', background: mode === m ? 'var(--ink)' : 'transparent', color: mode === m ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}>
               {label}
@@ -96,14 +127,14 @@ export default function BulaPage() {
         {/* Input */}
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '18px', marginBottom: 12 }}>
           {mode === 'nome' ? (
-            <input
+            <DrugAutocomplete
               value={medicamento}
-              onChange={e => setMedicamento(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && translate()}
-              placeholder="Ex: Brufen 400mg, Metformina, Enalapril..."
-              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '12px 14px', fontSize: 15, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }}
+              onChange={setMedicamento}
+              onPick={(dci) => { setMedicamento(dci); /* não dispara translate automaticamente — utilizador clica em Traduzir */ }}
+              placeholder="Ex: Brufen 400 mg, Metformina, Enalapril…"
+              inputStyle={{ fontSize: 15, padding: '12px 14px' }}
             />
-          ) : (
+          ) : mode === 'texto' ? (
             <textarea
               value={texto}
               onChange={e => setTexto(e.target.value)}
@@ -111,6 +142,22 @@ export default function BulaPage() {
               rows={8}
               style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }}
             />
+          ) : (
+            <div>
+              <label style={{ display: 'block', cursor: 'pointer', border: `1.5px dashed ${foto ? 'var(--green)' : 'var(--border)'}`, borderRadius: 10, padding: foto ? 12 : '28px 16px', textAlign: 'center', background: foto ? '#f0fdf4' : 'var(--bg-2)' }}>
+                <input ref={fotoRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setFoto(f); setResult(null); setError(null) } }} />
+                {foto ? (
+                  <div style={{ fontSize: 13, color: 'var(--green-2)', fontWeight: 700 }}>📷 {foto.name} · {Math.round(foto.size/1024)} KB · tocar para trocar</div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-3)' }}>Tirar foto à bula</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>Ou escolher imagem da galeria</div>
+                  </div>
+                )}
+              </label>
+            </div>
           )}
 
           {!usage.unlimited && (
@@ -118,7 +165,7 @@ export default function BulaPage() {
               <UsageBadge remaining={usage.remaining} unlimited={usage.unlimited} />
             </div>
           )}
-          <button onClick={translate} disabled={loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim())}
+          <button onClick={translate} disabled={loading || (mode === 'nome' ? !medicamento.trim() : mode === 'texto' ? !texto.trim() : !foto)}
             style={{ marginTop: 8, width: '100%', padding: '13px', background: loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim()) ? 'var(--bg-3)' : 'var(--ink)', color: loading || (mode === 'nome' ? !medicamento.trim() : !texto.trim()) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', transition: 'background 0.15s' }}>
             {loading ? 'A traduzir...' : 'Traduzir bula'}
           </button>
@@ -137,6 +184,15 @@ export default function BulaPage() {
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14, marginTop: 8 }}>
               {result.nome_medicamento}
             </div>
+
+            {result.receita_medica && (
+              <div style={{ background: result.receita_medica.necessaria ? '#fef2f2' : '#f0fdf4', border: `1px solid ${result.receita_medica.necessaria ? '#fca5a5' : '#bbf7d0'}`, borderLeft: `3px solid ${result.receita_medica.necessaria ? '#dc2626' : '#16a34a'}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: result.receita_medica.necessaria ? '#991b1b' : '#166534', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 800 }}>
+                  {result.receita_medica.necessaria ? '🩺 Precisa de receita médica' : '✓ Venda livre (MNSRM)'}
+                </div>
+                {result.receita_medica.nota && <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>{result.receita_medica.nota}</div>}
+              </div>
+            )}
 
             <SectionCard title="Para que serve" color="var(--green)">
               <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{result.para_que_serve}</p>

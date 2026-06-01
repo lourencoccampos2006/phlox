@@ -108,6 +108,36 @@ export default function PassportPage() {
 
   const emergencyUrl = card?.token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/emergency/${card.token}` : null
 
+  // 2026-06-01: guarda snapshot do passaporte (com a medicação atual) no
+  // cofre — útil para ter histórico do que o utente levava em cada momento.
+  async function savePassportToVault() {
+    if (!user?.id) return
+    const today = new Date().toISOString().slice(0, 10)
+    const medsList = meds.map(m => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` · ${m.frequency}` : ''}`).join('\n')
+    const text = [
+      `PASSAPORTE DE SAÚDE — ${today}`,
+      `Nome: ${form.name || '—'}`,
+      `Grupo sanguíneo: ${form.blood_type || '—'}`,
+      `Alergias: ${form.allergies || 'Sem alergias conhecidas'}`,
+      `Contacto de emergência: ${form.emergency_contact || '—'}`,
+      '',
+      'MEDICAÇÃO ATUAL:',
+      medsList || '(sem medicação registada)',
+      '',
+      emergencyUrl ? `Versão online atualizada: ${emergencyUrl}` : '',
+    ].filter(Boolean).join('\n')
+    const { error } = await supabase.from('health_vault').insert({
+      user_id: user.id,
+      title: `Passaporte de saúde · ${today}`,
+      category: 'report',
+      notes: 'Snapshot do passaporte de saúde',
+      body_text: text,
+      issued_at: today,
+    })
+    if (error) { alert(`Não foi possível guardar: ${error.message}`); return }
+    alert('Passaporte guardado no cofre.')
+  }
+
   const today = new Date().toLocaleDateString(lang === 'PT' ? 'pt-PT' : 'en-GB', { day:'2-digit', month:'long', year:'numeric' })
 
   if (!user) return (
@@ -150,6 +180,17 @@ export default function PassportPage() {
                     🔗 {t.share}
                   </button>
                 )}
+                {/* 2026-06-01: novos botões — "guardar no cofre" + "versão bolso" */}
+                {user && (
+                  <button onClick={savePassportToVault}
+                    style={{ padding:'9px 14px', background:'white', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', color:'var(--ink)' }}>
+                    🔒 Cofre
+                  </button>
+                )}
+                <button onClick={() => { document.body.classList.add('passport-pocket'); window.print(); document.body.classList.remove('passport-pocket') }}
+                  style={{ padding:'9px 14px', background:'white', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', color:'var(--ink)' }}>
+                  👛 Versão bolso
+                </button>
                 <button onClick={() => window.print()}
                   style={{ padding:'9px 18px', background:'var(--green)', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer' }}>
                   🖨️ {t.print}
@@ -258,9 +299,10 @@ export default function PassportPage() {
             {emergencyUrl && (
               <div style={{ textAlign:'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent(emergencyUrl)}`}
-                  alt="QR Code" style={{ width:72, height:72, borderRadius:4 }} />
-                <div style={{ fontSize:8, fontFamily:'var(--font-mono)', color:'var(--ink-5)', marginTop:2 }}>{t.scan}</div>
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(emergencyUrl)}`}
+                  alt="QR de emergência" className="passport-qr"
+                  style={{ width:108, height:108, borderRadius:6, border:'2px solid var(--border)', background:'white' }} />
+                <div style={{ fontSize:9.5, fontFamily:'var(--font-mono)', color:'var(--ink-4)', marginTop:5, maxWidth:120, lineHeight:1.35 }}>{t.scan}</div>
               </div>
             )}
           </div>
@@ -321,6 +363,16 @@ export default function PassportPage() {
           .passport-critical-row > div { border-right: none !important; border-bottom: 1px solid var(--border) !important }
           .passport-critical-row > div:last-child { border-bottom: none !important }
         }
+
+        /* Versão bolso (A6 ~ 105×148 mm) — corta para caber na carteira.
+           Activada via classe .passport-pocket no body antes de imprimir. */
+        .passport-pocket .passport-card {
+          max-width: 105mm !important;
+          margin: 0 auto !important;
+        }
+        .passport-pocket .passport-since { display: none !important }
+        .passport-pocket .passport-qr { width: 70px !important; height: 70px !important }
+        @page { margin: 8mm }
       `}</style>
     </div>
   )

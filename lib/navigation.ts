@@ -185,10 +185,12 @@ export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
     { href: '/timeline',      icon: '📈', label: 'Histórico',           desc: 'Evolução clínica' },
   ],
   student: [
-    { href: '/explica',       icon: '✨', label: 'Explica-me',          desc: 'Explicação rápida de conceito' },
-    { href: '/mnemonicas',    icon: '🧠', label: 'Mnemónicas',          desc: 'Memorizar com cantilenas' },
+    { href: '/estudar-conceito', icon: '🎓', label: 'Estudar um conceito', desc: 'Explica + mnemónica + plano · num só sítio' },
     { href: '/exam',          icon: '📝', label: 'Modo exame',          desc: 'Simulação real com timer' },
     { href: '/decisao',       icon: '⚡', label: 'Phlox Decisão',       desc: 'Caso evolutivo com consequências' },
+    // Mantemos /explica e /mnemonicas como atalhos para quem só quer um
+    { href: '/explica',       icon: '✨', label: 'Explica-me (só)',     desc: 'Atalho direto à explicação' },
+    { href: '/mnemonicas',    icon: '🧠', label: 'Mnemónicas (só)',     desc: 'Atalho direto à mnemónica' },
   ],
   clinical: [
     { href: '/calculos',      icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK' },

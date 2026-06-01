@@ -97,13 +97,13 @@ export default function InicioPage() {
         )})()}
 
         {/* Top tools — atalhos para o que o utilizador mais usa (aprende localmente) */}
-        <MyTopTools />
+        <div className="focus-mute"><MyTopTools /></div>
 
         {/* Estudante — matérias do curso (adapta-se à área) */}
         {toolMode === 'student' && (() => {
           const a = areaOf(studyArea)
           return (
-            <div style={{ marginBottom: 22 }}>
+            <div className="focus-mute" style={{ marginBottom: 22 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: '0 2px' }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0 }} />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Matérias · {a.label}</span>
@@ -164,9 +164,9 @@ export default function InicioPage() {
           Adicionar mais ferramentas
         </Link>
 
-        {/* Free-plan ad slot */}
+        {/* Free-plan ad slot — 2026-06-01: escondido em modo foco */}
         {isFree && (
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+          <div className="focus-hide" style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Publicidade</div>
             <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 10 }}>Espaço de anúncio — removido em qualquer plano pago.</div>
             <Link href="/pricing" style={{ display: 'inline-block', padding: '8px 14px', background: 'var(--ink)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Remover anúncios →</Link>

@@ -565,6 +565,13 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
    Marcar elementos com .focus-hide e desaparecem. */
 body.phlox-focus .focus-hide { display: none !important; }
 body.phlox-focus .focus-mute { opacity: 0.55; }
+/* Esconde banners conhecidos sem precisar de classe individual */
+body.phlox-focus [data-ad-slot],
+body.phlox-focus .ad-banner,
+body.phlox-focus .news-strip { display: none !important; }
+/* Notificações e search bar passam para mute para não puxar atenção */
+body.phlox-focus .notification-bell,
+body.phlox-focus .header-search-trigger { opacity: 0.55; }
 
 /* Print utilities */
 @media print {
