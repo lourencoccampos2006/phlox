@@ -121,7 +121,7 @@ export default function BriefPage() {
       clinical: [
         { title: 'Clínico 360° (Pulse · Risk · Stewardship · Audit)', href: '/clinico360' },
         { title: 'Reportar erros em quizzes / casos', href: '/clinico360' },
-        { title: 'Mode isolation: vês só o que é teu', href: '/settings/tools' },
+        { title: 'Mode isolation: vês só o que é teu', href: '/settings?tab=ferramentas' },
       ],
       caregiver: [
         { title: 'Família 360° (Inbox · Reconciliação · Zarit)', href: '/familia360' },

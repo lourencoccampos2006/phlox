@@ -167,7 +167,7 @@ export default function VerificarPage() {
         <div style={{ marginTop: 40, textAlign: 'center', padding: '28px 24px', background: 'white', borderRadius: 16, border: '1px solid #f1f5f9' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Precisas de outra ferramenta?</div>
           <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>Vê todas as ferramentas disponíveis no Phlox.</div>
-          <Link href="/ferramentas" style={{
+          <Link href="/about" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '10px 22px', borderRadius: 24,
             background: '#0f172a', color: 'white',

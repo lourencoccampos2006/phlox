@@ -6,6 +6,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
 import { useInstitutionProfile } from '@/lib/useInstitutionProfile'
+import { useEnabledTools } from '@/lib/useEnabledTools'
+import type { Tool } from '@/lib/toolRegistry'
 
 // ════════════════════════════════════════════════════════════════════════════
 //  PHLOX CLINICAL LAYOUT — built from scratch, mobile-first, bulletproof.
@@ -318,7 +320,34 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
     return () => { window.removeEventListener('keydown', onKey); clearTimeout(gTimer) }
   }, [router])
 
-  const sections = NAV_BY_INST[inst] || GENERIC
+  // 2026-06-01: o sidebar agora respeita os toggles do utilizador (por
+  // instituição). As ferramentas DESLIGADAS são removidas; as ferramentas
+  // EXTRA ligadas pelo utilizador (que não estão na nav default desta
+  // instituição) aparecem numa secção "Minhas ferramentas" no fim.
+  const enabledTools = useEnabledTools('clinical', inst)
+  const enabledHrefs = new Set(enabledTools.enabled)
+
+  const sectionsBase = NAV_BY_INST[inst] || GENERIC
+  // Filtra cada secção, mantendo só os itens cujo href está enabled.
+  const sectionsFiltered = sectionsBase.map(s => ({
+    ...s,
+    items: s.items.filter(it => enabledHrefs.has(it.href)),
+  })).filter(s => s.items.length > 0)
+  // Acrescenta secção com as ferramentas extra que o utilizador ligou e que
+  // não fazem parte da nav default desta instituição.
+  const defaultHrefs = new Set(sectionsBase.flatMap(s => s.items.map(i => i.href)))
+  const extras: Tool[] = enabledTools.enabledTools.filter(t => !defaultHrefs.has(t.id))
+  if (extras.length > 0) {
+    sectionsFiltered.push({
+      title: 'Minhas ferramentas',
+      items: extras.map(t => {
+        // Atribui um ícone razoável. Se não houver um Icon dedicado, usa "cockpit".
+        const icon: IconName = (ICONS as any)[(t.id.replace(/^\//, '') as IconName)] ? (t.id.replace(/^\//, '') as IconName) : 'cockpit'
+        return { href: t.id, label: t.label, icon }
+      }),
+    })
+  }
+  const sections: NavSection[] = sectionsFiltered.length > 0 ? sectionsFiltered : sectionsBase
   const all = sections.flatMap(s => s.items)
   const current = all.find(i => isActive(pathname, i.href))
   const title = current?.label || (pathname === '/settings' ? 'Definições' : pathname.startsWith('/patients/') ? 'Ficha do Residente' : 'Phlox')
@@ -592,10 +621,9 @@ function ClinicalUserMenu() {
   const ITEMS: { href: string; label: string; icon: string }[] = [
     { href: '/inicio',      label: 'Início',         icon: '🏠' },
     { href: '/clinico360',  label: 'Clínico 360°',   icon: '🌐' },
-    { href: '/ferramentas', label: 'Todas as ferramentas', icon: '🧰' },
     { href: '/guardados',   label: 'Guardados',      icon: '★' },
     { href: '/calendario',  label: 'Calendário',     icon: '📅' },
-    { href: '/settings/tools', label: 'Personalizar ferramentas', icon: '🛠' },
+    { href: '/settings?tab=ferramentas', label: 'Personalizar ferramentas', icon: '🛠' },
     { href: '/settings',    label: 'Definições',     icon: '⚙️' },
   ]
 

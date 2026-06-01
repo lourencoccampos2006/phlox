@@ -285,7 +285,7 @@ export default function HomePage() {
               }} className="hero-cta-primary">
                 Começar grátis →
               </Link>
-              <Link href="/ferramentas" style={{
+              <Link href="/about" style={{
                 padding: '14px 28px', background: 'transparent', color: '#1d1d1f',
                 textDecoration: 'none', borderRadius: 100, fontSize: 15, fontWeight: 500,
                 border: '1px solid rgba(0,0,0,0.15)',

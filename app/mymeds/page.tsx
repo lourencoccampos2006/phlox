@@ -72,13 +72,23 @@ function toMinutes(t: string) {
 }
 
 // Returns true if a log's logged_at is within ±90min of a slot time
-function slotIsCovered(slotTime: string, logs: DoseLog[]): DoseLog|undefined {
-  const slotMin = toMinutes(slotTime)
-  return logs.find(l => {
-    const logDate = new Date(l.logged_at)
-    const logMin = logDate.getHours() * 60 + logDate.getMinutes()
-    return Math.abs(logMin - slotMin) <= 90
-  })
+// Atribuição de logs a slots — 2026-06-01.
+// Antes: comparávamos hora do click com hora do slot (janela ±90 min). Isso
+// falhava sempre que o utilizador registava fora desse intervalo (ex: tomou às
+// 15h o slot das 8h → não aparecia como marcado). Fix: dividimos os logs do
+// medicamento pelos slots por proximidade, do mais cedo para o mais tarde,
+// SEM exigir que cada log esteja perto do slot — basta haver um log a sobrar
+// para o slot ficar coberto. Esta função é chamada por slot, recebe os logs
+// já filtrados por med_id+status, e devolve o log atribuído (se existir).
+function slotIsCovered(slotTime: string, logs: DoseLog[], slotIndex: number, totalSlotsForStatus: number): DoseLog|undefined {
+  if (logs.length === 0) return undefined
+  // Ordena logs cronologicamente
+  const sorted = [...logs].sort((a, b) => a.logged_at.localeCompare(b.logged_at))
+  // Atribui sequencialmente: 1º slot do dia ← 1º log do dia (do mesmo med+status)
+  if (slotIndex < sorted.length) return sorted[slotIndex]
+  // Se o número de logs cobre todos os slots, qualquer slot fica coberto
+  if (sorted.length >= totalSlotsForStatus) return sorted[Math.min(slotIndex, sorted.length - 1)]
+  return undefined
 }
 
 // ─── Reminder Modal ────────────────────────────────────────────────────────────
@@ -638,12 +648,17 @@ export default function MyMedsPage() {
   const medsWithTimes = meds.filter(m => m.reminder_times && m.reminder_times.length > 0)
   const medsWithoutTimes = meds.filter(m => !m.reminder_times || m.reminder_times.length === 0)
 
-  // Build today's schedule (med × slot pairs, sorted by time)
-  const schedule = medsWithTimes.flatMap(med =>
-    (med.reminder_times!).map(slot => ({ med, slot }))
-  ).sort((a, b) => toMinutes(a.slot) - toMinutes(b.slot))
+  // Build today's schedule (med × slot pairs, sorted by time).
+  // Para cada med, calculamos QUANTOS slots tem hoje e em que índice estamos
+  // — isto deixa o slotIsCovered atribuir logs por ordem.
+  const schedule = medsWithTimes.flatMap(med => {
+    const slots = med.reminder_times!
+    return slots.map((slot, idx) => ({ med, slot, slotIdx: idx, slotsTotal: slots.length }))
+  }).sort((a, b) => toMinutes(a.slot) - toMinutes(b.slot))
 
-  const todayDone = schedule.filter(({ med, slot }) => slotIsCovered(slot, todayLogs.filter(l => l.med_id === med.id && l.status === 'taken'))).length
+  const todayDone = schedule.filter(({ med, slotIdx, slotsTotal }) =>
+    slotIsCovered('', todayLogs.filter(l => l.med_id === med.id && l.status === 'taken'), slotIdx, slotsTotal)
+  ).length
   const todayTotal = schedule.length
 
   const dateLabel = new Date().toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long' })
@@ -831,10 +846,10 @@ export default function MyMedsPage() {
                       </div>
                     </div>
                     <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
-                      {schedule.map(({ med, slot }, i) => {
+                      {schedule.map(({ med, slot, slotIdx, slotsTotal }, i) => {
                         const medLogs = todayLogs.filter(l => l.med_id === med.id)
-                        const log = slotIsCovered(slot, medLogs.filter(l => l.status === 'taken'))
-                          || slotIsCovered(slot, medLogs.filter(l => l.status === 'skipped'))
+                        const log = slotIsCovered(slot, medLogs.filter(l => l.status === 'taken'), slotIdx, slotsTotal)
+                          || slotIsCovered(slot, medLogs.filter(l => l.status === 'skipped'), slotIdx, slotsTotal)
                         const isConfirmed = justConfirmed === med.id && !log
                         return (
                           <div key={`${med.id}-${slot}`} style={{ borderBottom: i < schedule.length-1 ? '1px solid var(--bg-3)' : 'none' }}>
@@ -1333,13 +1348,12 @@ function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null
   const [open, setOpen] = useState(false)
   const [pills, setPills] = useState<string>(med.pills_remaining != null ? String(med.pills_remaining) : '')
   const [perDay, setPerDay] = useState<string>(med.pills_per_day != null ? String(med.pills_per_day) : '')
-  const ref = useRef<HTMLDivElement>(null)
-
+  // Modal central — não precisa de ref; fecha pelo backdrop / ESC.
   useEffect(() => {
     if (!open) return
-    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
   const has = med.pills_remaining != null
@@ -1353,10 +1367,15 @@ function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null
     setOpen(false)
   }
 
+  // 2026-06-01: trocado popover por modal central. O popover absoluto era
+  // cortado pelo `overflow:hidden` da lista de medicamentos e ficava recortado
+  // em mobile. Modal fixo no centro do viewport resolve em todas as larguras.
+  const days = pills && perDay && Number(perDay) > 0 ? Math.floor(Number(pills) / Number(perDay)) : null
+
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+    <>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(true)}
         title="Stock"
         style={{
           padding: '6px 10px',
@@ -1369,43 +1388,63 @@ function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null
           fontWeight: 700,
           fontFamily: 'var(--font-sans)',
           lineHeight: 1,
+          flexShrink: 0,
         }}>📦</button>
+
       {open && (
-        <>
-          {/* Backdrop em mobile para fechar ao tocar fora */}
-          <div onClick={() => setOpen(false)} className="refill-backdrop"
-            style={{ position: 'fixed', inset: 0, zIndex: 19, background: 'transparent' }} />
-          <div className="refill-popover" style={{
-            position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
-            width: 260, maxWidth: 'calc(100vw - 32px)', background: 'white',
-            border: '1px solid var(--border)', borderRadius: 10,
-            boxShadow: '0 8px 28px rgba(0,0,0,0.18)', padding: 12,
+        <div
+          onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(8,12,24,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
           }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>📦 Stock e ritmo</div>
-          <label style={{ display: 'block', fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Comprimidos restantes</label>
-          <input value={pills} onChange={e => setPills(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric"
-            placeholder="ex: 30"
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 9px', fontSize: 13, marginBottom: 8, outline: 'none', fontFamily: 'var(--font-sans)' }} />
-          <label style={{ display: 'block', fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Comprimidos/dia</label>
-          <input value={perDay} onChange={e => setPerDay(e.target.value.replace(/[^\d.,]/g, '').replace(',', '.'))} inputMode="decimal"
-            placeholder="ex: 1 ou 0.5"
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 9px', fontSize: 13, marginBottom: 10, outline: 'none', fontFamily: 'var(--font-sans)' }} />
-          {pills && perDay && Number(perDay) > 0 && (
-            <div style={{ fontSize: 11.5, color: '#0d6e42', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 7, padding: '6px 9px', marginBottom: 8, lineHeight: 1.4 }}>
-              Acaba em <strong>{Math.floor(Number(pills) / Number(perDay))} dias</strong> ({new Date(Date.now() + Math.floor(Number(pills) / Number(perDay)) * 86400000).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })})
+          <div onMouseDown={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 380, background: 'white',
+            borderRadius: 14, padding: 18,
+            boxShadow: '0 24px 60px rgba(0,0,0,0.28)',
+            fontFamily: 'var(--font-sans)',
+            maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>📦 Stock e ritmo</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{med.name}{med.dose ? ` · ${med.dose}` : ''}</div>
+              </div>
+              <button onClick={() => setOpen(false)} aria-label="Fechar"
+                style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', fontSize: 17, color: 'var(--ink-4)' }}>×</button>
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-            {has && <button onClick={() => { setPills(''); setPerDay(''); onSave(null, null); setOpen(false) }}
-              style={{ padding: '6px 10px', background: 'white', color: 'var(--ink-5)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Limpar</button>}
-            <button onClick={() => setOpen(false)}
-              style={{ padding: '6px 10px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-            <button onClick={save}
-              style={{ padding: '6px 12px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 6, fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>Guardar</button>
+
+            <label style={{ display: 'block', fontSize: 10.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 14, marginBottom: 5, fontWeight: 700 }}>Comprimidos restantes</label>
+            <input value={pills} onChange={e => setPills(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric"
+              placeholder="ex: 30"
+              style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 15, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+
+            <label style={{ display: 'block', fontSize: 10.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 12, marginBottom: 5, fontWeight: 700 }}>Comprimidos por dia</label>
+            <input value={perDay} onChange={e => setPerDay(e.target.value.replace(/[^\d.,]/g, '').replace(',', '.'))} inputMode="decimal"
+              placeholder="ex: 1 ou 0.5"
+              style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 15, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+
+            {days !== null && (
+              <div style={{ fontSize: 13, color: '#0d6e42', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px', marginTop: 12, lineHeight: 1.45 }}>
+                ✓ Acaba em <strong>{days} dia{days === 1 ? '' : 's'}</strong> ({new Date(Date.now() + days * 86400000).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })})
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+              {has && <button onClick={() => { setPills(''); setPerDay(''); onSave(null, null); setOpen(false) }}
+                style={{ flex: '1 1 100%', padding: '10px', background: 'white', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                🗑 Apagar stock guardado
+              </button>}
+              <button onClick={() => setOpen(false)}
+                style={{ flex: 1, padding: '11px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Cancelar</button>
+              <button onClick={save}
+                style={{ flex: 1, padding: '11px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Guardar</button>
+            </div>
           </div>
         </div>
-        </>
       )}
-    </div>
+    </>
   )
 }

@@ -35,15 +35,22 @@ export default function PinnedToolsBar() {
       </div>
 
       {items.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 130px), 1fr))', gap: 8 }}>
+        // 2026-06-01: grid de tiles mais compacto e organizado em mobile.
+        // 4 colunas em telefones (90 px mínimo), 5+ em desktop.
+        <div className="pin-grid">
           {items.map(it => (
-            <Link key={it.path} href={it.path} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-              padding: '12px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 12,
+            <Link key={it.path} href={it.path} className="pin-tile" title={it.label} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5,
+              padding: '11px 6px', background: 'white', border: '1px solid var(--border)', borderRadius: 12,
               textDecoration: 'none', textAlign: 'center', transition: 'all 0.15s',
-            }} className="pin-tile">
+              aspectRatio: '1 / 0.95', minHeight: 76,
+            }}>
               <span style={{ fontSize: 22, lineHeight: 1 }}>{it.icon}</span>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', lineHeight: 1.25 }}>{it.label}</span>
+              <span style={{
+                fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', lineHeight: 1.2,
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+              }}>{it.label}</span>
             </Link>
           ))}
         </div>
@@ -96,7 +103,20 @@ export default function PinnedToolsBar() {
           </div>
         </div>
       )}
-      <style>{`.pin-tile:hover { border-color: #0d6e42; transform: translateY(-1px); }`}</style>
+      <style>{`
+        .pin-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 8px;
+        }
+        @media (min-width: 480px) {
+          .pin-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        }
+        @media (min-width: 720px) {
+          .pin-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        }
+        .pin-tile:hover { border-color: #0d6e42; transform: translateY(-1px); }
+      `}</style>
     </div>
   )
 }

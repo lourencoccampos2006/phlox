@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: '/calculators',   priority: 0.8, changeFrequency: 'monthly' },
     { url: '/bula',          priority: 0.8, changeFrequency: 'monthly' },
     { url: '/study',         priority: 0.7, changeFrequency: 'monthly' },
-    { url: '/ferramentas',   priority: 0.7, changeFrequency: 'weekly' },
+    { url: '/inicio',        priority: 0.7, changeFrequency: 'weekly' },
     { url: '/sobre',         priority: 0.5, changeFrequency: 'yearly' },
     { url: '/login',         priority: 0.4, changeFrequency: 'yearly' },
   ]

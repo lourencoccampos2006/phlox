@@ -912,7 +912,7 @@ function DashboardContent() {
             label="Ferramentas em destaque"
             right={
               <Link
-                href="/ferramentas"
+                href="/inicio"
                 style={{ fontSize: 12, color, fontWeight: 600, textDecoration: 'none' }}
               >
                 Ver todas →
@@ -1046,7 +1046,7 @@ function DashboardContent() {
 
             {/* All tools */}
             <AccountRow
-              href="/ferramentas"
+              href="/inicio"
               icon="🔧"
               label="Todas as ferramentas"
               desc="35+ ferramentas organizadas por categoria"

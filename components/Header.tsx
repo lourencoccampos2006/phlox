@@ -135,8 +135,8 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
                 ))}
               </div>
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f8fafc', display: 'flex', justifyContent: 'center' }}>
-                <Link href="/ferramentas" onClick={onClose} style={{ fontSize: 13, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>
-                  Ver todas as ferramentas →
+                <Link href="/inicio" onClick={onClose} style={{ fontSize: 13, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>
+                  Voltar ao início →
                 </Link>
               </div>
             </div>
@@ -260,7 +260,6 @@ function UserMenu({ user, signOut, supabase, isDark }: {
 
             {[
               { href: '/inicio',     label: 'Início',       icon: '🏠' },
-              { href: '/ferramentas',label: 'Ferramentas',  icon: '🧰' },
               { href: '/guardados',  label: 'Guardados',    icon: '★' },
               { href: '/calendario', label: 'Calendário',   icon: '📅' },
               { href: '/settings',   label: 'Definições',   icon: '⚙️' },
@@ -379,7 +378,7 @@ function MobileDrawer({ open, onClose, user, signOut }: {
 
           {(user
             ? [{ href: '/inicio', label: 'Início' }, { href: '/settings', label: 'Definições' }]
-            : [{ href: '/ferramentas', label: 'Ferramentas' }, { href: '/pricing', label: 'Preços' }, { href: '/about', label: 'Sobre' }]
+            : [{ href: '/pricing', label: 'Preços' }, { href: '/about', label: 'Sobre' }]
           ).map(item => (
             <Link key={item.href} href={item.href} onClick={onClose} className="mob-item"
               style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a', borderBottom: '1px solid #f8fafc' }}>
@@ -481,7 +480,6 @@ export default function Header() {
           {/* Logged-out nav */}
           {!loading && !user && (
             <nav className="hdr-lo-nav" style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
-              <Link href="/ferramentas" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Ferramentas</Link>
               <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
               <Link href="/trust"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Trust</Link>
               <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>

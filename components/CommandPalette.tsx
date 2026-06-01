@@ -56,7 +56,7 @@ const TOOLS: Tool[] = [
   { href: '/dashboard', label: 'Dashboard', desc: 'O teu painel pessoal com briefe diário', icon: '🏠', category: 'Conta' },
   { href: '/settings', label: 'Definições', desc: 'Perfil, modo de experiência, conta', icon: '⚙️', category: 'Conta' },
   { href: '/pricing', label: 'Planos & Preços', desc: 'Ver todos os planos disponíveis', icon: '💳', category: 'Conta' },
-  { href: '/ferramentas', label: 'Todas as Ferramentas', desc: 'Diretório completo de todas as funcionalidades', icon: '🗺️', category: 'Conta' },
+  { href: '/inicio', label: 'Início', desc: 'Página inicial com as tuas ferramentas', icon: '🏠', category: 'Conta' },
 ]
 
 export function useCommandPalette() {

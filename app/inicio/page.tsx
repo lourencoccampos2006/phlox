@@ -9,7 +9,6 @@ import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { planName } from '@/lib/plans'
 import { areaOf } from '@/lib/studyAreas'
 import PersonaSwitcher from '@/components/PersonaSwitcher'
-import MyTopTools from '@/components/MyTopTools'
 import PinnedToolsBar from '@/components/PinnedToolsBar'
 import FocusModeToggle from '@/components/FocusModeToggle'
 
@@ -18,7 +17,8 @@ import FocusModeToggle from '@/components/FocusModeToggle'
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 19 ? 'Boa tarde' : 'Boa noite' }
 function dateStr() { return new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' }) }
 
-const HERO: Record<ToolMode, { href: string; title: string; sub: string; cta: string; color: string }> = {
+type NonClinicalMode = Exclude<ToolMode, 'clinical'>
+const HERO: Record<NonClinicalMode, { href: string; title: string; sub: string; cta: string; color: string }> = {
   personal:  { href: '/mymeds',  title: 'A minha medicação', sub: 'Vê a tua lista, ativa lembretes e verifica interações.', cta: 'Abrir', color: '#0d9488' },
   caregiver: { href: '/familia', title: 'Os perfis da família', sub: 'Gere a medicação e a saúde de quem cuidas, num só sítio.', cta: 'Abrir', color: '#b45309' },
   student:   { href: '/arena',   title: 'Continuar a estudar', sub: 'Entra na Arena, treina casos e sobe de liga.', cta: 'Começar', color: '#7c3aed' },
@@ -82,7 +82,7 @@ export default function InicioPage() {
         <PinnedToolsBar />
 
         {/* Hero — ação principal do modo */}
-        {(() => { const h = HERO[toolMode]; if (!h) return null; return (
+        {(() => { const h = (HERO as Record<string, typeof HERO.personal | undefined>)[toolMode]; if (!h) return null; return (
           <Link href={h.href} style={{ textDecoration: 'none' }}>
             <div style={{ background: h.color, borderRadius: 16, padding: '20px 22px', marginBottom: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
               <div style={{ minWidth: 0 }}>
@@ -96,10 +96,8 @@ export default function InicioPage() {
           </Link>
         )})()}
 
-        {/* Top tools — atalhos para o que o utilizador mais usa (aprende localmente) */}
-        <div className="focus-mute"><MyTopTools /></div>
-
-        {/* Estudante — matérias do curso (adapta-se à área) */}
+        {/* 2026-06-01: removido MyTopTools — pedido explícito do utilizador.
+            Estudante — matérias do curso (adapta-se à área) */}
         {toolMode === 'student' && (() => {
           const a = areaOf(studyArea)
           return (
@@ -159,7 +157,7 @@ export default function InicioPage() {
         )}
 
         {/* Add more */}
-        <Link href="/settings/tools" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '13px', background: 'white', border: '1.5px dashed var(--border)', borderRadius: 12, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
+        <Link href="/settings?tab=ferramentas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '13px', background: 'white', border: '1.5px dashed var(--border)', borderRadius: 12, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar mais ferramentas
         </Link>

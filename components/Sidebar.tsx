@@ -208,21 +208,21 @@ const BOTTOM_TABS_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, { hr
     { href: '/mymeds',      icon: '💊', label: 'Meds' },
     { href: '/ai',          icon: '🤖', label: 'AI' },
     { href: '/vitals',      icon: '📊', label: 'Vitais' },
-    { href: '/ferramentas', icon: '🗺️', label: 'Tudo' },
+    { href: '/inicio', icon: '🗺️', label: 'Tudo' },
   ],
   caregiver: [
     { href: '/dashboard',    icon: '⬛', label: 'Início' },
     { href: '/mymeds',       icon: '💊', label: 'Meds' },
     { href: '/perfis',       icon: '👨‍👩‍👧', label: 'Família' },
     { href: '/interactions', icon: '🔍', label: 'Interações' },
-    { href: '/ferramentas',  icon: '🗺️', label: 'Tudo' },
+    { href: '/inicio',  icon: '🗺️', label: 'Tudo' },
   ],
   student: [
     { href: '/dashboard',   icon: '⬛', label: 'Início' },
     { href: '/arena',       icon: '🏆', label: 'Arena' },
     { href: '/simulador',   icon: '🎮', label: 'Simular' },
     { href: '/study',       icon: '📚', label: 'Estudar' },
-    { href: '/ferramentas', icon: '🗺️', label: 'Tudo' },
+    { href: '/inicio', icon: '🗺️', label: 'Tudo' },
   ],
 }
 
@@ -406,7 +406,7 @@ export default function Sidebar() {
         {!collapsed && (
           <div style={{ padding: '12px 8px', borderTop: '1px solid #1e293b', flexShrink: 0 }}>
             <Link
-              href="/ferramentas"
+              href="/inicio"
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '8px 10px', borderRadius: 8, textDecoration: 'none',

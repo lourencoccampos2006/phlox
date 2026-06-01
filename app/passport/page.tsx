@@ -290,21 +290,22 @@ export default function PassportPage() {
             )}
           </div>
 
-          {/* Footer */}
-          <div style={{ padding:'16px 18px', borderTop:'1px solid var(--border)', marginTop:16, display:'flex', alignItems:'center', justifyContent:'space-between', background:'var(--bg-2)' }}>
-            <div>
-              <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)' }}>{t.generated} {today} · {t.via}</div>
-              {emergencyUrl && <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)', marginTop:2 }}>{emergencyUrl}</div>}
-            </div>
+          {/* Footer — 2026-06-01: empilha em mobile (QR grande em cima, info por
+              baixo) para o QR ser sempre digitalizável.  */}
+          <div className="passport-footer" style={{ padding:'18px 18px', borderTop:'1px solid var(--border)', marginTop:16, background:'var(--bg-2)' }}>
             {emergencyUrl && (
-              <div style={{ textAlign:'center' }}>
+              <div className="passport-footer-qr" style={{ textAlign:'center', marginBottom: 12 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(emergencyUrl)}`}
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=${encodeURIComponent(emergencyUrl)}`}
                   alt="QR de emergência" className="passport-qr"
-                  style={{ width:108, height:108, borderRadius:6, border:'2px solid var(--border)', background:'white' }} />
-                <div style={{ fontSize:9.5, fontFamily:'var(--font-mono)', color:'var(--ink-4)', marginTop:5, maxWidth:120, lineHeight:1.35 }}>{t.scan}</div>
+                  style={{ width:160, height:160, borderRadius:8, border:'3px solid white', background:'white', boxShadow:'0 2px 10px rgba(0,0,0,0.08)' }} />
+                <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'var(--ink-3)', marginTop:8, lineHeight:1.45, fontWeight: 600 }}>{t.scan}</div>
               </div>
             )}
+            <div style={{ textAlign:'center', borderTop: emergencyUrl ? '1px solid var(--border)' : 'none', paddingTop: emergencyUrl ? 10 : 0 }}>
+              <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)' }}>{t.generated} {today} · {t.via}</div>
+              {emergencyUrl && <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)', marginTop:3, wordBreak:'break-all' }}>{emergencyUrl}</div>}
+            </div>
           </div>
         </div>
         )}
@@ -362,6 +363,8 @@ export default function PassportPage() {
           .passport-critical-row { grid-template-columns: 1fr !important }
           .passport-critical-row > div { border-right: none !important; border-bottom: 1px solid var(--border) !important }
           .passport-critical-row > div:last-child { border-bottom: none !important }
+          /* QR mais pequeno em telefones muito estreitos (mas sempre legível) */
+          .passport-qr { width: 140px !important; height: 140px !important }
         }
 
         /* Versão bolso (A6 ~ 105×148 mm) — corta para caber na carteira.
@@ -371,7 +374,13 @@ export default function PassportPage() {
           margin: 0 auto !important;
         }
         .passport-pocket .passport-since { display: none !important }
-        .passport-pocket .passport-qr { width: 70px !important; height: 70px !important }
+        .passport-pocket .passport-qr { width: 90px !important; height: 90px !important }
+
+        /* Impressão normal — garante o QR digitalizável e o cartão centrado. */
+        @media print {
+          .passport-card { max-width: 180mm !important; margin: 0 auto !important; box-shadow: none !important; }
+          .passport-qr { width: 130px !important; height: 130px !important; }
+        }
         @page { margin: 8mm }
       `}</style>
     </div>
