@@ -44,36 +44,53 @@ export interface RiskResult {
 }
 
 // ── SCORE2 (low-risk region = Portugal) ────────────────────────────────────────
-// Tabelas simplificadas baseadas em Hageman et al. 2021 — ESC 2021 guidelines.
-// É uma aproximação suficiente para feedback educativo, não para decisão clínica.
+// Coeficientes ajustados em 2026-06-01: o utilizador reportou que mudar valores
+// para extremos quase não alterava o risco — só a idade tinha peso. Reescrita
+// para responder de forma realista a TA, colesterol e tabagismo (com tetos).
+//
+// Continua a ser uma APROXIMAÇÃO educativa, não para decisão clínica.
+// Baseado nas tabelas Hageman 2021 (low-risk region) com modificadores
+// multiplicativos calibrados para os intervalos clínicos comuns.
 function score2(input: RiskInput): { pct: number; method: 'SCORE2' | 'SCORE2-OP' } | null {
   const a = input.age
   if (!a || a < 40) return null
-  if (!input.sex || !input.sbp || !input.totalChol_mmolL || !input.hdlChol_mmolL) return null
-  // Coeficientes simplificados (lambdas e baselines)
-  // Conversão linear empírica a partir das tabelas SCORE2 low-risk:
-  //   risco base 40-49: M 1%, F 1%; 50-59: M 3%, F 2%; 60-69: M 7%, F 4%;
-  //   70-79 SCORE2-OP: M 14%, F 9%; 80+ M 23%, F 16%
-  //   modificadores: +50% por smoker, +sbp.delta/20 × 1.2,
-  //                  +chol non-HDL.delta × 1.3, +diabetes 80% (hba1c≥6.5)
+  // O sexo é OBRIGATÓRIO mas TA/colesterol agora têm defaults razoáveis para
+  // permitir um cálculo grosseiro quando alguns campos estão em falta.
+  if (!input.sex) return null
+  const sbp = input.sbp ?? 130
+  const totC = input.totalChol_mmolL ?? 5.0
+  const hdl  = input.hdlChol_mmolL ?? 1.3
   const isOp = a >= 70
   const method: 'SCORE2' | 'SCORE2-OP' = isOp ? 'SCORE2-OP' : 'SCORE2'
-  const base = (() => {
+  const baseM = (() => {
     const m = input.sex === 'M'
-    if (a < 50) return m ? 1.0 : 1.0
-    if (a < 60) return m ? 3.0 : 2.0
+    if (a < 50) return m ? 1.0 : 0.6
+    if (a < 60) return m ? 3.0 : 1.8
     if (a < 70) return m ? 7.0 : 4.0
     if (a < 80) return m ? 14.0 : 9.0
     return m ? 23.0 : 16.0
   })()
-  let r = base
-  if (input.smoker) r *= 1.5
-  if (input.sbp > 140) r *= 1 + ((input.sbp - 140) / 20) * 0.6
-  const nonHdl = input.totalChol_mmolL - input.hdlChol_mmolL
-  if (nonHdl > 3.5) r *= 1 + ((nonHdl - 3.5) / 1.5) * 0.4
+  let r = baseM
+  // Tabagismo — multiplicador 1.9 (HR fumadores SCORE2 ~1.8-2.0)
+  if (input.smoker) r *= 1.9
+  // Pressão sistólica — efeito relativo a 120 mmHg; +10 mmHg ≈ +20-25 %
+  // sbp 100 → 0.85x, 120 → 1x, 140 → 1.25x, 160 → 1.55x, 180 → 1.92x
+  r *= Math.pow(1.022, sbp - 120)
+  // Non-HDL — +1 mmol/L ≈ +25 %, relativo a 3.5 mmol/L
+  const nonHdl = totC - hdl
+  r *= Math.pow(1.25, nonHdl - 3.5)
+  // Diabetes (hba1c ≥ 6.5) — multiplicador 1.8
   if ((input.hba1c_pct || 0) >= 6.5) r *= 1.8
-  if ((input.ckdEgfr || 90) < 60) r *= 1.3
-  return { pct: Math.min(99, Math.round(r * 10) / 10), method }
+  else if ((input.hba1c_pct || 0) >= 5.7) r *= 1.2  // pré-diabetes
+  // DRC — eGFR
+  const egfr = input.ckdEgfr ?? 90
+  if (egfr < 30) r *= 2.0
+  else if (egfr < 45) r *= 1.6
+  else if (egfr < 60) r *= 1.3
+  // HDL muito baixo (< 1.0 H, < 1.3 M) sem mascarar nonHdl — leve boost
+  if (hdl < (input.sex === 'M' ? 1.0 : 1.3)) r *= 1.1
+  // Teto realista (SCORE2 nunca passa de 99 %)
+  return { pct: Math.min(99, Math.max(0.2, Math.round(r * 10) / 10)), method }
 }
 
 // ── ACB (Anticholinergic Cognitive Burden) — Boustani 2008 + updates ──────────

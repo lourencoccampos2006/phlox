@@ -10,7 +10,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
-import { rankPatientsByRisk, workflowPulse, abxConsumption } from '@/lib/clinicalIntel'
+import { rankPatientsByRisk, abxConsumption } from '@/lib/clinicalIntel'
 
 type Tab = 'pulse' | 'risk' | 'abx' | 'bench' | 'audit'
 
@@ -80,23 +80,43 @@ function PulseTab() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      const today = new Date(); today.setHours(0, 0, 0, 0)
-      const { data } = await supabase.from('mar_records').select('*').gte('scheduled_at', today.toISOString()).limit(500)
-      setPulse(workflowPulse((data || []).map((r: any) => ({
-        patient_id: r.patient_id, med_id: r.med_id,
-        scheduled_at: r.scheduled_at, administered_at: r.administered_at, status: r.status,
-      })), { lateThresholdMin: 30 }))
+      // 2026-06-01: mar_records usa date + shift + status. Antes referenciava
+      // scheduled_at/administered_at que não existem — tudo dava 0.
+      const todayIso = new Date().toISOString().slice(0, 10)
+      // Conta doses agendadas (patient_meds.shifts) vs administradas
+      const [recs, meds] = await Promise.all([
+        supabase.from('mar_records').select('patient_id, med_id, shift, status, date').eq('date', todayIso).eq('user_id', user.id),
+        supabase.from('patient_meds').select('id, patient_id, shifts').eq('user_id', user.id).eq('active', true),
+      ])
+      const givenSet = new Set<string>()
+      const refusedSet = new Set<string>()
+      ;(recs.data || []).forEach((r: any) => {
+        const key = `${r.patient_id}|${r.med_id}|${r.shift}`
+        if (r.status === 'given' || r.status === 'taken') givenSet.add(key)
+        else if (r.status === 'refused' || r.status === 'missed') refusedSet.add(key)
+      })
+      let total = 0
+      ;(meds.data || []).forEach((m: any) => {
+        const shifts: string[] = Array.isArray(m.shifts) ? m.shifts : []
+        total += shifts.length
+      })
+      const given = givenSet.size
+      const missed = Math.max(0, total - given - refusedSet.size) + refusedSet.size
+      const completion = total ? Math.round((given / total) * 100) : 0
+      setPulse({
+        mar_total: total, mar_given: given, mar_late: 0,
+        mar_missed: missed, mar_completion_pct: completion,
+        on_time_pct: completion,
+      })
     })()
   }, [user?.id])
   if (!pulse) return <Empty msg="A obter dados do turno actual…" />
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 190px), 1fr))', gap: 10 }}>
-      <Stat label="Doses agendadas" v={pulse.mar_total} />
+      <Stat label="Doses agendadas hoje" v={pulse.mar_total} />
       <Stat label="Administradas" v={pulse.mar_given} color="#0d6e42" />
-      <Stat label="Tardias (> 30 min)" v={pulse.mar_late} color="#d97706" />
-      <Stat label="Omissões" v={pulse.mar_missed} color="#dc2626" />
+      <Stat label="Por administrar / recusadas" v={pulse.mar_missed} color="#dc2626" />
       <Stat label="Conclusão" v={`${pulse.mar_completion_pct}%`} color="#1d4ed8" />
-      <Stat label="On-time" v={`${pulse.on_time_pct}%`} color={pulse.on_time_pct >= 90 ? '#0d6e42' : pulse.on_time_pct >= 75 ? '#d97706' : '#dc2626'} />
     </div>
   )
 }
@@ -108,12 +128,24 @@ function RiskTab() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      const { data: ps } = await supabase.from('patients').select('id,name,age,meds,conditions,last_intervention_at').limit(150)
-      const r = rankPatientsByRisk((ps || []) as any[])
+      // 2026-06-01: A tabela patients NÃO tem coluna meds (está em patient_meds).
+      // O código antigo fazia select('meds') → undefined → ranking devolvia 0
+      // para todos. Agora juntamos os dois lados manualmente.
+      const [ps, pm] = await Promise.all([
+        supabase.from('patients').select('id,name,age,conditions').limit(150),
+        supabase.from('patient_meds').select('patient_id, name'),
+      ])
+      const byId = new Map<string, any[]>()
+      ;(pm.data || []).forEach((m: any) => {
+        if (!byId.has(m.patient_id)) byId.set(m.patient_id, [])
+        byId.get(m.patient_id)!.push({ name: m.name })
+      })
+      const patients = (ps.data || []).map((p: any) => ({ ...p, meds: byId.get(p.id) || [] }))
+      const r = rankPatientsByRisk(patients)
       setRanked(r)
     })()
   }, [user?.id])
-  if (!ranked.length) return <Empty msg="Sem doentes carregados ou nenhum tem medicação registada." />
+  if (!ranked.length) return <Empty msg="Sem doentes carregados. Adiciona doentes em /patients." />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {ranked.slice(0, 30).map((r, i) => {
@@ -147,16 +179,14 @@ function AbxTab() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      // Heurística: prescrições com nome a parecer antibiótico
-      const { data } = await supabase.from('patients').select('meds').limit(500)
+      // 2026-06-01: corrigido — patient_meds é a tabela certa, não patients.
+      const { data } = await supabase.from('patient_meds').select('name').limit(2000)
       const list: { med_name: string; days: number }[] = []
-      ;(data || []).forEach((p: any) => {
-        (p.meds || []).forEach((m: any) => {
-          const n = (m.name || '').toLowerCase()
-          if (/cilina|amoxic|cefuro|cefalo|ceftri|cefta|ceftaz|ciproflo|levoflo|moxiflo|azitr|claritr|metronid|vancomic|meropenem|imipenem|piperac|gentamic|amicacin/.test(n)) {
-            list.push({ med_name: n, days: 7 })
-          }
-        })
+      ;(data || []).forEach((m: any) => {
+        const n = (m.name || '').toLowerCase()
+        if (/cilina|amoxic|cefuro|cefalo|ceftri|cefta|ceftaz|ciproflo|levoflo|moxiflo|azitr|claritr|metronid|vancomic|meropenem|imipenem|piperac|gentamic|amicacin/.test(n)) {
+          list.push({ med_name: n, days: 7 })
+        }
       })
       setAbx(abxConsumption(list))
     })()
@@ -231,8 +261,12 @@ function AuditTab() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      // Reaproveita tabelas existentes — rounds_interventions
-      const { data } = await supabase.from('rounds_interventions').select('*').order('created_at', { ascending: false }).limit(80)
+      // 2026-06-01: tabela real é pcne_interventions (não rounds_interventions).
+      const { data } = await supabase.from('pcne_interventions')
+        .select('id, problem_text, intervention_text, outcome_code, accepted, date, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(80)
       setLogs(data || [])
     })()
   }, [user?.id])
@@ -247,12 +281,14 @@ function AuditTab() {
     <div>
       <input value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar (medicamento, doente, intervenção…)"
         style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 13, marginBottom: 10, outline: 'none', background: 'white' }} />
-      {filtered.length === 0 ? <Empty msg="Sem intervenções registadas." /> : (
+      {filtered.length === 0 ? <Empty msg="Sem intervenções registadas. Cria intervenções PCNE em /rounds." /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {filtered.map(l => (
             <div key={l.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, padding: '8px 10px', fontSize: 12, color: '#475569', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <strong style={{ color: '#0b1120' }}>{l.intervention_type || l.category || '—'}</strong> · {l.description || l.notes || ''}
+                <strong style={{ color: '#0b1120' }}>{l.problem_text || '—'}</strong>
+                {l.intervention_text ? <span> · {l.intervention_text}</span> : null}
+                {l.outcome_code ? <span style={{ marginLeft: 6, color: '#0d6e42', fontFamily: 'var(--font-mono)' }}>[{l.outcome_code}]</span> : null}
               </span>
               <span style={{ fontFamily: 'var(--font-mono)', color: '#94a3b8', fontSize: 11 }}>{new Date(l.created_at).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
             </div>

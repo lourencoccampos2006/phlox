@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { NAV_CATEGORIES, PERSONA_NAV, MODE_QUICK_ACTIONS, type NavTool } from '@/lib/navigation'
+import { PERSONA_NAV, MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
 
 type HeaderUser = {
@@ -24,9 +24,9 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const allTools: (NavTool & { categoryLabel: string; categoryColor: string })[] = NAV_CATEGORIES.flatMap(cat =>
-    cat.tools.map(t => ({ ...t, categoryLabel: cat.label, categoryColor: cat.color }))
-  )
+  // Mode isolation: cada utilizador só pesquisa as ferramentas do seu modo.
+  // Ferramentas pessoais não aparecem ao clínico (e vice-versa).
+  const allTools = getAllToolsForMode(mode)
 
   const modeQuickHrefs = new Set((MODE_QUICK_ACTIONS[mode] || MODE_QUICK_ACTIONS.personal).map(a => a.href))
   const popularTools = [

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { areaOf } from '@/lib/studyAreas'
 import SaveButton from '@/components/SaveButton'
+import { consumeReopen } from '@/lib/saves'
 
 interface Result {
   topic: string; items: string[]; mnemonic: string
@@ -25,6 +26,12 @@ export default function MnemonicasPage() {
   const [copyOk, setCopyOk] = useState(false)
 
   useEffect(() => { try { const r = localStorage.getItem(LS_KEY); if (r) setSaved(JSON.parse(r)) } catch { /* noop */ } }, [])
+
+  // Reabrir conteúdo vindo de /guardados
+  useEffect(() => {
+    const data = consumeReopen<Result>()
+    if (data && data.topic) { setTopic(data.topic); setResult(data) }
+  }, [])
 
   const persist = (next: Saved[]) => { setSaved(next); try { localStorage.setItem(LS_KEY, JSON.stringify(next)) } catch { /* noop */ } }
   const isSaved = result ? saved.some(s => s.mnemonic === result.mnemonic && s.topic === result.topic) : false

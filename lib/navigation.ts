@@ -6,6 +6,12 @@ export type NavTool = {
   label: string
   desc: string
   badge?: string
+  /**
+   * Lista de modos em que esta ferramenta deve aparecer no nav.
+   * Se ausente, mostra-se em todos os modos (compatibilidade).
+   * Ferramentas pessoais NÃO devem aparecer em modo clínico, e vice-versa.
+   */
+  modes?: ('personal' | 'caregiver' | 'student' | 'clinical')[]
 }
 
 export type NavCategory = {
@@ -53,33 +59,28 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'clinical', label: 'Clínico', color: '#2563eb',
     tools: [
+      // CURADORIA 2026-06-01: Reduzido de 26 para 14. Removidas /calculators,
+      // /counseling, /electrolytes, /nota-clinica, /handover (ainda incompletas
+      // ou duplicadas com calculos / oracle). O utilizador pode reativar em
+      // /settings/tools.
       { href: '/clinico360',         icon: '🌐', label: 'Clínico 360°',        desc: 'Pulse · Risk · Stewardship · Benchmark · Audit', badge: 'Premium' },
       { href: '/cockpit',            icon: '🎛️', label: 'Cockpit Operacional', desc: 'Dashboard do turno · Alertas · KPIs' },
-      { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',   desc: 'Formulário · DDD · Ruturas · Custos', badge: 'Novo' },
-      { href: '/quality',            icon: '📊', label: 'Central de Qualidade', desc: 'KPIs · Segurança · Intervenções', badge: 'Novo' },
-      { href: '/team',               icon: '👥', label: 'Gestão de Equipa',    desc: 'Turnos · Vagas · Competências · Formação', badge: 'Novo' },
-      { href: '/turno',         icon: '🏥', label: 'Turno',           desc: 'Gestão de doentes e doses' },
-      { href: '/rounds',        icon: '📋', label: 'Ronda',           desc: 'PCNE e intervenções' },
-      { href: '/mar',           icon: '📝', label: 'MAR',             desc: 'Registo de administração' },
-      { href: '/patients',      icon: '👥', label: 'Doentes',         desc: 'Fichas e medicação' },
-      { href: '/oracle',        icon: '🤖', label: 'Oracle AI',       desc: 'SOAP e intervenção' },
-      { href: '/nota-clinica',  icon: '🗒️', label: 'Nota Clínica',   desc: 'SOAP estruturado com IA', badge: 'Novo' },
-      { href: '/drug-info',     icon: '💊', label: 'Info Fármaco',    desc: 'Monografia completa', badge: 'Novo' },
-      { href: '/handover',      icon: '🔁', label: 'Passagem Turno',  desc: 'Relatório de turno IA', badge: 'Novo' },
-      { href: '/calculos',       icon: '🧮', label: 'Calculadoras Clínicas', desc: 'CrCl, IBW, eGFR, PK, Child-Pugh…', badge: 'Novo' },
-      { href: '/calculators',   icon: '🔢', label: 'Outras Calculadoras', desc: 'CURB-65, MEWS, VTE, CKD…' },
-      { href: '/reconciliacao',      icon: '🔄', label: 'Reconciliação',      desc: 'Admissão vs. atual' },
-      { href: '/adr-report',         icon: '⚠️', label: 'Notificação RAM',    desc: 'WHO-UMC e INFARMED' },
-      { href: '/antibiotics',        icon: '💉', label: 'Antibioterapia',     desc: 'Empírica · MRSA/ESBL · stewardship', badge: 'Pro' },
-      { href: '/stopp-start',        icon: '🛑', label: 'STOPP/START',        desc: 'v3 2023 + Beers', badge: 'Pro' },
-      { href: '/polypharmacy',       icon: '⚕️', label: 'Polimedicação',      desc: 'Auditoria · cascatas · carga ACB', badge: 'Pro' },
-      { href: '/counseling',         icon: '📋', label: 'Aconselhamento',     desc: 'Folha de informação ao doente', badge: 'Pro' },
-      { href: '/iv-compatibility',   icon: '🧪', label: 'Comp. IV',          desc: 'Y-site · mistura · seringa', badge: 'Pro' },
-      { href: '/emergency-doses',    icon: '🚨', label: 'Urgência',          desc: 'Doses de emergência por peso', badge: 'Pro' },
-      { href: '/electrolytes',       icon: '⚡', label: 'Eletrólitos',        desc: 'Protocolos K, Na, Mg, Ca', badge: 'Pro' },
-      { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',         desc: 'Vancomicina AUC · Aminoglicosídeos · Fenitoína', badge: 'Pro' },
-      { href: '/tpn',                icon: '🧪', label: 'Nutrição Parentérica', desc: 'ASPEN 2022 · Cálculo completo · Rótulo PDF', badge: 'Pro' },
-      { href: '/prescription-queue', icon: '📬', label: 'Fila de Validação',  desc: 'Revisão clínica · Intervenção · Audit trail', badge: 'Pro' },
+      { href: '/turno',              icon: '🏥', label: 'Turno',               desc: 'Gestão de doentes e doses' },
+      { href: '/rounds',             icon: '📋', label: 'Ronda Farmacêutica',  desc: 'PCNE e intervenções' },
+      { href: '/mar',                icon: '📝', label: 'MAR',                 desc: 'Registo de administração' },
+      { href: '/patients',           icon: '👥', label: 'Doentes',             desc: 'Fichas e medicação' },
+      { href: '/oracle',             icon: '🤖', label: 'Oracle AI',           desc: 'SOAP e intervenção PCNE' },
+      { href: '/reconciliacao',      icon: '🔄', label: 'Reconciliação',       desc: 'Admissão vs. atual' },
+      { href: '/calculos',           icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
+      { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',          desc: 'Vancomicina AUC · Aminoglicosídeos', badge: 'Pro' },
+      { href: '/antibiotics',        icon: '💉', label: 'Antibioterapia',      desc: 'Empírica · MRSA/ESBL', badge: 'Pro' },
+      { href: '/stopp-start',        icon: '🛑', label: 'STOPP/START',         desc: 'v3 2023 + Beers', badge: 'Pro' },
+      { href: '/tpn',                icon: '🧪', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
+      { href: '/prescription-queue', icon: '📬', label: 'Fila de Validação',   desc: 'Revisão clínica · Audit trail', badge: 'Pro' },
+      { href: '/adr-report',         icon: '⚠️', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
+      { href: '/quality',            icon: '📊', label: 'Qualidade',           desc: 'KPIs · Segurança · Intervenções' },
+      { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',   desc: 'Formulário · DDD · Ruturas · Custos' },
+      { href: '/team',               icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
     ],
   },
   {
@@ -123,6 +124,40 @@ export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>>
     { href: '/simulador', label: 'Simular' },
     { href: '/progresso', label: 'Progresso' },
   ],
+}
+
+// ── Mode isolation ────────────────────────────────────────────────────────────
+// Quem é clínico NÃO vê ferramentas pessoais. Quem é pessoal NÃO vê o cockpit.
+// O mapa abaixo decide que categorias aparecem em cada modo. Ferramentas
+// individuais podem usar o campo `modes` para override.
+type Mode = 'personal' | 'caregiver' | 'student' | 'clinical'
+
+const CATEGORY_MODES: Record<string, Mode[]> = {
+  medication: ['personal', 'caregiver'],
+  health:     ['personal', 'caregiver'],
+  caregiver:  ['caregiver'],
+  clinical:   ['clinical'],
+  student:    ['student'],
+}
+
+export function getNavForMode(mode: Mode): NavCategory[] {
+  return NAV_CATEGORIES
+    .filter(cat => {
+      const allowed = CATEGORY_MODES[cat.id]
+      return allowed ? allowed.includes(mode) : true
+    })
+    .map(cat => ({
+      ...cat,
+      tools: cat.tools.filter(t => !t.modes || t.modes.includes(mode)),
+    }))
+    .filter(cat => cat.tools.length > 0)
+}
+
+/** Lista plana usada por search e command palette. */
+export function getAllToolsForMode(mode: Mode): (NavTool & { categoryLabel: string; categoryColor: string })[] {
+  return getNavForMode(mode).flatMap(cat =>
+    cat.tools.map(t => ({ ...t, categoryLabel: cat.label, categoryColor: cat.color }))
+  )
 }
 
 export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {

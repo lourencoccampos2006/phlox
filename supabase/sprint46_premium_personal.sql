@@ -71,12 +71,17 @@ do $$ begin
     using (user_id = auth.uid()) with check (user_id = auth.uid());
 exception when duplicate_object then null; end $$;
 
--- ── Refill estimate — adiciona colunas ao personal_meds se já existe ───────
--- Em vez de tabela nova, expandimos personal_meds com estoque e per_day.
--- (Drop-safe: usa do block para evitar erro se coluna já existe)
+-- ── Refill estimate — adiciona colunas ao personal_meds e family_profile_meds
+-- 2026-06-01: Refill agora também funciona em perfis familiares (cuidador).
+-- O utilizador reportou "não tem sítio onde meter isso" — a UI em /mymeds
+-- ganhou editor; aqui garantimos as colunas no schema.
 do $$ begin
   alter table personal_meds add column if not exists pills_remaining int;
   alter table personal_meds add column if not exists pills_per_day numeric;
+exception when undefined_table then null; end $$;
+do $$ begin
+  alter table family_profile_meds add column if not exists pills_remaining int;
+  alter table family_profile_meds add column if not exists pills_per_day numeric;
 exception when undefined_table then null; end $$;
 
 -- ── Adesão heatmap ──────────────────────────────────────────────────────────

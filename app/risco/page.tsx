@@ -18,21 +18,52 @@ export default function RiscoPage() {
   const plan = ((user as any)?.plan || 'free') as string
   const canUse = plan !== 'free'
 
-  // Carrega dados existentes do Phlox: medicação, vitais recentes
+  // Carrega dados existentes do Phlox: medicação, vitais, labs, perfil.
+  // 2026-06-01: o utilizador reportou que mexer nos campos quase não alterava
+  // o risco. Além de corrigir o algoritmo (lib/riskEngine), agora pré-populamos
+  // muito mais do que estava antes (idade, sexo, fumador, HbA1c, eGFR, colesterol).
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
       try {
-        const [meds, vit] = await Promise.all([
+        const [meds, vit, labs, profile] = await Promise.all([
           supabase.from('personal_meds').select('name, dose').eq('user_id', user.id),
           supabase.from('vital_signs').select('*').eq('user_id', user.id).order('measured_at', { ascending: false }).limit(20),
+          supabase.from('lab_results').select('*').eq('user_id', user.id).order('measured_at', { ascending: false }).limit(60),
+          supabase.from('profiles').select('birth_date, sex, smoker, age').eq('id', user.id).maybeSingle(),
         ])
         const medNames = (meds.data || []).map((m: any) => (m.name || '').trim()).filter(Boolean)
         const lastSbp = (vit.data || []).find((v: any) => v.systolic)?.systolic
+
+        // Pega a medição mais recente de cada test code
+        const labByCode = new Map<string, any>()
+        ;(labs.data || []).forEach((r: any) => { if (!labByCode.has(r.test_code)) labByCode.set(r.test_code, r) })
+        const hba1c = labByCode.get('hba1c')?.value
+        const totalC = labByCode.get('total_cholesterol')?.value || labByCode.get('cholesterol_total')?.value
+        const hdl = labByCode.get('hdl')?.value || labByCode.get('hdl_cholesterol')?.value
+        const ldl = labByCode.get('ldl')?.value
+        const egfr = labByCode.get('egfr')?.value || labByCode.get('ckd_epi')?.value
+
+        // Idade do perfil
+        const prof = profile.data
+        let age: number | undefined
+        if (prof?.age) age = prof.age
+        else if (prof?.birth_date) {
+          const bd = new Date(prof.birth_date)
+          age = Math.floor((Date.now() - bd.getTime()) / (365.25 * 86400000))
+        }
+
         setInput(prev => ({
           ...prev,
           meds: medNames,
           sbp: lastSbp || prev.sbp,
+          age: age || prev.age,
+          sex: (prof?.sex === 'M' || prof?.sex === 'F') ? prof.sex : prev.sex,
+          smoker: typeof prof?.smoker === 'boolean' ? prof.smoker : prev.smoker,
+          hba1c_pct: hba1c || prev.hba1c_pct,
+          totalChol_mmolL: totalC || prev.totalChol_mmolL,
+          hdlChol_mmolL: hdl || prev.hdlChol_mmolL,
+          ckdEgfr: egfr || prev.ckdEgfr,
         }))
       } catch {}
       finally { setLoading(false) }
@@ -42,6 +73,14 @@ export default function RiscoPage() {
   function recompute() {
     setResult(computeRisk(input))
   }
+
+  // Recálculo automático ao mexer em qualquer input — mais responsivo.
+  // Atrasa 150 ms para evitar correr a cada keystroke.
+  useEffect(() => {
+    if (loading) return
+    const t = setTimeout(() => setResult(computeRisk(input)), 150)
+    return () => clearTimeout(t)
+  }, [input, loading])
 
   if (!canUse) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>

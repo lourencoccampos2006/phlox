@@ -16,6 +16,7 @@ type VaultDoc = {
   category: string
   notes: string | null
   body_text: string | null
+  body_url: string | null              // data URL ou URL externa do ficheiro
   issued_at: string | null
   expires_at: string | null
   tags: string[] | null
@@ -41,6 +42,7 @@ export default function VaultPage() {
   const [q, setQ] = useState('')
   const [catFilter, setCatFilter] = useState<string>('all')
   const [editing, setEditing] = useState<VaultDoc | null>(null)
+  const [viewing, setViewing] = useState<VaultDoc | null>(null)
   const [addingNew, setAddingNew] = useState(false)
   const [sharing, setSharing] = useState<VaultDoc | null>(null)
   const plan = ((user as any)?.plan || 'free') as string
@@ -148,6 +150,7 @@ export default function VaultPage() {
                     {it.notes && <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2, lineHeight: 1.5 }}>{it.notes}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <button onClick={() => setViewing(it)} title="Abrir" style={{ background: '#0b1120', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>Abrir</button>
                     <button onClick={() => setSharing(it)} title="Partilhar com código" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#1d4ed8', fontWeight: 700 }}>↗</button>
                     <button onClick={() => setEditing(it)} title="Editar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#475569' }}>✎</button>
                     <button onClick={() => togglePin(it)} title="Fixar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: it.pinned ? '#b45309' : '#94a3b8' }}>★</button>
@@ -162,6 +165,7 @@ export default function VaultPage() {
         {(editing || addingNew) && (
           <EditModal doc={editing} onClose={() => { setEditing(null); setAddingNew(false) }} onSave={(d) => saveItem(d, addingNew)} />
         )}
+        {viewing && <ViewModal doc={viewing} onClose={() => setViewing(null)} onEdit={() => { setEditing(viewing); setViewing(null) }} />}
         {sharing && <ShareModal doc={sharing} onClose={() => setSharing(null)} />}
       </div>
     </div>
@@ -179,8 +183,22 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
   const [category, setCategory] = useState(doc?.category || 'exam')
   const [notes, setNotes] = useState(doc?.notes || '')
   const [bodyText, setBodyText] = useState(doc?.body_text || '')
+  const [bodyUrl, setBodyUrl] = useState<string | null>(doc?.body_url || null)
   const [issuedAt, setIssuedAt] = useState(doc?.issued_at || '')
   const [tags, setTags] = useState((doc?.tags || []).join(', '))
+  const toast = useToast()
+
+  // Aceita PDF/imagem até ~3MB. Acima disso, recusa (Supabase row caps).
+  // 2026-06-01: o utilizador reportou "no cofre não se conseguem colocar
+  // documentos (só o texto) e tampouco abrem". Resolvido com upload + view.
+  async function pickFile(file: File) {
+    const MAX = 3 * 1024 * 1024
+    if (file.size > MAX) { toast.error('Ficheiro acima de 3 MB. Para PDFs grandes, exporta texto e cola em baixo.'); return }
+    const reader = new FileReader()
+    reader.onload = () => setBodyUrl(reader.result as string)
+    reader.onerror = () => toast.error('Não foi possível ler o ficheiro.')
+    reader.readAsDataURL(file)
+  }
 
   function save() {
     if (!title.trim()) return
@@ -190,6 +208,7 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
       category,
       notes: notes.trim() || null,
       body_text: bodyText.trim() || null,
+      body_url: bodyUrl,
       issued_at: issuedAt || null,
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
     })
@@ -228,12 +247,78 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
         <Label>Notas (opcional)</Label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...input(), resize: 'vertical' }} />
 
+        <Label>Ficheiro (PDF ou imagem — opcional, máx 3 MB)</Label>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+          <label style={{ flex: 1, padding: '8px 12px', background: bodyUrl ? '#f0fdf4' : '#f8fafc', border: `1.5px dashed ${bodyUrl ? '#16a34a' : '#cbd5e1'}`, borderRadius: 8, fontSize: 12.5, color: '#475569', cursor: 'pointer', display: 'block', textAlign: 'center' }}>
+            {bodyUrl ? '✓ Ficheiro anexado' : '+ Anexar ficheiro (PDF/imagem)'}
+            <input type="file" accept="application/pdf,image/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f) }} />
+          </label>
+          {bodyUrl && <button onClick={() => setBodyUrl(null)} style={{ padding: '8px 10px', background: 'white', color: '#94a3b8', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 11, cursor: 'pointer' }}>Remover</button>}
+        </div>
+
         <Label>Texto/conteúdo (para pesquisar e mostrar)</Label>
         <textarea value={bodyText} onChange={e => setBodyText(e.target.value)} rows={5} placeholder="Cola o conteúdo do documento aqui…" style={{ ...input(), resize: 'vertical' }} />
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
           <button onClick={onClose} style={{ padding: '9px 16px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
           <button onClick={save} style={{ padding: '9px 18px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => void; onEdit: () => void }) {
+  const meta = CATS.find(c => c.id === doc.category) || CATS[CATS.length - 1]
+  const isPdf = doc.body_url?.startsWith('data:application/pdf')
+  const isImage = doc.body_url?.startsWith('data:image/')
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(11,17,32,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 800, maxWidth: '100%', height: 'min(88vh, 720px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 7, background: meta.color + '14', color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{meta.icon}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</div>
+            <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+              {meta.label}{doc.issued_at ? ` · ${new Date(doc.issued_at).toLocaleDateString('pt-PT')}` : ''}
+            </div>
+          </div>
+          <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Editar</button>
+          <button onClick={onClose} style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: 0, display: 'flex', flexDirection: 'column' }}>
+          {doc.notes && (
+            <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 13, color: '#475569', lineHeight: 1.55 }}>
+              <strong style={{ color: '#0b1120' }}>Notas:</strong> {doc.notes}
+            </div>
+          )}
+
+          {/* Preview do ficheiro */}
+          {doc.body_url && (
+            <div style={{ flex: 1, background: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320 }}>
+              {isPdf ? (
+                <iframe src={doc.body_url} title={doc.title} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} />
+              ) : isImage ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={doc.body_url} alt={doc.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              ) : (
+                <a href={doc.body_url} download={doc.title} style={{ color: 'white', fontSize: 13 }}>📥 Descarregar anexo</a>
+              )}
+            </div>
+          )}
+
+          {doc.body_text && (
+            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: '#0b1120', lineHeight: 1.65, margin: 0, padding: '14px 18px', background: 'white' }}>{doc.body_text}</pre>
+          )}
+
+          {!doc.body_url && !doc.body_text && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>
+              Documento sem ficheiro nem texto. Usa "Editar" para acrescentar.
+            </div>
+          )}
         </div>
       </div>
     </div>

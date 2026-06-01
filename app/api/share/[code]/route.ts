@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ code: strin
   await db.from('health_vault_shares').update({ views: (share.views || 0) + 1 }).eq('id', share.id)
 
   const { data: docs } = await db.from('health_vault')
-    .select('id,title,category,notes,body_text,issued_at,expires_at,tags')
+    .select('id,title,category,notes,body_text,body_url,issued_at,expires_at,tags')
     .in('id', share.vault_ids || [])
 
   return NextResponse.json({ docs: docs || [], remaining: Math.max(0, share.max_views - share.views - 1) })

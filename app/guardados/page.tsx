@@ -126,7 +126,7 @@ function SavedRow({ item }: { item: SavedItem }) {
         {item.preview && <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.preview}</div>}
         {item.href && (
           <div style={{ marginTop: 7 }}>
-            <Link href={item.href} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Abrir na ferramenta →</Link>
+            <Link href={`${item.href}?reopen=${item.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Reabrir conteúdo →</Link>
           </div>
         )}
       </div>

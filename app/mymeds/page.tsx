@@ -18,6 +18,8 @@ interface Med {
   frequency: string|null; indication: string|null
   reminder_times: string[]|null
   started_at: string|null; created_at: string
+  pills_remaining?: number | null
+  pills_per_day?: number | null
 }
 
 interface DoseLog {
@@ -427,24 +429,34 @@ export default function MyMedsPage() {
     }
 
     let data: any = null
+    let insertError: any = null
     if (activeProfile?.type === 'family') {
+      // CORREÇÃO 2026-06-01: family_profile_meds tem user_id NOT NULL + RLS
+      // user_id = auth.uid(). Sem o user_id explícito, o insert falhava em
+      // silêncio e data = null — utilizador relatava "não consigo adicionar".
       const result = await supabase.from('family_profile_meds').insert({
-        profile_id: activeProfile.id, name: finalName,
+        profile_id: activeProfile.id,
+        user_id: user.id,
+        name: finalName,
         dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
       }).select().single()
       data = result.data
+      insertError = result.error
     } else {
       const result = await supabase.from('personal_meds').insert({
         user_id: user.id, name: finalName,
         dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
       }).select().single()
       data = result.data
+      insertError = result.error
     }
     if (data) {
       const updatedMeds = [data, ...meds]
       setMeds(updatedMeds)
       setAnalysed(false)
       autoCheckInteractions(updatedMeds)
+    } else if (insertError) {
+      alert(`Não foi possível adicionar: ${insertError.message}`)
     }
     setNewMed({ name:'', dose:'', frequency:'', indication:'' })
     setSuggestions([])
@@ -458,6 +470,16 @@ export default function MyMedsPage() {
     setMeds(p => p.filter(m => m.id !== id))
     setTodayLogs(p => p.filter(l => l.med_id !== id))
     setAnalysed(false); setAutoCheckResult(null)
+  }
+
+  // Refill — atualiza stock + doses/dia (pessoal ou perfil familiar).
+  // 2026-06-01: o utilizador reportou "não tem sítio onde meter isso (refill)".
+  const updateRefill = async (medId: string, pills: number | null, perDay: number | null) => {
+    const table = activeProfile?.type === 'family' ? 'family_profile_meds' : 'personal_meds'
+    const patch = { pills_remaining: pills, pills_per_day: perDay }
+    const { error } = await supabase.from(table).update(patch).eq('id', medId)
+    if (error) { alert(`Não foi possível atualizar stock: ${error.message}`); return }
+    setMeds(p => p.map(m => m.id === medId ? { ...m, ...patch } : m))
   }
 
   // ─── Scan de receita ─────────────────────────────────────────────────────────
@@ -499,6 +521,7 @@ export default function MyMedsPage() {
       if (activeProfile?.type === 'family') {
         const result = await supabase.from('family_profile_meds').insert({
           profile_id: activeProfile.id,
+          user_id: user.id,
           name: resolved ? resolved.dci : med.name,
           dose: med.dose || null,
           frequency: med.frequency || null,
@@ -831,6 +854,12 @@ export default function MyMedsPage() {
                             ? Math.floor((Date.now() - new Date(med.created_at).getTime()) / (1000 * 60 * 60 * 24))
                             : 0
                         const needsRefill = daysSinceStart >= 25
+                        // Calcula dias até acabar (refill projection) com base no stock.
+                        const stockDays = (med.pills_remaining != null && med.pills_per_day && med.pills_per_day > 0)
+                          ? Math.floor((med.pills_remaining || 0) / med.pills_per_day)
+                          : null
+                        const stockCritical = stockDays != null && stockDays <= 3
+                        const stockWarn = stockDays != null && stockDays > 3 && stockDays <= 7
                         return (
                           <div key={med.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderBottom:i<meds.length-1?'1px solid var(--bg-3)':'none' }}>
                             <div style={{ width:36, height:36, borderRadius:'50%', background:hasGrave?'#fee2e2':'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
@@ -841,13 +870,19 @@ export default function MyMedsPage() {
                                 <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', cursor:'pointer', textDecorationLine:'underline', textDecorationStyle:'dotted', textDecorationColor:'var(--border-2)' }}>{med.name}</span>} />
                                 {hasGrave && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', background:'#fee2e2', border:'1px solid #fca5a5', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>Alerta</span>}
                                 {hasReminder && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius:3 }}>🔔 {med.reminder_times!.join(' · ')}</span>}
-                                {needsRefill && <span title={`Adicionado há ${daysSinceStart} dias`} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#d97706', background:'#fffbeb', border:'1px solid #fde68a', padding:'1px 5px', borderRadius:3 }}>📦 Verificar stock</span>}
+                                {stockDays != null && (
+                                  <span title={`${med.pills_remaining} cp restantes · ${med.pills_per_day}/dia`} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color: stockCritical?'#991b1b':stockWarn?'#b45309':'#0d6e42', background: stockCritical?'#fee2e2':stockWarn?'#fffbeb':'#f0fdf5', border:`1px solid ${stockCritical?'#fca5a5':stockWarn?'#fde68a':'#bbf7d0'}`, padding:'1px 5px', borderRadius:3 }}>
+                                    📦 {stockDays}d
+                                  </span>
+                                )}
+                                {stockDays == null && needsRefill && <span title={`Adicionado há ${daysSinceStart} dias`} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#d97706', background:'#fffbeb', border:'1px solid #fde68a', padding:'1px 5px', borderRadius:3 }}>📦 Verificar stock</span>}
                               </div>
                               <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
                                 {[med.dose, med.frequency, med.indication].filter(Boolean).join(' · ')}
                                 {daysSinceStart > 0 && <span style={{ color:'var(--ink-5)' }}> · há {daysSinceStart}d</span>}
                               </div>
                             </div>
+                            <RefillEditor med={med} onSave={(pills, perDay) => updateRefill(med.id, pills, perDay)} />
                             <button onClick={() => removeMed(med.id)}
                               style={{ padding:'6px 8px', background:'white', border:'1px solid var(--border)', borderRadius:6, cursor:'pointer', color:'var(--ink-5)', fontSize:14, lineHeight:1, flexShrink:0 }}>
                               ×
@@ -1273,6 +1308,84 @@ export default function MyMedsPage() {
         .suggestion-item:hover { background: var(--bg-2) !important }
         .quick-prompt:hover { background: var(--bg-2) !important; border-color: var(--green) !important; color: var(--green-2) !important }
       `}</style>
+    </div>
+  )
+}
+
+// ─── RefillEditor ─────────────────────────────────────────────────────────────
+// Popover de stock por linha de medicamento. Compatível com personal_meds e
+// family_profile_meds (a função updateRefill já trata da tabela certa).
+function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null, perDay: number | null) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pills, setPills] = useState<string>(med.pills_remaining != null ? String(med.pills_remaining) : '')
+  const [perDay, setPerDay] = useState<string>(med.pills_per_day != null ? String(med.pills_per_day) : '')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [open])
+
+  const has = med.pills_remaining != null
+
+  function save() {
+    const p = pills.trim() === '' ? null : Math.max(0, Math.floor(Number(pills)))
+    const pd = perDay.trim() === '' ? null : Math.max(0, Number(perDay))
+    if (p != null && Number.isNaN(p)) return
+    if (pd != null && Number.isNaN(pd)) return
+    onSave(p, pd)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title="Stock"
+        style={{
+          padding: '6px 10px',
+          background: has ? '#f0fdf5' : 'white',
+          border: `1px solid ${has ? '#bbf7d0' : 'var(--border)'}`,
+          borderRadius: 6,
+          cursor: 'pointer',
+          color: has ? '#0d6e42' : 'var(--ink-4)',
+          fontSize: 12,
+          fontWeight: 700,
+          fontFamily: 'var(--font-sans)',
+          lineHeight: 1,
+        }}>📦</button>
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
+          width: 240, background: 'white', border: '1px solid var(--border)', borderRadius: 10,
+          boxShadow: '0 8px 28px rgba(0,0,0,0.12)', padding: 12,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>📦 Stock e ritmo</div>
+          <label style={{ display: 'block', fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Comprimidos restantes</label>
+          <input value={pills} onChange={e => setPills(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric"
+            placeholder="ex: 30"
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 9px', fontSize: 13, marginBottom: 8, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+          <label style={{ display: 'block', fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Comprimidos/dia</label>
+          <input value={perDay} onChange={e => setPerDay(e.target.value.replace(/[^\d.,]/g, '').replace(',', '.'))} inputMode="decimal"
+            placeholder="ex: 1 ou 0.5"
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 9px', fontSize: 13, marginBottom: 10, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+          {pills && perDay && Number(perDay) > 0 && (
+            <div style={{ fontSize: 11.5, color: '#0d6e42', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 7, padding: '6px 9px', marginBottom: 8, lineHeight: 1.4 }}>
+              Acaba em <strong>{Math.floor(Number(pills) / Number(perDay))} dias</strong> ({new Date(Date.now() + Math.floor(Number(pills) / Number(perDay)) * 86400000).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })})
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+            {has && <button onClick={() => { setPills(''); setPerDay(''); onSave(null, null); setOpen(false) }}
+              style={{ padding: '6px 10px', background: 'white', color: 'var(--ink-5)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Limpar</button>}
+            <button onClick={() => setOpen(false)}
+              style={{ padding: '6px 10px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+            <button onClick={save}
+              style={{ padding: '6px 12px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 6, fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>Guardar</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

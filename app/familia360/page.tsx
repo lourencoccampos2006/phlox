@@ -72,6 +72,7 @@ function InboxTab() {
   const { user, supabase } = useAuth()
   const [profiles, setProfiles] = useState<any[]>([])
   const [events, setEvents] = useState<Record<string, any[]>>({})
+  const [refills, setRefills] = useState<Record<string, { name: string; daysLeft: number }[]>>({})
 
   useEffect(() => {
     if (!user?.id) return
@@ -81,19 +82,28 @@ function InboxTab() {
       setProfiles(list)
       const today = new Date(); today.setHours(0, 0, 0, 0)
       const ev: Record<string, any[]> = {}
+      const rf: Record<string, { name: string; daysLeft: number }[]> = {}
       await Promise.all(list.map(async (p: any) => {
-        const [m, v, c] = await Promise.all([
+        const [m, v, c, meds] = await Promise.all([
           supabase.from('med_logs').select('taken_at, med_name, status').eq('user_id', user.id).gte('taken_at', today.toISOString()).limit(20),
           supabase.from('vital_signs').select('measured_at, systolic, diastolic, pulse, weight').eq('user_id', user.id).gte('measured_at', today.toISOString()).limit(10),
           supabase.from('cal_events').select('id, title, starts_at').eq('user_id', user.id).gte('starts_at', new Date().toISOString()).order('starts_at').limit(5),
+          // Refill por familiar — lê family_profile_meds (sprint46 garante colunas)
+          supabase.from('family_profile_meds').select('name, pills_remaining, pills_per_day').eq('profile_id', p.id),
         ])
         ev[p.id] = [
           ...(m.data || []).map((r: any) => ({ kind: 'med', when: r.taken_at, text: `${r.med_name || 'medicamento'} · ${r.status}` })),
           ...(v.data || []).map((r: any) => ({ kind: 'vital', when: r.measured_at, text: `TA ${r.systolic ?? '—'}/${r.diastolic ?? '—'} · FC ${r.pulse ?? '—'}` })),
           ...(c.data || []).map((r: any) => ({ kind: 'event', when: r.starts_at, text: `Próximo: ${r.title}` })),
         ].sort((a, b) => b.when.localeCompare(a.when))
+        rf[p.id] = (meds.data || [])
+          .filter((mm: any) => mm.pills_remaining != null && mm.pills_per_day && mm.pills_per_day > 0)
+          .map((mm: any) => ({ name: mm.name, daysLeft: Math.floor((mm.pills_remaining || 0) / mm.pills_per_day) }))
+          .filter(x => x.daysLeft <= 14)
+          .sort((a, b) => a.daysLeft - b.daysLeft)
       }))
       setEvents(ev)
+      setRefills(rf)
     })()
   }, [user?.id])
 
@@ -103,6 +113,7 @@ function InboxTab() {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 12 }}>
       {profiles.map(p => {
         const evs = events[p.id] || []
+        const rf = refills[p.id] || []
         return (
           <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -112,6 +123,20 @@ function InboxTab() {
               </div>
               <Link href={`/familia?p=${p.id}`} style={{ fontSize: 11, color: '#b45309', textDecoration: 'none', fontWeight: 700 }}>Abrir →</Link>
             </div>
+            {/* Refill em destaque — o cuidador vê logo o que vai acabar */}
+            {rf.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 10 }}>
+                {rf.slice(0, 3).map((r, i) => {
+                  const c = r.daysLeft <= 3 ? '#dc2626' : r.daysLeft <= 7 ? '#b45309' : '#0d6e42'
+                  return (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, padding: '4px 8px', background: c === '#dc2626' ? '#fef2f2' : c === '#b45309' ? '#fffbeb' : '#f0fdf5', borderRadius: 6, border: `1px solid ${c}33` }}>
+                      <span style={{ color: '#0b1120', fontWeight: 700 }}>📦 {r.name}</span>
+                      <span style={{ color: c, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{r.daysLeft}d</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
             {evs.length === 0 ? (
               <div style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', padding: 12 }}>Sem atividade hoje</div>
             ) : (

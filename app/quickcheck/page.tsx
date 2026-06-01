@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile } from '@/lib/profileContext'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import SaveButton from '@/components/SaveButton'
+import { consumeReopen } from '@/lib/saves'
 
 // Ferramenta para TODOS: cola a lista de medicamentos, recebe análise em PT simples
 // Sem conta, sem fricção. O hook para converter pessoas normais e médicos ocupados.
@@ -36,6 +37,15 @@ export default function QuickCheckPage() {
   const [error, setError] = useState('')
 
   const [activeProfile, setActiveProfileState] = useState<any>(null)
+
+  // Reabrir conteúdo vindo de /guardados (corrige "abre vazio")
+  useEffect(() => {
+    const data = consumeReopen<any>()
+    if (data) {
+      setResult(data)
+      if (typeof data.input === 'string') setInput(data.input)
+    }
+  }, [])
 
   // ─── Carregar meds do perfil activo ───
   const { supabase } = useAuth()

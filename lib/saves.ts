@@ -117,6 +117,32 @@ export function togglePin(id: string): void {
 
 export function clearAll(): void { safeWrite([]); broadcast() }
 
+// ─── Reabrir guardados na ferramenta original ─────────────────────────────────
+// Em /guardados, o utilizador clica num item. Em vez de abrir a ferramenta
+// vazia, fazemos com que ela receba o `data` do save via query-param + uma
+// chamada `consumeReopen()` no cliente que devolve o payload e o limpa.
+
+export function getSave(id: string): SavedItem | undefined {
+  return safeRead().find(s => s.id === id)
+}
+
+/**
+ * Lê `?reopen=<saveId>` da URL atual e devolve o data correspondente, depois
+ * limpa o param do URL (sem reload) para não duplicar em refresh.
+ * Devolve null se não houver nada ou se já foi consumido.
+ */
+export function consumeReopen<T = any>(): T | null {
+  if (typeof window === 'undefined') return null
+  const url = new URL(window.location.href)
+  const id = url.searchParams.get('reopen')
+  if (!id) return null
+  const item = getSave(id)
+  // Remove o param para evitar reaplicar em navegações subsequentes
+  url.searchParams.delete('reopen')
+  window.history.replaceState({}, '', url.toString())
+  return (item?.data as T) ?? null
+}
+
 // ─── Metadados visuais por kind ───────────────────────────────────────────────
 
 export const KIND_META: Record<SavedKind, { label: string; icon: string; color: string }> = {

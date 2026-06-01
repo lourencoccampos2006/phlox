@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { areaOf } from '@/lib/studyAreas'
 import SaveButton from '@/components/SaveButton'
+import { consumeReopen } from '@/lib/saves'
 
 interface Result {
   concept: string; simple: string; exam: string; clinical: string
@@ -23,6 +24,15 @@ export default function ExplicaPage() {
   const [history, setHistory] = useState<HistoryItem[]>([])
 
   useEffect(() => { try { const r = localStorage.getItem(LS_KEY); if (r) setHistory(JSON.parse(r)) } catch { /* noop */ } }, [])
+
+  // Reabrir conteúdo vindo de /guardados — popula o resultado em vez de página em branco
+  useEffect(() => {
+    const data = consumeReopen<Result>()
+    if (data && data.concept) {
+      setConcept(data.concept)
+      setResult(data)
+    }
+  }, [])
 
   function persistHistory(concept: string) {
     const next: HistoryItem[] = [{ concept, at: new Date().toISOString() }, ...history.filter(h => h.concept !== concept)].slice(0, 8)

@@ -96,25 +96,43 @@ export default function ProgressoPage() {
     const load = async () => {
       setLoading(true)
       try {
+        // 2026-06-01: integração com /study360, /biblioteca, exam.
+        // O utilizador reportou que /progresso não estava ligado ao resto.
+        // Agora puxa: sessions (Pomodoro do study360), card_reviews (SRS),
+        // study_documents (Biblioteca), arena_attempts, quiz_results.
         const [
           { data: sessions },
           { data: quizzes },
           { data: arenaData },
+          { data: cardReviews },
+          { data: docs },
         ] = await Promise.all([
-          supabase.from('study_sessions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200),
+          supabase.from('study_sessions').select('*').eq('user_id', user.id).order('started_at', { ascending: false }).limit(200),
           supabase.from('quiz_results').select('*').eq('user_id', user.id),
           supabase.from('arena_attempts').select('score, domain, completed_at').eq('user_id', user.id),
+          supabase.from('study_card_reviews').select('rating, reviewed_at').eq('user_id', user.id).order('reviewed_at', { ascending: false }).limit(500),
+          supabase.from('study_documents').select('id, title, subject, created_at').eq('user_id', user.id),
         ])
 
         const sess = sessions || []
         const quiz = quizzes || []
         const arena = arenaData || []
+        const reviews = cardReviews || []
+        const documents = docs || []
 
         const arenaXp = arena.reduce((sum: number, a: any) => sum + (a.score || 0), 0)
         const arenaCorrect = arena.filter((a: any) => (a.score || 0) > 0).length
+        const reviewXp = reviews.filter((r: any) => r.rating >= 3).length * 5
+        const docXp = documents.length * 25
+        const sessionsMins = sess.reduce((a: number, s: any) => a + (s.minutes || 0), 0)
 
-        // Streak
-        const dates = [...new Set(sess.map((s: any) => s.date?.split('T')[0]))].sort().reverse() as string[]
+        // Streak — agora usa started_at de sessions e reviewed_at de cards
+        // (qualquer atividade conta).
+        const allDates = new Set<string>()
+        sess.forEach((s: any) => { const d = (s.started_at || s.date || s.created_at || '').slice(0, 10); if (d) allDates.add(d) })
+        reviews.forEach((r: any) => { const d = (r.reviewed_at || '').slice(0, 10); if (d) allDates.add(d) })
+        arena.forEach((a: any) => { const d = (a.completed_at || '').slice(0, 10); if (d) allDates.add(d) })
+        const dates = Array.from(allDates).sort().reverse()
         let streak = 0
         for (let i = 0; i < dates.length; i++) {
           const d = new Date(); d.setDate(d.getDate() - i)
@@ -131,11 +149,12 @@ export default function ProgressoPage() {
           if (q.correct) classMap[q.drug_class].correct++
         })
 
-        // Actividade por dia
+        // Actividade por dia (agora inclui sessions, reviews, arena)
         const actMap: Record<string, number> = {}
-        sess.forEach((s: any) => {
-          const d = s.date?.split('T')[0]; if (d) actMap[d] = (actMap[d] || 0) + 1
-        })
+        const bump = (d?: string) => { if (d) actMap[d] = (actMap[d] || 0) + 1 }
+        sess.forEach((s: any) => bump((s.started_at || s.date || s.created_at || '').slice(0, 10)))
+        reviews.forEach((r: any) => bump((r.reviewed_at || '').slice(0, 10)))
+        arena.forEach((a: any) => bump((a.completed_at || '').slice(0, 10)))
         const last14 = Array.from({ length: 14 }, (_, i) => {
           const d = new Date(); d.setDate(d.getDate() - (13 - i))
           const key = d.toISOString().split('T')[0]
@@ -143,7 +162,10 @@ export default function ProgressoPage() {
         })
 
         setStats({
-          xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0) + arenaXp,
+          xp_total: sess.reduce((a: number, s: any) => a + (s.xp_earned || 10), 0) + arenaXp + reviewXp + docXp,
+          srs_reviews: reviews.length,
+          docs_count: documents.length,
+          minutes_studied: sessionsMins,
           arena_correct: arenaCorrect,
           arena_attempts: arena.length,
           streak_days: streak,
@@ -210,10 +232,11 @@ export default function ProgressoPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px, 3vw, 30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>
               {user?.name?.split(' ')[0]}, aqui está o teu progresso
             </h1>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Link href="/study" style={{ padding: '9px 16px', background: '#7c3aed', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700 }}>
-                Estudar agora →
-              </Link>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Link href="/study360" style={{ padding: '8px 13px', background: '#7c3aed', color: 'white', textDecoration: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700 }}>🎓 Estudo 360°</Link>
+              <Link href="/biblioteca" style={{ padding: '8px 13px', background: 'white', color: '#7c3aed', textDecoration: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, border: '1.5px solid #ede9fe' }}>📚 Biblioteca</Link>
+              <Link href="/arena" style={{ padding: '8px 13px', background: 'white', color: '#d97706', textDecoration: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, border: '1.5px solid #fde68a' }}>🏆 Arena</Link>
+              <Link href="/exam" style={{ padding: '8px 13px', background: 'white', color: '#0d6e42', textDecoration: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, border: '1.5px solid #bbf7d0' }}>📝 Exame</Link>
             </div>
           </div>
         </div>
@@ -229,12 +252,13 @@ export default function ProgressoPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
               {[
                 { label: 'XP Total', value: stats.xp_total.toLocaleString(), icon: '⚡', color: '#7c3aed', bg: '#faf5ff' },
-                { label: 'Arena correctas', value: `${(stats as any).arena_correct||0}/${(stats as any).arena_attempts||0}`, icon: '🏆', color: '#d97706', bg: '#fffbeb' },
                 { label: 'Streak', value: `${stats.streak_days} dias`, icon: '🔥', color: '#b45309', bg: '#fffbeb' },
-                { label: 'Flashcards', value: stats.flashcards_reviewed, icon: '🃏', color: '#0d6e42', bg: '#f0fdf5' },
-                { label: 'Casos resolvidos', value: stats.cases_solved, icon: '🩺', color: '#1d4ed8', bg: '#eff6ff' },
+                { label: 'Tempo estudado', value: `${Math.round(((stats as any).minutes_studied || 0) / 60)} h`, icon: '⏱', color: '#0891b2', bg: '#ecfeff' },
+                { label: 'SRS revisões', value: (stats as any).srs_reviews || 0, icon: '🃏', color: '#0d6e42', bg: '#f0fdf5' },
+                { label: 'Documentos', value: (stats as any).docs_count || 0, icon: '📚', color: '#1d4ed8', bg: '#eff6ff' },
+                { label: 'Arena correctas', value: `${(stats as any).arena_correct||0}/${(stats as any).arena_attempts||0}`, icon: '🏆', color: '#d97706', bg: '#fffbeb' },
                 { label: 'Quizzes', value: stats.quizzes_completed, icon: '✏️', color: '#0891b2', bg: '#ecfeff' },
-                { label: 'Turnos virtuais', value: stats.shifts_completed, icon: '🏥', color: '#6d28d9', bg: '#f5f3ff' },
+                { label: 'Casos resolvidos', value: stats.cases_solved, icon: '🩺', color: '#1d4ed8', bg: '#eff6ff' },
               ].map(s => (
                 <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.color}25`, borderRadius: 10, padding: '16px 14px' }}>
                   <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>

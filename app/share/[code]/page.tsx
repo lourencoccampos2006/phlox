@@ -54,8 +54,15 @@ export default function ShareView({ params }: { params: Promise<{ code: string }
             </div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 8 }}>{d.title}</div>
             {d.notes && <div style={{ fontSize: 13.5, color: '#475569', marginBottom: 10, lineHeight: 1.55 }}>{d.notes}</div>}
+            {d.body_url && d.body_url.startsWith('data:application/pdf') && (
+              <iframe src={d.body_url} title={d.title} style={{ width: '100%', height: 480, border: '1px solid #e5e7eb', borderRadius: 8, background: 'white' }} />
+            )}
+            {d.body_url && d.body_url.startsWith('data:image/') && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={d.body_url} alt={d.title} style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+            )}
             {d.body_text && (
-              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: '#0b1120', lineHeight: 1.65, margin: 0, background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>{d.body_text}</pre>
+              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: '#0b1120', lineHeight: 1.65, margin: '10px 0 0', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>{d.body_text}</pre>
             )}
           </div>
         ))}

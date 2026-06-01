@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import ProfileSelector from '@/components/ProfileSelector'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null; indication:string|null; started_at:string|null }
 interface EmergencyCard { name:string; allergies:string; blood_type:string; emergency_contact:string; token:string }
@@ -33,14 +34,24 @@ export default function PassportPage() {
   const [form, setForm] = useState({ name:'', blood_type:'', allergies:'', emergency_contact:'', conditions:'' })
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [activeProfile, setActiveProfile] = useState<any>(null)
 
   const t = lang === 'PT' ? PT : EN
 
+  // 2026-06-01: o utilizador reportou que o /passport não tinha selector
+  // de perfil — só servia para o próprio. Agora se está num perfil familiar,
+  // o passaporte carrega os dados desse perfil.
   useEffect(() => {
     if (!user) { setLoading(false); return }
+    const isFamily = activeProfile?.type === 'family'
+    const medsPromise = isFamily
+      ? supabase.from('family_profile_meds').select('*').eq('profile_id', activeProfile.id).order('created_at', { ascending: false })
+      : supabase.from('personal_meds').select('*').eq('user_id', user.id).order('started_at', { ascending: false })
     Promise.all([
-      supabase.from('personal_meds').select('*').eq('user_id', user.id).order('started_at', { ascending: false }),
-      supabase.from('emergency_tokens').select('*').eq('user_id', user.id).maybeSingle(),
+      medsPromise,
+      isFamily
+        ? supabase.from('family_profiles').select('name, allergies, blood_type, emergency_contact').eq('id', activeProfile.id).maybeSingle()
+        : supabase.from('emergency_tokens').select('*').eq('user_id', user.id).maybeSingle(),
     ]).then(async ([{ data: medsData }, { data: cardData }]) => {
       setMeds(medsData || [])
       if (cardData) {
@@ -69,7 +80,7 @@ export default function PassportPage() {
       }
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [user, supabase])
+  }, [user, supabase, activeProfile?.id])
 
   const save = async () => {
     if (!user) return
@@ -123,7 +134,8 @@ export default function PassportPage() {
                 <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:4 }}>Passaporte de Saúde</div>
                 <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:'var(--ink)' }}>O teu documento de saúde completo</div>
               </div>
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+                <ProfileSelector onChange={(p) => setActiveProfile(p)} />
                 <button onClick={() => setLang(l => l==='PT'?'EN':'PT')}
                   style={{ padding:'9px 14px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', color:'var(--ink)' }}>
                   {lang === 'PT' ? '🇬🇧 EN' : '🇵🇹 PT'}
@@ -172,7 +184,7 @@ export default function PassportPage() {
           </div>
 
           {/* Critical info row */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid var(--border)' }}>
+          <div className="passport-critical-row" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid var(--border)' }}>
             <div style={{ padding:'14px 18px', borderRight:'1px solid var(--border)', background: form.blood_type ? '#eff6ff' : 'var(--bg-2)' }}>
               <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-5)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:4 }}>{t.blood}</div>
               <div style={{ fontSize:20, fontWeight:700, color: form.blood_type ? '#1d4ed8' : 'var(--ink-5)', fontFamily:'var(--font-mono)' }}>
@@ -303,6 +315,11 @@ export default function PassportPage() {
         }
         @media (max-width: 520px) {
           .passport-since { display: none !important }
+          /* Em telemóvel, a linha crítica (grupo, alergias, contacto) empilha
+             em vez de espremer em 3 colunas estreitas e ilegíveis. */
+          .passport-critical-row { grid-template-columns: 1fr !important }
+          .passport-critical-row > div { border-right: none !important; border-bottom: 1px solid var(--border) !important }
+          .passport-critical-row > div:last-child { border-bottom: none !important }
         }
       `}</style>
     </div>
