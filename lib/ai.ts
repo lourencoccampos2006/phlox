@@ -154,8 +154,50 @@ export async function aiJSON<T>(
   try {
     return JSON.parse(toParse) as T
   } catch {
+    // Tentativa de reparo: quando max_tokens corta a resposta a meio (caso
+    // comum em quizzes de 10+ perguntas), aproveita os items completos.
+    const repaired = repairTruncatedJSON(toParse)
+    if (repaired) {
+      try { return JSON.parse(repaired) as T } catch {}
+    }
     throw new Error('Não foi possível interpretar a resposta da IA. Tenta novamente.')
   }
+}
+
+// Repara JSON truncado (típico de respostas cortadas por max_tokens).
+// Estratégia: encontra o último item completo do array e fecha as estruturas
+// pendentes. Suporta arrays no topo OU objeto { key: [ ... ] }.
+function repairTruncatedJSON(text: string): string | null {
+  // Caso 1: objeto com um array de items — { "questions": [ ... ] } ou similar
+  // Procura o primeiro `[` depois do início e tenta recuperar items até ao último `}` válido.
+  const arrayStart = text.indexOf('[')
+  if (arrayStart < 0) return null
+
+  // Walk balanced braces para encontrar o índice do último `}` que fecha um item completo
+  let depth = 0
+  let lastGoodIdx = -1
+  let inString = false
+  let escape = false
+  for (let i = arrayStart + 1; i < text.length; i++) {
+    const ch = text[i]
+    if (escape) { escape = false; continue }
+    if (ch === '\\') { escape = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+    if (ch === '{' || ch === '[') depth++
+    else if (ch === '}' || ch === ']') {
+      depth--
+      if (depth === 0 && ch === '}') lastGoodIdx = i  // item completo no array
+      if (depth < 0) break
+    }
+  }
+
+  if (lastGoodIdx < 0) return null
+
+  // Trunca após o último item completo, fecha array e (se necessário) objeto exterior
+  let result = text.substring(0, lastGoodIdx + 1) + ']'
+  if (text.trimStart().startsWith('{')) result += '}'
+  return result
 }
 
 // ─── Gemini Vision: image analysis ───────────────────────────────────────────

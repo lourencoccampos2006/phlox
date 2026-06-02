@@ -130,6 +130,11 @@ const PHARMACY: NavSection[] = [
     { href: '/rounds', label: 'Ronda Farmacêutica', icon: 'round' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
   ]},
+  { title: 'ERP da farmácia', items: [
+    { href: '/farmacia/fornecedores', label: 'Fornecedores', icon: 'patients', badge: true },
+    { href: '/farmacia/compras', label: 'Compras & Recepção', icon: 'box', badge: true },
+    { href: '/farmacia/fidelizacao', label: 'Fidelização', icon: 'shield', badge: true },
+  ]},
   { title: 'Operações', items: [
     { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
     { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
@@ -214,6 +219,11 @@ const GENERIC: NavSection[] = [
     { href: '/soap', label: 'Nota Clínica SOAP', icon: 'soap', badge: true },
     { href: '/quality', label: 'Qualidade', icon: 'quality' },
     { href: '/connect', label: 'Connect', icon: 'connect' },
+  ]},
+  { title: 'Hospital', items: [
+    { href: '/hospital/camas', label: 'Mapa de Camas', icon: 'residents', badge: true },
+    { href: '/hospital/triagem', label: 'Triagem Manchester', icon: 'queue', badge: true },
+    { href: '/hospital/bloco', label: 'Bloco Operatório', icon: 'protocol', badge: true },
   ]},
   { title: 'Operações', items: [
     { href: '/sala-espera', label: 'Sala de Espera', icon: 'queue', badge: true },

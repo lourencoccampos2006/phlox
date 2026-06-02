@@ -21,6 +21,8 @@ const CLINICAL_PREFIXES = [
   '/insights', '/copiloto', '/reach', '/brief', '/calc', '/codes',
   '/guardados', '/calendario',
   '/clinico360',
+  '/hospital',
+  '/farmacia',
 ]
 
 function ScrollToTop() {

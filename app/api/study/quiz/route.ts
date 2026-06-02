@@ -71,7 +71,7 @@ Varia: aplicação clínica, mecanismo, diagnóstico diferencial, contra-indica�
         role: 'user',
         content: `Cria 10 perguntas de exame sobre "${drugClass}" no contexto de ${ctx}. Cumpre TODAS as regras acima.`,
       },
-    ], { maxTokens: 2400, temperature: 0.35 })
+    ], { maxTokens: 4000, temperature: 0.35 })
 
     // Anexa flags de qualidade por pergunta — a UI pode usar para avisar.
     if (Array.isArray(result?.questions)) {

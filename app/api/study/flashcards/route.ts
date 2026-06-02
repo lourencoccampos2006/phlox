@@ -44,7 +44,7 @@ Responde APENAS com JSON válido: {"flashcards":[{"front":"pergunta clara e conc
         role: 'user',
         content: `Cria 12 flashcards sobre "${drugClass}" para estudantes de ${ctx}.`,
       },
-    ], { maxTokens: 2500, temperature: 0.3 })
+    ], { maxTokens: 3500, temperature: 0.3 })
 
     cache.set(cacheKey, result)
     // Cache for 1 hour max (prevent memory leak)
