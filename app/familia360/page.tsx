@@ -77,7 +77,12 @@ function InboxTab() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      const { data: profs } = await supabase.from('family_profiles').select('id, name, relationship').eq('user_id', user.id)
+      // 2026-06-02: a coluna é "relation" (sprint1) e não "relationship".
+      // Antes pedíamos "relationship" → Supabase devolvia erro, data=null,
+      // e a UI dizia "Sem perfis familiares" mesmo quando havia perfis.
+      // Fix: select('*') defensivo + log de erro para nunca silenciar.
+      const { data: profs, error } = await supabase.from('family_profiles').select('*').eq('user_id', user.id)
+      if (error) console.error('[familia360] family_profiles:', error)
       const list = profs || []
       setProfiles(list)
       const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -119,7 +124,7 @@ function InboxTab() {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>{p.relationship || ''}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>{p.relation || p.relationship || ''}</div>
               </div>
               <Link href={`/familia?p=${p.id}`} style={{ fontSize: 11, color: '#b45309', textDecoration: 'none', fontWeight: 700 }}>Abrir →</Link>
             </div>

@@ -8,6 +8,7 @@ import NotificationBell from '@/components/NotificationBell'
 import { useInstitutionProfile } from '@/lib/useInstitutionProfile'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import type { Tool } from '@/lib/toolRegistry'
+import OrgSwitcher from '@/components/OrgSwitcher'
 
 // ════════════════════════════════════════════════════════════════════════════
 //  PHLOX CLINICAL LAYOUT — built from scratch, mobile-first, bulletproof.
@@ -482,6 +483,7 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
         <button onClick={() => window.dispatchEvent(new Event('phlox:cmdk'))} title="Pesquisar residente" aria-label="Pesquisar" style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 9, border: '1px solid #e6e8eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
+        <span style={{ flexShrink: 0 }}><OrgSwitcher compact /></span>
         <span style={{ flexShrink: 0 }}><NotificationBell /></span>
         {/* Avatar dropdown — Início · Guardados · Calendário · Clínico 360° · Modo · Definições.
             Antes em modo clínico não havia maneira de chegar a estes — só no /ferramentas

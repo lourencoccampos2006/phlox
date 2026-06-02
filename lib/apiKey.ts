@@ -7,6 +7,8 @@ const SCOPES = [
   'stock:read', 'stock:write',
   'patients:read',
   'webhooks:read',
+  // 2026-06-02: FHIR
+  'fhir:read', 'fhir:write',
 ] as const
 export type Scope = typeof SCOPES[number]
 export const ALL_SCOPES: readonly Scope[] = SCOPES

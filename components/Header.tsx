@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
+import OrgSwitcher from '@/components/OrgSwitcher'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { PERSONA_NAV, MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
@@ -531,6 +532,10 @@ export default function Header() {
                   {!isDark && <span style={{ color: '#94a3b8' }}>Ferramentas e páginas...</span>}
                   {!isDark && <kbd className="hdr-search-kbd" style={{ fontSize: 10, color: '#cbd5e1', background: 'white', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>⌘K</kbd>}
                 </button>
+
+                {/* 2026-06-02: OrgSwitcher entre search e bell. Aparece apenas a
+                    utilizadores com >= 1 membership. Esconde-se em uso pessoal/estudante. */}
+                <span className="hdr-org-switcher"><OrgSwitcher compact /></span>
 
                 <NotificationBell />
 

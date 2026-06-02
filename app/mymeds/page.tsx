@@ -419,6 +419,12 @@ export default function MyMedsPage() {
   const analyse = async () => {
     if (meds.length < 2) return
     setAnalysing(true)
+    // 2026-06-02: o utilizador reportou que o botão "Analisar agora" não
+    // funcionava. Causa raiz: a API /api/quickcheck devolve
+    // `{ overall, findings, positives }` e o código fazia `if (data.alerts)`
+    // — `data.alerts` era SEMPRE undefined, então o setAlerts/setAnalysed
+    // nunca disparava e a UI ficava igual. Agora mapeamos findings → Alert[]
+    // e mostramos erro real se a request falhar.
     try {
       const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/quickcheck', {
@@ -427,12 +433,28 @@ export default function MyMedsPage() {
         body: JSON.stringify({ medications: meds.map(m => `${m.name}${m.dose?' '+m.dose:''}${m.frequency?' '+m.frequency:''}`).join('\n'), mode: 'simple' }),
       })
       const data = await res.json()
-      if (data.alerts) {
-        setAlerts(data.alerts)
-        setAnalysed(true); setTab('alerts')
-      }
-    } catch {}
-    setAnalysing(false)
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+
+      // Aceita os dois formatos possíveis:
+      //  • formato actual: { overall, findings: [{ level, title, explanation, action }], positives }
+      //  • formato antigo: { alerts: [{ severity, message, action, drugs? }] }
+      const mappedFromFindings: Alert[] = Array.isArray(data.findings)
+        ? data.findings.map((f: any) => ({
+            severity: (f.level === 'red' ? 'grave' : f.level === 'yellow' ? 'moderada' : 'info') as Alert['severity'],
+            message: [f.title, f.explanation].filter(Boolean).join(' — '),
+            action: f.action || '',
+          }))
+        : []
+      const finalAlerts: Alert[] = Array.isArray(data.alerts) && data.alerts.length > 0 ? data.alerts : mappedFromFindings
+
+      setAlerts(finalAlerts)
+      setAnalysed(true)
+      setTab('alerts')
+    } catch (err: any) {
+      alert(`Não foi possível analisar: ${err?.message || 'erro desconhecido'}`)
+    } finally {
+      setAnalysing(false)
+    }
   }
 
   // ─── Add med ──────────────────────────────────────────────────────────────────

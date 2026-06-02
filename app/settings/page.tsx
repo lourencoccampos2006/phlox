@@ -9,6 +9,9 @@ import Link from 'next/link'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { planById, planName } from '@/lib/plans'
+import OrgsSettings from '@/components/settings/OrgsSettings'
+import SecuritySettings from '@/components/settings/SecuritySettings'
+import IntegrationsSettings from '@/components/settings/IntegrationsSettings'
 
 const ROLE_OPTIONS = [
   { value: 'pharmacist',  label: 'Farmacêutico' },
@@ -48,11 +51,12 @@ function SettingsPage() {
   const { user, supabase } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const validTabs = ['profile', 'ferramentas', 'institution', 'connect', 'account', 'notifications'] as const
-  const initialTab = (searchParams?.get('tab') && (validTabs as readonly string[]).includes(searchParams.get('tab')!)
+  const validTabs = ['profile', 'ferramentas', 'organizacoes', 'institution', 'seguranca', 'integracoes', 'connect', 'account', 'notifications'] as const
+  type SettingsTab = typeof validTabs[number]
+  const initialTab = ((searchParams?.get('tab') && (validTabs as readonly string[]).includes(searchParams.get('tab')!)
     ? searchParams.get('tab')
-    : 'profile') as 'profile' | 'ferramentas' | 'institution' | 'connect' | 'account' | 'notifications'
-  const [tab, setTab] = useState<'profile' | 'ferramentas' | 'institution' | 'connect' | 'account' | 'notifications'>(initialTab)
+    : 'profile') as SettingsTab)
+  const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
   const [cancelBusy, setCancelBusy] = useState(false)
   const [cancelMsg, setCancelMsg] = useState('')
@@ -261,7 +265,10 @@ function SettingsPage() {
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
             <button onClick={() => setTab('ferramentas')} style={tabStyle('ferramentas')}>Ferramentas</button>
+            <button onClick={() => setTab('organizacoes')} style={tabStyle('organizacoes')}>Organizações</button>
             <button onClick={() => setTab('institution')} style={tabStyle('institution')}>Instituição</button>
+            <button onClick={() => setTab('seguranca')} style={tabStyle('seguranca')}>Segurança</button>
+            <button onClick={() => setTab('integracoes')} style={tabStyle('integracoes')}>Integrações</button>
             <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
@@ -379,6 +386,12 @@ function SettingsPage() {
             ))}
           </div>
         )}
+
+        {tab === 'organizacoes' && <OrgsSettings />}
+
+        {tab === 'seguranca' && <SecuritySettings />}
+
+        {tab === 'integracoes' && <IntegrationsSettings />}
 
         {tab === 'institution' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
