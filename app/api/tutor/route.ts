@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { aiJSON } from '@/lib/ai'
 
 type Phase = 'intro' | 'exploration' | 'deepening' | 'consolidation' | 'complete'
 type MsgType = 'question' | 'feedback_good' | 'feedback_correct' | 'hint' | 'explanation' | 'summary'
@@ -88,37 +89,21 @@ Tópico desta sessão: "${topic}" (domínio: ${domain || 'farmacologia'})`
       userContent = `Histórico:\n${historyStr}\n\nÚltima resposta do estudante: "${studentAnswer}"\n\nResponde como tutor socrático para a fase ${phase}.`
     }
 
-    // Call Groq API directly via fetch — no SDK needed
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userContent },
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      }),
-    })
+    // Usa o wrapper com fallback automático: Groq 70B → Groq 8B → Gemini Flash
+    // Evita que 429 do Groq (limite do free tier) seja exposto ao utilizador.
+    const parsed = await aiJSON<{ message?: string; type?: string; phase?: string; score?: number | string }>(
+      [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userContent },
+      ],
+      { maxTokens: 500, temperature: 0.7 }
+    )
 
-    if (!groqRes.ok) throw new Error(`Groq error: ${groqRes.status}`)
-    const groqData = await groqRes.json()
-    const raw = groqData.choices?.[0]?.message?.content || ''
-
-    const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('Resposta inválida')
-
-    const parsed = JSON.parse(jsonMatch[0])
     return NextResponse.json({
       message: parsed.message || 'Continua o teu raciocínio...',
       type: (parsed.type as MsgType) || 'question',
       phase: getPhase(exchangeCount + 1),
-      score: Math.min(10, Math.max(0, parseInt(parsed.score) || 5)),
+      score: Math.min(10, Math.max(0, parseInt(String(parsed.score)) || 5)),
     })
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Erro' }, { status: 500 })
