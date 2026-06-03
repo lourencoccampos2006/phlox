@@ -4,9 +4,10 @@
 // Sistema oficial Manchester: 5 prioridades com tempos-alvo até observação médica.
 // Requer triage.read; criar/observar exige triage.write.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useActiveOrg } from '@/lib/orgContext'
+import OrgPatientPicker, { type OrgPatient } from '@/components/OrgPatientPicker'
 
 interface Triage {
   id: string
@@ -107,8 +108,23 @@ export default function TriagemHospitalPage() {
     } catch (e: any) { setErr(e.message) }
   }
 
+  async function admitFromTriage(triageId: string) {
+    if (!confirm('Admitir este doente — criar episódio de urgência?')) return
+    try {
+      const headers = await authHeader()
+      const r = await fetch('/api/hospital/triage/admit', { method: 'POST', headers, body: JSON.stringify({ triage_id: triageId }) })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.error || 'Erro')
+      load()
+      alert('Doente admitido. Vai a /hospital/camas para atribuir cama.')
+    } catch (e: any) { setErr(e.message) }
+  }
+
   // ─── Render ───────────────────────────────────────────────────────────────
-  if (orgLoading || loading) {
+  // Só bloqueia a UI completa no primeiro carregamento. Refreshes não fazem
+  // unmount da página (e do modal aberto).
+  const firstLoad = loading && queue.length === 0 && !err
+  if (orgLoading || firstLoad) {
     return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
   }
   if (!org) {
@@ -194,9 +210,16 @@ export default function TriagemHospitalPage() {
                   </div>
                   {overdue && <div style={{ fontSize: 9, color: '#dc2626', fontWeight: 700 }}>EXCEDIDO</div>}
                   {canWrite && (
-                    <button onClick={() => markSeen(t.id)} style={{ ...btn('ghost'), marginTop: 4, fontSize: 11, padding: '3px 8px' }}>
-                      Visto
-                    </button>
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <button onClick={() => markSeen(t.id)} style={{ ...btn('ghost'), fontSize: 10, padding: '3px 7px' }}>
+                        Visto
+                      </button>
+                      {t.patient_id && (
+                        <button onClick={() => admitFromTriage(t.id)} style={{ ...btn('primary'), fontSize: 10, padding: '3px 7px' }}>
+                          Admitir →
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -212,30 +235,58 @@ export default function TriagemHospitalPage() {
   )
 }
 
+// ─── Sugestão de prioridade por palavras-chave ──────────────────────────
+// A esmagadora maioria das triagens é prioridade 3. Subimos a 2 ou 1 quando
+// detectamos palavras-chave de alarme. Descemos a 4/5 quando há indicadores
+// de pouca urgência.
+const RX_PRIO_1 = /(parag(em|ou)|pcr|inconsciente|n[aã]o responde|n[aã]o respira|convul[sç][aã]o activa|hemorragia exsanguinante|via a[eé]rea|anafilaxia|choque|dor torac.{0,15}irradi|estridor)/i
+const RX_PRIO_2 = /(dispneia|dificuldade.{0,15}respir|dor torac|dor abdominal severa|hemorragia|trauma craniano|tens[aã]o.{0,10}(baixa|alta)|spo2 <|inconscien|sincop|febre.{0,10}3[89]|39|40|41|sangue|tonturas e nausea)/i
+const RX_PRIO_4 = /(constipa[cç][aã]o|h[aá] (semana|dias)|dor ligeira|edema sem dor|tosse h[aá]|cronic[oa])/i
+const RX_PRIO_5 = /(reavalia|pedir.{0,10}informa|consulta de rotina|receita|atestado)/i
+
+function suggestPriority(text: string): 1|2|3|4|5 {
+  if (!text) return 3
+  if (RX_PRIO_1.test(text)) return 1
+  if (RX_PRIO_2.test(text)) return 2
+  if (RX_PRIO_5.test(text)) return 5
+  if (RX_PRIO_4.test(text)) return 4
+  return 3
+}
+
 function NewTriageModal({ orgId, onClose, onCreated, authHeader }: {
   orgId: string; onClose: () => void; onCreated: () => void
   authHeader: () => Promise<Record<string, string>>
 }) {
   const [priority, setPriority] = useState<1|2|3|4|5>(3)
-  const [flowchart, setFlowchart] = useState('Dor torácica')
-  const [discriminator, setDiscriminator] = useState('')
+  const [priorityManual, setPriorityManual] = useState(false)
+  const [flowchart, setFlowchart] = useState('')
   const [reason, setReason] = useState('')
   const [pain, setPain] = useState<number | ''>('')
-  const [patientName, setPatientName] = useState('')
+  const [patient, setPatient] = useState<OrgPatient | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Sugestão automática conforme o utilizador escreve o motivo
+  const suggested = useMemo(() => suggestPriority(reason), [reason])
+  useEffect(() => {
+    if (!priorityManual && suggested !== priority) {
+      setPriority(suggested)
+    }
+  }, [suggested, priorityManual]) // eslint-disable-line
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!reason.trim()) { setErr('Motivo é obrigatório.'); return }
     setBusy(true); setErr(null)
     try {
       const headers = await authHeader()
       const body: any = {
-        org_id: orgId, priority, flowchart,
-        discriminator: discriminator || null,
-        reason: reason || (flowchart + (discriminator ? ` · ${discriminator}` : '')),
+        org_id: orgId, priority,
+        flowchart: flowchart || null,
+        reason: reason.trim(),
         pain_score: pain === '' ? null : pain,
-        notes: patientName ? `Doente: ${patientName}` : null,
+        patient_id: patient?.id || null,
       }
       const r = await fetch('/api/hospital/triage', { method: 'POST', headers, body: JSON.stringify(body) })
       const j = await r.json()
@@ -250,67 +301,99 @@ function NewTriageModal({ orgId, onClose, onCreated, authHeader }: {
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: 'white', borderRadius: 14, padding: 20, maxWidth: 600, width: '100%',
+        background: 'white', borderRadius: 14, padding: 18, maxWidth: 540, width: '100%',
         maxHeight: '90vh', overflowY: 'auto',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Nova triagem Manchester</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Nova triagem</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af', padding: 0, lineHeight: 1 }}>×</button>
         </div>
 
-        <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
+        <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
           {err && <div style={errBox}>{err}</div>}
 
-          {/* Selector de prioridade */}
+          {/* Motivo é a peça central — sempre o primeiro a preencher */}
+          <Field label="Motivo / queixa principal *">
+            <textarea
+              autoFocus
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              rows={3}
+              style={{ ...input, resize: 'vertical' }}
+              placeholder="Ex: Dor abdominal há 2h, sem febre. OU: Dor torácica com sudorese a irradiar para braço esquerdo."
+            />
+            <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0' }}>
+              A prioridade ajusta-se automaticamente conforme escreves.
+            </p>
+          </Field>
+
+          {/* Prioridade — proeminente mas auto */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Prioridade</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Prioridade</span>
+              {priorityManual && (
+                <button type="button" onClick={() => { setPriorityManual(false); setPriority(suggested) }}
+                  style={{ background: 'none', border: 'none', color: ACCENT, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+                  ↻ Voltar a automático
+                </button>
+              )}
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
               {[1, 2, 3, 4, 5].map(p => {
                 const meta = PRIORITY[p]
                 const active = priority === p
+                const isSuggested = !priorityManual && suggested === p
                 return (
-                  <button key={p} type="button" onClick={() => setPriority(p as any)} style={{
-                    padding: 10, border: 'none', borderRadius: 8, cursor: 'pointer',
-                    background: active ? meta.color : meta.bg, color: active ? 'white' : meta.color,
-                    fontWeight: 800, textAlign: 'center',
-                    outline: active ? `2px solid ${meta.color}` : 'none',
-                  }}>
-                    <div style={{ fontSize: 20 }}>{p}</div>
-                    <div style={{ fontSize: 9, marginTop: 2, opacity: active ? 1 : 0.85 }}>{meta.label}</div>
+                  <button key={p} type="button"
+                    onClick={() => { setPriority(p as any); setPriorityManual(true) }}
+                    style={{
+                      padding: '8px 4px', border: 'none', borderRadius: 8, cursor: 'pointer',
+                      background: active ? meta.color : meta.bg, color: active ? 'white' : meta.color,
+                      fontWeight: 800, textAlign: 'center',
+                      outline: isSuggested && !active ? `2px dashed ${meta.color}` : 'none',
+                    }}>
+                    <div style={{ fontSize: 18 }}>{p}</div>
+                    <div style={{ fontSize: 8, marginTop: 1, lineHeight: 1.1 }}>{meta.label.split(' ')[0]}</div>
                   </button>
                 )
               })}
             </div>
-            <p style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
-              Tempo alvo até observação: {PRIORITY[priority].target === 0 ? 'IMEDIATO' : `${PRIORITY[priority].target} min`}
+            <p style={{ fontSize: 11, color: '#6b7280', margin: '6px 0 0' }}>
+              Alvo: {PRIORITY[priority].target === 0 ? 'IMEDIATO' : `≤ ${PRIORITY[priority].target} min`}
+              {!priorityManual && ' · auto'}
             </p>
           </div>
 
-          <Field label="Doente (nome opcional)"><input value={patientName} onChange={e => setPatientName(e.target.value)} style={input} placeholder="Ex: Maria Silva" /></Field>
+          {/* Doente — picker com criação inline */}
+          <OrgPatientPicker
+            orgId={orgId}
+            value={patient}
+            onSelect={setPatient}
+            label="Doente (opcional — útil para triagem rápida)"
+            placeholder="Procurar ou criar como visita única…"
+          />
 
-          <Field label="Fluxograma">
-            <select value={flowchart} onChange={e => setFlowchart(e.target.value)} style={input}>
-              {FLOWCHARTS.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </Field>
+          {/* Avançado: fluxograma + dor */}
+          {!showAdvanced ? (
+            <button type="button" onClick={() => setShowAdvanced(true)}
+              style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 12, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+              + Adicionar fluxograma / escala de dor
+            </button>
+          ) : (
+            <>
+              <Field label="Fluxograma (opcional)">
+                <select value={flowchart} onChange={e => setFlowchart(e.target.value)} style={input}>
+                  <option value="">— Não aplicável —</option>
+                  {FLOWCHARTS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </Field>
+              <Field label="Dor (0-10)">
+                <input type="number" min={0} max={10} value={pain} onChange={e => setPain(e.target.value === '' ? '' : parseInt(e.target.value))} style={input} />
+              </Field>
+            </>
+          )}
 
-          <Field label="Discriminador (para esta prioridade)">
-            <select value={discriminator} onChange={e => setDiscriminator(e.target.value)} style={input}>
-              <option value="">— Selecionar —</option>
-              {DISCRIMINATORS_BY_PRIORITY[priority]?.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Motivo / queixa principal">
-            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} style={{ ...input, resize: 'vertical' }}
-              placeholder="Descrição livre do motivo de vinda à urgência" />
-          </Field>
-
-          <Field label="Dor (0-10)">
-            <input type="number" min={0} max={10} value={pain} onChange={e => setPain(e.target.value === '' ? '' : parseInt(e.target.value))} style={input} />
-          </Field>
-
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={btn('ghost')}>Cancelar</button>
             <button type="submit" disabled={busy} style={btn('primary')}>{busy ? 'A registar…' : 'Registar triagem'}</button>
           </div>

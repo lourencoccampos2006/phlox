@@ -35,6 +35,7 @@ export default function OrgPatientPicker({
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [temporary, setTemporary] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -73,17 +74,30 @@ export default function OrgPatientPicker({
     const insert: any = { name: newName.trim() }
     if (user?.id) insert.user_id = user.id
     if (orgId) insert.org_id = orgId
-    // Tenta com org_id; se a tabela patients não tem essa coluna, retry sem.
-    let { data, error } = await supabase.from('patients').insert(insert).select('id,name,age,sex,conditions').single()
-    if (error && /column .*org_id.* does not exist/i.test(error.message)) {
-      delete insert.org_id
+    if (temporary) insert.temporary = true
+
+    // Tenta o INSERT com todos os campos; em caso de erro por coluna inexistente,
+    // remove a coluna culpada e tenta de novo. Apanha as duas formas de erro:
+    //   - "column 'org_id' of relation 'patients' does not exist"
+    //   - "Could not find the 'org_id' column of 'patients' in the schema cache"
+    const colRegex = /(?:column "?([a-z_]+)"? .*does not exist|Could not find the '([^']+)' column)/i
+    let attempts = 0
+    let data: any = null
+    let error: any = null
+    while (attempts < 4) {
       const r = await supabase.from('patients').insert(insert).select('id,name,age,sex,conditions').single()
       data = r.data; error = r.error
+      if (!error) break
+      const m = colRegex.exec(error.message)
+      const missing = m?.[1] || m?.[2]
+      if (!missing || !(missing in insert)) break
+      delete insert[missing]
+      attempts++
     }
     if (error) { setErr(error.message); return }
     if (data) {
       onSelect(data as OrgPatient)
-      setCreating(false); setNewName(''); setOpen(false); setQuery('')
+      setCreating(false); setNewName(''); setOpen(false); setQuery(''); setTemporary(false)
     }
   }
 
@@ -115,11 +129,17 @@ export default function OrgPatientPicker({
             autoFocus value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createPatient() }}
             placeholder="Nome completo"
-            style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box', marginBottom: 6 }}
+            style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box', marginBottom: 8 }}
           />
+          <label style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 11, color: '#374151', marginBottom: 8 }}>
+            <input type="checkbox" checked={temporary} onChange={e => setTemporary(e.target.checked)} style={{ marginTop: 2 }} />
+            <span>
+              <b>Visita única</b> — ficha temporária (para um atendimento avulso, walk-in, urgência sem seguimento)
+            </span>
+          </label>
           {err && <div style={{ fontSize: 11, color: '#dc2626', marginBottom: 6 }}>{err}</div>}
           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setCreating(false); setNewName('') }} style={{ padding: '5px 10px', background: 'white', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+            <button onClick={() => { setCreating(false); setNewName(''); setTemporary(false) }} style={{ padding: '5px 10px', background: 'white', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
             <button onClick={createPatient} disabled={!newName.trim()} style={{ padding: '5px 10px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Criar</button>
           </div>
         </div>

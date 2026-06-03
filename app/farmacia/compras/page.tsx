@@ -225,9 +225,9 @@ function NewPOModal({ orgId, suppliers, onClose, onCreated, authHeader }: {
             {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}{s.lead_time_days ? ` (${s.lead_time_days}d lead)` : ''}</option>)}
           </select>
         </Field>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
           <Field label="Entrega prevista"><input type="date" value={expected} onChange={e => setExpected(e.target.value)} style={input} /></Field>
-          <Field label="Notas"><input value={notes} onChange={e => setNotes(e.target.value)} style={input} placeholder="ex: encomenda urgente para reposição" /></Field>
+          <Field label="Notas"><input value={notes} onChange={e => setNotes(e.target.value)} style={input} placeholder="ex: urgente" /></Field>
         </div>
 
         <div style={{ marginTop: 8 }}>
@@ -235,14 +235,17 @@ function NewPOModal({ orgId, suppliers, onClose, onCreated, authHeader }: {
             <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Linhas ({items.length})</div>
             <button type="button" onClick={() => setItems(arr => [...arr, { product_name: '', qty: 1, unit_price: 0, ean: '' }])} style={{ ...btn('ghost'), padding: '4px 10px', fontSize: 12 }}>+ Linha</button>
           </div>
-          <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: 'grid', gap: 10 }}>
             {items.map((it, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 100px 110px 100px 32px', gap: 6, alignItems: 'center' }}>
-                <input placeholder="Produto" value={it.product_name} onChange={e => setItem(idx, 'product_name', e.target.value)} style={input} />
-                <input placeholder="EAN" value={it.ean} onChange={e => setItem(idx, 'ean', e.target.value)} style={input} />
-                <input type="number" step="0.01" placeholder="Preço" value={it.unit_price} onChange={e => setItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} style={input} />
-                <input type="number" placeholder="Qt" value={it.qty} onChange={e => setItem(idx, 'qty', parseFloat(e.target.value) || 0)} style={input} />
-                <button type="button" onClick={() => setItems(arr => arr.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 18 }}>×</button>
+              <div key={idx} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, position: 'relative' }}>
+                <button type="button" onClick={() => setItems(arr => arr.filter((_, i) => i !== idx))}
+                  style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 18, lineHeight: 1 }}>×</button>
+                <input placeholder="Produto" value={it.product_name} onChange={e => setItem(idx, 'product_name', e.target.value)} style={{ ...input, marginBottom: 6 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 6 }}>
+                  <input placeholder="EAN" value={it.ean} onChange={e => setItem(idx, 'ean', e.target.value)} style={input} />
+                  <input type="number" step="0.01" placeholder="Preço €" value={it.unit_price} onChange={e => setItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} style={input} />
+                  <input type="number" placeholder="Quantidade" value={it.qty} onChange={e => setItem(idx, 'qty', parseFloat(e.target.value) || 0)} style={input} />
+                </div>
               </div>
             ))}
           </div>

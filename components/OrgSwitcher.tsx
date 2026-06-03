@@ -63,10 +63,11 @@ export default function OrgSwitcher({ compact = false }: { compact?: boolean }) 
 
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 1900,
-          width: 280, maxWidth: 'calc(100vw - 24px)',
+          position: 'fixed', top: 60, right: 12, left: 'auto', zIndex: 9999,
+          width: 'min(320px, calc(100vw - 24px))',
           background: 'white', border: '1px solid var(--border)', borderRadius: 12,
-          boxShadow: '0 14px 32px rgba(0,0,0,0.14)', overflow: 'hidden',
+          boxShadow: '0 14px 32px rgba(0,0,0,0.18)', overflow: 'hidden',
+          maxHeight: 'calc(100vh - 80px)', overflowY: 'auto',
         }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--bg-3)', background: '#f8fafc' }}>
             <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Organizações</div>
@@ -99,14 +100,14 @@ export default function OrgSwitcher({ compact = false }: { compact?: boolean }) 
               </button>
             )
           })}
-          <div style={{ padding: '8px 12px', background: '#f8fafc', display: 'flex', gap: 6 }}>
-            <Link href="/settings?tab=organizacoes" onClick={() => setOpen(false)}
-              style={{ flex: 1, textAlign: 'center', padding: '8px', background: 'white', color: '#475569', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-              Gerir
+          <div style={{ padding: '8px 12px', background: '#f8fafc', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <Link href="/organizacao" onClick={() => setOpen(false)}
+              style={{ textAlign: 'center', padding: '8px', background: '#0d6e42', color: 'white', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+              🏥 Abrir hub
             </Link>
-            <Link href="/settings?tab=organizacoes&new=1" onClick={() => setOpen(false)}
-              style={{ flex: 1, textAlign: 'center', padding: '8px', background: '#0d6e42', color: 'white', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-              + Nova
+            <Link href="/settings?tab=organizacoes" onClick={() => setOpen(false)}
+              style={{ textAlign: 'center', padding: '8px', background: 'white', color: '#475569', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+              Gerir
             </Link>
           </div>
         </div>

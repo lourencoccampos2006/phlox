@@ -261,6 +261,8 @@ function UserMenu({ user, signOut, supabase, isDark }: {
 
             {[
               { href: '/inicio',       label: 'Início',          icon: '🏠' },
+              { href: '/aprender',     label: 'Aprender',        icon: '📚' },
+              { href: '/estagio',      label: 'Estágio',         icon: '🎓' },
               { href: '/organizacao',  label: 'A minha org',     icon: '🏥' },
               { href: '/guardados',    label: 'Guardados',       icon: '★' },
               { href: '/calendario',   label: 'Calendário',      icon: '📅' },
@@ -379,7 +381,13 @@ function MobileDrawer({ open, onClose, user, signOut }: {
           )}
 
           {(user
-            ? [{ href: '/inicio', label: 'Início' }, { href: '/settings', label: 'Definições' }]
+            ? [
+                { href: '/inicio', label: '🏠 Início' },
+                { href: '/aprender', label: '📚 Aprender' },
+                { href: '/organizacao', label: '🏥 A minha organização' },
+                { href: '/guardados', label: '★ Guardados' },
+                { href: '/settings', label: '⚙️ Definições' },
+              ]
             : [{ href: '/pricing', label: 'Preços' }, { href: '/about', label: 'Sobre' }]
           ).map(item => (
             <Link key={item.href} href={item.href} onClick={onClose} className="mob-item"
@@ -624,6 +632,11 @@ export default function Header() {
           .hdr-usermenu      { display:none !important; }
           .hdr-lo-nav        { display:none !important; }
           .hdr-lo-entrar     { display:none !important; }
+          /* Esconde a barra de contexto clínico (turno+data) no header em mobile.
+             Está disponível dentro das páginas. */
+          .hdr-clinical-context { display:none !important; }
+          /* Reduz padding do OrgSwitcher e esconde nome longo */
+          .hdr-org-switcher button { padding: 4px 6px !important; }
         }
         /* Medium desktop: hide search label/kbd */
         @media (max-width:1100px) {
