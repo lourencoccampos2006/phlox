@@ -304,16 +304,41 @@ function IdentityForm({ org, onSave }: { org: any; onSave: (u: any) => void }) {
     name: org.name || '', short_name: org.short_name || '', vat_number: org.vat_number || '',
     address: org.address || '', postal_code: org.postal_code || '', city: org.city || '',
     phone: org.phone || '', email: org.email || '', accent_color: org.accent_color || '#0d6e42',
+    logo_url: org.logo_url || '', director: org.director || '', total_beds: org.total_beds ?? '',
+  })
+  const submit = () => onSave({
+    ...f,
+    total_beds: f.total_beds === '' ? null : Number(f.total_beds),
   })
   return (
     <div>
+      {/* Pré-visualização do logo + cor */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#f9fafb', borderRadius: 8, marginBottom: 12 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 10, background: f.accent_color, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+          {f.logo_url
+            ? <img src={f.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <svg width="22" height="22" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M2 9h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/></svg>}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{f.short_name || f.name || 'A tua organização'}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>Aparece no cabeçalho clínico e em documentos impressos.</div>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
         <div><Label>Nome</Label><input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} style={input} /></div>
         <div><Label>Nome curto</Label><input value={f.short_name} onChange={e => setF({ ...f, short_name: e.target.value })} style={input} /></div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <Label>URL do logótipo</Label>
+      <input value={f.logo_url} onChange={e => setF({ ...f, logo_url: e.target.value })} placeholder="https://..." style={input} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <div><Label>NIF</Label><input value={f.vat_number} onChange={e => setF({ ...f, vat_number: e.target.value })} style={input} /></div>
+        <div><Label>Diretor(a)</Label><input value={f.director} onChange={e => setF({ ...f, director: e.target.value })} style={input} /></div>
+        <div><Label>Total camas</Label><input type="number" value={f.total_beds} onChange={e => setF({ ...f, total_beds: e.target.value })} style={input} /></div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 8 }}>
         <div><Label>Cor da marca</Label><input type="color" value={f.accent_color} onChange={e => setF({ ...f, accent_color: e.target.value })} style={{ ...input, padding: 4, height: 38 }} /></div>
+        <div />
       </div>
       <Label>Morada</Label>
       <input value={f.address} onChange={e => setF({ ...f, address: e.target.value })} style={input} />
@@ -325,7 +350,10 @@ function IdentityForm({ org, onSave }: { org: any; onSave: (u: any) => void }) {
         <div><Label>Telefone</Label><input value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} style={input} /></div>
         <div><Label>Email</Label><input value={f.email} onChange={e => setF({ ...f, email: e.target.value })} style={input} /></div>
       </div>
-      <button onClick={() => onSave(f)} style={{ ...primaryBtn, width: '100%', marginTop: 12 }}>Guardar alterações</button>
+      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-4)' }}>
+        Os horários de turnos passaram para <strong>Equipa &amp; Escalas</strong>.
+      </div>
+      <button onClick={submit} style={{ ...primaryBtn, width: '100%', marginTop: 12 }}>Guardar alterações</button>
     </div>
   )
 }

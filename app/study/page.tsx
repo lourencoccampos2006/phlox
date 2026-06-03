@@ -16,12 +16,45 @@ const DOMAINS = [
     border: '#bbf7d0',
     desc: 'Mecanismos, interações, farmacocinética',
     topics: [
-      'Beta-bloqueadores', 'IECA / ARA-II', 'Estatinas', 'Anticoagulantes', 'Antiarrítmicos',
-      'Benzodiazepinas', 'ISRS / IRSN', 'Antipsicóticos', 'Antiepilépticos',
-      'Antibióticos Beta-lactâmicos', 'Fluoroquinolonas', 'Macrólidos', 'Antifúngicos', 'Antivirais',
-      'AINEs', 'Opióides', 'Antidiabéticos orais', 'Inibidores da Bomba de Protões', 'Corticosteróides',
-      'Diuréticos', 'Broncodilatadores', 'Imunossupressores', 'Hormonas tiróideias',
-      'Anticolinérgicos', 'Dopaminérgicos', 'Biológicos e Imunológicos',
+      // ── Cardiovasculares ─────────────────────────────────────────────
+      'Beta-bloqueadores', 'IECA / ARA-II', 'ARNI (Sacubitril-Valsartan)', 'Estatinas',
+      'PCSK9 (Evolocumab, Alirocumab)', 'Anticoagulantes (Varfarina e NOACs)',
+      'Antiagregantes Plaquetários', 'Antiarrítmicos (Classes Vaughan-Williams)',
+      'Bloqueadores dos Canais de Cálcio', 'Nitratos', 'Inibidores SGLT2 na IC',
+      // ── Neuropsiquiátricos ───────────────────────────────────────────
+      'Benzodiazepinas', 'ISRS / IRSN', 'Antidepressivos Tricíclicos', 'IMAO',
+      'Antipsicóticos Típicos', 'Antipsicóticos Atípicos', 'Lítio e Estabilizadores de Humor',
+      'Antiepilépticos', 'Antiparkinsónicos', 'Inibidores da Acetilcolinesterase',
+      'Memantina', 'Bupropiona e Vareniclina (Cessação Tabágica)',
+      // ── Antibióticos / Antimicrobianos ───────────────────────────────
+      'Antibióticos Beta-lactâmicos', 'Cefalosporinas (Gerações)', 'Carbapenemes',
+      'Vancomicina e Glicopeptídeos', 'Aminoglicosídeos', 'Fluoroquinolonas',
+      'Macrólidos', 'Tetraciclinas', 'Sulfamidas', 'Linezolida e Daptomicina',
+      'Antifúngicos (Triazoles, Equinocandinas)', 'Antivirais (Anti-Herpes, Anti-Hepatite)',
+      'Antirretrovirais (HAART)',
+      // ── Analgesia e Anti-inflamatórios ───────────────────────────────
+      'AINEs e Risco Cardiovascular', 'Opióides — Equivalências e Rotação',
+      'Paracetamol — Mecanismo e Toxicidade', 'Adjuvantes da Dor (Gabapentinoides)',
+      'Triptanos', 'Glucocorticóides Sistémicos',
+      // ── Diabetes / Endocrinologia ────────────────────────────────────
+      'Antidiabéticos orais', 'Insulinas (Curta/Longa Duração)', 'GLP-1 (Semaglutido, Liraglutido)',
+      'Inibidores SGLT2', 'Hormonas tiróideias', 'Glucocorticóides e Mineralocorticóides',
+      'Hormonas Sexuais e THS', 'Bisfosfonatos e Denosumab',
+      // ── GI e Respiratório ─────────────────────────────────────────────
+      'Inibidores da Bomba de Protões', 'Procinéticos (Metoclopramida, Domperidona)',
+      '5-ASA e Imunossupressores na DII', 'Broncodilatadores (SABA, LABA)',
+      'Corticosteróides Inalados', 'Antagonistas dos Leucotrienos', 'Anti-IgE (Omalizumab)',
+      // ── Imunossupressão / Biológicos ─────────────────────────────────
+      'Corticosteróides — Equivalências e Tapering', 'Metotrexato', 'Azatioprina',
+      'Ciclosporina e Tacrolimus', 'Anti-TNF-α (Infliximab, Adalimumab)', 'Anti-IL-6 (Tocilizumab)',
+      'Rituximab', 'Imunoterapia Oncológica (PD-1, PD-L1, CTLA-4)',
+      // ── Hematologia ───────────────────────────────────────────────────
+      'Eritropoietina e ESAs', 'Heparinas (HNF, HBPM)', 'Fondaparinux',
+      'Reversores de Anticoagulação (Idarucizumab, Andexanet)',
+      // ── Outros ────────────────────────────────────────────────────────
+      'Diuréticos (Ansa, Tiazidas, Poupadores de K)', 'Imunossupressores',
+      'Anticolinérgicos', 'Dopaminérgicos', 'Vacinas e Imunoglobulinas',
+      'Antídotos em Toxicologia', 'Antiparasitários',
     ],
   },
   {
@@ -33,13 +66,44 @@ const DOMAINS = [
     border: '#fecaca',
     desc: 'Cardiologia, pneumologia, gastro, nefrologia',
     topics: [
-      'Insuficiência Cardíaca', 'Fibrilhação Auricular', 'Síndromes Coronários Agudos', 'HTA e Hipertensão Resistente',
-      'DPOC e Asma', 'Pneumonia Adquirida na Comunidade', 'Embolia Pulmonar', 'Síndrome de Dificuldade Respiratória',
-      'Diabetes Mellitus tipo 2', 'Dislipidemia', 'Obesidade e Síndrome Metabólico',
-      'Doença Renal Crónica', 'Síndrome Nefrótico', 'Glomerulonefrites',
-      'Doença de Crohn e Colite Ulcerosa', 'Cirrose Hepática', 'Hepatite Viral',
-      'Anemia', 'Trombocitopenia', 'Coagulopatias',
-      'Artrite Reumatoide', 'Lúpus Eritematoso Sistémico', 'Vasculites',
+      // ── Cardiologia ─────────────────────────────────────────────────
+      'Insuficiência Cardíaca com FE Reduzida', 'Insuficiência Cardíaca com FE Preservada',
+      'Fibrilhação Auricular — Ritmo vs Frequência', 'Score CHA2DS2-VASc e HAS-BLED',
+      'Síndromes Coronários Agudos (STEMI, NSTEMI, AI)', 'HTA e Hipertensão Resistente',
+      'Hipertensão Secundária — Causas', 'Valvulopatias (EA, IM, EM)',
+      'Endocardite Infecciosa', 'Pericardite Aguda', 'Miocardite',
+      'Doença Arterial Periférica',
+      // ── Pneumologia ──────────────────────────────────────────────────
+      'DPOC — Classificação GOLD', 'Asma — Steps GINA', 'Pneumonia Adquirida na Comunidade',
+      'Pneumonia Nosocomial e Associada ao Ventilador', 'Embolia Pulmonar',
+      'Síndrome de Dificuldade Respiratória (ARDS)', 'Fibrose Pulmonar Idiopática',
+      'Apneia Obstrutiva do Sono', 'Hipertensão Pulmonar',
+      // ── Endocrinologia ───────────────────────────────────────────────
+      'Diabetes Mellitus tipo 1', 'Diabetes Mellitus tipo 2', 'Hipoglicemia',
+      'Dislipidemia', 'Obesidade e Síndrome Metabólico', 'Hipertiroidismo (Graves)',
+      'Hipotiroidismo (Hashimoto)', 'Síndrome de Cushing', 'Insuficiência Suprarrenal',
+      'Hiperparatiroidismo', 'Osteoporose', 'Osteomalácia',
+      // ── Nefrologia ───────────────────────────────────────────────────
+      'Doença Renal Crónica — Estádios e Manejo', 'Síndrome Nefrótico',
+      'Glomerulonefrites Agudas', 'Lesão Renal Aguda (KDIGO)', 'Tubulopatias',
+      'Doenças Quísticas (Rim Policístico)', 'Acidose Tubular Renal',
+      // ── Gastroenterologia / Hepatologia ───────────────────────────────
+      'Doença de Crohn e Colite Ulcerosa', 'Cirrose Hepática', 'Hepatite Viral A/B/C/E',
+      'Doença Hepática Esteatótica (MASLD)', 'Hipertensão Portal e Varizes',
+      'Encefalopatia Hepática', 'Síndrome Hepatorrenal', 'Doença Celíaca',
+      'Síndrome do Intestino Irritável', 'Diverticulite', 'DRGE e Esofagite',
+      // ── Hematologia ──────────────────────────────────────────────────
+      'Anemia Ferropénica', 'Anemia da Doença Crónica', 'Anemias Hemolíticas',
+      'Anemias Megaloblásticas', 'Trombocitopenias (PTI, PTT)', 'Coagulopatias',
+      'Síndromes Mieloproliferativos', 'Mieloma Múltiplo', 'Linfomas Hodgkin e Não-Hodgkin',
+      'Leucemias Agudas',
+      // ── Reumatologia ─────────────────────────────────────────────────
+      'Artrite Reumatoide', 'Lúpus Eritematoso Sistémico', 'Vasculites (ANCA+)',
+      'Polimialgia Reumática e Arterite Temporal', 'Espondilartrites',
+      'Gota e Pseudogota', 'Esclerodermia', 'Síndrome de Sjögren',
+      // ── Infecciologia ────────────────────────────────────────────────
+      'VIH/SIDA — Manejo', 'Tuberculose', 'Hepatite C — Tratamento DAA',
+      'Endocardite Infecciosa — Critérios de Duke', 'Sépsis — Bundle de 1 hora',
     ],
   },
   {
@@ -51,13 +115,40 @@ const DOMAINS = [
     border: '#fde68a',
     desc: 'Algoritmos, protocolos, suporte de vida',
     topics: [
-      'Paragem Cardiorrespiratória e RCP', 'SAV — Suporte Avançado de Vida', 'SBV — Suporte Básico de Vida',
-      'Choque — Tipos e Tratamento', 'Choque Séptico e Sepsis', 'Choque Anafilático',
-      'AVC Isquémico — Protocolo', 'Hemorragia Intracraniana', 'Status Epilepticus',
-      'Crise Hipertensiva', 'Edema Agudo do Pulmão', 'Tamponamento Cardíaco',
-      'Trauma e ABCDE', 'Trauma Crânio-encefálico', 'Abdómen Agudo',
+      // ── Suporte de vida ──────────────────────────────────────────────
+      'Paragem Cardiorrespiratória e RCP', 'SAV — Suporte Avançado de Vida',
+      'SBV — Suporte Básico de Vida', 'Ritmos Desfibriláveis vs Não-Desfibriláveis',
+      'Algoritmo de Bradicárdia', 'Algoritmo de Taquicárdia', 'Cuidados Pós-Paragem',
+      // ── Choque ───────────────────────────────────────────────────────
+      'Choque — Tipos e Tratamento', 'Choque Séptico — Sepsis-3', 'Choque Cardiogénico',
+      'Choque Hipovolémico — Transfusão Massiva', 'Choque Anafilático',
+      'Choque Obstrutivo (Tamponamento, TEP, Pneumotórax)',
+      // ── Neurológicas ─────────────────────────────────────────────────
+      'AVC Isquémico — Trombólise e Trombectomia', 'Hemorragia Intracraniana',
+      'Status Epilepticus — Algoritmo', 'Coma — Abordagem Diagnóstica',
+      'Cefaleia em Trovão', 'Meningite e Meningoencefalite',
+      // ── Cardiopulmonar ───────────────────────────────────────────────
+      'Crise Hipertensiva (Urgência vs Emergência)', 'Edema Agudo do Pulmão',
+      'Tamponamento Cardíaco', 'Embolia Pulmonar Maciça',
+      'Pneumotórax Hipertensivo', 'Dissecção Aórtica',
+      // ── Trauma ───────────────────────────────────────────────────────
+      'Trauma e ABCDE', 'Trauma Crânio-encefálico Grave', 'Trauma Torácico',
+      'Trauma Abdominal — FAST', 'Politraumatismo — Damage Control',
+      'Queimaduras — Regra dos 9 e Fluidos', 'Hemorragia Massiva e Ácido Tranexâmico',
+      // ── Endócrino / Metabólico ───────────────────────────────────────
       'Cetoacidose Diabética', 'Estado Hiperosmolar', 'Hipoglicemia Grave',
-      'Intoxicações Agudas', 'Overdose por Opióides', 'Queimaduras',
+      'Crise Tireotóxica', 'Crise Addisoniana', 'Hipercaliemia com Alterações ECG',
+      'Hiponatremia Grave', 'Encefalopatia de Wernicke',
+      // ── Tóxico ───────────────────────────────────────────────────────
+      'Intoxicações Agudas — Abordagem Geral', 'Intoxicação por Paracetamol',
+      'Intoxicação por Tricíclicos', 'Intoxicação por Benzodiazepinas',
+      'Intoxicação por Opióides — Naloxona', 'Intoxicação por Beta-bloqueante',
+      'Intoxicação por Bloqueador dos Canais de Cálcio', 'Intoxicação por Salicilatos',
+      'Intoxicação por Organofosforados', 'Intoxicação por Etilenoglicol e Metanol',
+      'Síndrome Serotoninérgica', 'Síndrome Neuroléptico Maligno',
+      // ── Outras emergências ───────────────────────────────────────────
+      'Abdómen Agudo — Diagnóstico Diferencial', 'Hemorragia Digestiva Alta e Baixa',
+      'Anafilaxia — Protocolo', 'Eclâmpsia',
     ],
   },
   {
@@ -69,13 +160,30 @@ const DOMAINS = [
     border: '#bfdbfe',
     desc: 'Pré e pós-operatório, patologia cirúrgica',
     topics: [
-      'Apendicite Aguda', 'Colecistite e Coledocolitíase', 'Oclusão Intestinal',
-      'Hérnia Inguinal e Umbilical', 'Peritonite', 'Pancreatite Aguda e Crónica',
+      // ── Abdómen ───────────────────────────────────────────────────────
+      'Apendicite Aguda', 'Colecistite Aguda', 'Coledocolitíase e Colangite',
+      'Oclusão Intestinal Mecânica', 'Íleo Paralítico', 'Isquémia Mesentérica',
+      'Hérnia Inguinal e Crural', 'Hérnia Umbilical e Incisional',
+      'Peritonite Generalizada', 'Diverticulite e Diverticulose',
+      'Pancreatite Aguda', 'Pancreatite Crónica',
+      'Hemorragia Digestiva Alta', 'Hemorragia Digestiva Baixa',
+      // ── Oncologia cirúrgica ──────────────────────────────────────────
       'Cancro Colorrectal', 'Cancro Gástrico', 'Cancro do Pâncreas',
-      'Avaliação Pré-operatória', 'Gestão Peri-operatória de Anticoagulantes',
-      'Complicações Pós-operatórias', 'Deiscência e Infecção de Ferida',
-      'Drenos e Sondas', 'Nutrição no Doente Cirúrgico',
-      'Cancro da Mama', 'Nódulo Tiróideu', 'Supra-renais',
+      'Cancro do Esófago', 'Cancro Hepatocelular', 'Cancro da Mama',
+      'Cancro da Tiroide e Nódulo Tiróideu', 'Tumores das Suprarrenais',
+      'Sarcomas dos Tecidos Moles', 'GIST',
+      // ── Peri-operatório ──────────────────────────────────────────────
+      'Avaliação Pré-operatória e ASA', 'Gestão Peri-operatória de Anticoagulantes',
+      'Profilaxia Tromboembólica (HBPM, IPC)', 'Profilaxia Antibiótica Cirúrgica',
+      'Jejum Pré-operatório', 'ERAS — Enhanced Recovery',
+      'Anestesia — Tipos e Indicações', 'Complicações Pós-operatórias',
+      'Atelectasia e Pneumonia Pós-op', 'Íleo Pós-op', 'TVP/TEP Pós-op',
+      'Deiscência e Infecção de Ferida', 'Drenos e Sondas — Cuidados',
+      // ── Outros ────────────────────────────────────────────────────────
+      'Nutrição no Doente Cirúrgico', 'Resposta Metabólica ao Trauma',
+      'Trauma Abdominal Fechado', 'Trauma Penetrante Abdominal',
+      'Vascular — Aneurisma da Aorta', 'Vascular — Isquémia Aguda dos MI',
+      'Cirurgia Bariátrica', 'Cirurgia Tiróidea — Complicações',
     ],
   },
   {
@@ -87,14 +195,34 @@ const DOMAINS = [
     border: '#e9d5ff',
     desc: 'Desenvolvimento, doenças pediátricas, doses',
     topics: [
+      // ── Desenvolvimento e prevenção ──────────────────────────────────
       'Desenvolvimento Psicomotor Normal', 'Calendário Vacinal PNV',
-      'Febre na Criança — Abordagem', 'Convulsão Febril', 'Otite Média Aguda',
-      'Bronquiolite', 'Asma Pediátrica', 'Pneumonia Pediátrica',
+      'Atrasos do Desenvolvimento — Sinais de Alarme',
+      'Crescimento e Curvas de Percentil',
+      // ── Infecciosas ──────────────────────────────────────────────────
+      'Febre Sem Foco no Lactente', 'Convulsão Febril',
+      'Otite Média Aguda', 'Faringite Estreptocócica',
+      'Bronquiolite', 'Asma Pediátrica',
+      'Pneumonia Pediátrica', 'Tosse Convulsa',
+      'Síndrome PIMS pós-COVID', 'Meningite Pediátrica',
+      // ── GI e Endócrino ───────────────────────────────────────────────
       'Gastroenterite Aguda Pediátrica', 'Desidratação — Graus e Tratamento',
+      'Invaginação Intestinal', 'Estenose Hipertrófica do Piloro',
       'Diabetes Mellitus tipo 1 Pediátrica', 'Hipotiroidismo Congénito',
+      'Doença Celíaca Pediátrica',
+      // ── Neonatologia ─────────────────────────────────────────────────
       'RN — Adaptação à Vida Extra-uterina', 'Icterícia Neonatal',
-      'Cardiopatias Congénitas', 'Sindrome de Down e outras Trissomias',
+      'Hipoglicémia Neonatal', 'Sépsis Neonatal',
+      'Prematuridade — Complicações',
+      // ── Cardio / Sindromes ───────────────────────────────────────────
+      'Cardiopatias Congénitas — Cianóticas', 'Cardiopatias Congénitas — Não-Cianóticas',
+      'Sindrome de Down', 'Trissomia 18 e Trissomia 13',
+      'Síndrome de Turner', 'Síndromes Cromossómicos Comuns',
+      // ── Outros ────────────────────────────────────────────────────────
       'Doses Pediátricas e Ajustes', 'Antibioterapia em Pediatria',
+      'Trauma Crânio-encefálico Ligeiro na Criança',
+      'Abuso Infantil — Sinais de Alerta',
+      'Maus Tratos e Negligência', 'Sopro Cardíaco Funcional vs Patológico',
     ],
   },
   {
@@ -106,15 +234,40 @@ const DOMAINS = [
     border: '#fbcfe8',
     desc: 'Gravidez, parto, patologia ginecológica',
     topics: [
+      // ── Obstetrícia — pré-natal ──────────────────────────────────────
       'Vigilância da Gravidez Normal', 'Náuseas e Vómitos na Gravidez',
-      'Hipertensão na Gravidez e Pré-eclâmpsia', 'Diabetes Gestacional',
-      'Parto Normal e Distócia', 'Cesareana — Indicações e Técnica',
-      'Puerpério e Amamentação', 'Hemorragia Pós-Parto',
-      'Aborto Espontâneo e Induzido', 'Gravidez Ectópica',
-      'Endometriose', 'Síndrome do Ovário Poliquístico', 'Miomas',
-      'Cancro do Colo do Útero e Rastreio', 'Cancro do Ovário',
-      'Menopausa e THS', 'Contracepção — Métodos e Contraindicações',
+      'Hiperémese Gravídica', 'Diagnóstico Pré-natal',
+      'Rastreio Combinado do 1º Trimestre', 'Aloimunização Rh',
+      // ── Complicações da gravidez ─────────────────────────────────────
+      'Hipertensão na Gravidez', 'Pré-eclâmpsia e Eclâmpsia',
+      'Síndrome HELLP', 'Diabetes Gestacional',
+      'Restrição de Crescimento Fetal', 'Ameaça de Parto Prematuro',
+      'Rotura Prematura de Membranas', 'Corioamnionite',
+      'Tromboembolismo na Gravidez',
+      // ── Parto e puerpério ────────────────────────────────────────────
+      'Parto Normal — Fases', 'Distócia de Ombros',
+      'Cesareana — Indicações e Técnica', 'Indução do Trabalho de Parto',
+      'Analgesia Epidural — Indicações', 'Puerpério Normal',
+      'Amamentação — Apoio Farmacêutico', 'Hemorragia Pós-Parto',
+      'Depressão Pós-parto',
+      // ── Aborto e ectópica ────────────────────────────────────────────
+      'Aborto Espontâneo — Tipos', 'IVG — Aspectos Legais e Farmacológicos',
+      'Gravidez Ectópica — Diagnóstico',
+      // ── Patologia ginecológica ───────────────────────────────────────
+      'Endometriose', 'Adenomiose',
+      'Síndrome do Ovário Poliquístico', 'Miomas Uterinos',
+      'Pólipos Endometriais', 'Doença Inflamatória Pélvica',
+      'Vulvovaginites — DDx',
+      // ── Oncologia ────────────────────────────────────────────────────
+      'Cancro do Colo do Útero', 'Rastreio Cervical — HPV e Citologia',
+      'Cancro do Ovário', 'Cancro do Endométrio', 'Cancro Vulvar',
+      // ── Menopausa e contracepção ─────────────────────────────────────
+      'Menopausa — Sintomas e Manejo', 'THS — Riscos e Benefícios',
+      'Contracepção Oral Combinada', 'Contracepção Progestativa',
+      'DIU — Cobre vs Hormonal', 'Contracepção de Emergência',
+      // ── Farmacologia obstétrica ──────────────────────────────────────
       'Fármacos na Gravidez — Categorias FDA/EMA',
+      'Fármacos na Amamentação',
     ],
   },
   {
@@ -126,14 +279,37 @@ const DOMAINS = [
     border: '#a5f3fc',
     desc: 'Estrutura e função dos sistemas',
     topics: [
+      // ── Cardiovascular ───────────────────────────────────────────────
       'Sistema Cardiovascular — Anatomia', 'Fisiologia Cardíaca e Ciclo Cardíaco',
+      'Sistema de Condução do Coração', 'Regulação da Pressão Arterial',
+      'Microcirculação e Permeabilidade',
+      // ── Respiratório ──────────────────────────────────────────────────
       'Sistema Respiratório — Anatomia', 'Mecânica Respiratória e Trocas Gasosas',
+      'Volumes e Capacidades Pulmonares', 'Curva de Dissociação da Hemoglobina',
+      'Regulação Central da Respiração',
+      // ── Neuro ─────────────────────────────────────────────────────────
       'Sistema Nervoso Central — Anatomia', 'Sistema Nervoso Periférico',
-      'Rim — Anatomia e Fisiologia', 'Equilíbrio Ácido-Base',
+      'Sistema Nervoso Autónomo (Simpático/Parassimpático)',
+      'Sinapse e Neurotransmissão', 'LCR — Produção e Circulação',
+      'Vias Sensitivas e Motoras',
+      // ── Renal / Ácido-base ───────────────────────────────────────────
+      'Rim — Anatomia e Fisiologia', 'Nefrónio e Filtração Glomerular',
+      'Equilíbrio Ácido-Base', 'Equilíbrio Hidroelectrolítico',
+      'Sistema Renina-Angiotensina-Aldosterona',
+      // ── Hepático / GI ─────────────────────────────────────────────────
       'Fígado — Anatomia e Funções', 'Sistema Digestivo — Fisiologia',
+      'Metabolismo dos Fármacos (CYP450)', 'Circulação Enterohepática',
+      // ── Endócrino ─────────────────────────────────────────────────────
       'Sistema Endócrino — Eixos Hormonais', 'Pâncreas Endócrino',
-      'Sistema Imunitário — Inato e Adaptativo', 'Hemostase e Coagulação',
-      'Sistema Musculoesquelético', 'Dermatologia — Estrutura da Pele',
+      'Eixo Hipotálamo-Hipófise', 'Tiróide — Síntese e Regulação',
+      'Suprarrenal — Cortex e Medula',
+      // ── Imune / Hemato ───────────────────────────────────────────────
+      'Sistema Imunitário — Inato e Adaptativo', 'Hipersensibilidade — 4 Tipos',
+      'Hemostase e Coagulação', 'Eritropoiese e Megaloblastose',
+      'Grupos Sanguíneos e Transfusão',
+      // ── Locomotor / Pele ─────────────────────────────────────────────
+      'Sistema Musculoesquelético', 'Contracção Muscular',
+      'Dermatologia — Estrutura da Pele', 'Cicatrização — Fases',
     ],
   },
   {
@@ -145,13 +321,27 @@ const DOMAINS = [
     border: 'var(--border)',
     desc: 'Exame físico, sinais e sintomas',
     topics: [
-      'Exame Físico Geral — Metodologia', 'Auscultação Cardíaca — Sons e Sopros',
-      'Auscultação Pulmonar — Ruídos Adventícios', 'Palpação e Percussão Abdominal',
+      // ── Exame geral e cardiopulmonar ─────────────────────────────────
+      'Exame Físico Geral — Metodologia', 'Sinais Vitais — Interpretação',
+      'Auscultação Cardíaca — Sons e Sopros', 'Sopros Cardíacos — Classificação',
+      'Auscultação Pulmonar — Ruídos Adventícios', 'Padrões Respiratórios Anormais',
+      'Palpação e Percussão Abdominal', 'Sinal de Murphy, McBurney, Blumberg',
+      // ── Neurológico ───────────────────────────────────────────────────
       'Exame Neurológico — Pares Cranianos', 'Reflexos Osteotendinosos',
-      'Sinais Meníngeos', 'Avaliação do Nível de Consciência — GCS',
+      'Sinais Meníngeos (Kernig, Brudzinski)', 'Avaliação do Nível de Consciência — GCS',
+      'Exame de Força (MRC 0-5)', 'Coordenação e Marcha',
+      // ── Sinais cardinais e DDx ───────────────────────────────────────
       'Edema — Causas e Classificação', 'Cianose — Central vs Periférica',
       'Icterícia — Diagnóstico Diferencial', 'Hepatoesplenomegalia',
-      'Adenomegalias — Abordagem', 'Sopros Cardíacos — Classificação',
+      'Adenomegalias — Abordagem', 'Ascite — Diagnóstico Diferencial',
+      'Eritema e Lesões Cutâneas Comuns', 'Petéquias e Púrpura',
+      'Hipocratismo Digital', 'Cefaleia — Tipo e DDx',
+      // ── Exames especiais ─────────────────────────────────────────────
+      'Avaliação da Dor (EVA, Escala Numérica)',
+      'Avaliação Cognitiva (MMSE, MoCA)',
+      'Avaliação da Fragilidade (CFS)',
+      'Exame Orofaríngeo', 'Exame Otoscópico',
+      'Avaliação do Tireoide',
     ],
   },
   {
@@ -163,14 +353,40 @@ const DOMAINS = [
     border: '#99f6e4',
     desc: 'Técnicas, protocolos, cuidados',
     topics: [
+      // ── Administração de medicação ───────────────────────────────────
       'Administração de Medicação IV, IM, SC', 'Preparação e Cálculo de Doses',
+      'Bombas e Seringas Infusoras', 'Diluições e Compatibilidades IV',
+      'Administração por SNG/PEG', 'Insulinoterapia — Esquemas',
+      'Hemoderivados — Administração e Reacções',
+      // ── Acessos vasculares ───────────────────────────────────────────
       'Cateterismo Venoso Periférico', 'Cateter Venoso Central — Cuidados',
+      'Cateter Tunelizado (Hickman, Port-a-Cath)', 'Linha Arterial',
+      // ── Sondas, drenos, tubos ────────────────────────────────────────
       'Sondagem Nasogástrica', 'Sondagem Vesical — Algaliação',
-      'Prevenção de Úlceras de Pressão', 'Pensos e Cuidados à Ferida',
+      'Drenos Torácicos', 'Drenos Abdominais',
+      'Traqueostomia — Cuidados',
+      // ── Feridas e pressão ────────────────────────────────────────────
+      'Prevenção de Úlceras de Pressão', 'Avaliação de Úlcera por Pressão (NPUAP)',
+      'Pensos e Cuidados à Ferida', 'Tipos de Penso por Fase',
+      'TPN — Terapia de Pressão Negativa',
+      // ── Monitorização ────────────────────────────────────────────────
       'Monitorização de Sinais Vitais', 'Oximetria e Oxigenoterapia',
-      'Processo de Enfermagem — NANDA', 'Escalas — Braden, Morse, Barthel',
-      'Isolamento e Controlo de Infecção', 'Triagem de Manchester',
-      'Cuidados Paliativos e Controlo Sintomático',
+      'NEWS2 e Detecção do Doente Deteriorado',
+      'Monitorização da Dor', 'Glicemia Capilar — Técnica',
+      // ── Processo e escalas ───────────────────────────────────────────
+      'Processo de Enfermagem — NANDA', 'CIPE — Classificação',
+      'Escala de Braden (Risco UPP)', 'Escala de Morse (Risco de Queda)',
+      'Escala de Barthel e Lawton (AVD)',
+      'Escala de Glasgow (GCS)',
+      // ── Segurança e controlo de infecção ─────────────────────────────
+      'Higiene das Mãos — 5 Momentos', 'EPI — Tipos e Sequência',
+      'Isolamento de Contacto, Gotículas, Aéreo',
+      'Prevenção da Infecção Associada aos Cuidados',
+      // ── Especificidades ──────────────────────────────────────────────
+      'Triagem de Manchester', 'Cuidados Paliativos — Sintomas',
+      'Via Subcutânea no Doente em Fim de Vida',
+      'Cuidados ao Idoso — Particularidades',
+      'Bombas PCA (Analgesia Controlada)',
     ],
   },
   {
@@ -182,14 +398,33 @@ const DOMAINS = [
     border: '#d9f99d',
     desc: 'Dietética, suporte nutricional, patologias',
     topics: [
+      // ── Avaliação ────────────────────────────────────────────────────
       'Avaliação do Estado Nutricional', 'IMC, PCT, CMB — Interpretação',
-      'Necessidades Energéticas e Proteicas', 'Macronutrientes e Micronutrientes',
-      'Dieta na Diabetes Mellitus', 'Dieta na Doença Renal Crónica',
-      'Dieta na Insuficiência Cardíaca', 'Dieta na Doença Hepática',
-      'Suporte Nutricional Entérico', 'Nutrição Parentérica Total',
-      'Desnutrição — Classificação e Tratamento', 'Obesidade — Abordagem Clínica',
-      'Alergias e Intolerâncias Alimentares', 'Nutrição na Gravidez',
-      'Nutrição Pediátrica e Aleitamento',
+      'MUST e MNA — Rastreio', 'GLIM Critérios de Desnutrição',
+      'Composição Corporal — Bioimpedância',
+      // ── Necessidades ─────────────────────────────────────────────────
+      'Necessidades Energéticas e Proteicas', 'Equação de Harris-Benedict',
+      'Macronutrientes e Micronutrientes', 'Vitaminas e Oligoelementos',
+      'Necessidades Hídricas',
+      // ── Patologias ────────────────────────────────────────────────────
+      'Dieta na Diabetes Mellitus', 'Contagem de Hidratos de Carbono',
+      'Dieta na Doença Renal Crónica', 'Dieta no Doente em Hemodiálise',
+      'Dieta na Insuficiência Cardíaca', 'Restrição de Sódio',
+      'Dieta na Doença Hepática', 'Dieta na DII',
+      'Dieta no Doente Oncológico', 'Caquexia Tumoral',
+      'Dieta na Doença Celíaca',
+      'Dieta na Hipertensão (DASH)', 'Dieta Mediterrânica',
+      // ── Suporte nutricional ──────────────────────────────────────────
+      'Suporte Nutricional Entérico — Indicações', 'Fórmulas Entéricas — Tipos',
+      'Nutrição Parentérica Total', 'NPT — Complicações',
+      'Síndrome de Realimentação', 'Disfagia — Texturas Modificadas',
+      // ── Desnutrição e obesidade ──────────────────────────────────────
+      'Desnutrição — Classificação e Tratamento', 'Sarcopenia no Idoso',
+      'Obesidade — Abordagem Clínica', 'Cirurgia Bariátrica — Cuidados Nutricionais',
+      // ── Alergias e ciclo de vida ─────────────────────────────────────
+      'Alergias e Intolerâncias Alimentares', 'Anafilaxia Alimentar',
+      'Nutrição na Gravidez', 'Suplementação Pré-natal',
+      'Nutrição Pediátrica e Aleitamento', 'Diversificação Alimentar',
     ],
   },
 ]

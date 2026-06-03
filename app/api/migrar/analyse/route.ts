@@ -15,30 +15,17 @@ export async function POST(req: NextRequest) {
   const { source_system, import_mode, text = '', pdf_base64, filename } = body
   let dataText = text
 
-  // PDF extraction via Gemini
+  // PDF extraction via wrapper de visão (com fallback de modelos)
   if (pdf_base64) {
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (geminiKey) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [
-                { text: `Extrai TODA a informação estruturada deste documento clínico. Para medicamentos: nome, dose, frequência. Para doentes/residentes: nome, idade, quarto, diagnóstico. Para análises: parâmetro, valor, unidade, referência. Responde com o texto extraído em formato tabular claro.` },
-                { inline_data: { mime_type: 'application/pdf', data: pdf_base64 } }
-              ] }],
-              generationConfig: { maxOutputTokens: 3000, temperature: 0.0 }
-            })
-          }
-        )
-        const gd = await res.json()
-        const extracted = gd.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        if (extracted.length > 20) dataText = extracted
-      } catch (_e: any) {}
-    }
+    try {
+      const { callGeminiVision } = await import('@/lib/ai')
+      const extracted = await callGeminiVision(
+        `Extrai TODA a informação estruturada deste documento clínico. Para medicamentos: nome, dose, frequência. Para doentes/residentes: nome, idade, quarto, diagnóstico. Para análises: parâmetro, valor, unidade, referência. Responde com o texto extraído em formato tabular claro.`,
+        pdf_base64, 'application/pdf',
+        { maxTokens: 3000, temperature: 0.0 }
+      )
+      if (extracted.length > 20) dataText = extracted
+    } catch (_e: any) {}
   }
 
   if (!dataText.trim()) return NextResponse.json({ error: 'Sem dados para analisar.' }, { status: 400 })

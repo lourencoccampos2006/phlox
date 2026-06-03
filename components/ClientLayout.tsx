@@ -23,6 +23,7 @@ const CLINICAL_PREFIXES = [
   '/clinico360',
   '/hospital',
   '/farmacia',
+  '/bi', '/automacoes',
 ]
 
 function ScrollToTop() {

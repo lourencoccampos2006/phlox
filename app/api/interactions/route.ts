@@ -174,28 +174,14 @@ export async function POST(req: NextRequest) {
 
   // ── IMAGE MODE: identify drugs from photo ────────────────────────────────
   if (body?.image) {
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) return NextResponse.json({ error: 'Serviço de visão não configurado.' }, { status: 503 })
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [
-              { text: 'List all medication names visible in this image. Return ONLY a JSON object, no markdown: {"drugs": ["name1", "name2"]}. Use INN/generic names in Portuguese when possible.' },
-              { inline_data: { mime_type: body.mimeType || 'image/jpeg', data: body.image } }
-            ]}],
-            generationConfig: { maxOutputTokens: 200, temperature: 0.0 }
-          })
-        }
+      const { callGeminiVisionJSON } = await import('@/lib/ai')
+      const parsed = await callGeminiVisionJSON<{ drugs?: string[] }>(
+        'List all medication names visible in this image. Return ONLY a JSON object, no markdown: {"drugs": ["name1", "name2"]}. Use INN/generic names in Portuguese when possible.',
+        body.image,
+        body.mimeType || 'image/jpeg',
+        { maxTokens: 300 }
       )
-      const gd = await res.json()
-      const raw = gd.candidates?.[0]?.content?.parts?.[0]?.text || ''
-      const match = raw.match(/\{[\s\S]*\}/)
-      if (!match) return NextResponse.json({ identified_drugs: [] })
-      const parsed = JSON.parse(match[0])
       return NextResponse.json({ identified_drugs: parsed.drugs || [] })
     } catch (e: any) {
       return NextResponse.json({ error: `Erro ao analisar imagem: ${e.message}` }, { status: 500 })

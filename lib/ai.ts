@@ -1,7 +1,21 @@
 // lib/ai.ts
-// Cliente de IA com fallback automático entre providers
-// Ordem: Groq 70B → Groq 8B → Gemini Flash
-// Quando um provider dá rate limit (429) ou erro, tenta o seguinte automaticamente
+// Cliente de IA com fallback automático entre MUITOS providers + modelos.
+//
+// Sequência (default):
+//   1) Groq llama-3.3-70b-versatile
+//   2) Groq llama-3.1-8b-instant
+//   3) Groq llama-3.2-90b-vision-preview  (fallback de qualidade)
+//   4) Gemini 2.5 Flash
+//   5) Gemini 2.0 Flash
+//   6) Gemini 2.5 Flash Lite
+//   7) Gemini 2.0 Flash Lite
+//   8) OpenAI gpt-4o-mini (se OPENAI_API_KEY definida)
+//   9) Anthropic claude-haiku-4-5 (se ANTHROPIC_API_KEY definida)
+//
+// Para cada provider/modelo, em caso de 429 ou timeout, faz até 2 retries com
+// backoff exponencial (1s, 3s) antes de saltar ao próximo. Isto resolve falhas
+// transientes do Groq (free tier que reseta de segundos a segundos) sem expor
+// o erro ao utilizador.
 
 interface AIMessage {
   role: 'system' | 'user' | 'assistant'
@@ -12,6 +26,17 @@ interface AIResponse {
   text: string
   provider: string
   model: string
+}
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms))
+
+function isRetryable(err: any): boolean {
+  if (!err) return false
+  if (err.status === 429) return true
+  if (err.name === 'TimeoutError' || err.name === 'AbortError') return true
+  const msg = (err.message || '').toLowerCase()
+  return msg.includes('rate limit') || msg.includes('timeout') || msg.includes('overloaded')
+    || msg.includes('econnreset') || msg.includes('502') || msg.includes('503') || msg.includes('504')
 }
 
 // ─── Provider 1: Groq ─────────────────────────────────────────────────────────
@@ -46,13 +71,13 @@ async function callGroq(
 
 async function callGemini(
   messages: AIMessage[],
+  model: string,
   maxTokens: number,
   temperature: number
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not set')
 
-  // Convert OpenAI-style messages to Gemini format
   const systemMsg = messages.find(m => m.role === 'system')?.content || ''
   const chatMessages = messages.filter(m => m.role !== 'system')
 
@@ -62,17 +87,14 @@ async function callGemini(
   }))
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: systemMsg ? { parts: [{ text: systemMsg }] } : undefined,
         contents,
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature,
-        },
+        generationConfig: { maxOutputTokens: maxTokens, temperature },
       }),
       signal: AbortSignal.timeout(25000),
     }
@@ -85,7 +107,99 @@ async function callGemini(
   return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
 }
 
+// ─── Provider 3: OpenAI (fallback final, se chave configurada) ────────────────
+
+async function callOpenAI(
+  messages: AIMessage[],
+  model: string,
+  maxTokens: number,
+  temperature: number
+): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY not set')
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature }),
+    signal: AbortSignal.timeout(25000),
+  })
+  if (res.status === 429) throw Object.assign(new Error('Rate limit'), { status: 429 })
+  if (!res.ok) throw new Error(`OpenAI error: ${res.status}`)
+  const data = await res.json()
+  return data.choices[0]?.message?.content || ''
+}
+
+// ─── Provider 4: Anthropic Claude (fallback final, se chave configurada) ──────
+
+async function callAnthropic(
+  messages: AIMessage[],
+  model: string,
+  maxTokens: number,
+  temperature: number
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+  const system = messages.find(m => m.role === 'system')?.content
+  const chat = messages.filter(m => m.role !== 'system').map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content,
+  }))
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({ model, max_tokens: maxTokens, temperature, system, messages: chat }),
+    signal: AbortSignal.timeout(25000),
+  })
+  if (res.status === 429) throw Object.assign(new Error('Rate limit'), { status: 429 })
+  if (!res.ok) throw new Error(`Anthropic error: ${res.status}`)
+  const data = await res.json()
+  return data.content?.[0]?.text || ''
+}
+
+// ─── Wrapper de retry por (provider, modelo) ─────────────────────────────────
+
+// Retry curto e por provider — para que com muitos providers em sequência
+// o pior caso continue dentro do orçamento de uma resposta (chat ~20s).
+async function tryProvider(
+  fn: () => Promise<string>,
+  provider: string,
+  model: string,
+  retries = 1,
+  backoff = [500],
+): Promise<AIResponse> {
+  let lastErr: any = null
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const text = await fn()
+      if (text?.trim()) return { text, provider, model }
+      // resposta vazia — não vale a pena retry, salta para próximo
+      throw new Error('Resposta vazia')
+    } catch (err: any) {
+      lastErr = err
+      if (attempt < retries && isRetryable(err)) {
+        await sleep(backoff[attempt] ?? 500)
+        continue
+      }
+      throw err
+    }
+  }
+  throw lastErr || new Error('Unknown error')
+}
+
 // ─── Main: AI with fallback ───────────────────────────────────────────────────
+
+interface ProviderStep {
+  name: string
+  model: string
+  fn: () => Promise<string>
+}
 
 export async function aiComplete(
   messages: AIMessage[],
@@ -98,39 +212,51 @@ export async function aiComplete(
   const maxTokens = options.maxTokens ?? 800
   const temperature = options.temperature ?? 0.15
 
-  // Define provider sequence
-  // preferFast: use 8B first (for simple tasks like translation, safety checks)
-  // default: use 70B first (for complex clinical reasoning)
-  const providers: Array<() => Promise<{ text: string; provider: string; model: string }>> = options.preferFast
-    ? [
-        async () => ({ text: await callGroq(messages, 'llama-3.1-8b-instant', maxTokens, temperature), provider: 'Groq', model: 'llama-3.1-8b-instant' }),
-        async () => ({ text: await callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature), provider: 'Groq', model: 'llama-3.3-70b-versatile' }),
-        async () => ({ text: await callGemini(messages, maxTokens, temperature), provider: 'Gemini', model: 'gemini-2.5-flash' }),
-      ]
-    : [
-        async () => ({ text: await callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature), provider: 'Groq', model: 'llama-3.3-70b-versatile' }),
-        async () => ({ text: await callGroq(messages, 'llama-3.1-8b-instant', maxTokens, temperature), provider: 'Groq', model: 'llama-3.1-8b-instant' }),
-        async () => ({ text: await callGemini(messages, maxTokens, temperature), provider: 'Gemini', model: 'gemini-2.5-flash' }),
-      ]
+  // Lista completa de providers, na ordem que queremos tentar.
+  const GROQ_LARGE: ProviderStep = { name: 'Groq', model: 'llama-3.3-70b-versatile', fn: () => callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature) }
+  const GROQ_FAST:  ProviderStep = { name: 'Groq', model: 'llama-3.1-8b-instant',    fn: () => callGroq(messages, 'llama-3.1-8b-instant', maxTokens, temperature) }
+  // Modelos extra do Groq (nem sempre disponíveis — se 404, salta).
+  const GROQ_EXTRA: ProviderStep[] = [
+    { name: 'Groq', model: 'meta-llama/llama-4-maverick-17b-128e-instruct', fn: () => callGroq(messages, 'meta-llama/llama-4-maverick-17b-128e-instruct', maxTokens, temperature) },
+    { name: 'Groq', model: 'llama-3.2-90b-vision-preview',                  fn: () => callGroq(messages, 'llama-3.2-90b-vision-preview', maxTokens, temperature) },
+  ]
 
-  let lastError: Error | null = null
+  // Gemini — múltiplos modelos como fallback de qualidade/quota.
+  const GEMINI_FLASH:    ProviderStep = { name: 'Gemini', model: 'gemini-2.5-flash',      fn: () => callGemini(messages, 'gemini-2.5-flash', maxTokens, temperature) }
+  const GEMINI_FLASH_20: ProviderStep = { name: 'Gemini', model: 'gemini-2.0-flash',      fn: () => callGemini(messages, 'gemini-2.0-flash', maxTokens, temperature) }
+  const GEMINI_LITE_25:  ProviderStep = { name: 'Gemini', model: 'gemini-2.5-flash-lite', fn: () => callGemini(messages, 'gemini-2.5-flash-lite', maxTokens, temperature) }
+  const GEMINI_LITE_20:  ProviderStep = { name: 'Gemini', model: 'gemini-2.0-flash-lite', fn: () => callGemini(messages, 'gemini-2.0-flash-lite', maxTokens, temperature) }
 
-  for (const provider of providers) {
+  // OpenAI / Anthropic — só entram se as chaves existirem
+  const OPENAI: ProviderStep = { name: 'OpenAI', model: 'gpt-4o-mini',          fn: () => callOpenAI(messages, 'gpt-4o-mini', maxTokens, temperature) }
+  const ANTHROPIC: ProviderStep = { name: 'Anthropic', model: 'claude-haiku-4-5-20251001', fn: () => callAnthropic(messages, 'claude-haiku-4-5-20251001', maxTokens, temperature) }
+
+  const sequence: ProviderStep[] = options.preferFast
+    ? [GROQ_FAST, GROQ_LARGE, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_LITE_20, GEMINI_FLASH, GEMINI_FLASH_20, OPENAI, ANTHROPIC]
+    : [GROQ_LARGE, GROQ_FAST, ...GROQ_EXTRA, GEMINI_FLASH, GEMINI_FLASH_20, GEMINI_LITE_25, GEMINI_LITE_20, OPENAI, ANTHROPIC]
+
+  let lastError: any = null
+  const errors: string[] = []
+
+  for (const step of sequence) {
     try {
-      const result = await provider()
-      if (result.text?.trim()) return result
+      return await tryProvider(step.fn, step.name, step.model)
     } catch (err: any) {
       lastError = err
-      // Only retry on rate limit or timeout — other errors (bad API key, etc) skip to next
-      const shouldRetry = err.status === 429 || err.name === 'TimeoutError' || err.message?.includes('Rate limit')
-      if (!shouldRetry && !err.message?.includes('not set')) {
-        console.error(`AI provider error (${err.message}) — trying next`)
-      }
+      const msg = (err?.message || '').toLowerCase()
+      // Se a chave não existe, é silencioso — só ignora este provider.
+      if (msg.includes('not set')) continue
+      errors.push(`${step.name}/${step.model}: ${err.message}`)
+      // Se for um erro irrecuperável definitivo (chave inválida) podemos saltar para o próximo provider sem retry.
       continue
     }
   }
 
-  throw new Error(`Todos os serviços de IA estão temporariamente indisponíveis. Tenta novamente em alguns minutos.`)
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('[aiComplete] todos os providers falharam:', errors)
+  }
+  const detail = lastError?.message ? ` (último: ${lastError.message})` : ''
+  throw new Error(`Todos os serviços de IA estão temporariamente indisponíveis${detail}. Tenta novamente em alguns segundos.`)
 }
 
 // ─── JSON helper ─────────────────────────────────────────────────────────────

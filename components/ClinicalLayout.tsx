@@ -135,6 +135,10 @@ const PHARMACY: NavSection[] = [
     { href: '/farmacia/compras', label: 'Compras & Recepção', icon: 'box', badge: true },
     { href: '/farmacia/fidelizacao', label: 'Fidelização', icon: 'shield', badge: true },
   ]},
+  { title: 'Inteligência', items: [
+    { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
+    { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
+  ]},
   { title: 'Operações', items: [
     { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
     { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
@@ -224,6 +228,10 @@ const GENERIC: NavSection[] = [
     { href: '/hospital/camas', label: 'Mapa de Camas', icon: 'residents', badge: true },
     { href: '/hospital/triagem', label: 'Triagem Manchester', icon: 'queue', badge: true },
     { href: '/hospital/bloco', label: 'Bloco Operatório', icon: 'protocol', badge: true },
+  ]},
+  { title: 'Inteligência', items: [
+    { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
+    { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
   ]},
   { title: 'Operações', items: [
     { href: '/sala-espera', label: 'Sala de Espera', icon: 'queue', badge: true },

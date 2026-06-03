@@ -22,50 +22,25 @@ export async function POST(req: NextRequest) {
 
   // ── PDF via base64 ────────────────────────────────────────────────────────────
   if (body.pdf_base64) {
-    // Usar Gemini Vision para extrair texto do PDF
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) {
-      // Fallback: tentar interpretar como text placeholder
-      labText = `[PDF de análises clínicas — a interpretar]`
-    } else {
-      try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                role: 'user',
-                parts: [
-                  {
-                    text: `Este é um PDF de análises clínicas laboratoriais. Extrai TODOS os valores analíticos que encontras.
+    // Usar wrapper de visão (tenta vários modelos Gemini com fallback)
+    try {
+      const { callGeminiVision } = await import('@/lib/ai')
+      const extracted = await callGeminiVision(
+        `Este é um PDF de análises clínicas laboratoriais. Extrai TODOS os valores analíticos que encontras.
 Para cada parâmetro, extrai: nome, valor, unidade e intervalo de referência se disponível.
 Inclui também: data da colheita, laboratório, nome do doente se visível.
-Responde APENAS com o texto bruto dos resultados, em formato lista clara. Não analises — apenas extrai.`
-                  },
-                  {
-                    inline_data: {
-                      mime_type: 'application/pdf',
-                      data: body.pdf_base64
-                    }
-                  }
-                ]
-              }],
-              generationConfig: { maxOutputTokens: 2000, temperature: 0.0 }
-            })
-          }
-        )
-        const gd = await geminiRes.json()
-        const extracted = gd.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        if (extracted.trim().length > 20) {
-          labText = extracted
-        } else {
-          return NextResponse.json({ error: 'Não foi possível extrair texto do PDF. Tenta copiar e colar o texto directamente.' }, { status: 422 })
-        }
-      } catch (_e: any) {
-        return NextResponse.json({ error: 'Erro ao processar o PDF. Tenta copiar e colar o texto das análises.' }, { status: 500 })
+Responde APENAS com o texto bruto dos resultados, em formato lista clara. Não analises — apenas extrai.`,
+        body.pdf_base64,
+        'application/pdf',
+        { maxTokens: 2000, temperature: 0.0 }
+      )
+      if (extracted.trim().length > 20) {
+        labText = extracted
+      } else {
+        return NextResponse.json({ error: 'Não foi possível extrair texto do PDF. Tenta copiar e colar o texto directamente.' }, { status: 422 })
       }
+    } catch (_e: any) {
+      return NextResponse.json({ error: 'Erro ao processar o PDF. Tenta copiar e colar o texto das análises.' }, { status: 500 })
     }
   }
 

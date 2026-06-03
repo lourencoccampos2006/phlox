@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { getActiveOrgId } from '@/lib/orgContext'
 
-// Perfil da instituição (plano clínico) — DB-backed, com cache local para pintura instantânea.
-// Personaliza a plataforma: nome, logo, cor de acento, horários, contactos, diretor.
+// Perfil "da instituição" para branding do layout clínico.
+// Prioridade: organização ativa (multi-org) → institution_settings (legado).
+// O hook combina os dois para que o branding continue a funcionar mesmo em
+// utilizadores antigos que tinham só institution_settings preenchido.
 
 export interface InstitutionProfile {
   name?: string | null
@@ -32,14 +35,66 @@ export function useInstitutionProfile() {
   useEffect(() => {
     if (!user) return
     try { const c = localStorage.getItem(CACHE_KEY); if (c) setProfile(JSON.parse(c)) } catch { /* ignore */ }
-    supabase.from('institution_settings').select('*').eq('user_id', user.id).maybeSingle()
-      .then(({ data }: { data: InstitutionProfile | null }) => {
-        if (data) {
-          setProfile(data)
-          try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch { /* ignore */ }
+
+    let cancelled = false
+    ;(async () => {
+      // 1) Tenta a organização ativa (nova arquitectura multi-org)
+      const orgId = getActiveOrgId()
+      let merged: InstitutionProfile = {}
+
+      if (orgId) {
+        try {
+          const { data } = await supabase
+            .from('organizations')
+            .select('name, short_name, kind, logo_url, accent_color, address, phone, email, director, total_beds, vat_number')
+            .eq('id', orgId)
+            .maybeSingle()
+          if (data) {
+            merged = {
+              name: data.name,
+              short_name: data.short_name,
+              type: data.kind,
+              logo_url: data.logo_url,
+              accent_color: data.accent_color,
+              address: data.address,
+              phone: data.phone,
+              email: data.email,
+              director: data.director,
+              nif: data.vat_number,
+              total_beds: data.total_beds,
+            }
+          }
+        } catch { /* coluna em falta noutro esquema — tenta selecção mínima */
+          try {
+            const { data } = await supabase
+              .from('organizations')
+              .select('name, kind')
+              .eq('id', orgId)
+              .maybeSingle()
+            if (data) merged = { name: data.name, type: data.kind }
+          } catch { /* ignore */ }
         }
-      })
-      .catch(() => { /* tabela ainda não criada — ignora */ })
+      }
+
+      // 2) Fallback / complemento: institution_settings (legado, por user)
+      try {
+        const { data } = await supabase.from('institution_settings').select('*').eq('user_id', user.id).maybeSingle()
+        if (data) {
+          merged = { ...data, ...Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== '')) }
+        }
+      } catch { /* tabela ainda não criada — ignora */ }
+
+      if (cancelled) return
+      if (Object.keys(merged).length > 0) {
+        setProfile(merged)
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(merged)) } catch { /* ignore */ }
+      }
+    })()
+
+    // Reage a mudança de org activa
+    const onOrgChange = () => { /* re-corre o effect via state */ setProfile(p => ({ ...(p || {}) })) }
+    window.addEventListener('phlox-org-changed', onOrgChange)
+    return () => { cancelled = true; window.removeEventListener('phlox-org-changed', onOrgChange) }
   }, [user, supabase])
 
   return profile
