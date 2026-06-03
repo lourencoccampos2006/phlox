@@ -83,7 +83,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (error) {
-    if (NO_TABLE(error.message)) return NextResponse.json({ error: 'Aplicar sprint49_organizations.sql' }, { status: 503 })
+    if (NO_TABLE(error.message)) {
+      return NextResponse.json({ error: 'Tabela organizations ainda não existe. Aplica sprint49_organizations.sql.' }, { status: 503 })
+    }
+    // Erro de RLS — devolve diagnóstico legível com sugestão de correcção.
+    if (/row-level security/i.test(error.message)) {
+      return NextResponse.json({
+        error: 'A base de dados rejeitou a inserção por política de segurança (RLS). Aplica supabase/sprint62_orgs_rls_final.sql no SQL Editor do Supabase — isto repõe as policies de organizations sem auto-referência. (Detalhe técnico: ' + error.message + ')',
+        hint: 'sprint62_orgs_rls_final.sql',
+      }, { status: 500 })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   return NextResponse.json({ org: data })
