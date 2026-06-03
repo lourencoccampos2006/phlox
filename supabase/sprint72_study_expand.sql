@@ -111,7 +111,7 @@ insert into procedure_guides (title, category, description, indications, contrai
      {"order":2,"title":"Posicionamento","body":"Decúbito lateral com flexão máxima da coluna (posição fetal) OU sentado debruçado."},
      {"order":3,"title":"Identificação L3-L4 ou L4-L5","body":"Linha intercristal. Palpar apófise espinhosa."},
      {"order":4,"title":"Assepsia + anestesia local","body":"Clorexidina alcoólica. Lidocaína 1-2% subcutânea e ao longo do trajecto."},
-     {"order":5,"title":"Introdução da agulha","body":"Direcção ligeiramente cefálica (em direcção ao umbigo). Avança até sensação de "pop" da dura."},
+     {"order":5,"title":"Introdução da agulha","body":"Direcção ligeiramente cefálica (em direcção ao umbigo). Avança até sentir perda de resistência (pop) ao atravessar a dura."},
      {"order":6,"title":"Medir pressão de abertura","body":"Conecta manómetro. Valor normal 7-18 cm H2O em decúbito."},
      {"order":7,"title":"Colheita","body":"3-4 tubos com 1-2 mL cada — bioquímica, citologia, microbiologia, conservação."},
      {"order":8,"title":"Retirada + repouso","body":"Retirar agulha. Pensa simples. Decúbito 1-2h reduz cefaleia (controverso)."}
@@ -293,7 +293,7 @@ insert into procedure_guides (title, category, description, indications, contrai
      {"order":3,"title":"Activar SYNC","body":"Confirma que o desfibrilhador marca cada QRS."},
      {"order":4,"title":"Energia","body":"FA: 120-200J bifásico. Flutter: 100J. TV: 100J. SVT: 50-100J."},
      {"order":5,"title":"Pads / pás","body":"Apex-esterno ou antero-posterior. Gel ou pads pré-gelados."},
-     {"order":6,"title":"Choque + reavaliação","body":"Carrega, avisa "afastar", choque. Avalia ritmo."},
+     {"order":6,"title":"Choque + reavaliação","body":"Carrega, avisa toda a gente para se afastar, choque. Avalia ritmo."},
      {"order":7,"title":"Insucesso","body":"Subir energia. Optimizar posição. Considerar amiodarona."}
    ]'::jsonb,
    ARRAY['SEMPRE em modo SYNC (excepto FV/TV sem pulso → desfibrilhação)','FA > 48h: anticoagular 3 semanas antes OU eco transesofágico para excluir trombo','Risco AVC se cardioversão inadequada'],
