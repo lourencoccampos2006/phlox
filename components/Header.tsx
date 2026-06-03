@@ -260,10 +260,11 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             </div>
 
             {[
-              { href: '/inicio',     label: 'Início',       icon: '🏠' },
-              { href: '/guardados',  label: 'Guardados',    icon: '★' },
-              { href: '/calendario', label: 'Calendário',   icon: '📅' },
-              { href: '/settings',   label: 'Definições',   icon: '⚙️' },
+              { href: '/inicio',       label: 'Início',          icon: '🏠' },
+              { href: '/organizacao',  label: 'A minha org',     icon: '🏥' },
+              { href: '/guardados',    label: 'Guardados',       icon: '★' },
+              { href: '/calendario',   label: 'Calendário',      icon: '📅' },
+              { href: '/settings',     label: 'Definições',      icon: '⚙️' },
             ].map(item => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="um-item"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none' }}>

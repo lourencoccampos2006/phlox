@@ -1,298 +1,270 @@
 'use client'
 
-// ─── NOVO: app/organizacao/page.tsx ───
-// Página de gestão da organização/instituição.
-// Acessível a org_role = 'owner' | 'admin'.
+// /organizacao — Hub central da organização ativa
+// Lista TODAS as ferramentas disponíveis, agrupadas por área.
+// Cada cartão mostra ícone, nome, descrição e abre a ferramenta directamente.
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useMemberships, setActiveOrgId } from '@/lib/orgContext'
+import { ROLE_META } from '@/lib/capabilities'
 
-interface OrgMember {
-  id: string
-  name: string
-  email: string
-  org_role: 'owner' | 'admin' | 'member'
-  plan: string
-  created_at: string
+const ACCENT = '#0d6e42'
+
+interface Tool {
+  href: string
+  title: string
+  desc: string
+  icon: string
+  cap: string
 }
 
-interface Org {
-  id: string
-  name: string
-  type: string
-  member_limit: number
-  billing_email: string | null
+interface Section {
+  label: string
+  color: string
+  tools: Tool[]
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  pharmacy: 'Farmácia',
-  clinic: 'Clínica / Consultório',
-  hospital: 'Hospital',
-  care_home: 'Lar / IPSS',
-  other: 'Outra',
-}
+const SECTIONS: Section[] = [
+  {
+    label: 'Hospital',
+    color: '#dc2626',
+    tools: [
+      { href: '/hospital/camas', title: 'Mapa de camas', desc: 'Estado em tempo real por ala', icon: '🛏️', cap: 'beds.read' },
+      { href: '/hospital/triagem', title: 'Triagem Manchester', desc: 'Fila de urgência com 5 prioridades', icon: '🚨', cap: 'triage.read' },
+      { href: '/hospital/bloco', title: 'Bloco operatório', desc: 'Agenda + checklist OMS', icon: '🔪', cap: 'surgery.read' },
+    ],
+  },
+  {
+    label: 'Farmácia',
+    color: '#0d6e42',
+    tools: [
+      { href: '/farmacia/fornecedores', title: 'Fornecedores', desc: 'Laboratórios, armazenistas, KPIs', icon: '🏭', cap: 'suppliers.read' },
+      { href: '/farmacia/compras', title: 'Compras & recepção', desc: 'Encomendas, lotes, validades', icon: '📦', cap: 'stock.read' },
+      { href: '/farmacia/fidelizacao', title: 'Fidelização', desc: 'Programa, cartões, pontos, recompensas', icon: '⭐', cap: 'loyalty.read' },
+      { href: '/stock', title: 'Stock & validades', desc: 'Inventário, mínimos, expiração', icon: '📋', cap: 'stock.read' },
+    ],
+  },
+  {
+    label: 'Clínico',
+    color: '#1d4ed8',
+    tools: [
+      { href: '/patients', title: 'Doentes', desc: 'Fichas, histórico, prescrições', icon: '👥', cap: 'patients.read' },
+      { href: '/mar', title: 'Administração (MAR)', desc: 'Registo de tomas', icon: '💊', cap: 'mar.read' },
+      { href: '/rounds', title: 'Ronda farmacêutica', desc: 'Intervenções PCNE', icon: '👨‍⚕️', cap: 'rounds.read' },
+      { href: '/residentes', title: 'Rev. farmacoterapêutica', desc: 'STOPP/START, polimedicação', icon: '🔍', cap: 'patients.read' },
+      { href: '/soap', title: 'Nota clínica SOAP', desc: 'Notas estruturadas', icon: '📝', cap: 'patients.read' },
+    ],
+  },
+  {
+    label: 'Inteligência',
+    color: '#7c3aed',
+    tools: [
+      { href: '/bi', title: 'BI conversacional', desc: 'Pergunta em linguagem natural', icon: '💬', cap: 'bi.use' },
+      { href: '/automacoes', title: 'Automações & agentes', desc: 'Regras + tarefas autónomas', icon: '⚡', cap: 'automation.read' },
+      { href: '/insights', title: 'Insights operacionais', desc: 'Tendências e indicadores', icon: '📊', cap: 'bi.use' },
+    ],
+  },
+  {
+    label: 'Comunicação',
+    color: '#0891b2',
+    tools: [
+      { href: '/crm', title: 'CRM', desc: 'Leads, prospectos, parceiros', icon: '🤝', cap: 'crm.read' },
+      { href: '/telemedicina', title: 'Telemedicina', desc: 'Consultas remotas', icon: '📹', cap: 'telemed.read' },
+      { href: '/traduzir', title: 'Tradução clínica', desc: 'PT-PT ↔ EN/ES/FR/UK/AR', icon: '🌍', cap: 'translate.use' },
+      { href: '/connect', title: 'Connect', desc: 'Rede entre profissionais', icon: '🔗', cap: 'patients.read' },
+    ],
+  },
+  {
+    label: 'Operações',
+    color: '#b45309',
+    tools: [
+      { href: '/sala-espera', title: 'Sala de espera', desc: 'Walk-ins sem conta', icon: '⏰', cap: 'patients.read' },
+      { href: '/tarefas-equipa', title: 'Tarefas da equipa', desc: 'Limpeza, manutenção, secretaria', icon: '✅', cap: 'team.read' },
+      { href: '/schedule', title: 'Equipa & escalas', desc: 'Turnos, ausências', icon: '📅', cap: 'team.read' },
+      { href: '/quality', title: 'Qualidade & KPIs', desc: 'Indicadores e eventos', icon: '🎯', cap: 'quality.read' },
+      { href: '/vendas', title: 'Ponto de venda', desc: 'Recibos, vendas, POS', icon: '💳', cap: 'pos.use' },
+      { href: '/faturacao', title: 'Faturação', desc: 'Faturas, SAF-T', icon: '🧾', cap: 'billing.read' },
+    ],
+  },
+  {
+    label: 'Administração',
+    color: '#0f172a',
+    tools: [
+      { href: '/settings?tab=organizacoes', title: 'Identidade da org', desc: 'Nome, logo, NIF, director', icon: '🏢', cap: 'org.admin' },
+      { href: '/settings?tab=seguranca', title: 'Segurança', desc: 'MFA, sessões, anomalias', icon: '🔒', cap: 'patients.read' },
+      { href: '/settings?tab=integracoes', title: 'Integrações & API', desc: 'FHIR, laboratórios, webhooks', icon: '🔌', cap: 'org.admin' },
+      { href: '/auditoria', title: 'Audit trail', desc: 'Histórico de eventos', icon: '📜', cap: 'audit.read' },
+      { href: '/conformidade', title: 'Conformidade', desc: 'Checklists RGPD/INFARMED', icon: '🛡️', cap: 'org.admin' },
+    ],
+  },
+]
 
-const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  owner: { label: 'Proprietário', color: '#1d4ed8', bg: '#eff6ff' },
-  admin: { label: 'Administrador', color: '#0d6e42', bg: '#f0fdf5' },
-  member: { label: 'Membro', color: 'var(--ink-4)', bg: 'var(--bg-3)' },
-}
+export default function OrganizationHubPage() {
+  const { memberships, active, loading, refresh } = useMemberships()
+  const [showSwitcher, setShowSwitcher] = useState(false)
 
-export default function OrganizacaoPage() {
-  const { user, supabase } = useAuth()
-  const router = useRouter()
-  const [org, setOrg] = useState<Org | null>(null)
-  const [members, setMembers] = useState<OrgMember[]>([])
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'members' | 'billing'>('overview')
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviting, setInviting] = useState(false)
-  const [inviteMsg, setInviteMsg] = useState('')
-
-  const orgRole = (user as any)?.org_role
-  const orgId = (user as any)?.org_id
-  const canManage = orgRole === 'owner' || orgRole === 'admin'
-
-  useEffect(() => {
-    if (!user) return
-    if (!orgId) { setLoading(false); return }
-
-    Promise.all([
-      supabase.from('organizations').select('*').eq('id', orgId).single(),
-      supabase.from('profiles').select('id, name, email, org_role, plan, created_at').eq('org_id', orgId),
-    ]).then(([{ data: orgData }, { data: membersData }]) => {
-      setOrg(orgData)
-      setMembers(membersData || [])
-      setLoading(false)
-    })
-  }, [user, supabase, orgId])
-
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return
-    setInviting(true)
-    setInviteMsg('')
-    // Simplified: in production this would send an email invite
-    // For now, look up user by email and add to org
-    const { data: targetUser, error } = await supabase
-      .from('profiles')
-      .select('id, name, email')
-      .eq('email', inviteEmail.trim())
-      .single()
-
-    if (error || !targetUser) {
-      setInviteMsg('Utilizador não encontrado. Certifica-te que já criou conta no Phlox.')
-      setInviting(false)
-      return
-    }
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ org_id: orgId, org_role: 'member' })
-      .eq('id', targetUser.id)
-
-    if (updateError) {
-      setInviteMsg('Erro ao adicionar membro. Tenta novamente.')
-    } else {
-      setMembers(prev => [...prev, { ...targetUser, org_role: 'member', plan: 'pro', created_at: new Date().toISOString() }])
-      setInviteMsg(`${targetUser.name} adicionado com sucesso!`)
-      setInviteEmail('')
-    }
-    setInviting(false)
+  if (loading) {
+    return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
   }
 
-  const tabStyle = (t: string) => ({
-    padding: '10px 16px', background: 'none', border: 'none',
-    borderBottom: `2px solid ${tab === t ? '#1d4ed8' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-    color: tab === t ? '#1d4ed8' : 'var(--ink-4)',
-    fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-    textTransform: 'uppercase' as const, marginBottom: -1, whiteSpace: 'nowrap' as const,
-  })
-
-  if (!user) return null
-
-  // Utilizador sem organização
-  if (!loading && !orgId) {
+  if (memberships.length === 0) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-
-        <div className="page-container page-body">
-          <div style={{ maxWidth: 520, margin: '0 auto', background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: 36, marginBottom: 16 }}>🏥</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 12 }}>Plano Institucional</div>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 28 }}>
-              O plano institucional permite que toda a tua equipa — farmacêuticos, médicos, enfermeiros — aceda ao Phlox com uma única subscrição centralizada. Dashboard multi-utilizador, MAR digital, auditoria completa.
-            </p>
-            <Link href="/checkout?plan=clinic"
-              style={{ display: 'inline-block', background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
-              Ativar plano Institucional →
-            </Link>
-            <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>ou <Link href="/pricing#institucional" style={{ color: '#1d4ed8', textDecoration: 'none' }}>ver preços institucionais</Link></div>
-          </div>
+      <main style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 14, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontSize: 38, marginBottom: 12 }}>🏥</div>
+          <h1 style={{ margin: '0 0 8px', fontSize: 22 }}>Ainda não tens organizações</h1>
+          <p style={{ color: '#6b7280', margin: '0 0 18px', fontSize: 14 }}>
+            Cria a primeira para aceder a hospital, farmácia, ronda, BI, telemedicina e mais.
+          </p>
+          <Link href="/settings?tab=organizacoes&new=1" style={{
+            display: 'inline-block', padding: '10px 18px', background: ACCENT, color: 'white',
+            borderRadius: 8, textDecoration: 'none', fontWeight: 600,
+          }}>
+            + Criar organização
+          </Link>
         </div>
-      </div>
+      </main>
     )
   }
 
+  if (!active) {
+    return (
+      <main style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: 720, margin: '0 auto' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700 }}>Escolhe uma organização</h1>
+        <p style={{ color: '#6b7280', margin: '0 0 18px', fontSize: 14 }}>
+          Pertences a {memberships.length} organização{memberships.length === 1 ? '' : 'es'}.
+        </p>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {memberships.map(m => (
+            <button key={m.org.id} onClick={() => { setActiveOrgId(m.org.id); refresh() }} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: 16,
+              background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
+              cursor: 'pointer', textAlign: 'left',
+            }}>
+              <span style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: m.org.accent_color || ACCENT, color: 'white',
+                fontWeight: 800, fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{(m.org.short_name || m.org.name).charAt(0).toUpperCase()}</span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{m.org.name}</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>{ROLE_META[m.role]?.label || m.role}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </main>
+    )
+  }
+
+  const caps = active.capabilities
+  const roleMeta = ROLE_META[active.role] || ROLE_META.viewer
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-
-
-      {/* Header institucional */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
-        <div className="page-container" style={{ paddingTop: 28, paddingBottom: 0 }}>
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 2, background: '#1d4ed8', borderRadius: 1 }} />
-              {org ? TYPE_LABELS[org.type] || 'Instituição' : 'A carregar...'}
-            </div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#f8fafc', fontWeight: 400 }}>
-              {org?.name || '—'}
-            </div>
-            <div style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>
-              {members.length} membro{members.length !== 1 ? 's' : ''} · Limite: {org?.member_limit || 10}
-            </div>
+    <main style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
+      {/* Cabeçalho */}
+      <div style={{
+        background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 20,
+        marginBottom: 22, display: 'flex', alignItems: 'center', gap: 16,
+      }}>
+        <span style={{
+          width: 56, height: 56, borderRadius: 14, background: active.org.accent_color || ACCENT, color: 'white',
+          fontWeight: 800, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{(active.org.short_name || active.org.name).charAt(0).toUpperCase()}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{active.org.name}</h1>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: roleMeta.color, fontWeight: 700, padding: '2px 10px', background: roleMeta.color + '15', borderRadius: 999 }}>
+              {roleMeta.label}
+            </span>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>{active.org.kind}</span>
           </div>
-          <div style={{ display: 'flex', borderTop: '1px solid #1e293b', overflowX: 'auto' }}>
-            {[['overview', 'Visão Geral'], ['members', 'Equipa'], ['billing', 'Faturação']].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id as any)}
-                style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: `2px solid ${tab === id ? '#1d4ed8' : 'transparent'}`, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: tab === id ? '#f8fafc' : '#475569', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: -1, whiteSpace: 'nowrap' }}>
-                {label}
+        </div>
+        {memberships.length > 1 && (
+          <button onClick={() => setShowSwitcher(s => !s)} style={{
+            padding: '8px 14px', background: '#f3f4f6', border: 'none', borderRadius: 8,
+            fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>↻ Trocar org</button>
+        )}
+      </div>
+
+      {showSwitcher && (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            As tuas organizações
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {memberships.map(m => (
+              <button key={m.org.id} onClick={() => { setActiveOrgId(m.org.id); setShowSwitcher(false); refresh() }} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: 10,
+                background: m.org.id === active.org.id ? '#f0fdf5' : 'white',
+                border: `1px solid ${m.org.id === active.org.id ? ACCENT : '#e5e7eb'}`,
+                borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+              }}>
+                <span style={{
+                  width: 30, height: 30, borderRadius: 8,
+                  background: m.org.accent_color || ACCENT, color: 'white',
+                  fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{(m.org.short_name || m.org.name).charAt(0).toUpperCase()}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{m.org.name}</div>
+                  <div style={{ fontSize: 11, color: '#6b7280' }}>{ROLE_META[m.role]?.label || m.role}</div>
+                </div>
+                {m.org.id === active.org.id && <span style={{ fontSize: 11, color: ACCENT, fontWeight: 700 }}>activa</span>}
               </button>
             ))}
           </div>
+          <Link href="/settings?tab=organizacoes&new=1" style={{
+            display: 'block', marginTop: 8, padding: 10, background: '#f3f4f6', color: '#374151',
+            textDecoration: 'none', borderRadius: 8, textAlign: 'center', fontSize: 13, fontWeight: 600,
+          }}>+ Nova organização</Link>
         </div>
-      </div>
+      )}
 
-      <div className="page-container page-body">
-
-        {/* VISÃO GERAL */}
-        {tab === 'overview' && (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-              {[
-                { label: 'Membros activos', value: members.length, max: org?.member_limit || 10, color: '#1d4ed8' },
-                { label: 'Plano', value: 'Institucional', color: '#0d6e42' },
-              ].map(s => (
-                <div key={s.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: s.color, marginBottom: 4 }}>{s.value}</div>
-                  <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{s.label}</div>
-                  {'max' in s && (
-                    <div style={{ marginTop: 8, height: 4, background: 'var(--bg-3)', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(100, (members.length / (s.max as number)) * 100)}%`, background: s.color, borderRadius: 2 }} />
-                    </div>
-                  )}
-                </div>
+      {/* Secções */}
+      {SECTIONS.map(section => {
+        const allowed = section.tools.filter(t => caps.includes(t.cap))
+        if (allowed.length === 0) return null
+        return (
+          <section key={section.label} style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ width: 4, height: 18, background: section.color, borderRadius: 2 }} />
+              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {section.label}
+              </h2>
+              <span style={{ fontSize: 11, color: '#9ca3af' }}>{allowed.length}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+              {allowed.map(t => (
+                <Link key={t.href} href={t.href} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
+                    padding: 14, transition: 'border-color 0.12s, transform 0.12s',
+                    height: '100%', cursor: 'pointer',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = section.color; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.transform = 'none' }}
+                  >
+                    <div style={{ fontSize: 22, marginBottom: 8 }}>{t.icon}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', marginBottom: 4 }}>{t.title}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.45 }}>{t.desc}</div>
+                  </div>
+                </Link>
               ))}
             </div>
+          </section>
+        )
+      })}
 
-            {/* Ferramentas activas */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas institucionais activas</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-                {[
-                  { label: 'Gestão de Doentes', href: '/patients' },
-                  { label: 'MAR Digital', href: '/mar' },
-                  { label: 'Phlox AI Clínico', href: '/ai' },
-                  { label: 'Protocolos', href: '/protocol' },
-                  { label: 'Importar Medicamentos', href: '/importar' },
-                  { label: 'Revisão de Medicação', href: '/med-review' },
-                ].map(({ label, href }) => (
-                  <Link key={href} href={href}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', background: 'var(--bg-2)', borderRadius: 7, textDecoration: 'none' }}
-                    className="tool-link">
-                    <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{label}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* EQUIPA */}
-        {tab === 'members' && (
-          <div>
-            {canManage && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px', marginBottom: 16 }}>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Adicionar membro</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleInvite()}
-                    placeholder="Email do profissional (deve ter conta Phlox)"
-                    style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                  <button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting}
-                    style={{ padding: '11px 18px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', opacity: inviteEmail.trim() ? 1 : 0.5, whiteSpace: 'nowrap' }}>
-                    {inviting ? 'A adicionar...' : 'Adicionar'}
-                  </button>
-                </div>
-                {inviteMsg && (
-                  <div style={{ marginTop: 10, fontSize: 13, color: inviteMsg.includes('sucesso') ? '#0d6e42' : 'var(--red)', fontFamily: 'var(--font-mono)' }}>
-                    {inviteMsg}
-                  </div>
-                )}
-                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
-                  O profissional deve já ter conta Phlox. Vagas: {(org?.member_limit || 10) - members.length} restantes.
-                </div>
-              </div>
-            )}
-
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-              {members.length === 0 ? (
-                <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
-                  Nenhum membro na equipa ainda.
-                </div>
-              ) : members.map((m, i) => {
-                const roleMeta = ROLE_LABELS[m.org_role] || ROLE_LABELS.member
-                const isMe = m.id === user.id
-                return (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderBottom: i < members.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>
-                      {m.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>
-                        {m.name} {isMe && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 400 }}>(tu)</span>}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{m.email}</div>
-                    </div>
-                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: roleMeta.color, background: roleMeta.bg, padding: '3px 8px', borderRadius: 4, letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
-                      {roleMeta.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* FATURAÇÃO */}
-        {tab === 'billing' && (
-          <div style={{ maxWidth: 480 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ background: '#0f172a', padding: '18px 20px' }}>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Plano actual</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc' }}>Institucional</div>
-              </div>
-              <div style={{ padding: '16px 20px' }}>
-                <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 16 }}>
-                  A subscrição é gerida no teu painel. Para alterar o plano ou cancelar, vai a Definições — sem necessidade de email.
-                </div>
-                <Link href="/settings"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '10px 18px', borderRadius: 7, fontSize: 13, fontWeight: 700 }}>
-                  Gerir subscrição →
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      <style>{`.tool-link:hover { background: #eff6ff !important; }`}</style>
-    </div>
+      {SECTIONS.every(s => s.tools.filter(t => caps.includes(t.cap)).length === 0) && (
+        <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 12, padding: 24, textAlign: 'center' }}>
+          <p style={{ margin: 0, color: '#6b7280' }}>
+            O teu perfil de <b>{ROLE_META[active.role]?.label}</b> não tem acesso a nenhuma ferramenta nesta organização.
+            Contacta o administrador.
+          </p>
+        </div>
+      )}
+    </main>
   )
 }

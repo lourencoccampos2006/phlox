@@ -40,6 +40,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const link = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/convite/${token}`
-  return NextResponse.json({ invite: data, link })
+  // Constrói o link absoluto a partir do request quando a env var não está
+  // definida — evita devolver "/convite/..." sem domínio.
+  const base = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') || req.nextUrl.origin
+  const link = `${base}/convite/${token}`
+  return NextResponse.json({ invite: data, link, token })
 }

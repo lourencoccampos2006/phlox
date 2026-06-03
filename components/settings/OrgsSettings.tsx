@@ -52,6 +52,18 @@ export default function OrgsSettings() {
         </div>
       </div>
 
+      {/* CTA para o hub */}
+      {memberships.length > 0 && (
+        <a href="/organizacao" style={{
+          display: 'block', textDecoration: 'none',
+          background: 'linear-gradient(135deg, #0d6e42 0%, #047857 100%)',
+          color: 'white', padding: 14, borderRadius: 10,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>🏥 Aceder ao Hub da organização</div>
+          <div style={{ fontSize: 11.5, opacity: 0.9 }}>Mapa de camas, triagem, bloco, farmácia, BI, telemedicina, CRM — tudo num só sítio.</div>
+        </a>
+      )}
+
       {/* Lista */}
       {memberships.length === 0 ? (
         <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 10, padding: 24, textAlign: 'center' }}>
@@ -283,17 +295,30 @@ function InvitesPanel({ orgId, invites, onRefresh }: { orgId: string; invites: a
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {invites.filter((i: any) => !i.accepted_at).map((i: any) => (
-          <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {i.email} · <span style={{ color: 'var(--ink-5)' }}>{ROLE_META[i.role]?.label || i.role}</span>
-              {i.revoked && <span style={{ marginLeft: 6, fontSize: 10, color: '#dc2626' }}>REVOGADO</span>}
-            </span>
-            <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
-              expira {new Date(i.expires_at).toLocaleDateString('pt-PT')}
-            </span>
-          </div>
-        ))}
+        {invites.filter((i: any) => !i.accepted_at).map((i: any) => {
+          const base = typeof window !== 'undefined' ? window.location.origin : ''
+          const inviteLink = i.token ? `${base}/convite/${i.token}` : null
+          return (
+            <div key={i.id} style={{ padding: 10, background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: inviteLink ? 8 : 0 }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <strong>{i.email}</strong> · <span style={{ color: 'var(--ink-5)' }}>{ROLE_META[i.role]?.label || i.role}</span>
+                  {i.revoked && <span style={{ marginLeft: 6, fontSize: 10, color: '#dc2626' }}>REVOGADO</span>}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
+                  expira {new Date(i.expires_at).toLocaleDateString('pt-PT')}
+                </span>
+              </div>
+              {inviteLink && !i.revoked && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 8, background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 6 }}>
+                  <input readOnly value={inviteLink} style={{ flex: 1, fontSize: 11, fontFamily: 'var(--font-mono)', border: 'none', background: 'transparent', color: '#166534', outline: 'none', minWidth: 0 }} onClick={e => (e.target as HTMLInputElement).select()} />
+                  <button onClick={() => { navigator.clipboard.writeText(inviteLink); toast.success('Link copiado.') }}
+                    style={{ padding: '4px 10px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>Copiar</button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

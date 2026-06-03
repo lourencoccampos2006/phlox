@@ -25,6 +25,7 @@ const CLINICAL_PREFIXES = [
   '/farmacia',
   '/bi', '/automacoes',
   '/crm', '/telemedicina', '/traduzir',
+  '/organizacao',
 ]
 
 function ScrollToTop() {

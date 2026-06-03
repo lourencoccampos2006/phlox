@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const [orgRes, membersRes, invitesRes] = await Promise.all([
     db.from('organizations').select('*').eq('id', id).maybeSingle(),
     db.from('org_members').select('id, user_id, role, capabilities, department, active, joined_at').eq('org_id', id).order('joined_at', { ascending: true }),
-    db.from('org_invites').select('id, email, role, department, expires_at, accepted_at, revoked, created_at').eq('org_id', id).order('created_at', { ascending: false }),
+    db.from('org_invites').select('id, email, role, department, expires_at, accepted_at, revoked, created_at, token').eq('org_id', id).order('created_at', { ascending: false }),
   ])
   if (orgRes.error || !orgRes.data) return NextResponse.json({ error: 'Org não encontrada' }, { status: 404 })
 

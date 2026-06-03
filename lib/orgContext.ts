@@ -10,6 +10,32 @@ import { useEffect, useState, useCallback } from 'react'
 const LS_KEY = 'phlox-active-org'
 const EVT = 'phlox-org-changed'
 
+// Lista completa de capabilities que owner/admin têm sempre — mantida em
+// sincronia com `capability_catalog` SQL. Adicionar aqui sempre que se cria
+// nova capability na BD.
+export const ALL_CAPABILITIES = [
+  'patients.read','patients.write','patients.delete',
+  'episodes.read','episodes.write',
+  'prescription.read','prescription.write','prescription.validate',
+  'mar.read','mar.administer',
+  'rounds.read','rounds.write',
+  'stock.read','stock.write','stock.purchase','stock.inventory',
+  'billing.read','billing.write','billing.fiscal_export',
+  'pos.use',
+  'team.read','team.manage','team.schedule',
+  'quality.read','quality.write','audit.read',
+  'org.admin','org.billing_settings',
+  'beds.read','beds.write',
+  'triage.read','triage.write',
+  'surgery.read','surgery.write',
+  'suppliers.read','suppliers.write',
+  'loyalty.read','loyalty.write',
+  'bi.use','automation.read','automation.write','agent.use',
+  'crm.read','crm.write',
+  'telemed.read','telemed.write',
+  'translate.use',
+]
+
 export interface OrgSummary {
   id: string
   name: string
@@ -59,17 +85,23 @@ export function useMemberships(): { memberships: OrgMembership[]; active: OrgMem
         .eq('active', true)
       if (error) { console.error('[orgContext] memberships:', error); setMemberships([]); setLoading(false); return }
 
-      // 2) Para cada membership sem capabilities override, vai buscar defaults
+      // 2) Para cada membership sem capabilities override, vai buscar defaults.
+      //    Owner e admin têm SEMPRE tudo. Independentemente do estado do
+      //    capability_catalog na BD (que pode estar vazia em instalações
+      //    parciais), damos-lhes uma lista completa hardcoded no cliente.
       const out: OrgMembership[] = []
       for (const m of (members || [])) {
+        const role = (m as any).role
         let caps: string[] = Array.isArray((m as any).capabilities) ? (m as any).capabilities : []
-        if (caps.length === 0) {
-          const { data } = await supabase.rpc('default_capabilities', { role: (m as any).role })
+        if (role === 'owner' || role === 'admin') {
+          caps = ALL_CAPABILITIES
+        } else if (caps.length === 0) {
+          const { data } = await supabase.rpc('default_capabilities', { role })
           caps = Array.isArray(data) ? data : []
         }
         out.push({
           org: (m as any).organizations as OrgSummary,
-          role: (m as any).role,
+          role,
           capabilities: caps,
           department: (m as any).department,
         })
