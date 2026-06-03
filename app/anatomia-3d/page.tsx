@@ -66,8 +66,10 @@ export default function Anatomia3DPage() {
     try {
       const res = await fetch(`/api/models3d?q=${encodeURIComponent(q)}`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro')
+      // Mesmo com fallback (sem Sketchfab), mostramos os modelos curados.
       setModels(data.models || [])
+      if (data.notice) setError(data.notice)
+      else if (!res.ok && !data.models?.length) setError(data.error || 'Erro')
       if ((data.models || []).length) setActive(data.models[0])
     } catch (e: any) { setError(e.message || 'Não foi possível pesquisar.') }
     finally { setLoading(false) }

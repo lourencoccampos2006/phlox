@@ -20,7 +20,8 @@ export default function LabPage() {
   const [refs, setRefs] = useState<LabRef[]>([])
   const [search, setSearch] = useState('')
   const [labText, setLabText] = useState('')
-  const [analysis, setAnalysis] = useState('')
+  const [analysis, setAnalysis] = useState<any>(null)
+  const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [category, setCategory] = useState('')
 
@@ -41,15 +42,16 @@ export default function LabPage() {
 
   async function analyse() {
     if (!labText.trim() || busy) return
-    setBusy(true); setAnalysis('')
+    setBusy(true); setAnalysis(null); setErr(null)
     try {
       const { data: sd } = await supabase.auth.getSession()
       const r = await fetch('/api/labs', { method: 'POST', headers: {
         'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}`,
       }, body: JSON.stringify({ text: labText }) })
       const j = await r.json()
-      setAnalysis(JSON.stringify(j, null, 2))
-    } catch (e: any) { setAnalysis('Erro: ' + e.message) } finally { setBusy(false) }
+      if (!r.ok) throw new Error(j.error || 'Erro')
+      setAnalysis(j)
+    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
 
   return (
@@ -69,8 +71,99 @@ export default function LabPage() {
         <button onClick={analyse} disabled={busy || !labText.trim()} style={{ ...btn('primary'), marginTop: 8 }}>
           {busy ? 'A interpretar…' : 'Interpretar'}
         </button>
+        {err && <div style={{ marginTop: 12, padding: 10, background: '#fee2e2', color: '#991b1b', borderRadius: 8, fontSize: 13 }}>{err}</div>}
         {analysis && (
-          <pre style={{ marginTop: 12, padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 12, overflow: 'auto', maxHeight: 400 }}>{analysis}</pre>
+          <div style={{ marginTop: 12 }}>
+            {/* Resumo geral */}
+            {(analysis.summary || analysis.patient_summary) && (
+              <div style={{
+                padding: 14, borderRadius: 10, marginBottom: 12,
+                background: analysis.overall_status === 'CRÍTICO' || analysis.overall_status === 'GRAVE' ? '#fee2e2'
+                          : analysis.overall_status === 'ATENÇÃO' || analysis.overall_status === 'ALERTA' ? '#fef3c7'
+                          : '#dcfce7',
+              }}>
+                {analysis.overall_status && (
+                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 6,
+                    color: analysis.overall_status === 'CRÍTICO' || analysis.overall_status === 'GRAVE' ? '#991b1b'
+                         : analysis.overall_status === 'ATENÇÃO' || analysis.overall_status === 'ALERTA' ? '#92400e'
+                         : '#065f46',
+                  }}>{analysis.overall_status}</div>
+                )}
+                <p style={{ margin: 0, fontSize: 14, color: '#111827', lineHeight: 1.5 }}>{analysis.patient_summary || analysis.summary}</p>
+                {analysis.reassurance && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#374151', fontStyle: 'italic' }}>{analysis.reassurance}</p>}
+              </div>
+            )}
+
+            {/* Achados-chave */}
+            {analysis.key_findings && analysis.key_findings.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <h3 style={{ fontSize: 13, color: '#374151', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Achados principais</h3>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+                  {analysis.key_findings.map((k: string, i: number) => <li key={i}>{k}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {/* Valores individuais */}
+            {analysis.values && analysis.values.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <h3 style={{ fontSize: 13, color: '#374151', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Valores analisados ({analysis.values.length})</h3>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {analysis.values.map((v: any, i: number) => (
+                    <div key={i} style={{
+                      padding: 10, borderRadius: 8, border: '1px solid #e5e7eb',
+                      background: v.status === 'CRÍTICO' ? '#fef2f2'
+                                : v.status === 'BAIXO' || v.status === 'ALTO' ? '#fffbeb'
+                                : '#f9fafb',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{v.name}</span>
+                        <span style={{
+                          padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+                          background: v.status === 'CRÍTICO' ? '#fee2e2' : v.status === 'BAIXO' || v.status === 'ALTO' ? '#fef3c7' : '#dcfce7',
+                          color: v.status === 'CRÍTICO' ? '#991b1b' : v.status === 'BAIXO' || v.status === 'ALTO' ? '#92400e' : '#065f46',
+                        }}>{v.value}</span>
+                      </div>
+                      {v.reference && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Ref: {v.reference}</div>}
+                      {v.interpretation && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{v.interpretation}</p>}
+                      {v.follow_up && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#1e40af', fontWeight: 600 }}>↪ {v.follow_up}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Perguntas ao médico */}
+            {analysis.questions_for_doctor && analysis.questions_for_doctor.length > 0 && (
+              <div style={{ marginBottom: 12, padding: 12, background: '#eff6ff', borderRadius: 8 }}>
+                <h3 style={{ fontSize: 12, color: '#1e40af', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>💬 Perguntas a fazer ao médico</h3>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#1e40af', lineHeight: 1.6 }}>
+                  {analysis.questions_for_doctor.map((q: string, i: number) => <li key={i}>{q}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {/* Sugestões de estilo de vida */}
+            {analysis.lifestyle_suggestions && analysis.lifestyle_suggestions.length > 0 && (
+              <div style={{ marginBottom: 12, padding: 12, background: '#f0fdf5', borderRadius: 8 }}>
+                <h3 style={{ fontSize: 12, color: '#065f46', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>🌿 Sugestões de estilo de vida</h3>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#065f46', lineHeight: 1.6 }}>
+                  {analysis.lifestyle_suggestions.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {analysis.when_to_repeat && (
+              <div style={{ padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13, color: '#374151' }}>
+                <b>⏰ Repetir análise:</b> {analysis.when_to_repeat}
+              </div>
+            )}
+
+            {/* Fallback se o JSON tiver outra forma */}
+            {!analysis.values && !analysis.summary && !analysis.patient_summary && (
+              <pre style={{ padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 12, overflow: 'auto', maxHeight: 400, whiteSpace: 'pre-wrap' }}>{JSON.stringify(analysis, null, 2)}</pre>
+            )}
+          </div>
         )}
       </section>
 

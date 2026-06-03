@@ -25,8 +25,18 @@ export async function GET(req: NextRequest) {
 
   const url = `https://api.sketchfab.com/v3/search?type=models&q=${encodeURIComponent(anchored)}&categories=${CATEGORIES}&downloadable=false&count=40&sort_by=-likeCount`
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(12000), headers: { Accept: 'application/json' } })
-    if (!res.ok) return NextResponse.json({ error: 'Serviço 3D indisponível. Tenta novamente.' }, { status: 502 })
+    const headers: Record<string, string> = { Accept: 'application/json' }
+    if (process.env.SKETCHFAB_API_TOKEN) headers.Authorization = `Token ${process.env.SKETCHFAB_API_TOKEN}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(12000), headers })
+    if (!res.ok) {
+      // Sketchfab inacessível — devolve uma lista curada de recursos 3D alternativos
+      // para garantir que a ferramenta nunca aparece vazia ao utilizador.
+      return NextResponse.json({
+        models: FALLBACK_MODELS(q),
+        fallback: true,
+        notice: 'Pesquisa Sketchfab temporariamente indisponível — a mostrar recursos curados.',
+      })
+    }
     const data = await res.json()
     const models = (data.results || [])
       .filter((m: any) => {
@@ -47,6 +57,42 @@ export async function GET(req: NextRequest) {
       .slice(0, 24)
     return NextResponse.json({ models })
   } catch {
-    return NextResponse.json({ error: 'Não foi possível pesquisar modelos 3D.' }, { status: 500 })
+    return NextResponse.json({
+      models: FALLBACK_MODELS(q),
+      fallback: true,
+      notice: 'Sem acesso à pesquisa 3D agora — recursos curados disponíveis.',
+    })
   }
+}
+
+// Lista curada de modelos 3D / atlas anatómicos de acesso livre.
+// Usada quando a API da Sketchfab está inacessível, devolvendo conteúdo útil
+// em vez de uma mensagem de erro.
+function FALLBACK_MODELS(_q: string) {
+  return [
+    { uid: 'biodigital-human', name: 'BioDigital Human (gratuito com registo)',
+      author: 'BioDigital', faces: 0, thumb: '',
+      embed: 'https://human.biodigital.com/widgets/',
+      link: 'https://human.biodigital.com/' },
+    { uid: 'zanatomy', name: 'Z-Anatomy (atlas anatómico open-source)',
+      author: 'Z-Anatomy', faces: 0, thumb: '',
+      embed: 'https://www.z-anatomy.com/',
+      link: 'https://www.z-anatomy.com/' },
+    { uid: 'visiblebody', name: 'Visible Body (apresentação)',
+      author: 'Visible Body', faces: 0, thumb: '',
+      embed: 'https://www.visiblebody.com/learn',
+      link: 'https://www.visiblebody.com/' },
+    { uid: 'nih3d', name: 'NIH 3D Print Exchange — anatomia',
+      author: 'NIH', faces: 0, thumb: '',
+      embed: 'https://3d.nih.gov/discover?search=anatomy',
+      link: 'https://3d.nih.gov/' },
+    { uid: 'kenhub', name: 'Kenhub — atlas anatómico interactivo',
+      author: 'Kenhub', faces: 0, thumb: '',
+      embed: 'https://www.kenhub.com/',
+      link: 'https://www.kenhub.com/' },
+    { uid: 'radiopaedia', name: 'Radiopaedia — imagens médicas',
+      author: 'Radiopaedia', faces: 0, thumb: '',
+      embed: 'https://radiopaedia.org/cases',
+      link: 'https://radiopaedia.org/' },
+  ]
 }

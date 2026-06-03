@@ -51,20 +51,26 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const body = await req.json().catch(() => null)
-  if (!body?.name && !body?.image) return NextResponse.json({ error: 'Nome ou foto obrigatório' }, { status: 400 })
+  if (!body?.name && !body?.image && !body?.infomed_code) return NextResponse.json({ error: 'Nome, foto ou nº INFARMED/CNPEM obrigatório' }, { status: 400 })
 
   const name = String(body?.name || '').trim().slice(0, 120)
   const image = body?.image as string | undefined
   const mimeType = String(body?.mimeType || 'image/jpeg')
+  // INFARMED / CNPEM: código nacional do produto (7 dígitos) ou registo Infomed.
+  // Quando presente, é o ÂNCORA mais fiável — o modelo trata como fonte primária.
+  const infomedCode = String(body?.infomed_code || '').replace(/\D/g, '').slice(0, 10)
 
   try {
     let result: any
 
     if (image && !name) {
       // ── FOTO: visão lê a caixa inteira ──
+      const infomedHint = infomedCode
+        ? `\n\nO utilizador também forneceu o número INFARMED/CNPEM: ${infomedCode}. Trata este código como a IDENTIFICAÇÃO OFICIAL — usa-o para confirmar/corrigir o nome ou substância ativa que leres na caixa.`
+        : ''
       const prompt = `És um farmacêutico português. Esta é a foto de uma embalagem de medicamento.
 Lê com atenção TODO o texto visível: nome comercial, dosagem (em mg/g/UI/mcg), e sobretudo a SUBSTÂNCIA ATIVA / princípio ativo (geralmente em letras pequenas). A substância ativa é o que determina para que serve.
-Se a caixa estiver ilegível ou não for um medicamento, devolve confidence="baixa" e deixa "what_it_treats" vazio.
+Se a caixa estiver ilegível ou não for um medicamento, devolve confidence="baixa" e deixa "what_it_treats" vazio.${infomedHint}
 
 Explica para uma pessoa sem formação clínica. ${RULES}
 
@@ -72,14 +78,20 @@ Esquema:
 ${SCHEMA}`
       result = await callGeminiVisionJSON<any>(prompt, image, mimeType, { maxTokens: 1400 })
     } else {
-      // ── NOME ou PRINCÍPIO ATIVO: resolve marca→DCI localmente como pista ──
+      // ── NOME ou PRINCÍPIO ATIVO ou CÓDIGO INFARMED ──
       const resolved = resolveDrugName(name)
-      const hint = resolved
+      const hintBase = resolved
         ? `\n\nPista (base local PT): o nome "${name}" corresponde provavelmente ao princípio ativo "${resolved.dci}". Confirma com o teu conhecimento; se não bater certo, ignora a pista.`
         : ''
+      const infomedHint = infomedCode
+        ? `\n\nO utilizador forneceu o nº INFARMED/CNPEM: ${infomedCode}. Este código identifica EXACTAMENTE o produto na base INFOMED. Se conheces o medicamento associado, usa-o como fonte primária e SOBREPÕE-TE a qualquer outra hipótese — mantém confidence="alta". Se não reconheces o código, mantém confidence="media" ou "baixa" e adverte que recomendas consulta directa do INFOMED em https://app.infarmed.pt/infomed/.`
+        : ''
+      const userInput = name
+        ? `Medicamento ou princípio ativo: "${name}".${hintBase}${infomedHint}`
+        : `Nº INFARMED/CNPEM fornecido: ${infomedCode}.${infomedHint}\n\nIdentifica o medicamento associado e explica-o.`
       result = await aiJSON<any>([
         { role: 'system', content: `És um farmacêutico português que explica medicamentos a pessoas sem formação clínica, com rigor factual.\n\n${RULES}\n\nEsquema:\n${SCHEMA}` },
-        { role: 'user', content: `Medicamento ou princípio ativo: "${name}".${hint}\n\nIdentifica o princípio ativo e explica a partir dele. Se a dose está indicada no nome, usa-a para decidir a prescrição.` },
+        { role: 'user', content: `${userInput}\n\nIdentifica o princípio ativo e explica a partir dele. Se a dose está indicada no nome, usa-a para decidir a prescrição.` },
       ], { maxTokens: 1300, temperature: 0 })
     }
 

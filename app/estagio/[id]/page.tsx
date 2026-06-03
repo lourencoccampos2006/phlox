@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 // /estagio/[id] — Página completa do estágio com tabs:
@@ -148,16 +147,16 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
         <DashboardTab it={it} objPct={objPct} objCompleted={objCompleted} objTotal={objectives.length} hoursPct={hoursPct} log={log} patients={patients} procedures={procedures} />
       )}
       {tab === 'doentes' && (
-        <PatientsTab patients={patients} onAdd={(row: any) => addRow('internship_patients', row)} onUpdate={(rid, row) => updateRow('internship_patients', rid, row)} onDel={rid => delRow('internship_patients', rid)} onAiCase={async (pid) => { await aiAction('generate_case', { patient_id: pid }); alert('Caso gerado. Vai à tab Casos.') }} onAiDdx={async (pid) => { const r = await aiAction('suggest_diagnosis', { patient_id: pid }); alert(JSON.stringify(r, null, 2)) }} busy={busy} internshipId={id} />
+        <PatientsTab patients={patients} onAdd={(row: any) => addRow('internship_patients', row)} onUpdate={(rid: string, row: any) => updateRow('internship_patients', rid, row)} onDel={(rid: string) => delRow('internship_patients', rid)} onAiCase={async (pid: string) => { await aiAction('generate_case', { patient_id: pid }); alert('Caso gerado. Vai à tab Casos.') }} onAiDdx={async (pid: string) => { const r = await aiAction('suggest_diagnosis', { patient_id: pid }); alert(JSON.stringify(r, null, 2)) }} busy={busy} internshipId={id} />
       )}
       {tab === 'diario' && (
-        <LogTab log={log} onAdd={(row: any) => addRow('internship_log_entries', row)} onUpdate={(rid, row) => updateRow('internship_log_entries', rid, row)} onDel={rid => delRow('internship_log_entries', rid)} busy={busy} internshipId={id} />
+        <LogTab log={log} onAdd={(row: any) => addRow('internship_log_entries', row)} onUpdate={(rid: string, row: any) => updateRow('internship_log_entries', rid, row)} onDel={(rid: string) => delRow('internship_log_entries', rid)} busy={busy} internshipId={id} />
       )}
       {tab === 'objectivos' && (
-        <ObjectivesTab objectives={objectives} onUpdate={(rid, row) => updateRow('internship_objectives', rid, row)} onAdd={(row: any) => addRow('internship_objectives', row)} onDel={rid => delRow('internship_objectives', rid)} />
+        <ObjectivesTab objectives={objectives} onUpdate={(rid: string, row: any) => updateRow('internship_objectives', rid, row)} onAdd={(row: any) => addRow('internship_objectives', row)} onDel={(rid: string) => delRow('internship_objectives', rid)} />
       )}
       {tab === 'procedimentos' && (
-        <ProceduresTab procedures={procedures} patients={patients} onAdd={(row: any) => addRow('internship_procedures', row)} onDel={rid => delRow('internship_procedures', rid)} />
+        <ProceduresTab procedures={procedures} patients={patients} onAdd={(row: any) => addRow('internship_procedures', row)} onDel={(rid: string) => delRow('internship_procedures', rid)} />
       )}
       {tab === 'casos' && (
         <CasesTab cases={cases} />
@@ -166,13 +165,13 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
         <ReportsTab reports={reports} onGenerate={async (kind: string) => { setBusy(true); await aiAction('generate_report', { internship_id: id, kind }); setBusy(false); load() }} busy={busy} />
       )}
       {tab === 'reflexoes' && (
-        <ReflectionsTab reflections={reflections} onAdd={(row: any) => addRow('internship_reflections', row)} onDel={rid => delRow('internship_reflections', rid)} />
+        <ReflectionsTab reflections={reflections} onAdd={(row: any) => addRow('internship_reflections', row)} onDel={(rid: string) => delRow('internship_reflections', rid)} />
       )}
       {tab === 'avaliacoes' && (
-        <EvaluationsTab evaluations={evaluations} onAdd={(row: any) => addRow('supervisor_evaluations', row)} onDel={rid => delRow('supervisor_evaluations', rid)} />
+        <EvaluationsTab evaluations={evaluations} onAdd={(row: any) => addRow('supervisor_evaluations', row)} onDel={(rid: string) => delRow('supervisor_evaluations', rid)} />
       )}
       {tab === 'horas' && (
-        <HoursTab hours={hours} required={it.hours_required} done={it.hours_done} pct={hoursPct} onAdd={(row: any) => addRow('internship_hours', row)} onDel={rid => delRow('internship_hours', rid)} />
+        <HoursTab hours={hours} required={it.hours_required} done={it.hours_done} pct={hoursPct} onAdd={(row: any) => addRow('internship_hours', row)} onDel={(rid: string) => delRow('internship_hours', rid)} />
       )}
     </main>
   )
@@ -260,7 +259,7 @@ function PatientsTab({ patients, onAdd, onUpdate, onDel, onAiCase, onAiDdx, busy
           ))}
         </div>
       )}
-      {showAdd && <PatientFormModal onClose={() => setShowAdd(false)} onSave={r => { onAdd(r); setShowAdd(false) }} />}
+      {showAdd && <PatientFormModal onClose={() => setShowAdd(false)} onSave={(r: any) => { onAdd(r); setShowAdd(false) }} />}
     </div>
   )
 }
@@ -323,7 +322,7 @@ function LogTab({ log, onAdd, onUpdate, onDel, busy, internshipId }: any) {
           ))}
         </div>
       )}
-      {showAdd && <LogFormModal onClose={() => setShowAdd(false)} onSave={r => { onAdd(r); setShowAdd(false) }} />}
+      {showAdd && <LogFormModal onClose={() => setShowAdd(false)} onSave={(r: any) => { onAdd(r); setShowAdd(false) }} />}
     </div>
   )
 }
@@ -400,7 +399,8 @@ function ObjectivesTab({ objectives, onUpdate, onAdd, onDel }: any) {
 function ProceduresTab({ procedures, patients, onAdd, onDel }: any) {
   const [showAdd, setShowAdd] = useState(false)
   // Conta por nível
-  const byLevel = procedures.reduce<Record<string, number>>((acc: any, p: Procedure) => { acc[p.level] = (acc[p.level] || 0) + 1; return acc }, {})
+  const byLevel: Record<string, number> = {}
+  for (const p of procedures as Procedure[]) byLevel[p.level] = (byLevel[p.level] || 0) + 1
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
@@ -424,7 +424,7 @@ function ProceduresTab({ procedures, patients, onAdd, onDel }: any) {
           ))}
         </div>
       )}
-      {showAdd && <ProcFormModal patients={patients} onClose={() => setShowAdd(false)} onSave={r => { onAdd(r); setShowAdd(false) }} />}
+      {showAdd && <ProcFormModal patients={patients} onClose={() => setShowAdd(false)} onSave={(r: any) => { onAdd(r); setShowAdd(false) }} />}
     </div>
   )
 }
@@ -525,7 +525,7 @@ function ReflectionsTab({ reflections, onAdd, onDel }: any) {
           ))}
         </div>
       )}
-      {showAdd && <ReflectionFormModal onClose={() => setShowAdd(false)} onSave={r => { onAdd(r); setShowAdd(false) }} />}
+      {showAdd && <ReflectionFormModal onClose={() => setShowAdd(false)} onSave={(r: any) => { onAdd(r); setShowAdd(false) }} />}
     </div>
   )
 }
@@ -612,7 +612,7 @@ function HoursTab({ hours, required, done, pct, onAdd, onDel }: any) {
           ))}
         </div>
       )}
-      {showAdd && <HoursFormModal onClose={() => setShowAdd(false)} onSave={r => { onAdd(r); setShowAdd(false) }} />}
+      {showAdd && <HoursFormModal onClose={() => setShowAdd(false)} onSave={(r: any) => { onAdd(r); setShowAdd(false) }} />}
     </div>
   )
 }

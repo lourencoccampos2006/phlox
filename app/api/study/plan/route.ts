@@ -72,7 +72,7 @@ Responde APENAS JSON: { "schedule": [{ "week": 1, "day": "Seg", "topic": "...", 
   }
 
   const db = sb(req)
-  const { data, error } = await db.from('study_plans').insert({
+  const basePayload: Record<string, any> = {
     user_id: userId,
     name: body.name,
     goal: body.goal || null,
@@ -82,7 +82,22 @@ Responde APENAS JSON: { "schedule": [{ "week": 1, "day": "Seg", "topic": "...", 
     schedule: schedule?.schedule || [],
     status: 'active',
     current_week: 1,
-  }).select().single()
+  }
+  // Auto-retry sem colunas em falta (esquemas antigos sem current_week, etc).
+  const colRegex = /(?:column "?([a-z_]+)"? .*does not exist|Could not find the '([^']+)' column)/i
+  let attempts = 0
+  let data: any = null
+  let error: any = null
+  while (attempts < 5) {
+    const r = await db.from('study_plans').insert(basePayload).select().single()
+    data = r.data; error = r.error
+    if (!error) break
+    const m = colRegex.exec(error.message)
+    const missing = m?.[1] || m?.[2]
+    if (!missing || !(missing in basePayload)) break
+    delete basePayload[missing]
+    attempts++
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ plan: data })
 }

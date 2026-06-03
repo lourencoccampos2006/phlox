@@ -71,7 +71,7 @@ export default function BibliotecaPage() {
     <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: 26 }}>Biblioteca médica</h1>
       <p style={{ color: '#6b7280', margin: '4px 0 16px', fontSize: 14 }}>
-        Guidelines, protocolos e resumos clínicos.
+        Resumos rápidos de guidelines (ESC, ADA, GINA, NICE, DGS). Clica para abrir o texto completo.
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>

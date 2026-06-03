@@ -95,6 +95,15 @@ export const TOOLS: Tool[] = [
   { id: '/estudar-conceito', label: 'Estudar um conceito',       desc: 'Explica + mnemónica + plano',      category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
   { id: '/biblioteca',   label: 'Biblioteca de PDFs/slides',     desc: 'Upload → resumo + perguntas',      category: 'study',      modes: ['student'], plan: 'pro' },
   { id: '/study360',     label: 'Estudo 360°',                   desc: 'SRS + plano de exame + Pomodoro',  category: 'study',      modes: ['student'], plan: 'pro' },
+  { id: '/aprender',     label: 'Hub Aprender',                  desc: 'Acesso central a todas as ferramentas de estudo', category: 'study', modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/resumos', label: 'Resumos IA',                   desc: '6 formatos × 4 níveis',            category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
+  { id: '/study/plano',  label: 'Plano de estudo IA',            desc: 'Schedule semanal gerado por IA',   category: 'study',      modes: ['student'], default: ['student'], plan: 'pro' },
+  { id: '/study/notas',  label: 'Notas (Knowledge Graph)',       desc: 'Estilo Obsidian com [[links]]',    category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/ecg',    label: 'Biblioteca de ECGs',            desc: '38 ECGs · avaliação IA',           category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
+  { id: '/study/lab',    label: 'Lab interpreter',               desc: '60+ valores ref · interpretação IA', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/biblioteca', label: 'Biblioteca médica',         desc: 'Guidelines ESC, ADA, GINA, NICE',  category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/procedimentos', label: 'Procedimentos clínicos', desc: 'Guias passo-a-passo com checklist', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/estagio',      label: 'Estágio (completo)',            desc: 'Doentes, diário, casos, IA, relatórios', category: 'study', modes: ['student'], default: ['student'], plan: 'pro' },
 
   // ══ CLÍNICO ═══════════════════════════════════════════════════════════════
   // Fluxo de trabalho — base, vista por todos por defeito

@@ -155,8 +155,8 @@ export default function PlanoEstudoPage() {
 function NewPlanModal({ supabase, onClose, onCreated }: { supabase: any; onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState('')
   const [goal, setGoal] = useState('')
-  const [weeks, setWeeks] = useState(8)
-  const [hours, setHours] = useState(12)
+  const [weeks, setWeeks] = useState<number | ''>(8)
+  const [hours, setHours] = useState<number | ''>(12)
   const [domains, setDomains] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -168,12 +168,15 @@ function NewPlanModal({ supabase, onClose, onCreated }: { supabase: any; onClose
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (domains.length === 0) { setErr('Escolhe pelo menos 1 domínio.'); return }
+    const w = weeks === '' ? 8 : weeks
+    const h = hours === '' ? 12 : hours
+    if (w < 1 || h < 1) { setErr('Semanas e horas devem ser maiores que zero.'); return }
     setBusy(true); setErr(null)
     try {
       const { data: sd } = await supabase.auth.getSession()
       const r = await fetch('/api/study/plan', { method: 'POST', headers: {
         'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}`,
-      }, body: JSON.stringify({ name, goal, weeks, hours_per_week: hours, domains }) })
+      }, body: JSON.stringify({ name, goal, weeks: w, hours_per_week: h, domains }) })
       const j = await r.json()
       if (!r.ok) throw new Error(j.error || 'Erro')
       onCreated()
@@ -193,8 +196,8 @@ function NewPlanModal({ supabase, onClose, onCreated }: { supabase: any; onClose
             <input value={goal} onChange={e => setGoal(e.target.value)} style={input} placeholder="ex: passar com >75% no PNA 2027" />
           </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Duração (semanas)"><input type="number" min={1} max={52} value={weeks} onChange={e => setWeeks(parseInt(e.target.value) || 8)} style={input} /></Field>
-            <Field label="Horas por semana"><input type="number" min={3} max={50} value={hours} onChange={e => setHours(parseInt(e.target.value) || 12)} style={input} /></Field>
+            <Field label="Duração (semanas)"><input type="number" min={1} max={52} value={weeks} onChange={e => setWeeks(e.target.value === '' ? '' : parseInt(e.target.value))} style={input} /></Field>
+            <Field label="Horas por semana"><input type="number" min={3} max={50} value={hours} onChange={e => setHours(e.target.value === '' ? '' : parseInt(e.target.value))} style={input} /></Field>
           </div>
           <Field label="Domínios (escolhe pelo menos 1)">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

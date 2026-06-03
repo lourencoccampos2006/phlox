@@ -28,8 +28,8 @@ export default function NotasPage() {
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
   const [domain, setDomain] = useState('')
-  const [dirty, setDirty] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -50,15 +50,26 @@ export default function NotasPage() {
   useEffect(() => { load() }, [search]) // eslint-disable-line
 
   function open(n: Note) {
-    setActive(n); setTitle(n.title); setBody(n.body || ''); setTags((n.tags || []).join(', ')); setDomain(n.domain || ''); setDirty(false)
+    setActive(n); setTitle(n.title); setBody(n.body || ''); setTags((n.tags || []).join(', ')); setDomain(n.domain || '')
   }
 
-  function newNote() {
-    setActive(null); setTitle(''); setBody(''); setTags(''); setDomain(''); setDirty(true)
+  async function newNote() {
+    // Cria imediatamente uma nota "Sem título" e abre-a para edição
+    if (busy) return
+    setBusy(true)
+    const headers = await auth()
+    const r = await fetch('/api/study/notes', { method: 'POST', headers, body: JSON.stringify({ title: 'Sem título' }) })
+    const j = await r.json()
+    if (j.note) {
+      open(j.note)
+      await load()
+    }
+    setBusy(false)
   }
 
   async function save() {
-    if (!title.trim()) return
+    if (!title.trim() || busy) return
+    setBusy(true)
     const headers = await auth()
     const payload: any = {
       title: title.trim(),
@@ -80,8 +91,8 @@ export default function NotasPage() {
       const j = await r.json()
       if (j.note) open(j.note)
     }
-    setDirty(false)
-    load()
+    await load()
+    setBusy(false)
   }
 
   async function remove() {
@@ -135,16 +146,16 @@ export default function NotasPage() {
         {/* Editor */}
         <section style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, minHeight: 'calc(100vh - 100px)' }}>
           <input
-            value={title} onChange={e => { setTitle(e.target.value); setDirty(true) }}
+            value={title} onChange={e => { setTitle(e.target.value) }}
             placeholder="Título da nota"
             style={{ width: '100%', fontSize: 22, fontWeight: 700, border: 'none', outline: 'none', marginBottom: 12, background: 'transparent' }}
           />
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            <input value={domain} onChange={e => { setDomain(e.target.value); setDirty(true) }} placeholder="Domínio (ex: cardiologia)" style={{ ...input, flex: '1 1 200px' }} />
-            <input value={tags} onChange={e => { setTags(e.target.value); setDirty(true) }} placeholder="Etiquetas separadas por vírgula" style={{ ...input, flex: '1 1 200px' }} />
+            <input value={domain} onChange={e => { setDomain(e.target.value) }} placeholder="Domínio (ex: cardiologia)" style={{ ...input, flex: '1 1 200px' }} />
+            <input value={tags} onChange={e => { setTags(e.target.value) }} placeholder="Etiquetas separadas por vírgula" style={{ ...input, flex: '1 1 200px' }} />
           </div>
           <textarea
-            value={body} onChange={e => { setBody(e.target.value); setDirty(true) }}
+            value={body} onChange={e => { setBody(e.target.value) }}
             placeholder="Conteúdo da nota. Usa [[Título de outra nota]] para criar uma ligação automática."
             rows={20}
             style={{ width: '100%', fontSize: 14, padding: 12, border: '1px solid #e5e7eb', borderRadius: 8, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
@@ -182,8 +193,8 @@ export default function NotasPage() {
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
             {active && <button onClick={remove} style={{ ...btn('ghost'), color: '#dc2626' }}>Eliminar</button>}
-            <button onClick={save} disabled={!title.trim() || !dirty} style={{ ...btn('primary'), opacity: (!title.trim() || !dirty) ? 0.5 : 1 }}>
-              {active ? 'Guardar' : 'Criar'}
+            <button onClick={save} disabled={!title.trim() || busy} style={{ ...btn('primary'), opacity: (!title.trim() || busy) ? 0.5 : 1 }}>
+              {busy ? 'A guardar…' : active ? 'Guardar' : 'Criar'}
             </button>
           </div>
         </section>
