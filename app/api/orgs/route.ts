@@ -58,8 +58,38 @@ export async function POST(req: NextRequest) {
   if (!KINDS.includes(body.kind)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
 
   const db = sb(req)
-  // Constrói o payload com todos os campos opcionais; se uma coluna não existir
-  // (esquema antigo), repete a inserção apenas com os campos garantidos.
+
+  // Tentativa 1 — RPC SECURITY DEFINER (sprint63) que cria org + membership
+  // numa única transacção. Esta é a via canónica.
+  const { data: rpcData, error: rpcErr } = await db.rpc('create_org_with_owner', {
+    p_name: String(body.name).slice(0, 120).trim(),
+    p_kind: body.kind,
+    p_short_name: body.short_name ? String(body.short_name).slice(0, 40).trim() : null,
+    p_vat_number: body.vat_number ? String(body.vat_number).slice(0, 20) : null,
+    p_city: body.city ? String(body.city).slice(0, 80) : null,
+    p_accent_color: body.accent_color || '#0d6e42',
+    p_logo_url: body.logo_url || null,
+    p_director: body.director || null,
+    p_total_beds: typeof body.total_beds === 'number' ? body.total_beds : null,
+  })
+  if (!rpcErr && rpcData) {
+    return NextResponse.json({ org: rpcData })
+  }
+
+  // Fallback — RPC não existe (esquema sem sprint63). Faz INSERT directo +
+  // tenta acrescentar a membership a seguir (também com retry).
+  const noRpc = rpcErr && /function .*create_org_with_owner.* does not exist/i.test(rpcErr.message)
+  if (rpcErr && !noRpc) {
+    if (/row-level security/i.test(rpcErr.message)) {
+      return NextResponse.json({
+        error: 'A base de dados rejeitou a inserção por política de segurança (RLS). Aplica supabase/sprint62_orgs_rls_final.sql + sprint63_create_org_rpc.sql no SQL Editor do Supabase. (Detalhe: ' + rpcErr.message + ')',
+        hint: 'sprint62_orgs_rls_final.sql, sprint63_create_org_rpc.sql',
+      }, { status: 500 })
+    }
+    return NextResponse.json({ error: rpcErr.message }, { status: 500 })
+  }
+
+  // Fallback path
   const fullPayload: Record<string, any> = {
     name: String(body.name).slice(0, 120).trim(),
     short_name: body.short_name ? String(body.short_name).slice(0, 40).trim() : null,
@@ -70,8 +100,6 @@ export async function POST(req: NextRequest) {
   }
 
   let { data, error } = await db.from('organizations').insert(fullPayload).select().single()
-
-  // Retry sem colunas em falta (esquema antigo) — preserva sempre name+kind.
   let retries = 0
   while (error && retries < 5) {
     const missing = MISSING_COLUMN(error.message)
@@ -86,14 +114,21 @@ export async function POST(req: NextRequest) {
     if (NO_TABLE(error.message)) {
       return NextResponse.json({ error: 'Tabela organizations ainda não existe. Aplica sprint49_organizations.sql.' }, { status: 503 })
     }
-    // Erro de RLS — devolve diagnóstico legível com sugestão de correcção.
     if (/row-level security/i.test(error.message)) {
       return NextResponse.json({
-        error: 'A base de dados rejeitou a inserção por política de segurança (RLS). Aplica supabase/sprint62_orgs_rls_final.sql no SQL Editor do Supabase — isto repõe as policies de organizations sem auto-referência. (Detalhe técnico: ' + error.message + ')',
-        hint: 'sprint62_orgs_rls_final.sql',
+        error: 'A base de dados rejeitou a inserção por política de segurança (RLS). Aplica supabase/sprint63_create_org_rpc.sql no SQL Editor.',
+        hint: 'sprint63_create_org_rpc.sql',
       }, { status: 500 })
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Garante membership (caso o trigger AFTER INSERT não tenha corrido com auth.uid())
+  if (data?.id) {
+    await db.from('org_members')
+      .upsert({ org_id: data.id, user_id: userId, role: 'owner', active: true }, { onConflict: 'org_id,user_id' })
+      .then(() => {}, () => {})
+  }
+
   return NextResponse.json({ org: data })
 }

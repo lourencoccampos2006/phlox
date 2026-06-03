@@ -138,6 +138,9 @@ const PHARMACY: NavSection[] = [
   { title: 'Inteligência', items: [
     { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
     { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
+    { href: '/crm', label: 'CRM', icon: 'patients', badge: true },
+    { href: '/telemedicina', label: 'Telemedicina', icon: 'connect', badge: true },
+    { href: '/traduzir', label: 'Tradução', icon: 'docs', badge: true },
   ]},
   { title: 'Operações', items: [
     { href: '/tarefas-equipa', label: 'Tarefas da Equipa', icon: 'tasks', badge: true },
@@ -232,6 +235,9 @@ const GENERIC: NavSection[] = [
   { title: 'Inteligência', items: [
     { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
     { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
+    { href: '/crm', label: 'CRM', icon: 'patients', badge: true },
+    { href: '/telemedicina', label: 'Telemedicina', icon: 'connect', badge: true },
+    { href: '/traduzir', label: 'Tradução', icon: 'docs', badge: true },
   ]},
   { title: 'Operações', items: [
     { href: '/sala-espera', label: 'Sala de Espera', icon: 'queue', badge: true },
