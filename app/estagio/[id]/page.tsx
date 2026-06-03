@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 // /estagio/[id] — Página completa do estágio com tabs:

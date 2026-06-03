@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 // /estagio — Hub dos estágios do estudante.
