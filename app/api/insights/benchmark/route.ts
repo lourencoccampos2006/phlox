@@ -30,10 +30,28 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const sb = admin()
-  // tipo de instituição do utilizador
-  const { data: prof } = await sb.from('profiles').select('institution_type').eq('id', userId).maybeSingle()
-  const institutionType = prof?.institution_type
-  if (!institutionType) return NextResponse.json({ error: 'institution_type não definido na tua conta' }, { status: 400 })
+  // tipo de instituição do utilizador — tenta primeiro profile.institution_type,
+  // depois cai para o kind da organização activa (multi-org).
+  let institutionType: string | null = null
+  try {
+    const { data: prof } = await sb.from('profiles').select('institution_type').eq('id', userId).maybeSingle()
+    institutionType = prof?.institution_type || null
+  } catch { /* column may not exist */ }
+
+  if (!institutionType) {
+    // Fallback: pega no kind da primeira org onde é membro activo
+    const { data: member } = await sb.from('org_members')
+      .select('org_id, organizations(kind)')
+      .eq('user_id', userId).eq('active', true).limit(1).maybeSingle()
+    institutionType = (member as any)?.organizations?.kind || null
+  }
+
+  if (!institutionType) {
+    return NextResponse.json({
+      pool_size: 0,
+      blocked: 'Sem tipo de instituição definido. Cria uma organização em Definições → Organização para activar benchmarks.',
+    })
+  }
 
   // pool: utilizadores do mesmo tipo, ATIVOS, plano pro/clinic
   const { data: pool } = await sb.from('profiles').select('id').eq('institution_type', institutionType).in('plan', ['pro', 'clinic'])

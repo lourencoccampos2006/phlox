@@ -24,6 +24,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     action?: 'admit' | 'discharge' | 'set_status' | 'update'
     episode_id?: string
     patient_id?: string
+    episode_kind?: string
+    primary_complaint?: string
     status?: string
     notes?: string
     label?: string
@@ -34,10 +36,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const update: Record<string, any> = {}
 
   if (body.action === 'admit') {
-    if (!body.episode_id || !body.patient_id) {
-      return NextResponse.json({ error: 'episode_id e patient_id obrigatórios para admitir' }, { status: 400 })
+    if (!body.patient_id) {
+      return NextResponse.json({ error: 'patient_id obrigatório para admitir' }, { status: 400 })
     }
-    update.current_episode_id = body.episode_id
+    const db0 = sb(req)
+    let episodeId = body.episode_id as string | undefined
+
+    // Se não foi passado um episode_id, cria automaticamente um episódio aberto
+    // do tipo escolhido (default: internamento) para o doente.
+    if (!episodeId) {
+      // Vai buscar org_id da cama (já garantida via RLS)
+      const { data: bedRow } = await db0.from('beds').select('org_id').eq('id', id).single()
+      if (!bedRow?.org_id) return NextResponse.json({ error: 'Cama sem org associada' }, { status: 400 })
+      const { data: ep, error: epErr } = await db0.from('episodes').insert({
+        org_id: bedRow.org_id,
+        patient_id: body.patient_id,
+        kind: body.episode_kind || 'internamento',
+        status: 'open',
+        attending_user_id: userId,
+        primary_complaint: body.primary_complaint || null,
+        bed_id: id,
+        created_by: userId,
+      }).select('id').single()
+      if (epErr) return NextResponse.json({ error: 'Falha ao criar episódio: ' + epErr.message }, { status: 500 })
+      episodeId = ep.id
+    }
+    update.current_episode_id = episodeId
     update.current_patient_id = body.patient_id
     // trigger SQL define status=occupied + occupied_since
   } else if (body.action === 'discharge') {

@@ -130,26 +130,26 @@ function ComprasInner() {
             const m = STATUS_META[p.status] || STATUS_META.draft
             return (
               <div key={p.id} onClick={() => setDetail(p)} style={{
-                background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14,
-                cursor: 'pointer', display: 'grid', gridTemplateColumns: '120px 1fr auto auto', gap: 14, alignItems: 'center',
+                background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12,
+                cursor: 'pointer', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
               }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#111827', fontFamily: 'JetBrains Mono, monospace' }}>{p.number}</div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{p.supplier?.name || '—'}</div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#111827', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{p.number}</div>
+                <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.supplier?.name || '—'}</div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
                     {p.total_lines} linha{p.total_lines === 1 ? '' : 's'} · {Number(p.total_qty).toFixed(0)} un
                     {p.expected_at && ` · prev. ${new Date(p.expected_at).toLocaleDateString('pt-PT')}`}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 15, color: '#111827' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', flexShrink: 0 }}>
                   €{Number(p.total_amount || 0).toFixed(2)}
                 </div>
-                <div>
-                  <span style={{ padding: '4px 10px', borderRadius: 999, background: m.bg, color: m.color, fontSize: 11, fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{ padding: '4px 10px', borderRadius: 999, background: m.bg, color: m.color, fontSize: 10, fontWeight: 700 }}>
                     {m.label.toUpperCase()}
                   </span>
                   {canReceive && (p.status === 'sent' || p.status === 'partial') && (
-                    <button onClick={e => { e.stopPropagation(); setReceive(p) }} style={{ ...btn('ghost'), marginLeft: 6, fontSize: 12, padding: '4px 10px' }}>
+                    <button onClick={e => { e.stopPropagation(); setReceive(p) }} style={{ ...btn('ghost'), fontSize: 11, padding: '4px 8px' }}>
                       Receber
                     </button>
                   )}

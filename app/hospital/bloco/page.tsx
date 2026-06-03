@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useActiveOrg } from '@/lib/orgContext'
+import OrgPatientPicker, { type OrgPatient } from '@/components/OrgPatientPicker'
 import Link from 'next/link'
 
 interface Surgery {
@@ -198,18 +199,19 @@ function NewSurgeryModal({ orgId, day, onClose, onCreated, authHeader }: {
   const [asa, setAsa] = useState<number>(2)
   const [emergent, setEmergent] = useState(false)
   const [prophylaxis, setProphylaxis] = useState('')
-  const [patientId, setPatientId] = useState('')
+  const [patient, setPatient] = useState<OrgPatient | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!patient) { setErr('Selecciona um doente'); return }
     setBusy(true); setErr(null)
     try {
       const headers = await authHeader()
       const body = {
         org_id: orgId,
-        patient_id: patientId,
+        patient_id: patient.id,
         procedure_name: procedure,
         procedure_code: code || null,
         specialty: specialty || null,
@@ -232,10 +234,13 @@ function NewSurgeryModal({ orgId, day, onClose, onCreated, authHeader }: {
     <Modal title="Agendar intervenção" onClose={onClose}>
       <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
         {err && <div style={errBox}>{err}</div>}
-        <Field label="ID do doente">
-          <input required value={patientId} onChange={e => setPatientId(e.target.value)} style={input} placeholder="UUID do doente" />
-          <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0' }}>Cria/escolhe primeiro o doente em <Link href="/patients" style={{ color: ACCENT }}>doentes</Link>.</p>
-        </Field>
+        <OrgPatientPicker
+          orgId={orgId}
+          value={patient}
+          onSelect={setPatient}
+          label="Doente"
+          placeholder="Procurar por nome ou criar novo…"
+        />
         <Field label="Nome do procedimento"><input required value={procedure} onChange={e => setProcedure(e.target.value)} style={input} placeholder="ex: Colecistectomia laparoscópica" /></Field>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Código (opcional)"><input value={code} onChange={e => setCode(e.target.value)} style={input} placeholder="CID-9-MC" /></Field>
@@ -274,7 +279,7 @@ function NewSurgeryModal({ orgId, day, onClose, onCreated, authHeader }: {
         <Field label="Profilaxia antibiótica (opcional)"><input value={prophylaxis} onChange={e => setProphylaxis(e.target.value)} style={input} placeholder="ex: Cefazolina 2 g IV 30 min pré-incisão" /></Field>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
           <button type="button" onClick={onClose} style={btn('ghost')}>Cancelar</button>
-          <button type="submit" disabled={busy || !procedure || !patientId} style={btn('primary')}>{busy ? 'A agendar…' : 'Agendar'}</button>
+          <button type="submit" disabled={busy || !procedure || !patient} style={btn('primary')}>{busy ? 'A agendar…' : 'Agendar'}</button>
         </div>
       </form>
     </Modal>

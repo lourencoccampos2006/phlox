@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useActiveOrg } from '@/lib/orgContext'
+import OrgPatientPicker, { type OrgPatient } from '@/components/OrgPatientPicker'
 import Link from 'next/link'
 
 interface Session {
@@ -158,7 +159,7 @@ function NewSessionModal({ orgId, onClose, onSaved, authHeader }: {
   const [time, setTime] = useState('14:00')
   const [duration, setDuration] = useState(20)
   const [motive, setMotive] = useState('')
-  const [patientId, setPatientId] = useState('')
+  const [patient, setPatient] = useState<OrgPatient | null>(null)
   const [fee, setFee] = useState<number | ''>('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -170,7 +171,7 @@ function NewSessionModal({ orgId, onClose, onSaved, authHeader }: {
       const headers = await authHeader()
       const r = await fetch('/api/telemed/sessions', { method: 'POST', headers, body: JSON.stringify({
         org_id: orgId,
-        patient_id: patientId || null,
+        patient_id: patient?.id || null,
         scheduled_at: `${date}T${time}:00`,
         duration_min: duration,
         motive: motive || null,
@@ -191,9 +192,13 @@ function NewSessionModal({ orgId, onClose, onSaved, authHeader }: {
           <Field label="Hora"><input required type="time" value={time} onChange={e => setTime(e.target.value)} style={input} /></Field>
           <Field label="Duração (min)"><input required type="number" value={duration} onChange={e => setDuration(parseInt(e.target.value) || 20)} style={input} /></Field>
         </div>
-        <Field label="ID do doente (opcional)">
-          <input value={patientId} onChange={e => setPatientId(e.target.value)} style={input} placeholder="UUID — copia de /patients" />
-        </Field>
+        <OrgPatientPicker
+          orgId={orgId}
+          value={patient}
+          onSelect={setPatient}
+          label="Doente (opcional)"
+          placeholder="Procurar por nome…"
+        />
         <Field label="Motivo da consulta">
           <textarea rows={2} value={motive} onChange={e => setMotive(e.target.value)} style={{ ...input, resize: 'vertical' }} placeholder="ex: seguimento de hipertensão" />
         </Field>

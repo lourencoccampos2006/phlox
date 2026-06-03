@@ -135,16 +135,16 @@ export default function TriagemHospitalPage() {
         )}
       </div>
 
-      {/* Painel de prioridades */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 20 }}>
+      {/* Painel de prioridades — auto-fit para mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: 6, marginBottom: 20 }}>
         {[1, 2, 3, 4, 5].map(p => {
           const meta = PRIORITY[p]
           const c = grouped[p].length
           return (
             <div key={p} style={{ padding: 10, background: meta.bg, borderRadius: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: meta.color, fontWeight: 700, letterSpacing: 0.5 }}>{meta.label}</div>
-              <div style={{ fontSize: 26, color: meta.color, fontWeight: 800, marginTop: 2 }}>{c}</div>
-              <div style={{ fontSize: 10, color: meta.color, opacity: 0.8 }}>≤ {meta.target === 0 ? 'IMEDIATO' : `${meta.target}min`}</div>
+              <div style={{ fontSize: 9, color: meta.color, fontWeight: 700, letterSpacing: 0.5 }}>{meta.label}</div>
+              <div style={{ fontSize: 22, color: meta.color, fontWeight: 800, marginTop: 2 }}>{c}</div>
+              <div style={{ fontSize: 9, color: meta.color, opacity: 0.8 }}>≤ {meta.target === 0 ? 'JÁ' : `${meta.target}m`}</div>
             </div>
           )
         })}
@@ -161,40 +161,40 @@ export default function TriagemHospitalPage() {
             const overdue = waitMin > t.target_minutes
             return (
               <div key={t.id} style={{
-                background: 'white', borderRadius: 10, padding: 14, display: 'grid',
-                gridTemplateColumns: '80px 1fr auto', gap: 14, alignItems: 'center',
+                background: 'white', borderRadius: 10, padding: 12, display: 'grid',
+                gridTemplateColumns: '60px 1fr auto', gap: 10, alignItems: 'center',
                 border: `1px solid ${overdue ? '#dc2626' : '#e5e7eb'}`,
                 boxShadow: overdue ? '0 0 0 3px rgba(220,38,38,0.1)' : undefined,
               }}>
                 {/* Prioridade */}
                 <div style={{
-                  background: meta.bg, color: meta.color, padding: '8px 6px', borderRadius: 8,
+                  background: meta.bg, color: meta.color, padding: '6px 4px', borderRadius: 8,
                   textAlign: 'center', fontWeight: 800,
                 }}>
-                  <div style={{ fontSize: 22 }}>{t.priority}</div>
-                  <div style={{ fontSize: 9, marginTop: 2 }}>{meta.label.split(' ')[0]}</div>
+                  <div style={{ fontSize: 20 }}>{t.priority}</div>
+                  <div style={{ fontSize: 8, marginTop: 1, lineHeight: 1.1 }}>{meta.label.split(' ')[0]}</div>
                 </div>
                 {/* Conteúdo */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
-                    {t.patient?.name || 'Doente sem registo'}
-                    {t.flowchart && <span style={{ marginLeft: 8, fontSize: 12, color: '#6b7280', fontWeight: 500 }}>· {t.flowchart}</span>}
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {t.patient?.name || 'Sem registo'}
                   </div>
-                  <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>{t.reason}</div>
-                  {t.discriminator && <div style={{ fontSize: 12, color: meta.color, marginTop: 4, fontWeight: 600 }}>↳ {t.discriminator}</div>}
+                  {t.flowchart && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{t.flowchart}</div>}
+                  <div style={{ fontSize: 12, color: '#374151', marginTop: 3, wordBreak: 'break-word' }}>{t.reason}</div>
+                  {t.discriminator && <div style={{ fontSize: 11, color: meta.color, marginTop: 3, fontWeight: 600 }}>↳ {t.discriminator}</div>}
                   {t.pain_score != null && (
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Dor: {t.pain_score}/10</div>
+                    <div style={{ fontSize: 10, color: '#6b7280', marginTop: 3 }}>Dor: {t.pain_score}/10</div>
                   )}
                 </div>
                 {/* Tempos / acções */}
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, color: '#6b7280' }}>espera</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: overdue ? '#dc2626' : '#111827' }}>
-                    {waitMin}min
+                <div style={{ textAlign: 'right', minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: '#6b7280' }}>espera</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: overdue ? '#dc2626' : '#111827' }}>
+                    {waitMin}m
                   </div>
-                  {overdue && <div style={{ fontSize: 10, color: '#dc2626', fontWeight: 700 }}>EXCEDIDO</div>}
+                  {overdue && <div style={{ fontSize: 9, color: '#dc2626', fontWeight: 700 }}>EXCEDIDO</div>}
                   {canWrite && (
-                    <button onClick={() => markSeen(t.id)} style={{ ...btn('ghost'), marginTop: 6, fontSize: 12, padding: '4px 10px' }}>
+                    <button onClick={() => markSeen(t.id)} style={{ ...btn('ghost'), marginTop: 4, fontSize: 11, padding: '3px 8px' }}>
                       Visto
                     </button>
                   )}

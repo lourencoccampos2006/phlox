@@ -281,30 +281,136 @@ function TabBtn({ label, active, onClick, count }: { label: string; active: bool
   )
 }
 
+// ─── Templates prontos a usar ────────────────────────────────────────────
+interface Template {
+  id: string
+  icon: string
+  name: string
+  desc: string
+  trigger_kind: 'cron' | 'event' | 'threshold'
+  trigger_expr: string
+  trigger_label: string
+  actions: { kind: string; params: any }[]
+}
+
+const TEMPLATES: Template[] = [
+  {
+    id: 'daily-stock-check',
+    icon: '📦',
+    name: 'Verificar stock todas as manhãs',
+    desc: 'Às 7h00, cria uma tarefa para a equipa rever stock crítico do dia.',
+    trigger_kind: 'cron',
+    trigger_expr: '0 7 * * *',
+    trigger_label: 'Todos os dias às 7h00',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'stock-check', title: 'Verificar stock crítico do dia', priority: 3 } }],
+  },
+  {
+    id: 'expiry-weekly',
+    icon: '⏰',
+    name: 'Alerta semanal de validades',
+    desc: 'Toda 2ª-feira de manhã, gera lista de medicamentos a expirar nos próximos 30 dias.',
+    trigger_kind: 'cron',
+    trigger_expr: '0 8 * * 1',
+    trigger_label: 'Segundas às 8h00',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'expiry-watch', title: 'Rever validades próximas', priority: 3 } }],
+  },
+  {
+    id: 'occupancy-alert',
+    icon: '🛏️',
+    name: 'Alerta de lotação > 90%',
+    desc: 'Quando ocupação das camas excede 90%, avisa coordenador.',
+    trigger_kind: 'threshold',
+    trigger_expr: 'beds_occupied_pct > 90',
+    trigger_label: 'Ocupação > 90%',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'capacity', title: 'Lotação crítica — rever altas pendentes', priority: 2 } }],
+  },
+  {
+    id: 'triage-overdue',
+    icon: '🚨',
+    name: 'Triagem com tempo excedido',
+    desc: 'Sempre que um doente em triagem passa o tempo-alvo, sinaliza ao chefe de equipa.',
+    trigger_kind: 'event',
+    trigger_expr: 'triage.overdue',
+    trigger_label: 'Triagem excede tempo-alvo',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'triage-helper', title: 'Triagem com espera excedida', priority: 1 } }],
+  },
+  {
+    id: 'shift-handover',
+    icon: '🔄',
+    name: 'Passagem de turno automatizada',
+    desc: 'Às 13h45, 20h45 e 06h45, gera resumo de doentes para o turno seguinte.',
+    trigger_kind: 'cron',
+    trigger_expr: '45 6,13,20 * * *',
+    trigger_label: 'Antes de cada turno (06h45, 13h45, 20h45)',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'handover', title: 'Passagem de turno — rever doentes críticos', priority: 2 } }],
+  },
+  {
+    id: 'rounds-flag-poly',
+    icon: '💊',
+    name: 'Rever polimedicados sem revisão',
+    desc: 'Semanal — sinaliza doentes com ≥ 8 fármacos não revistos há mais de 14 dias.',
+    trigger_kind: 'cron',
+    trigger_expr: '0 9 * * 3',
+    trigger_label: 'Quartas às 9h00',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'rounds-flag', title: 'Polimedicação sem revisão recente', priority: 3 } }],
+  },
+  {
+    id: 'po-pending',
+    icon: '📋',
+    name: 'Encomendas pendentes há > 7 dias',
+    desc: 'Diariamente sinaliza encomendas enviadas mas não recebidas após 7 dias.',
+    trigger_kind: 'cron',
+    trigger_expr: '0 10 * * *',
+    trigger_label: 'Todos os dias às 10h00',
+    actions: [{ kind: 'create_agent_task', params: { agent_name: 'purchase-watch', title: 'Encomendas pendentes há > 7 dias', priority: 3 } }],
+  },
+  {
+    id: 'custom',
+    icon: '✏️',
+    name: 'Regra personalizada',
+    desc: 'Cria a tua própria regra do zero.',
+    trigger_kind: 'cron',
+    trigger_expr: '',
+    trigger_label: '',
+    actions: [],
+  },
+]
+
 function NewRuleModal({ orgId, onClose, onSaved, authHeader }: {
   orgId: string; onClose: () => void; onSaved: () => void; authHeader: () => Promise<Record<string, string>>
 }) {
+  const [step, setStep] = useState<'choose' | 'configure'>('choose')
+  const [tpl, setTpl] = useState<Template | null>(null)
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
-  const [triggerKind, setTriggerKind] = useState<'cron'|'event'|'threshold'|'schedule'>('cron')
-  const [triggerExpr, setTriggerExpr] = useState('0 7 * * *')
-  const [actionKind, setActionKind] = useState('create_agent_task')
+  const [triggerExpr, setTriggerExpr] = useState('')
   const [actionTitle, setActionTitle] = useState('')
-  const [actionAgent, setActionAgent] = useState('reminder')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
+  function pickTemplate(t: Template) {
+    setTpl(t)
+    setName(t.name)
+    setDesc(t.desc)
+    setTriggerExpr(t.trigger_expr)
+    setActionTitle(t.actions[0]?.params?.title || '')
+    setStep('configure')
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!tpl) return
     setBusy(true); setErr(null)
     try {
       const headers = await authHeader()
-      const actions = [{
-        kind: actionKind,
-        params: actionKind === 'create_agent_task' ? { agent_name: actionAgent, title: actionTitle, priority: 3 } : {},
-      }]
+      const actions = tpl.actions.length > 0
+        ? tpl.actions.map(a => ({
+            ...a,
+            params: { ...a.params, title: actionTitle || a.params.title },
+          }))
+        : [{ kind: 'create_agent_task', params: { agent_name: 'custom', title: actionTitle || name, priority: 3 } }]
       const r = await fetch('/api/automations', { method: 'POST', headers, body: JSON.stringify({
-        org_id: orgId, name, description: desc, trigger_kind: triggerKind, trigger_expr: triggerExpr, actions, enabled: true,
+        org_id: orgId, name, description: desc, trigger_kind: tpl.trigger_kind, trigger_expr: triggerExpr, actions, enabled: true,
       }) })
       const j = await r.json()
       if (!r.ok) throw new Error(j.error || 'Erro')
@@ -314,45 +420,94 @@ function NewRuleModal({ orgId, onClose, onSaved, authHeader }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 20, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 700 }}>Nova regra de automação</h3>
-        <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
-          {err && <div style={errBox}>{err}</div>}
-          <Field label="Nome"><input required value={name} onChange={e => setName(e.target.value)} style={input} placeholder="ex: Lembrete diário de stock" /></Field>
-          <Field label="Descrição"><textarea rows={2} value={desc} onChange={e => setDesc(e.target.value)} style={{ ...input, resize: 'vertical' }} /></Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-            <Field label="Tipo de gatilho">
-              <select value={triggerKind} onChange={e => setTriggerKind(e.target.value as any)} style={input}>
-                <option value="cron">Cron</option>
-                <option value="event">Evento</option>
-                <option value="threshold">Limiar</option>
-                <option value="schedule">Agendamento</option>
-              </select>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 20, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>
+            {step === 'choose' ? 'Escolhe uma receita' : 'Personaliza a regra'}
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af', padding: 0 }}>×</button>
+        </div>
+
+        {step === 'choose' && (
+          <>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
+              Receitas prontas a usar — clica para configurar.
+            </p>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {TEMPLATES.map(t => (
+                <button key={t.id} onClick={() => pickTemplate(t)} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: 12,
+                  background: 'white', border: '1px solid #e5e7eb', borderRadius: 10,
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = ACCENT)}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#e5e7eb')}>
+                  <div style={{ fontSize: 26, flexShrink: 0 }}>{t.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{t.desc}</div>
+                    {t.trigger_label && (
+                      <div style={{ fontSize: 11, color: ACCENT, marginTop: 4, fontWeight: 600 }}>⏱ {t.trigger_label}</div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 18, color: '#9ca3af' }}>→</div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {step === 'configure' && tpl && (
+          <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
+            <button type="button" onClick={() => setStep('choose')} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 12, cursor: 'pointer', textAlign: 'left', padding: 0, marginBottom: 4 }}>
+              ← Escolher outra receita
+            </button>
+            {err && <div style={errBox}>{err}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, background: '#f9fafb', borderRadius: 8 }}>
+              <span style={{ fontSize: 22 }}>{tpl.icon}</span>
+              <div style={{ fontSize: 13, color: '#374151' }}>{tpl.desc}</div>
+            </div>
+
+            <Field label="Nome da regra">
+              <input required value={name} onChange={e => setName(e.target.value)} style={input} />
             </Field>
-            <Field label="Expressão">
-              <input required value={triggerExpr} onChange={e => setTriggerExpr(e.target.value)} style={input}
-                placeholder={triggerKind === 'cron' ? '0 7 * * *' : triggerKind === 'event' ? 'patient.admitted' : 'beds_occupied > 90'} />
+
+            {tpl.trigger_kind === 'cron' && (
+              <Field label="Quando correr (cron)">
+                <input required value={triggerExpr} onChange={e => setTriggerExpr(e.target.value)} style={input} />
+                <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0' }}>
+                  Formato cron: <code>min hora dia mês dia-semana</code>. Ex: <code>0 7 * * *</code> = 7h00 todos os dias.
+                </p>
+              </Field>
+            )}
+            {tpl.trigger_kind === 'event' && (
+              <Field label="Evento">
+                <input required value={triggerExpr} onChange={e => setTriggerExpr(e.target.value)} style={input} />
+              </Field>
+            )}
+            {tpl.trigger_kind === 'threshold' && (
+              <Field label="Condição">
+                <input required value={triggerExpr} onChange={e => setTriggerExpr(e.target.value)} style={input} />
+                <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0' }}>
+                  Ex: <code>beds_occupied_pct &gt; 90</code>, <code>stock_critical_count &gt; 5</code>.
+                </p>
+              </Field>
+            )}
+
+            <Field label="Título da tarefa a criar">
+              <input value={actionTitle} onChange={e => setActionTitle(e.target.value)} style={input} placeholder="O que precisa de ser feito?" />
             </Field>
-          </div>
-          <Field label="Acção">
-            <select value={actionKind} onChange={e => setActionKind(e.target.value)} style={input}>
-              <option value="create_agent_task">Criar tarefa de agente</option>
-              <option value="send_notification">Enviar notificação</option>
-              <option value="flag_record">Sinalizar registo</option>
-              <option value="send_email">Enviar email</option>
-            </select>
-          </Field>
-          {actionKind === 'create_agent_task' && (
-            <>
-              <Field label="Agente"><input value={actionAgent} onChange={e => setActionAgent(e.target.value)} style={input} /></Field>
-              <Field label="Título da tarefa"><input value={actionTitle} onChange={e => setActionTitle(e.target.value)} style={input} placeholder="ex: Verificar stock do dia" /></Field>
-            </>
-          )}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button type="button" onClick={onClose} style={btn('ghost')}>Cancelar</button>
-            <button type="submit" disabled={busy || !name || !triggerExpr} style={btn('primary')}>{busy ? 'A criar…' : 'Criar regra'}</button>
-          </div>
-        </form>
+
+            <Field label="Descrição (opcional)">
+              <textarea rows={2} value={desc} onChange={e => setDesc(e.target.value)} style={{ ...input, resize: 'vertical' }} />
+            </Field>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+              <button type="button" onClick={onClose} style={btn('ghost')}>Cancelar</button>
+              <button type="submit" disabled={busy || !name || !triggerExpr} style={btn('primary')}>{busy ? 'A criar…' : 'Criar regra'}</button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )

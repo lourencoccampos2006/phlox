@@ -56,8 +56,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname()
   const { user } = useAuth() as any
   const mode = user?.experience_mode
-  const isClinical = mode === 'clinical' &&
-    CLINICAL_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
+
+  // Mostra o sidebar clínico se:
+  //   a) o utilizador escolheu modo clínico, OU
+  //   b) está numa rota clínica E tem uma org activa em localStorage
+  // (caso b) cobre quem cria uma org sem mudar de modo)
+  let hasActiveOrg = false
+  if (typeof window !== 'undefined') {
+    try { hasActiveOrg = !!localStorage.getItem('phlox-active-org') } catch {}
+  }
+  const inClinicalRoute = CLINICAL_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isClinical = inClinicalRoute && (mode === 'clinical' || hasActiveOrg)
 
   // Bloqueio de acesso por plano — a página paga só renderiza se o plano chegar.
   const gate = planForRoute(pathname)

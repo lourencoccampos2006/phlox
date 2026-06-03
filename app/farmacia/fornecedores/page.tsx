@@ -92,11 +92,11 @@ export default function FornecedoresPage() {
             return (
               <div key={s.id} style={{
                 background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16,
-                display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center',
+                display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>{s.name}</h3>
+                <div style={{ minWidth: 0, flex: '1 1 280px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827', wordBreak: 'break-word' }}>{s.name}</h3>
                     <span style={{ padding: '2px 8px', borderRadius: 999, background: '#f3f4f6', color: '#374151', fontSize: 11, fontWeight: 600 }}>
                       {KIND_LABELS[s.kind] || s.kind}
                     </span>

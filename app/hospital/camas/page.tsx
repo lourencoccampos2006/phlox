@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useActiveOrg } from '@/lib/orgContext'
+import OrgPatientPicker, { type OrgPatient } from '@/components/OrgPatientPicker'
 import Link from 'next/link'
 
 interface Ward {
@@ -230,6 +231,7 @@ export default function HospitalCamasPage() {
       )}
       {bedDetail && (
         <BedDetailModal bed={bedDetail} canWrite={canWrite}
+          orgId={org.id}
           onClose={() => setBedDetail(null)}
           onUpdated={() => { setBedDetail(null); loadBeds(); loadWards() }}
           authHeader={authHeader}
@@ -332,15 +334,16 @@ function NewBedModal({ orgId, wardId, onClose, onCreated, authHeader }: { orgId:
   )
 }
 
-function BedDetailModal({ bed, canWrite, onClose, onUpdated, authHeader }: {
+function BedDetailModal({ bed, canWrite, onClose, onUpdated, authHeader, orgId }: {
   bed: Bed; canWrite: boolean; onClose: () => void; onUpdated: () => void
-  authHeader: () => Promise<Record<string, string>>
+  authHeader: () => Promise<Record<string, string>>; orgId: string
 }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [tab, setTab] = useState<'view' | 'admit'>('view')
-  const [patientId, setPatientId] = useState('')
-  const [episodeId, setEpisodeId] = useState('')
+  const [patient, setPatient] = useState<OrgPatient | null>(null)
+  const [episodeKind, setEpisodeKind] = useState('internamento')
+  const [complaint, setComplaint] = useState('')
 
   async function action(body: any) {
     setBusy(true); setErr(null)
@@ -393,17 +396,35 @@ function BedDetailModal({ bed, canWrite, onClose, onUpdated, authHeader }: {
               </div>
               {tab === 'admit' && (
                 <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-                  <Field label="ID do doente">
-                    <input value={patientId} onChange={e => setPatientId(e.target.value)} style={input} placeholder="UUID do doente" />
+                  <OrgPatientPicker
+                    orgId={orgId}
+                    value={patient}
+                    onSelect={setPatient}
+                    label="Doente"
+                    placeholder="Procurar por nome ou criar novo…"
+                  />
+                  <Field label="Tipo de admissão">
+                    <select value={episodeKind} onChange={e => setEpisodeKind(e.target.value)} style={input}>
+                      <option value="internamento">Internamento</option>
+                      <option value="urgencia">Urgência</option>
+                      <option value="uci">UCI</option>
+                      <option value="domiciliario">Domiciliário</option>
+                      <option value="outro">Outro</option>
+                    </select>
                   </Field>
-                  <Field label="ID do episódio">
-                    <input value={episodeId} onChange={e => setEpisodeId(e.target.value)} style={input} placeholder="UUID do episódio (admissão)" />
+                  <Field label="Queixa principal (opcional)">
+                    <input value={complaint} onChange={e => setComplaint(e.target.value)} style={input} placeholder="ex: descompensação cardíaca" />
                   </Field>
-                  <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
-                    Cria primeiro um episódio em <Link href="/patients" style={{ color: ACCENT }}>doentes</Link>; depois cola aqui os IDs.
+                  <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>
+                    Um novo episódio aberto será criado automaticamente para este doente.
                   </p>
-                  <button disabled={busy || !patientId || !episodeId} onClick={() => action({ action: 'admit', patient_id: patientId, episode_id: episodeId })} style={btn('primary')}>
-                    {busy ? 'A admitir…' : 'Confirmar admissão'}
+                  <button disabled={busy || !patient} onClick={() => action({
+                    action: 'admit',
+                    patient_id: patient?.id,
+                    episode_kind: episodeKind,
+                    primary_complaint: complaint || null,
+                  })} style={btn('primary')}>
+                    {busy ? 'A admitir…' : `Admitir ${patient?.name || ''}`}
                   </button>
                 </div>
               )}

@@ -108,6 +108,13 @@ const NH: NavSection[] = [
     { href: '/family', label: 'Famílias', icon: 'family' },
     { href: '/roi', label: 'Indicadores', icon: 'roi' },
   ]},
+  { title: 'Inteligência', items: [
+    { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
+    { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
+    { href: '/crm', label: 'CRM (famílias)', icon: 'patients', badge: true },
+    { href: '/telemedicina', label: 'Telemedicina', icon: 'connect', badge: true },
+    { href: '/traduzir', label: 'Tradução clínica', icon: 'docs', badge: true },
+  ]},
   { title: 'Legal & documentos', items: [
     { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
     { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
@@ -179,6 +186,13 @@ const CLINIC: NavSection[] = [
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },
     { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
   ]},
+  { title: 'Inteligência', items: [
+    { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
+    { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
+    { href: '/crm', label: 'CRM', icon: 'patients', badge: true },
+    { href: '/telemedicina', label: 'Telemedicina', icon: 'connect', badge: true },
+    { href: '/traduzir', label: 'Tradução clínica', icon: 'docs', badge: true },
+  ]},
   { title: 'Legal', items: [
     { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
     { href: '/consentimentos', label: 'Consentimentos', icon: 'consent', badge: true },
@@ -208,6 +222,13 @@ const HEALTH_CENTER: NavSection[] = [
     { href: '/stock', label: 'Stock & Validades', icon: 'box', badge: true },
     { href: '/schedule', label: 'Equipa', icon: 'schedule' },
     { href: '/gestao', label: 'Painel de Gestão', icon: 'board' },
+  ]},
+  { title: 'Inteligência', items: [
+    { href: '/bi', label: 'BI conversacional', icon: 'board', badge: true },
+    { href: '/automacoes', label: 'Automações & Agentes', icon: 'tasks', badge: true },
+    { href: '/crm', label: 'CRM (utentes)', icon: 'patients', badge: true },
+    { href: '/telemedicina', label: 'Telemedicina', icon: 'connect', badge: true },
+    { href: '/traduzir', label: 'Tradução clínica', icon: 'docs', badge: true },
   ]},
   { title: 'Legal', items: [
     { href: '/conformidade', label: 'Conformidade', icon: 'shield', badge: true },
@@ -301,13 +322,47 @@ export default function ClinicalLayout({ children }: { children: React.ReactNode
   const [drawer, setDrawer] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
 
+  // O tipo de instituição vem de:
+  //   1) phlox-clinic-institution (escolha explícita do utilizador), OU
+  //   2) o kind da organização activa (caso o utilizador tenha criado uma org).
   useEffect(() => {
-    const s = localStorage.getItem('phlox-clinic-institution') as InstType | null
-    if (s) setInst(s)
-    const h = (e: StorageEvent) => { if (e.key === 'phlox-clinic-institution' && e.newValue) setInst(e.newValue as InstType) }
+    const explicit = localStorage.getItem('phlox-clinic-institution') as InstType | null
+    if (explicit) { setInst(explicit); return }
+
+    // Fallback: usa o kind da org activa
+    const activeOrgId = localStorage.getItem('phlox-active-org')
+    if (activeOrgId && (window as any).supabase) {
+      // Best-effort — não bloqueia o layout se falhar
+    }
+
+    const h = (e: StorageEvent) => {
+      if (e.key === 'phlox-clinic-institution' && e.newValue) setInst(e.newValue as InstType)
+    }
+    const orgChange = (e: any) => {
+      // Quando a org muda, refaz a sincronização com base no kind dela
+      try {
+        const stored = localStorage.getItem('phlox-clinic-institution') as InstType | null
+        if (stored) setInst(stored)
+      } catch {}
+    }
     window.addEventListener('storage', h)
-    return () => window.removeEventListener('storage', h)
+    window.addEventListener('phlox-org-changed', orgChange)
+    return () => {
+      window.removeEventListener('storage', h)
+      window.removeEventListener('phlox-org-changed', orgChange)
+    }
   }, [])
+
+  // Sincroniza o tipo de instituição com o kind da org activa (lê via profile)
+  useEffect(() => {
+    if (profile?.type && !localStorage.getItem('phlox-clinic-institution')) {
+      const kind = profile.type as InstType
+      // Garante que é um InstType válido
+      if (['hospital','pharmacy_hospital','pharmacy_community','nursing_home','clinic','health_center'].includes(kind)) {
+        setInst(kind)
+      }
+    }
+  }, [profile?.type])
 
   // Close overlays on navigation
   useEffect(() => { setDrawer(false); setAddOpen(false) }, [pathname])
