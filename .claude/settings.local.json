@@ -33,7 +33,8 @@
       "Bash(grep -n \"^## Tech Stack$\" /c/Users/Fernando/.claude/projects/c--Users-Fernando-phlox/memory/project_state.md)",
       "Bash(grep -iE '^\\(mymeds|interactions|vitals|passport|bula|ai|diary|reminders|wellness|inicio|symptoms|sintomas|familia|family|carteira-saude|prescricao|prescricoes|consult|consulta|preparar\\)$')",
       "Bash(grep -iE '^\\(familia|family|perfis|schedule|caregiver|dose-crianca|emergency-doses|connect|community\\)$')",
-      "Bash(xargs grep -l -i \"stock\\\\|supplier\\\\|fornecedor\\\\|loyalty\\\\|fidelizacao\\\\|purchase\")"
+      "Bash(xargs grep -l -i \"stock\\\\|supplier\\\\|fornecedor\\\\|loyalty\\\\|fidelizacao\\\\|purchase\")",
+      "Bash(npx next *)"
     ]
   }
 }

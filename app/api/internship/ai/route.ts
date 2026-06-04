@@ -250,5 +250,353 @@ História: ${pat.background || '—'}`,
     }
   }
 
+  // ── 5) INTERVIEW: gera perguntas personalizadas para mapear lacunas ──
+  if (body.action === 'interview_questions') {
+    const { internship_id } = body
+    if (!internship_id) return NextResponse.json({ error: 'internship_id obrigatório' }, { status: 400 })
+    const { data: intr } = await db.from('internships').select('*').eq('id', internship_id).single()
+    if (!intr) return NextResponse.json({ error: 'Estágio não encontrado' }, { status: 404 })
+    try {
+      const res = await aiJSON<{ questions: { id: string; text: string; type: 'short'|'long'|'choice'; options?: string[] }[] }>([
+        {
+          role: 'system',
+          content: `És coach académico para um estudante de saúde. Vais fazer 5 perguntas que permitam construir objectivos personalizados de estágio.
+
+Contexto deste estágio:
+- Área: ${intr.area}
+- Especialidade: ${intr.specialty || '—'}
+- Local: ${intr.institution || '—'} · ${intr.ward || '—'}
+- Duração: ${intr.start_date} a ${intr.end_date}
+- Horas: ${intr.hours_required || '—'}
+
+Cria perguntas ESPECÍFICAS ao contexto. Devem revelar:
+1. Nível prévio de experiência
+2. O que quer aprender ESPECIFICAMENTE neste estágio
+3. Lacunas auto-percebidas
+4. Que tipo de doente/casos vai encontrar
+5. Que avaliação/exame final tem
+
+Responde APENAS JSON:
+{
+  "questions": [
+    { "id": "q1", "text": "...", "type": "short|long|choice", "options": ["opção1","opção2"] }
+  ]
+}`,
+        },
+        { role: 'user', content: 'Cria as 5 perguntas mais úteis para este estágio.' },
+      ], { maxTokens: 900, temperature: 0.2 })
+      return NextResponse.json(res)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  // ── 6) GENERATE OBJECTIVES from interview answers ──
+  if (body.action === 'generate_objectives') {
+    const { internship_id, answers } = body
+    if (!internship_id || !answers) return NextResponse.json({ error: 'internship_id e answers obrigatórios' }, { status: 400 })
+    const { data: intr } = await db.from('internships').select('*').eq('id', internship_id).single()
+    if (!intr) return NextResponse.json({ error: 'Estágio não encontrado' }, { status: 404 })
+    try {
+      const res = await aiJSON<{ objectives: { category: string; title: string; description: string; level: 'see'|'assist'|'do'|'master'; required: boolean }[] }>([
+        {
+          role: 'system',
+          content: `És coach académico. Recebes respostas de um estudante e geras OBJECTIVOS PERSONALIZADOS para o estágio.
+
+Contexto:
+- Área: ${intr.area}
+- Especialidade: ${intr.specialty || '—'}
+- Duração: ${intr.start_date} a ${intr.end_date}
+- Horas: ${intr.hours_required || '—'}
+
+Princípios:
+- Objectivos SMART (específicos, mensuráveis, alcançáveis, relevantes, com prazo).
+- 8-12 objectivos.
+- Personaliza ao que o estudante disse (nível, interesses, lacunas).
+- Categorias: Anamnese, Exame físico, Procedimentos, Raciocínio clínico, Comunicação, Documentação, Prescrição, etc.
+- Mistura níveis: see (observar), assist (ajudar), do (fazer com supervisão), master (autónomo).
+- Marca required=true os curriculares mínimos.
+
+Responde APENAS JSON:
+{
+  "objectives": [
+    { "category": "...", "title": "...", "description": "...", "level": "do", "required": true }
+  ]
+}`,
+        },
+        {
+          role: 'user',
+          content: `Respostas do estudante:\n${JSON.stringify(answers, null, 2)}\n\nGera os objectivos personalizados.`,
+        },
+      ], { maxTokens: 2500, temperature: 0.25 })
+
+      // Insere os objectivos
+      if (res.objectives) {
+        const rows = res.objectives.map(o => ({
+          internship_id, user_id: userId,
+          category: o.category, title: o.title, description: o.description,
+          level: o.level, required: o.required, status: 'pending',
+        }))
+        await db.from('internship_objectives').insert(rows)
+      }
+      return NextResponse.json(res)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  // ── 7) VOICE NOTE → SOAP ────────────────────────────────────────────
+  // Recebe texto transcrito (de gravação) e estrutura como SOAP automaticamente.
+  if (body.action === 'voice_to_soap') {
+    const { transcript, patient_id } = body
+    if (!transcript) return NextResponse.json({ error: 'transcript obrigatório' }, { status: 400 })
+    try {
+      const res = await aiJSON<{ subjective: string; objective: string; assessment: string; plan: string; vitals: any }>([
+        {
+          role: 'system',
+          content: `És clínico sénior. Recebes uma gravação transcrita (ditado do estudante após observar um doente) e estruturas como nota SOAP rigorosa em PT-PT.
+Reconhece automaticamente: sinais vitais, queixas, achados de exame, raciocínio e plano.
+Se faltar informação numa secção, mantém-a curta — não inventes.
+
+Responde APENAS JSON:
+{
+  "subjective": "queixas, história, sintomas relatados",
+  "objective": "exame físico, sinais vitais, exames",
+  "assessment": "diagnóstico/raciocínio",
+  "plan": "plano terapêutico e seguimento",
+  "vitals": { "ta": "120/80", "fc": 78, "fr": 16, "spo2": 98, "temp": 36.5, "gli": 95 }
+}`,
+        },
+        { role: 'user', content: `Transcrição:\n${transcript}` },
+      ], { maxTokens: 1500, temperature: 0.15 })
+      // Se patient_id, grava como followup
+      if (patient_id) {
+        await db.from('patient_followups').insert({
+          user_id: userId,
+          internship_patient_id: patient_id,
+          followup_date: new Date().toISOString().slice(0, 10),
+          subjective: res.subjective,
+          objective: res.objective,
+          assessment: res.assessment,
+          plan: res.plan,
+          vitals: res.vitals || null,
+        })
+      }
+      return NextResponse.json(res)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  // ── 8) HANDOVER SBAR — gera passagem de turno estruturada ──────────
+  if (body.action === 'handover') {
+    const { internship_id, patient_ids } = body
+    if (!internship_id) return NextResponse.json({ error: 'internship_id obrigatório' }, { status: 400 })
+    let patients: any[] = []
+    if (patient_ids?.length) {
+      const { data } = await db.from('internship_patients').select('*').in('id', patient_ids)
+      patients = data || []
+    } else {
+      const { data } = await db.from('internship_patients').select('*').eq('internship_id', internship_id).eq('is_followed', true).limit(20)
+      patients = data || []
+    }
+    // Para cada doente, vai buscar último followup
+    for (const p of patients) {
+      const { data: f } = await db.from('patient_followups').select('*').eq('internship_patient_id', p.id).order('followup_date', { ascending: false }).limit(1)
+      p._last_fup = f?.[0]
+    }
+    try {
+      const { text } = await aiComplete([
+        {
+          role: 'system',
+          content: `És clínico sénior. Vais gerar uma passagem de turno SBAR em markdown PT-PT, doente a doente.
+
+Para cada doente, secções: **Situation**, **Background**, **Assessment**, **Recommendation**, com prioridades destacadas (🔴 crítico, 🟡 monitorizar, 🟢 estável).
+No fim, **resumo do turno** com:
+- Total de doentes seguidos
+- Doentes críticos a vigiar
+- Tarefas pendentes para próximo turno
+
+PT-PT. Conciso. Para o próximo turno usar imediatamente.`,
+        },
+        {
+          role: 'user',
+          content: `Doentes seguidos no turno:\n${patients.map(p => `
+${p.initials || '—'} (${p.age || '?'}a ${p.sex || '?'}) — ${p.diagnosis || ''}
+Queixa: ${p.chief_complaint || '—'}
+Comorbilidades: ${(p.comorbidities || []).join(', ')}
+Status: ${p.status}
+Última evolução: ${p._last_fup ? `S:${p._last_fup.subjective || ''} O:${p._last_fup.objective || ''} A:${p._last_fup.assessment || ''} P:${p._last_fup.plan || ''}` : 'sem evolução registada'}
+`).join('\n---\n')}\n\nGera a passagem de turno SBAR.`,
+        },
+      ], { maxTokens: 3000, temperature: 0.25 })
+      return NextResponse.json({ handover: text, patients: patients.length })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  // ── 9) SHIFT COMPANION — chat especializado para a rotação ─────────
+  if (body.action === 'shift_question') {
+    const { internship_id, question, context } = body
+    if (!internship_id || !question) return NextResponse.json({ error: 'internship_id e question obrigatórios' }, { status: 400 })
+    const { data: intr } = await db.from('internships').select('*').eq('id', internship_id).single()
+    if (!intr) return NextResponse.json({ error: 'Estágio não encontrado' }, { status: 404 })
+    try {
+      const { text } = await aiComplete([
+        {
+          role: 'system',
+          content: `És tutor especializado em ${intr.area} ${intr.specialty ? `· ${intr.specialty}` : ''}.
+O estudante está agora num turno em ${intr.institution || 'hospital'} ${intr.ward ? `· ${intr.ward}` : ''} e tem uma dúvida prática.
+
+Responde em PT-PT, focado, prático, máximo 200 palavras. Inclui:
+- Resposta directa à dúvida
+- Acção concreta para o turno
+- Como NÃO falhar / armadilhas comuns
+- Onde aprofundar (guideline ou capítulo)
+
+Se for uma dúvida clínica grave (anafilaxia, PCR, AVC, hemorragia), dá a abordagem de primeira linha primeiro.`,
+        },
+        { role: 'user', content: `${context ? `Contexto: ${context}\n\n` : ''}Pergunta: ${question}` },
+      ], { maxTokens: 800, temperature: 0.2 })
+      return NextResponse.json({ answer: text })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  // ── 10) DDx ASSISTANT — diagnóstico diferencial estruturado ──────
+  if (body.action === 'ddx_from_symptoms') {
+    const { symptoms, demographics, context } = body
+    if (!symptoms) return NextResponse.json({ error: 'symptoms obrigatório' }, { status: 400 })
+    try {
+      const res = await aiJSON<{ ddx: { dx: string; probability: 'alta'|'média'|'baixa'; key_features: string[]; rule_out: string }[]; investigations: string[]; red_flags: string[] }>([
+        {
+          role: 'system',
+          content: `És internista. Constrói diagnóstico diferencial estruturado em PT-PT.
+Responde APENAS JSON:
+{
+  "ddx": [
+    { "dx": "diagnóstico", "probability": "alta|média|baixa",
+      "key_features": ["sintoma/sinal característico"],
+      "rule_out": "como excluir rapidamente" }
+  ],
+  "investigations": ["próxima investigação prioritária"],
+  "red_flags": ["sinal de alarme a vigiar"]
+}
+
+Ordena DDx do mais provável para menos. 5-8 hipóteses.`,
+        },
+        { role: 'user', content: `Sintomas: ${symptoms}\nDemografia: ${demographics || '—'}\nContexto: ${context || '—'}` },
+      ], { maxTokens: 1500, temperature: 0.2 })
+      return NextResponse.json(res)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  // ── 11) PORTFOLIO EXPORT — gera markdown completo para submissão ──
+  if (body.action === 'portfolio_export') {
+    const { internship_id } = body
+    if (!internship_id) return NextResponse.json({ error: 'internship_id obrigatório' }, { status: 400 })
+
+    const [intRes, objRes, patRes, logRes, procRes, casRes, refRes, evalRes, hourRes] = await Promise.all([
+      db.from('internships').select('*').eq('id', internship_id).single(),
+      db.from('internship_objectives').select('*').eq('internship_id', internship_id),
+      db.from('internship_patients').select('*').eq('internship_id', internship_id),
+      db.from('internship_log_entries').select('*').eq('internship_id', internship_id).order('entry_date'),
+      db.from('internship_procedures').select('*').eq('internship_id', internship_id).order('performed_at'),
+      db.from('case_presentations').select('*').eq('internship_id', internship_id),
+      db.from('internship_reflections').select('*').eq('internship_id', internship_id),
+      db.from('supervisor_evaluations').select('*').eq('internship_id', internship_id),
+      db.from('internship_hours').select('*').eq('internship_id', internship_id).order('hours_date'),
+    ])
+    if (!intRes.data) return NextResponse.json({ error: 'Estágio não encontrado' }, { status: 404 })
+    const it = intRes.data
+
+    // Constrói markdown
+    let md = `# Portefólio de Estágio — ${it.name}\n\n`
+    md += `**Área**: ${it.area}${it.specialty ? ` · ${it.specialty}` : ''}\n`
+    md += `**Local**: ${it.institution || '—'}${it.ward ? ` · ${it.ward}` : ''}\n`
+    md += `**Supervisor**: ${it.supervisor || '—'}\n`
+    md += `**Período**: ${it.start_date} a ${it.end_date}\n`
+    md += `**Horas**: ${it.hours_done || 0} / ${it.hours_required || 0}\n\n`
+
+    md += `---\n\n## 1. Objectivos\n\n`
+    const grouped: Record<string, any[]> = {}
+    for (const o of (objRes.data || [])) (grouped[o.category || 'Outros'] ||= []).push(o)
+    for (const [cat, items] of Object.entries(grouped)) {
+      md += `### ${cat}\n\n`
+      for (const o of items) md += `- ${o.status === 'completed' || o.status === 'validated' ? '✅' : '⬜'} **${o.title}** (${o.level}) ${o.required ? '· obrigatório' : ''}\n`
+      md += '\n'
+    }
+
+    md += `---\n\n## 2. Doentes seguidos (${patRes.data?.length || 0})\n\n`
+    for (const p of (patRes.data || [])) {
+      md += `### ${p.initials || '—'} · ${p.age || '?'}a · ${p.sex || '?'}\n`
+      md += `**Diagnóstico**: ${p.diagnosis || '—'}\n`
+      if (p.chief_complaint) md += `**Queixa**: ${p.chief_complaint}\n`
+      if (p.learning_points) md += `**Aprendi**: ${p.learning_points}\n`
+      md += '\n'
+    }
+
+    md += `---\n\n## 3. Procedimentos (${procRes.data?.length || 0})\n\n`
+    const procByLevel: Record<string, any[]> = {}
+    for (const p of (procRes.data || [])) (procByLevel[p.level] ||= []).push(p)
+    for (const [lvl, items] of Object.entries(procByLevel)) {
+      md += `### ${lvl} (${items.length})\n\n`
+      for (const p of items) md += `- ${p.procedure_name}${p.performed_at ? ` — ${new Date(p.performed_at).toLocaleDateString('pt-PT')}` : ''}\n`
+      md += '\n'
+    }
+
+    md += `---\n\n## 4. Casos clínicos (${casRes.data?.length || 0})\n\n`
+    for (const c of (casRes.data || [])) {
+      md += `### ${c.title}\n`
+      if (c.final_diagnosis) md += `**Diagnóstico**: ${c.final_diagnosis}\n`
+      if (c.history) md += `**História**: ${c.history}\n\n`
+      if (c.management) md += `**Conduta**: ${c.management}\n\n`
+      if (c.discussion) md += `**Discussão**: ${c.discussion}\n\n`
+    }
+
+    md += `---\n\n## 5. Diário (${logRes.data?.length || 0} entradas)\n\n`
+    for (const l of (logRes.data || [])) {
+      md += `### ${l.entry_date}${l.shift ? ` · ${l.shift}` : ''}\n`
+      if (l.what_was_done) md += `**Actividades**: ${l.what_was_done}\n\n`
+      if (l.learning) md += `**Aprendi**: ${l.learning}\n\n`
+      if (l.difficulties) md += `**Dificuldades**: ${l.difficulties}\n\n`
+    }
+
+    md += `---\n\n## 6. Reflexões (${refRes.data?.length || 0})\n\n`
+    for (const r of (refRes.data || [])) {
+      md += `### ${new Date(r.created_at).toLocaleDateString('pt-PT')} (${r.framework})\n\n`
+      if (r.free_text) md += `${r.free_text}\n\n`
+      else if (r.description) {
+        md += `**Descrição**: ${r.description}\n\n`
+        if (r.feelings) md += `**Sentimentos**: ${r.feelings}\n\n`
+        if (r.evaluation) md += `**Avaliação**: ${r.evaluation}\n\n`
+        if (r.analysis) md += `**Análise**: ${r.analysis}\n\n`
+        if (r.conclusion) md += `**Conclusão**: ${r.conclusion}\n\n`
+        if (r.action_plan) md += `**Plano de acção**: ${r.action_plan}\n\n`
+      }
+    }
+
+    md += `---\n\n## 7. Avaliações (${evalRes.data?.length || 0})\n\n`
+    for (const e of (evalRes.data || [])) {
+      md += `### ${e.evaluator_name || '—'} (${e.kind}) · ${e.evaluation_date || '—'}\n`
+      if (e.overall_score) md += `**Pontuação global**: ${e.overall_score}/5\n`
+      if (e.strengths) md += `**Pontos fortes**: ${e.strengths}\n\n`
+      if (e.improvements) md += `**A melhorar**: ${e.improvements}\n\n`
+    }
+
+    md += `---\n\n## 8. Horas (${hourRes.data?.length || 0} registos)\n\n`
+    const totalHours = (hourRes.data || []).reduce((s: number, h: any) => s + Number(h.hours || 0), 0)
+    md += `**Total**: ${totalHours.toFixed(1)} horas\n\n`
+    for (const h of (hourRes.data || [])) {
+      md += `- ${h.hours_date}: ${h.hours}h${h.activity ? ` · ${h.activity}` : ''}\n`
+    }
+
+    return NextResponse.json({ markdown: md, filename: `portfolio-${it.name.replace(/\s+/g, '-').toLowerCase()}.md` })
+  }
+
   return NextResponse.json({ error: 'action não suportada' }, { status: 400 })
 }

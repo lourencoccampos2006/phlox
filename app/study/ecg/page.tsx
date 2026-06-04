@@ -77,10 +77,7 @@ export default function ECGPage() {
         {selected.image_url ? (
           <img src={selected.image_url} alt="ECG" style={{ width: '100%', borderRadius: 8, marginBottom: 16, border: '1px solid #e5e7eb' }} />
         ) : (
-          <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 12, padding: 24, marginBottom: 16, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-            <p style={{ margin: '0 0 6px' }}>Imagem do ECG indisponível.</p>
-            <p style={{ margin: 0, fontSize: 12 }}>Treina interpretação com base nos dados estruturados em baixo.</p>
-          </div>
+          <ECGRenderer ecg={selected} />
         )}
 
         {!revealed && (
@@ -192,6 +189,157 @@ export default function ECGPage() {
         </div>
       )}
     </main>
+  )
+}
+
+// ─── ECGRenderer ─────────────────────────────────────────────────────────
+// Gera SVG de tira de ECG sintética a partir dos parâmetros (ritmo, FC,
+// PR, QRS, QTc, achados). Não é uma reprodução exacta de um ECG real mas
+// permite visualizar o padrão característico para treino de interpretação.
+function ECGRenderer({ ecg }: { ecg: ECG }) {
+  // Geometria: papel ECG padrão — 25 mm/s, 10 mm/mV
+  // 1 quadrado pequeno = 1 mm = 0.04 s horizontal, 0.1 mV vertical
+  const PX_PER_MM = 4
+  const SECONDS = 10                                // 10 segundos típicos
+  const WIDTH_MM = SECONDS * 25                     // 250 mm
+  const HEIGHT_MM = 40
+  const W = WIDTH_MM * PX_PER_MM
+  const H = HEIGHT_MM * PX_PER_MM
+  const baseline = H / 2
+
+  function mm(v: number) { return v * PX_PER_MM }
+
+  // Gera os QRS com base na frequência e ritmo
+  function generatePath(): string {
+    let path = `M 0 ${baseline}`
+    const rate = ecg.rate_bpm || 75
+    const rr_s = rate > 0 ? 60 / rate : 0
+    const pr_s = (ecg.pr_ms || 160) / 1000
+    const qrs_s = (ecg.qrs_ms || 90) / 1000
+    const qt_s = ((ecg.qtc_ms || 410) / 1000) * Math.sqrt(rr_s || 1)
+
+    if (ecg.rhythm === 'vf') {
+      // FV: ondulação caótica de alta frequência
+      for (let i = 0; i <= W; i += 4) {
+        const y = baseline + (Math.sin(i / 5) * 25 + (Math.random() - 0.5) * 30)
+        path += ` L ${i} ${y}`
+      }
+      return path
+    }
+
+    if (ecg.rhythm === 'vt') {
+      // TV monomórfica: QRS largos consecutivos
+      const period_px = (rr_s || 0.4) * 25 * PX_PER_MM
+      let t = 0
+      while (t < W) {
+        path += ` L ${t + mm(5)} ${baseline}`
+        path += ` L ${t + mm(8)} ${baseline - mm(15)}`
+        path += ` L ${t + mm(12)} ${baseline + mm(8)}`
+        path += ` L ${t + mm(16)} ${baseline}`
+        path += ` L ${t + period_px} ${baseline}`
+        t += period_px
+      }
+      return path
+    }
+
+    // Ritmo normal/sinusal/afib/aflutter — gera batimentos
+    let t = 0
+    let beatNum = 0
+    while (t < SECONDS) {
+      let rr = rr_s
+      // FA: RR irregular
+      if (ecg.rhythm === 'afib') rr = rr_s * (0.7 + Math.random() * 0.6)
+      const startPx = t * 25 * PX_PER_MM
+      if (startPx >= W) break
+
+      // Onda P (excepto na FA/flutter típico)
+      if (ecg.rhythm !== 'afib' && ecg.rhythm !== 'aflutter') {
+        path += ` L ${startPx + mm(2)} ${baseline}`
+        path += ` Q ${startPx + mm(4)} ${baseline - mm(2.5)} ${startPx + mm(6)} ${baseline}`
+      } else if (ecg.rhythm === 'aflutter') {
+        // ondas F em "dente de serra"
+        for (let i = 0; i < pr_s * 25 * PX_PER_MM; i += mm(2)) {
+          path += ` L ${startPx + i} ${baseline - (i % mm(4) === 0 ? mm(2) : 0)}`
+        }
+      }
+
+      // PR segmento (isoeléctrico)
+      path += ` L ${startPx + pr_s * 25 * PX_PER_MM} ${baseline}`
+
+      // Complexo QRS — vários padrões conforme achados
+      const qrsStart = startPx + pr_s * 25 * PX_PER_MM
+      const qrsWidth = qrs_s * 25 * PX_PER_MM
+      const hasWideQRS = (ecg.qrs_ms || 90) >= 120
+      const findings = (ecg.findings || []).join(' ').toLowerCase()
+      const hasSupraST = /supra.{0,5}st|stemi/.test(findings)
+      const hasDepressaoST = /depress.{0,5}st|nstemi/.test(findings)
+      const hasTApiculadas = /t apicul|apicul/.test(findings)
+      const hasQpatologica = /onda q|q patol/.test(findings)
+
+      // Q (se patológica)
+      if (hasQpatologica) {
+        path += ` L ${qrsStart + mm(1)} ${baseline + mm(3)}`
+      }
+      // R
+      path += ` L ${qrsStart + qrsWidth * 0.3} ${baseline - mm(12)}`
+      // S
+      path += ` L ${qrsStart + qrsWidth * 0.6} ${baseline + mm(4)}`
+      if (hasWideQRS) {
+        // Padrão BCRE/BCRD adicional
+        path += ` L ${qrsStart + qrsWidth * 0.8} ${baseline - mm(3)}`
+      }
+      path += ` L ${qrsStart + qrsWidth} ${baseline}`
+
+      // Segmento ST
+      const stStart = qrsStart + qrsWidth
+      let stLevel = baseline
+      if (hasSupraST) stLevel = baseline - mm(3)
+      else if (hasDepressaoST) stLevel = baseline + mm(2)
+      path += ` L ${stStart + mm(2)} ${stLevel}`
+
+      // Onda T
+      const tStart = stStart + mm(2)
+      const tWidth = mm(6)
+      const tHeight = hasTApiculadas ? mm(8) : mm(3)
+      const tDir = /t invert|onda t invert/.test(findings) ? 1 : -1  // invertida = positiva no SVG (y aumenta para baixo)
+      path += ` Q ${tStart + tWidth / 2} ${baseline + tDir * tHeight} ${tStart + tWidth} ${baseline}`
+
+      // Fim do batimento — linha até próximo
+      path += ` L ${startPx + rr * 25 * PX_PER_MM} ${baseline}`
+      t += rr
+      beatNum++
+    }
+    return path
+  }
+
+  const path = generatePath()
+
+  return (
+    <div style={{ background: '#fef3c7', padding: 12, borderRadius: 12, marginBottom: 16, overflow: 'auto' }}>
+      <div style={{ fontSize: 11, color: '#92400e', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Tira sintética — gerada a partir dos parâmetros · 25 mm/s, 10 mm/mV
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 600, height: 'auto', display: 'block', background: '#fff8e1' }}>
+        {/* Papel ECG: grelha grande (5 mm) e pequena (1 mm) */}
+        <defs>
+          <pattern id="ecg-small" width={PX_PER_MM} height={PX_PER_MM} patternUnits="userSpaceOnUse">
+            <rect width={PX_PER_MM} height={PX_PER_MM} fill="none" stroke="#fde68a" strokeWidth={0.3} />
+          </pattern>
+          <pattern id="ecg-large" width={5 * PX_PER_MM} height={5 * PX_PER_MM} patternUnits="userSpaceOnUse">
+            <rect width={5 * PX_PER_MM} height={5 * PX_PER_MM} fill="url(#ecg-small)" stroke="#f59e0b" strokeWidth={0.7} />
+          </pattern>
+        </defs>
+        <rect width={W} height={H} fill="url(#ecg-large)" />
+        {/* Calibração — pulse de 1mV no início */}
+        <path d={`M ${mm(2)} ${baseline} L ${mm(2)} ${baseline - mm(10)} L ${mm(6)} ${baseline - mm(10)} L ${mm(6)} ${baseline}`}
+          stroke="#7c2d12" strokeWidth={1.5} fill="none" />
+        {/* Traçado */}
+        <path d={path} stroke="#000" strokeWidth={1.5} fill="none" />
+      </svg>
+      <div style={{ fontSize: 10, color: '#78350f', marginTop: 4 }}>
+        Nota: tira ilustrativa. Para casos reais consulta as imagens originais na descrição da literatura citada.
+      </div>
+    </div>
   )
 }
 

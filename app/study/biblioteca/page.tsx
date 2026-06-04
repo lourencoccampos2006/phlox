@@ -1,112 +1,168 @@
 'use client'
 
-// /study/biblioteca — Biblioteca médica: guidelines, protocolos, resumos.
+// /study/biblioteca — Q&A clínico com IA fundamentado em guidelines.
+// Inspirado em UpToDate / DynaMed: faz uma pergunta clínica, recebe resposta
+// estruturada com fontes citadas da biblioteca local.
 
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 
 const ACCENT = '#0d6e42'
 
-interface LibEntry {
-  id: string; title: string; source: string|null; year: number|null
-  domain: string|null; summary: string|null; body: string|null
-  tags: string[]|null; url: string|null
-}
+interface Source { id: string; title: string; source: string|null; year: number|null; domain: string|null }
+
+const QUICK_PROMPTS = [
+  { icon: '💊', label: 'Como tratar', q: 'Como tratar fibrilhação auricular de novo num doente de 72 anos?' },
+  { icon: '🩺', label: 'Diagnóstico de', q: 'Como diagnosticar embolia pulmonar — qual a abordagem actual?' },
+  { icon: '⚖️', label: 'Doses', q: 'Qual a dose inicial de IECA na insuficiência cardíaca e como titular?' },
+  { icon: '🚨', label: 'Quando referenciar', q: 'Quando referenciar dor lombar para imagem ou especialidade?' },
+  { icon: '🔄', label: 'Comparar', q: 'NOAC vs varfarina na fibrilhação auricular — quando escolher cada?' },
+  { icon: '📋', label: 'Protocolo', q: 'Qual o protocolo de bundle de 1 hora na sépsis?' },
+]
+
+const DOMAINS = [
+  'cardiologia','pneumologia','endocrinologia','neurologia','gastroenterologia',
+  'infecciologia','nefrologia','hematologia','reumatologia','oncologia',
+  'urgencia','obstetricia','pediatria','psiquiatria','urologia',
+]
 
 export default function BibliotecaPage() {
   const { supabase } = useAuth() as any
-  const [entries, setEntries] = useState<LibEntry[]>([])
-  const [search, setSearch] = useState('')
+  const [question, setQuestion] = useState('')
   const [domain, setDomain] = useState('')
-  const [selected, setSelected] = useState<LibEntry | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [sources, setSources] = useState<Source[]>([])
+  const [err, setErr] = useState<string | null>(null)
+  const [history, setHistory] = useState<{ q: string; a: string }[]>([])
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from('medical_library').select('*').order('year', { ascending: false })
-      setEntries(data || [])
-    })()
-  }, [supabase])
-
-  const domains = Array.from(new Set(entries.map(e => e.domain).filter(Boolean))) as string[]
-
-  const filtered = entries.filter(e => {
-    if (domain && e.domain !== domain) return false
-    if (search) {
-      const s = search.toLowerCase()
-      return e.title.toLowerCase().includes(s)
-          || (e.summary || '').toLowerCase().includes(s)
-          || (e.tags || []).some(t => t.toLowerCase().includes(s))
-    }
-    return true
-  })
-
-  if (selected) {
-    return (
-      <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 900, margin: '0 auto' }}>
-        <button onClick={() => setSelected(null)} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
-        <h1 style={{ margin: 0, fontSize: 24 }}>{selected.title}</h1>
-        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {selected.source && <span><b>Fonte:</b> {selected.source}</span>}
-          {selected.year && <span><b>Ano:</b> {selected.year}</span>}
-          {selected.domain && <span><b>Domínio:</b> {selected.domain}</span>}
-        </div>
-        {selected.summary && (
-          <div style={{ marginTop: 14, padding: 12, background: '#f0fdf5', borderRadius: 8, fontSize: 14, fontStyle: 'italic', color: '#065f46' }}>
-            {selected.summary}
-          </div>
-        )}
-        <article style={{ marginTop: 16, lineHeight: 1.7, fontSize: 14, color: '#374151' }}>
-          {selected.body}
-        </article>
-        {selected.tags && selected.tags.length > 0 && (
-          <div style={{ marginTop: 16, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {selected.tags.map(t => <span key={t} style={{ padding: '3px 10px', background: '#f3f4f6', borderRadius: 999, fontSize: 11, color: '#374151' }}>#{t}</span>)}
-          </div>
-        )}
-      </main>
-    )
-  }
+  const ask = useCallback(async (q?: string) => {
+    const target = (q || question).trim()
+    if (!target || busy) return
+    if (q) setQuestion(q)
+    setBusy(true); setErr(null); setAnswer(null); setSources([])
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/study/biblioteca-ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ question: target + (domain ? ` (foco: ${domain})` : '') }),
+      })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.error || 'Erro')
+      setAnswer(j.answer || '')
+      setSources(j.sources || [])
+      setHistory(h => [{ q: target, a: j.answer || '' }, ...h].slice(0, 10))
+    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+  }, [question, domain, busy, supabase])
 
   return (
-    <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
+    <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1000, margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: 26 }}>Biblioteca médica</h1>
       <p style={{ color: '#6b7280', margin: '4px 0 16px', fontSize: 14 }}>
-        Resumos rápidos de guidelines (ESC, ADA, GINA, NICE, DGS). Clica para abrir o texto completo.
+        Pergunta clínica em PT-PT. A IA responde com base em guidelines (ESC, ADA, GINA, NICE, DGS, SCC) e cita as fontes.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Procurar título, conteúdo ou tag…" style={{ ...input, flex: '1 1 200px' }} />
-        <select value={domain} onChange={e => setDomain(e.target.value)} style={input}>
-          <option value="">Todos os domínios</option>
-          {domains.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-      </div>
+      <form onSubmit={e => { e.preventDefault(); ask() }}>
+        <textarea
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          placeholder="Ex: Como tratar DPOC exacerbação? · Doses de NOAC em IRC? · Algoritmo de AVC isquémico em janela?"
+          rows={2}
+          style={{ width: '100%', padding: 12, border: '1px solid #d1d5db', borderRadius: 10, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical' }}
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select value={domain} onChange={e => setDomain(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, background: 'white' }}>
+            <option value="">Qualquer domínio</option>
+            {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <button type="submit" disabled={busy || !question.trim()} style={{
+            padding: '10px 22px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8,
+            fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: (busy || !question.trim()) ? 0.5 : 1,
+          }}>{busy ? 'A pesquisar…' : 'Perguntar'}</button>
+        </div>
+      </form>
 
-      {filtered.length === 0 ? (
-        <p style={{ color: '#6b7280' }}>Nenhuma entrada. Aplica sprint70 SQL.</p>
-      ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {filtered.map(e => (
-            <button key={e.id} onClick={() => setSelected(e)} style={{
-              textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, cursor: 'pointer',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{e.title}</span>
-                <span style={{ fontSize: 11, color: '#6b7280' }}>
-                  {e.source} {e.year && `· ${e.year}`}
-                </span>
+      {/* Prompts rápidos */}
+      {!answer && !busy && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Inspiração</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+            {QUICK_PROMPTS.map(p => (
+              <button key={p.label} onClick={() => ask(p.q)} style={{
+                textAlign: 'left', padding: 10, background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
+              }}>
+                <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{p.icon} {p.label}</div>
+                <div style={{ fontSize: 13, color: '#111827', lineHeight: 1.4 }}>{p.q}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {err && <div style={{ background: '#fee2e2', color: '#991b1b', padding: 12, borderRadius: 8, marginTop: 16, fontSize: 13 }}>{err}</div>}
+
+      {(answer || busy) && (
+        <article style={{ marginTop: 22, background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 22 }}>
+          {busy ? (
+            <p style={{ color: '#6b7280', margin: 0 }}>A consultar a biblioteca e a redigir a resposta…</p>
+          ) : (
+            <>
+              <div style={{ lineHeight: 1.7, fontSize: 14, color: '#111827', whiteSpace: 'pre-wrap' }}>
+                <MarkdownLike text={answer || ''} />
               </div>
-              {e.summary && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>{e.summary}</p>}
-            </button>
-          ))}
+
+              {sources.length > 0 && (
+                <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
+                  <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                    📚 Fontes consultadas ({sources.length})
+                  </div>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    {sources.map(s => (
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#f9fafb', borderRadius: 6, fontSize: 12 }}>
+                        <span style={{ padding: '2px 8px', borderRadius: 4, background: '#0d6e42', color: 'white', fontWeight: 700, fontSize: 10 }}>
+                          {s.source || '—'} {s.year || ''}
+                        </span>
+                        <span style={{ color: '#111827', flex: 1 }}>{s.title}</span>
+                        {s.domain && <span style={{ color: '#6b7280', fontSize: 11 }}>{s.domain}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </article>
+      )}
+
+      {/* Histórico */}
+      {history.length > 1 && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            Histórico ({history.length - 1})
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {history.slice(1).map((h, i) => (
+              <button key={i} onClick={() => ask(h.q)} style={{
+                textAlign: 'left', padding: 10, background: 'white', border: '1px solid #f3f4f6', borderRadius: 8, cursor: 'pointer',
+                fontSize: 13, color: '#374151',
+              }}>
+                ↻ {h.q}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </main>
   )
 }
 
-const input: React.CSSProperties = { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
-function btn(kind: 'primary' | 'ghost'): React.CSSProperties {
-  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 8, cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 14 }
-  return { padding: '8px 14px', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', background: 'white', color: '#374151', fontWeight: 600, fontSize: 14 }
+function MarkdownLike({ text }: { text: string }) {
+  const html = text
+    .replace(/^### (.+)$/gm, '<h4 style="font-size:14px; font-weight:700; margin:14px 0 6px; color:#111827">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 style="font-size:16px; font-weight:700; margin:18px 0 8px; color:#111827">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>(\n|$))+/g, m => `<ul style="margin:6px 0; padding-left:20px">${m}</ul>`)
+  return <div dangerouslySetInnerHTML={{ __html: html }} />
 }

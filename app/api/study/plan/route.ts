@@ -72,6 +72,27 @@ Responde APENAS JSON: { "schedule": [{ "week": 1, "day": "Seg", "topic": "...", 
   }
 
   const db = sb(req)
+
+  // Via RPC SECURITY DEFINER (sprint73) — bypassa schema cache do PostgREST.
+  const { data: rpcData, error: rpcErr } = await db.rpc('create_study_plan', {
+    p_name: body.name,
+    p_goal: body.goal || null,
+    p_weeks: body.weeks,
+    p_hours_per_week: body.hours_per_week,
+    p_domains: body.domains,
+    p_schedule: schedule?.schedule || [],
+  })
+  if (!rpcErr && rpcData) return NextResponse.json({ plan: rpcData })
+
+  // Fallback (RPC não instalada): insert directo + auto-retry.
+  const noRpc = rpcErr && /function .*create_study_plan.* does not exist/i.test(rpcErr.message)
+  if (rpcErr && !noRpc) {
+    return NextResponse.json({
+      error: rpcErr.message,
+      hint: 'Aplica supabase/sprint73_study_plan_rpc.sql no SQL Editor para resolver problemas de schema cache.',
+    }, { status: 500 })
+  }
+
   const basePayload: Record<string, any> = {
     user_id: userId,
     name: body.name,

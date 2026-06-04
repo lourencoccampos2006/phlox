@@ -1,7 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
 import { resolveDrugName } from '@/lib/drugNames'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+
+// Lookup local primeiro — tabela infarmed_drugs (sprint74) com 50+ medicamentos
+// mais comuns em Portugal. Se há match, evita IA totalmente.
+async function lookupLocalDrug(query: string) {
+  try {
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data } = await sb.rpc('find_drug', { p_query: query })
+    return data
+  } catch {
+    return null
+  }
+}
+
+function formatLocalDrug(row: any): any {
+  return {
+    identified: row.brand_name || row.active_ingredient,
+    active: row.active_ingredient,
+    what_it_is: row.what_it_is,
+    what_it_treats: row.what_it_treats || [],
+    symptoms: row.symptoms || [],
+    how_to_take: row.how_to_take || '',
+    prescription: row.prescription,
+    prescription_note: row.prescription_note || '',
+    common_side_effects: row.common_side_effects || [],
+    cautions: row.cautions || [],
+    avoid_if: row.avoid_if || [],
+    good_to_know: row.good_to_know || '',
+    confidence: 'alta',
+    source: row.source === 'ai_cache' ? 'cache_IA' : 'base_local_PT',
+  }
+}
+
+// Auto-cache: guarda em infarmed_drugs as respostas que a IA gerou com
+// confiança alta/media, para que da próxima vez vá directamente à base local
+// (mais rápido, mais fiável, sem alucinação).
+async function cacheAiResult(result: any) {
+  try {
+    if (!result?.active || !result?.what_it_is) return
+    if (result.confidence === 'baixa') return // só cache resultados confiáveis
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await sb.rpc('cache_drug_from_ai', {
+      p_brand: result.identified || null,
+      p_active: result.active,
+      p_class: result.what_it_is?.slice(0, 80) || null,
+      p_what: result.what_it_is || '',
+      p_treats: result.what_it_treats || [],
+      p_symptoms: result.symptoms || [],
+      p_how: result.how_to_take || '',
+      p_prescription: result.prescription || 'com receita médica',
+      p_prescription_note: result.prescription_note || null,
+      p_side_effects: result.common_side_effects || [],
+      p_cautions: result.cautions || [],
+      p_avoid: result.avoid_if || [],
+      p_good: result.good_to_know || null,
+      p_forms: null,
+      p_strengths: null,
+    })
+  } catch {
+    // cache best-effort — falha silenciosa
+  }
+}
 
 // "O que é este medicamento?" — explicação simples e CONSISTENTE.
 //
@@ -63,6 +131,23 @@ export async function POST(req: NextRequest) {
   try {
     let result: any
 
+    // ── 0) LOOKUP LOCAL PRIORITÁRIO ──
+    // Tenta encontrar na base local antes de chamar IA. Match por:
+    //   1) CNPEM/registo exacto, 2) marca exacta, 3) DCI exacta, 4) parcial.
+    if (!image) {
+      const tryQueries = [infomedCode, name].filter(Boolean)
+      for (const q of tryQueries) {
+        const local = await lookupLocalDrug(q)
+        if (local) {
+          return NextResponse.json({
+            ...formatLocalDrug(local),
+            queried: name || infomedCode,
+            disclaimer: 'Informação verificada com base local de medicamentos comuns em Portugal. Confirma com o teu farmacêutico para casos específicos.',
+          })
+        }
+      }
+    }
+
     if (image && !name) {
       // ── FOTO: visão lê a caixa inteira ──
       const infomedHint = infomedCode
@@ -101,6 +186,10 @@ ${SCHEMA}`
     if (result.confidence === 'baixa' && !result.fallback_advice) {
       result.fallback_advice = 'Não tenho a certeza absoluta sobre este medicamento. Em vez disso, tira foto à BULA (texto técnico) em /bula — esse motor é mais preciso. Em alternativa, pede ajuda ao teu farmacêutico.'
     }
+
+    // Auto-cache (best-effort, não bloqueia resposta) — guarda IA confiável em
+    // infarmed_drugs para futuras procuras serem instantâneas e sem alucinação.
+    cacheAiResult(result).catch(() => {})
 
     return NextResponse.json({
       ...result,

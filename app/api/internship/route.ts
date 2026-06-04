@@ -53,10 +53,7 @@ export async function POST(req: NextRequest) {
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Cria objectivos default da área
-  if (data) {
-    db.rpc('seed_default_objectives', { p_internship_id: data.id, p_area: body.area, p_user: userId }).then(() => {}, () => {})
-  }
-
+  // Não cria objectivos default — o estudante escolhe entre entrevista IA
+  // personalizada (sugerido) ou adicioná-los manualmente.
   return NextResponse.json({ internship: data })
 }

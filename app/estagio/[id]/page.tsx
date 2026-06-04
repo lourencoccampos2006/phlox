@@ -17,7 +17,7 @@ import Link from 'next/link'
 
 const ACCENT = '#0d6e42'
 
-type Tab = 'dashboard'|'doentes'|'diario'|'objectivos'|'procedimentos'|'casos'|'relatorios'|'reflexoes'|'avaliacoes'|'horas'
+type Tab = 'dashboard'|'doentes'|'diario'|'objectivos'|'procedimentos'|'casos'|'relatorios'|'reflexoes'|'avaliacoes'|'horas'|'ferramentas'
 
 interface Patient {
   id: string; initials: string|null; age: number|null; sex: string|null
@@ -132,6 +132,7 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
           ['reflexoes', `💭 Reflexões (${reflections.length})`],
           ['avaliacoes', `⭐ Avaliações (${evaluations.length})`],
           ['horas', `⏱ Horas`],
+          ['ferramentas', `🛠 Ferramentas IA`],
         ] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
@@ -153,7 +154,15 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
         <LogTab log={log} onAdd={(row: any) => addRow('internship_log_entries', row)} onUpdate={(rid: string, row: any) => updateRow('internship_log_entries', rid, row)} onDel={(rid: string) => delRow('internship_log_entries', rid)} busy={busy} internshipId={id} />
       )}
       {tab === 'objectivos' && (
-        <ObjectivesTab objectives={objectives} onUpdate={(rid: string, row: any) => updateRow('internship_objectives', rid, row)} onAdd={(row: any) => addRow('internship_objectives', row)} onDel={(rid: string) => delRow('internship_objectives', rid)} />
+        <ObjectivesTab
+          objectives={objectives}
+          onUpdate={(rid: string, row: any) => updateRow('internship_objectives', rid, row)}
+          onAdd={(row: any) => addRow('internship_objectives', row)}
+          onDel={(rid: string) => delRow('internship_objectives', rid)}
+          internshipId={id}
+          onAi={aiAction}
+          onReload={load}
+        />
       )}
       {tab === 'procedimentos' && (
         <ProceduresTab procedures={procedures} patients={patients} onAdd={(row: any) => addRow('internship_procedures', row)} onDel={(rid: string) => delRow('internship_procedures', rid)} />
@@ -173,8 +182,376 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
       {tab === 'horas' && (
         <HoursTab hours={hours} required={it.hours_required} done={it.hours_done} pct={hoursPct} onAdd={(row: any) => addRow('internship_hours', row)} onDel={(rid: string) => delRow('internship_hours', rid)} />
       )}
+      {tab === 'ferramentas' && (
+        <ToolsTab internshipId={id} patients={patients} onAi={aiAction} onReload={load} />
+      )}
     </main>
   )
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// TOOLS TAB — funcionalidades revolucionárias para o estágio
+// ════════════════════════════════════════════════════════════════════════
+
+function ToolsTab({ internshipId, patients, onAi, onReload }: any) {
+  const [tool, setTool] = useState<null | 'voice' | 'sbar' | 'shift' | 'ddx' | 'portfolio'>(null)
+
+  const TOOLS = [
+    { id: 'voice', icon: '🎙️', title: 'Voz → SOAP', desc: 'Dita o que observaste e a IA estrutura como SOAP automaticamente.', color: '#7c3aed' },
+    { id: 'sbar', icon: '📋', title: 'Passagem de turno SBAR', desc: 'Gera passagem estruturada de todos os doentes seguidos com priorização.', color: '#dc2626' },
+    { id: 'shift', icon: '💬', title: 'Companion de turno', desc: 'Tutor IA especializado na tua rotação para dúvidas em tempo real.', color: '#0d6e42' },
+    { id: 'ddx', icon: '🧠', title: 'Diagnóstico diferencial', desc: 'Insere sintomas — recebe DDx ordenado por probabilidade com red flags.', color: '#1d4ed8' },
+    { id: 'portfolio', icon: '📦', title: 'Exportar portefólio', desc: 'Bundle completo em markdown para submissão académica.', color: '#b45309' },
+  ] as const
+
+  if (tool === 'voice') return <VoiceToSOAP internshipId={internshipId} patients={patients} onAi={onAi} onClose={() => { setTool(null); onReload() }} />
+  if (tool === 'sbar') return <SBARGenerator internshipId={internshipId} patients={patients} onAi={onAi} onClose={() => setTool(null)} />
+  if (tool === 'shift') return <ShiftCompanion internshipId={internshipId} onAi={onAi} onClose={() => setTool(null)} />
+  if (tool === 'ddx') return <DDxAssistant onAi={onAi} onClose={() => setTool(null)} />
+  if (tool === 'portfolio') return <PortfolioExport internshipId={internshipId} onAi={onAi} onClose={() => setTool(null)} />
+
+  return (
+    <div>
+      <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 14px' }}>
+        Ferramentas que poupam tempo durante o estágio. Tudo IA-powered e adaptado à tua rotação.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+        {TOOLS.map(t => (
+          <button key={t.id} onClick={() => setTool(t.id)} style={{
+            textAlign: 'left', padding: 16, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, cursor: 'pointer',
+            transition: 'border-color 0.12s, transform 0.12s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = t.color; e.currentTarget.style.transform = 'translateY(-1px)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.transform = 'none' }}
+          >
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{t.icon}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 4 }}>{t.title}</div>
+            <div style={{ fontSize: 12.5, color: '#6b7280', lineHeight: 1.45 }}>{t.desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function VoiceToSOAP({ internshipId: _internshipId, patients, onAi, onClose }: any) {
+  const [transcript, setTranscript] = useState('')
+  const [patientId, setPatientId] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [recording, setRecording] = useState(false)
+  const [recognition, setRecognition] = useState<any>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (SR) {
+      const r = new SR()
+      r.lang = 'pt-PT'; r.continuous = true; r.interimResults = true
+      r.onresult = (e: any) => {
+        let final = ''
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) final += e.results[i][0].transcript + ' '
+        }
+        if (final) setTranscript(t => t + final)
+      }
+      r.onend = () => setRecording(false)
+      setRecognition(r)
+    }
+  }, [])
+
+  function toggleRecord() {
+    if (!recognition) { alert('O teu browser não suporta reconhecimento de voz. Usa Chrome/Edge no telemóvel ou desktop.'); return }
+    if (recording) { recognition.stop(); setRecording(false) } else { recognition.start(); setRecording(true) }
+  }
+
+  async function structure() {
+    if (!transcript.trim()) return
+    setBusy(true)
+    const r = await onAi('voice_to_soap', { transcript, patient_id: patientId || null })
+    setResult(r); setBusy(false)
+  }
+
+  return (
+    <div>
+      <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
+      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>🎙️ Voz → SOAP</h2>
+      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+        Pressiona Gravar e descreve o doente naturalmente. A IA transcreve e estrutura como SOAP. Se associares a um doente, fica guardado como evolução.
+      </p>
+
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button onClick={toggleRecord} style={{
+            padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700,
+            background: recording ? '#dc2626' : '#7c3aed', color: 'white',
+          }}>
+            {recording ? '⏹ Parar' : '🎙️ Gravar'}
+          </button>
+          <select value={patientId} onChange={e => setPatientId(e.target.value)} style={input}>
+            <option value="">Sem doente associado</option>
+            {patients.map((p: Patient) => <option key={p.id} value={p.id}>{p.initials} — {p.diagnosis || ''}</option>)}
+          </select>
+        </div>
+        <textarea
+          value={transcript} onChange={e => setTranscript(e.target.value)}
+          placeholder="A transcrição aparece aqui à medida que falas. Podes também escrever directamente."
+          rows={6}
+          style={{ width: '100%', padding: 12, border: '1px solid #d1d5db', borderRadius: 8, fontFamily: 'inherit', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }}
+        />
+        <button onClick={structure} disabled={busy || !transcript.trim()} style={{ ...btn('primary'), marginTop: 8 }}>
+          {busy ? 'A estruturar…' : 'Estruturar como SOAP'}
+        </button>
+      </div>
+
+      {result && (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 16 }}>Resultado SOAP {patientId && <span style={{ fontSize: 11, color: '#065f46', fontWeight: 700 }}>✓ guardado como evolução</span>}</h3>
+          {[['S', '#1d4ed8', result.subjective], ['O', '#7c3aed', result.objective], ['A', '#b45309', result.assessment], ['P', '#0d6e42', result.plan]].map(([k, color, text]) => (
+            <div key={k as string} style={{ marginBottom: 10, padding: 10, background: '#f9fafb', borderRadius: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: color as string, marginBottom: 4 }}>{k} — {(k === 'S' ? 'Subjectivo' : k === 'O' ? 'Objectivo' : k === 'A' ? 'Avaliação' : 'Plano')}</div>
+              <div style={{ fontSize: 13, color: '#111827', whiteSpace: 'pre-wrap' }}>{text as string || '—'}</div>
+            </div>
+          ))}
+          {result.vitals && Object.keys(result.vitals).length > 0 && (
+            <div style={{ padding: 10, background: '#eff6ff', borderRadius: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: '#1e40af', marginBottom: 4 }}>SINAIS VITAIS</div>
+              <div style={{ fontSize: 13, color: '#111827' }}>
+                {Object.entries(result.vitals).map(([k, v]: any) => <span key={k} style={{ marginRight: 12 }}><b>{k.toUpperCase()}</b>: {v}</span>)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SBARGenerator({ internshipId, patients: _patients, onAi, onClose }: any) {
+  const [busy, setBusy] = useState(false)
+  const [handover, setHandover] = useState<string | null>(null)
+
+  async function generate() {
+    setBusy(true)
+    const r = await onAi('handover', { internship_id: internshipId })
+    setHandover(r.handover || ''); setBusy(false)
+  }
+
+  function copyAll() {
+    if (handover) navigator.clipboard.writeText(handover).then(() => alert('Copiado!'))
+  }
+
+  return (
+    <div>
+      <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
+      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>📋 Passagem de turno SBAR</h2>
+      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+        Gera passagem estruturada de todos os doentes activos com priorização clara (🔴/🟡/🟢) e tarefas pendentes.
+      </p>
+      {!handover && (
+        <button onClick={generate} disabled={busy} style={btn('primary')}>{busy ? 'A gerar…' : '🔮 Gerar SBAR'}</button>
+      )}
+      {handover && (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
+            <button onClick={copyAll} style={btn('ghost')}>📋 Copiar tudo</button>
+            <button onClick={generate} disabled={busy} style={btn('ghost')}>↻ Regerar</button>
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: '#111827' }}>
+            <MarkdownLike text={handover} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ShiftCompanion({ internshipId, onAi, onClose }: any) {
+  const [messages, setMessages] = useState<{ role: 'user'|'ai'; text: string }[]>([])
+  const [draft, setDraft] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [context, setContext] = useState('')
+
+  async function ask(q: string) {
+    if (!q.trim() || busy) return
+    setMessages(m => [...m, { role: 'user', text: q }])
+    setDraft(''); setBusy(true)
+    const r = await onAi('shift_question', { internship_id: internshipId, question: q, context })
+    setMessages(m => [...m, { role: 'ai', text: r.answer || r.error || '' }])
+    setBusy(false)
+  }
+
+  return (
+    <div>
+      <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
+      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>💬 Companion de turno</h2>
+      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+        Tutor IA especializado na tua área. Faz qualquer pergunta prática.
+      </p>
+
+      <details style={{ marginBottom: 12 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: '#6b7280' }}>+ Contexto do doente (opcional)</summary>
+        <textarea value={context} onChange={e => setContext(e.target.value)} rows={2} placeholder="Ex: idoso 78a, IC, DRC, em IECA e furosemida..." style={{ ...input, marginTop: 6, resize: 'vertical' }} />
+      </details>
+
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, minHeight: 300, marginBottom: 10 }}>
+        {messages.length === 0 ? (
+          <p style={{ color: '#9ca3af', fontSize: 13, margin: 0 }}>Faz a primeira pergunta. Ex: "Quando suspender IECA pré-cirurgia?"</p>
+        ) : (
+          messages.map((m, i) => (
+            <div key={i} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: m.role === 'user' ? '#0d6e42' : '#7c3aed', marginBottom: 4 }}>
+                {m.role === 'user' ? 'TU' : '🤖 IA'}
+              </div>
+              <div style={{ fontSize: 14, color: '#111827', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                <MarkdownLike text={m.text} />
+              </div>
+            </div>
+          ))
+        )}
+        {busy && <p style={{ color: '#6b7280', fontSize: 13 }}>A IA está a pensar…</p>}
+      </div>
+
+      <form onSubmit={e => { e.preventDefault(); ask(draft) }} style={{ display: 'flex', gap: 8 }}>
+        <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="Pergunta…" style={{ ...input, flex: 1, fontSize: 14 }} />
+        <button type="submit" disabled={busy || !draft.trim()} style={btn('primary')}>Perguntar</button>
+      </form>
+    </div>
+  )
+}
+
+function DDxAssistant({ onAi, onClose }: any) {
+  const [symptoms, setSymptoms] = useState('')
+  const [demo, setDemo] = useState('')
+  const [ctx, setCtx] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [res, setRes] = useState<any>(null)
+
+  async function compute() {
+    if (!symptoms.trim()) return
+    setBusy(true)
+    const r = await onAi('ddx_from_symptoms', { symptoms, demographics: demo, context: ctx })
+    setRes(r); setBusy(false)
+  }
+
+  return (
+    <div>
+      <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
+      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>🧠 Diagnóstico diferencial</h2>
+      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+        Insere sintomas. IA constrói DDx ordenado por probabilidade com sinais distintivos, próximas investigações e red flags.
+      </p>
+
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+        <Field label="Sintomas / sinais"><textarea required value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="Ex: dor torácica há 2h, dispneia, sudorese, irradia para braço esquerdo" style={{ ...input, resize: 'vertical' }} /></Field>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+          <Field label="Demografia"><input value={demo} onChange={e => setDemo(e.target.value)} style={input} placeholder="68a, M, ex-fumador" /></Field>
+          <Field label="Contexto"><input value={ctx} onChange={e => setCtx(e.target.value)} style={input} placeholder="HTA, DM2, dislipidemia" /></Field>
+        </div>
+        <button onClick={compute} disabled={busy || !symptoms.trim()} style={{ ...btn('primary'), marginTop: 10 }}>
+          {busy ? 'A construir DDx…' : 'Gerar diagnóstico diferencial'}
+        </button>
+      </div>
+
+      {res?.ddx && (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 16 }}>Diagnóstico diferencial</h3>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {res.ddx.map((d: any, i: number) => (
+              <div key={i} style={{ padding: 10, background: '#f9fafb', borderRadius: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{i + 1}. {d.dx}</span>
+                  <span style={{ padding: '2px 10px', borderRadius: 999, background: d.probability === 'alta' ? '#fee2e2' : d.probability === 'média' ? '#fef3c7' : '#dcfce7', color: d.probability === 'alta' ? '#991b1b' : d.probability === 'média' ? '#92400e' : '#065f46', fontSize: 11, fontWeight: 700 }}>
+                    {d.probability}
+                  </span>
+                </div>
+                {d.key_features?.length > 0 && (
+                  <div style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}>
+                    <b>Pistas:</b> {d.key_features.join(' · ')}
+                  </div>
+                )}
+                {d.rule_out && (
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    <b>Como excluir:</b> {d.rule_out}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {res.investigations?.length > 0 && (
+            <div style={{ marginTop: 14, padding: 12, background: '#eff6ff', borderRadius: 8 }}>
+              <div style={{ fontSize: 11, color: '#1e40af', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>📋 Investigações prioritárias</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#1e40af' }}>
+                {res.investigations.map((x: string, i: number) => <li key={i}>{x}</li>)}
+              </ul>
+            </div>
+          )}
+          {res.red_flags?.length > 0 && (
+            <div style={{ marginTop: 10, padding: 12, background: '#fee2e2', borderRadius: 8 }}>
+              <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>🚨 Red flags</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#991b1b' }}>
+                {res.red_flags.map((x: string, i: number) => <li key={i}>{x}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PortfolioExport({ internshipId, onAi, onClose }: any) {
+  const [busy, setBusy] = useState(false)
+  const [md, setMd] = useState('')
+  const [filename, setFilename] = useState('')
+
+  async function generate() {
+    setBusy(true)
+    const r = await onAi('portfolio_export', { internship_id: internshipId })
+    setMd(r.markdown || ''); setFilename(r.filename || 'portfolio.md'); setBusy(false)
+  }
+
+  function download() {
+    const blob = new Blob([md], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div>
+      <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
+      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>📦 Exportar portefólio</h2>
+      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+        Gera ficheiro markdown completo com objectivos, doentes, procedimentos, casos, diário, reflexões, avaliações e horas — pronto para submissão.
+      </p>
+      {!md && (
+        <button onClick={generate} disabled={busy} style={btn('primary')}>{busy ? 'A montar portefólio…' : '📦 Gerar portefólio completo'}</button>
+      )}
+      {md && (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <button onClick={download} style={btn('primary')}>⬇ Descarregar {filename}</button>
+            <button onClick={() => navigator.clipboard.writeText(md).then(() => alert('Copiado!'))} style={btn('ghost')}>📋 Copiar</button>
+            <button onClick={generate} disabled={busy} style={btn('ghost')}>↻ Regerar</button>
+          </div>
+          <pre style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: 14, fontSize: 12, whiteSpace: 'pre-wrap', maxHeight: 600, overflowY: 'auto', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5 }}>{md}</pre>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MarkdownLike({ text }: { text: string }) {
+  const html = text
+    .replace(/^### (.+)$/gm, '<h4 style="font-size:14px; font-weight:700; margin:14px 0 6px">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 style="font-size:16px; font-weight:700; margin:18px 0 8px">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 style="font-size:18px; font-weight:700; margin:18px 0 8px">$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>(\n|$))+/g, m => `<ul style="margin:6px 0; padding-left:20px">${m}</ul>`)
+  return <div dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -363,15 +740,50 @@ function LogFormModal({ onClose, onSave }: { onClose: () => void; onSave: (r: an
   )
 }
 
-function ObjectivesTab({ objectives, onUpdate, onAdd, onDel }: any) {
+function ObjectivesTab({ objectives, onUpdate, onAdd, onDel, internshipId, onAi, onReload }: any) {
   const byCategory: Record<string, Objective[]> = {}
   for (const o of objectives) {
     const c = o.category || 'Outros'
     ;(byCategory[c] ||= []).push(o)
   }
+  const [showInterview, setShowInterview] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      {Object.keys(byCategory).length === 0 && <Empty msg="Sem objectivos. Aplica sprint71 SQL para ter as templates por área." />}
+      {Object.keys(byCategory).length === 0 && (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24 }}>
+          <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Define os teus objectivos</h2>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 16px' }}>
+            Não há objectivos predefinidos. Personaliza o que queres aprender neste estágio em particular.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+            <button onClick={() => setShowInterview(true)} style={{
+              padding: 14, background: 'linear-gradient(135deg, #0d6e42 0%, #047857 100%)',
+              color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>🤖</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Entrevista IA (recomendado)</div>
+              <div style={{ fontSize: 12, opacity: 0.9 }}>A IA pergunta sobre o teu nível, interesses e contexto. Cria objectivos SMART personalizados.</div>
+            </button>
+            <button onClick={() => setShowAdd(true)} style={{
+              padding: 14, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>✏️</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Criar manualmente</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>Adicionas tu próprio cada objectivo.</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {Object.keys(byCategory).length > 0 && (
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowInterview(true)} style={btn('ghost')}>🤖 Refazer com IA</button>
+          <button onClick={() => setShowAdd(true)} style={btn('primary')}>+ Novo objectivo</button>
+        </div>
+      )}
+
       {Object.entries(byCategory).map(([cat, items]) => (
         <section key={cat} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
           <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#374151' }}>{cat}</h3>
@@ -387,12 +799,126 @@ function ObjectivesTab({ objectives, onUpdate, onAdd, onDel }: any) {
                 <span style={{ flex: 1, fontSize: 13, color: '#111827', textDecoration: o.status === 'completed' || o.status === 'validated' ? 'line-through' : 'none' }}>{o.title}</span>
                 <span style={{ padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', fontSize: 10, fontWeight: 700, color: '#374151' }}>{o.level}</span>
                 {o.required && <span style={{ fontSize: 10, color: '#dc2626' }}>obrigatório</span>}
+                <button onClick={() => { if (confirm('Apagar este objectivo?')) onDel(o.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 12 }}>×</button>
               </div>
             ))}
           </div>
         </section>
       ))}
+
+      {showInterview && (
+        <InterviewModal internshipId={internshipId} onAi={onAi} onClose={() => setShowInterview(false)} onDone={() => { setShowInterview(false); onReload() }} />
+      )}
+      {showAdd && (
+        <AddObjectiveModal onClose={() => setShowAdd(false)} onSave={(row: any) => { onAdd(row); setShowAdd(false) }} />
+      )}
     </div>
+  )
+}
+
+function InterviewModal({ internshipId, onAi, onClose, onDone }: any) {
+  const [step, setStep] = useState<'loading'|'answer'|'generating'|'done'>('loading')
+  const [questions, setQuestions] = useState<any[]>([])
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await onAi('interview_questions', { internship_id: internshipId })
+        if (r.error) { setErr(r.error); return }
+        setQuestions(r.questions || [])
+        setStep('answer')
+      } catch (e: any) { setErr(e.message) }
+    })()
+  }, [])
+
+  async function submit() {
+    setStep('generating')
+    try {
+      const r = await onAi('generate_objectives', { internship_id: internshipId, answers })
+      if (r.error) { setErr(r.error); setStep('answer'); return }
+      setStep('done')
+      setTimeout(onDone, 800)
+    } catch (e: any) { setErr(e.message); setStep('answer') }
+  }
+
+  return (
+    <Modal title="Entrevista personalizada" onClose={onClose} wide>
+      {step === 'loading' && <p style={{ color: '#6b7280' }}>A preparar perguntas para o teu estágio…</p>}
+      {step === 'generating' && <p style={{ color: '#6b7280' }}>A gerar objectivos personalizados…</p>}
+      {step === 'done' && <p style={{ color: '#065f46' }}>✓ Objectivos criados!</p>}
+      {err && <div style={{ background: '#fee2e2', color: '#991b1b', padding: 8, borderRadius: 6, fontSize: 12, marginBottom: 10 }}>{err}</div>}
+      {step === 'answer' && (
+        <div style={{ display: 'grid', gap: 14 }}>
+          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+            Responde para a IA criar objectivos adequados ao teu nível e ao que queres aprender.
+          </p>
+          {questions.map((q, i) => (
+            <div key={q.id}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                <span style={{ color: ACCENT }}>{i + 1}.</span> {q.text}
+              </label>
+              {q.type === 'choice' && q.options ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {q.options.map((opt: string) => (
+                    <button key={opt} type="button" onClick={() => setAnswers(a => ({ ...a, [q.id]: opt }))} style={{
+                      padding: '6px 12px', border: 'none', borderRadius: 999, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                      background: answers[q.id] === opt ? ACCENT : '#f3f4f6',
+                      color: answers[q.id] === opt ? 'white' : '#374151',
+                    }}>{opt}</button>
+                  ))}
+                </div>
+              ) : q.type === 'long' ? (
+                <textarea rows={3} value={answers[q.id] || ''} onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))} style={{ ...input, resize: 'vertical' }} />
+              ) : (
+                <input value={answers[q.id] || ''} onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))} style={input} />
+              )}
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={onClose} style={btn('ghost')}>Cancelar</button>
+            <button onClick={submit} disabled={Object.keys(answers).length < questions.length / 2} style={btn('primary')}>
+              Gerar objectivos
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function AddObjectiveModal({ onClose, onSave }: any) {
+  const [category, setCategory] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [level, setLevel] = useState('do')
+  const [required, setRequired] = useState(true)
+  return (
+    <Modal title="Novo objectivo" onClose={onClose}>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <Field label="Categoria"><input value={category} onChange={e => setCategory(e.target.value)} placeholder="ex: Anamnese, Procedimentos" style={input} /></Field>
+        <Field label="Título"><input required value={title} onChange={e => setTitle(e.target.value)} style={input} /></Field>
+        <Field label="Descrição"><textarea rows={2} value={description} onChange={e => setDescription(e.target.value)} style={{ ...input, resize: 'vertical' }} /></Field>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Field label="Nível">
+            <select value={level} onChange={e => setLevel(e.target.value)} style={input}>
+              <option value="see">Observar</option>
+              <option value="assist">Ajudar</option>
+              <option value="do">Fazer com supervisão</option>
+              <option value="master">Autónomo</option>
+            </select>
+          </Field>
+          <label style={{ display: 'flex', alignItems: 'flex-end', gap: 6, fontSize: 13 }}>
+            <input type="checkbox" checked={required} onChange={e => setRequired(e.target.checked)} /> Obrigatório
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={btn('ghost')}>Cancelar</button>
+          <button onClick={() => onSave({ category: category || null, title, description, level, required, status: 'pending' })} disabled={!title} style={btn('primary')}>Adicionar</button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
