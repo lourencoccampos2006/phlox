@@ -185,7 +185,7 @@ export default function MedicamentoPage() {
                 style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace' }}
               />
               <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--ink-5)' }}>
-                Não tens a caixa? Pesquisa em <a href="https://app.infarmed.pt/infomed/" target="_blank" rel="noreferrer" style={{ color: '#0d9488' }}>INFOMED</a> pelo nome para encontrar o número exacto.
+                Não tens a caixa? Pesquisa em <a href="https://extranet.infarmed.pt/INFOMED-fo/" target="_blank" rel="noreferrer" style={{ color: '#0d9488' }}>INFOMED</a> pelo nome para encontrar o número exacto.
               </p>
             </div>
           </details>

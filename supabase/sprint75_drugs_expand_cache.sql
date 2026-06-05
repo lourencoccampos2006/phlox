@@ -120,10 +120,13 @@ begin
     return v_row;
   end if;
 
-  -- 4) Match parcial por brand
+  -- A partir daqui só fazemos parcial se a query for suficientemente longa
+  -- (>= 4 chars). Evita que "as", "co", "ben" devolvam o medicamento errado.
+  if length(v_q) < 4 then return null; end if;
+
+  -- 4) Match parcial por brand — só prefixo (começa por), evita substring errado
   select * into v_row from infarmed_drugs
-  where lower(brand_name) like '%' || v_q || '%'
-     or v_q like '%' || lower(brand_name) || '%'
+  where lower(brand_name) like v_q || '%'
   order by length(brand_name) asc, confidence desc nulls last
   limit 1;
   if found then
@@ -131,10 +134,9 @@ begin
     return v_row;
   end if;
 
-  -- 5) Match parcial por DCI
+  -- 5) Match parcial por DCI — só prefixo
   select * into v_row from infarmed_drugs
-  where lower(active_ingredient) like '%' || v_q || '%'
-     or v_q like '%' || lower(active_ingredient) || '%'
+  where lower(active_ingredient) like v_q || '%'
   order by length(active_ingredient) asc, confidence desc nulls last
   limit 1;
   if found then

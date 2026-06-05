@@ -33,7 +33,7 @@ function formatLocalDrug(row: any): any {
     cautions: row.cautions || [],
     avoid_if: row.avoid_if || [],
     good_to_know: row.good_to_know || '',
-    confidence: 'alta',
+    confidence: row.source === 'ai_cache' ? 'media' : 'alta',
     source: row.source === 'ai_cache' ? 'cache_IA' : 'base_local_PT',
   }
 }

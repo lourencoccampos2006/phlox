@@ -37,12 +37,27 @@ export default function PlanoEstudoPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data: sd } = await supabase.auth.getSession()
-    const r = await fetch('/api/study/plan', { headers: { Authorization: `Bearer ${sd?.session?.access_token || ''}` } })
-    const j = await r.json()
-    setPlans(j.plans || [])
-    if (j.plans?.length > 0 && !active) setActive(j.plans[0])
-    setLoading(false)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/study/plan', { headers: { Authorization: `Bearer ${sd?.session?.access_token || ''}` } })
+      const j = await r.json().catch(() => ({}))
+      // Normaliza: garante que cada plano tem arrays válidos (rows antigos podem ter null).
+      const normalized: Plan[] = (j.plans || []).map((p: any) => ({
+        ...p,
+        schedule: Array.isArray(p?.schedule) ? p.schedule : [],
+        domains: Array.isArray(p?.domains) ? p.domains : [],
+        weeks: p?.weeks ?? 0,
+        hours_per_week: p?.hours_per_week ?? 0,
+        current_week: p?.current_week ?? 1,
+      }))
+      setPlans(normalized)
+      if (normalized.length > 0 && !active) setActive(normalized[0])
+    } catch (e: any) {
+      setErr('Não foi possível carregar os planos. ' + (e?.message || ''))
+      setPlans([])
+    } finally {
+      setLoading(false)
+    }
   }, [supabase, active])
 
   useEffect(() => { load() }, []) // eslint-disable-line
@@ -72,12 +87,13 @@ export default function PlanoEstudoPage() {
     )
   }
 
-  const completed = active.schedule.filter(s => s.completed).length
-  const total = active.schedule.length
+  const sched = Array.isArray(active.schedule) ? active.schedule : []
+  const completed = sched.filter(s => s.completed).length
+  const total = sched.length
   const pct = total > 0 ? Math.round(100 * completed / total) : 0
 
   const byWeek: Record<number, ScheduleItem[]> = {}
-  for (const s of active.schedule) (byWeek[s.week] ||= []).push(s)
+  for (const s of sched) (byWeek[s.week] ||= []).push(s)
 
   return (
     <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
