@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendEmail, planUpgradedEmail, paymentFailedEmail } from '@/lib/email'
+import { planName } from '@/lib/plans'
 
 function getSupabase() {
   return createClient(
@@ -59,6 +61,12 @@ export async function POST(req: NextRequest) {
           plan_status: 'active',
         }).eq('id', userId)
         console.log(`Upgraded user ${userId} to ${plan}`)
+        // Email de confirmação (best-effort)
+        const email = obj.customer_details?.email || obj.customer_email
+        if (email) {
+          const t = planUpgradedEmail(planName(plan))
+          sendEmail({ to: email, subject: t.subject, html: t.html }).catch(() => {})
+        }
       }
       break
     }
@@ -94,6 +102,11 @@ export async function POST(req: NextRequest) {
     case 'invoice.payment_failed': {
       const userId = obj.subscription_details?.metadata?.user_id
       console.warn(`Payment failed for user ${userId}`)
+      const email = obj.customer_email
+      if (email) {
+        const t = paymentFailedEmail()
+        sendEmail({ to: email, subject: t.subject, html: t.html }).catch(() => {})
+      }
       break
     }
   }

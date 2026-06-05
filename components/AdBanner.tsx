@@ -19,23 +19,14 @@ export default function AdBanner({ slot, format = 'auto', style }: AdBannerProps
   useEffect(() => {
     if (!publisherId || loaded.current) return
     loaded.current = true
-    try {
-      // Load AdSense script if not already loaded
-      if (!document.querySelector('script[src*="adsbygoogle"]')) {
-        const script = document.createElement('script')
-        script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}`
-        script.async = true
-        script.crossOrigin = 'anonymous'
-        document.head.appendChild(script)
-      }
-      // Push ad
-      setTimeout(() => {
-        try {
-          ;(window as any).adsbygoogle = (window as any).adsbygoogle || []
-          ;(window as any).adsbygoogle.push({})
-        } catch {}
-      }, 200)
-    } catch {}
+    // O script global do AdSense é carregado no <head> (app/layout.tsx).
+    // Aqui só empurramos a unidade de anúncio quando o slot está montado.
+    setTimeout(() => {
+      try {
+        ;(window as any).adsbygoogle = (window as any).adsbygoogle || []
+        ;(window as any).adsbygoogle.push({})
+      } catch {}
+    }, 200)
   }, [publisherId])
 
   if (!publisherId) return null

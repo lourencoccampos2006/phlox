@@ -3,33 +3,38 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ink:   #0a0a0a;
-  --ink-2: #1a1a1a;
-  --ink-3: #4a4a4a;
-  --ink-4: #888;
-  --ink-5: #bbb;
+  /* Tinta — escala neutra fria, contraste preciso (estilo dispositivo médico) */
+  --ink:   #16181d;   /* quase-preto azulado, não preto puro */
+  --ink-2: #2b2e36;
+  --ink-3: #585c66;   /* corpo secundário */
+  --ink-4: #8b8f99;
+  --ink-5: #b9bcc4;
 
-  --bg:     #fafaf8;
-  --bg-2:   #f3f3f0;
-  --bg-3:   #eaeae6;
-  --bg-4:   #e0dfdb;
+  /* Fundo — branco verdadeiro, com cinzentos frios subtis */
+  --bg:     #ffffff;
+  --bg-2:   #f6f7f8;
+  --bg-3:   #eceef0;
+  --bg-4:   #dfe1e5;
 
-  --border:   #e0dfd9;
-  --border-2: #c8c7c0;
+  --border:   #e7e8ea;
+  --border-2: #d2d4d8;
 
+  /* Verde da marca — dessaturado, mais sóbrio */
   --green:       #0d6e42;
   --green-2:     #0b5c37;
   --green-3:     #094d2d;
-  --green-light: #f0fdf5;
-  --green-mid:   #6ee7b7;
-  --green-glow:  rgba(13,110,66,0.1);
+  --green-light: #f1f6f3;   /* tinte verde quase-neutro, não saturado */
+  --green-mid:   #b8ddc9;
+  /* "glow" reaproveitado como anel de foco preciso e fino (não difuso) */
+  --green-glow:  rgba(13,110,66,0.18);
 
-  --red:         #b91c1c;
-  --red-light:   #fef2f2;
-  --amber:       #92400e;
-  --amber-light: #fffbeb;
-  --blue:        #1e40af;
-  --blue-light:  #eff6ff;
+  /* Estados — dessaturados para encaixar no editorial */
+  --red:         #a82828;
+  --red-light:   #fbf2f2;
+  --amber:       #8a5a16;
+  --amber-light: #fbf6ec;
+  --blue:        #1f4a8a;
+  --blue-light:  #f0f3f8;
 
   /* Syne — geometric, technical, distinctive */
   --font-sans:  'Syne', system-ui, sans-serif;
@@ -38,17 +43,19 @@
   /* JetBrains Mono — code/data feel */
   --font-mono:  'JetBrains Mono', monospace;
 
-  --shadow-xs: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow:    0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  --shadow-lg: 0 16px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.05);
-  --shadow-xl: 0 32px 80px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
+  /* Sombras — sussurro. Profundidade vem de contraste/borda, não de sombra pesada */
+  --shadow-xs: 0 1px 2px rgba(22,24,29,0.04);
+  --shadow:    0 1px 2px rgba(22,24,29,0.05), 0 1px 1px rgba(22,24,29,0.03);
+  --shadow-md: 0 2px 8px rgba(22,24,29,0.06);
+  --shadow-lg: 0 6px 24px rgba(22,24,29,0.08);
+  --shadow-xl: 0 12px 40px rgba(22,24,29,0.10);
 
+  /* Raios — linhas limpas, nada de cantos exagerados */
   --r-sm: 3px;
-  --r:    7px;
-  --r-md: 12px;
-  --r-lg: 18px;
-  --r-xl: 28px;
+  --r:    6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 12px;
 }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-x: clip; }
@@ -126,15 +133,16 @@ a, button { -webkit-tap-highlight-color: transparent; }
 button { font-family: inherit; }
 
 /* ── Card / tile base ─────────────────────────────── */
+/* Editorial: cantos discretos, sem lift. Profundidade vem da borda/contraste. */
 .card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  transition: transform 0.15s, box-shadow 0.15s;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-md);
 }
 
 /* ── Responsive grids — mobile-first ─────────────── */
@@ -324,7 +332,7 @@ button { font-family: inherit; }
 }
 .input-base:focus {
   border-color: var(--green);
-  box-shadow: 0 0 0 3px var(--green-glow);
+  box-shadow: 0 0 0 2px var(--green-glow);
 }
 .input-base::placeholder { color: var(--ink-5); }
 
@@ -345,7 +353,7 @@ button { font-family: inherit; }
 }
 .textarea-base:focus {
   border-color: var(--green);
-  box-shadow: 0 0 0 3px var(--green-glow);
+  box-shadow: 0 0 0 2px var(--green-glow);
 }
 .textarea-base::placeholder { color: var(--ink-5); }
 
@@ -366,7 +374,7 @@ button { font-family: inherit; }
   background-position: right 12px center;
   padding-right: 32px;
 }
-.select-base:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+.select-base:focus { border-color: var(--green); box-shadow: 0 0 0 2px var(--green-glow); }
 
 /* Empty state */
 .empty-state {
@@ -501,27 +509,82 @@ button { font-family: inherit; }
 .animate-in-delay-2 { animation: fadeSlideUp 0.35s 0.10s cubic-bezier(0.16,1,0.3,1) both; }
 .animate-in-delay-3 { animation: fadeSlideUp 0.35s 0.15s cubic-bezier(0.16,1,0.3,1) both; }
 
-/* Tool cards — used in /ferramentas and tool grids */
-.tool-card { transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
-.tool-card:hover { border-color: var(--border-2) !important; box-shadow: var(--shadow) !important; transform: translateY(-2px); }
+/* Tool cards — used in /ferramentas and tool grids.
+   Sem lift: o hover marca-se por borda + sombra-sussurro (motion subtil). */
+.tool-card { transition: border-color 0.18s ease, box-shadow 0.18s ease; }
+.tool-card:hover { border-color: var(--border-2) !important; box-shadow: var(--shadow-md) !important; }
 
 /* Premium surface — elevated white card */
 .surface { background: white; border: 1px solid var(--border); border-radius: var(--r-md); }
 .surface-hover { transition: border-color 0.15s, box-shadow 0.15s; }
 .surface-hover:hover { border-color: var(--border-2); box-shadow: var(--shadow); }
 
-/* Glass card — for dark backgrounds */
-.glass { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-md); backdrop-filter: blur(8px); }
+/* Glass card — glassmorphism reduzido a uma superfície sóbria translúcida */
+.glass { background: rgba(255,255,255,0.85); border: 1px solid var(--border); border-radius: var(--r-md); }
 
-/* Gradient text */
-.gradient-text { background: linear-gradient(135deg, var(--ink) 0%, var(--ink-3) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.gradient-text-green { background: linear-gradient(135deg, var(--green) 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+/* "Gradient text" — agora cor sólida (sem gradientes no texto, por decisão de design) */
+.gradient-text { color: var(--ink); }
+.gradient-text-green { color: var(--green); }
 
 /* Premium number display */
 .number-display { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
+/* ── Sistema editorial ────────────────────────────────────────────────────
+   Tipografia dominante, espaço negativo, ritmo. Usar estas classes para criar
+   hierarquia SEM caixas — substitui cards por alinhamento e contraste. */
+
+/* Eyebrow / kicker — etiqueta pequena maiúscula, marca secção sem borda */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+/* Título de display — serif editorial, grande, tracking apertado */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+.display-sm {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+/* Lead — parágrafo de entrada, maior, mais respirado */
+.lead { font-size: clamp(1rem, 1.6vw, 1.15rem); line-height: 1.65; color: var(--ink-3); max-width: 62ch; }
+
+/* Régua fina — separador editorial em vez de caixa */
+.rule { height: 1px; background: var(--border); border: 0; }
+.rule-ink { height: 2px; width: 40px; background: var(--ink); border: 0; }
+
+/* Linha de dados estilo dispositivo médico — label + valor alinhados, sem caixa */
+.data-row { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+.data-row__label { font-size: 13px; color: var(--ink-4); }
+.data-row__value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ink); text-align: right; }
+
+/* Motion — preferência reduzida respeitada (acessibilidade + sobriedade) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Soft glow on focus — for key CTAs */
-.focus-glow:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--green-glow), 0 0 0 1px var(--green); }
+.focus-glow:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--green-glow); }
 
 /* Status indicator dot */
 .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }

@@ -56,6 +56,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-PT">
       <head>
+        {/* Google AdSense — verificação do site + carregamento do script.
+            O script só serve anúncios onde existir <PlanAds/> e o utilizador for free. */}
+        <meta name="google-adsense-account" content="ca-pub-3416387560941562" />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3416387560941562"
+          crossOrigin="anonymous"
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
