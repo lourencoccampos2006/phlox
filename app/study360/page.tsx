@@ -11,7 +11,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
-import { sm2, deckStats } from '@/lib/srsEngine'
 
 type Tab = 'review' | 'plan' | 'pomodoro' | 'stats'
 
@@ -20,6 +19,13 @@ export default function Study360() {
   const [tab, setTab] = useState<Tab>('review')
   const plan = ((user as any)?.plan || 'free') as string
   const canUse = plan !== 'free'
+
+  // Aceita ?tab= para deep-link (ex: /progresso redireciona para ?tab=stats)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t && ['review', 'plan', 'pomodoro', 'stats'].includes(t)) setTab(t as Tab)
+  }, [])
 
   if (!canUse) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
@@ -47,7 +53,7 @@ export default function Study360() {
             ['review',   '🃏 Rever cards'],
             ['plan',     '🗓 Plano por exame'],
             ['pomodoro', '⏱ Pomodoro'],
-            ['stats',    '📈 Estatísticas'],
+            ['stats',    '📈 Progresso'],
           ] as [Tab, string][]).map(([id, l]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ padding: '10px 14px', background: tab === id ? '#faf5ff' : 'white', border: 'none', borderBottom: `2.5px solid ${tab === id ? '#7c3aed' : 'transparent'}`, fontSize: 13, fontWeight: tab === id ? 800 : 600, color: tab === id ? '#7c3aed' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>{l}</button>
@@ -66,23 +72,27 @@ export default function Study360() {
 // ─── Review (SRS) ─────────────────────────────────────────────────────────────
 function ReviewTab() {
   const { user, supabase } = useAuth()
-  const toast = useToast()
   const [cards, setCards] = useState<any[]>([])
   const [i, setI] = useState(0)
   const [flipped, setFlipped] = useState(false)
 
+  async function headers() {
+    const { data } = await supabase.auth.getSession()
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${(data as any)?.session?.access_token || ''}` }
+  }
+
   useEffect(() => { refresh() }, [user?.id])
   async function refresh() {
     if (!user?.id) return
-    const { data } = await supabase.from('study_cards')
-      .select('*').eq('user_id', user.id).eq('suspended', false)
-      .lte('due_at', new Date().toISOString()).order('due_at').limit(50)
-    setCards(data || [])
+    // Unificado: usa note_cards (notas, resumos, gravações) via /api/study/cards
+    const r = await fetch('/api/study/cards?limit=50', { headers: await headers() })
+    const j = await r.json().catch(() => ({}))
+    setCards(j.cards || [])
     setI(0); setFlipped(false)
   }
 
   if (cards.length === 0) return (
-    <Empty msg="Nenhum cartão para rever agora 🎉 Adiciona cartões a partir da Biblioteca ou cria manualmente." />
+    <Empty msg="Nenhum cartão para rever agora. Cria notas, resumos ou grava uma aula — a IA gera os flashcards que aparecem aqui." />
   )
 
   if (i >= cards.length) return (
@@ -95,30 +105,17 @@ function ReviewTab() {
 
   const c = cards[i]
 
-  async function rate(r: number) {
-    const newState = sm2({ ease: c.ease, interval_d: c.interval_d, repetitions: c.repetitions }, r)
-    await supabase.from('study_cards').update({
-      ease: newState.ease,
-      interval_d: newState.interval_d,
-      repetitions: newState.repetitions,
-      due_at: newState.due_at.toISOString(),
-      last_review_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', c.id)
-    await supabase.from('study_card_reviews').insert({
-      user_id: user!.id, card_id: c.id, rating: r,
-      prev_interval: c.interval_d, new_interval: newState.interval_d,
-    })
+  async function rate(quality: number) {
+    await fetch('/api/study/cards', { method: 'POST', headers: await headers(), body: JSON.stringify({ action: 'review', card_id: c.id, quality }) })
     setI(i + 1); setFlipped(false)
   }
 
   return (
     <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>Card {i + 1} / {cards.length} · {c.deck || 'Sem baralho'}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>Card {i + 1} / {cards.length}{c.domain ? ` · ${String(c.domain).replace('_', ' ')}` : ''}</div>
       <div onClick={() => setFlipped(f => !f)}
         style={{ minHeight: 180, padding: 28, background: flipped ? '#faf5ff' : 'white', border: `1.5px solid ${flipped ? '#e9d5ff' : '#e5e7eb'}`, borderRadius: 12, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', fontSize: 16, color: '#0b1120', lineHeight: 1.6, marginBottom: 12 }}>
         {flipped ? c.back : c.front}
-        {!flipped && c.hint && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, fontStyle: 'italic' }}>Pista: {c.hint}</div>}
       </div>
 
       {!flipped ? (
@@ -192,9 +189,18 @@ function PlanTab() {
 
   return (
     <div>
+      {/* Steer para o Modo Exame (adaptativo, com sprint final) */}
+      <Link href="/modo-exame" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', background: '#0d6e42', color: 'white', borderRadius: 12, textDecoration: 'none', marginBottom: 14 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 14 }}>🎯 Modo Exame</div>
+          <div style={{ fontSize: 12.5, opacity: 0.85 }}>Plano de contagem decrescente que se ajusta à tua confiança e entra em sprint nos últimos dias.</div>
+        </div>
+        <span style={{ fontSize: 18 }}>→</span>
+      </Link>
+
       {!creating && (
-        <button onClick={() => setCreating(true)} style={{ marginBottom: 14, padding: '10px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
-          + Novo plano de estudo
+        <button onClick={() => setCreating(true)} style={{ marginBottom: 14, padding: '10px 16px', background: 'white', color: '#7c3aed', border: '1px solid #e9d5ff', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          + Plano semanal simples
         </button>
       )}
 
@@ -327,33 +333,44 @@ function StatsTab() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      const [cards, sess, rev] = await Promise.all([
-        supabase.from('study_cards').select('ease,interval_d,repetitions,due_at,last_review_at,created_at').eq('user_id', user.id),
+      const { data: sd } = await supabase.auth.getSession()
+      const h = { Authorization: `Bearer ${(sd as any)?.session?.access_token || ''}` }
+      const [dashRes, sess] = await Promise.all([
+        fetch('/api/study/cards?limit=1', { headers: h }).then(r => r.json()).catch(() => ({})),
         supabase.from('study_sessions').select('minutes,started_at').eq('user_id', user.id).order('started_at', { ascending: false }).limit(60),
-        supabase.from('study_card_reviews').select('rating, reviewed_at').eq('user_id', user.id).order('reviewed_at', { ascending: false }).limit(500),
       ])
-      const ds = deckStats((cards.data || []) as any[])
-      const totalMins = (sess.data || []).reduce((a: number, b: any) => a + (b.minutes || 0), 0)
-      const last7 = (sess.data || []).filter((s: any) => new Date(s.started_at).getTime() > Date.now() - 7 * 86400 * 1000)
+      const dash = dashRes?.dashboard || { due_today: 0, total_cards: 0, total_notes: 0, reviewed_today: 0 }
+      const sessions = sess.data || []
+      const totalMins = sessions.reduce((a: number, b: any) => a + (b.minutes || 0), 0)
+      const last7 = sessions.filter((s: any) => new Date(s.started_at).getTime() > Date.now() - 7 * 86400 * 1000)
       const last7Mins = last7.reduce((a: number, b: any) => a + (b.minutes || 0), 0)
-      const correctRate = (rev.data || []).length === 0 ? 0
-        : ((rev.data || []).filter((r: any) => r.rating >= 3).length / (rev.data || []).length) * 100
-      setStats({ ds, totalMins, last7Mins, correctRate, totalReviews: (rev.data || []).length })
+      // Streak: dias consecutivos com atividade (sessões)
+      const days = new Set<string>(sessions.map((s: any) => (s.started_at || '').slice(0, 10)).filter(Boolean))
+      let streak = 0
+      for (let k = 0; k < 365; k++) { const d = new Date(); d.setDate(d.getDate() - k); if (days.has(d.toISOString().slice(0, 10))) streak++; else if (k > 0) break }
+      // XP simples: revisões + notas + tempo
+      const xp = dash.total_cards * 5 + dash.total_notes * 25 + Math.round(totalMins / 5)
+      setStats({ dash, totalMins, last7Mins, streak, xp, level: Math.floor(xp / 500) + 1 })
     })()
   }, [user?.id])
 
-  if (!stats) return <Empty msg="A carregar estatísticas…" />
+  if (!stats) return <Empty msg="A carregar progresso…" />
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 10 }}>
-      <Stat label="Cartões" v={stats.ds.total} />
-      <Stat label="Para rever agora" v={stats.ds.due_today} color="#dc2626" />
-      <Stat label="Maduros (≥21 d)" v={stats.ds.mature} color="#0d6e42" />
-      <Stat label="Jovens" v={stats.ds.young} color="#1d4ed8" />
-      <Stat label="Ease médio" v={stats.ds.avg_ease} />
-      <Stat label="Tempo total" v={`${Math.round(stats.totalMins / 60)} h`} />
-      <Stat label="Últimos 7 d" v={`${stats.last7Mins} min`} color="#7c3aed" />
-      <Stat label="Acertos SRS" v={`${Math.round(stats.correctRate)}%`} color="#0d6e42" />
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10, marginBottom: 14 }}>
+        <Stat label="Nível" v={stats.level} color="#7c3aed" />
+        <Stat label="XP" v={stats.xp} color="#7c3aed" />
+        <Stat label="Streak" v={`${stats.streak} d`} color="#dc2626" />
+        <Stat label="Revistos hoje" v={stats.dash.reviewed_today} color="#0d6e42" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
+        <Stat label="Notas" v={stats.dash.total_notes} />
+        <Stat label="Cartões" v={stats.dash.total_cards} />
+        <Stat label="Para rever agora" v={stats.dash.due_today} color="#dc2626" />
+        <Stat label="Tempo total" v={`${Math.round(stats.totalMins / 60)} h`} />
+        <Stat label="Últimos 7 d" v={`${stats.last7Mins} min`} color="#7c3aed" />
+      </div>
     </div>
   )
 }

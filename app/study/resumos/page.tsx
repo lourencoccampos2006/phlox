@@ -48,10 +48,14 @@ export default function ResumosPage() {
   const [summary, setSummary] = useState('')
   const [err, setErr] = useState<string | null>(null)
 
+  const [savedMsg, setSavedMsg] = useState('')
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
   const generate = useCallback(async (t?: string) => {
     const target = (t || topic).trim()
     if (!target || busy) return
-    setBusy(true); setErr(null); setSummary('')
+    setBusy(true); setErr(null); setSummary(''); setSavedMsg(''); setSavedNoteId(null)
     try {
       const { data: sd } = await supabase.auth.getSession()
       const r = await fetch('/api/study/summary', {
@@ -65,6 +69,30 @@ export default function ResumosPage() {
       if (t) setTopic(t)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }, [topic, format, level, domain, busy, supabase])
+
+  // Guardar o resumo como nota (entra no sistema de memória)
+  const saveAsNote = useCallback(async (alsoCards: boolean) => {
+    if (!summary || saving) return
+    setSaving(true); setSavedMsg(alsoCards ? 'A guardar + gerar flashcards…' : 'A guardar…')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` }
+      let noteId = savedNoteId
+      if (!noteId) {
+        const r = await fetch('/api/study/notes', { method: 'POST', headers, body: JSON.stringify({ title: topic || 'Resumo', body: summary, domain: domain || null, source: 'resumo' }) })
+        const j = await r.json()
+        if (!r.ok) throw new Error(j.error || 'Erro a guardar')
+        noteId = j.note?.id; setSavedNoteId(noteId)
+      }
+      if (alsoCards && noteId) {
+        const cr = await fetch('/api/study/cards', { method: 'POST', headers, body: JSON.stringify({ action: 'generate', note_id: noteId, title: topic, text: summary }) })
+        const cj = await cr.json()
+        setSavedMsg(cj.count != null ? `Guardado · ${cj.count} flashcards na tua revisão` : 'Guardado (flashcards falharam)')
+      } else {
+        setSavedMsg('Guardado nas tuas notas')
+      }
+    } catch (e: any) { setSavedMsg(e.message) } finally { setSaving(false) }
+  }, [summary, saving, savedNoteId, topic, domain, supabase])
 
   return (
     <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1000, margin: '0 auto' }}>
@@ -123,6 +151,20 @@ export default function ResumosPage() {
         <article style={{ marginTop: 22, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 22, lineHeight: 1.65, fontSize: 14, color: '#111827', whiteSpace: 'pre-wrap' }}>
           {busy ? <p style={{ color: '#6b7280' }}>A pensar…</p> : <MarkdownLike text={summary} />}
         </article>
+      )}
+
+      {/* Dá propósito ao resumo: entra no sistema de memória */}
+      {summary && !busy && (
+        <div style={{ marginTop: 12, padding: 14, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13.5, color: '#6d28d9' }}>Não percas este resumo</div>
+            <div style={{ fontSize: 12.5, color: '#6b7280' }}>{savedMsg || 'Guarda-o como nota — vira flashcards que voltam a ti na revisão.'}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button onClick={() => saveAsNote(false)} disabled={saving} style={{ padding: '8px 14px', background: 'white', border: '1px solid #c4b5fd', color: '#6d28d9', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Guardar nota</button>
+            <button onClick={() => saveAsNote(true)} disabled={saving} style={{ padding: '8px 14px', background: '#6d28d9', border: 'none', color: 'white', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>Guardar + flashcards</button>
+          </div>
+        </div>
       )}
     </main>
   )

@@ -37,9 +37,10 @@ const SECTIONS: Section[] = [
     color: '#1d4ed8',
     tools: [
       { href: '/tutor',              title: 'Tutor IA socrático',   desc: 'Sessão dialógica em qualquer tema', icon: '🧠', badge: 'IA' },
-      { href: '/study/resumos',      title: 'Resumos IA',           desc: 'Em 6 formatos · adaptado ao nível',  icon: '📑', badge: 'novo' },
-      { href: '/study/notas',        title: 'Notas (Knowledge Graph)', desc: 'Estilo Obsidian com [[links]]',    icon: '📝', badge: 'novo' },
-      { href: '/study/biblioteca',   title: 'Biblioteca médica',    desc: 'Guidelines, protocolos, summaries',   icon: '📚', badge: 'novo' },
+      { href: '/study/notas',        title: 'Notas que te fazem rever', desc: 'Flashcards automáticos + revisão espaçada · foto/voz', icon: '📝', badge: 'novo' },
+      { href: '/study/documentos',   title: 'Os meus documentos',   desc: 'Pergunta às tuas sebentas e slides (IA)', icon: '📚', badge: 'Pro' },
+      { href: '/study/resumos',      title: 'Resumos IA',           desc: 'Em 6 formatos · adaptado ao nível',  icon: '📑' },
+      { href: '/study/biblioteca',   title: 'Biblioteca médica',    desc: 'Guidelines, protocolos, summaries',   icon: '📚' },
       { href: '/anatomia-3d',        title: 'Anatomia 3D',          desc: 'Modelos interativos',                 icon: '🦴' },
     ],
   },
@@ -65,7 +66,8 @@ const SECTIONS: Section[] = [
     label: 'Planear',
     color: '#0d6e42',
     tools: [
-      { href: '/study/plano',     title: 'Plano de estudo IA',  desc: 'Schedule semanal gerado por IA',     icon: '📅', badge: 'novo' },
+      { href: '/modo-exame',      title: 'Modo Exame',          desc: 'Plano de contagem decrescente até ao exame', icon: '🎯', badge: 'novo' },
+      { href: '/study/plano',     title: 'Plano de estudo IA',  desc: 'Schedule semanal gerado por IA',     icon: '📅' },
       { href: '/study360',        title: 'SRS + Pomodoro',      desc: 'Revisão espaçada + timer',           icon: '⏱️' },
       { href: '/calendario',      title: 'Calendário',          desc: 'Eventos e prazos',                    icon: '🗓️' },
       { href: '/guardados',       title: 'Guardados',           desc: 'Os teus favoritos',                  icon: '★' },
