@@ -76,12 +76,12 @@ begin
         where internship_id = p_internship_id and comorbidities is not null
       ) q),
     'patient_count', (select count(*) from internship_patients where internship_id = p_internship_id),
-    'procedures', (select coalesce(jsonb_agg(distinct name), '[]'::jsonb)
+    'procedures', (select coalesce(jsonb_agg(distinct procedure_name), '[]'::jsonb)
         from internship_procedures where internship_id = p_internship_id),
-    'objectives', (select coalesce(jsonb_agg(jsonb_build_object('title', title, 'done', status = 'completed')), '[]'::jsonb)
+    'objectives', (select coalesce(jsonb_agg(jsonb_build_object('title', title, 'done', status in ('completed','validated'))), '[]'::jsonb)
         from internship_objectives where internship_id = p_internship_id),
-    'log_topics', (select coalesce(jsonb_agg(left(content, 140)), '[]'::jsonb) from (
-        select content from internship_log_entries
+    'log_topics', (select coalesce(jsonb_agg(left(txt, 140)), '[]'::jsonb) from (
+        select coalesce(learning, what_was_done, highlights, '') as txt from internship_log_entries
         where internship_id = p_internship_id order by created_at desc limit 15
       ) q)
   ) into v;

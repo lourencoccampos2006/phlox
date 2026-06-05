@@ -27,7 +27,7 @@ interface Patient {
 interface LogEntry {
   id: string; entry_date: string; shift: string|null; hours: number|null
   what_was_done: string|null; learning: string|null; highlights: string|null
-  difficulties: string|null; mood: number|null
+  difficulties: string|null; mood: number|null; questions?: string|null; patients_seen?: number|null
 }
 interface Objective {
   id: string; category: string|null; title: string; level: string; status: string; required: boolean
@@ -38,9 +38,12 @@ interface Procedure {
 }
 interface Case {
   id: string; title: string; presentation_date: string|null; final_diagnosis: string|null; ai_assisted: boolean
+  history?: string|null; exam_findings?: string|null; investigations?: string|null
+  differential?: string|null; management?: string|null; outcome?: string|null
+  discussion?: string|null; references_text?: string|null
 }
 interface Report {
-  id: string; kind: string; title: string; ai_assisted: boolean; created_at: string
+  id: string; kind: string; title: string; ai_assisted: boolean; created_at: string; body?: string|null
 }
 
 export default function EstagioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +53,8 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  // Resultado IA mostrado em modal legível (ex: DDx, caso)
+  const [aiResult, setAiResult] = useState<{ title: string; ddx?: any; text?: string } | null>(null)
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -152,7 +157,10 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
         <DashboardTab it={it} objPct={objPct} objCompleted={objCompleted} objTotal={objectives.length} hoursPct={hoursPct} log={log} patients={patients} procedures={procedures} />
       )}
       {tab === 'doentes' && (
-        <PatientsTab patients={patients} onAdd={(row: any) => addRow('internship_patients', row)} onUpdate={(rid: string, row: any) => updateRow('internship_patients', rid, row)} onDel={(rid: string) => delRow('internship_patients', rid)} onAiCase={async (pid: string) => { await aiAction('generate_case', { patient_id: pid }); alert('Caso gerado. Vai à tab Casos.') }} onAiDdx={async (pid: string) => { const r = await aiAction('suggest_diagnosis', { patient_id: pid }); alert(JSON.stringify(r, null, 2)) }} busy={busy} internshipId={id} />
+        <PatientsTab patients={patients} onAdd={(row: any) => addRow('internship_patients', row)} onUpdate={(rid: string, row: any) => updateRow('internship_patients', rid, row)} onDel={(rid: string) => delRow('internship_patients', rid)}
+          onAiCase={async (pid: string) => { const r = await aiAction('generate_case', { patient_id: pid }); if (r.error) alert(r.error); else { await load(); setAiResult({ title: 'Caso clínico gerado', text: r.case_markdown || r.markdown || r.text || 'Caso criado — vê a tab Casos.' }) } }}
+          onAiDdx={async (pid: string) => { const r = await aiAction('suggest_diagnosis', { patient_id: pid }); if (r.error) alert(r.error); else setAiResult({ title: 'Diagnóstico diferencial', ddx: r }) }}
+          busy={busy} internshipId={id} />
       )}
       {tab === 'diario' && (
         <LogTab log={log} onAdd={(row: any) => addRow('internship_log_entries', row)} onUpdate={(rid: string, row: any) => updateRow('internship_log_entries', rid, row)} onDel={(rid: string) => delRow('internship_log_entries', rid)} busy={busy} internshipId={id} />
@@ -181,13 +189,51 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
         <ReflectionsTab reflections={reflections} onAdd={(row: any) => addRow('internship_reflections', row)} onDel={(rid: string) => delRow('internship_reflections', rid)} />
       )}
       {tab === 'avaliacoes' && (
-        <EvaluationsTab evaluations={evaluations} onAdd={(row: any) => addRow('supervisor_evaluations', row)} onDel={(rid: string) => delRow('supervisor_evaluations', rid)} />
+        <EvaluationsTab evaluations={evaluations} internshipId={id} supabase={supabase} onReload={load} />
       )}
       {tab === 'horas' && (
         <HoursTab hours={hours} required={it.hours_required} done={it.hours_done} pct={hoursPct} onAdd={(row: any) => addRow('internship_hours', row)} onDel={(rid: string) => delRow('internship_hours', rid)} />
       )}
       {tab === 'ferramentas' && (
         <ToolsTab internshipId={id} patients={patients} onAi={aiAction} onReload={load} />
+      )}
+
+      {/* Resultado IA legível (DDx, caso) */}
+      {aiResult && (
+        <div onClick={() => setAiResult(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, maxWidth: 620, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 18 }}>{aiResult.title}</h3>
+              <button onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>
+            </div>
+            {aiResult.ddx ? (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {(aiResult.ddx.differential || []).map((d: any, i: number) => {
+                  const c = d.probability === 'alta' ? '#dc2626' : d.probability === 'média' ? '#d97706' : '#6b7280'
+                  return (
+                    <div key={i} style={{ borderLeft: `3px solid ${c}`, paddingLeft: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{d.dx}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase' }}>{d.probability}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{d.reason}</div>
+                    </div>
+                  )
+                })}
+                {aiResult.ddx.next_steps?.length > 0 && (
+                  <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Próximos passos</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>
+                      {aiResult.ddx.next_steps.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}><MarkdownLike text={aiResult.text || ''} /></div>
+            )}
+          </div>
+        </div>
       )}
     </main>
   )
@@ -205,8 +251,12 @@ function CoachTab({ internshipId, supabase, patientCount }: any) {
     return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
   }
   async function call(action: string, extra: any = {}) {
-    const r = await fetch('/api/internship/coach', { method: 'POST', headers: await headers(), body: JSON.stringify({ action, internship_id: internshipId, ...extra }) })
-    return r.json()
+    try {
+      const r = await fetch('/api/internship/coach', { method: 'POST', headers: await headers(), body: JSON.stringify({ action, internship_id: internshipId, ...extra }) })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) return { error: j.error || j.hint || `Erro ${r.status}` }
+      return j
+    } catch (e: any) { return { error: e?.message || 'Falha de ligação' } }
   }
 
   if (patientCount === 0) {
@@ -251,10 +301,12 @@ function CurriculoView({ call, internshipId, headers }: any) {
   const [gaps, setGaps] = useState<any>(null)
   const [busy, setBusy] = useState('')
   const [cardMsg, setCardMsg] = useState('')
+  const [err, setErr] = useState('')
 
   async function run(kind: 'caseload' | 'gaps') {
-    setBusy(kind)
+    setBusy(kind); setErr('')
     const r = await call(kind)
+    if (r.error) { setErr(r.error); setBusy(''); return }
     if (kind === 'caseload') setCaseload(r.result); else setGaps(r.result)
     setBusy('')
   }
@@ -277,6 +329,7 @@ function CurriculoView({ call, internshipId, headers }: any) {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
+      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13 }}>{err}</div>}
       {/* Casuística */}
       <section style={card}>
         <Head title="A tua casuística" sub="O que estás realmente a ver neste estágio" />
@@ -328,12 +381,14 @@ function DebriefView({ call }: any) {
   const [notes, setNotes] = useState('')
   const [res, setRes] = useState<any>(null)
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
   const [revealed, setRevealed] = useState<Record<number, boolean>>({})
 
   async function run() {
-    setBusy(true); setRes(null)
+    setBusy(true); setRes(null); setErr('')
     const r = await call('debrief', { today_notes: notes })
-    setRes(r.result); setBusy(false)
+    if (r.error) setErr(r.error); else setRes(r.result)
+    setBusy(false)
   }
 
   return (
@@ -341,6 +396,7 @@ function DebriefView({ call }: any) {
       <Head title="Debrief do dia" sub="No fim do turno: consolida o que viste e testa-te" />
       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="O que viste hoje? (opcional — se vazio, uso a tua casuística geral)" style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
       <button onClick={run} disabled={busy} style={btn('primary')}>{busy ? 'A preparar debrief…' : 'Fazer debrief'}</button>
+      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginTop: 8 }}>{err}</div>}
       {res && (
         <div style={{ marginTop: 12, fontSize: 13.5, color: '#374151', lineHeight: 1.6 }}>
           <p style={{ margin: '0 0 10px' }}>{res.recap}</p>
@@ -362,7 +418,8 @@ function PrepView({ call }: any) {
   const [expect, setExpect] = useState('')
   const [res, setRes] = useState<any>(null)
   const [busy, setBusy] = useState(false)
-  async function run() { setBusy(true); setRes(null); const r = await call('prep', { expectation: expect }); setRes(r.result); setBusy(false) }
+  const [err, setErr] = useState('')
+  async function run() { setBusy(true); setRes(null); setErr(''); const r = await call('prep', { expectation: expect }); if (r.error) setErr(r.error); else setRes(r.result); setBusy(false) }
   const Block = ({ title, items, icon }: any) => items?.length > 0 ? (
     <div style={{ marginTop: 10 }}><div style={lbl}>{icon} {title}</div><ul style={ul}>{items.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
   ) : null
@@ -371,6 +428,7 @@ function PrepView({ call }: any) {
       <Head title="Preparar o próximo turno" sub="Antes de ires: o que rever, o que o tutor pode perguntar, red flags" />
       <input value={expect} onChange={e => setExpect(e.target.value)} placeholder="O que esperas hoje? (ex: dia de admissões, bloco operatório…)" style={{ ...inputStyle, marginBottom: 8 }} />
       <button onClick={run} disabled={busy} style={btn('primary')}>{busy ? 'A preparar…' : 'Preparar-me'}</button>
+      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginTop: 8 }}>{err}</div>}
       {res && (
         <div style={{ fontSize: 13.5, color: '#374151' }}>
           <Block title="Rever antes" items={res.review} icon="📖" />
@@ -913,28 +971,36 @@ function PatientFormModal({ patient, onClose, onSave }: { patient?: Patient; onC
   const [diagnosis, setDiagnosis] = useState(patient?.diagnosis || '')
   const [chief, setChief] = useState(patient?.chief_complaint || '')
   const [background, setBackground] = useState('')
+  const [comorbidities, setComorbidities] = useState('')
+  const [allergies, setAllergies] = useState('')
+  const [meds, setMeds] = useState('')
+  const [learning, setLearning] = useState('')
+  const toArr = (s: string) => s.split(/[,\n]/).map(x => x.trim()).filter(Boolean)
   return (
-    <Modal title="Novo doente seguido (anónimo)" onClose={onClose}>
+    <Modal title="Novo doente seguido (anónimo)" onClose={onClose} wide>
       <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 10px' }}>⚠ Apenas iniciais, idade, sexo. <b>Sem nome, sem SNS, sem PII.</b></p>
       <div style={{ display: 'grid', gap: 10 }}>
-        <Field label="Iniciais"><input value={initials} onChange={e => setInitials(e.target.value.slice(0, 5))} placeholder="M.S." style={input} /></Field>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px', gap: 8 }}>
+          <Field label="Iniciais"><input value={initials} onChange={e => setInitials(e.target.value.slice(0, 5))} placeholder="M.S." style={input} /></Field>
           <Field label="Idade"><input type="number" value={age} onChange={e => setAge(e.target.value === '' ? '' : parseInt(e.target.value))} style={input} /></Field>
           <Field label="Sexo">
             <select value={sex} onChange={e => setSex(e.target.value)} style={input}>
-              <option value="">—</option>
-              <option value="M">M</option>
-              <option value="F">F</option>
-              <option value="outro">Outro</option>
+              <option value="">—</option><option value="M">M</option><option value="F">F</option><option value="outro">Outro</option>
             </select>
           </Field>
         </div>
         <Field label="Queixa principal"><input value={chief} onChange={e => setChief(e.target.value)} style={input} placeholder="ex: dor torácica" /></Field>
         <Field label="Diagnóstico principal"><input value={diagnosis} onChange={e => setDiagnosis(e.target.value)} style={input} placeholder="ex: STEMI inferior" /></Field>
-        <Field label="História breve"><textarea rows={3} value={background} onChange={e => setBackground(e.target.value)} style={{ ...input, resize: 'vertical' }} placeholder="HTA, DM2, dislipidemia. Tabagismo activo." /></Field>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <Field label="Comorbilidades (vírgulas)"><input value={comorbidities} onChange={e => setComorbidities(e.target.value)} style={input} placeholder="HTA, DM2, DPOC" /></Field>
+          <Field label="Alergias (vírgulas)"><input value={allergies} onChange={e => setAllergies(e.target.value)} style={input} placeholder="penicilina" /></Field>
+        </div>
+        <Field label="Medicação actual"><input value={meds} onChange={e => setMeds(e.target.value)} style={input} placeholder="ramipril, AAS, atorvastatina" /></Field>
+        <Field label="História breve"><textarea rows={2} value={background} onChange={e => setBackground(e.target.value)} style={{ ...input, resize: 'vertical' }} placeholder="Tabagismo activo, sedentário…" /></Field>
+        <Field label="O que aprendi com este doente"><textarea rows={2} value={learning} onChange={e => setLearning(e.target.value)} style={{ ...input, resize: 'vertical' }} placeholder="Reconhecer supra-ST inferior, indicação de angioplastia primária…" /></Field>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={btn('ghost')}>Cancelar</button>
-          <button onClick={() => onSave({ initials, age: age === '' ? null : age, sex: sex || null, diagnosis, chief_complaint: chief, background })} disabled={!initials} style={btn('primary')}>Adicionar</button>
+          <button onClick={() => onSave({ initials, age: age === '' ? null : age, sex: sex || null, diagnosis, chief_complaint: chief, background, comorbidities: toArr(comorbidities), allergies: toArr(allergies), current_meds: meds || null, learning_points: learning || null })} disabled={!initials} style={btn('primary')}>Adicionar</button>
         </div>
       </div>
     </Modal>
@@ -959,6 +1025,7 @@ function LogTab({ log, onAdd, onUpdate, onDel, busy, internshipId }: any) {
               {l.what_was_done && <p style={{ margin: '4px 0', fontSize: 13 }}><b>Actividades:</b> {l.what_was_done}</p>}
               {l.highlights && <p style={{ margin: '4px 0', fontSize: 13 }}><b>Destaques:</b> {l.highlights}</p>}
               {l.learning && <p style={{ margin: '4px 0', fontSize: 13, color: '#065f46' }}><b>💡 Aprendi:</b> {l.learning}</p>}
+              {l.questions && <p style={{ margin: '4px 0', fontSize: 13, color: '#1d4ed8' }}><b>❓ A esclarecer:</b> {l.questions}</p>}
               {l.difficulties && <p style={{ margin: '4px 0', fontSize: 13, color: '#991b1b' }}><b>⚠ Dificuldades:</b> {l.difficulties}</p>}
             </div>
           ))}
@@ -974,14 +1041,18 @@ function LogFormModal({ onClose, onSave }: { onClose: () => void; onSave: (r: an
   const [date, setDate] = useState(today)
   const [shift, setShift] = useState('manha')
   const [hours, setHours] = useState<number | ''>(8)
+  const [seen, setSeen] = useState<number | ''>('')
   const [done, setDone] = useState('')
   const [learning, setLearning] = useState('')
   const [highlights, setHighlights] = useState('')
   const [difficulties, setDifficulties] = useState('')
+  const [questions, setQuestions] = useState('')
+  const [mood, setMood] = useState(3)
+  const [fatigue, setFatigue] = useState(3)
   return (
     <Modal title="Nova nota de turno" onClose={onClose} wide>
       <div style={{ display: 'grid', gap: 10 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
           <Field label="Data"><input type="date" value={date} onChange={e => setDate(e.target.value)} style={input} /></Field>
           <Field label="Turno">
             <select value={shift} onChange={e => setShift(e.target.value)} style={input}>
@@ -991,14 +1062,20 @@ function LogFormModal({ onClose, onSave }: { onClose: () => void; onSave: (r: an
             </select>
           </Field>
           <Field label="Horas"><input type="number" step="0.5" value={hours} onChange={e => setHours(e.target.value === '' ? '' : parseFloat(e.target.value))} style={input} /></Field>
+          <Field label="Doentes vistos"><input type="number" value={seen} onChange={e => setSeen(e.target.value === '' ? '' : parseInt(e.target.value))} style={input} /></Field>
         </div>
         <Field label="O que fizeste?"><textarea rows={3} value={done} onChange={e => setDone(e.target.value)} style={{ ...input, resize: 'vertical' }} placeholder="Acompanhei doentes na enfermaria, fiz colheitas..." /></Field>
         <Field label="Destaques / casos relevantes"><textarea rows={2} value={highlights} onChange={e => setHighlights(e.target.value)} style={{ ...input, resize: 'vertical' }} /></Field>
         <Field label="O que aprendeste?"><textarea rows={2} value={learning} onChange={e => setLearning(e.target.value)} style={{ ...input, resize: 'vertical' }} /></Field>
-        <Field label="Dificuldades / dúvidas"><textarea rows={2} value={difficulties} onChange={e => setDifficulties(e.target.value)} style={{ ...input, resize: 'vertical' }} /></Field>
+        <Field label="Dúvidas a esclarecer"><textarea rows={2} value={questions} onChange={e => setQuestions(e.target.value)} style={{ ...input, resize: 'vertical' }} placeholder="O que ficaste sem perceber e queres perguntar ao tutor" /></Field>
+        <Field label="Dificuldades"><textarea rows={2} value={difficulties} onChange={e => setDifficulties(e.target.value)} style={{ ...input, resize: 'vertical' }} /></Field>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label={`Como te sentiste (${mood}/5)`}><input type="range" min={1} max={5} value={mood} onChange={e => setMood(+e.target.value)} style={{ width: '100%' }} /></Field>
+          <Field label={`Cansaço (${fatigue}/5)`}><input type="range" min={1} max={5} value={fatigue} onChange={e => setFatigue(+e.target.value)} style={{ width: '100%' }} /></Field>
+        </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={btn('ghost')}>Cancelar</button>
-          <button onClick={() => onSave({ entry_date: date, shift, hours, what_was_done: done, learning, highlights, difficulties })} style={btn('primary')}>Guardar</button>
+          <button onClick={() => onSave({ entry_date: date, shift, hours: hours === '' ? null : hours, patients_seen: seen === '' ? null : seen, what_was_done: done, learning, highlights, difficulties, questions, mood, fatigue })} style={btn('primary')}>Guardar</button>
         </div>
       </div>
     </Modal>
@@ -1256,23 +1333,61 @@ function ProcFormModal({ patients, onClose, onSave }: any) {
 }
 
 function CasesTab({ cases }: any) {
-  if (cases.length === 0) return <Empty msg="Sem casos. Na tab Doentes, clica em '📋 Caso IA' para gerar." />
+  const [open, setOpen] = useState<Case | null>(null)
+  if (cases.length === 0) return <Empty msg="Sem casos. Na tab Doentes, clica em '📋 Caso IA' para gerar um caso clínico completo a partir do doente." />
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       {cases.map((c: Case) => (
-        <div key={c.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button key={c.id} onClick={() => setOpen(c)} style={{ textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span style={{ fontWeight: 700, fontSize: 14 }}>{c.title}</span>
-            {c.ai_assisted && <span style={{ padding: '2px 8px', background: '#ede9fe', color: '#6d28d9', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>IA</span>}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+              {c.ai_assisted && <span style={{ padding: '2px 8px', background: '#ede9fe', color: '#6d28d9', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>IA</span>}
+              <span style={{ color: ACCENT, fontSize: 12, fontWeight: 700 }}>Abrir →</span>
+            </div>
           </div>
-          {c.final_diagnosis && <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>{c.final_diagnosis}</div>}
-        </div>
+          {c.final_diagnosis && <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>🎯 {c.final_diagnosis}</div>}
+        </button>
       ))}
+
+      {open && (
+        <div onClick={() => setOpen(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 10 }}>
+              <h2 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
+              <button onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
+            </div>
+            {[
+              ['História clínica', open.history],
+              ['Exame físico', open.exam_findings],
+              ['Exames complementares', open.investigations],
+              ['Diagnóstico diferencial', open.differential],
+              ['Diagnóstico final', open.final_diagnosis],
+              ['Conduta', open.management],
+              ['Evolução', open.outcome],
+              ['Discussão', open.discussion],
+              ['Referências', open.references_text],
+            ].filter(([, v]) => v).map(([label, v]) => (
+              <div key={label as string} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 function ReportsTab({ reports, onGenerate, busy }: any) {
+  const [open, setOpen] = useState<Report | null>(null)
+  function download(r: Report) {
+    const blob = new Blob([`# ${r.title}\n\n${r.body || ''}`], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = `${r.title.replace(/[^a-z0-9]+/gi, '_')}.md`; a.click()
+    URL.revokeObjectURL(url)
+  }
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -1280,19 +1395,39 @@ function ReportsTab({ reports, onGenerate, busy }: any) {
         <button onClick={() => onGenerate('weekly')} disabled={busy} style={btn('ghost')}>📋 Relatório semanal</button>
         <button onClick={() => onGenerate('intermediate')} disabled={busy} style={btn('ghost')}>📋 Relatório intermédio</button>
       </div>
-      {reports.length === 0 ? <Empty msg="Sem relatórios. Clica num botão para gerar." /> : (
+      {reports.length === 0 ? <Empty msg="Sem relatórios. Clica num botão para gerar um relatório completo a partir de tudo o que registaste." /> : (
         <div style={{ display: 'grid', gap: 8 }}>
           {reports.map((r: Report) => (
-            <div key={r.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <button key={r.id} onClick={() => setOpen(r)} style={{ textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div>
                   <div style={{ fontSize: 11, color: '#6b7280' }}>{new Date(r.created_at).toLocaleString('pt-PT')}</div>
                 </div>
-                {r.ai_assisted && <span style={{ padding: '2px 8px', background: '#ede9fe', color: '#6d28d9', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>IA</span>}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                  {r.ai_assisted && <span style={{ padding: '2px 8px', background: '#ede9fe', color: '#6d28d9', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>IA</span>}
+                  <span style={{ color: ACCENT, fontSize: 12, fontWeight: 700 }}>Abrir →</span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <div onClick={() => setOpen(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
+              <h2 style={{ margin: 0, fontSize: 19, fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => download(open)} style={btn('ghost')}>↓ Descarregar</button>
+                <button onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
               </div>
             </div>
-          ))}
+            <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+              {open.body ? <MarkdownLike text={open.body} /> : <p style={{ color: '#9ca3af' }}>(Relatório sem conteúdo)</p>}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1360,19 +1495,91 @@ function ReflectionFormModal({ onClose, onSave }: any) {
   )
 }
 
-function EvaluationsTab({ evaluations, onAdd, onDel }: any) {
-  if (evaluations.length === 0) return <Empty msg="Sem avaliações. Pede ao supervisor que avalie via link partilhável (em breve)." />
+function EvaluationsTab({ evaluations, internshipId, supabase, onReload }: any) {
+  const [link, setLink] = useState('')
+  const [portfolioLink, setPortfolioLink] = useState('')
+  const [busy, setBusy] = useState('')
+  const [evalKind, setEvalKind] = useState('formative')
+
+  async function headers() {
+    const { data } = await supabase.auth.getSession()
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
+  }
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+
+  async function makeEvalLink() {
+    setBusy('eval')
+    const r = await fetch('/api/internship/links', { method: 'POST', headers: await headers(), body: JSON.stringify({ action: 'create_eval', internship_id: internshipId, kind: evalKind }) })
+    const j = await r.json()
+    if (j.evaluation?.share_token) { setLink(`${origin}/avaliar/${j.evaluation.share_token}`); onReload?.() }
+    else alert(j.error || 'Erro')
+    setBusy('')
+  }
+  async function makePortfolioLink() {
+    setBusy('portfolio')
+    const r = await fetch('/api/internship/links', { method: 'POST', headers: await headers(), body: JSON.stringify({ action: 'set_portfolio', internship_id: internshipId, public: true }) })
+    const j = await r.json()
+    if (j.token) setPortfolioLink(`${origin}/portfolio/${j.token}`)
+    else alert(j.error || 'Erro')
+    setBusy('')
+  }
+  function copy(t: string) { navigator.clipboard?.writeText(t); }
+
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
-      {evaluations.map((e: any) => (
-        <div key={e.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700 }}>{e.evaluator_name || 'Sem nome'} · {e.kind}</span>
-            {e.overall_score && <span style={{ padding: '2px 8px', borderRadius: 999, background: '#dcfce7', color: '#065f46', fontWeight: 700 }}>{e.overall_score}/5</span>}
-          </div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>{e.evaluation_date}</div>
+    <div>
+      {/* Pedir avaliação por link */}
+      <section style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Pedir avaliação ao supervisor</div>
+        <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 10 }}>Gera um link. O supervisor avalia-te sem precisar de conta — fica registado aqui.</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select value={evalKind} onChange={e => setEvalKind(e.target.value)} style={input}>
+            <option value="formative">Formativa</option>
+            <option value="summative">Sumativa</option>
+            <option value="mini_cex">Mini-CEX</option>
+            <option value="dops">DOPS</option>
+            <option value="cbd">CbD</option>
+          </select>
+          <button onClick={makeEvalLink} disabled={busy === 'eval'} style={btn('primary')}>{busy === 'eval' ? '…' : 'Gerar link de avaliação'}</button>
         </div>
-      ))}
+        {link && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center', background: '#f6f7f8', borderRadius: 8, padding: '8px 10px' }}>
+            <input readOnly value={link} style={{ ...input, flex: 1, fontSize: 12 }} onFocus={e => e.target.select()} />
+            <button onClick={() => copy(link)} style={btn('ghost')}>Copiar</button>
+          </div>
+        )}
+      </section>
+
+      {/* Partilhar portefólio */}
+      <section style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Partilhar portefólio</div>
+        <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 10 }}>Link só-leitura com objetivos, procedimentos, casos e avaliações — para mostrar à escola/supervisor.</div>
+        <button onClick={makePortfolioLink} disabled={busy === 'portfolio'} style={btn('primary')}>{busy === 'portfolio' ? '…' : 'Gerar link do portefólio'}</button>
+        {portfolioLink && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center', background: '#f6f7f8', borderRadius: 8, padding: '8px 10px' }}>
+            <input readOnly value={portfolioLink} style={{ ...input, flex: 1, fontSize: 12 }} onFocus={e => e.target.select()} />
+            <button onClick={() => copy(portfolioLink)} style={btn('ghost')}>Copiar</button>
+          </div>
+        )}
+      </section>
+
+      {/* Avaliações recebidas */}
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Avaliações recebidas</div>
+      {evaluations.length === 0 ? <Empty msg="Ainda sem avaliações. Gera um link acima e envia ao teu supervisor." /> : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {evaluations.map((e: any) => (
+            <div key={e.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 700 }}>{e.evaluator_name || (e.submitted_at ? 'Supervisor' : 'A aguardar resposta…')} · {e.kind}</span>
+                {e.overall_score
+                  ? <span style={{ padding: '2px 8px', borderRadius: 999, background: '#dcfce7', color: '#065f46', fontWeight: 700 }}>{e.overall_score}/5</span>
+                  : <span style={{ fontSize: 11, color: '#d97706', fontWeight: 700 }}>pendente</span>}
+              </div>
+              {(e.strengths || e.comments) && <div style={{ fontSize: 12.5, color: '#374151', marginTop: 6 }}>{e.strengths || e.comments}</div>}
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{e.evaluation_date}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

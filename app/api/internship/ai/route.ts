@@ -331,15 +331,19 @@ Responde APENAS JSON:
       ], { maxTokens: 2500, temperature: 0.25 })
 
       // Insere os objectivos
-      if (res.objectives) {
+      if (res.objectives?.length) {
+        const valid = ['see', 'assist', 'do', 'master']
         const rows = res.objectives.map(o => ({
           internship_id, user_id: userId,
-          category: o.category, title: o.title, description: o.description,
-          level: o.level, required: o.required, status: 'pending',
+          category: o.category || null, title: o.title, description: o.description || null,
+          level: valid.includes(o.level) ? o.level : 'do',
+          required: o.required !== false, status: 'pending',
         }))
-        await db.from('internship_objectives').insert(rows)
+        const { error: insErr } = await db.from('internship_objectives').insert(rows)
+        if (insErr) return NextResponse.json({ error: 'Objectivos gerados mas falhou ao guardar: ' + insErr.message }, { status: 500 })
+        return NextResponse.json({ ...res, saved: rows.length })
       }
-      return NextResponse.json(res)
+      return NextResponse.json({ error: 'A IA não devolveu objectivos. Tenta novamente.' }, { status: 500 })
     } catch (e: any) {
       return NextResponse.json({ error: e.message }, { status: 500 })
     }

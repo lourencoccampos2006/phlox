@@ -26,10 +26,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     db.from('internship_patients').select('*').eq('internship_id', id).order('created_at', { ascending: false }),
     db.from('internship_log_entries').select('*').eq('internship_id', id).order('entry_date', { ascending: false }).limit(60),
     db.from('internship_procedures').select('*').eq('internship_id', id).order('performed_at', { ascending: false }),
-    db.from('case_presentations').select('id, title, presentation_date, final_diagnosis, ai_assisted').eq('internship_id', id).order('created_at', { ascending: false }),
-    db.from('internship_reports').select('id, kind, title, ai_assisted, created_at').eq('internship_id', id).order('created_at', { ascending: false }),
+    db.from('case_presentations').select('id, title, presentation_date, final_diagnosis, ai_assisted, history, exam_findings, investigations, differential, management, outcome, discussion, references_text').eq('internship_id', id).order('created_at', { ascending: false }),
+    db.from('internship_reports').select('id, kind, title, ai_assisted, created_at, body').eq('internship_id', id).order('created_at', { ascending: false }),
     db.from('internship_reflections').select('id, created_at, framework').eq('internship_id', id).order('created_at', { ascending: false }).limit(20),
-    db.from('supervisor_evaluations').select('id, kind, evaluator_name, evaluation_date, overall_score, submitted_at').eq('internship_id', id).order('created_at', { ascending: false }),
+    db.from('supervisor_evaluations').select('id, kind, evaluator_name, evaluation_date, overall_score, submitted_at, strengths, comments').eq('internship_id', id).order('created_at', { ascending: false }),
     db.from('internship_hours').select('hours, hours_date, activity').eq('internship_id', id).order('hours_date', { ascending: false }),
   ])
   if (intRes.error || !intRes.data) return NextResponse.json({ error: intRes.error?.message || 'Não encontrado' }, { status: 404 })
