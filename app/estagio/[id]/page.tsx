@@ -17,7 +17,7 @@ import Link from 'next/link'
 
 const ACCENT = '#0d6e42'
 
-type Tab = 'dashboard'|'doentes'|'diario'|'objectivos'|'procedimentos'|'casos'|'relatorios'|'reflexoes'|'avaliacoes'|'horas'|'ferramentas'
+type Tab = 'coach'|'dashboard'|'doentes'|'diario'|'objectivos'|'procedimentos'|'casos'|'relatorios'|'reflexoes'|'avaliacoes'|'horas'|'ferramentas'
 
 interface Patient {
   id: string; initials: string|null; age: number|null; sex: string|null
@@ -122,6 +122,7 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 18, overflowX: 'auto', borderBottom: '1px solid #e5e7eb', paddingBottom: 0 }}>
         {([
+          ['coach', '✦ Coach'],
           ['dashboard', '📊 Dashboard'],
           ['doentes', `👥 Doentes (${patients.length})`],
           ['diario', `📝 Diário (${log.length})`],
@@ -144,6 +145,9 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Tab content */}
+      {tab === 'coach' && (
+        <CoachTab internshipId={id} supabase={supabase} patientCount={patients.length} />
+      )}
       {tab === 'dashboard' && (
         <DashboardTab it={it} objPct={objPct} objCompleted={objCompleted} objTotal={objectives.length} hoursPct={hoursPct} log={log} patients={patients} procedures={procedures} />
       )}
@@ -187,6 +191,267 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
       )}
     </main>
   )
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// COACH TAB — IA interpreta o estágio específico e maximiza a performance
+// ════════════════════════════════════════════════════════════════════════
+
+function CoachTab({ internshipId, supabase, patientCount }: any) {
+  const [view, setView] = useState<'curriculo' | 'debrief' | 'prep' | 'tools'>('curriculo')
+
+  async function headers() {
+    const { data } = await supabase.auth.getSession()
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
+  }
+  async function call(action: string, extra: any = {}) {
+    const r = await fetch('/api/internship/coach', { method: 'POST', headers: await headers(), body: JSON.stringify({ action, internship_id: internshipId, ...extra }) })
+    return r.json()
+  }
+
+  if (patientCount === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', border: '1px solid #e7e8ea', borderRadius: 12 }}>
+        <div style={{ fontSize: 34, marginBottom: 8 }}>✦</div>
+        <h3 style={{ margin: '0 0 6px' }}>O Coach precisa de te conhecer</h3>
+        <p style={{ color: '#6b7280', fontSize: 14, maxWidth: 420, margin: '0 auto', lineHeight: 1.5 }}>
+          Regista os primeiros doentes na tab <b>Doentes</b>. Depois o Coach interpreta a tua casuística e gera estudo, debrief e ferramentas à medida deste estágio.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ background: 'linear-gradient(0deg,#fff,#faf5ff)', border: '1px solid #e9d5ff', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#6d28d9' }}>✦ Coach do Estágio</div>
+        <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 2 }}>A IA lê tudo o que registas neste estágio e trabalha para a TUA performance — não é só um caderno.</div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>
+        {([['curriculo', '🎯 Currículo dos teus doentes'], ['debrief', '🌙 Debrief do dia'], ['prep', '☀️ Preparar turno'], ['tools', '🛠 Ferramentas à medida']] as [typeof view, string][]).map(([v, l]) => (
+          <button key={v} onClick={() => setView(v)} style={{
+            padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (view === v ? '#6d28d9' : '#e7e8ea'),
+            background: view === v ? '#6d28d9' : 'white', color: view === v ? 'white' : '#374151',
+            cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {view === 'curriculo' && <CurriculoView call={call} internshipId={internshipId} headers={headers} />}
+      {view === 'debrief' && <DebriefView call={call} />}
+      {view === 'prep' && <PrepView call={call} />}
+      {view === 'tools' && <CoachToolsView call={call} internshipId={internshipId} headers={headers} />}
+    </div>
+  )
+}
+
+function CurriculoView({ call, internshipId, headers }: any) {
+  const [caseload, setCaseload] = useState<any>(null)
+  const [gaps, setGaps] = useState<any>(null)
+  const [busy, setBusy] = useState('')
+  const [cardMsg, setCardMsg] = useState('')
+
+  async function run(kind: 'caseload' | 'gaps') {
+    setBusy(kind)
+    const r = await call(kind)
+    if (kind === 'caseload') setCaseload(r.result); else setGaps(r.result)
+    setBusy('')
+  }
+
+  async function makeCards() {
+    setCardMsg('A gerar flashcards dos teus casos…')
+    const r = await call('cards_from_cases')
+    const cards = r.flashcards || []
+    if (!cards.length) { setCardMsg('Sem cartões gerados.'); return }
+    // cria uma nota com os casos e gera os cartões no sistema de memória
+    const h = await headers()
+    const body = cards.map((c: any) => `**${c.front}**\n${c.back}`).join('\n\n')
+    const nr = await fetch('/api/study/notes', { method: 'POST', headers: h, body: JSON.stringify({ title: 'Casos do estágio', body, domain: 'clinico', source: 'estagio' }) })
+    const nj = await nr.json()
+    if (nj.note?.id) {
+      await fetch('/api/study/cards', { method: 'POST', headers: h, body: JSON.stringify({ action: 'generate', note_id: nj.note.id, title: 'Casos do estágio', text: body }) })
+      setCardMsg(`${cards.length} flashcards criados — vão aparecer na tua revisão (/study/notas).`)
+    } else setCardMsg('Guardado, mas falhou a criação dos cartões.')
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {/* Casuística */}
+      <section style={card}>
+        <Head title="A tua casuística" sub="O que estás realmente a ver neste estágio" />
+        {!caseload ? (
+          <button onClick={() => run('caseload')} disabled={busy === 'caseload'} style={btn('primary')}>{busy === 'caseload' ? 'A analisar…' : 'Analisar os meus doentes'}</button>
+        ) : (
+          <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 10px' }}>{caseload.summary}</p>
+            {caseload.must_master?.length > 0 && <>
+              <div style={lbl}>Tens de dominar</div>
+              <ul style={ul}>{caseload.must_master.map((m: string, i: number) => <li key={i}>{m}</li>)}</ul>
+            </>}
+            {caseload.exposure_balance && <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#6b7280' }}>⚖️ {caseload.exposure_balance}</p>}
+          </div>
+        )}
+      </section>
+
+      {/* Lacunas */}
+      <section style={card}>
+        <Head title="Lacunas detetadas" sub="O que te falta, com plano de ação" />
+        {!gaps ? (
+          <button onClick={() => run('gaps')} disabled={busy === 'gaps'} style={btn('primary')}>{busy === 'gaps' ? 'A detetar…' : 'Detetar lacunas'}</button>
+        ) : (
+          <div>
+            {gaps.next_best_action && <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13, marginBottom: 10 }}><b>A seguir:</b> {gaps.next_best_action}</div>}
+            <div style={{ display: 'grid', gap: 8 }}>
+              {(gaps.gaps || []).map((g: any, i: number) => (
+                <div key={i} style={{ borderLeft: `3px solid ${g.severity === 'alta' ? '#dc2626' : g.severity === 'media' ? '#d97706' : '#6b7280'}`, paddingLeft: 10 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: '#16181d' }}>{g.gap}</div>
+                  <div style={{ fontSize: 12.5, color: '#6b7280' }}>➜ {g.action} · <b>Estuda:</b> {g.study}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Flashcards dos casos → memória */}
+      <section style={card}>
+        <Head title="Transforma os teus casos em revisão" sub="A IA cria flashcards dos doentes que viste, que entram na tua revisão espaçada" />
+        <button onClick={makeCards} style={{ ...btn('primary'), background: '#6d28d9' }}>Gerar flashcards dos meus casos</button>
+        {cardMsg && <p style={{ fontSize: 12.5, color: '#6d28d9', marginTop: 8 }}>{cardMsg}</p>}
+      </section>
+    </div>
+  )
+}
+
+function DebriefView({ call }: any) {
+  const [notes, setNotes] = useState('')
+  const [res, setRes] = useState<any>(null)
+  const [busy, setBusy] = useState(false)
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({})
+
+  async function run() {
+    setBusy(true); setRes(null)
+    const r = await call('debrief', { today_notes: notes })
+    setRes(r.result); setBusy(false)
+  }
+
+  return (
+    <section style={card}>
+      <Head title="Debrief do dia" sub="No fim do turno: consolida o que viste e testa-te" />
+      <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="O que viste hoje? (opcional — se vazio, uso a tua casuística geral)" style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
+      <button onClick={run} disabled={busy} style={btn('primary')}>{busy ? 'A preparar debrief…' : 'Fazer debrief'}</button>
+      {res && (
+        <div style={{ marginTop: 12, fontSize: 13.5, color: '#374151', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 10px' }}>{res.recap}</p>
+          {(res.questions_detail || []).map((qd: any, i: number) => (
+            <div key={i} style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8, marginTop: 8 }}>
+              <div style={{ fontWeight: 600 }}>{i + 1}. {qd.q}</div>
+              {revealed[i] ? <div style={{ color: '#0d6e42', marginTop: 4 }}>{qd.answer}</div>
+                : <button onClick={() => setRevealed(r => ({ ...r, [i]: true }))} style={{ ...btn('ghost'), marginTop: 4, padding: '4px 10px', fontSize: 12 }}>Ver resposta</button>}
+            </div>
+          ))}
+          {res.one_thing && <div style={{ background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, marginTop: 12, fontSize: 13 }}>🌙 <b>Esta noite (5 min):</b> {res.one_thing}</div>}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function PrepView({ call }: any) {
+  const [expect, setExpect] = useState('')
+  const [res, setRes] = useState<any>(null)
+  const [busy, setBusy] = useState(false)
+  async function run() { setBusy(true); setRes(null); const r = await call('prep', { expectation: expect }); setRes(r.result); setBusy(false) }
+  const Block = ({ title, items, icon }: any) => items?.length > 0 ? (
+    <div style={{ marginTop: 10 }}><div style={lbl}>{icon} {title}</div><ul style={ul}>{items.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
+  ) : null
+  return (
+    <section style={card}>
+      <Head title="Preparar o próximo turno" sub="Antes de ires: o que rever, o que o tutor pode perguntar, red flags" />
+      <input value={expect} onChange={e => setExpect(e.target.value)} placeholder="O que esperas hoje? (ex: dia de admissões, bloco operatório…)" style={{ ...inputStyle, marginBottom: 8 }} />
+      <button onClick={run} disabled={busy} style={btn('primary')}>{busy ? 'A preparar…' : 'Preparar-me'}</button>
+      {res && (
+        <div style={{ fontSize: 13.5, color: '#374151' }}>
+          <Block title="Rever antes" items={res.review} icon="📖" />
+          <Block title="O tutor pode perguntar" items={res.tutor_questions} icon="🎓" />
+          <Block title="Red flags a vigiar" items={res.red_flags} icon="🚩" />
+          <Block title="Competências a treinar" items={res.skills} icon="🤲" />
+        </div>
+      )}
+    </section>
+  )
+}
+
+function CoachToolsView({ call, internshipId, headers }: any) {
+  const [tools, setTools] = useState<any[]>([])
+  const [busy, setBusy] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    (async () => {
+      const h = await headers()
+      const r = await fetch(`/api/internship/coach?internship_id=${internshipId}`, { headers: h })
+      const j = await r.json(); setTools(j.tools || []); setLoaded(true)
+    })()
+  }, [internshipId])
+
+  async function generate() {
+    setBusy(true)
+    const r = await call('generate_tools')
+    if (r.tools) {
+      const h = await headers()
+      const rr = await fetch(`/api/internship/coach?internship_id=${internshipId}`, { headers: h })
+      const jj = await rr.json(); setTools(jj.tools || [])
+    }
+    setBusy(false)
+  }
+
+  return (
+    <section style={card}>
+      <Head title="Ferramentas geradas para ESTE estágio" sub="A IA propõe ferramentas práticas à medida do que tu realmente vês e precisas" />
+      <button onClick={generate} disabled={busy} style={{ ...btn('primary'), background: '#6d28d9', marginBottom: 12 }}>{busy ? 'A gerar…' : tools.length ? 'Gerar mais ferramentas' : 'Gerar as minhas ferramentas'}</button>
+      {loaded && tools.length === 0 && <p style={{ fontSize: 13, color: '#6b7280' }}>Ainda sem ferramentas. Carrega no botão para a IA criar ferramentas adaptadas ao teu estágio.</p>}
+      <div style={{ display: 'grid', gap: 10 }}>
+        {tools.map(t => <GeneratedTool key={t.id} tool={t} />)}
+      </div>
+    </section>
+  )
+}
+
+function GeneratedTool({ tool }: any) {
+  const [open, setOpen] = useState(false)
+  const KIND: Record<string, string> = { checklist: '☑️', drill: '🎯', reference: '📌', calculator: '🧮', protocol: '🔀' }
+  const items: string[] = tool.content?.items || []
+  return (
+    <div style={{ border: '1px solid #e7e8ea', borderRadius: 10, overflow: 'hidden' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', textAlign: 'left', padding: 12, background: 'white', border: 'none', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>{KIND[tool.kind] || '🛠'} {tool.title}</span>
+          <span style={{ color: '#9ca3af' }}>{open ? '−' : '+'}</span>
+        </div>
+        {tool.rationale && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>{tool.rationale}</div>}
+      </button>
+      {open && items.length > 0 && (
+        <div style={{ padding: '0 12px 12px' }}>
+          {tool.kind === 'checklist' || tool.kind === 'protocol' ? (
+            <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ol>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// helpers do Coach
+const card: React.CSSProperties = { background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16 }
+const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, margin: '4px 0 4px' }
+const ul: React.CSSProperties = { margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }
+function Head({ title, sub }: { title: string; sub: string }) {
+  return <div style={{ marginBottom: 12 }}><div style={{ fontWeight: 700, fontSize: 15 }}>{title}</div><div style={{ fontSize: 12.5, color: '#6b7280' }}>{sub}</div></div>
 }
 
 // ════════════════════════════════════════════════════════════════════════
