@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type ExperienceMode } from '@/lib/experienceMode'
+import PlanAds from '@/components/PlanAds'
 
 // ─── Mode meta ────────────────────────────────────────────────────────────────
 
@@ -1115,6 +1116,11 @@ function DashboardContent() {
             />
           </div>
         </section>
+
+        {/* Anúncio — só plano gratuito; pagantes nunca veem */}
+        <div style={{ maxWidth: 920, margin: '8px auto 0', padding: '0 16px' }}>
+          <PlanAds slot="dashboard_footer" format="horizontal" />
+        </div>
 
       </div>
 
