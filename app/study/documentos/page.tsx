@@ -1,0 +1,143 @@
+'use client'
+
+// /study/documentos — RAG pessoal (Pro).
+// Carrega os teus PDFs/slides/sebentas → a IA responde COM BASE no teu material,
+// citando o documento. "O que diz a minha sebenta sobre X?"
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useAuth } from '@/components/AuthContext'
+import { extractFromFile } from '@/lib/docExtract'
+
+const ACCENT = '#0d6e42'
+
+interface Doc { id: string; title: string; kind: string; chunk_count: number; char_count: number; created_at: string }
+interface Source { n: number; title: string; snippet: string }
+
+export default function DocumentosPage() {
+  const { supabase } = useAuth() as any
+  const [docs, setDocs] = useState<Doc[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState('')
+  const [question, setQuestion] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [answer, setAnswer] = useState('')
+  const [sources, setSources] = useState<Source[]>([])
+  const [err, setErr] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const auth = useCallback(async () => {
+    const { data } = await supabase.auth.getSession()
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token || ''}` }
+  }, [supabase])
+
+  const load = useCallback(async () => {
+    const headers = await auth()
+    const r = await fetch('/api/study/documents', { headers })
+    const j = await r.json().catch(() => ({}))
+    setDocs(j.documents || []); setLoading(false)
+  }, [auth])
+  useEffect(() => { load() }, [load])
+
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    for (const file of files) {
+      setUploading(`A ler ${file.name}…`)
+      try {
+        const ex = await extractFromFile(file)
+        if (!ex.text || ex.text.trim().length < 20) { setErr(`${file.name}: sem texto extraível.`); continue }
+        setUploading(`A indexar ${file.name}…`)
+        const headers = await auth()
+        const r = await fetch('/api/study/documents', { method: 'POST', headers, body: JSON.stringify({ action: 'ingest', title: file.name.replace(/\.[^.]+$/, ''), kind: ex.kind, text: ex.text }) })
+        const j = await r.json().catch(() => ({}))
+        if (j.error) setErr(j.error)
+      } catch (e: any) { setErr(`${file.name}: ${e.message || 'falha'}`) }
+    }
+    setUploading(''); await load()
+  }
+
+  async function ask(q?: string) {
+    const target = (q ?? question).trim()
+    if (!target || busy) return
+    if (q) setQuestion(q)
+    setBusy(true); setErr(''); setAnswer(''); setSources([])
+    try {
+      const headers = await auth()
+      const r = await fetch('/api/study/documents', { method: 'POST', headers, body: JSON.stringify({ action: 'ask', question: target }) })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.error || 'Erro')
+      setAnswer(j.answer || ''); setSources(j.sources || [])
+    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+  }
+
+  async function removeDoc(id: string) {
+    if (!confirm('Apagar este documento?')) return
+    const headers = await auth()
+    await fetch(`/api/study/documents?id=${id}`, { method: 'DELETE', headers })
+    await load()
+  }
+
+  if (loading) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
+
+  return (
+    <main style={{ padding: '18px clamp(14px,4vw,32px)', maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8b8f99', marginBottom: 4 }}>Os meus documentos</div>
+        <h1 style={{ margin: 0, fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Pergunta ao teu próprio material.</h1>
+        <p style={{ color: '#6b7280', fontSize: 14, marginTop: 6 }}>Carrega as tuas sebentas, slides e PDFs. A IA responde com base neles e cita a fonte.</p>
+      </div>
+
+      {/* Upload */}
+      <div onClick={() => fileRef.current?.click()} style={{ border: '1.5px dashed #c4b5fd', borderRadius: 12, padding: 20, textAlign: 'center', cursor: 'pointer', background: '#faf5ff', marginBottom: 16 }}>
+        <div style={{ fontSize: 26, marginBottom: 4 }}>📚</div>
+        <div style={{ fontWeight: 700, color: '#6d28d9' }}>Carregar PDF, Word, slides ou texto</div>
+        <div style={{ fontSize: 12, color: '#8b8f99', marginTop: 2 }}>{uploading || 'O texto é extraído no teu browser e indexado de forma privada.'}</div>
+        <input ref={fileRef} type="file" accept=".pdf,.docx,.pptx,.txt,.md" multiple onChange={onFiles} style={{ display: 'none' }} />
+      </div>
+
+      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>}
+
+      {/* Lista de documentos */}
+      {docs.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+          {docs.map(d => (
+            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #e7e8ea', borderRadius: 999, padding: '5px 6px 5px 12px', fontSize: 13 }}>
+              <span style={{ fontWeight: 600 }}>{d.title}</span>
+              <span style={{ fontSize: 11, color: '#8b8f99' }}>{d.chunk_count} trechos</span>
+              <button onClick={() => removeDoc(d.id)} style={{ border: 'none', background: '#f3f4f6', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', color: '#6b7280' }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Perguntar */}
+      {docs.length === 0 ? (
+        <p style={{ color: '#6b7280', fontSize: 14, textAlign: 'center', padding: 20 }}>Carrega pelo menos um documento para começar a perguntar.</p>
+      ) : (
+        <>
+          <form onSubmit={e => { e.preventDefault(); ask() }} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ex: O que diz a minha sebenta sobre insuficiência cardíaca?"
+              style={{ flex: 1, padding: '11px 13px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+            <button type="submit" disabled={busy || !question.trim()} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', opacity: busy || !question.trim() ? 0.5 : 1 }}>{busy ? '…' : 'Perguntar'}</button>
+          </form>
+
+          {answer && (
+            <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 18, marginTop: 10 }}>
+              <div style={{ fontSize: 14.5, color: '#16181d', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{answer}</div>
+              {sources.length > 0 && (
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #e7e8ea' }}>
+                  <div style={{ fontSize: 11, color: '#8b8f99', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Dos teus documentos</div>
+                  {sources.map(s => (
+                    <div key={s.n} style={{ fontSize: 12.5, color: '#374151', marginBottom: 6, paddingLeft: 8, borderLeft: `2px solid ${ACCENT}` }}>
+                      <b>[{s.n}] {s.title}</b><br /><span style={{ color: '#6b7280' }}>{s.snippet}…</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          )}
+        </>
+      )}
+    </main>
+  )
+}

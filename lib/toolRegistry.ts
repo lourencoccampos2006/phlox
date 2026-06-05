@@ -103,6 +103,8 @@ export const TOOLS: Tool[] = [
   { id: '/study/lab',    label: 'Lab interpreter',               desc: '60+ valores ref · interpretação IA', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/study/biblioteca', label: 'Biblioteca médica',         desc: 'Guidelines ESC, ADA, GINA, NICE',  category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/study/procedimentos', label: 'Procedimentos clínicos', desc: 'Guias passo-a-passo com checklist', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/documentos', label: 'Os meus documentos (IA)',   desc: 'Pergunta às tuas sebentas e slides', category: 'study',    modes: ['student'], plan: 'pro' },
+  { id: '/modo-exame',   label: 'Modo Exame',                    desc: 'Plano de contagem decrescente até ao exame', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/estagio',      label: 'Estágio (completo)',            desc: 'Doentes, diário, casos, IA, relatórios', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
 
   // ══ CLÍNICO ═══════════════════════════════════════════════════════════════

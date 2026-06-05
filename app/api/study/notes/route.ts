@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null) as any
   if (!body?.title) return NextResponse.json({ error: 'title obrigatório' }, { status: 400 })
   const db = sb(req)
-  const { data, error } = await db.from('study_notes').insert({
+  const insert: Record<string, any> = {
     user_id: userId,
     title: body.title,
     body: body.body || null,
@@ -47,7 +47,14 @@ export async function POST(req: NextRequest) {
     tags: body.tags || null,
     linked_ids: body.linked_ids || null,
     pinned: !!body.pinned,
-  }).select().single()
+  }
+  if (body.source) insert.source = body.source  // 'voice'|'photo'|'paste'|'template' (sprint76)
+  let { data, error } = await db.from('study_notes').insert(insert).select().single()
+  // Fallback se a coluna source ainda não existir (sprint76 não aplicado)
+  if (error && /source/.test(error.message)) {
+    delete insert.source
+    ;({ data, error } = await db.from('study_notes').insert(insert).select().single())
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ note: data })
 }

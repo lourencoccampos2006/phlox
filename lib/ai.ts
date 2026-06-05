@@ -399,3 +399,37 @@ export async function callGeminiVisionJSON<T>(
     throw new Error('Erro ao processar resposta. Tenta novamente.')
   }
 }
+
+// ─── Transcrição de áudio (Groq Whisper) ──────────────────────────────────────
+// Transcreve áudio para texto. Usa whisper-large-v3-turbo (rápido) via Groq.
+// audioBase64 sem o prefixo data:; mimeType ex: 'audio/webm'.
+export async function transcribeAudio(
+  audioBase64: string,
+  mimeType: string = 'audio/webm',
+  language: string = 'pt'
+): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) throw new Error('GROQ_API_KEY not set')
+
+  // base64 → Blob
+  const bin = atob(audioBase64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('mpeg') ? 'mp3' : mimeType.includes('wav') ? 'wav' : 'webm'
+
+  const form = new FormData()
+  form.append('file', new Blob([bytes], { type: mimeType }), `audio.${ext}`)
+  form.append('model', 'whisper-large-v3-turbo')
+  form.append('language', language)
+  form.append('response_format', 'text')
+
+  const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(60000),
+  })
+  if (res.status === 429) throw Object.assign(new Error('Rate limit'), { status: 429 })
+  if (!res.ok) throw new Error(`Groq Whisper error: ${res.status}`)
+  return (await res.text()).trim()
+}

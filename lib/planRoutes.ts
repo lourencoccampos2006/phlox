@@ -18,17 +18,23 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/copiloto', min: 'pro', tool: 'AI Copilot clínico', note: 'IA ancorada no Decision Engine — cita cada recomendação por id de regra.' },
   { prefix: '/insights', min: 'pro', tool: 'Phlox Insights', note: 'Benchmarks anonimizados contra o pool do mesmo tipo de instituição.' },
   { prefix: '/reconciliacao', min: 'pro', tool: 'Reconciliação Terapêutica', note: 'Reconciliação de medicação na transição de cuidados.' },
-  { prefix: '/simulador', min: 'pro', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação.' },
+  { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação.' },
   { prefix: '/med-review', min: 'pro', tool: 'Revisão da Medicação', note: 'Revisão farmacoterapêutica avançada.' },
   { prefix: '/tpn', min: 'pro', tool: 'Nutrição Parentérica (TPN)', note: 'Cálculo e validação de TPN.' },
   { prefix: '/stopp-start', min: 'pro', tool: 'STOPP/START', note: 'Critérios de prescrição potencialmente inapropriada.' },
   { prefix: '/labs', min: 'student', tool: 'Interpretação de Análises', note: 'Leitura guiada de análises.' },
 
   // ── Estudo (Plus) ──
-  { prefix: '/simulador', min: 'pro', tool: 'Simulador Clínico' },
+  { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico' },
+  { prefix: '/osce', min: 'student', tool: 'OSCE' },
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },
   { prefix: '/tutor', min: 'student', tool: 'AI Tutor' },
-  { prefix: '/exam', min: 'student', tool: 'Modo Exame' },
+  { prefix: '/exam', min: 'student', tool: 'Quiz / Teste' },
+  { prefix: '/modo-exame', min: 'student', tool: 'Modo Exame', note: 'Plano de contagem decrescente até ao exame, com revisão espaçada e sprint final.' },
+  { prefix: '/estagio', min: 'student', tool: 'Estágio' },
+  { prefix: '/study360', min: 'student', tool: 'Estudo 360°' },
+  // ── Estudo (Pro) — RAG pessoal ──
+  { prefix: '/study/documentos', min: 'pro', tool: 'Os meus documentos (IA)', note: 'Carrega as tuas sebentas e pergunta — a IA responde com base no teu material.' },
 ]
 
 export function planForRoute(pathname: string): PlanRoute | null {
