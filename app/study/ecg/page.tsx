@@ -23,6 +23,21 @@ const CATEGORIES = [
   { v: 'outros', label: 'Outros' },
 ]
 
+// Nome curto de categoria para a etiqueta neutra (sem revelar o diagnóstico)
+const CAT_SHORT: Record<string, string> = {
+  sca: 'Síndrome coronário', arritmias: 'Arritmia', 'condução': 'Condução',
+  'eletrólitos': 'Eletrólitos', normal: 'Normal / variante', outros: 'Outro',
+}
+const DIFF_LABEL: Record<string, string> = { easy: 'Fácil', medium: 'Médio', hard: 'Difícil' }
+
+// Etiqueta NEUTRA do caso — não revela o diagnóstico (o título da BD É o
+// diagnóstico, por isso nunca o mostramos antes do reveal).
+function caseLabel(e: ECG, index?: number): string {
+  const cat = CAT_SHORT[e.category] || 'Caso'
+  const n = typeof index === 'number' ? `Caso ${String(index + 1).padStart(2, '0')} · ` : ''
+  return `${n}${cat}`
+}
+
 export default function ECGPage() {
   const { supabase } = useAuth() as any
   const [ecgs, setEcgs] = useState<ECG[]>([])
@@ -71,8 +86,19 @@ export default function ECGPage() {
       <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1000, margin: '0 auto' }}>
         <button onClick={() => setSelected(null)} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar à lista</button>
 
-        <h1 style={{ margin: 0, fontSize: 22 }}>{selected.title}</h1>
-        <p style={{ color: '#6b7280', margin: '4px 0 16px', fontSize: 14 }}>{selected.context}</p>
+        {/* Antes do reveal: etiqueta NEUTRA + apresentação clínica. NUNCA o título/diagnóstico. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <h1 style={{ margin: 0, fontSize: 20 }}>{revealed ? selected.title : caseLabel(selected)}</h1>
+          <span style={{ padding: '2px 10px', borderRadius: 999, background: selected.difficulty === 'easy' ? '#dcfce7' : selected.difficulty === 'medium' ? '#fef3c7' : '#fee2e2', color: selected.difficulty === 'easy' ? '#065f46' : selected.difficulty === 'medium' ? '#92400e' : '#991b1b', fontSize: 11, fontWeight: 700 }}>
+            {DIFF_LABEL[selected.difficulty] || selected.difficulty}
+          </span>
+        </div>
+
+        {/* Apresentação clínica — dá contexto sem revelar o diagnóstico */}
+        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderLeft: `3px solid ${ACCENT}`, borderRadius: 8, padding: '10px 14px', margin: '10px 0 16px' }}>
+          <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 }}>Apresentação clínica</div>
+          <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.5 }}>{selected.context}</p>
+        </div>
 
         {selected.image_url ? (
           <img src={selected.image_url} alt="ECG" style={{ width: '100%', borderRadius: 8, marginBottom: 16, border: '1px solid #e5e7eb' }} />
@@ -83,9 +109,9 @@ export default function ECGPage() {
         {!revealed && (
           <>
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Dados do ECG</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, fontSize: 13 }}>
-                <div><b>Ritmo:</b> {selected.rhythm}</div>
+              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Medições do traçado</div>
+              {/* Mostramos as MEDIÇÕES (o que se lê do ECG), não o "ritmo" — esse é parte da resposta. */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, fontSize: 13 }}>
                 <div><b>Frequência:</b> {selected.rate_bpm} bpm</div>
                 <div><b>Eixo:</b> {selected.axis}</div>
                 <div><b>PR:</b> {selected.pr_ms || '—'} ms</div>
@@ -140,11 +166,16 @@ export default function ECGPage() {
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <h2 style={{ margin: '0 0 10px', fontSize: 16, color: ACCENT }}>Diagnóstico: {selected.diagnosis}</h2>
             <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.5 }}>{selected.description}</p>
-            <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 4 }}>ACHADOS</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151' }}>
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 4 }}>ACHADOS-CHAVE</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
                 {selected.findings.map((f, i) => <li key={i}>{f}</li>)}
               </ul>
+            </div>
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: 8, fontSize: 12, color: '#6b7280' }}>
+              <div><b>Ritmo:</b> {selected.rhythm}</div>
+              <div><b>FC:</b> {selected.rate_bpm} bpm</div>
+              <div><b>QTc:</b> {selected.qtc_ms} ms</div>
             </div>
           </div>
         )}
@@ -173,17 +204,20 @@ export default function ECGPage() {
         <p style={{ color: '#6b7280', fontSize: 14 }}>Nenhum ECG disponível ainda. Aplica o sprint70 SQL.</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
-          {ecgs.map(e => (
+          {ecgs.map((e, idx) => (
             <button key={e.id} onClick={() => pickEcg(e)} style={{
               textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, cursor: 'pointer',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{e.title}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                {/* Etiqueta NEUTRA — não revela o diagnóstico */}
+                <span style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{caseLabel(e, idx)}</span>
                 <span style={{ padding: '2px 8px', borderRadius: 999, background: e.difficulty === 'easy' ? '#dcfce7' : e.difficulty === 'medium' ? '#fef3c7' : '#fee2e2', color: e.difficulty === 'easy' ? '#065f46' : e.difficulty === 'medium' ? '#92400e' : '#991b1b', fontSize: 10, fontWeight: 700 }}>
-                  {e.difficulty}
+                  {DIFF_LABEL[e.difficulty] || e.difficulty}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>{e.context}</p>
+              {/* Só a apresentação clínica — o "porquê estás a ver este ECG" */}
+              <p style={{ margin: 0, fontSize: 12.5, color: '#374151', lineHeight: 1.5 }}>{e.context}</p>
+              <div style={{ marginTop: 10, fontSize: 11, color: ACCENT, fontWeight: 700 }}>Interpretar →</div>
             </button>
           ))}
         </div>

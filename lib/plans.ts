@@ -8,7 +8,11 @@ export interface PlanDef {
   id: PlanId
   name: string
   tagline: string
-  price: { monthly: number; annual: number }   // €/mês
+  // monthly = €/mês no plano mensal.
+  // annual  = €/mês equivalente quando se paga o ano de uma vez.
+  // annualTotal = valor REAL cobrado no plano anual (€/ano). Mostrar sempre este
+  //               valor ao lado do "/mês" para não enganar (transparência).
+  price: { monthly: number; annual: number; annualTotal: number }
   rank: number
   ads: boolean
   badge?: string
@@ -22,7 +26,7 @@ export interface PlanDef {
 
 export const PLANS: PlanDef[] = [
   {
-    id: 'free', name: 'Base', tagline: 'Para começar — com anúncios', price: { monthly: 0, annual: 0 },
+    id: 'free', name: 'Base', tagline: 'Para começar — com anúncios', price: { monthly: 0, annual: 0, annualTotal: 0 },
     rank: 0, ads: true, color: '#475569', cta: 'Começar grátis', href: '/login', audience: 'individual',
     features: [
       'Ferramentas essenciais do teu perfil',
@@ -33,7 +37,7 @@ export const PLANS: PlanDef[] = [
     ],
   },
   {
-    id: 'student', name: 'Plus', tagline: 'Mais ferramentas, sem anúncios', price: { monthly: 3.99, annual: 2.99 },
+    id: 'student', name: 'Plus', tagline: 'Mais ferramentas, sem anúncios', price: { monthly: 3.99, annual: 3.19, annualTotal: 38.28 },
     rank: 1, ads: false, color: '#7c3aed', cta: 'Escolher Plus', href: '/checkout?plan=student', audience: 'individual',
     features: [
       'Tudo do Base, sem anúncios',
@@ -44,7 +48,7 @@ export const PLANS: PlanDef[] = [
     ],
   },
   {
-    id: 'pro', name: 'Pro', tagline: 'Tudo desbloqueado, sem limites', price: { monthly: 12.99, annual: 9.99 },
+    id: 'pro', name: 'Pro', tagline: 'Tudo desbloqueado, sem limites', price: { monthly: 12.99, annual: 10.39, annualTotal: 124.68 },
     rank: 2, ads: false, highlight: true, badge: 'Mais popular', color: '#0d6e42', cta: 'Escolher Pro', href: '/checkout?plan=pro', audience: 'individual',
     features: [
       'Tudo do Plus, sem limites',
@@ -55,7 +59,7 @@ export const PLANS: PlanDef[] = [
     ],
   },
   {
-    id: 'clinic', name: 'Institucional', tagline: 'Para lares, farmácias e organizações', price: { monthly: 89, annual: 69 },
+    id: 'clinic', name: 'Institucional', tagline: 'Para lares, farmácias e organizações', price: { monthly: 100, annual: 83.33, annualTotal: 1000 },
     rank: 3, ads: false, color: '#1d4ed8', cta: 'Falar connosco', href: '/connect', audience: 'organization',
     features: [
       'Espaço clínico completo da organização',

@@ -22,7 +22,7 @@ export function planGateResponse(requiredPlan: Plan, featureName: string): NextR
     error: `${featureName} requer o plano ${
       requiredPlan === 'student' ? 'Plus (3,99€/mês)' :
       requiredPlan === 'pro'     ? 'Pro (12,99€/mês)' :
-      requiredPlan === 'clinic'  ? 'Institucional (89€/mês)' :
+      requiredPlan === 'clinic'  ? 'Institucional (100€/mês)' :
       'Base'
     }.`,
     upgrade_required: true,

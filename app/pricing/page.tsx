@@ -24,12 +24,12 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Billing toggle */}
+        {/* Billing toggle — desconto real calculado, não inventado */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-          <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 3 }}>
+          <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
             {(['monthly', 'annual'] as Billing[]).map(b => (
-              <button key={b} onClick={() => setBilling(b)} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, background: billing === b ? 'var(--ink)' : 'transparent', color: billing === b ? 'white' : 'var(--ink-4)' }}>
-                {b === 'monthly' ? 'Mensal' : 'Anual'}{b === 'annual' && <span style={{ fontSize: 10, marginLeft: 6, color: billing === b ? '#86efac' : '#16a34a' }}>-25%</span>}
+              <button key={b} onClick={() => setBilling(b)} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, background: billing === b ? 'var(--ink)' : 'transparent', color: billing === b ? 'white' : 'var(--ink-4)' }}>
+                {b === 'monthly' ? 'Mensal' : 'Anual'}{b === 'annual' && <span style={{ fontSize: 10, marginLeft: 6, color: billing === b ? '#9fd3b6' : 'var(--green)' }}>poupa ~20%</span>}
               </button>
             ))}
           </div>
@@ -40,13 +40,26 @@ export default function PricingPage() {
           {individual.map(p => {
             const price = billing === 'monthly' ? p.price.monthly : p.price.annual
             return (
-              <div key={p.id} style={{ background: 'white', border: `1.5px solid ${p.highlight ? p.color : 'var(--border)'}`, borderRadius: 16, padding: 22, position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: p.highlight ? '0 10px 30px rgba(13,110,66,0.12)' : 'none' }}>
+              <div key={p.id} style={{ background: 'white', border: `1px solid ${p.highlight ? p.color : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: 22, position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: p.highlight ? 'var(--shadow-md)' : 'none' }}>
                 {p.badge && <span style={{ position: 'absolute', top: -10, left: 22, fontSize: 10, fontWeight: 800, color: 'white', background: p.color, padding: '3px 10px', borderRadius: 6, letterSpacing: '0.04em' }}>{p.badge.toUpperCase()}</span>}
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2, minHeight: 32 }}>{p.tagline}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, margin: '14px 0 16px' }}>
-                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', lineHeight: 1 }}>{formatPrice(price)}</span>
-                  {price > 0 && <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/mês</span>}
+                <div style={{ margin: '14px 0 16px', minHeight: 56 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', lineHeight: 1 }}>{formatPrice(price)}</span>
+                    {price > 0 && <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/mês</span>}
+                  </div>
+                  {/* Transparência: no plano anual mostramos o valor REAL cobrado por ano */}
+                  {price > 0 && billing === 'annual' && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 5 }}>
+                      {formatPrice(p.price.annualTotal)} cobrados uma vez por ano
+                    </div>
+                  )}
+                  {price > 0 && billing === 'monthly' && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 5 }}>
+                      ou {formatPrice(p.price.annualTotal)}/ano ({formatPrice(p.price.annual)}/mês)
+                    </div>
+                  )}
                 </div>
                 <Link href={p.href} style={{ display: 'block', textAlign: 'center', padding: '11px', borderRadius: 9, textDecoration: 'none', fontSize: 14, fontWeight: 700, marginBottom: 16, background: p.highlight ? p.color : 'white', color: p.highlight ? 'white' : 'var(--ink)', border: p.highlight ? 'none' : '1.5px solid var(--border)' }}>{p.cta}</Link>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -81,8 +94,13 @@ export default function PricingPage() {
           </div>
           <div style={{ textAlign: 'center', flexShrink: 0 }}>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 34, lineHeight: 1 }}>{formatPrice(billing === 'monthly' ? org.price.monthly : org.price.annual)}<span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/mês</span></div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>por instituição</div>
-            <Link href={org.href} style={{ display: 'block', padding: '11px 28px', background: '#2563eb', color: 'white', borderRadius: 9, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>{org.cta}</Link>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>por instituição</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 12 }}>
+              {billing === 'annual'
+                ? `${formatPrice(org.price.annualTotal)} cobrados uma vez por ano`
+                : `ou ${formatPrice(org.price.annualTotal)}/ano`}
+            </div>
+            <Link href={org.href} style={{ display: 'block', padding: '11px 28px', background: '#2563eb', color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>{org.cta}</Link>
           </div>
         </div>
 
