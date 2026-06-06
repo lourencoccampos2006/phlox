@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 const ACCENT = '#0d6e42'
 
@@ -24,6 +25,12 @@ export default function LabPage() {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [category, setCategory] = useState('')
+
+  usePhloxContext(
+    analysis ? 'Análises laboratoriais interpretadas' : (labText ? 'Análises a interpretar' : ''),
+    analysis ? { valores: labText.slice(0, 800), interpretacao: typeof analysis === 'string' ? analysis.slice(0, 800) : JSON.stringify(analysis).slice(0, 800) }
+      : (labText ? { valores: labText.slice(0, 800) } : null)
+  )
 
   useEffect(() => {
     (async () => {

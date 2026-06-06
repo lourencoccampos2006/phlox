@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 const ACCENT = '#0d6e42'
 
@@ -48,6 +49,16 @@ export default function ECGPage() {
   const [feedback, setFeedback] = useState<any>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Publica o ECG em análise para o Copilot (revela diagnóstico só depois do reveal)
+  usePhloxContext(
+    selected ? 'ECG em análise' : '',
+    selected ? {
+      caso: caseLabel(selected), apresentacao: selected.context,
+      frequencia: selected.rate_bpm, eixo: selected.axis, PR: selected.pr_ms, QRS: selected.qrs_ms, QTc: selected.qtc_ms,
+      ...(revealed ? { diagnostico: selected.diagnosis, ritmo: selected.rhythm, achados: selected.findings } : {}),
+    } : null
+  )
 
   const load = useCallback(async () => {
     setLoading(true)

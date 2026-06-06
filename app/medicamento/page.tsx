@@ -15,6 +15,7 @@
 //  • Estrutura: resposta dividida em secções claras com cores semânticas
 
 import { useState } from 'react'
+import { usePhloxContext } from '@/lib/copilotContext'
 import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
 import { useAuth } from '@/components/AuthContext'
@@ -71,6 +72,14 @@ export default function MedicamentoPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+
+  // Publica para o Copilot o medicamento pesquisado + resultado
+  usePhloxContext(
+    result ? 'Medicamento consultado' : (name ? 'A pesquisar medicamento' : ''),
+    result
+      ? { medicamento: result.identified || name, principio_ativo: result.active, para_que_serve: result.what_it_is, receita: result.prescription }
+      : (name ? { pesquisa: name } : null)
+  )
 
   async function explain() {
     if (!name.trim() && !photo && !infomedCode.trim()) return

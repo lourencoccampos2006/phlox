@@ -104,13 +104,20 @@ const SCHEMA = `{
   "fallback_advice": "SÓ se confidence='baixa'. Sugere 'Tira foto à BULA (com o texto técnico) em /bula — o motor de bula tem maior precisão' ou 'Pede ajuda ao farmacêutico'."
 }`
 
-const RULES = `REGRAS CRÍTICAS (a tua resposta tem de ser factualmente correta):
-- Baseia-te SÓ no princípio ativo. Identifica primeiro a substância ativa (DCI) e responde a partir dela — é a substância que determina para que serve, NÃO o nome comercial.
-- Se NÃO tiveres a certeza absoluta de qual é o medicamento ou a sua substância ativa: confidence="baixa", NÃO inventes indicações ("what_it_treats" pode ficar vazio), e preenche "fallback_advice". É MUITO melhor admitir incerteza do que indicar uma utilização errada.
-- NUNCA adivinhes a indicação a partir do som/nome do medicamento.
-- "what_it_treats" tem de corresponder às indicações reais e aprovadas da substância ativa em Portugal (Infomed/folheto).
-- Linguagem de quem fala com um familiar, simples, PT-PT, sem jargão por explicar.
-- Para a prescrição: sê PRECISO com o limiar da dose. Se há dose indicada no input, decide MNSRM/RX. Se não há, usa "depende da dose" e explica.
+const RULES = `REGRAS (a tua resposta tem de ser factualmente correta E útil):
+- Identifica primeiro a SUBSTÂNCIA ATIVA (DCI) e responde a partir dela — é a substância que determina para que serve.
+- A maioria dos medicamentos é conhecida (incluindo marcas portuguesas, genéricos, e DCIs internacionais). DÁ SEMPRE a melhor resposta que tiveres. Se conheces o medicamento — e quase sempre conheces — responde com confidence="alta" ou "media" e preenche TUDO.
+- Só usa confidence="baixa" e "what_it_treats" vazio se REALMENTE não reconheceres o nome de todo (ex: erro de escrita irreconhecível). Nesse caso preenche "fallback_advice". NÃO uses "baixa" só por precaução — isso torna a ferramenta inútil para quem procura medicamentos menos comuns.
+- NUNCA adivinhes a indicação só pelo som do nome; mas se reconheces o fármaco, usa o teu conhecimento real.
+- "what_it_treats" = indicações reais e aprovadas da substância ativa.
+- Linguagem simples, PT-PT, como quem explica a um familiar.
+
+PRESCRIÇÃO EM PORTUGAL (sê rigoroso — isto erra muito):
+- MNSRM (sem receita): a maioria dos analgésicos/antipiréticos de venda livre (paracetamol, ibuprofeno ≤400mg, AAS), anti-histamínicos H1 (loratadina, cetirizina, desloratadina), antiácidos, descongestionantes nasais, laxantes suaves, antifúngicos tópicos, alguns IBP de baixa dose em embalagem pequena.
+- MSRM (com receita): TODOS os antibióticos, antidepressivos, ansiolíticos/benzodiazepinas (receita especial), opióides (receita especial), antidiabéticos (incluindo Ozempic/semaglutido, metformina), anticoagulantes, anti-hipertensores, estatinas, corticoides sistémicos, a maioria dos psicofármacos, hormonas.
+- "depende da dose": ibuprofeno (≤400 MNSRM, ≥600 MSRM), diclofenac (≤25mg MNSRM, ≥50 MSRM), omeprazol/pantoprazol (embalagem pequena MNSRM, resto MSRM).
+- Suplementos/vitaminas e produtos de conforto: geralmente "sem receita".
+- Se tens dúvida razoável, escolhe "com receita médica" (mais seguro) e explica em prescription_note.
 - Responde APENAS com JSON válido, sem markdown.`
 
 export async function POST(req: NextRequest) {

@@ -14,7 +14,16 @@ export const STUDY_AREAS: Record<string, StudyArea> = {
   nutrition:    { label: 'Nutrição', subjects: ['Bioquímica', 'Fisiologia', 'Nutrição Clínica', 'Bromatologia', 'Química Alimentar', 'Dietética', 'Microbiologia Alimentar'] },
   veterinary:   { label: 'Veterinária', subjects: ['Anatomia Animal', 'Fisiologia', 'Farmacologia Veterinária', 'Patologia', 'Microbiologia', 'Clínica de Pequenos Animais', 'Parasitologia'] },
   psychology:   { label: 'Psicologia', subjects: ['Psicologia Geral', 'Neurociência', 'Psicopatologia', 'Psicofarmacologia', 'Estatística', 'Avaliação Psicológica', 'Desenvolvimento'] },
-  other:        { label: 'Saúde', subjects: ['Anatomia', 'Fisiologia', 'Bioquímica', 'Farmacologia', 'Estatística'] },
+  other:        { label: 'Saúde', subjects: [
+    // Ciências básicas
+    'Anatomia', 'Fisiologia', 'Histologia', 'Embriologia', 'Biologia Celular', 'Biologia Molecular', 'Genética',
+    'Bioquímica', 'Química Geral', 'Química Orgânica', 'Química Analítica', 'Química Inorgânica', 'Físico-Química', 'Biofísica',
+    'Matemática', 'Estatística', 'Bioestatística', 'Epidemiologia',
+    'Microbiologia', 'Imunologia', 'Parasitologia', 'Virologia',
+    // Clínicas / aplicadas
+    'Farmacologia', 'Patologia', 'Fisiopatologia', 'Semiologia', 'Toxicologia',
+    'Nutrição', 'Saúde Pública', 'Psicologia', 'Ética e Deontologia', 'Metodologia de Investigação',
+  ] },
 }
 
 export function areaOf(id: string | null | undefined): StudyArea {

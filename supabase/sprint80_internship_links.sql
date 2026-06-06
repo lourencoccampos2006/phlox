@@ -6,6 +6,16 @@
 --
 -- 2026-06-05. Idempotente.
 
+-- Garante pgcrypto (gen_random_bytes). Em Supabase está no schema "extensions".
+create extension if not exists pgcrypto with schema extensions;
+
+-- Gerador de token robusto (não depende de pgcrypto estar no search_path)
+create or replace function phlox_gen_token(p_len int default 16)
+returns text language sql volatile as $$
+  select string_agg(substr('0123456789abcdef', 1 + floor(random()*16)::int, 1), '')
+  from generate_series(1, p_len * 2);
+$$;
+
 -- ─── Portefólio: token de partilha só-leitura no estágio ───────────────────
 alter table internships add column if not exists portfolio_token text unique;
 alter table internships add column if not exists portfolio_public boolean default false;
@@ -22,7 +32,7 @@ declare
 begin
   select user_id into v_user from internships where id = p_internship_id;
   if v_user is null or v_user <> auth.uid() then raise exception 'not authorized'; end if;
-  v_token := encode(gen_random_bytes(16), 'hex');
+  v_token := phlox_gen_token(16);
 
   insert into supervisor_evaluations (internship_id, user_id, kind, evaluator_name, evaluator_role, share_token)
   values (p_internship_id, v_user, coalesce(p_kind, 'formative'), p_evaluator_name, p_evaluator_role, v_token)
@@ -118,7 +128,7 @@ declare v_user uuid; v_token text;
 begin
   select user_id, portfolio_token into v_user, v_token from internships where id = p_internship_id;
   if v_user is null or v_user <> auth.uid() then raise exception 'not authorized'; end if;
-  if v_token is null then v_token := encode(gen_random_bytes(12), 'hex'); end if;
+  if v_token is null then v_token := phlox_gen_token(12); end if;
   update internships set portfolio_public = p_public, portfolio_token = v_token where id = p_internship_id;
   return v_token;
 end;
