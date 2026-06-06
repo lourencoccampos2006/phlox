@@ -34,7 +34,14 @@
       "Bash(grep -iE '^\\(mymeds|interactions|vitals|passport|bula|ai|diary|reminders|wellness|inicio|symptoms|sintomas|familia|family|carteira-saude|prescricao|prescricoes|consult|consulta|preparar\\)$')",
       "Bash(grep -iE '^\\(familia|family|perfis|schedule|caregiver|dose-crianca|emergency-doses|connect|community\\)$')",
       "Bash(xargs grep -l -i \"stock\\\\|supplier\\\\|fornecedor\\\\|loyalty\\\\|fidelizacao\\\\|purchase\")",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(grep -nA25 \"export async function aiJSON\" lib/ai.ts)",
+      "Bash(grep -nE \"from\\\\\\('[a-z_]+'\\\\\\)|\\\\.from\\\\\\(\\\\`|supabase.from|fetch\\\\\\('/api\" app/rounds/page.tsx)",
+      "Bash(grep -rln \"patient_meds\\\\|create table.*patients\" supabase/*.sql)",
+      "Bash(ls app/api/patients/analyze/)",
+      "Bash(head -40 app/api/patients/analyze/route.ts)",
+      "Bash(grep -rhA22 \"create table if not exists patients \" supabase/SETUP_CLINICO.sql supabase/sprint52_structured_meds.sql)",
+      "Bash(npm audit *)"
     ]
   }
 }

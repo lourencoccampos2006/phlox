@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 const ACCENT = '#0d6e42'
 
@@ -35,6 +36,11 @@ export default function BibliotecaPage() {
   const [sources, setSources] = useState<Source[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [history, setHistory] = useState<{ q: string; a: string }[]>([])
+
+  usePhloxContext(
+    answer ? 'Pergunta clínica respondida' : (question ? 'A pesquisar na biblioteca' : ''),
+    answer ? { pergunta: question, resposta: answer.slice(0, 1000) } : (question ? { pergunta: question } : null)
+  )
 
   const ask = useCallback(async (q?: string) => {
     const target = (q || question).trim()

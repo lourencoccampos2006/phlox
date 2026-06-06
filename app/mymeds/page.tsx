@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { usePhloxContext } from '@/lib/copilotContext'
 import { useAuth } from '@/components/AuthContext'
 import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
@@ -215,6 +216,11 @@ export default function MyMedsPage() {
   const [todayLogs, setTodayLogs] = useState<DoseLog[]>([])
   const [loading, setLoading] = useState(true)
   const [alerts, setAlerts] = useState<Alert[]>([])
+
+  usePhloxContext(
+    meds.length ? 'A ver a minha medicação' : '',
+    meds.length ? { medicamentos: meds.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}`) } : null
+  )
   const [analysing, setAnalysing] = useState(false)
   const [analysed, setAnalysed] = useState(false)
   const [tab, setTab] = useState<'overview'|'alerts'|'add'|'ask'|'sintomas'>('overview')

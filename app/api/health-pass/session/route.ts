@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
+import { randomInt } from 'crypto'
 
 // Lado AUTENTICADO do Health Pass (doente): criar/revogar sessão, listar visitas e devoluções.
 
@@ -8,8 +9,10 @@ function sb(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
 }
-const randToken = () => Array.from({ length: 22 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 54)]).join('')
-const randPin = () => String(Math.floor(1000 + Math.random() * 9000))
+// Tokens/PIN com CSPRNG (crypto) — não Math.random (previsível) por guardarem dados clínicos.
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+const randToken = () => Array.from({ length: 22 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')
+const randPin = () => String(randomInt(1000, 10000))
 const NO_TABLE = (m: string) => /relation .*health_(pass|visits).* does not exist/i.test(m)
 
 // GET → sessão ativa + visitas + devoluções pendentes

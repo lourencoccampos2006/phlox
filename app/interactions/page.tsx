@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
+import { usePhloxContext } from '@/lib/copilotContext'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
@@ -97,6 +98,11 @@ export default function InteractionsPage() {
   const [error, setError] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  usePhloxContext(
+    drugs.length ? 'A verificar interações' : '',
+    drugs.length ? { medicamentos: drugs, resultado: result ? JSON.stringify(result).slice(0, 1000) : 'ainda não verificado' } : null
+  )
 
   // Pre-populate from ?drugs=a,b,c URL param or sessionStorage (set by CaregiverHome)
   useEffect(() => {

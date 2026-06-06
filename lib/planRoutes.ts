@@ -15,6 +15,7 @@ export const PLAN_ROUTES: PlanRoute[] = [
 
   // ── Pro (individual avançado) ──
   { prefix: '/motor-clinico', min: 'pro', tool: 'Decision Engine', note: 'Motor de regras clínicas determinístico, com 25+ regras (STOPP/Beers/renal/QTc/anticolinérgico).' },
+  { prefix: '/vigia', min: 'pro', tool: 'Vigia Clínico do Lar', note: 'Vigilância farmacológica automática de todos os residentes — interações, STOPP/Beers, polimedicação, priorizado por risco.' },
   { prefix: '/copiloto', min: 'pro', tool: 'AI Copilot clínico', note: 'IA ancorada no Decision Engine — cita cada recomendação por id de regra.' },
   { prefix: '/insights', min: 'pro', tool: 'Phlox Insights', note: 'Benchmarks anonimizados contra o pool do mesmo tipo de instituição.' },
   { prefix: '/reconciliacao', min: 'pro', tool: 'Reconciliação Terapêutica', note: 'Reconciliação de medicação na transição de cuidados.' },

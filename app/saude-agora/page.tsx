@@ -13,6 +13,7 @@
 //   - O resultado é guardado em /guardados
 
 import { useState, useEffect } from 'react'
+import { usePhloxContext } from '@/lib/copilotContext'
 import SaveButton from '@/components/SaveButton'
 import { consumeReopen } from '@/lib/saves'
 
@@ -57,6 +58,11 @@ export default function SaudeAgoraPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+
+  usePhloxContext(
+    result ? 'Triagem de sintomas feita' : (complaint ? 'A avaliar sintomas' : ''),
+    result ? { queixa: complaint, avaliacao: JSON.stringify(result).slice(0, 1000) } : (complaint ? { queixa: complaint } : null)
+  )
 
   useEffect(() => {
     const d = consumeReopen<Result & { input?: string }>()

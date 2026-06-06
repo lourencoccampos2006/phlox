@@ -290,35 +290,76 @@ function CaptureBar({ auth, reload, onCreated }: { auth: () => Promise<any>; rel
     e.target.value = ''
   }
 
-  // Gravar aula → Whisper → nota estruturada
+  // Gravar aula → segmentos de 4 min → Whisper por segmento → estruturar.
+  // Suporta aulas de 1h+ sem rebentar limites de tamanho/timeout.
+  const SEGMENT_MS = 4 * 60_000
+  const transcriptRef = useRef<string>('')
+  const segTimerRef = useRef<any>(null)
+  const stoppingRef = useRef(false)
+  const streamRef = useRef<MediaStream | null>(null)
+  const segCountRef = useRef(0)
+
+  async function transcribeBlob(blob: Blob): Promise<string> {
+    if (blob.size < 2000) return ''
+    const b64 = await blobToB64(blob)
+    const headers = await auth()
+    const tr = await fetch('/api/study/transcribe', { method: 'POST', headers, body: JSON.stringify({ action: 'transcribe', audio: b64, mimeType: 'audio/webm' }) })
+    const tj = await tr.json().catch(() => ({}))
+    return tj.transcript || ''
+  }
+
+  function startSegment() {
+    const stream = streamRef.current
+    if (!stream) return
+    const mr = new MediaRecorder(stream)
+    chunksRef.current = []
+    mr.ondataavailable = ev => { if (ev.data.size) chunksRef.current.push(ev.data) }
+    mr.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+      segCountRef.current += 1
+      setStatus(`A transcrever segmento ${segCountRef.current}…`)
+      try {
+        const t = await transcribeBlob(blob)
+        if (t) transcriptRef.current += (transcriptRef.current ? ' ' : '') + t
+      } catch {}
+      if (stoppingRef.current) finishRecording()
+      else { setStatus('⏺ A gravar…'); startSegment() }  // próximo segmento
+    }
+    mr.start(); mediaRef.current = mr
+    // agenda corte do segmento
+    segTimerRef.current = setTimeout(() => { try { mr.stop() } catch {} }, SEGMENT_MS)
+  }
+
   async function startRec() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mr = new MediaRecorder(stream)
-      chunksRef.current = []
-      mr.ondataavailable = ev => { if (ev.data.size) chunksRef.current.push(ev.data) }
-      mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        if (blob.size < 1000) { setStatus(''); return }
-        setBusy(true); setStatus('A transcrever…')
-        const b64 = await blobToB64(blob)
-        const headers = await auth()
-        const tr = await fetch('/api/study/transcribe', { method: 'POST', headers, body: JSON.stringify({ action: 'transcribe', audio: b64, mimeType: 'audio/webm' }) })
-        const tj = await tr.json().catch(() => ({}))
-        if (!tj.transcript) { setBusy(false); setStatus(''); alert(tj.error || 'Falha na transcrição.'); return }
-        setStatus('A estruturar nota…')
-        const sr = await fetch('/api/study/transcribe', { method: 'POST', headers, body: JSON.stringify({ action: 'structure', transcript: tj.transcript, kind: 'aula' }) })
-        const sj = await sr.json().catch(() => ({}))
-        if (sj.note) await create({ ...sj.note, source: 'voice' })
-        else { setBusy(false); setStatus(''); alert(sj.error || 'Falha ao estruturar.') }
-      }
-      mr.start(); mediaRef.current = mr; setRecState('recording')
+      streamRef.current = stream
+      transcriptRef.current = ''; segCountRef.current = 0; stoppingRef.current = false
+      setRecState('recording'); setStatus('⏺ A gravar…')
+      startSegment()
     } catch {
       alert('Não consegui aceder ao microfone. Verifica as permissões.')
     }
   }
-  function stopRec() { mediaRef.current?.stop(); setRecState('idle') }
+
+  function stopRec() {
+    stoppingRef.current = true
+    setRecState('idle'); setBusy(true); setStatus('A finalizar…')
+    if (segTimerRef.current) clearTimeout(segTimerRef.current)
+    try { mediaRef.current?.stop() } catch { finishRecording() }
+  }
+
+  async function finishRecording() {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    const transcript = transcriptRef.current.trim()
+    if (!transcript) { setBusy(false); setStatus(''); alert('Não foi captado áudio suficiente.'); return }
+    setStatus('A estruturar nota…')
+    const headers = await auth()
+    const sr = await fetch('/api/study/transcribe', { method: 'POST', headers, body: JSON.stringify({ action: 'structure', transcript, kind: 'aula' }) })
+    const sj = await sr.json().catch(() => ({}))
+    if (sj.note) await create({ ...sj.note, source: 'voice' })
+    else { setBusy(false); setStatus(''); alert(sj.error || 'Falha ao estruturar.') }
+  }
 
   return (
     <div style={{ marginBottom: 16 }}>

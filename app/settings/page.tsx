@@ -587,6 +587,13 @@ function SettingsPage() {
               )}
             </div>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Ajuda e contacto</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.6 }}>
+                Precisas de ajuda? Escreve para <a href="mailto:suporte@phloxclinical.com" style={{ color: '#0d6e42', textDecoration: 'none', fontWeight: 600 }}>suporte@phloxclinical.com</a>.<br />
+                Parcerias e instituições: <a href="mailto:info@phloxclinical.com" style={{ color: '#0d6e42', textDecoration: 'none', fontWeight: 600 }}>info@phloxclinical.com</a>.
+              </div>
+            </div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Sessão</div>
               <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>{user?.email}</div>
               <button onClick={() => supabase.auth.signOut().then(() => router.push('/'))}

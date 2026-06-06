@@ -36,17 +36,18 @@ export default function Footer() {
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>Phlox</span>
           </Link>
 
-          <nav style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+          <nav style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
             {[
               ['Planos', '/pricing'],
               ['Trust', '/trust'],
               ['Estado', '/status'],
-              ['Changelog', '/changelog'],
               ['Termos', '/terms'],
               ['Privacidade', '/privacy'],
             ].map(([label, href]) => (
               <Link key={href} href={href} style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 500 }}>{label}</Link>
             ))}
+            <a href="mailto:suporte@phloxclinical.com" style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 500 }}>Suporte</a>
+            <a href="mailto:info@phloxclinical.com" style={{ fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', fontWeight: 500 }}>Contacto</a>
           </nav>
 
           <Link href="/status" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
@@ -58,6 +59,11 @@ export default function Footer() {
         {/* Sub-rodapé */}
         <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--bg-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 11.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>© {year} Phlox · Hospedado na UE</span>
+          <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>
+            <a href="mailto:suporte@phloxclinical.com" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>suporte@phloxclinical.com</a>
+            {' · '}
+            <a href="mailto:info@phloxclinical.com" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>info@phloxclinical.com</a>
+          </span>
           <span style={{ fontSize: 11, color: 'var(--ink-5)' }}>TLS 1.3 · AES-256 · RGPD</span>
         </div>
       </div>

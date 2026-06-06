@@ -5,6 +5,7 @@
 // Converte texto de bulas em linguagem simples para doentes.
 
 import { useState, useRef } from 'react'
+import { usePhloxContext } from '@/lib/copilotContext'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useUsageLimit } from '@/lib/useUsageLimit'
@@ -35,6 +36,11 @@ export default function BulaPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fotoRef = useRef<HTMLInputElement>(null)
+
+  usePhloxContext(
+    result ? 'Bula consultada' : (medicamento ? 'A consultar bula' : ''),
+    result ? { medicamento: (result as any).nome || medicamento, resumo: JSON.stringify(result).slice(0, 1000) } : (medicamento ? { medicamento } : null)
+  )
 
   // 2026-06-01: aceita foto da bula. Converte em data URL e envia base64
   // — o endpoint /api/bula precisa de aceitar imageBase64 + mimeType.

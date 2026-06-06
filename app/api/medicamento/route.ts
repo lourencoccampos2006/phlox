@@ -204,6 +204,27 @@ ${SCHEMA}`
       disclaimer: 'Informação geral de apoio — confirma sempre com o teu farmacêutico ou médico.',
     })
   } catch (err: any) {
+    // Último recurso: NUNCA devolver vazio. Tenta uma resposta livre (texto) e
+    // devolve-a no formato esperado, com confiança média.
+    if (name) {
+      try {
+        const { aiComplete } = await import('@/lib/ai')
+        const { text } = await aiComplete([
+          { role: 'system', content: `És farmacêutico português. Explica o medicamento ou substância "${name}" em PT-PT, linguagem simples. Diz: o que é, princípio ativo, para que serve, como se toma, se precisa de receita em Portugal, efeitos comuns e cuidados. Se não reconheces de todo, di-lo claramente e sugere ver a bula. Máximo 200 palavras.` },
+          { role: 'user', content: name },
+        ], { maxTokens: 700, temperature: 0.2 })
+        if (text?.trim()) {
+          return NextResponse.json({
+            identified: name, active: '', what_it_is: text.trim(),
+            what_it_treats: [], symptoms: [], how_to_take: '',
+            prescription: 'com receita médica', prescription_note: 'Confirma o estado de receita com o teu farmacêutico.',
+            common_side_effects: [], cautions: [], avoid_if: [], good_to_know: '',
+            confidence: 'media', queried: name,
+            disclaimer: 'Resposta gerada por IA — confirma com o teu farmacêutico ou médico.',
+          })
+        }
+      } catch {}
+    }
     return NextResponse.json({ error: err.message || 'Não foi possível. Tenta com o nome escrito ou uma foto mais nítida.' }, { status: 500 })
   }
 }

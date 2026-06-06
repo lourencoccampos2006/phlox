@@ -13,6 +13,19 @@ const PUBLIC_PREFIXES = ['/', '/about', '/pricing', '/login', '/terms', '/privac
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 
+// Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver.
+function proactiveSuggestions(ctxLabel: string, path: string): string[] {
+  const l = (ctxLabel || '').toLowerCase()
+  if (l.includes('medicamento') || l.includes('bula')) return ['Dá-se bem com a minha medicação?', 'Quais os efeitos mais comuns?', 'Posso tomar com álcool?']
+  if (l.includes('interaç')) return ['Explica o mecanismo desta interação', 'Que alternativa mais segura existe?', 'Qual o grau de gravidade?']
+  if (l.includes('ecg')) return ['Que achados devo procurar?', 'Diagnósticos diferenciais deste traçado', 'O que faço a seguir?']
+  if (l.includes('análise') || l.includes('laborat')) return ['Que valores estão alterados?', 'O que pode causar isto?', 'Preciso de mais exames?']
+  if (l.includes('medicação') || path.includes('/mymeds')) return ['Há interações entre os meus medicamentos?', 'Esqueci uma dose, o que faço?', 'Algum precisa de cuidado especial?']
+  if (l.includes('triagem') || l.includes('sintoma')) return ['Devo ir ao médico ou às urgências?', 'Que sinais de alarme vigiar?', 'O que posso fazer em casa?']
+  if (l.includes('pergunta clínica') || l.includes('biblioteca')) return ['Resume em 3 pontos', 'Qual a evidência por trás disto?', 'E em doentes idosos?']
+  return ['Explica isto de forma simples', 'Quais os riscos clínicos aqui?', 'Faz-me 3 perguntas sobre isto']
+}
+
 export default function PhloxCopilot() {
   const { user, supabase } = useAuth() as any
   const pathname = usePathname()
@@ -61,8 +74,8 @@ export default function PhloxCopilot() {
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50) }, [open])
   useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight) }, [msgs, busy])
 
-  const send = useCallback(async () => {
-    const q = input.trim()
+  const send = useCallback(async (override?: string) => {
+    const q = (typeof override === 'string' ? override : input).trim()
     if (!q || busy) return
     setInput('')
     const newMsgs = [...msgs, { role: 'user' as const, content: q }]
@@ -153,8 +166,8 @@ export default function PhloxCopilot() {
               <div style={{ color: '#6b7280', fontSize: 13, lineHeight: 1.6 }}>
                 Pergunta-me qualquer coisa sobre o que estás a ver. Sei em que página estás{ctxLabel ? ', o que abriste' : ''}{selection ? ' e o que selecionaste' : ''}.
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {['Explica isto de forma simples', 'Quais os riscos clínicos aqui?', 'Faz-me 3 perguntas sobre isto'].map(s => (
-                    <button key={s} onClick={() => setInput(s)} style={{ textAlign: 'left', padding: '8px 10px', background: '#f6f7f8', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, color: '#374151' }}>{s}</button>
+                  {proactiveSuggestions(ctxLabel, pathname).map(s => (
+                    <button key={s} onClick={() => send(s)} style={{ textAlign: 'left', padding: '8px 10px', background: '#f6f7f8', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, color: '#374151' }}>{s}</button>
                   ))}
                 </div>
               </div>
@@ -179,7 +192,7 @@ export default function PhloxCopilot() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder="Pergunta…" rows={1}
                 style={{ flex: 1, resize: 'none', padding: '9px 11px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', maxHeight: 100, boxSizing: 'border-box' }} />
-              <button onClick={send} disabled={busy || !input.trim()} style={{
+              <button onClick={() => send()} disabled={busy || !input.trim()} style={{
                 padding: '9px 14px', background: '#16181d', color: 'white', border: 'none', borderRadius: 8,
                 cursor: 'pointer', fontWeight: 600, fontSize: 13, opacity: busy || !input.trim() ? 0.5 : 1,
               }}>↑</button>

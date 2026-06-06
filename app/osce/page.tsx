@@ -55,6 +55,9 @@ interface OSCEFeedback {
   strengths: string[]
   improvements: string[]
   model_answer: string
+  questions_missed?: string[]
+  red_flags_missed?: string[]
+  next_station_tip?: string
 }
 
 const COURSES: { id: Course; label: string; icon: string; color: string }[] = [
@@ -538,11 +541,35 @@ export default function OSCEPage() {
             </div>
           </div>
 
+          {/* Perguntas que faltaram */}
+          {feedback.questions_missed && feedback.questions_missed.length > 0 && (
+            <div style={{ background: 'white', border: '1px solid #fecaca', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>✗ Perguntas-chave que faltaram</div>
+              {feedback.questions_missed.map((s, i) => <div key={i} style={{ fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+            </div>
+          )}
+
+          {/* Red flags */}
+          {feedback.red_flags_missed && feedback.red_flags_missed.length > 0 && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>🚩 Sinais de alarme a procurar</div>
+              {feedback.red_flags_missed.map((s, i) => <div key={i} style={{ fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+            </div>
+          )}
+
           {/* Model answer */}
           <div style={{ background: 'var(--ink)', borderRadius: 10, padding: '16px 18px', marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>💎 Resposta modelo</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7 }}>{feedback.model_answer}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{feedback.model_answer}</div>
           </div>
+
+          {/* Dica para a próxima */}
+          {feedback.next_station_tip && (
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>💡 Para a próxima</div>
+              <div style={{ fontSize: 13, color: '#1e3a8a', lineHeight: 1.6 }}>{feedback.next_station_tip}</div>
+            </div>
+          )}
 
           <button onClick={() => { setPhase('setup'); setStation(null); setAnamnesisMessages([]); setChecklistResults([]); setDiagnosis(''); setPlan(''); setFeedback(null); setTimerExpired(false) }}
             style={{ width: '100%', padding: '13px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
