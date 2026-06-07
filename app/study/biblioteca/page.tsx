@@ -4,7 +4,7 @@
 // Inspirado em UpToDate / DynaMed: faz uma pergunta clínica, recebe resposta
 // estruturada com fontes citadas da biblioteca local.
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { usePhloxContext } from '@/lib/copilotContext'
 
@@ -61,6 +61,14 @@ export default function BibliotecaPage() {
       setHistory(h => [{ q: target, a: j.answer || '' }, ...h].slice(0, 10))
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }, [question, domain, busy, supabase])
+
+  // Auto-pergunta quando vem da pesquisa universal (?q=)
+  const ranQ = useRef(false)
+  useEffect(() => {
+    if (ranQ.current) return
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) { ranQ.current = true; ask(q) }
+  }, [ask])
 
   return (
     <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1000, margin: '0 auto' }}>

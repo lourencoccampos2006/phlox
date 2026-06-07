@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
+import { aiJSONVerified } from '@/lib/ai'
 
 const cache = new Map<string, { result: any; timestamp: number }>()
 const CACHE_TTL = 1000 * 60 * 60 * 24 // 24h
@@ -122,7 +122,7 @@ function mapSev(s: string) {
 
 // ─── AI Analysis — muito mais rica que antes ─────────────────────────────────
 async function aiAnalysis(drugs: string[]): Promise<any> {
-  return aiJSON([
+  return aiJSONVerified([
     {
       role: 'system',
       content: `És um farmacologista clínico especialista em interações medicamentosas. Analisas combinações de fármacos com rigor clínico e respondes em português europeu (PT-PT).
@@ -161,7 +161,7 @@ Regras:
       role: 'user',
       content: `Analisa as interações medicamentosas entre: ${drugs.join(', ')}`,
     },
-  ], { maxTokens: 1200, temperature: 0.05 })
+  ], 'És farmacologista clínico. Reconcilia duas análises de interação medicamentosa no mesmo esquema JSON (severity, summary, mechanism, cyp450, consequences, onset, risk_factors, recommendation, alternatives, monitor, patient_info, references). Em divergência de gravidade, escolhe a MAIS conservadora (mais segura para o doente). PT-PT.', { maxTokens: 1400, temperature: 0.05 })
 }
 
 export async function POST(req: NextRequest) {

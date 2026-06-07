@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiJSON } from '@/lib/ai'
+import { aiJSONVerified } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     : null
 
   try {
-    const result = await aiJSON<any>([
+    const result = await aiJSONVerified<any>([
       {
         role: 'system',
         content: `És um farmacêutico clínico hospitalar especialista em revisão de medicação. Responde em PT-PT.
@@ -63,7 +63,7 @@ ${patient?.allergies ? `Alergias: ${patient.allergies}` : ''}
 Medicação actual:
 ${medications.map((m: any) => `- ${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` ${m.frequency}` : ''}${m.indication ? ` (${m.indication})` : ''}`).join('\n')}`,
       },
-    ], { maxTokens: 1500, temperature: 0.0 })
+    ], 'És farmacêutico clínico. Reconcilia duas revisões de medicação no mesmo esquema JSON (alerts[], summary). Mantém todos os alertas válidos de ambas, sem duplicar; em divergência de gravidade escolhe a mais conservadora. PT-PT.', { maxTokens: 1600, temperature: 0.0 })
 
     return NextResponse.json(result)
   } catch (err: any) {

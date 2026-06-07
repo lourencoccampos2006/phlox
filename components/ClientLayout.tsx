@@ -7,6 +7,7 @@ import ClinicalCommandPalette from '@/components/ClinicalCommandPalette'
 import PlanGate from '@/components/PlanGate'
 import ToolUseTracker from '@/components/ToolUseTracker'
 import PhloxCopilot from '@/components/PhloxCopilot'
+import UniversalSearch from '@/components/UniversalSearch'
 import { planForRoute } from '@/lib/planRoutes'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
@@ -77,6 +78,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <ClinicalLayout>{gated(children)}</ClinicalLayout>
         <ClinicalCommandPalette />
         <PhloxCopilot />
+        <UniversalSearch />
         <ScrollToTop />
       </>
     )
@@ -98,6 +100,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <div id="app-main">{gated(children)}</div>
       {showFooter && <Footer />}
       <PhloxCopilot />
+      <UniversalSearch />
       <ScrollToTop />
     </>
   )

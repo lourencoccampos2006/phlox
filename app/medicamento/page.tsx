@@ -14,7 +14,7 @@
 //  • Receita por dose (Ben-u-ron 500 vs 1000, Brufen 200 vs 600, etc.)
 //  • Estrutura: resposta dividida em secções claras com cores semânticas
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePhloxContext } from '@/lib/copilotContext'
 import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
@@ -81,12 +81,13 @@ export default function MedicamentoPage() {
       : (name ? { pesquisa: name } : null)
   )
 
-  async function explain() {
-    if (!name.trim() && !photo && !infomedCode.trim()) return
+  async function explain(override?: string) {
+    const nm = (typeof override === 'string' ? override : name).trim()
+    if (!nm && !photo && !infomedCode.trim()) return
     setLoading(true); setError(''); setResult(null)
     try {
-      let payload: any = { name: name.trim() }
-      if (photo && !name.trim()) { const { b64, mime } = await downscale(photo); payload = { image: b64, mimeType: mime } }
+      let payload: any = { name: nm }
+      if (photo && !nm) { const { b64, mime } = await downscale(photo); payload = { image: b64, mimeType: mime } }
       // O código INFARMED/CNPEM, quando fornecido, é a identificação mais fiável.
       // Incluímos sempre que o utilizador o forneceu — funciona como âncora.
       if (infomedCode.trim()) payload.infomed_code = infomedCode.trim()
@@ -100,6 +101,14 @@ export default function MedicamentoPage() {
       setError(e.message || 'Não foi possível. Tenta uma foto da bula em /bula.')
     } finally { setLoading(false) }
   }
+
+  // Auto-pesquisa quando vem da pesquisa universal (?q=)
+  const ranQ = useRef(false)
+  useEffect(() => {
+    if (ranQ.current) return
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) { ranQ.current = true; setName(q); explain(q) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const rx = result ? RX_META[result.prescription] || RX_META['com receita médica'] : null
 
@@ -163,7 +172,7 @@ export default function MedicamentoPage() {
                 inputStyle={{ background: 'white', fontSize: 15, padding: '12px 14px' }}
               />
             </div>
-            <button onClick={explain} disabled={loading || (!name.trim() && !photo && !infomedCode.trim())}
+            <button onClick={() => explain()} disabled={loading || (!name.trim() && !photo && !infomedCode.trim())}
               style={{
                 padding: '12px 18px',
                 background: (name.trim() || photo || infomedCode.trim()) && !loading ? '#0d9488' : 'var(--bg-3)',

@@ -41,7 +41,9 @@
       "Bash(ls app/api/patients/analyze/)",
       "Bash(head -40 app/api/patients/analyze/route.ts)",
       "Bash(grep -rhA22 \"create table if not exists patients \" supabase/SETUP_CLINICO.sql supabase/sprint52_structured_meds.sql)",
-      "Bash(npm audit *)"
+      "Bash(npm audit *)",
+      "Bash(grep -nA6 \"const LIMITS\" lib/plans.ts)",
+      "Bash(grep -nE \"aiJSON|import.*lib/ai|maxTokens|], \\\\{\" app/api/patients/analyze/route.ts)"
     ]
   }
 }

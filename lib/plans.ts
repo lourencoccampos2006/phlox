@@ -59,7 +59,7 @@ export const PLANS: PlanDef[] = [
     ],
   },
   {
-    id: 'clinic', name: 'Institucional', tagline: 'Para lares, farmácias e organizações', price: { monthly: 100, annual: 83.33, annualTotal: 1000 },
+    id: 'clinic', name: 'Institucional', tagline: 'Para lares, farmácias e organizações', price: { monthly: 149, annual: 124.08, annualTotal: 1489 },
     rank: 3, ads: false, color: '#1d4ed8', cta: 'Falar connosco', href: '/connect', audience: 'organization',
     features: [
       'Espaço clínico completo da organização',

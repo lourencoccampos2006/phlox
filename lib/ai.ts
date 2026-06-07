@@ -290,6 +290,37 @@ export async function aiJSON<T>(
   }
 }
 
+// ─── Verificação cruzada (interna, silenciosa) ───────────────────────────────
+// Para decisões críticas: corre a resposta DUAS vezes (a 2ª com preferência de
+// modelo diferente) e reconcilia num resultado final mais fiável.
+// IMPORTANTE: o resultado devolvido NÃO indica que houve 2ª passagem nem que foi
+// IA — é apenas o resultado final, mais robusto. Falha graciosamente para 1 só
+// passagem se a 2ª ou a reconciliação falharem.
+export async function aiJSONVerified<T>(
+  messages: AIMessage[],
+  reconcilePrompt: string,
+  options: { maxTokens?: number; temperature?: number } = {}
+): Promise<T> {
+  const first = await aiJSON<T>(messages, options)
+  let second: T | null = null
+  try {
+    second = await aiJSON<T>(messages, { ...options, temperature: 0, preferFast: true } as any)
+  } catch { return first }
+
+  // Se forem idênticos, não vale a pena reconciliar.
+  try { if (JSON.stringify(first) === JSON.stringify(second)) return first } catch {}
+
+  try {
+    const reconciled = await aiJSON<T>([
+      { role: 'system', content: `${reconcilePrompt}\n\nRecebes DUAS análises do mesmo caso. Produz a resposta FINAL correta: mantém o que ambas concordam, resolve divergências pelo mais rigoroso/seguro, descarta erros. Responde no MESMO formato JSON. Sem markdown, PT-PT.` },
+      { role: 'user', content: `Análise A:\n${JSON.stringify(first)}\n\nAnálise B:\n${JSON.stringify(second)}` },
+    ], { maxTokens: options.maxTokens ?? 1500, temperature: 0 })
+    return reconciled
+  } catch {
+    return first
+  }
+}
+
 // Repara JSON truncado (típico de respostas cortadas por max_tokens).
 // Estratégia: encontra o último item completo do array e fecha as estruturas
 // pendentes. Suporta arrays no topo OU objeto { key: [ ... ] }.

@@ -167,6 +167,9 @@ export default function VigiaPage() {
                 })}
               </div>
             )}
+            {/* Gémeo Farmacológico — simular mudança antes de prescrever */}
+            <Simulator patientId={open.id} auth={auth} />
+
             <Link href={`/patients`} style={{ display: 'inline-block', marginTop: 14, fontSize: 13, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Abrir ficha do residente →</Link>
           </div>
         </div>
@@ -174,6 +177,57 @@ export default function VigiaPage() {
     </Shell>
   )
 }
+
+// Gémeo Farmacológico: simula adicionar/remover fármaco e mostra impacto
+function Simulator({ patientId, auth }: { patientId: string; auth: () => Promise<any> }) {
+  const [open, setOpen] = useState(false)
+  const [add, setAdd] = useState('')
+  const [remove, setRemove] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [res, setRes] = useState<any>(null)
+
+  async function run() {
+    setBusy(true); setRes(null)
+    const headers = await auth()
+    const r = await fetch('/api/patients/simulate', { method: 'POST', headers, body: JSON.stringify({ patient_id: patientId, changes: { add: add.split(',').map(s => s.trim()).filter(Boolean), remove: remove.split(',').map(s => s.trim()).filter(Boolean) } }) })
+    const j = await r.json().catch(() => ({}))
+    setRes(j.error ? { error: j.error } : j); setBusy(false)
+  }
+
+  const verdictMeta: Record<string, { label: string; color: string }> = {
+    seguro: { label: 'Seguro', color: '#0d6e42' }, cuidado: { label: 'Com cuidado', color: '#d97706' }, nao_recomendado: { label: 'Não recomendado', color: '#dc2626' },
+  }
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #eceef0' }}>
+      {!open ? (
+        <button onClick={() => setOpen(true)} style={{ padding: '8px 14px', background: '#faf5ff', color: '#6d28d9', border: '1px solid #e9d5ff', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🧪 Simular mudança de medicação</button>
+      ) : (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>🧪 Gémeo Farmacológico</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>Vê o impacto ANTES de prescrever. Separa por vírgulas.</div>
+          <input value={add} onChange={e => setAdd(e.target.value)} placeholder="Adicionar: ex. ibuprofeno, sertralina" style={inp} />
+          <input value={remove} onChange={e => setRemove(e.target.value)} placeholder="Remover: ex. diazepam" style={{ ...inp, marginTop: 6 }} />
+          <button onClick={run} disabled={busy} style={{ marginTop: 8, padding: '8px 14px', background: '#6d28d9', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{busy ? 'A simular…' : 'Simular impacto'}</button>
+          {res?.error && <div style={{ marginTop: 8, color: '#a82828', fontSize: 13 }}>{res.error}</div>}
+          {res && !res.error && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <span style={{ padding: '3px 10px', borderRadius: 999, background: (verdictMeta[res.verdict]?.color || '#6b7280') + '18', color: verdictMeta[res.verdict]?.color || '#6b7280', fontWeight: 700, fontSize: 13 }}>{verdictMeta[res.verdict]?.label || res.verdict}</span>
+                <span style={{ fontSize: 13, color: '#6b7280' }}>Risco {res.risk_before} → <b style={{ color: res.risk_after > res.risk_before ? '#dc2626' : '#0d6e42' }}>{res.risk_after}</b></span>
+              </div>
+              {res.summary && <p style={{ fontSize: 13, color: '#374151', margin: '0 0 8px' }}>{res.summary}</p>}
+              {res.new_problems?.length > 0 && <div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Surgem</div>{res.new_problems.map((p: any, i: number) => <div key={i} style={{ fontSize: 12.5, color: '#7f1d1d' }}>· {p.problem} — {p.detail}</div>)}</div>}
+              {res.resolved_problems?.length > 0 && <div style={{ marginBottom: 6 }}><div style={{ fontSize: 11, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase' }}>Resolve</div>{res.resolved_problems.map((p: string, i: number) => <div key={i} style={{ fontSize: 12.5, color: '#14532d' }}>· {p}</div>)}</div>}
+              {res.monitoring?.length > 0 && <div style={{ fontSize: 12, color: '#6b7280' }}>Vigiar: {res.monitoring.join(', ')}</div>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+const inp: React.CSSProperties = { width: '100%', padding: '8px 11px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return <main style={{ padding: '20px clamp(14px,4vw,32px)', maxWidth: 1000, margin: '0 auto', fontFamily: 'var(--font-sans,sans-serif)' }}>{children}</main>
