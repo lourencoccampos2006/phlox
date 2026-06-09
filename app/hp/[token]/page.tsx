@@ -27,6 +27,7 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
   const [step, setStep] = useState<'pin' | 'view' | 'gone'>('pin')
   const [data, setData] = useState<Data | null>(null)
   const [err, setErr] = useState('')
+  const [viewMode, setViewMode] = useState<'sections' | 'timeline'>('sections')
   const [loading, setLoading] = useState(false)
   const [meta, setMeta] = useState<'ok' | 'gone' | 'loading'>('loading')
 
@@ -125,6 +126,16 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
             ? <>✓ Sessão Phlox de <strong>{user.name}</strong> — ao registar a visita, ela fica também no teu histórico de atendimentos.</>
             : <>Também usas o Phlox? <a href="/login" style={{ color: '#1d4ed8', fontWeight: 700 }}>Inicia sessão</a> para registar esta visita no teu histórico e devolver dados ao doente.</>}
         </div>
+        {/* Toggle: secções vs linha do tempo (vista cronológica para a consulta) */}
+        <div className="hp-noprint" style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 8, padding: 3, alignSelf: 'flex-start' }}>
+          {(['sections', 'timeline'] as const).map(m => (
+            <button key={m} onClick={() => setViewMode(m)} style={{ padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, background: viewMode === m ? '#0f172a' : 'transparent', color: viewMode === m ? '#fff' : '#475569' }}>
+              {m === 'sections' ? 'Secções' : '🕐 Linha do tempo'}
+            </button>
+          ))}
+        </div>
+
+        {/* Alergias — sempre visível (crítico), em ambas as vistas */}
         {has('allergies') && (
           <div style={{ ...card, borderColor: data.allergies ? '#fca5a5' : '#e5e7eb', background: data.allergies ? '#fef2f2' : '#fff' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: data.allergies ? '#b91c1c' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>⚠ Alergias</div>
@@ -132,13 +143,41 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
           </div>
         )}
 
-        {has('conditions') && (
+        {/* VISTA LINHA DO TEMPO — funde tudo o que tem data, do mais recente ao + antigo */}
+        {viewMode === 'timeline' && (() => {
+          type Ev = { at: string; kind: string; color: string; title: string; detail: string }
+          const events: Ev[] = []
+          for (const v of (data.visits || [])) events.push({ at: v.at, kind: 'Consulta', color: '#1d4ed8', title: v.reason || 'Consulta', detail: [v.professional_name, v.institution].filter(Boolean).join(' · ') })
+          for (const s of (data.symptoms || [])) events.push({ at: s.at, kind: 'Sintomas', color: '#b45309', title: (s.symptoms || []).join(', ') || 'Registo de sintomas', detail: [s.pain != null ? `dor ${s.pain}/10` : '', s.temperature ? `${s.temperature}ºC` : '', s.notes || ''].filter(Boolean).join(' · ') })
+          for (const v of (data.vitals || [])) events.push({ at: v.recorded_at, kind: 'Sinais vitais', color: '#0d6e42', title: [v.bp_sys && v.bp_dia ? `TA ${v.bp_sys}/${v.bp_dia}` : '', v.hr ? `FC ${v.hr}` : '', v.spo2 ? `SpO2 ${v.spo2}%` : '', v.glucose ? `gli ${v.glucose}` : '', v.weight ? `${v.weight}kg` : ''].filter(Boolean).join(' · ') || 'Medição', detail: v.temp ? `${v.temp}ºC` : '' })
+          events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+          if (events.length === 0) return <div style={{ ...card, color: '#64748b', fontSize: 13 }}>Sem eventos datados partilhados.</div>
+          return (
+            <div style={card}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Linha do tempo de saúde</div>
+              <div style={{ position: 'relative', paddingLeft: 18 }}>
+                <div style={{ position: 'absolute', left: 4, top: 4, bottom: 4, width: 2, background: '#e5e7eb' }} />
+                {events.map((e, i) => (
+                  <div key={i} style={{ position: 'relative', marginBottom: 16 }}>
+                    <div style={{ position: 'absolute', left: -18, top: 3, width: 10, height: 10, borderRadius: '50%', background: e.color, border: '2px solid white' }} />
+                    <div style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{new Date(e.at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })} · <span style={{ color: e.color, fontWeight: 700 }}>{e.kind}</span></div>
+                    <div style={{ fontSize: 14, color: '#0f172a', fontWeight: 600, marginTop: 1 }}>{e.title}</div>
+                    {e.detail && <div style={{ fontSize: 12.5, color: '#64748b' }}>{e.detail}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
+        {viewMode === 'sections' && has('conditions') && (
           <div style={{ ...card, borderColor: data.conditions ? '#fcd34d' : '#e5e7eb', background: data.conditions ? '#fffbeb' : '#fff' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: data.conditions ? '#b45309' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Condições / diagnósticos</div>
             <div style={{ fontSize: 14, color: data.conditions ? '#92400e' : '#94a3b8', fontWeight: data.conditions ? 600 : 400, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{data.conditions || 'Sem condições registadas'}</div>
           </div>
         )}
 
+        {/* Medicação visível em ambas as vistas (sempre relevante numa consulta) */}
         {has('meds') && sect(`Medicação atual (${data.meds?.length || 0})`, (data.meds?.length ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.meds.map((m, i) => (
@@ -150,7 +189,7 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
           </div>
         ) : <div style={{ fontSize: 13, color: '#94a3b8' }}>Sem medicação registada.</div>))}
 
-        {has('symptoms') && sect('Sintomas recentes', (data.symptoms?.length ? (
+        {viewMode === 'sections' && has('symptoms') && sect('Sintomas recentes', (data.symptoms?.length ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.symptoms.map((s, i) => (
               <div key={i} style={{ fontSize: 13, color: '#334155' }}>
@@ -162,7 +201,7 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
           </div>
         ) : <div style={{ fontSize: 13, color: '#94a3b8' }}>Sem registos.</div>))}
 
-        {has('vitals') && sect('Sinais vitais recentes', (data.vitals?.length ? (
+        {viewMode === 'sections' && has('vitals') && sect('Sinais vitais recentes', (data.vitals?.length ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.vitals.map((v, i) => (
               <div key={i} style={{ fontSize: 13, color: '#334155' }}>
@@ -173,7 +212,7 @@ export default function HealthPassPage({ params }: { params: Promise<{ token: st
           </div>
         ) : <div style={{ fontSize: 13, color: '#94a3b8' }}>Sem registos.</div>))}
 
-        {has('visits') && sect('Visitas anteriores', (data.visits?.length ? (
+        {viewMode === 'sections' && has('visits') && sect('Visitas anteriores', (data.visits?.length ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {data.visits.map((v, i) => (
               <div key={i} style={{ fontSize: 13, color: '#334155', display: 'flex', gap: 8 }}>

@@ -32,14 +32,14 @@ export default function PlanAds({ slot, format = 'horizontal', style, placeholde
   // Só plano gratuito vê anúncios. Pagantes e organizações nunca.
   if (user && user.plan !== 'free') return null
 
-  const publisherId = process.env.NEXT_PUBLIC_ADSENSE_ID
-
-  // AdSense configurado → anúncio real
-  if (publisherId) {
+  // Se o slot é um número real do AdSense → anúncio real (o publisher ID já está
+  // no layout + no AdBanner). Slots não-numéricos (placeholders) → caixa neutra.
+  const isRealSlot = /^\d{6,}$/.test(slot)
+  if (isRealSlot) {
     return <AdBanner slot={slot} format={format} style={style} />
   }
 
-  // Ainda sem AdSense → placeholder neutro (ou nada)
+  // Slot ainda não configurado → placeholder neutro (ou nada)
   if (!placeholder) return null
   return (
     <div

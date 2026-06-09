@@ -8,16 +8,18 @@ interface AdBannerProps {
   style?: React.CSSProperties
 }
 
-// Google AdSense banner — only use on blog pages, never on tool pages
-// Replace NEXT_PUBLIC_ADSENSE_ID in .env with your actual publisher ID (ca-pub-XXXXXXXXXX)
+// Google AdSense banner. O publisher ID já está no <head> (app/layout.tsx);
+// usamos a env NEXT_PUBLIC_ADSENSE_ID se existir, senão o fallback hardcoded,
+// para o bloco NUNCA depender só da variável (causa comum de não aparecer).
+const PUBLISHER_ID = process.env.NEXT_PUBLIC_ADSENSE_ID || 'ca-pub-3416387560941562'
+
 export default function AdBanner({ slot, format = 'auto', style }: AdBannerProps) {
   const adRef = useRef<HTMLModElement>(null)
   const loaded = useRef(false)
-
-  const publisherId = process.env.NEXT_PUBLIC_ADSENSE_ID
+  const publisherId = PUBLISHER_ID
 
   useEffect(() => {
-    if (!publisherId || loaded.current) return
+    if (loaded.current) return
     loaded.current = true
     // O script global do AdSense é carregado no <head> (app/layout.tsx).
     // Aqui só empurramos a unidade de anúncio quando o slot está montado.
@@ -27,9 +29,7 @@ export default function AdBanner({ slot, format = 'auto', style }: AdBannerProps
         ;(window as any).adsbygoogle.push({})
       } catch {}
     }, 200)
-  }, [publisherId])
-
-  if (!publisherId) return null
+  }, [])
 
   return (
     <div style={{ overflow: 'hidden', textAlign: 'center', ...style }}>
