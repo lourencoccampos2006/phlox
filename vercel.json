@@ -3,5 +3,8 @@
     "app/api/**": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/vigilancia/cron", "schedule": "0 5 * * *" }
+  ]
 }

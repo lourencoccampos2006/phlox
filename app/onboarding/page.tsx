@@ -113,8 +113,9 @@ export default function OnboardingPage() {
       student_year: profile === 'student' ? year : null,
       onboarding_answers: answers,
     }).eq('id', user.id)
-    const dest = profile === 'professional' ? '/cockpit' : '/inicio'
-    router.push(dest)
+    // Todos vão para /inicio (adapta-se ao modo). O modo clínico mostra paywall
+    // se o plano não chegar; o cockpit/ferramentas pro ficam atrás de gate.
+    router.push('/inicio')
   }
 
   // ── Reusable bits ──

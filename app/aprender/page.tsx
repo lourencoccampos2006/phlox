@@ -37,6 +37,7 @@ const SECTIONS: Section[] = [
     color: '#1d4ed8',
     tools: [
       { href: '/tutor',              title: 'Tutor IA socrático',   desc: 'Sessão dialógica em qualquer tema', icon: '🧠', badge: 'IA' },
+      { href: '/study/professor',    title: 'Modo Professor',       desc: 'Ensina o Phlox → descobre as tuas lacunas', icon: '🎓', badge: 'novo' },
       { href: '/study/notas',        title: 'Notas que te fazem rever', desc: 'Flashcards automáticos + revisão espaçada · foto/voz', icon: '📝', badge: 'novo' },
       { href: '/study/documentos',   title: 'Os meus documentos',   desc: 'Pergunta às tuas sebentas e slides (IA)', icon: '📚', badge: 'Pro' },
       { href: '/study/resumos',      title: 'Resumos IA',           desc: 'Em 6 formatos · adaptado ao nível',  icon: '📑' },
@@ -67,6 +68,7 @@ const SECTIONS: Section[] = [
     color: '#0d6e42',
     tools: [
       { href: '/modo-exame',      title: 'Modo Exame',          desc: 'Plano de contagem decrescente até ao exame', icon: '🎯', badge: 'novo' },
+      { href: '/study/exame',     title: 'Gerador de exame',    desc: 'Prevê o exame das tuas sebentas · perguntas de escrever', icon: '📝', badge: 'novo' },
       { href: '/study/plano',     title: 'Plano de estudo IA',  desc: 'Schedule semanal gerado por IA',     icon: '📅' },
       { href: '/study360',        title: 'SRS + Pomodoro',      desc: 'Revisão espaçada + timer',           icon: '⏱️' },
       { href: '/calendario',      title: 'Calendário',          desc: 'Eventos e prazos',                    icon: '🗓️' },

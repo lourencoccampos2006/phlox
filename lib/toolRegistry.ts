@@ -105,6 +105,8 @@ export const TOOLS: Tool[] = [
   { id: '/study/procedimentos', label: 'Procedimentos clínicos', desc: 'Guias passo-a-passo com checklist', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/study/documentos', label: 'Os meus documentos (IA)',   desc: 'Pergunta às tuas sebentas e slides', category: 'study',    modes: ['student'], plan: 'pro' },
   { id: '/modo-exame',   label: 'Modo Exame',                    desc: 'Plano de contagem decrescente até ao exame', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
+  { id: '/study/professor', label: 'Modo Professor',             desc: 'Ensina o Phlox e descobre as tuas lacunas', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
+  { id: '/study/exame',  label: 'Gerador de exame',              desc: 'Prevê o teu exame a partir das tuas sebentas', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/estagio',      label: 'Estágio (completo)',            desc: 'Doentes, diário, casos, IA, relatórios', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
 
   // ══ CLÍNICO ═══════════════════════════════════════════════════════════════

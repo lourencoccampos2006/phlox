@@ -10,7 +10,7 @@ import Link from 'next/link'
 
 const ACCENT = '#0d6e42'
 
-interface Vig { risk_score: number; alerts: any[]; flags: string[]; summary: string; analysed_at: string }
+interface Vig { risk_score: number; prev_risk_score?: number; alerts: any[]; flags: string[]; summary: string; analysed_at: string; auto_scanned_at?: string }
 interface Patient { id: string; name: string; age: number|null; sex: string|null; room: string|null; risk_level: string|null; vigilance: Vig|null }
 
 export default function VigiaPage() {
@@ -96,6 +96,18 @@ export default function VigiaPage() {
       </div>
 
       {needsMigration && <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13, marginBottom: 12 }}>Aplica <b>supabase/sprint82_vigilancia.sql</b> para ativar.</div>}
+
+      {/* Banner: residentes que pioraram desde a última vigilância (automática) */}
+      {(() => {
+        const worse = patients.filter(p => p.vigilance && (p.vigilance.prev_risk_score ?? 0) > 0 && p.vigilance.risk_score > (p.vigilance.prev_risk_score ?? 0) + 5)
+        if (worse.length === 0) return null
+        return (
+          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+            <b style={{ color: '#991b1b', fontSize: 14 }}>⚠ {worse.length} residente{worse.length > 1 ? 's pioraram' : ' piorou'} desde a última vigilância</b>
+            <div style={{ fontSize: 12.5, color: '#7f1d1d', marginTop: 4 }}>{worse.map(p => `${p.name || 'Residente'} (${p.vigilance!.prev_risk_score}→${p.vigilance!.risk_score})`).join(' · ')}</div>
+          </div>
+        )
+      })()}
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10, marginBottom: 16 }}>

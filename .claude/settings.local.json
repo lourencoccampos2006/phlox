@@ -43,7 +43,8 @@
       "Bash(grep -rhA22 \"create table if not exists patients \" supabase/SETUP_CLINICO.sql supabase/sprint52_structured_meds.sql)",
       "Bash(npm audit *)",
       "Bash(grep -nA6 \"const LIMITS\" lib/plans.ts)",
-      "Bash(grep -nE \"aiJSON|import.*lib/ai|maxTokens|], \\\\{\" app/api/patients/analyze/route.ts)"
+      "Bash(grep -nE \"aiJSON|import.*lib/ai|maxTokens|], \\\\{\" app/api/patients/analyze/route.ts)",
+      "Bash(cd c:/Users/Fernando/phlox && echo \"=== prefixos gated em planRoutes ===\"; grep -oE \"prefix: '/[a-z-]+'\" lib/planRoutes.ts | sed \"s/prefix: '//;s/'//\" | sort -u > /tmp/gated.txt; cat /tmp/gated.txt | tr '\\\\n' ' '; echo \"\"; echo \"=== ferramentas clínicas no registry \\(plan pro/clinic\\) ===\"; grep -oE \"id: '/[a-z-]+'.*plan: 'pro'\" lib/toolRegistry.ts | grep -oE \"id: '/[a-z-]+'\" | sed \"s/id: '//;s/'//\" | sort -u > /tmp/clinical.txt; cat /tmp/clinical.txt | tr '\\\\n' ' ')"
     ]
   }
 }

@@ -31,20 +31,46 @@ export default function InicioPage() {
   useEffect(() => {
     if (loading) return
     if (!user) { router.push('/login'); return }
-    if (expMode === 'clinical') router.replace('/cockpit')
-  }, [loading, user, expMode, router])
+    // Já NÃO redirecionamos clínico para /cockpit — o /inicio é o hub de entrada
+    // para todos os modos. O modo clínico mostra paywall (se não-Pro) ou hub clínico.
+  }, [loading, user, router])
 
+  const plan = (user?.plan as string) || 'free'
+  const clinicalAllowed = plan === 'pro' || plan === 'clinic'
   const toolMode: ToolMode = (['personal', 'caregiver', 'student'].includes(expMode) ? expMode : 'personal') as ToolMode
   const { enabledTools } = useEnabledTools(toolMode)
   const isFree = !user?.plan || user.plan === 'free'
 
-  if (loading || !user || expMode === 'clinical') {
+  if (loading || !user) {
     return (
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 30, height: 30, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--green)', animation: 'spin 0.7s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
+  }
+
+  // ── MODO CLÍNICO ──
+  if (expMode === 'clinical') {
+    // Free/Plus → paywall (o espaço clínico exige Institucional/Pro)
+    if (!clinicalAllowed) {
+      return (
+        <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
+          <div style={{ width: 'min(460px,100%)', background: 'white', border: '1px solid var(--border)', borderRadius: 18, padding: '28px 26px', textAlign: 'center', boxShadow: '0 12px 50px rgba(8,12,24,0.08)' }}>
+            <div style={{ fontSize: 34, marginBottom: 12 }}>🏥</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1d4ed8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Espaço clínico</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--ink)', fontWeight: 400, margin: '0 0 10px' }}>O modo clínico é para profissionais e instituições</h1>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 20px' }}>Ward, ronda farmacêutica, MAR, vigilância de residentes e relatórios fazem parte dos planos Pro e Institucional. O teu plano atual é {planName(plan)}.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <Link href="/pricing" style={{ padding: '13px 18px', background: '#1d4ed8', color: 'white', borderRadius: 10, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>Ver planos Pro e Institucional</Link>
+              <Link href="/settings" style={{ padding: '11px', background: 'none', color: 'var(--ink-4)', borderRadius: 10, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Mudar de modo nas Definições</Link>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    // Pro/Institucional → hub clínico (não /cockpit automático; entrada calma)
+    return <ClinicalHub router={router} name={user?.name?.split(' ')[0] || ''} />
   }
 
   const cats = Object.keys(TOOL_CATEGORIES).filter(c => enabledTools.some(t => t.category === c))
@@ -162,6 +188,44 @@ export default function InicioPage() {
           .home-card:hover { border-color: var(--border-2); box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
         }
       `}</style>
+    </div>
+  )
+}
+
+// Hub de entrada do modo clínico — entrada calma, não o cockpit direto.
+function ClinicalHub({ name }: { router: any; name: string }) {
+  const TOOLS = [
+    { href: '/cockpit', icon: '▦', title: 'Cockpit', desc: 'Dashboard do turno · alertas · KPIs' },
+    { href: '/patients', icon: '👥', title: 'Doentes', desc: 'Fichas, medicação, alertas' },
+    { href: '/rounds', icon: '🩺', title: 'Ronda farmacêutica', desc: 'PCNE · intervenções' },
+    { href: '/mar', icon: '💊', title: 'Administração (MAR)', desc: 'Registo por turno' },
+    { href: '/vigia', icon: '🏥', title: 'Vigia Clínico', desc: 'Vigilância farmacológica de todos' },
+    { href: '/oracle', icon: '✦', title: 'Oracle', desc: 'SOAP · PCNE · plano' },
+    { href: '/turno', icon: '🕐', title: 'Turno', desc: 'Visão do turno atual' },
+    { href: '/handover', icon: '🔄', title: 'Passagem de turno', desc: 'Relatório IA do turno' },
+  ]
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px 40px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 6 }}>Espaço clínico</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 500, margin: '0 0 4px' }}>Bom trabalho{name ? `, ${name}` : ''}.</h1>
+        <p style={{ color: 'var(--ink-3)', fontSize: 14, marginBottom: 20 }}>Por onde queres começar hoje?</p>
+        <div className="home-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+          {TOOLS.map(t => (
+            <Link key={t.href} href={t.href} className="home-card" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 12, background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
+              <span style={{ width: 38, height: 38, borderRadius: 10, background: '#1d4ed814', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{t.icon}</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{t.title}</span>
+                <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-4)' }}>{t.desc}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+        <style>{`
+          .home-card:hover { border-color: var(--border-2); box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+          @media (min-width: 700px) { .home-grid { grid-template-columns: 1fr 1fr !important; } }
+        `}</style>
+      </div>
     </div>
   )
 }

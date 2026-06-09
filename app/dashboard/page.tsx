@@ -1119,7 +1119,7 @@ function DashboardContent() {
 
         {/* Anúncio — só plano gratuito; pagantes nunca veem */}
         <div style={{ maxWidth: 920, margin: '8px auto 0', padding: '0 16px' }}>
-          <PlanAds slot="dashboard_footer" format="horizontal" />
+          <PlanAds slot="1973355979" format="horizontal" />
         </div>
 
       </div>

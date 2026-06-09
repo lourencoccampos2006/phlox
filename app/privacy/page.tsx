@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 const SECTIONS = [
   {
     title: 'Quem somos',
-    content: 'A Phlox Clinical é uma plataforma farmacológica educacional. O responsável pelo tratamento dos dados é o operador da plataforma phlox.health.',
+    content: 'A Phlox Clinical é uma plataforma educacional na área da saúde e farmacologia. O responsável pelo tratamento dos dados é o operador da plataforma phloxclinical.com. Para questões de proteção de dados: info@phloxclinical.com.',
   },
   {
     title: 'Que dados recolhemos',
@@ -28,7 +28,7 @@ const SECTIONS = [
   },
   {
     title: 'Os teus direitos (RGPD)',
-    content: 'Tens direito de acesso, rectificação, apagamento, portabilidade e oposição ao tratamento dos teus dados. Para exercer qualquer destes direitos, contacta-nos em hello@phlox.health. Respondemos no prazo de 30 dias.',
+    content: 'Tens direito de acesso, rectificação, apagamento, portabilidade e oposição ao tratamento dos teus dados. Para exercer qualquer destes direitos, contacta-nos em suporte@phloxclinical.com. Respondemos no prazo de 30 dias.',
   },
   {
     title: 'Retenção de dados',
@@ -40,7 +40,7 @@ const SECTIONS = [
   },
   {
     title: 'Contacto',
-    content: 'Para questões sobre privacidade: hello@phlox.health',
+    content: 'Para questões sobre privacidade: suporte@phloxclinical.com',
   },
 ]
 

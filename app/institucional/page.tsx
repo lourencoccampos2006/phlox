@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Phlox Clinical Institucional — Para Farmácias, Hospitais e Clínicas',
-  description: 'A plataforma farmacológica colaborativa para equipas de saúde. Ward, Connect, Rounds, PCNE, passagem de turno. 89€/mês por instituição, utilizadores ilimitados.',
+  description: 'A plataforma farmacológica colaborativa para equipas de saúde. Ward, Connect, Rounds, PCNE, passagem de turno. 149€/mês por instituição, utilizadores ilimitados.',
 }
 
 function CheckIcon({ color }: { color: string }) {
@@ -46,8 +46,8 @@ const INSTITUTION_TYPES = [
 ]
 
 const COMPARISON_ITEMS = [
-  { label: 'EHR Hospitalar (ex: Glintt, Alert)',   price: '€50.000–500.000/ano',   phlox: '89€/mês',    highlight: true },
-  { label: 'Software de gestão de farmácia',        price: '150–500€/mês',           phlox: '89€/mês',    highlight: false },
+  { label: 'EHR Hospitalar (ex: Glintt, Alert)',   price: '€50.000–500.000/ano',   phlox: '149€/mês',    highlight: true },
+  { label: 'Software de gestão de farmácia',        price: '150–500€/mês',           phlox: '149€/mês',    highlight: false },
   { label: 'Sistema de passagem de turno',          price: 'Não existe acessível',   phlox: 'Incluído',   highlight: true },
   { label: 'Registo de intervenções PCNE',          price: 'Excel manual',           phlox: 'Incluído',   highlight: false },
   { label: 'Comunicação inter-profissional',        price: 'WhatsApp pessoal',       phlox: 'Incluído',   highlight: true },
@@ -72,7 +72,7 @@ export default function InstitucionalPage() {
               ao EHR que ninguém consegue pagar.
             </h1>
             <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.75, maxWidth: 580, marginBottom: 36 }}>
-              Ward colaborativo. Passagem de turno automática. Registo PCNE. Comunicação inter-profissional estruturada. Por 89€/mês para toda a equipa — sem limite de utilizadores.
+              Ward colaborativo. Passagem de turno automática. Registo PCNE. Comunicação inter-profissional estruturada. Por 149€/mês para toda a equipa — sem limite de utilizadores.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <Link href="/checkout?plan=clinic"
@@ -92,7 +92,7 @@ export default function InstitucionalPage() {
       <div style={{ background: '#0d6e42', padding: '16px 0' }}>
         <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'white', fontWeight: 400 }}>89€</span>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'white', fontWeight: 400 }}>149€</span>
             <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/mês · utilizadores ilimitados · sem fidelização</span>
           </div>
           <Link href="/checkout?plan=clinic"
@@ -211,7 +211,7 @@ export default function InstitucionalPage() {
             Pronto para substituir o papel e o WhatsApp clínico?
           </h2>
           <p style={{ fontSize: 15, color: '#475569', marginBottom: 32, lineHeight: 1.7 }}>
-            89€/mês por instituição. Utilizadores ilimitados. Cancela quando quiseres, no próprio site.
+            149€/mês por instituição. Utilizadores ilimitados. Cancela quando quiseres, no próprio site.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/checkout?plan=clinic"

@@ -115,6 +115,17 @@ function ReviewTab({ auth, dash, onAfter, goNotes }: { auth: () => Promise<any>;
   const [showBack, setShowBack] = useState(false)
   const [loading, setLoading] = useState(true)
   const [done, setDone] = useState(0)
+  const [audioMode, setAudioMode] = useState(false)
+
+  // TTS — lê em voz alta (pergunta → pausa → resposta), hands-free.
+  const speak = useCallback((text: string, onEnd?: () => void) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd?.(); return }
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'pt-PT'; u.rate = 1
+    u.onend = () => onEnd?.()
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(u)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -132,8 +143,28 @@ function ReviewTab({ auth, dash, onAfter, goNotes }: { auth: () => Promise<any>;
     fetch('/api/study/cards', { method: 'POST', headers, body: JSON.stringify({ action: 'review', card_id: card.id, quality }) }).catch(() => {})
     setDone(d => d + 1)
     if (idx + 1 < cards.length) { setIdx(idx + 1); setShowBack(false) }
-    else { setCards([]); onAfter() }
+    else { setCards([]); onAfter(); if (typeof window !== 'undefined') window.speechSynthesis?.cancel() }
   }
+
+  // Modo áudio (podcast): lê pergunta → pausa → mostra+lê resposta. Mãos livres.
+  useEffect(() => {
+    if (!audioMode || loading || cards.length === 0) return
+    const card = cards[idx]; if (!card) return
+    let cancelled = false
+    setShowBack(false)
+    speak(`Pergunta: ${card.front}`, () => {
+      if (cancelled) return
+      setTimeout(() => {
+        if (cancelled) return
+        setShowBack(true)
+        speak(`Resposta: ${card.back}`)
+      }, 2500)  // pausa para o utilizador pensar
+    })
+    return () => { cancelled = true; if (typeof window !== 'undefined') window.speechSynthesis?.cancel() }
+  }, [audioMode, idx, loading, cards, speak])
+
+  // Para a voz ao sair da revisão
+  useEffect(() => () => { if (typeof window !== 'undefined') window.speechSynthesis?.cancel() }, [])
 
   if (loading) return <p style={{ color: '#6b7280' }}>A preparar a revisão…</p>
 
@@ -162,7 +193,13 @@ function ReviewTab({ auth, dash, onAfter, goNotes }: { auth: () => Promise<any>;
       {/* Progresso */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, fontSize: 13, color: '#6b7280' }}>
         <span>Cartão {idx + 1} de {cards.length}</span>
-        <span>{dash.reviewed_today + done} revistos hoje</span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={() => setAudioMode(a => !a)} title="Estudar de ouvidos (mãos livres)" style={{
+            padding: '4px 10px', borderRadius: 999, border: `1px solid ${audioMode ? '#6d28d9' : '#e7e8ea'}`,
+            background: audioMode ? '#6d28d9' : 'white', color: audioMode ? 'white' : '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+          }}>{audioMode ? '🎧 A ouvir' : '🎧 Ouvir'}</button>
+          <span>{dash.reviewed_today + done} revistos hoje</span>
+        </div>
       </div>
       <div style={{ height: 4, background: '#eceef0', borderRadius: 4, marginBottom: 18, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: ACCENT, transition: 'width 0.3s' }} />
