@@ -56,14 +56,11 @@ export const TOOLS: Tool[] = [
   { id: '/mymeds',       label: 'Os meus medicamentos',          desc: 'Lista, lembretes e adesão',        category: 'meds',       modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/interactions', label: 'Os meus medicamentos dão-se bem?', desc: 'Verificar interações',          category: 'meds',       modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free_limited' },
   { id: '/food-drug',    label: 'O que não posso misturar?',     desc: 'Alimentos e álcool a evitar',      category: 'meds',       modes: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/calendario-meds', label: 'A que horas devo tomar?',    desc: 'Horário ideal das tomas (IA)',     category: 'meds',       modes: ['personal', 'caregiver'], plan: 'free_limited' },
 
   // ── A minha saúde ──
   { id: '/vitals',       label: 'Acompanhar tensão, peso e açúcar', desc: 'Registo e tendências',          category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/sintomas',     label: 'Como me sinto hoje?',           desc: 'Diário de sintomas e bem-estar',   category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/objetivos',    label: 'Definir objetivos de saúde',    desc: 'Metas e acompanhamento',           category: 'health',     modes: ['personal'], plan: 'free' },
   { id: '/relatorio',    label: 'Como correu a minha semana?',   desc: 'Relatório semanal por IA',         category: 'health',     modes: ['personal', 'caregiver'], plan: 'student' },
-  { id: '/passport',     label: 'Cartão de emergência',          desc: 'QR code com a minha info vital',   category: 'health',     modes: ['personal', 'caregiver'], default: ['caregiver'], plan: 'free' },
   { id: '/saude-agora',  label: 'Devo ir ao médico ou ajudar já?', desc: 'Triagem + primeiros socorros num só', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/risco',        label: 'O meu perfil de risco',         desc: 'SCORE2 + STOPP + carga anticolinérgica', category: 'health', modes: ['personal', 'caregiver'], plan: 'student' },
   { id: '/vault',        label: 'Cofre de documentos clínicos',  desc: 'Análises, receitas, partilha por código', category: 'health', modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
@@ -76,37 +73,27 @@ export const TOOLS: Tool[] = [
   { id: '/receita',      label: 'Decifrar a receita médica',     desc: 'Foto da receita → tomas explicadas', category: 'understand', modes: ['personal', 'caregiver'], default: ['caregiver'], plan: 'free_limited' },
   { id: '/bula',         label: 'Perceber uma bula',             desc: 'Texto técnico em linguagem simples', category: 'understand', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/labs',         label: 'Perceber as minhas análises',   desc: 'O que cada valor significa',       category: 'understand', modes: ['personal', 'caregiver'], plan: 'free_limited' },
-  { id: '/scanner',      label: 'Posso tomar este medicamento?', desc: 'Verificação rápida + interações',  category: 'understand', modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'Gerir os perfis da família',    desc: 'Um perfil por familiar',           category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'free' },
   { id: '/familia360',   label: 'Família 360°',                  desc: 'Inbox + reconciliação + Zarit',    category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'student' },
-  { id: '/preparar-consulta', label: 'Preparar uma ida ao médico', desc: 'Folha de perguntas e sintomas',   category: 'health',     modes: ['personal', 'caregiver'], default: ['caregiver'], plan: 'free' },
 
-  // ── Estudar & treinar ──
-  { id: '/comunidade',   label: 'Comunidade de estudantes',      desc: 'Dúvidas, recursos e ajuda entre pares', category: 'study', modes: ['student'], default: ['student'], plan: 'free' },
+  // ── Estudar & treinar ── (consolidado: máx ~14 ferramentas no modo estudante)
   { id: '/arena',        label: 'Competir na Arena',             desc: 'Ligas Bronze → Diamante',          category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
   { id: '/study',        label: 'Estudar com flashcards',        desc: '200+ tópicos, repetição espaçada', category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
-  { id: '/tutor',        label: 'AI Tutor',                      desc: 'Explicações passo a passo',        category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
+  { id: '/tutor',        label: 'AI Tutor',                      desc: 'Explica conceitos · mnemónicas · passo a passo', category: 'study', modes: ['student'], default: ['student'], plan: 'free_limited' },
   { id: '/simulador',    label: 'Simulador clínico',             desc: 'Casos clínicos com IA',            category: 'study',      modes: ['student'], plan: 'student' },
   { id: '/osce',         label: 'Treinar OSCE',                  desc: 'IA como doente, feedback real',    category: 'study',      modes: ['student'], plan: 'student' },
-  { id: '/progresso',    label: 'Ver o meu progresso',           desc: 'XP, streak e estatísticas',        category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/anatomia-3d',  label: 'Explorar em 3D',                desc: 'Atlas 3D real · pesquisa + AR',     category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
-  { id: '/estudar-conceito', label: 'Estudar um conceito',       desc: 'Explica + mnemónica + plano',      category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
-  { id: '/biblioteca',   label: 'Biblioteca de PDFs/slides',     desc: 'Upload → resumo + perguntas',      category: 'study',      modes: ['student'], plan: 'student' },
-  { id: '/study360',     label: 'Estudo 360°',                   desc: 'SRS + plano de exame + Pomodoro',  category: 'study',      modes: ['student'], plan: 'student' },
+  { id: '/study360',     label: 'Estudo 360°',                   desc: 'Revisão espaçada · progresso · Pomodoro', category: 'study',   modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/aprender',     label: 'Hub Aprender',                  desc: 'Acesso central a todas as ferramentas de estudo', category: 'study', modes: ['student'], default: ['student'], plan: 'free' },
-  { id: '/study/resumos', label: 'Resumos IA',                   desc: '6 formatos × 4 níveis',            category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
-  { id: '/study/plano',  label: 'Plano de estudo IA',            desc: 'Schedule semanal gerado por IA',   category: 'study',      modes: ['student'], default: ['student'], plan: 'student' },
-  { id: '/study/notas',  label: 'Notas (Knowledge Graph)',       desc: 'Estilo Obsidian com [[links]]',    category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/notas',  label: 'Notas que te fazem rever',      desc: 'Flashcards automáticos · resumos · foto/voz', category: 'study', modes: ['student'], default: ['student'], plan: 'free' },
+  { id: '/study/documentos', label: 'Os meus documentos',        desc: 'Carrega sebentas/slides → pergunta e gera estudo', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/study/ecg',    label: 'Biblioteca de ECGs',            desc: '38 ECGs · avaliação IA',           category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },
   { id: '/study/lab',    label: 'Lab interpreter',               desc: '60+ valores ref · interpretação IA', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
-  { id: '/study/biblioteca', label: 'Biblioteca médica',         desc: 'Guidelines ESC, ADA, GINA, NICE',  category: 'study',      modes: ['student'], default: ['student'], plan: 'free' },
   { id: '/study/procedimentos', label: 'Procedimentos clínicos', desc: 'Guias passo-a-passo com checklist', category: 'study',     modes: ['student'], default: ['student'], plan: 'free' },
-  { id: '/study/documentos', label: 'Os meus documentos (IA)',   desc: 'Pergunta às tuas sebentas e slides', category: 'study',    modes: ['student'], plan: 'pro' },
-  { id: '/modo-exame',   label: 'Modo Exame',                    desc: 'Plano de contagem decrescente até ao exame', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
+  { id: '/modo-exame',   label: 'Modo Exame',                    desc: 'Plano até ao exame + gerar perguntas prováveis', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/study/professor', label: 'Modo Professor',             desc: 'Ensina o Phlox e descobre as tuas lacunas', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
-  { id: '/study/exame',  label: 'Gerador de exame',              desc: 'Prevê o teu exame a partir das tuas sebentas', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/estagio',      label: 'Estágio (completo)',            desc: 'Doentes, diário, casos, IA, relatórios', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
 
   // ══ CLÍNICO ═══════════════════════════════════════════════════════════════
