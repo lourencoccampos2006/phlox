@@ -540,6 +540,21 @@ export default function Calculos() {
         </div>
       </div>
 
+      {/* Calculadoras especializadas (consolidadas aqui) */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 24px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {[
+          ['/iv-calc', '💧 Cálculo IV'],
+          ['/iv-compatibility', '🧪 Compatibilidade IV'],
+          ['/pk-dosing', '📈 Console PK (TDM)'],
+          ['/electrolytes', '⚡ Eletrólitos'],
+          ['/emergency-doses', '🚨 Doses de urgência'],
+          ['/dose-crianca', '👶 Dose pediátrica'],
+          ['/calculators', '📊 Mais escalas'],
+        ].map(([href, label]) => (
+          <a key={href} href={href} style={{ padding: '7px 13px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 999, fontSize: 12.5, fontWeight: 600, color: '#334155', textDecoration: 'none' }}>{label}</a>
+        ))}
+      </div>
+
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
 
         {/* Sidebar */}

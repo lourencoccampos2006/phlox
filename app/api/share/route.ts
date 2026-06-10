@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'type e data obrigatórios' }, { status: 400 })
   }
 
-  const VALID_TYPES = ['interaction', 'labs', 'care_plan', 'arena_result', 'medication_review']
+  const VALID_TYPES = ['interaction', 'labs', 'care_plan', 'arena_result', 'medication_review', 'counter']
   if (!VALID_TYPES.includes(body.type)) {
     return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
   }

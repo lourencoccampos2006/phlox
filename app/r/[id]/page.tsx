@@ -29,6 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     care_plan: 'Care Plan Farmacológico',
     arena_result: 'Caso Clínico Phlox Arena',
     medication_review: 'Revisão de Medicação',
+    counter: 'Aconselhamento da farmácia',
   }
   return {
     title: `${titles[result.type] || 'Resultado'} | Phlox Clinical`,
@@ -58,6 +59,81 @@ export default async function SharedResultPage({ params }: Props) {
 
   const data = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
   const isExpired = result.expires_at && new Date(result.expires_at) < new Date()
+
+  // ── Aconselhamento da farmácia (modo balcão) — vista clara para o utente ──
+  // Layout próprio (claro, simples): o utente recebe no telemóvel o que tomar,
+  // como tomar, cuidados, e quando voltar. Sem linguagem técnica.
+  if (result.type === 'counter' && data) {
+    const rec = (data.recommended || []) as { name: string; dose?: string; duration?: string; notes?: string }[]
+    return (
+      <div style={{ minHeight: '100vh', background: '#f6f7f5', fontFamily: 'system-ui, sans-serif', color: '#1f2937' }}>
+        <div style={{ background: '#0d6e42', color: 'white', padding: '14px 0' }}>
+          <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: 'Georgia, serif', fontWeight: 800, fontSize: 18 }}>Phlox</span>
+            <span style={{ fontSize: 12, opacity: 0.85 }}>Aconselhamento da farmácia</span>
+          </div>
+        </div>
+        <div style={{ maxWidth: 560, margin: '24px auto', padding: '0 20px' }}>
+          {isExpired && <div style={{ background: '#fef3c7', color: '#92400e', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13 }}>Este aconselhamento expirou.</div>}
+          {data.pharmacy && <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>{data.pharmacy}</div>}
+          {data.complaint && <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 500, margin: '0 0 16px', lineHeight: 1.25 }}>{data.complaint}</h1>}
+
+          {rec.length > 0 && (
+            <section style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>O que pode tomar</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {rec.map((m, i) => (
+                  <div key={i} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '13px 15px' }}>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{m.name}</div>
+                    {m.dose && <div style={{ fontSize: 14, color: '#374151', marginTop: 3 }}><b>Como tomar:</b> {m.dose}</div>}
+                    {m.duration && <div style={{ fontSize: 13.5, color: '#6b7280', marginTop: 2 }}>Durante: {m.duration}</div>}
+                    {m.notes && <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{m.notes}</div>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(data.advice?.length || 0) > 0 && (
+            <section style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Conselhos</div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: '#374151', fontSize: 14, lineHeight: 1.7 }}>
+                {data.advice.map((a: string, i: number) => <li key={i}>{a}</li>)}
+              </ul>
+            </section>
+          )}
+
+          {(data.avoid?.length || 0) > 0 && (
+            <section style={{ marginBottom: 18, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '12px 15px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>A evitar</div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: '#7c5a12', fontSize: 13.5, lineHeight: 1.65 }}>
+                {data.avoid.map((a: string, i: number) => <li key={i}>{a}</li>)}
+              </ul>
+            </section>
+          )}
+
+          {(data.refer_if?.length || 0) > 0 && (
+            <section style={{ marginBottom: 18, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '12px 15px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Procure o médico se</div>
+              <ul style={{ margin: 0, paddingLeft: 20, color: '#991b1b', fontSize: 13.5, lineHeight: 1.65 }}>
+                {data.refer_if.map((a: string, i: number) => <li key={i}>{a}</li>)}
+              </ul>
+            </section>
+          )}
+
+          {data.followUp && <div style={{ fontSize: 14, color: '#374151', background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '12px 15px', marginBottom: 18 }}><b>Voltar à farmácia:</b> {data.followUp}</div>}
+
+          <p style={{ fontSize: 11.5, color: '#9ca3af', lineHeight: 1.55, marginBottom: 24 }}>Aconselhamento dado pela sua farmácia através do Phlox. Não substitui a consulta médica. Em emergência, ligue 112.</p>
+
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 20, textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, marginBottom: 6 }}>Guarde a sua medicação no Phlox</div>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 14px', lineHeight: 1.6 }}>Lembretes de toma, interações e a sua saúde num só sítio. Grátis.</p>
+            <Link href="/login" style={{ display: 'inline-block', padding: '11px 22px', background: '#0d6e42', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>Criar conta grátis →</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#050508', fontFamily: 'sans-serif', color: '#fafafa' }}>

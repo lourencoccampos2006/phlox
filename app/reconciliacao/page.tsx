@@ -5,10 +5,11 @@
 // Compara lista de medicamentos antes/depois de internamento ou mudança de serviço.
 // Identifica discrepâncias, omissões e adições não justificadas.
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
+import { extractFromFile } from '@/lib/docExtract'
 
 interface Discrepancy {
   type: 'added' | 'removed' | 'dose_changed' | 'frequency_changed' | 'intentional_omission'
@@ -59,9 +60,42 @@ export default function ReconciliacaoPage() {
   const [decisions, setDecisions] = useState<Record<number, 'approved' | 'rejected'>>({})
   const [decisionNotes, setDecisionNotes] = useState<Record<number, string>>({})
   const [copied, setCopied] = useState(false)
+  const [scanning, setScanning] = useState<'before' | 'after' | ''>('')
+  const beforeFileRef = useRef<HTMLInputElement>(null)
+  const afterFileRef = useRef<HTMLInputElement>(null)
 
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
+
+  // Foto da nota de alta / receita antiga → extrai a lista automaticamente.
+  // O profissional não escreve nada: aponta a câmara e o Phlox preenche o lado.
+  const onScan = (side: 'before' | 'after') => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; e.target.value = ''
+    if (!file) return
+    setScanning(side); setError('')
+    try {
+      let payload: any
+      if (file.type.startsWith('image/')) {
+        const b64 = await new Promise<string>((res, rej) => {
+          const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(file)
+        })
+        payload = { image: b64, mimeType: file.type }
+      } else {
+        const ex = await extractFromFile(file)
+        if (!ex.text || ex.text.trim().length < 10) throw new Error('Documento sem texto legível.')
+        payload = { text: ex.text }
+      }
+      const r = await fetch('/api/receita-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.error || 'Não consegui ler.')
+      const lines = (j.meds || []).map((m: any) => `${m.name || ''}${m.dose ? ' ' + m.dose : ''}${m.frequency ? ' ' + m.frequency : ''}`.trim()).filter(Boolean)
+      if (!lines.length) throw new Error('Não identifiquei medicamentos. Tenta uma imagem mais nítida.')
+      const text = lines.join('\n')
+      if (side === 'before') setBefore(b => b.trim() ? b.trim() + '\n' + text : text)
+      else setAfter(a => a.trim() ? a.trim() + '\n' + text : text)
+      if (j.warning) setError(j.warning)
+    } catch (err: any) { setError(err.message || 'Erro ao ler a imagem.') } finally { setScanning('') }
+  }
 
   const handleProfile = async (p: any) => {
     if (!supabase) return
@@ -147,7 +181,7 @@ export default function ReconciliacaoPage() {
           </div>
           <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(20px,3vw,28px)', color:'var(--ink)', fontWeight:400, marginBottom:8 }}>Reconciliação Medicamentosa</h1>
           <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, maxWidth:560 }}>
-            Cola a lista de medicamentos antes e depois do internamento (ou mudança de serviço). Identificamos as discrepâncias e o que precisa de justificação.
+            Tira <b>foto à nota de alta</b> e à medicação anterior — ou cola as listas. O Phlox extrai os medicamentos e identifica o que mudou, o que foi omitido por engano e o que precisa de justificação.
           </p>
         </div>
 
@@ -159,7 +193,14 @@ export default function ReconciliacaoPage() {
               <div style={{ width:10, height:10, borderRadius:'50%', background:'#0d6e42' }} />
               Medicação ANTES do internamento
             </div>
-            {user && <div style={{ marginBottom:8 }}><ProfileSelector onChange={handleProfile} /></div>}
+            <div style={{ display:'flex', gap:8, marginBottom:8, alignItems:'center', flexWrap:'wrap' }}>
+              {user && <div style={{ flex:1, minWidth:140 }}><ProfileSelector onChange={handleProfile} /></div>}
+              <button type="button" onClick={() => beforeFileRef.current?.click()} disabled={!!scanning}
+                style={{ padding:'8px 14px', background:'white', color:'#0d6e42', border:'1.5px solid #bbf7d0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                {scanning==='before' ? 'A ler…' : '📷 Foto da lista'}
+              </button>
+              <input ref={beforeFileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onScan('before')} style={{ display:'none' }} />
+            </div>
             <textarea value={before} onChange={e => setBefore(e.target.value)}
               placeholder="Um medicamento por linha&#10;Ex: Metformina 1000mg 2x/dia&#10;    Ramipril 5mg 1x/dia"
               rows={10}
@@ -172,7 +213,13 @@ export default function ReconciliacaoPage() {
               <div style={{ width:10, height:10, borderRadius:'50%', background:'#dc2626' }} />
               Medicação DEPOIS (nota de alta / prescrição actual)
             </div>
-            <div style={{ marginBottom:8, height:38 }} /> {/* spacer para alinhar com ProfileSelector */}
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, minHeight:38, alignItems:'center' }}>
+              <button type="button" onClick={() => afterFileRef.current?.click()} disabled={!!scanning}
+                style={{ padding:'8px 14px', background:'white', color:'#dc2626', border:'1.5px solid #fca5a5', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                {scanning==='after' ? 'A ler…' : '📷 Foto da nota de alta'}
+              </button>
+              <input ref={afterFileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onScan('after')} style={{ display:'none' }} />
+            </div>
             <textarea value={after} onChange={e => setAfter(e.target.value)}
               placeholder="Um medicamento por linha&#10;Ex: Metformina 500mg 2x/dia&#10;    Enalapril 10mg 2x/dia"
               rows={10}
