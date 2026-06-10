@@ -198,6 +198,11 @@ export default function TutorPage() {
             <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, maxWidth:500 }}>
               Diferente do chat normal: o tutor não te dá as respostas directamente. Faz perguntas, activa o teu raciocínio, e guia-te até à compreensão real. Mais difícil. Mais eficaz.
             </p>
+            {/* Modos rápidos — explicar/mnemónica e Q&A com guidelines (consolidados aqui) */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:14 }}>
+              <Link href="/estudar-conceito" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:12.5, fontWeight:600, color:'var(--ink-3)' }}>💡 Explicar + mnemónica</Link>
+              <Link href="/study/biblioteca" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:12.5, fontWeight:600, color:'var(--ink-3)' }}>📚 Pergunta clínica (guidelines)</Link>
+            </div>
           </div>
 
           {/* How it works */}

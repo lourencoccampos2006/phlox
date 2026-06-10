@@ -117,5 +117,36 @@ ${context}`,
     }
   }
 
+  // ── Resumir um documento (funcionalidade vinda do /biblioteca) ──
+  if (body.action === 'summarize') {
+    if (!body.document_id) return NextResponse.json({ error: 'document_id obrigatório' }, { status: 400 })
+    const { data: chunks } = await db.from('document_chunks').select('content').eq('document_id', body.document_id).order('idx').limit(60)
+    const txt = (chunks || []).map((c: any) => c.content).join('\n').slice(0, 12000)
+    if (!txt) return NextResponse.json({ error: 'Documento vazio.' }, { status: 400 })
+    try {
+      const { text } = await aiComplete([
+        { role: 'system', content: 'Resume este material de estudo de saúde em PT-PT, markdown. Secções claras (## ), pontos-chave em bullets, **negrito** nos termos essenciais. Fiel ao conteúdo, sem inventar. 300-600 palavras.' },
+        { role: 'user', content: txt },
+      ], { maxTokens: 1800, temperature: 0.2 })
+      return NextResponse.json({ summary: text })
+    } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }) }
+  }
+
+  // ── Gerar flashcards de um documento (funcionalidade do /biblioteca) ──
+  if (body.action === 'flashcards') {
+    if (!body.document_id) return NextResponse.json({ error: 'document_id obrigatório' }, { status: 400 })
+    const { data: chunks } = await db.from('document_chunks').select('content').eq('document_id', body.document_id).order('idx').limit(60)
+    const txt = (chunks || []).map((c: any) => c.content).join('\n').slice(0, 12000)
+    if (!txt) return NextResponse.json({ error: 'Documento vazio.' }, { status: 400 })
+    try {
+      const { aiJSON } = await import('@/lib/ai')
+      const res = await aiJSON<{ flashcards: { front: string; back: string }[] }>([
+        { role: 'system', content: 'Cria flashcards de revisão espaçada a partir deste material, em PT-PT. 8-15 cartões, cada um testa UMA ideia. Responde APENAS JSON: { "flashcards": [{ "front": "...", "back": "..." }] }' },
+        { role: 'user', content: txt },
+      ], { maxTokens: 2200, temperature: 0.2 })
+      return NextResponse.json({ flashcards: res?.flashcards || [] })
+    } catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }) }
+  }
+
   return NextResponse.json({ error: 'action não suportada' }, { status: 400 })
 }

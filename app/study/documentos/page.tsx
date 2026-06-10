@@ -23,7 +23,26 @@ export default function DocumentosPage() {
   const [answer, setAnswer] = useState('')
   const [sources, setSources] = useState<Source[]>([])
   const [err, setErr] = useState('')
+  const [docOutput, setDocOutput] = useState<{ title: string; summary?: string; cards?: { front: string; back: string }[] } | null>(null)
+  const [docBusy, setDocBusy] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  async function summarizeDoc(id: string, title: string) {
+    setDocBusy(id + ':sum'); setDocOutput(null); setAnswer(''); setErr('')
+    const headers = await auth()
+    const r = await fetch('/api/study/documents', { method: 'POST', headers, body: JSON.stringify({ action: 'summarize', document_id: id }) })
+    const j = await r.json().catch(() => ({}))
+    setDocBusy('')
+    if (j.summary) setDocOutput({ title, summary: j.summary }); else setErr(j.error || 'Erro')
+  }
+  async function flashcardsDoc(id: string, title: string) {
+    setDocBusy(id + ':fc'); setDocOutput(null); setAnswer(''); setErr('')
+    const headers = await auth()
+    const r = await fetch('/api/study/documents', { method: 'POST', headers, body: JSON.stringify({ action: 'flashcards', document_id: id }) })
+    const j = await r.json().catch(() => ({}))
+    setDocBusy('')
+    if (j.flashcards?.length) setDocOutput({ title, cards: j.flashcards }); else setErr(j.error || 'Erro')
+  }
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -97,17 +116,40 @@ export default function DocumentosPage() {
 
       {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>}
 
-      {/* Lista de documentos */}
+      {/* Lista de documentos — com ações Resumir / Flashcards (do antigo /biblioteca) */}
       {docs.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
           {docs.map(d => (
-            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #e7e8ea', borderRadius: 999, padding: '5px 6px 5px 12px', fontSize: 13 }}>
-              <span style={{ fontWeight: 600 }}>{d.title}</span>
+            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #e7e8ea', borderRadius: 10, padding: '8px 10px 8px 14px', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 600, fontSize: 13.5, flex: 1, minWidth: 120 }}>{d.title}</span>
               <span style={{ fontSize: 11, color: '#8b8f99' }}>{d.chunk_count} trechos</span>
-              <button onClick={() => removeDoc(d.id)} style={{ border: 'none', background: '#f3f4f6', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', color: '#6b7280' }}>×</button>
+              <button onClick={() => summarizeDoc(d.id, d.title)} disabled={!!docBusy} style={docAct}>{docBusy === d.id + ':sum' ? '…' : '📄 Resumir'}</button>
+              <button onClick={() => flashcardsDoc(d.id, d.title)} disabled={!!docBusy} style={docAct}>{docBusy === d.id + ':fc' ? '…' : '🃏 Flashcards'}</button>
+              <button onClick={() => removeDoc(d.id)} style={{ border: 'none', background: '#f3f4f6', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Resultado de resumo / flashcards */}
+      {docOutput && (
+        <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 18, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <b style={{ fontSize: 14 }}>{docOutput.summary ? `Resumo · ${docOutput.title}` : `Flashcards · ${docOutput.title}`}</b>
+            <button onClick={() => setDocOutput(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>
+          </div>
+          {docOutput.summary && <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{docOutput.summary.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^## /gm, '')}</div>}
+          {docOutput.cards && (
+            <div style={{ display: 'grid', gap: 8 }}>
+              {docOutput.cards.map((c, i) => (
+                <div key={i} style={{ borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.front}</div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{c.back}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
       )}
 
       {/* Perguntar */}
@@ -141,3 +183,5 @@ export default function DocumentosPage() {
     </main>
   )
 }
+
+const docAct: React.CSSProperties = { padding: '5px 10px', background: 'white', border: '1px solid #e7e8ea', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }

@@ -297,6 +297,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ─── POSICIONAMENTO — português clínico ────────────────────────────── */}
+      <section style={{ borderTop: `1px solid ${BORDER}`, background: '#fafafa', padding: 'clamp(56px,8vw,96px) 0' }}>
+        <div className="page-container">
+          <Reveal>
+            <div style={{ maxWidth: 760 }}>
+              <div className="kicker" style={{ marginBottom: 18 }}>Feito para Portugal</div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 'clamp(26px,4vw,46px)', lineHeight: 1.12, letterSpacing: '-0.02em', color: INK, margin: '0 0 18px' }}>
+                A única IA de saúde que fala <span style={{ color: GREEN, fontStyle: 'italic' }}>português clínico</span>.
+              </h2>
+              <p style={{ fontSize: 16.5, color: INK_3, lineHeight: 1.75, maxWidth: '58ch', margin: '0 0 22px' }}>
+                Não é tradução. Os fármacos são os que estão nas farmácias portuguesas (Ben-u-ron, Brufen, Concor…), o estado de receita segue as regras do INFARMED, e as guidelines são as que usas cá. Onde as ferramentas globais falham — nomes de marca, comparticipações, contexto do SNS — o Phlox acerta.
+              </p>
+              <div style={{ display: 'flex', gap: 'clamp(20px,4vw,48px)', flexWrap: 'wrap' }}>
+                {[
+                  ['Marcas PT', 'reconhece nomes comerciais portugueses, não só DCIs internacionais'],
+                  ['Receita INFARMED', 'MNSRM vs MSRM segundo as regras nacionais'],
+                  ['Guidelines daqui', 'DGS, ESC, e o que realmente é ensinado em PT'],
+                ].map(([t, d]) => (
+                  <div key={t} style={{ maxWidth: 220 }}>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: INK, marginBottom: 4 }}>{t}</div>
+                    <div style={{ fontSize: 13.5, color: INK_4, lineHeight: 1.55 }}>{d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ─── PERSONAS — alternância editorial ──────────────────────────────── */}
       <div style={{ borderTop: `1px solid ${BORDER}` }} />
       <Persona index={0}
