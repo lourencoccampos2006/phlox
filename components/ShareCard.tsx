@@ -34,47 +34,80 @@ export default function ShareCard({ title, badge, badgeColor = '#0d6e42', lines,
   }
 
   async function render(): Promise<Blob | null> {
-    const W = 1080, H = 1080
+    const W = 1080, H = 1080, M = 96
     const canvas = canvasRef.current || document.createElement('canvas')
     canvas.width = W; canvas.height = H
     const ctx = canvas.getContext('2d'); if (!ctx) return null
 
-    // Fundo branco editorial
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H)
-    ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, W, 12)
+    // Fundo levemente off-white (editorial)
+    ctx.fillStyle = '#fbfbfa'; ctx.fillRect(0, 0, W, H)
+    // Cartão branco com margem
+    const cardX = 56, cardY = 56, cardW = W - 112, cardH = H - 112, r = 40
+    ctx.fillStyle = '#ffffff'
+    roundRect(ctx, cardX, cardY, cardW, cardH, r); ctx.fill()
+    ctx.strokeStyle = '#ededed'; ctx.lineWidth = 2; roundRect(ctx, cardX, cardY, cardW, cardH, r); ctx.stroke()
+    // Barra de acento à esquerda
+    ctx.fillStyle = badge ? badgeColor : '#0d6e42'
+    roundRect(ctx, cardX, cardY, 14, cardH, 7); ctx.fill()
 
-    // Marca
-    ctx.fillStyle = '#0d6e42'; ctx.font = '700 30px Arial'
-    ctx.fillText('✚ PHLOX', 80, 130)
-    ctx.fillStyle = '#8b8f99'; ctx.font = '400 22px Arial'
-    ctx.fillText('phloxclinical.com', 80, 165)
+    // Marca (topo)
+    ctx.fillStyle = '#0d6e42'; ctx.font = '800 34px Georgia'
+    ctx.fillText('Phlox', M, 168)
+    ctx.fillStyle = '#b8bcc4'; ctx.font = '500 20px Arial'
+    ctx.fillText('CLINICAL', M + 132, 168)
 
-    // Badge
-    let y = 320
+    let y = 300
+    // Badge (pílula colorida)
     if (badge) {
-      ctx.fillStyle = badgeColor; ctx.font = '800 26px Arial'
-      ctx.fillText(badge.toUpperCase(), 80, y); y += 50
+      ctx.font = '800 30px Arial'
+      const bw = ctx.measureText(badge.toUpperCase()).width + 56
+      ctx.fillStyle = hexA(badgeColor, 0.12)
+      roundRect(ctx, M, y - 38, bw, 56, 28); ctx.fill()
+      ctx.fillStyle = badgeColor
+      ctx.fillText(badge.toUpperCase(), M + 28, y); y += 86
     }
 
-    // Título
-    ctx.fillStyle = '#16181d'; ctx.font = '700 64px Georgia'
-    for (const l of wrap(ctx, title, W - 160)) { ctx.fillText(l, 80, y); y += 78 }
-    y += 24
+    // Título (serif grande)
+    ctx.fillStyle = '#16181d'; ctx.font = '700 72px Georgia'
+    for (const l of wrap(ctx, title, cardW - (M - cardX) - 64)) { ctx.fillText(l, M, y); y += 86 }
+    y += 30
 
-    // Linhas
-    ctx.fillStyle = '#3f3f46'; ctx.font = '400 36px Arial'
+    // Linha divisória subtil
+    ctx.strokeStyle = '#eee'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(M, y); ctx.lineTo(W - M, y); ctx.stroke(); y += 56
+
+    // Linhas de conteúdo
+    ctx.fillStyle = '#3f3f46'; ctx.font = '400 38px Arial'
     for (const line of lines) {
-      for (const l of wrap(ctx, line, W - 160)) { ctx.fillText(l, 80, y); y += 50 }
-      y += 14
+      for (const l of wrap(ctx, line, cardW - (M - cardX) - 64)) { ctx.fillText(l, M, y); y += 56 }
+      y += 18
     }
 
     // Rodapé
     ctx.fillStyle = '#a1a1aa'; ctx.font = '400 24px Arial'
-    ctx.fillText(footer || 'Informação de apoio — confirma com o teu farmacêutico.', 80, H - 90)
-    ctx.fillStyle = '#0d6e42'; ctx.font = '700 26px Arial'
-    ctx.fillText('Verifica a tua medicação em phloxclinical.com', 80, H - 50)
+    ctx.fillText(footer || 'Informação de apoio — confirma com o farmacêutico.', M, H - 150)
+    // CTA destacado
+    ctx.fillStyle = '#0d6e42'; ctx.font = '700 30px Arial'
+    ctx.fillText('phloxclinical.com', M, H - 100)
+    ctx.fillStyle = '#8b8f99'; ctx.font = '400 24px Arial'
+    ctx.fillText('Saúde, medicação e estudo — em português.', M, H - 64)
 
-    return new Promise(res => canvas.toBlob(b => res(b), 'image/png', 0.92))
+    return new Promise(res => canvas.toBlob(b => res(b), 'image/png', 0.95))
+  }
+
+  function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rad: number) {
+    ctx.beginPath()
+    ctx.moveTo(x + rad, y)
+    ctx.arcTo(x + w, y, x + w, y + h, rad)
+    ctx.arcTo(x + w, y + h, x, y + h, rad)
+    ctx.arcTo(x, y + h, x, y, rad)
+    ctx.arcTo(x, y, x + w, y, rad)
+    ctx.closePath()
+  }
+  function hexA(hex: string, a: number): string {
+    const h = hex.replace('#', '')
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16)
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
   }
 
   async function share() {

@@ -45,14 +45,21 @@ async function freeTextDrug(name: string): Promise<any | null> {
     const res = await aiJSON<any>([
       {
         role: 'system',
-        content: `És farmacêutico português com conhecimento profundo de medicamentos vendidos em Portugal (marcas, genéricos, suplementos, OTC). Conheces o ${name} — praticamente todos os medicamentos são conhecidos. PREENCHE TODOS os campos com informação real e útil; NUNCA deixes "what_it_is" ou "what_it_treats" vazios. Se for um produto combinado (ex: Guronsan = cafeína + vitamina C + aspartato de arginina), explica os componentes e para que serve a combinação.
+        content: `És farmacêutico português com conhecimento profundo de TODOS os medicamentos, suplementos e produtos de venda livre em Portugal (marcas como Guronsan, Cerebrum, Aspegic, Ben-u-ron; genéricos; DCIs). Conheces este produto — praticamente tudo é conhecido.
+
+OBRIGATÓRIO: preenche TODOS os campos com informação real. NUNCA deixes "what_it_is", "what_it_treats" ou "active" vazios. Se for combinação, explica os componentes (ex: Guronsan = cafeína + ácido ascórbico + aspartato de arginina, um tónico/estimulante para fadiga, VENDA LIVRE/sem receita).
+
+PRESCRIÇÃO (sê rigoroso e NÃO assumas "com receita" por defeito):
+- Tónicos, suplementos, vitaminas, estimulantes de venda livre (Guronsan, Cerebrum, Centrum…), analgésicos OTC, anti-histamínicos OTC → "sem receita".
+- Antibióticos, psicofármacos, anticoagulantes, antidiabéticos, hormonas → "com receita médica".
+- Na dúvida sobre um produto de bem-estar/suplemento, é tipicamente "sem receita".
 
 ${RULES}
 
 Esquema:
 ${SCHEMA}`,
       },
-      { role: 'user', content: `Medicamento/produto: "${name}". Identifica o(s) princípio(s) ativo(s) e explica completamente. Preenche todos os campos.` },
+      { role: 'user', content: `Medicamento/produto: "${name}". Identifica o(s) princípio(s) ativo(s), o que é, para que serve, e se precisa de receita em Portugal. Preenche TODOS os campos.` },
     ], { maxTokens: 1300, temperature: 0.1 })
     if (res && (res.what_it_is || (res.what_it_treats && res.what_it_treats.length))) {
       return { ...res, confidence: res.confidence === 'baixa' ? 'media' : (res.confidence || 'media') }
@@ -169,8 +176,14 @@ export async function POST(req: NextRequest) {
       for (const q of tryQueries) {
         const local = await lookupLocalDrug(q)
         if (local) {
+          const formatted = formatLocalDrug(local)
+          // Entrada local POBRE (típico de cache antigo incompleto) → não a usamos;
+          // deixamos cair para a IA, que dá resposta completa.
+          const localThin = (!formatted.what_it_is || String(formatted.what_it_is).trim().length < 20) &&
+                            (!formatted.what_it_treats || formatted.what_it_treats.length === 0)
+          if (localThin) break  // sai do lookup local → segue para IA
           return NextResponse.json({
-            ...formatLocalDrug(local),
+            ...formatted,
             queried: name || infomedCode,
             disclaimer: 'Informação verificada com base local de medicamentos comuns em Portugal. Confirma com o teu farmacêutico para casos específicos.',
           })

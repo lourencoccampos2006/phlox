@@ -6,6 +6,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { extractFromFile } from '@/lib/docExtract'
 
 const ACCENT = '#0d6e42'
 interface Med { name: string; active?: string; dose?: string; frequency?: string; notes?: string; _import?: boolean }
@@ -25,23 +26,36 @@ export default function OrganizarPage() {
     return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
   }, [supabase])
 
-  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleResult(r: Response) {
+    const j = await r.json()
+    if (!r.ok) throw new Error(j.error || 'Erro')
+    setMeds((j.meds || []).map((m: Med) => ({ ...m, _import: true })))
+    setWarning(j.warning || '')
+    if (!j.meds?.length) setErr('Não identifiquei medicamentos. Tenta uma imagem mais nítida ou outro ficheiro.')
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
-    setBusy('A ler a foto…'); setErr(''); setMeds([]); setWarning(''); setImported(false); setInteractions(null)
-    const reader = new FileReader()
-    reader.onload = async () => {
-      try {
-        const b64 = String(reader.result).split(',')[1]
+    setErr(''); setMeds([]); setWarning(''); setImported(false); setInteractions(null)
+    const isImage = file.type.startsWith('image/')
+    try {
+      if (isImage) {
+        setBusy('A ler a imagem…')
+        const b64 = await new Promise<string>((res, rej) => {
+          const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(file)
+        })
         const r = await fetch('/api/receita-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: b64, mimeType: file.type }) })
-        const j = await r.json()
-        if (!r.ok) throw new Error(j.error || 'Erro')
-        setMeds((j.meds || []).map((m: Med) => ({ ...m, _import: true })))
-        setWarning(j.warning || '')
-        if (!j.meds?.length) setErr('Não identifiquei medicamentos. Tenta com mais luz e foco, ou escreve manualmente.')
-      } catch (e: any) { setErr(e.message) } finally { setBusy('') }
-    }
-    reader.readAsDataURL(file)
+        await handleResult(r)
+      } else {
+        // PDF / Word / texto → extrai no browser, envia o texto
+        setBusy('A ler o documento…')
+        const ex = await extractFromFile(file)
+        if (!ex.text || ex.text.trim().length < 10) throw new Error('Documento sem texto legível.')
+        const r = await fetch('/api/receita-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: ex.text }) })
+        await handleResult(r)
+      }
+    } catch (e: any) { setErr(e.message) } finally { setBusy('') }
   }
 
   async function importMeds() {
@@ -73,12 +87,12 @@ export default function OrganizarPage() {
       <h1 style={{ margin: '4px 0 6px', fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Uma foto. Tudo organizado.</h1>
       <p style={{ color: '#6b7280', fontSize: 14.5, lineHeight: 1.6, marginBottom: 18 }}>Tira foto à <b>receita</b> ou às <b>caixas</b> dos medicamentos. O Phlox lê tudo, cria a lista, e verifica se se dão bem — em segundos.</p>
 
-      {/* Upload */}
+      {/* Upload — foto (câmara/galeria) OU documento (PDF/Word) */}
       <div onClick={() => fileRef.current?.click()} style={{ border: `1.5px dashed ${ACCENT}`, borderRadius: 14, padding: 26, textAlign: 'center', cursor: 'pointer', background: '#f0fdf5' }}>
-        <div style={{ fontSize: 34, marginBottom: 6 }}>📷</div>
-        <div style={{ fontWeight: 700, color: ACCENT }}>{busy || 'Tirar / escolher foto'}</div>
-        <div style={{ fontSize: 12, color: '#8b8f99', marginTop: 2 }}>Receita médica ou caixas de medicamentos</div>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: 'none' }} />
+        <div style={{ fontSize: 34, marginBottom: 6 }}>📷📄</div>
+        <div style={{ fontWeight: 700, color: ACCENT }}>{busy || 'Foto ou documento'}</div>
+        <div style={{ fontSize: 12, color: '#8b8f99', marginTop: 2 }}>Foto da receita/caixas (câmara ou galeria) · PDF · Word</div>
+        <input ref={fileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onFile} style={{ display: 'none' }} />
       </div>
 
       {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 12, borderRadius: 8, marginTop: 14, fontSize: 13 }}>{err}</div>}
