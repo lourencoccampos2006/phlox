@@ -19,6 +19,7 @@ import { usePhloxContext } from '@/lib/copilotContext'
 import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
 import { useAuth } from '@/components/AuthContext'
+import ShareCard from '@/components/ShareCard'
 
 interface Result {
   identified: string
@@ -329,6 +330,16 @@ export default function MedicamentoPage() {
                 </div>
               </div>
             )}
+
+            {/* Partilhar (viralidade) */}
+            <div style={{ marginTop: 2 }}>
+              <ShareCard
+                title={result.identified || result.queried || 'Medicamento'}
+                lines={[result.what_it_is || '', result.what_it_treats?.length ? `Para: ${result.what_it_treats.slice(0, 3).join(', ')}` : ''].filter(Boolean)}
+                footer="O que é este medicamento? — descobre em segundos."
+                label="Partilhar"
+              />
+            </div>
 
             {/* CTA */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>

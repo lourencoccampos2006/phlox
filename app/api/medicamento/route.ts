@@ -38,6 +38,29 @@ function formatLocalDrug(row: any): any {
   }
 }
 
+// Segunda passagem para fármacos menos comuns: pede explicitamente uma resposta
+// ESTRUTURADA e completa (não aceita campos vazios). Resolve resultados "magros".
+async function freeTextDrug(name: string): Promise<any | null> {
+  try {
+    const res = await aiJSON<any>([
+      {
+        role: 'system',
+        content: `És farmacêutico português com conhecimento profundo de medicamentos vendidos em Portugal (marcas, genéricos, suplementos, OTC). Conheces o ${name} — praticamente todos os medicamentos são conhecidos. PREENCHE TODOS os campos com informação real e útil; NUNCA deixes "what_it_is" ou "what_it_treats" vazios. Se for um produto combinado (ex: Guronsan = cafeína + vitamina C + aspartato de arginina), explica os componentes e para que serve a combinação.
+
+${RULES}
+
+Esquema:
+${SCHEMA}`,
+      },
+      { role: 'user', content: `Medicamento/produto: "${name}". Identifica o(s) princípio(s) ativo(s) e explica completamente. Preenche todos os campos.` },
+    ], { maxTokens: 1300, temperature: 0.1 })
+    if (res && (res.what_it_is || (res.what_it_treats && res.what_it_treats.length))) {
+      return { ...res, confidence: res.confidence === 'baixa' ? 'media' : (res.confidence || 'media') }
+    }
+  } catch { /* cai para null */ }
+  return null
+}
+
 // Auto-cache: guarda em infarmed_drugs as respostas que a IA gerou com
 // confiança alta/media, para que da próxima vez vá directamente à base local
 // (mais rápido, mais fiável, sem alucinação).
@@ -194,6 +217,20 @@ ${SCHEMA}`
       result.fallback_advice = 'Não tenho a certeza absoluta sobre este medicamento. Em vez disso, tira foto à BULA (texto técnico) em /bula — esse motor é mais preciso. Em alternativa, pede ajuda ao teu farmacêutico.'
     }
 
+    // ── Deteção de resultado MAGRO ──
+    // Se a IA "respondeu" mas com pouco conteúdo útil (what_it_is vazio/curto E
+    // sem indicações), NÃO devolvemos isso — fazemos uma 2ª passagem em texto
+    // livre para garantir uma resposta completa (resolve o caso "Guronsan").
+    const thin = (!result.what_it_is || String(result.what_it_is).trim().length < 20) &&
+                 (!result.what_it_treats || result.what_it_treats.length === 0)
+    if (thin && name) {
+      const enriched = await freeTextDrug(name)
+      if (enriched) {
+        cacheAiResult(enriched).catch(() => {})
+        return NextResponse.json({ ...enriched, queried: name, disclaimer: 'Informação geral de apoio — confirma sempre com o teu farmacêutico ou médico.' })
+      }
+    }
+
     // Auto-cache (best-effort, não bloqueia resposta) — guarda IA confiável em
     // infarmed_drugs para futuras procuras serem instantâneas e sem alucinação.
     cacheAiResult(result).catch(() => {})
@@ -204,26 +241,13 @@ ${SCHEMA}`
       disclaimer: 'Informação geral de apoio — confirma sempre com o teu farmacêutico ou médico.',
     })
   } catch (err: any) {
-    // Último recurso: NUNCA devolver vazio. Tenta uma resposta livre (texto) e
-    // devolve-a no formato esperado, com confiança média.
+    // Último recurso: NUNCA devolver vazio — 2ª passagem estruturada.
     if (name) {
-      try {
-        const { aiComplete } = await import('@/lib/ai')
-        const { text } = await aiComplete([
-          { role: 'system', content: `És farmacêutico português. Explica o medicamento ou substância "${name}" em PT-PT, linguagem simples. Diz: o que é, princípio ativo, para que serve, como se toma, se precisa de receita em Portugal, efeitos comuns e cuidados. Se não reconheces de todo, di-lo claramente e sugere ver a bula. Máximo 200 palavras.` },
-          { role: 'user', content: name },
-        ], { maxTokens: 700, temperature: 0.2 })
-        if (text?.trim()) {
-          return NextResponse.json({
-            identified: name, active: '', what_it_is: text.trim(),
-            what_it_treats: [], symptoms: [], how_to_take: '',
-            prescription: 'com receita médica', prescription_note: 'Confirma o estado de receita com o teu farmacêutico.',
-            common_side_effects: [], cautions: [], avoid_if: [], good_to_know: '',
-            confidence: 'media', queried: name,
-            disclaimer: 'Resposta gerada por IA — confirma com o teu farmacêutico ou médico.',
-          })
-        }
-      } catch {}
+      const enriched = await freeTextDrug(name)
+      if (enriched) {
+        cacheAiResult(enriched).catch(() => {})
+        return NextResponse.json({ ...enriched, queried: name, disclaimer: 'Informação geral de apoio — confirma sempre com o teu farmacêutico ou médico.' })
+      }
     }
     return NextResponse.json({ error: err.message || 'Não foi possível. Tenta com o nome escrito ou uma foto mais nítida.' }, { status: 500 })
   }
