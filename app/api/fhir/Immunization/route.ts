@@ -1,7 +1,7 @@
 // app/api/fhir/Immunization/route.ts
 // GET → search · POST → registar vacina (escreve em vaccine_records)
 import { NextRequest, NextResponse } from 'next/server'
-import { authFhir } from '@/lib/fhirAuth'
+import { authFhir, resolveOwnedPatient } from '@/lib/fhirAuth'
 import { bundle, fromFhirImmunization, operationOutcome, toFhirImmunization } from '@/lib/fhir'
 
 function fhirJson(body: any, status = 200) {
@@ -13,11 +13,14 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return fhirJson(operationOutcome('error', auth.error || 'Unauthorized'), auth.status || 401)
   const sp = req.nextUrl.searchParams
   const patientRef = sp.get('patient') || sp.get('subject')
-  const patientId = patientRef ? patientRef.replace(/^Patient\//, '') : null
+  // Anti-IDOR: exigir doente e confirmar que pertence ao dono da chave.
+  if (!patientRef) return fhirJson(operationOutcome('error', 'Parameter "patient" is required'), 400)
+  const owned = await resolveOwnedPatient(auth, patientRef)
+  if (!owned) return fhirJson(bundle([], 'searchset'))
 
   const db = auth.client!
   let q = db.from('vaccine_records').select('*').order('given_at', { ascending: false }).limit(100)
-  if (patientId) q = q.or(`patient_id.eq.${patientId},user_id.eq.${patientId}`)
+  q = q.or(`patient_id.eq.${owned.patientId},user_id.eq.${owned.userId}`)
   const { data, error } = await q
   if (error && /relation .*vaccine_records.* does not exist/i.test(error.message)) {
     return fhirJson(bundle([], 'searchset'))
@@ -48,14 +51,25 @@ export async function POST(req: NextRequest) {
   if (items.length === 0) return fhirJson(operationOutcome('error', 'No Immunization in payload'), 400)
 
   const db = auth.client!
-  let created = 0
+  const ownedCache = new Map<string, { patientId: string; userId: string } | null>()
+  const resolve = async (pid?: string | null) => {
+    // Sem doente indicado → o próprio dono da chave.
+    if (!pid) return { patientId: auth.user_id!, userId: auth.user_id! }
+    if (ownedCache.has(pid)) return ownedCache.get(pid)!
+    const owned = await resolveOwnedPatient(auth, pid)
+    ownedCache.set(pid, owned)
+    return owned
+  }
+  let created = 0, denied = 0
   for (const r of items) {
     const v = fromFhirImmunization(r)
     if (!v.given_at || !v.vaccine_code) continue
-    const userId = v.patient_id || auth.user_id
+    // Anti-IDOR: só escrever em doentes que pertencem ao dono da chave.
+    const owned = await resolve(v.patient_id)
+    if (!owned) { denied++; continue }
     const payload: any = {
-      user_id: userId,
-      patient_id: v.patient_id,
+      user_id: owned.userId,
+      patient_id: v.patient_id ? owned.patientId : null,
       vaccine_id: v.vaccine_code,
       vaccine_code: v.vaccine_code,
       vaccine_name: v.vaccine_name,
@@ -65,5 +79,6 @@ export async function POST(req: NextRequest) {
     const { error } = await db.from('vaccine_records').insert(payload)
     if (!error) created++
   }
-  return fhirJson({ resourceType: 'OperationOutcome', issue: [{ severity: 'information', code: 'informational', diagnostics: `Created ${created}/${items.length}` }] }, 201)
+  const diag = `Created ${created}/${items.length}` + (denied ? ` (${denied} denied: patient not owned)` : '')
+  return fhirJson({ resourceType: 'OperationOutcome', issue: [{ severity: denied ? 'warning' : 'information', code: 'informational', diagnostics: diag }] }, 201)
 }

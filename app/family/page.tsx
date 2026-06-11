@@ -660,7 +660,11 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
   async function genCode() {
     if (!patientId) return
     setCodeBusy(true); setCodeErr('')
-    const code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')
+    // Código com CSPRNG (crypto), não Math.random (previsível). O acesso é em 2
+    // fatores: este código + os últimos 4 dígitos do telefone registado.
+    const alpha = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    const rnd = new Uint32Array(8); crypto.getRandomValues(rnd)
+    const code = Array.from(rnd, n => alpha[n % 32]).join('')
     const { error } = await supabase.from('patients').update({ family_code: code }).eq('id', patientId).eq('user_id', user.id)
     if (!error) setFamilyCode(code)
     else if (/column .*family_code.* does not exist/i.test(error.message) || (error as any).code === '42703')

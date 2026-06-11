@@ -46,7 +46,30 @@
       "Bash(grep -nE \"aiJSON|import.*lib/ai|maxTokens|], \\\\{\" app/api/patients/analyze/route.ts)",
       "Bash(cd c:/Users/Fernando/phlox && echo \"=== prefixos gated em planRoutes ===\"; grep -oE \"prefix: '/[a-z-]+'\" lib/planRoutes.ts | sed \"s/prefix: '//;s/'//\" | sort -u > /tmp/gated.txt; cat /tmp/gated.txt | tr '\\\\n' ' '; echo \"\"; echo \"=== ferramentas clínicas no registry \\(plan pro/clinic\\) ===\"; grep -oE \"id: '/[a-z-]+'.*plan: 'pro'\" lib/toolRegistry.ts | grep -oE \"id: '/[a-z-]+'\" | sed \"s/id: '//;s/'//\" | sort -u > /tmp/clinical.txt; cat /tmp/clinical.txt | tr '\\\\n' ' ')",
       "Bash(grep -nA20 \"function formatLocalDrug\" app/api/medicamento/route.ts)",
-      "Bash(grep -nA1 \"insert into infarmed_drugs \\(brand_name\" supabase/sprint75_drugs_expand_cache.sql)"
+      "Bash(grep -nA1 \"insert into infarmed_drugs \\(brand_name\" supabase/sprint75_drugs_expand_cache.sql)",
+      "Bash(xargs wc -l)",
+      "Bash(grep -iE \"\\\\.env$|\\\\.env\\\\.\")",
+      "Bash(grep -rEn \"\\(sk_live_|sk_test_|rk_live_|gsk_[A-Za-z0-9]{20}|AIza[A-Za-z0-9]{20}|eyJ[A-Za-z0-9_-]{30}|service_role.{0,20}eyJ\\)\" app lib components)",
+      "Bash(grep -ivE \"//|/\\\\*\")",
+      "Bash(npx playwright *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,1\\)\\)\")",
+      "Bash(node qa-probe.mjs)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('dev:', !!\\(p.devDependencies&&p.devDependencies.playwright\\), '| prod:', !!\\(p.dependencies&&p.dependencies.playwright\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"dev: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(node qa-home.mjs)",
+      "Bash(sort -t'│' -k3 -rn)",
+      "Bash(echo \"exit=$?\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"dev:%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(node qa-boundary.mjs)",
+      "Bash(echo \"build exit=$?\")",
+      "Bash(PORT=3100 npx next start)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3100/)",
+      "Bash(QA_PORT=3100 node qa-boundary.mjs)",
+      "Bash(QA_PORT=3100 node qa-perf.mjs)",
+      "Bash(node -e \"const d=require\\('./package.json'\\).dependencies; console.log\\(Object.keys\\(d\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(rm -f qa-overlay.mjs /tmp/buildout.txt /tmp/b2.txt /tmp/b3.txt /tmp/bperf.txt /tmp/bp2.txt *)"
     ]
   }
 }

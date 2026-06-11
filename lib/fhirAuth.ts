@@ -37,6 +37,38 @@ function adminClient(): SupabaseClient {
   )
 }
 
+// ─── Controlo de acesso por doente (anti-IDOR) ────────────────────────────────
+// No modo API-key usamos a service-role key (RLS desligado). Por isso, ANTES de
+// ler/escrever dados de um doente, temos de confirmar que esse doente pertence ao
+// dono da chave (user_id/org_id). Sem isto, qualquer chave acederia a qualquer
+// doente de qualquer clínica. No modo JWT a RLS já protege, mas validar aqui
+// também é inócuo e mantém o comportamento uniforme.
+//
+// Retorna o conjunto de identificadores que o chamador PODE aceder para um dado
+// `patientRef` (que pode ser o id da tabela `patients`, o seu fhir_id, ou — em
+// contas pessoais — o próprio user_id). Se não pertencer ao dono, devolve null.
+export async function resolveOwnedPatient(
+  auth: FhirAuthResult,
+  patientRef: string
+): Promise<{ patientId: string; userId: string } | null> {
+  if (!auth.ok || !auth.client || !auth.user_id) return null
+  const ref = patientRef.replace(/^Patient\//, '')
+  const db = auth.client
+
+  // 1) Doente da tabela `patients` que pertence ao dono da chave (por user_id
+  //    e, se houver, org_id).
+  let q = db.from('patients').select('id, user_id, fhir_id').or(`id.eq.${ref},fhir_id.eq.${ref}`)
+  q = q.eq('user_id', auth.user_id)
+  const { data: pat } = await q.maybeSingle()
+  if (pat) return { patientId: pat.id, userId: pat.user_id }
+
+  // 2) Conta pessoal: o "doente" é o próprio utilizador da chave.
+  if (ref === auth.user_id) return { patientId: ref, userId: ref }
+
+  // Não pertence ao dono da chave → acesso negado.
+  return null
+}
+
 export async function authFhir(req: NextRequest, requireScope: 'read' | 'write' = 'read'): Promise<FhirAuthResult> {
   const auth = req.headers.get('authorization') || ''
 

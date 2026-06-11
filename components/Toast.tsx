@@ -77,7 +77,14 @@ const STYLE: Record<ToastKind, { color: string; bg: string; icon: string }> = {
 }
 
 function Stack({ items, onDismiss }: { items: ToastItem[]; onDismiss: (id: string) => void }) {
-  if (typeof window === 'undefined') return null
+  // Só renderiza depois de montar no cliente. Usar `typeof window` diretamente
+  // no render causa mismatch de hidratação (servidor=null, cliente=<div>) — e
+  // como o ToastProvider está no layout raiz, isso partia a hidratação em TODAS
+  // as páginas. Com um estado `mounted`, servidor e 1.º render do cliente
+  // coincidem (null), e o stack aparece só a seguir.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return null
   return (
     <div style={{ position: 'fixed', bottom: 20, right: 16, left: 'auto', zIndex: 9000, display: 'flex', flexDirection: 'column-reverse', gap: 10, maxWidth: 'min(380px, calc(100vw - 32px))', pointerEvents: 'none' }}>
       {items.map(t => <ToastNode key={t.id} t={t} onDismiss={onDismiss} />)}

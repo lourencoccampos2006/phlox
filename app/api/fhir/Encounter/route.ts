@@ -1,7 +1,7 @@
 // app/api/fhir/Encounter/route.ts
 // GET → search por patient (mapeia para `episodes`)
 import { NextRequest, NextResponse } from 'next/server'
-import { authFhir } from '@/lib/fhirAuth'
+import { authFhir, resolveOwnedPatient } from '@/lib/fhirAuth'
 import { bundle, operationOutcome, toFhirEncounter } from '@/lib/fhir'
 
 function fhirJson(body: any, status = 200) {
@@ -13,11 +13,14 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return fhirJson(operationOutcome('error', auth.error || 'Unauthorized'), auth.status || 401)
   const sp = req.nextUrl.searchParams
   const patientRef = sp.get('patient') || sp.get('subject')
-  const patientId = patientRef ? patientRef.replace(/^Patient\//, '') : null
+  // Anti-IDOR: exigir doente e confirmar que pertence ao dono da chave.
+  if (!patientRef) return fhirJson(operationOutcome('error', 'Parameter "patient" is required'), 400)
+  const owned = await resolveOwnedPatient(auth, patientRef)
+  if (!owned) return fhirJson(bundle([], 'searchset'))
 
   const db = auth.client!
   let q = db.from('episodes').select('*').order('start_at', { ascending: false }).limit(100)
-  if (patientId) q = q.eq('patient_id', patientId)
+  q = q.eq('patient_id', owned.patientId)
   const { data, error } = await q
   if (error && /relation .*episodes.* does not exist/i.test(error.message)) {
     return fhirJson(bundle([], 'searchset'))

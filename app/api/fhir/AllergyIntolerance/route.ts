@@ -1,7 +1,7 @@
 // app/api/fhir/AllergyIntolerance/route.ts
 // GET → lista alergias do utente (campo livre em patients.allergies por agora)
 import { NextRequest, NextResponse } from 'next/server'
-import { authFhir } from '@/lib/fhirAuth'
+import { authFhir, resolveOwnedPatient } from '@/lib/fhirAuth'
 import { bundle, operationOutcome, toFhirAllergy } from '@/lib/fhir'
 
 function fhirJson(body: any, status = 200) {
@@ -13,12 +13,14 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return fhirJson(operationOutcome('error', auth.error || 'Unauthorized'), auth.status || 401)
   const sp = req.nextUrl.searchParams
   const patientRef = sp.get('patient') || sp.get('subject')
-  const patientId = patientRef ? patientRef.replace(/^Patient\//, '') : null
 
-  if (!patientId) return fhirJson(bundle([], 'searchset'))
+  // Anti-IDOR: exigir doente e confirmar que pertence ao dono da chave.
+  if (!patientRef) return fhirJson(bundle([], 'searchset'))
+  const owned = await resolveOwnedPatient(auth, patientRef)
+  if (!owned) return fhirJson(bundle([], 'searchset'))
 
   const db = auth.client!
-  const { data: p } = await db.from('patients').select('id, allergies').eq('id', patientId).maybeSingle()
+  const { data: p } = await db.from('patients').select('id, allergies').eq('id', owned.patientId).maybeSingle()
   if (!p) return fhirJson(bundle([], 'searchset'))
 
   const out: any[] = []

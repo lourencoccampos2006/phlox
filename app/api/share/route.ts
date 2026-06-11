@@ -7,7 +7,11 @@ import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { createClient } from '@supabase/supabase-js'
 
 function randomId(n = 8) {
-  return Math.random().toString(36).slice(2, 2 + n)
+  // CSPRNG: o id é a única coisa que protege um resultado clínico partilhado.
+  // Math.random é previsível → permitiria enumerar partilhas de outros.
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const rnd = new Uint32Array(n); globalThis.crypto.getRandomValues(rnd)
+  return Array.from(rnd, x => chars[x % 36]).join('')
 }
 
 export async function POST(req: NextRequest) {

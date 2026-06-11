@@ -39,12 +39,18 @@ function codeErrorResponse(errorCode: string) {
 const last4 = (phone?: string | null) => (phone || '').replace(/\D/g, '').slice(-4)
 
 // Verifica os últimos 4 dígitos do telemóvel contra os contactos registados do residente.
-// Devolve o contacto correspondente, ou null. Se o residente não tiver telefones, dispensa (gate aberto).
-async function verifyFamily(patientId: string, digits: string): Promise<{ ok: boolean; gated: boolean; contact?: any }> {
+// Devolve o contacto correspondente, ou null.
+//
+// SEGURANÇA: antes, se o residente não tivesse telefones registados, o portal
+// abria só com o código (fail-open) — qualquer pessoa que adivinhasse/obtivesse
+// o código via dados clínicos. Agora, sem contactos verificáveis, NÃO abrimos:
+// devolvemos `noContacts` para que o portal peça à instituição que registe o
+// contacto da família. Verificação em 2 fatores: código + últimos 4 dígitos.
+async function verifyFamily(patientId: string, digits: string): Promise<{ ok: boolean; gated: boolean; noContacts?: boolean; contact?: any }> {
   const sb = admin()
   const { data: contacts } = await sb.from('resident_contacts').select('id, name, phone').eq('patient_id', patientId)
   const withPhone = (contacts || []).filter((c: any) => last4(c.phone).length === 4)
-  if (withPhone.length === 0) return { ok: true, gated: false } // sem telefones → não há como verificar
+  if (withPhone.length === 0) return { ok: false, gated: true, noContacts: true } // fechado por defeito
   const d = (digits || '').replace(/\D/g, '').slice(-4)
   const match = withPhone.find((c: any) => last4(c.phone) === d)
   return { ok: !!match, gated: true, contact: match }
@@ -75,6 +81,10 @@ export async function GET(req: NextRequest) {
   const pat = r.patient
 
   const v = await verifyFamily(pat.id, verify)
+  if (v.noContacts) {
+    // Sem contacto registado não há como verificar a identidade → portal fechado.
+    return NextResponse.json({ needsVerify: true, noContacts: true, patientName: pat.name, error: 'Por segurança, peça à instituição para registar o seu contacto telefónico antes de aceder.' }, { status: 200 })
+  }
   if (v.gated && !v.ok) {
     // código válido mas falta (ou está errada) a verificação por telemóvel
     return NextResponse.json({ needsVerify: true, patientName: pat.name, error: verify ? 'Os dígitos não correspondem ao contacto registado.' : '' }, { status: 200 })

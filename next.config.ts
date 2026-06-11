@@ -14,7 +14,10 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options',          value: 'DENY' },
           { key: 'X-XSS-Protection',         value: '1; mode=block' },
           { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+          // camera/microfone permitidos só na própria origem (scanner de código
+          // de barras, gravação de aula). Geolocalização e pagamentos bloqueados.
+          // NUNCA pôr camera=() — isso bloqueia o getUserMedia das nossas features.
+          { key: 'Permissions-Policy',       value: 'camera=(self), microphone=(self), geolocation=(), payment=()' },
         ],
       },
       {

@@ -20,15 +20,21 @@ export default function AdBanner({ slot, format = 'auto', style }: AdBannerProps
 
   useEffect(() => {
     if (loaded.current) return
-    loaded.current = true
     // O script global do AdSense é carregado no <head> (app/layout.tsx).
-    // Aqui só empurramos a unidade de anúncio quando o slot está montado.
-    setTimeout(() => {
+    // Só empurramos a unidade quando o <ins> existe E tem largura > 0 — o
+    // AdSense lança "no_div"/"availableWidth=0" se o contentor estiver oculto
+    // ou com largura zero (tabs escondidas, display:none). Esperamos por isso.
+    const t = setTimeout(() => {
+      const el = adRef.current
+      if (!el || el.offsetWidth === 0) return            // contentor ainda não pronto → não faz push
+      if (el.getAttribute('data-adsbygoogle-status')) return // já preenchido
+      loaded.current = true
       try {
         ;(window as any).adsbygoogle = (window as any).adsbygoogle || []
         ;(window as any).adsbygoogle.push({})
-      } catch {}
-    }, 200)
+      } catch { /* AdSense indisponível/bloqueado → ignora silenciosamente */ }
+    }, 300)
+    return () => clearTimeout(t)
   }, [])
 
   return (

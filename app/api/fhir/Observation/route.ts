@@ -2,7 +2,7 @@
 // GET  → search por patient + date + code
 // POST → criar observação (vital ou lab)
 import { NextRequest, NextResponse } from 'next/server'
-import { authFhir } from '@/lib/fhirAuth'
+import { authFhir, resolveOwnedPatient } from '@/lib/fhirAuth'
 import { bundle, fromFhirObservation, operationOutcome, toFhirObservation, PhloxObservation } from '@/lib/fhir'
 
 function fhirJson(body: any, status = 200) {
@@ -74,7 +74,12 @@ export async function GET(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams
   const patientRef = sp.get('patient') || sp.get('subject') || null
-  const patientId = patientRef ? patientRef.replace(/^Patient\//, '') : null
+  // Anti-IDOR: exigir um doente e confirmar que pertence ao dono da chave.
+  // Sem isto, omitir ?patient devolveria observações de TODA a base de dados.
+  if (!patientRef) return fhirJson(operationOutcome('error', 'Parameter "patient" is required'), 400)
+  const owned = await resolveOwnedPatient(auth, patientRef)
+  if (!owned) return fhirJson(bundle([], 'searchset'))
+  const patientId = owned.userId
   const code = sp.get('code') || sp.get('code-system-value') || null
   const date = sp.get('date') || null
   let fromDate: string | null = null
@@ -99,10 +104,23 @@ export async function POST(req: NextRequest) {
   if (items.length === 0) return fhirJson(operationOutcome('error', 'No Observation in payload'), 400)
 
   const db = auth.client!
-  let created = 0
+  // Anti-IDOR: cachê de doentes já validados como pertencentes ao dono da chave.
+  const ownedCache = new Map<string, string | null>()
+  const ownerOf = async (pid: string): Promise<string | null> => {
+    if (ownedCache.has(pid)) return ownedCache.get(pid)!
+    const owned = await resolveOwnedPatient(auth, pid)
+    const uid = owned ? owned.userId : null
+    ownedCache.set(pid, uid)
+    return uid
+  }
+  let created = 0, denied = 0
   for (const r of items) {
     const o = fromFhirObservation(r)
     if (!o.patient_id || !o.code) continue
+    // Só escrever em doentes que pertencem ao dono da chave.
+    const ownerUserId = await ownerOf(o.patient_id)
+    if (!ownerUserId) { denied++; continue }
+    o.patient_id = ownerUserId
     if (o.category === 'vital-signs') {
       // Mapear de volta: para sermos pragmáticos, criamos uma linha por observação
       const col = ({
@@ -135,5 +153,6 @@ export async function POST(req: NextRequest) {
       if (!error) created++
     }
   }
-  return fhirJson({ resourceType: 'OperationOutcome', issue: [{ severity: 'information', code: 'informational', diagnostics: `Created ${created}/${items.length}` }] }, 201)
+  const diag = `Created ${created}/${items.length}` + (denied ? ` (${denied} denied: patient not owned)` : '')
+  return fhirJson({ resourceType: 'OperationOutcome', issue: [{ severity: denied ? 'warning' : 'information', code: 'informational', diagnostics: diag }] }, 201)
 }

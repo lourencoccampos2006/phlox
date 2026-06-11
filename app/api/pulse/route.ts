@@ -12,14 +12,17 @@ function adminClient() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 }
 
+// Valida o token JUNTO do Supabase Auth (verifica assinatura + expiração).
+// NUNCA confiar no payload descodificado localmente: um JWT é base64, qualquer
+// pessoa o pode forjar com outro `sub`. Como aqui usamos a service-role key
+// (que ignora RLS), uma validação fraca permitiria ler dados de qualquer conta.
 async function userIdFromToken(token: string): Promise<string | null> {
+  if (!token) return null
   try {
-    if (!token) return null
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
-    return payload.sub || null
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data, error } = await sb.auth.getUser(token)
+    if (error || !data?.user) return null
+    return data.user.id
   } catch { return null }
 }
 

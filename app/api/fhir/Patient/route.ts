@@ -19,7 +19,9 @@ export async function GET(req: NextRequest) {
   const birthdate = sp.get('birthdate')                      // YYYY-MM-DD
 
   const db = auth.client!
-  let q = db.from('patients').select('*').limit(50)
+  // Anti-IDOR: a pesquisa só pode devolver doentes do dono da chave. Sem este
+  // filtro, qualquer chave listaria/encontraria doentes de todas as clínicas.
+  let q = db.from('patients').select('*').eq('user_id', auth.user_id!).limit(50)
 
   if (identifier) {
     let val = identifier
@@ -52,20 +54,23 @@ export async function POST(req: NextRequest) {
   const phlox = fromFhirPatient(body)
   if (!phlox.name) return fhirJson(operationOutcome('error', 'Patient.name is required'), 400)
 
-  // Upsert por SNS/NIF
+  // Upsert por SNS/NIF — SEMPRE limitado aos doentes do dono da chave, senão um
+  // POST com o SNS de outra pessoa reescreveria o registo dela (IDOR de escrita).
   const db = auth.client!
   let existing: any = null
   if (phlox.sns_number) {
-    const { data } = await db.from('patients').select('*').eq('sns_number', phlox.sns_number).maybeSingle()
+    const { data } = await db.from('patients').select('*').eq('sns_number', phlox.sns_number).eq('user_id', auth.user_id!).maybeSingle()
     existing = data
   }
   if (!existing && phlox.nif) {
-    const { data } = await db.from('patients').select('*').eq('nif', phlox.nif).maybeSingle()
+    const { data } = await db.from('patients').select('*').eq('nif', phlox.nif).eq('user_id', auth.user_id!).maybeSingle()
     existing = data
   }
 
   if (existing) {
-    const { data, error } = await db.from('patients').update(phlox).eq('id', existing.id).select().single()
+    // Nunca deixar o body mudar o dono do registo.
+    const upd: any = { ...phlox }; delete upd.user_id
+    const { data, error } = await db.from('patients').update(upd).eq('id', existing.id).eq('user_id', auth.user_id!).select().single()
     if (error) return fhirJson(operationOutcome('error', error.message), 500)
     return fhirJson(toFhirPatient(data), 200)
   } else {

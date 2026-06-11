@@ -1,7 +1,7 @@
 // app/api/fhir/MedicationRequest/route.ts
 // GET → search por patient
 import { NextRequest, NextResponse } from 'next/server'
-import { authFhir } from '@/lib/fhirAuth'
+import { authFhir, resolveOwnedPatient } from '@/lib/fhirAuth'
 import { bundle, operationOutcome, toFhirMedicationRequest } from '@/lib/fhir'
 
 function fhirJson(body: any, status = 200) {
@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return fhirJson(operationOutcome('error', auth.error || 'Unauthorized'), auth.status || 401)
   const sp = req.nextUrl.searchParams
   const patientRef = sp.get('patient') || sp.get('subject') || null
-  const patientId = patientRef ? patientRef.replace(/^Patient\//, '') : null
+  // Anti-IDOR: exigir doente e confirmar que pertence ao dono da chave.
+  if (!patientRef) return fhirJson(operationOutcome('error', 'Parameter "patient" is required'), 400)
+  const owned = await resolveOwnedPatient(auth, patientRef)
+  if (!owned) return fhirJson(bundle([], 'searchset'))
+  const patientId = owned.userId
 
   const db = auth.client!
 
@@ -26,7 +30,8 @@ export async function GET(req: NextRequest) {
     `)
     .order('issued_at', { ascending: false })
     .limit(200)
-  if (patientId) rxQuery = rxQuery.or(`patient_id.eq.${patientId},for_user_id.eq.${patientId}`)
+  // Filtrar pelo doente validado (patients.id) e/ou pelo utilizador dono.
+  rxQuery = rxQuery.or(`patient_id.eq.${owned.patientId},for_user_id.eq.${owned.userId}`)
   const { data: rxs, error } = await rxQuery
   if (error) console.error('[fhir MR] prescriptions:', error)
 
@@ -54,8 +59,8 @@ export async function GET(req: NextRequest) {
 
   // 2) Compatibilidade: também devolve patient_meds / personal_meds como
   //    MedicationStatement (status=active) — sem ato de prescrição registado.
-  if (patientId) {
-    const { data: pm } = await db.from('patient_meds').select('id, name, dose, frequency, posology_json, active').eq('patient_id', patientId)
+  {
+    const { data: pm } = await db.from('patient_meds').select('id, name, dose, frequency, posology_json, active').eq('patient_id', owned.patientId)
     for (const m of (pm || [])) {
       if (m.active === false) continue
       out.push({
@@ -63,7 +68,7 @@ export async function GET(req: NextRequest) {
         id: m.id,
         status: 'active',
         medicationCodeableConcept: { text: m.name },
-        subject: { reference: `Patient/${patientId}` },
+        subject: { reference: `Patient/${owned.patientId}` },
         dosage: m.posology_json ? [{
           text: [m.dose, m.frequency].filter(Boolean).join(' · ') || undefined,
         }] : undefined,

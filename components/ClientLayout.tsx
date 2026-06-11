@@ -3,15 +3,20 @@
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ClinicalLayout from '@/components/ClinicalLayout'
-import ClinicalCommandPalette from '@/components/ClinicalCommandPalette'
 import PlanGate from '@/components/PlanGate'
 import ToolUseTracker from '@/components/ToolUseTracker'
-import PhloxCopilot from '@/components/PhloxCopilot'
-import UniversalSearch from '@/components/UniversalSearch'
 import { planForRoute } from '@/lib/planRoutes'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
+
+// Overlays que só aparecem quando o utilizador os abre (Copilot, ⌘K, paleta).
+// Carregam à parte, depois da página estar interativa — não pesam no bundle
+// inicial de TODAS as páginas. ssr:false porque só fazem sentido no cliente.
+const PhloxCopilot = dynamic(() => import('@/components/PhloxCopilot'), { ssr: false })
+const UniversalSearch = dynamic(() => import('@/components/UniversalSearch'), { ssr: false })
+const ClinicalCommandPalette = dynamic(() => import('@/components/ClinicalCommandPalette'), { ssr: false })
 
 const CLINICAL_PREFIXES = [
   '/cockpit', '/patients', '/rounds', '/mar', '/team', '/turno', '/hoje', '/painel', '/ronda-guiada',
@@ -66,6 +71,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     CLINICAL_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   // Bloqueio de acesso por plano — a página paga só renderiza se o plano chegar.
+  // (A contenção de erros de render é feita pelo app/error.tsx do Next, que já
+  //  apanha crashes da página sem deitar abaixo o layout/header.)
   const gate = planForRoute(pathname)
   const gated = (node: React.ReactNode) => gate
     ? <PlanGate min={gate.min} tool={gate.tool} note={gate.note}>{node}</PlanGate>

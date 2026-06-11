@@ -18,10 +18,11 @@ function getToken(req: NextRequest): string | null {
 }
 
 function makeCode() {
+  // CSPRNG: o código dá acesso (read-only) à medicação do utilizador, por isso
+  // não deve ser previsível. 6 chars de alfabeto-32 ≈ 30 bits.
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = 'PHL-'
-  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)]
-  return code
+  const rnd = new Uint32Array(6); globalThis.crypto.getRandomValues(rnd)
+  return 'PHL-' + Array.from(rnd, n => chars[n % 32]).join('')
 }
 
 export async function POST(req: NextRequest) {

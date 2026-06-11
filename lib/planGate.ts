@@ -79,23 +79,20 @@ export async function getUserPlan(req: NextRequest): Promise<{ userId: string | 
     const token = extractToken(req)
     if (!token) return { userId: null, plan: 'free' }
 
-    const parts = token.split('.')
-    if (parts.length !== 3) return { userId: null, plan: 'free' }
-
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    const userId = payload.sub
-    if (!userId) return { userId: null, plan: 'free' }
-
-    // Token expirado
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      return { userId: null, plan: 'free' }
-    }
-
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     )
+
+    // CRÍTICO: validar o token JUNTO do Supabase Auth (verifica assinatura +
+    // expiração). NUNCA derivar o userId do payload descodificado localmente —
+    // um JWT é base64 e pode ser forjado. Várias rotas usam este userId com a
+    // service-role key (que ignora RLS), por isso confiar no payload permitiria
+    // a um atacante ler/escrever dados de qualquer conta.
+    const { data: auth, error: authErr } = await supabase.auth.getUser(token)
+    if (authErr || !auth?.user) return { userId: null, plan: 'free' }
+    const userId = auth.user.id
 
     const { data, error } = await supabase
       .from('profiles')
