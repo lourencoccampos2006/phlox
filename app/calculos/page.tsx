@@ -545,6 +545,7 @@ export default function Calculos() {
         {[
           ['/iv-calc', '💧 Cálculo IV'],
           ['/iv-compatibility', '🧪 Compatibilidade IV'],
+          ['/dilutions', '🧫 Diluições e estabilidade'],
           ['/pk-dosing', '📈 Console PK (TDM)'],
           ['/electrolytes', '⚡ Eletrólitos'],
           ['/emergency-doses', '🚨 Doses de urgência'],

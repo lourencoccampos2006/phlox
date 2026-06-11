@@ -249,27 +249,58 @@ export default function TimelinePage() {
       })
     }
 
-    // ─── Diário de sintomas ────────────────────────────────────────────────
-    if (isSelf) {
-      const { data: diaryEntries } = await supabase
-        .from('diary_entries')
-        .select('id, date, wellbeing, symptoms, notes')
+    // ─── Diário de sintomas (symptom_logs) ─────────────────────────────────
+    // Próprio → profile_id null; perfil familiar → profile_id = id.
+    {
+      let sq = supabase.from('symptom_logs')
+        .select('id, at, feeling, symptoms, pain, temperature, notes, profile_id')
         .eq('user_id', user.id)
-        .gte('date', since.split('T')[0])
-        .order('date', { ascending: false })
-
-      ;(diaryEntries || []).forEach((e: any) => {
+        .gte('at', since)
+        .order('at', { ascending: false })
+      sq = (isSelf || isPatient) ? sq.is('profile_id', null) : sq.eq('profile_id', profileId)
+      const { data: symptomLogs } = await sq
+      ;(symptomLogs || []).forEach((e: any) => {
         if (e.symptoms?.length > 0) {
           allEvents.push({
-            id: `diary_s_${e.id}`, date: e.date, type: 'symptom',
+            id: `sym_${e.id}`, date: e.at, type: 'symptom',
             title: e.symptoms.join(', '),
-            detail: e.notes || undefined,
-            source: 'diary',
+            detail: [e.pain != null ? `Dor: ${e.pain}/10` : '', e.temperature ? `Temp.: ${e.temperature}°C` : '', e.notes || ''].filter(Boolean).join(' · ') || undefined,
+            source: 'symptoms',
+            severity: (e.pain ?? 0) >= 7 ? 'high' : undefined,
+            profileName: profileName || undefined,
+          })
+        }
+        if (e.feeling) {
+          allEvents.push({
+            id: `feel_${e.id}`, date: e.at, type: 'wellbeing',
+            title: `Como me senti: ${['', 'Muito mal', 'Mal', 'Razoável', 'Bem', 'Muito bem'][e.feeling]}`,
+            value: e.feeling, source: 'symptoms',
+            severity: e.feeling <= 2 ? 'high' : e.feeling >= 4 ? 'positive' : 'info',
+            profileName: profileName || undefined,
+          })
+        }
+      })
+    }
+
+    // ─── Diário (diary_entries) — a outra página de diário usa esta tabela.
+    // Lemos ambas (symptom_logs + diary_entries) para não perder registos,
+    // independentemente de a pessoa ter usado /sintomas ou /diary.
+    if (isSelf) {
+      const { data: diary } = await supabase.from('diary_entries')
+        .select('id, entry_date, wellbeing, symptoms, notes')
+        .eq('user_id', user.id)
+        .gte('entry_date', since.split('T')[0])
+        .order('entry_date', { ascending: false })
+      ;(diary || []).forEach((e: any) => {
+        if (e.symptoms?.length > 0) {
+          allEvents.push({
+            id: `diary_s_${e.id}`, date: e.entry_date, type: 'symptom',
+            title: e.symptoms.join(', '), detail: e.notes || undefined, source: 'diary',
           })
         }
         if (e.wellbeing) {
           allEvents.push({
-            id: `diary_w_${e.id}`, date: e.date, type: 'wellbeing',
+            id: `diary_w_${e.id}`, date: e.entry_date, type: 'wellbeing',
             title: `Bem-estar: ${['', 'Muito mau', 'Mau', 'Razoável', 'Bom', 'Muito bom'][e.wellbeing]}`,
             value: e.wellbeing, source: 'diary',
             severity: e.wellbeing <= 2 ? 'high' : e.wellbeing >= 4 ? 'positive' : 'info',
@@ -278,56 +309,72 @@ export default function TimelinePage() {
       })
     }
 
-    // ─── Alertas Phlox Watcher ────────────────────────────────────────────
-    const { data: alertData } = await supabase
-      .from('phlox_alerts')
-      .select('id, date, title, body, severity, type')
-      .eq('user_id', user.id)
-      .gte('date', since.split('T')[0])
-      .order('date', { ascending: false })
-
-    ;(alertData || []).forEach((a: any) => {
-      allEvents.push({
-        id: `alert_${a.id}`, date: a.date,
-        type: a.type === 'interaction' ? 'interaction' : 'alert',
-        title: a.title, detail: a.body,
-        severity: a.severity === 'critical' ? 'critical' : a.severity === 'high' ? 'high' : 'moderate',
-        source: 'alerts',
-      })
-    })
-
-    // ─── Doentes (patient_meds) para modo clínico ────────────────────────────
+    // ─── Sinais vitais (vitals) — só perfil próprio ─────────────────────────
     if (isSelf) {
-      const { data: patients } = await supabase
-        .from('patients')
-        .select('id, name')
+      const { data: vit } = await supabase.from('vitals')
+        .select('id, recorded_at, bp_sys, bp_dia, hr, spo2, weight, glucose, temp')
         .eq('user_id', user.id)
-        .limit(20)
-
-      for (const patient of (patients || [])) {
-        const { data: pmeds } = await supabase
-          .from('patient_meds')
-          .select('id, name, dose, frequency, created_at')
-          .eq('patient_id', patient.id)
-          .gte('created_at', since)
-
-        ;(pmeds || []).forEach((m: any) => {
-          allEvents.push({
-            id: `pmed_${m.id}`, date: m.created_at, type: 'med_added',
-            title: `${m.name}${m.dose ? ' ' + m.dose : ''}`,
-            detail: m.frequency || undefined,
-            source: 'meds', severity: 'positive',
-            profileName: patient.name,
-          })
+        .gte('recorded_at', since)
+        .order('recorded_at', { ascending: false })
+      ;(vit || []).forEach((v: any) => {
+        const parts = [
+          v.bp_sys && v.bp_dia ? `TA ${v.bp_sys}/${v.bp_dia}` : '',
+          v.hr ? `FC ${v.hr}` : '', v.spo2 ? `SpO₂ ${v.spo2}%` : '',
+          v.weight ? `${v.weight} kg` : '', v.glucose ? `Glic. ${v.glucose}` : '',
+          v.temp ? `${v.temp}°C` : '',
+        ].filter(Boolean)
+        if (!parts.length) return
+        const highBp = v.bp_sys >= 140 || v.bp_dia >= 90
+        allEvents.push({
+          id: `vit_${v.id}`, date: v.recorded_at, type: 'note',
+          title: parts.join(' · '), source: 'vitals',
+          severity: highBp ? 'moderate' : 'info',
+          profileName: profileName || undefined,
         })
-      }
+      })
+    }
+
+    // ─── Análises (lab_results) → eventos + séries para a aba de gráficos ────
+    if (isSelf) {
+      const { data: labs } = await supabase.from('lab_results')
+        .select('id, test_code, test_label, value, unit, ref_low, ref_high, measured_at')
+        .eq('user_id', user.id)
+        .gte('measured_at', since.split('T')[0])
+        .order('measured_at', { ascending: false })
+
+      const seriesMap: Record<string, LabSeries> = {}
+      ;(labs || []).forEach((l: any) => {
+        const v = Number(l.value)
+        const status: 'normal' | 'high' | 'low' | 'critical' =
+          l.ref_high != null && v > Number(l.ref_high) ? 'high'
+          : l.ref_low != null && v < Number(l.ref_low) ? 'low' : 'normal'
+        allEvents.push({
+          id: `lab_${l.id}`, date: l.measured_at, type: 'lab_result',
+          title: `${l.test_label || l.test_code}: ${l.value}${l.unit ? ' ' + l.unit : ''}`,
+          detail: (l.ref_low != null || l.ref_high != null) ? `Referência: ${l.ref_low ?? '–'}–${l.ref_high ?? '–'} ${l.unit || ''}` : undefined,
+          source: 'labs',
+          severity: status === 'normal' ? undefined : 'moderate',
+          profileName: profileName || undefined,
+        })
+        // série temporal (precisa ≥2 pontos para gráfico)
+        const key = l.test_code || l.test_label
+        if (!seriesMap[key]) seriesMap[key] = { name: l.test_label || l.test_code, unit: l.unit || '', values: [], reference_range: (l.ref_low != null || l.ref_high != null) ? `${l.ref_low ?? '–'}–${l.ref_high ?? '–'}` : '—' }
+        if (!isNaN(v)) seriesMap[key].values.push({ date: l.measured_at, value: v, status })
+      })
+      // ordena cada série por data ascendente e guarda só as que têm ≥2 pontos
+      const series = Object.values(seriesMap)
+        .map(s => ({ ...s, values: s.values.sort((a, b) => a.date.localeCompare(b.date)) }))
+        .filter(s => s.values.length >= 2)
+      setLabSeries(series)
+    } else {
+      setLabSeries([])
     }
 
     // ─── Sort all events by date descending ───────────────────────────────
     allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     setEvents(allEvents)
     setLoading(false)
-  }, [user, supabase, dateRange, profileName])
+  }, [user, supabase, dateRange, profileName, activeProfileType])
 
   useEffect(() => { load(activeProfileId) }, [load, activeProfileId, dateRange])
 
@@ -405,13 +452,13 @@ export default function TimelinePage() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 10, height: 2, background: 'var(--green)', borderRadius: 1 }} />
-              Phlox Timeline · História Clínica Digital
+              A minha história de saúde
             </div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#f8fafc', fontWeight: 400, marginBottom: 4 }}>
               {profileName ? `Linha do tempo de ${profileName}` : 'A minha linha do tempo'}
             </div>
             <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, maxWidth: 520 }}>
-              Medicação, sintomas, análises e alertas — tudo numa linha do tempo inteligente. A AI identifica correlações que nenhum médico tem tempo de encontrar.
+              A tua medicação, análises, sintomas e sinais vitais reunidos numa linha do tempo — pronta para mostrares ao teu médico.
             </p>
           </div>
 
@@ -461,9 +508,13 @@ export default function TimelinePage() {
             {canAnalyse && events.length >= 3 && (
               <button onClick={analyseCorrelations} disabled={analysing}
                 style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: analysing ? '#1e293b' : 'var(--green)', color: 'white', border: 'none', borderRadius: 8, cursor: analysing ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                {analysing ? <><div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A analisar...</> : '🧠 Encontrar correlações'}
+                {analysing ? <><div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A organizar...</> : '📋 Preparar para o médico'}
               </button>
             )}
+            {/* Fechar o ciclo do registo: mostrar tudo ao médico por QR seguro. */}
+            <Link href="/health-pass" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              📲 Mostrar ao médico (QR)
+            </Link>
           </div>
 
           {/* Tabs */}
@@ -478,7 +529,7 @@ export default function TimelinePage() {
             </button>
             <button onClick={() => setTab('correlations')}
               style={{ ...tabStyle('correlations'), color: tab === 'correlations' ? '#f8fafc' : '#475569', borderBottomColor: tab === 'correlations' ? 'var(--green)' : 'transparent' }}>
-              Correlações IA {correlations.length > 0 && <span style={{ background: 'var(--green)', color: 'white', fontSize: 9, padding: '1px 5px', borderRadius: 10, marginLeft: 4 }}>{correlations.length}</span>}
+              Para o médico {correlations.length > 0 && <span style={{ background: 'var(--green)', color: 'white', fontSize: 9, padding: '1px 5px', borderRadius: 10, marginLeft: 4 }}>{correlations.length}</span>}
             </button>
           </div>
         </div>
@@ -592,7 +643,7 @@ export default function TimelinePage() {
                 <div style={{ fontSize: 36, marginBottom: 12 }}>🧠</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Análise de correlações</div>
                 <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 420, margin: '0 auto 20px' }}>
-                  Com dados suficientes na linha do tempo, a AI analisa padrões temporais — como medicamentos iniciados antes de sintomas aparecerem, ou análises que pioram em paralelo com alterações de medicação.
+                  Com dados suficientes, o Phlox aponta <b>coincidências no tempo</b> nos teus registos — para levares à conversa com o médico. Não é diagnóstico nem interpretação clínica; é só uma forma de organizares a tua história.
                 </div>
                 {!canAnalyse ? (
                   <Link href="/pricing" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
@@ -611,8 +662,8 @@ export default function TimelinePage() {
               </div>
             ) : (
               <div>
-                <div style={{ padding: '12px 16px', background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: 'var(--green-2)', lineHeight: 1.6 }}>
-                  🧠 A AI analisou {events.length} eventos e encontrou {correlations.length} padrão{correlations.length !== 1 ? 'ões' : ''} temporais. Discute sempre com o teu médico antes de agir com base nesta informação.
+                <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, marginBottom: 16, fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
+                  ⚠️ <b>Isto não é um diagnóstico.</b> São apenas <b>coincidências no tempo</b> que reparámos nos teus registos, para levares à conversa com o teu médico. O Phlox não é software médico, não interpreta nem substitui a avaliação de um profissional. <b>Nunca pares ou mudes medicação</b> com base nisto — fala primeiro com o teu médico ou farmacêutico.
                 </div>
                 {correlations.map((corr, i) => <CorrelationCard key={i} corr={corr} />)}
                 <button onClick={analyseCorrelations} disabled={analysing}

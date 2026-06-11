@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -27,6 +27,10 @@ export default function InicioPage() {
   const { user, loading } = useAuth() as any
   const router = useRouter()
   const expMode: string = user?.experience_mode || 'personal'
+  // Saudação/data só depois de montar — evita mismatch de hidratação (a hora do
+  // servidor difere da do cliente, e o toLocaleDateString varia entre os dois).
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (loading) return
@@ -84,9 +88,9 @@ export default function InicioPage() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.15 }}>
-              {greeting()}{firstName ? `, ${firstName}` : ''}
+              {mounted ? greeting() : 'Olá'}{firstName ? `, ${firstName}` : ''}
             </h1>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 4, textTransform: 'capitalize' }}>{dateStr()}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 4, textTransform: 'capitalize', minHeight: 18 }}>{mounted ? dateStr() : ''}</div>
           </div>
           <Link href="/pricing" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', background: 'white', border: '1px solid var(--border)', borderRadius: 20, textDecoration: 'none' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: isFree ? '#94a3b8' : '#0d6e42' }} />
@@ -163,6 +167,16 @@ export default function InicioPage() {
         <Link href="/settings?tab=ferramentas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '13px', background: 'white', border: '1.5px dashed var(--border)', borderRadius: 12, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar mais ferramentas
+        </Link>
+
+        {/* Porta de entrada calma para um momento difícil — discreta, opcional. */}
+        <Link href="/comecar" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 12, textDecoration: 'none', marginBottom: 16 }}>
+          <span style={{ fontSize: 20, flexShrink: 0 }}>🤍</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>A passar por um momento difícil?</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>Alta do hospital, diagnóstico novo, cuidar de alguém — o Phlox ajuda nos primeiros passos.</span>
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </Link>
 
         {/* Free-plan ad slot — 2026-06-01: escondido em modo foco */}

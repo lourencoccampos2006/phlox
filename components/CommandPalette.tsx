@@ -53,7 +53,7 @@ const TOOLS: Tool[] = [
   { href: '/osce', label: 'Simulação OSCE', desc: 'AI como doente · feedback OSCE real', icon: '🎭', category: 'Estudantes' },
   { href: '/tutor', label: 'AI Tutor', desc: 'Tutoria socrática · passo a passo', icon: '👨‍🏫', category: 'Estudantes' },
   // Conta
-  { href: '/dashboard', label: 'Dashboard', desc: 'O teu painel pessoal com briefe diário', icon: '🏠', category: 'Conta' },
+  { href: '/inicio', label: 'Início', desc: 'A tua página inicial — ferramentas e atalhos', icon: '🏠', category: 'Conta' },
   { href: '/settings', label: 'Definições', desc: 'Perfil, modo de experiência, conta', icon: '⚙️', category: 'Conta' },
   { href: '/pricing', label: 'Planos & Preços', desc: 'Ver todos os planos disponíveis', icon: '💳', category: 'Conta' },
   { href: '/inicio', label: 'Início', desc: 'Página inicial com as tuas ferramentas', icon: '🏠', category: 'Conta' },

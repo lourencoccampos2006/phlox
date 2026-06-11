@@ -30,7 +30,7 @@ function LoginContent() {
   const [signingIn, setSigningIn] = useState(false)
 
   useEffect(() => {
-    if (user) router.push('/dashboard')
+    if (user) router.push('/inicio')
   }, [user, router])
 
   const handleGoogleSignIn = async () => {

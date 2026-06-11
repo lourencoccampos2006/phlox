@@ -69,7 +69,11 @@
       "Bash(QA_PORT=3100 node qa-boundary.mjs)",
       "Bash(QA_PORT=3100 node qa-perf.mjs)",
       "Bash(node -e \"const d=require\\('./package.json'\\).dependencies; console.log\\(Object.keys\\(d\\).join\\('\\\\n'\\)\\)\")",
-      "Bash(rm -f qa-overlay.mjs /tmp/buildout.txt /tmp/b2.txt /tmp/b3.txt /tmp/bperf.txt /tmp/bp2.txt *)"
+      "Bash(rm -f qa-overlay.mjs /tmp/buildout.txt /tmp/b2.txt /tmp/b3.txt /tmp/bperf.txt /tmp/bp2.txt *)",
+      "Bash(sed -n '1,12p' app/scanner/page.tsx)",
+      "Bash(sed -n '1,16p' app/toolkit/page.tsx)",
+      "Bash(grep -vE \"^import|^$\")",
+      "Bash(curl -s \"http://localhost:3100/scanner\")"
     ]
   }
 }

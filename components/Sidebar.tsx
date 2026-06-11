@@ -14,7 +14,7 @@ type NavItem = { href: string; icon: string; label: string; badge?: string }
 const NAV_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, NavItem[][]> = {
   personal: [
     [
-      { href: '/dashboard', icon: '⬛', label: 'Início' },
+      { href: '/inicio', icon: '⬛', label: 'Início' },
       { href: '/mymeds',    icon: '💊', label: 'Medicamentos', badge: 'principal' },
       { href: '/vitals',    icon: '📊', label: 'Sinais Vitais' },
       { href: '/diary',     icon: '📝', label: 'Diário' },
@@ -35,7 +35,7 @@ const NAV_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, NavItem[][]>
   ],
   caregiver: [
     [
-      { href: '/dashboard', icon: '⬛', label: 'Início' },
+      { href: '/inicio', icon: '⬛', label: 'Início' },
       { href: '/mymeds',    icon: '💊', label: 'Medicamentos', badge: 'principal' },
       { href: '/vitals',    icon: '📊', label: 'Sinais Vitais' },
       { href: '/perfis',    icon: '👨‍👩‍👧', label: 'Família' },
@@ -54,7 +54,7 @@ const NAV_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, NavItem[][]>
   ],
   student: [
     [
-      { href: '/dashboard', icon: '⬛', label: 'Início' },
+      { href: '/inicio', icon: '⬛', label: 'Início' },
       { href: '/arena',     icon: '🏆', label: 'Arena',    badge: 'principal' },
       { href: '/simulador', icon: '🎮', label: 'Simulador' },
       { href: '/osce',      icon: '🎭', label: 'OSCE' },
@@ -204,21 +204,21 @@ const MODE_COLOR: Record<ExperienceMode, string> = {
 // Bottom tab items (mobile) for non-clinical modes
 const BOTTOM_TABS_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, { href: string; icon: string; label: string }[]> = {
   personal: [
-    { href: '/dashboard',   icon: '⬛', label: 'Início' },
+    { href: '/inicio',   icon: '⬛', label: 'Início' },
     { href: '/mymeds',      icon: '💊', label: 'Meds' },
     { href: '/ai',          icon: '🤖', label: 'AI' },
     { href: '/vitals',      icon: '📊', label: 'Vitais' },
     { href: '/inicio', icon: '🗺️', label: 'Tudo' },
   ],
   caregiver: [
-    { href: '/dashboard',    icon: '⬛', label: 'Início' },
+    { href: '/inicio',    icon: '⬛', label: 'Início' },
     { href: '/mymeds',       icon: '💊', label: 'Meds' },
     { href: '/perfis',       icon: '👨‍👩‍👧', label: 'Família' },
     { href: '/interactions', icon: '🔍', label: 'Interações' },
     { href: '/inicio',  icon: '🗺️', label: 'Tudo' },
   ],
   student: [
-    { href: '/dashboard',   icon: '⬛', label: 'Início' },
+    { href: '/inicio',   icon: '⬛', label: 'Início' },
     { href: '/arena',       icon: '🏆', label: 'Arena' },
     { href: '/simulador',   icon: '🎮', label: 'Simular' },
     { href: '/study',       icon: '📚', label: 'Estudar' },
@@ -263,7 +263,7 @@ export default function Sidebar() {
     ? CLINICAL_BOTTOM[clinicInstitution]
     : BOTTOM_TABS_NON_CLINICAL[mode as Exclude<ExperienceMode, 'clinical'>]
 
-  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+  const isActive = (href: string) => pathname === href || (href !== '/inicio' && pathname.startsWith(href))
 
   const toggleCollapse = () => {
     setCollapsed(p => {

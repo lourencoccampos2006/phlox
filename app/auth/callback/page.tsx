@@ -58,7 +58,7 @@ export default function AuthCallback() {
         .single()
 
       if (profile?.onboarded) {
-        router.replace('/dashboard')
+        router.replace('/inicio')
       } else {
         router.replace('/onboarding')
       }

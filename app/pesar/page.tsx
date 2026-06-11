@@ -156,7 +156,7 @@ export default function PesoPage() {
         )}
 
         <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 14, textAlign: 'center' }}>
-          Os teus pesos ficam no <Link href="/dashboard" style={{ color: '#7c3aed', fontWeight: 600, textDecoration: 'none' }}>histórico de vitais</Link>.
+          Os teus pesos ficam no <Link href="/vitals" style={{ color: '#7c3aed', fontWeight: 600, textDecoration: 'none' }}>histórico de vitais</Link>.
         </div>
       </div>
     </div>

@@ -172,7 +172,7 @@ export default function AguaPage() {
         )}
 
         <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 14, textAlign: 'center' }}>
-          {loading ? '' : <>Adicionado ao teu <Link href="/dashboard" style={{ color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}>histórico de saúde</Link>.</>}
+          {loading ? '' : <>Adicionado ao teu <Link href="/vitals" style={{ color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}>histórico de saúde</Link>.</>}
         </div>
       </div>
 

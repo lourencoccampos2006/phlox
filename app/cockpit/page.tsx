@@ -75,9 +75,13 @@ export default function CockpitPage() {
   const [bowelByPt, setBowelByPt] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(new Date())
+  // Evita mismatch de hidratação: a data/hora só aparece depois de montar (a hora
+  // do servidor difere da do cliente). Antes disso mostramos um placeholder vazio.
+  const [mounted, setMounted] = useState(false)
 
   // Live clock
   useEffect(() => {
+    setMounted(true)
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
@@ -231,7 +235,7 @@ export default function CockpitPage() {
             <div style={{ fontSize: 22, fontWeight: 700, color: '#0b1120', letterSpacing: '-0.02em' }}>
               {greet()}{NAME ? `, ${NAME}` : ''}.
             </div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>{ptDate} · {ptTime} · {instLabel}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize', minHeight: 18 }}>{mounted ? `${ptDate} · ${ptTime} · ${instLabel}` : instLabel}</div>
             <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 2 }}>{roleFocusLine(institution, role)}</div>
           </div>
           <LivePulseBadge />
@@ -314,8 +318,8 @@ export default function CockpitPage() {
           <div style={{ fontSize: 22, fontWeight: 700, color: '#0b1120', letterSpacing: '-0.02em' }}>
             {greet()}{NAME ? `, ${NAME}` : ''}.
           </div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize' }}>
-            {ptDate} · {ptTime}
+          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 3, textTransform: 'capitalize', minHeight: 18 }}>
+            {mounted ? `${ptDate} · ${ptTime}` : ''}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: shiftCfg.bg, border: `1.5px solid ${shiftCfg.color}30`, borderRadius: 10 }}>
