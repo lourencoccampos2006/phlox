@@ -1,8 +1,11 @@
 'use client'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-export default function PainelRedirect() {
-  const r = useRouter()
-  useEffect(() => { r.replace('/cockpit') }, [r])
-  return null
+
+// /painel — o NOVO cockpit institucional (reformulação 2026-06-12).
+// Monta-se a partir do blueprint do tipo de instituição. O /cockpit antigo fica
+// preservado no git mas passa a redirecionar para cá.
+
+import PainelCockpit from './PainelCockpit'
+
+export default function PainelPage() {
+  return <PainelCockpit />
 }

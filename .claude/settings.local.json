@@ -87,7 +87,11 @@
       "Bash(cd /c/Users/Fernando/phlox *)",
       "Bash(awk -F: '$1 > 248')",
       "Bash(cat)",
-      "Bash(node /tmp/cfgtest.mjs)"
+      "Bash(node /tmp/cfgtest.mjs)",
+      "Bash(grep -E \"^//|export default\")",
+      "Bash(xargs grep -A14 \"activities\")",
+      "Bash(xargs grep -A20 \"create table.*patients\")",
+      "Bash(node -e ' *)"
     ]
   }
 }
