@@ -138,6 +138,7 @@ export default function MARPage() {
   const isPro = ['pro', 'clinic'].includes(user?.plan || '')
 
   const [patients, setPatients]               = useState<Patient[]>([])
+  const [loadErr, setLoadErr]                 = useState('')
   const [selectedId, setSelectedId]           = useState('')
   const [meds, setMeds]                       = useState<PatientMed[]>([])
   const [date, setDate]                       = useState(getToday())
@@ -173,7 +174,7 @@ export default function MARPage() {
     if (!user || !isPro) return
     supabase.from('patients').select('id, name, age, room_number, conditions, allergies')
       .eq('user_id', user.id).order('name')
-      .then(({ data }) => setPatients(data || []))
+      .then(({ data, error }) => { setLoadErr(error ? 'Não foi possível carregar os doentes. Verifica a ligação e recarrega.' : ''); setPatients(data || []) })
   }, [user, isPro, supabase])
 
   useEffect(() => {
@@ -358,6 +359,16 @@ export default function MARPage() {
       )}
 
       <div className="page-container page-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Aviso recuperável: distinguir "falhou a carregar" de "sem doentes" —
+            crítico no MAR, onde um ecrã vazio nunca pode parecer "nada a dar". */}
+        {loadErr && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px' }}>
+            <span style={{ color: '#b91c1c', fontSize: 18 }}>⚠</span>
+            <span style={{ flex: 1, fontSize: 13.5, color: '#991b1b' }}>{loadErr}</span>
+            <button onClick={() => window.location.reload()} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Recarregar</button>
+          </div>
+        )}
 
         {/* Patient selector + info card */}
         <div className="mar-selector" style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr auto' : '1fr', gap: 10, alignItems: 'start' }}>

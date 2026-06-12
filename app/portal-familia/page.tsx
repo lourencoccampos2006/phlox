@@ -60,6 +60,7 @@ export default function FamilyPortalPage() {
 
   // ── Conversa do residente ativo ──
   const [msgs, setMsgs] = useState<Msg[]>([])
+  const [days, setDays] = useState<{ date: string; lines: string[]; mood?: number; attention: boolean }[]>([])
   const [loadingThread, setLoadingThread] = useState(false)
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
@@ -103,7 +104,7 @@ export default function FamilyPortalPage() {
       const acc: Access = { code: nc, verify: vDigits, name: data.patient?.name || 'Familiar', room: data.patient?.room_number || '' }
       const next = [...accesses.filter(a => a.code !== nc), acc]
       persist(next)
-      setActiveCode(nc); setMsgs(data.messages || [])
+      setActiveCode(nc); setMsgs(data.messages || []); setDays(data.dailySummaries || [])
       setAdding(false); setNeedsVerify(false); setCode(''); setVerify(''); setAddErr('')
     } catch { setAddErr('Falha de ligação. Tenta novamente.') }
     finally { setAddBusy(false) }
@@ -121,7 +122,7 @@ export default function FamilyPortalPage() {
         return
       }
       if (data.needsVerify) return
-      setMsgs(data.messages || [])
+      setMsgs(data.messages || []); setDays(data.dailySummaries || [])
       // atualiza nome/quarto se mudaram
       if (data.patient && (data.patient.name !== acc.name || data.patient.room_number !== acc.room)) {
         persist(accesses.map(a => a.code === acc.code ? { ...a, name: data.patient.name, room: data.patient.room_number || '' } : a))
@@ -253,6 +254,32 @@ export default function FamilyPortalPage() {
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', minHeight: 0 }}>
+                {/* "O dia de X" — resumo automático dos registos da equipa, em
+                    linguagem simples. É o que torna o cuidado visível à família. */}
+                {days.length > 0 && (
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Como tem corrido</div>
+                    {days.map(d => {
+                      const dl = new Date(d.date + 'T12:00:00')
+                      const today = new Date().toISOString().slice(0, 10)
+                      const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                      const label = d.date === today ? 'Hoje' : d.date === yest ? 'Ontem' : dl.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
+                      return (
+                        <div key={d.date} style={{ background: d.attention ? '#fffbeb' : '#f0fdf5', border: `1px solid ${d.attention ? '#fde68a' : '#bbf7d0'}`, borderRadius: 12, padding: '13px 15px', marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1120', textTransform: 'capitalize' }}>{label}</span>
+                            {d.mood && <span style={{ fontSize: 16 }}>{['', '😟', '😐', '🙂', '😊', '😄'][d.mood]}</span>}
+                            {d.attention && <span style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 700, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 99 }}>a acompanhar</span>}
+                          </div>
+                          {d.lines.length ? d.lines.map((l, i) => (
+                            <div key={i} style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.55, marginBottom: 2 }}>{l}</div>
+                          )) : <div style={{ fontSize: 13, color: '#6b7280' }}>Sem registos detalhados neste dia.</div>}
+                        </div>
+                      )
+                    })}
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Resumo gerado a partir dos registos da equipa de cuidados. Para questões clínicas, contacte a instituição.</div>
+                  </div>
+                )}
                 {loadingThread && msgs.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 30 }}>A carregar…</div>
                 ) : msgs.length === 0 ? (

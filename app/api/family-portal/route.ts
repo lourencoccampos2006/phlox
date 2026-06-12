@@ -38,6 +38,79 @@ function codeErrorResponse(errorCode: string) {
 
 const last4 = (phone?: string | null) => (phone || '').replace(/\D/g, '').slice(-4)
 
+// ── "O dia da mãe" — resumo diário caloroso para a família ───────────────────
+// Construído DE FORMA DETERMINÍSTICA a partir dos registos que a equipa já faz
+// (care_records por turno + mar_records). NÃO inventa nada, NÃO usa IA, NÃO
+// diagnostica: só conta, em linguagem simples, o que ficou registado. Isto é o
+// que torna o cuidado visível à família — e o argumento de venda do lar.
+interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean }
+
+const MEAL_WORD = (pct: number) => pct >= 75 ? 'comeu bem' : pct >= 40 ? 'comeu razoavelmente' : pct > 0 ? 'comeu pouco' : 'quase não comeu'
+const MOOD_WORD = ['', 'esteve em baixo', 'esteve menos bem-disposta', 'esteve calma', 'esteve bem-disposta', 'esteve muito animada']
+
+function summariseDay(date: string, recs: any[], marToday: any[], firstName: string): DaySummary {
+  const lines: string[] = []
+  let attention = false
+  // Refeições (média do dia a partir dos turnos)
+  const meals: number[] = []
+  let moodLevel = 0, moodCount = 0
+  const activities = new Set<string>()
+  let fluid = 0
+  for (const r of recs) {
+    const n = r.nutrition || {}
+    ;['breakfast', 'lunch', 'dinner'].forEach(m => { if (typeof n[m] === 'number') meals.push(n[m]) })
+    if (typeof n.fluid_ml === 'number') fluid += n.fluid_ml
+    const mo = r.mood || {}
+    if (mo.level) { moodLevel += mo.level; moodCount++ }
+    if (Array.isArray(mo.activities)) mo.activities.forEach((a: string) => a && activities.add(a))
+    else if (typeof mo.activities === 'string' && mo.activities.trim()) activities.add(mo.activities.trim())
+  }
+  if (meals.length) {
+    const avg = Math.round(meals.reduce((a, b) => a + b, 0) / meals.length)
+    lines.push(`Às refeições, ${firstName} ${MEAL_WORD(avg)}.`)
+    if (avg < 40) attention = true
+  }
+  if (fluid > 0) lines.push(`Bebeu cerca de ${fluid} ml de líquidos ao longo do dia.`)
+  if (moodCount) {
+    const m = Math.round(moodLevel / moodCount)
+    lines.push(`${MOOD_WORD[m] ? MOOD_WORD[m].charAt(0).toUpperCase() + MOOD_WORD[m].slice(1) : 'Esteve estável'}.`)
+    if (m <= 2) attention = true
+  }
+  if (activities.size) lines.push(`Participou em: ${Array.from(activities).slice(0, 4).join(', ')}.`)
+  // Medicação do dia
+  const marTaken = marToday.filter(m => m.status === 'taken' || m.status === 'given').length
+  const marTotal = marToday.length
+  if (marTotal > 0) {
+    if (marTaken === marTotal) lines.push('Tomou toda a medicação prevista.')
+    else { lines.push(`Tomou ${marTaken} de ${marTotal} medicamentos previstos.`); if (marTaken < marTotal) attention = true }
+  }
+  // Notas da equipa (uma, curta, se houver)
+  const note = recs.map(r => r.notes).find((x: string) => x && x.trim())
+  if (note) lines.push(`Nota da equipa: ${String(note).slice(0, 160)}`)
+  return { date, lines, mood: moodCount ? Math.round(moodLevel / moodCount) : undefined, attention }
+}
+
+async function buildDailySummaries(patientId: string): Promise<DaySummary[]> {
+  const sb = admin()
+  const days = 3
+  const since = new Date(Date.now() - (days - 1) * 86400000).toISOString().slice(0, 10)
+  const [{ data: cr }, { data: mar }, { data: pat }] = await Promise.all([
+    sb.from('care_records').select('date, nutrition, mood, notes').eq('patient_id', patientId).gte('date', since),
+    sb.from('mar_records').select('date, status').eq('patient_id', patientId).gte('date', since),
+    sb.from('patients').select('name').eq('id', patientId).maybeSingle(),
+  ])
+  const firstName = (pat?.name || 'O residente').split(' ')[0]
+  const out: DaySummary[] = []
+  for (let i = 0; i < days; i++) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+    const recs = (cr || []).filter((r: any) => r.date === d)
+    const marDay = (mar || []).filter((m: any) => m.date === d)
+    if (!recs.length && !marDay.length) continue // sem registos nesse dia → não mostra
+    out.push(summariseDay(d, recs, marDay, firstName))
+  }
+  return out
+}
+
 // Verifica os últimos 4 dígitos do telemóvel contra os contactos registados do residente.
 // Devolve o contacto correspondente, ou null.
 //
@@ -91,14 +164,18 @@ export async function GET(req: NextRequest) {
   }
 
   const sb = admin()
-  const { data: msgs } = await sb.from('family_thread_messages')
-    .select('id, patient_id, author_side, author_name, kind, content, photo_url, mood, meals, activity, created_at')
-    .eq('patient_id', pat.id).order('created_at', { ascending: true }).limit(200)
+  const [{ data: msgs }, dailySummaries] = await Promise.all([
+    sb.from('family_thread_messages')
+      .select('id, patient_id, author_side, author_name, kind, content, photo_url, mood, meals, activity, created_at')
+      .eq('patient_id', pat.id).order('created_at', { ascending: true }).limit(200),
+    buildDailySummaries(pat.id).catch(() => [] as DaySummary[]),
+  ])
 
   return NextResponse.json({
     patient: { name: pat.name, room_number: pat.room_number },
     contactName: v.contact?.name || null,
     messages: msgs || [],
+    dailySummaries,
   })
 }
 

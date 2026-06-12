@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 function parseCSV(text: string): string[][] {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
@@ -56,8 +57,12 @@ export default function PatientsPage() {
   const router = useRouter()
   const { institution } = useClinicPrefs()
   const isNursingHome = institution === 'nursing_home'
-  const patientLabel = isNursingHome ? 'residente' : 'doente'
-  const patientLabelPlural = isNursingHome ? 'residentes' : 'doentes'
+  // Vocabulário vem do institutionConfig: lar→"residente", centro de dia→"utente",
+  // farmácia→"utente", resto→"doente". Mantém tudo consistente entre páginas.
+  const _cfg = institutionConfig(institution)
+  const patientLabel = _cfg.personNoun.toLowerCase()
+  const patientLabelPlural = _cfg.personNounPlural.toLowerCase()
+  const patientLabelCap = _cfg.personNounPlural
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -237,7 +242,7 @@ export default function PatientsPage() {
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
             <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
             <span>›</span>
-            <span style={{ color: '#64748b' }}>{isNursingHome ? 'Residentes' : 'Doentes'}</span>
+            <span style={{ color: '#64748b' }}>{patientLabelCap}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -260,7 +265,7 @@ export default function PatientsPage() {
                 <button onClick={() => setShowAdd(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  {isNursingHome ? 'Novo residente' : 'Novo doente'}
+                  Novo {patientLabel}
                   <kbd style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>N</kbd>
                 </button>
               </div>
@@ -294,7 +299,7 @@ export default function PatientsPage() {
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
                 <div style={{ background: 'white', borderRadius: 14, padding: '28px', width: '100%', maxWidth: 520, boxShadow: '0 24px 64px rgba(0,0,0,0.2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1d4ed8', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{isNursingHome ? 'Novo residente' : 'Novo doente / utente'}</div>
+                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1d4ed8', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{`Novo ${patientLabel}`}</div>
                     <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

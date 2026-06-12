@@ -63,6 +63,7 @@ const BY_INST: Record<InstitutionType, ConsentTemplate[]> = {
   clinic:             [RGPD, PROCEDIMENTO, IMAGEM],
   hospital:           [RGPD, PROCEDIMENTO, IMAGEM],
   nursing_home:       [RGPD, ERPI, FAMILIA, IMAGEM],
+  day_care:           [RGPD, FAMILIA, IMAGEM, FARMACEUTICO],
 }
 
 export function consentTemplatesFor(institution: InstitutionType): ConsentTemplate[] {

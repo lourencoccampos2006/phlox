@@ -16,6 +16,7 @@ export type InstitutionType =
   | 'pharmacy_hospital'
   | 'pharmacy_community'
   | 'nursing_home'
+  | 'day_care'
   | 'health_center'
 
 export const ROLE_META: Record<ClinicalRole, { label: string; icon: string; color: string }> = {
@@ -33,6 +34,7 @@ export const INST_META: Record<InstitutionType, { label: string; icon: string; s
   pharmacy_hospital:  { label: 'Farmácia Hospitalar',       icon: '⚗️', shortLabel: 'Farm. Hosp.' },
   pharmacy_community: { label: 'Farmácia Comunitária',      icon: '🏪', shortLabel: 'Farm. Com.' },
   nursing_home:       { label: 'Lar / ERPI',                icon: '🤝', shortLabel: 'Lar/ERPI' },
+  day_care:           { label: 'Centro de Dia',             icon: '☀️', shortLabel: 'C. Dia' },
   health_center:      { label: 'Centro de Saúde',           icon: '🌿', shortLabel: 'CSP' },
 }
 

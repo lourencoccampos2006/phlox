@@ -169,7 +169,7 @@ export function getAllToolsForMode(mode: Mode): (NavTool & { categoryLabel: stri
  */
 export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
   personal: [
-    { href: '/diary',         icon: '📓', label: 'Diário de saúde',     desc: 'Sintomas diários · bem-estar · notas' },
+    { href: '/sintomas',         icon: '📓', label: 'Diário de saúde',     desc: 'Sintomas diários · bem-estar · notas' },
     { href: '/objetivos',     icon: '🎯', label: 'Objetivos de saúde',  desc: 'Metas e acompanhamento' },
     { href: '/preparar-consulta', icon: '📋', label: 'Preparar consulta', desc: 'Perguntas certas para o médico' },
     { href: '/sintomas',      icon: '🩹', label: 'Diário de sintomas',  desc: 'Regista episódios com gatilhos' },
@@ -179,7 +179,7 @@ export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
   ],
   caregiver: [
     { href: '/preparar-consulta', icon: '📋', label: 'Preparar consulta', desc: 'Perguntas para o médico do familiar' },
-    { href: '/diary',         icon: '📓', label: 'Diário',              desc: 'Registo diário do familiar' },
+    { href: '/sintomas',         icon: '📓', label: 'Diário',              desc: 'Registo diário do familiar' },
     { href: '/sintomas',      icon: '🩹', label: 'Diário de sintomas',  desc: 'Episódios com gatilhos' },
     { href: '/dose-crianca',  icon: '🧒', label: 'Dose pediátrica',     desc: 'Para crianças por peso' },
     { href: '/timeline',      icon: '📈', label: 'Histórico',           desc: 'Evolução clínica' },

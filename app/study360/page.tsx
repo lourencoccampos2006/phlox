@@ -12,11 +12,11 @@ import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
 
-type Tab = 'review' | 'plan' | 'pomodoro' | 'stats'
+type Tab = 'focus' | 'review' | 'plan' | 'pomodoro' | 'stats'
 
 export default function Study360() {
   const { user } = useAuth()
-  const [tab, setTab] = useState<Tab>('review')
+  const [tab, setTab] = useState<Tab>('focus')
   const plan = ((user as any)?.plan || 'free') as string
   const canUse = plan !== 'free'
 
@@ -50,6 +50,7 @@ export default function Study360() {
 
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 16, overflowX: 'auto' }}>
           {([
+            ['focus',    '🎯 Onde focar'],
             ['review',   '🃏 Rever cards'],
             ['plan',     '🗓 Plano por exame'],
             ['pomodoro', '⏱ Pomodoro'],
@@ -60,11 +61,90 @@ export default function Study360() {
           ))}
         </div>
 
+        {tab === 'focus' && <FocusTab />}
         {tab === 'review' && <ReviewTab />}
         {tab === 'plan' && <PlanTab />}
         {tab === 'pomodoro' && <PomodoroTab />}
         {tab === 'stats' && <StatsTab />}
       </div>
+    </div>
+  )
+}
+
+// ─── Onde focar — cruza o que erraste e diz por onde estudar ──────────────────
+interface TopicStat { topic: string; attempts: number; correct: number; accuracy: number | null; minutes: number; level: string }
+function FocusTab() {
+  const { user, supabase } = useAuth()
+  const [data, setData] = useState<{ hasData: boolean; focus: TopicStat[]; blindspots: TopicStat[]; strong: TopicStat[]; guidance: string } | null>(null)
+  const [busy, setBusy] = useState(true)
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    if (!user?.id) return
+    ;(async () => {
+      setBusy(true); setErr('')
+      try {
+        const { data: sess } = await supabase.auth.getSession()
+        const r = await fetch('/api/study/weakspots', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(sess as any)?.session?.access_token || ''}` }, body: '{}' })
+        const j = await r.json()
+        if (!r.ok) throw new Error(j.error || 'Erro')
+        setData(j)
+      } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    })()
+  }, [user?.id, supabase])
+
+  if (busy) return <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, padding: 40 }}>A analisar o teu estudo…</div>
+  if (err) return <div style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 10, padding: 14, fontSize: 13 }}>{err}</div>
+  if (!data?.hasData) return (
+    <div style={{ background: 'white', border: '1px dashed #e5e7eb', borderRadius: 14, padding: '40px 24px', textAlign: 'center' }}>
+      <div style={{ fontSize: 32, marginBottom: 10 }}>🎯</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', marginBottom: 8 }}>Ainda não há dados suficientes</div>
+      <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, maxWidth: 380, margin: '0 auto 16px' }}>Faz uns quizzes e desafios na Arena — depois mostro-te <b>onde estás mais fraco</b> e por onde estudar.</p>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Link href="/study" style={{ padding: '10px 18px', background: '#7c3aed', color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Fazer um quiz →</Link>
+        <Link href="/arena" style={{ padding: '10px 18px', background: 'white', color: '#7c3aed', border: '1px solid #e9d5ff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Ir à Arena →</Link>
+      </div>
+    </div>
+  )
+
+  const LEVEL = { fraco: { c: '#b91c1c', bg: '#fef2f2', b: '#fecaca', l: 'Fraco' }, 'a-melhorar': { c: '#b45309', bg: '#fffbeb', b: '#fde68a', l: 'A melhorar' }, bom: { c: '#15803d', bg: '#f0fdf4', b: '#bbf7d0', l: 'Bom' }, 'sem-treino': { c: '#475569', bg: '#f8fafc', b: '#e2e8f0', l: 'Por treinar' } } as Record<string, any>
+  const Row = ({ t }: { t: TopicStat }) => {
+    const s = LEVEL[t.level] || LEVEL['sem-treino']
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '11px 14px' }}>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#0b1120', textTransform: 'capitalize' }}>{t.topic}</span>
+        {t.accuracy != null && <span style={{ fontSize: 12.5, color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>{t.correct}/{t.attempts} certos · {t.accuracy}%</span>}
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: s.c, background: s.bg, border: `1px solid ${s.b}`, padding: '2px 9px', borderRadius: 99 }}>{s.l}</span>
+        <Link href={`/study?topic=${encodeURIComponent(t.topic)}`} style={{ fontSize: 12.5, fontWeight: 700, color: '#7c3aed', textDecoration: 'none', whiteSpace: 'nowrap' }}>Estudar →</Link>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {data.guidance && (
+        <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 12, padding: '13px 16px', marginBottom: 18, fontSize: 14, color: '#5b21b6', lineHeight: 1.55 }}>
+          💡 {data.guidance}
+        </div>
+      )}
+      {data.focus.length > 0 && (
+        <section style={{ marginBottom: 22 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 800, color: '#0b1120', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 7 }}>🎯 Estuda isto primeiro <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>onde mais erras</span></h3>
+          <div style={{ display: 'grid', gap: 8 }}>{data.focus.map(t => <Row key={t.topic} t={t} />)}</div>
+        </section>
+      )}
+      {data.blindspots.length > 0 && (
+        <section style={{ marginBottom: 22 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 800, color: '#0b1120', margin: '0 0 10px' }}>🕳 Ainda não treinaste</h3>
+          <div style={{ display: 'grid', gap: 8 }}>{data.blindspots.map(t => <Row key={t.topic} t={t} />)}</div>
+        </section>
+      )}
+      {data.strong.length > 0 && (
+        <section>
+          <h3 style={{ fontSize: 13, fontWeight: 800, color: '#0b1120', margin: '0 0 10px' }}>✅ Estás bem aqui</h3>
+          <div style={{ display: 'grid', gap: 8 }}>{data.strong.map(t => <Row key={t.topic} t={t} />)}</div>
+        </section>
+      )}
     </div>
   )
 }

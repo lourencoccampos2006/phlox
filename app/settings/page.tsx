@@ -31,6 +31,7 @@ const MODE_OPTIONS = [
 
 const INSTITUTION_OPTIONS = [
   { value: 'nursing_home',       label: 'Lar / ERPI',            sub: 'Residentes · Turnos · MAR' },
+  { value: 'day_care',           label: 'Centro de Dia',         sub: 'Utentes · Atividades · Famílias' },
   { value: 'hospital',           label: 'Hospital',              sub: 'Doentes · Rondas · Validação' },
   { value: 'clinic',             label: 'Clínica',               sub: 'Doentes · Consultas' },
   { value: 'pharmacy_hospital',  label: 'Farmácia Hospitalar',   sub: 'Validação · Farmacoterapia' },

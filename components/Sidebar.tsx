@@ -17,7 +17,7 @@ const NAV_NON_CLINICAL: Record<Exclude<ExperienceMode, 'clinical'>, NavItem[][]>
       { href: '/inicio', icon: '⬛', label: 'Início' },
       { href: '/mymeds',    icon: '💊', label: 'Medicamentos', badge: 'principal' },
       { href: '/vitals',    icon: '📊', label: 'Sinais Vitais' },
-      { href: '/diary',     icon: '📝', label: 'Diário' },
+      { href: '/sintomas',     icon: '📝', label: 'Diário' },
     ],
     [
       { href: '/ai',           icon: '🤖', label: 'Phlox AI' },
@@ -141,6 +141,24 @@ const CLINICAL_NAV: Record<InstitutionType, NavItem[][]> = {
       { href: '/connect',  icon: '🔗', label: 'Connect' },
     ],
   ],
+  // Centro de Dia: o utente vem de dia e volta a casa. Foco no dia (atividades,
+  // almoço, a toma do horário do dia) e na ponte com a família, que o vê todos
+  // os dias. Sem turno da noite nem "residente".
+  day_care: [
+    [
+      { href: '/cockpit',      icon: '☀️', label: 'O dia',       badge: 'principal' },
+      { href: '/patients',     icon: '🧑‍🤝‍🧑', label: 'Utentes' },
+      { href: '/mar',          icon: '📋', label: 'Medicação do dia' },
+      { href: '/activities',   icon: '🎯', label: 'Atividades' },
+      { href: '/interactions', icon: '🔍', label: 'Interações' },
+    ],
+    [
+      { href: '/family',   icon: '👨‍👩‍👧', label: 'Famílias' },
+      { href: '/quality',  icon: '📊', label: 'Qualidade' },
+      { href: '/team',     icon: '👥', label: 'Equipa' },
+      { href: '/calculos', icon: '🧮', label: 'Calculadoras' },
+    ],
+  ],
   clinic: [
     [
       { href: '/cockpit',       icon: '🎛️', label: 'Cockpit',    badge: 'principal' },
@@ -183,6 +201,7 @@ const CLINICAL_BOTTOM: Record<InstitutionType, { href: string; icon: string; lab
   pharmacy_hospital:  [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/prescription-queue', icon: '📬', label: 'Validação' }, { href: '/drug-intelligence', icon: '🧬', label: 'Drug' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
   pharmacy_community: [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Clientes' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/counseling', icon: '📋', label: 'Consult.' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
   nursing_home:       [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🤝', label: 'Resid.' }, { href: '/mar', icon: '📋', label: 'MAR' }, { href: '/stopp-start', icon: '🛑', label: 'STOPP' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
+  day_care:           [{ href: '/cockpit', icon: '☀️', label: 'O dia' }, { href: '/patients', icon: '🧑‍🤝‍🧑', label: 'Utentes' }, { href: '/mar', icon: '📋', label: 'Medicação' }, { href: '/activities', icon: '🎯', label: 'Atividades' }, { href: '/family', icon: '👨‍👩‍👧', label: 'Famílias' }],
   clinic:             [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Doentes' }, { href: '/rounds', icon: '🔬', label: 'Ronda' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
   health_center:      [{ href: '/cockpit', icon: '🎛️', label: 'Cockpit' }, { href: '/patients', icon: '🗂️', label: 'Utentes' }, { href: '/rounds', icon: '🔬', label: 'Ronda' }, { href: '/interactions', icon: '🔍', label: 'Interações' }, { href: '/connect', icon: '🔗', label: 'Connect' }],
 }
@@ -316,7 +335,7 @@ export default function Sidebar() {
               {isClinical && (
                 <span style={{ fontSize: 9, color: `${accentColor}cc`, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', paddingLeft: 13 }}>
                   {(() => {
-                    const m = { hospital:'Hospital', pharmacy_hospital:'Farm. Hosp.', pharmacy_community:'Farm. Com.', nursing_home:'Lar/ERPI', clinic:'Clínica', health_center:'CSP' }
+                    const m: Record<string, string> = { hospital:'Hospital', pharmacy_hospital:'Farm. Hosp.', pharmacy_community:'Farm. Com.', nursing_home:'Lar/ERPI', day_care:'C. Dia', clinic:'Clínica', health_center:'CSP' }
                     return m[clinicInstitution] ?? clinicInstitution
                   })()}
                 </span>

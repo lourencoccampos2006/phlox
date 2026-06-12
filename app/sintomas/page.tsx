@@ -14,11 +14,11 @@ interface Log {
 }
 
 const FEELING = [
-  { v: 1, emoji: '😣', label: 'Muito mal' },
-  { v: 2, emoji: '😕', label: 'Mal' },
-  { v: 3, emoji: '😐', label: 'Assim-assim' },
-  { v: 4, emoji: '🙂', label: 'Bem' },
-  { v: 5, emoji: '😄', label: 'Ótimo' },
+  { v: 1, emoji: '😣', label: 'Muito mal', color: '#dc2626' },
+  { v: 2, emoji: '😕', label: 'Mal', color: '#ea580c' },
+  { v: 3, emoji: '😐', label: 'Assim-assim', color: '#d97706' },
+  { v: 4, emoji: '🙂', label: 'Bem', color: '#65a30d' },
+  { v: 5, emoji: '😄', label: 'Ótimo', color: '#16a34a' },
 ]
 const COMMON = ['Dor de cabeça', 'Febre', 'Tosse', 'Cansaço', 'Náuseas', 'Tonturas', 'Dor', 'Falta de ar', 'Insónia', 'Sem apetite']
 
@@ -133,6 +133,36 @@ export default function SintomasPage() {
           </button>
           {err && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{err}</div>}
         </div>
+
+        {/* Mini-gráfico de bem-estar — últimos 14 registos (trazido do antigo /diary) */}
+        {logs.filter(l => l.feeling).length >= 2 && (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>
+              Bem-estar — últimos {Math.min(logs.filter(l => l.feeling).length, 14)} registos
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 64 }}>
+              {logs.filter(l => l.feeling).slice(0, 14).reverse().map(l => {
+                const f = FEELING.find(x => x.v === l.feeling)
+                return (
+                  <div key={l.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }} title={`${f?.label || ''} · ${new Date(l.at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}`}>
+                    <div style={{ width: '100%', background: f?.color || 'var(--border)', borderRadius: '3px 3px 0 0', height: `${(l.feeling || 1) * 11}px`, minHeight: 4, transition: 'height 0.3s' }} />
+                    <div style={{ fontSize: 8, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{new Date(l.at).getDate()}</div>
+                  </div>
+                )
+              })}
+            </div>
+            {(() => {
+              // Tendência simples: média dos 3 mais recentes vs 3 anteriores (sem IA, sem diagnóstico).
+              const withFeel = logs.filter(l => l.feeling).slice(0, 6)
+              if (withFeel.length < 6) return null
+              const recent = withFeel.slice(0, 3).reduce((a, l) => a + (l.feeling || 0), 0) / 3
+              const before = withFeel.slice(3, 6).reduce((a, l) => a + (l.feeling || 0), 0) / 3
+              const diff = recent - before
+              const txt = diff >= 0.7 ? { t: 'Tens-te sentido melhor ultimamente 🙂', c: '#15803d' } : diff <= -0.7 ? { t: 'Tens-te sentido menos bem — se persistir, fala com o teu médico.', c: '#b45309' } : null
+              return txt ? <div style={{ marginTop: 12, fontSize: 12.5, color: txt.c, fontWeight: 600 }}>{txt.t}</div> : null
+            })()}
+          </div>
+        )}
 
         {/* Histórico */}
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Histórico de {who}</div>

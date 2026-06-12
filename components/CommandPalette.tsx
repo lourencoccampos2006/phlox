@@ -23,7 +23,7 @@ const TOOLS: Tool[] = [
   { href: '/vitals', label: 'Sinais Vitais', desc: 'TA · FC · SpO₂ · peso · tendências', icon: '📊', category: 'Saúde' },
   { href: '/objetivos', label: 'Objetivos de Saúde', desc: 'Define metas e acompanha o progresso', icon: '🎯', category: 'Saúde' },
   { href: '/relatorio', label: 'Relatório Semanal', desc: 'IA analisa a tua semana e dá recomendações', icon: '📋', category: 'Saúde' },
-  { href: '/diary', label: 'Diário de Saúde', desc: 'Registo de sintomas e bem-estar diário', icon: '📝', category: 'Saúde' },
+  { href: '/sintomas', label: 'Diário de Saúde', desc: 'Registo de sintomas e bem-estar diário', icon: '📝', category: 'Saúde' },
   { href: '/adherencia', label: 'Adesão à Medicação', desc: 'Padrões de toma e insights pessoais', icon: '✅', category: 'Saúde' },
   // IA & Análise
   { href: '/ai', label: 'Phlox AI', desc: 'Co-piloto farmacológico com contexto clínico', icon: '🤖', category: 'IA & Análise' },

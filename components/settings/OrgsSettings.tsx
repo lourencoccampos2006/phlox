@@ -16,6 +16,7 @@ const KINDS = [
   { value: 'hospital',           label: 'Hospital' },
   { value: 'clinic',             label: 'Clínica' },
   { value: 'nursing_home',       label: 'Lar / ERPI' },
+  { value: 'day_care',           label: 'Centro de Dia' },
   { value: 'pharmacy_community', label: 'Farmácia comunitária' },
   { value: 'pharmacy_hospital',  label: 'Farmácia hospitalar' },
   { value: 'health_center',      label: 'Centro de saúde' },

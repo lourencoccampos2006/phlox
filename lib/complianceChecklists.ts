@@ -70,6 +70,17 @@ const EXTRA: Record<InstitutionType, ComplianceGroup[]> = {
       { key: 'erpi_pic', title: 'Plano Individual de Cuidados (PIC)', detail: 'PIC elaborado e revisto periodicamente para cada residente.' },
     ]},
   ],
+  day_care: [
+    { group: 'Centro de Dia', items: [
+      { key: 'cd_licenca', title: 'Licença/acordo de Centro de Dia', detail: 'Licenciamento da resposta social "Centro de Dia" válido junto da Segurança Social.', ref: 'Segurança Social · Portaria 67/2012' },
+      { key: 'cd_contrato', title: 'Contrato de prestação de serviços', detail: 'Contrato assinado com o utente/representante, com plano de atividades e horário de frequência.' },
+      { key: 'cd_presencas', title: 'Registo diário de presenças', detail: 'Folha de presenças por utente (entrada/saída) — base da comparticipação e da segurança.' },
+      { key: 'cd_pic', title: 'Plano Individual (PI)', detail: 'Plano individual com objetivos, atividades e necessidades de apoio, revisto periodicamente.' },
+      { key: 'cd_medicacao', title: 'Procedimento de medicação do dia', detail: 'Protocolo claro de quais tomas são dadas no centro vs. em casa, com autorização escrita da família/médico.' },
+      { key: 'cd_transporte', title: 'Transporte (se aplicável)', detail: 'Condições de segurança e seguro do transporte de utentes, quando o centro o assegura.' },
+      { key: 'cd_ementas', title: 'Ementas e dietas (almoço)', detail: 'Ementa do almoço/lanche adequada a dietas e alergias de cada utente.' },
+    ]},
+  ],
 }
 
 export function checklistFor(institution: InstitutionType): ComplianceGroup[] {

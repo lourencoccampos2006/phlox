@@ -13,6 +13,7 @@ const KIND_LABELS: Record<string, string> = {
   hospital: 'Hospital',
   clinic: 'Clínica',
   nursing_home: 'Lar / ERPI',
+  day_care: 'Centro de Dia',
   pharmacy_community: 'Farmácia comunitária',
   pharmacy_hospital: 'Farmácia hospitalar',
   health_center: 'Centro de saúde',

@@ -40,6 +40,15 @@ const CFG: Record<InstitutionType, InstitutionConfig> = {
     hasAppointments: true, hasWalkins: false, hasFamilies: true, hasDispensing: false, hasScreenings: false,
     revenue: 'monthly_fee', currencyFlow: 'Mensalidades e comparticipações',
   },
+  day_care: {
+    // Centro de Dia: o utente vem de dia e volta a casa à noite. Não há camas
+    // nem turno da noite. A medicação é só a do horário do dia. A família vê o
+    // utente todos os dias — o portal de famílias é central.
+    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', unitNoun: 'Centro de Dia',
+    hasBeds: false, hasShifts: false, hasMAR: true, hasWounds: false, hasWaitingRoom: false,
+    hasAppointments: true, hasWalkins: false, hasFamilies: true, hasDispensing: false, hasScreenings: false,
+    revenue: 'monthly_fee', currencyFlow: 'Mensalidades e comparticipações',
+  },
   pharmacy_community: {
     personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', unitNoun: 'Farmácia',
     hasBeds: false, hasShifts: true, hasMAR: false, hasWounds: false, hasWaitingRoom: true,

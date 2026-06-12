@@ -173,6 +173,22 @@ export const INSTITUTION_HUB: Record<InstitutionType, HubSection[]> = {
     ]},
     { id: 'equipa', title: SECTION_META.equipa.title, hint: 'Cuidadores, cozinha, limpeza, manutenção', tools: [ T.team, T.tarefas ]},
   ],
+  // Centro de Dia: o foco é o DIA do utente e a ponte com a família, que o vê
+  // todos os dias. Sem stock/feridas; com atividades, almoço e famílias no centro.
+  day_care: [
+    { id: 'operacoes', title: SECTION_META.operacoes.title, hint: 'Gerir o dia do centro', tools: [
+      T.tarefas, T.schedule, T.roi,
+    ]},
+    { id: 'secretaria', title: SECTION_META.secretaria.title, hint: 'Famílias — veem o utente todos os dias', tools: [
+      { href: '/familia', label: 'Portal da família', desc: 'Como correu o dia · comunicação', icon: '👪' },
+      { href: '/activities', label: 'Atividades', desc: 'Plano e registo de atividades do dia', icon: '🎯' },
+      T.healthpass,
+    ]},
+    { id: 'legal', title: SECTION_META.legal.title, hint: 'Centro de Dia: obrigações específicas', tools: [
+      T.consentimentos, T.conformidade, T.incidents,
+    ]},
+    { id: 'equipa', title: SECTION_META.equipa.title, hint: 'Equipa do centro', tools: [ T.team, T.tarefas ]},
+  ],
 }
 
 // Saudação por função para personalizar o cockpit.

@@ -21,6 +21,7 @@ const PROFILES: { id: Profile; label: string; desc: string; accent: string; bg: 
 
 const INSTITUTIONS = [
   { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },
+  { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },
   { id: 'hospital',           label: 'Hospital',             desc: 'Doentes, rondas, validação' },
   { id: 'clinic',             label: 'Clínica',              desc: 'Doentes, consultas' },
   { id: 'pharmacy_hospital',  label: 'Farmácia Hospitalar',  desc: 'Validação, farmacoterapia' },

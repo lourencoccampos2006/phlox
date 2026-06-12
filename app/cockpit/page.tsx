@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 import { useLiveData } from '@/lib/useLiveData'
 import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
 import InstitutionHub from '@/components/InstitutionHub'
@@ -58,7 +59,13 @@ function greet(): string {
 export default function CockpitPage() {
   const { user, supabase } = useAuth() as any
   const { institution, role } = useClinicPrefs()
+  // Lares E centros de dia partilham o cockpit rico (lista de pessoas + registos
+  // diários + motor de risco). O centro de dia usa "Utente" e não tem turno da
+  // noite — o vocabulário vem do institutionConfig.
+  const isCare = institution === 'nursing_home' || institution === 'day_care'
   const isNH = institution === 'nursing_home'
+  const cfg = institutionConfig(institution)
+  const careNoun = cfg.personNounPlural   // "Residentes" | "Utentes"
 
   const [patients, setPatients] = useState<Patient[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -74,6 +81,7 @@ export default function CockpitPage() {
   const [fluidByPt, setFluidByPt] = useState<Record<string, number>>({})
   const [bowelByPt, setBowelByPt] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [now, setNow] = useState(new Date())
   // Evita mismatch de hidratação: a data/hora só aparece depois de montar (a hora
   // do servidor difere da do cliente). Antes disso mostramos um placeholder vazio.
@@ -100,7 +108,7 @@ export default function CockpitPage() {
       supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
     ]
     const MEDS_IDX = 4
-    if (isNH) {
+    if (isCare) {
       const since60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
       const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
       const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
@@ -114,6 +122,9 @@ export default function CockpitPage() {
       )
     }
     const results = await Promise.all(queries)
+    // Distinguir "sem dados" de "falhou a carregar": se a query principal (doentes)
+    // der erro, mostramos um aviso recuperável em vez de um cockpit vazio enganador.
+    setLoadError(results[0].error ? 'Não foi possível carregar os dados. Verifica a ligação e tenta novamente.' : '')
     setPatients(results[0].data || [])
     setIncidents(results[1].data || [])
     setCareRecs(results[2].data || [])
@@ -124,7 +135,7 @@ export default function CockpitPage() {
     ;(results[MEDS_IDX]?.data || []).forEach((m: any) => { (meds[m.patient_id] ||= []).push(m.name) })
     setMedsByPt(meds)
 
-    if (isNH) {
+    if (isCare) {
       setMarRecs(results[5]?.data || [])
       setAssessments(results[6]?.data || [])
 
@@ -161,7 +172,7 @@ export default function CockpitPage() {
       setBowelByPt(bowel)
     }
     setLoading(false)
-  }, [user, supabase, isNH, today])
+  }, [user, supabase, isCare, today])
 
   useEffect(() => { load() }, [load])
 
@@ -225,10 +236,20 @@ export default function CockpitPage() {
 
   const shiftCfg = SHIFTS[shift]
 
-  if (!isNH) {
+  // Aviso recuperável quando os dados falham a carregar (não confundir com "sem dados").
+  const errorBanner = loadError ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
+      <span style={{ color: '#b91c1c', fontSize: 18 }}>⚠</span>
+      <span style={{ flex: 1, fontSize: 13.5, color: '#991b1b' }}>{loadError}</span>
+      <button onClick={() => load()} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Tentar novamente</button>
+    </div>
+  ) : null
+
+  if (!isCare) {
     const instLabel = INST_LABELS[institution] || 'a tua instituição'
     return (
       <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
+        {errorBanner}
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
@@ -311,6 +332,7 @@ export default function CockpitPage() {
 
   return (
     <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
+      {errorBanner}
 
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -322,19 +344,21 @@ export default function CockpitPage() {
             {mounted ? `${ptDate} · ${ptTime}` : ''}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: shiftCfg.bg, border: `1.5px solid ${shiftCfg.color}30`, borderRadius: 10 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: shiftCfg.color }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: shiftCfg.color }}>{shiftCfg.label}</span>
-          <span style={{ fontSize: 12, color: shiftCfg.color, opacity: 0.7 }}>{shiftCfg.hours}</span>
-        </div>
+        {cfg.hasShifts && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: shiftCfg.bg, border: `1.5px solid ${shiftCfg.color}30`, borderRadius: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: shiftCfg.color }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: shiftCfg.color }}>{shiftCfg.label}</span>
+            <span style={{ fontSize: 12, color: shiftCfg.color, opacity: 0.7 }}>{shiftCfg.hours}</span>
+          </div>
+        )}
       </div>
 
-      {/* Centro de Turno CTA */}
+      {/* Centro de Turno / O dia — CTA */}
       <Link href="/turno" style={{ textDecoration: 'none' }}>
         <div style={{ background: '#0d6e42', borderRadius: 14, padding: '16px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>Centro de Turno</div>
-            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>Tarefas pendentes · ronda guiada · passagem de turno num só sítio</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>{cfg.hasShifts ? 'Centro de Turno' : 'O dia de hoje'}</div>
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>{cfg.hasShifts ? 'Tarefas pendentes · ronda guiada · passagem de turno num só sítio' : 'Tarefas do dia · atividades · registos num só sítio'}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.16)', padding: '8px 14px', borderRadius: 9, color: 'white', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
             Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -345,7 +369,7 @@ export default function CockpitPage() {
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 24 }}>
         {[
-          { label: 'Residentes',     value: loading ? '—' : patients.length, color: '#0b1120',  bg: '#f9fafb', border: '#e5e7eb', href: '/patients' },
+          { label: careNoun,         value: loading ? '—' : patients.length, color: '#0b1120',  bg: '#f9fafb', border: '#e5e7eb', href: '/patients' },
           { label: 'Registos hoje',  value: loading ? '—' : careToday.length, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', href: '/care-log' },
           { label: 'Ocorrências',    value: loading ? '—' : openIncidents.length, color: openIncidents.length > 0 ? '#dc2626' : '#16a34a', bg: openIncidents.length > 0 ? '#fee2e2' : '#f0fdf4', border: openIncidents.length > 0 ? '#fecaca' : '#bbf7d0', href: '/incidents' },
           { label: 'Sem registo hoje', value: loading ? '—' : patientsWithoutCareToday.length, color: patientsWithoutCareToday.length > 0 ? '#d97706' : '#16a34a', bg: patientsWithoutCareToday.length > 0 ? '#fffbeb' : '#f0fdf4', border: patientsWithoutCareToday.length > 0 ? '#fde68a' : '#bbf7d0', href: '/care-log' },
@@ -424,7 +448,7 @@ export default function CockpitPage() {
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: '#0b1120' }}>
-                Residentes — {shiftCfg.short}
+                {careNoun}{cfg.hasShifts ? ` — ${shiftCfg.short}` : ' — hoje'}
               </div>
               <Link href="/care-log" style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver registo →</Link>
             </div>
@@ -432,7 +456,7 @@ export default function CockpitPage() {
               <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>A carregar...</div>
             ) : patients.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-                Sem residentes. <Link href="/patients" style={{ color: '#2563eb' }}>Adicionar →</Link>
+                Sem {careNoun.toLowerCase()}. <Link href="/patients" style={{ color: '#2563eb' }}>Adicionar →</Link>
               </div>
             ) : (
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
@@ -539,7 +563,8 @@ export default function CockpitPage() {
             </div>
           )}
 
-          {/* Shift breakdown — today */}
+          {/* Shift breakdown — today (só faz sentido onde há turnos) */}
+          {cfg.hasShifts && (
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 12 }}>Registos por turno · hoje</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -565,6 +590,7 @@ export default function CockpitPage() {
               })}
             </div>
           </div>
+          )}
 
           {/* Month stats */}
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16 }}>

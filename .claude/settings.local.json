@@ -73,7 +73,21 @@
       "Bash(sed -n '1,12p' app/scanner/page.tsx)",
       "Bash(sed -n '1,16p' app/toolkit/page.tsx)",
       "Bash(grep -vE \"^import|^$\")",
-      "Bash(curl -s \"http://localhost:3100/scanner\")"
+      "Bash(curl -s \"http://localhost:3100/scanner\")",
+      "Bash(grep -E \"^//\")",
+      "Bash(xargs grep -A25 \"create table.*care_records\")",
+      "Bash(xargs grep -A14 \"create table.*mar_records\")",
+      "Bash(sed -n '353,365p' app/arena/page.tsx)",
+      "Bash(sed -n '684,696p' app/study/page.tsx)",
+      "Bash(sed -n '292,304p' app/study360/page.tsx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/)",
+      "Bash(grep -nE \"return \\\\\\(\\\\s*$|isPro \\\\?|patients\\\\.length === 0|Sem doentes|Nenhum|<main|<div className=\\\\\"page\" app/mar/page.tsx)",
+      "Bash(grep -nE \"^//|tab|Tab|trend|gráfico|chart|streak|sequência|insight|export|partilh|<h1|<h2\" app/diary/page.tsx)",
+      "Bash(grep -nE \"^//|tab|trend|gráfico|streak|<h1|feeling|symptoms|pain\" app/sintomas/page.tsx)",
+      "Bash(cd /c/Users/Fernando/phlox *)",
+      "Bash(awk -F: '$1 > 248')",
+      "Bash(cat)",
+      "Bash(node /tmp/cfgtest.mjs)"
     ]
   }
 }

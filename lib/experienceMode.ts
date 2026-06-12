@@ -181,7 +181,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/mymeds',        label: 'Os Meus Medicamentos',   sub: 'Lista · lembretes · verificação automática' },
         { href: '/calendario-meds', label: 'A que horas devo tomar?', sub: 'A AI cria o horário perfeito para a tua medicação', badge: 'Novo' },
         { href: '/adherencia',    label: 'Adesão à Medicação',     sub: 'Registo · padrões · insights pessoais' },
-        { href: '/diary',         label: 'Diário de Saúde',        sub: 'Sintomas diários · bem-estar · notas' },
+        { href: '/sintomas',         label: 'Diário de Saúde',        sub: 'Sintomas diários · bem-estar · notas' },
       ],
     },
     {
