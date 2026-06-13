@@ -105,7 +105,7 @@ export default function BriefPage() {
     if (mode === 'clinical') {
       if (incidents.length > 2) suggestion = { title: 'Foco em qualidade hoje', desc: `Há ${incidents.length} ocorrências abertas. Vale a pena fechar 1 ou 2.`, href: '/incidents', cta: 'Abrir ocorrências' }
       else if (overdueT > 0) suggestion = { title: 'Põe as tarefas em dia', desc: `${overdueT} tarefa(s) em atraso esperam por ti.`, href: '/tarefas-equipa', cta: 'Ver tarefas' }
-      else suggestion = { title: 'Vê o teu Clínico 360°', desc: 'Pulse do turno, ranking de risco e audit num só ecrã.', href: '/clinico360', cta: 'Abrir 360°' }
+      else suggestion = { title: 'Vê o teu Clínico 360°', desc: 'Pulse do turno, ranking de risco e audit num só ecrã.', href: '/painel', cta: 'Abrir painel' }
     } else if (mode === 'caregiver') {
       if (overdueT > 0) suggestion = { title: 'Tarefas em atraso', desc: `${overdueT} pendentes nos familiares.`, href: '/familia360', cta: 'Abrir Família 360°' }
       else suggestion = { title: 'Como vais a aguentar?', desc: 'Faz a escala Zarit-12 em 3 min — a sobrecarga do cuidador é real.', href: '/familia360?tab=burden', cta: 'Avaliar sobrecarga' }
@@ -119,8 +119,8 @@ export default function BriefPage() {
     // ── novidades por modo ────────────────────────────────────────────────────
     const NEWS_BY_MODE: Record<string, { title: string; href: string }[]> = {
       clinical: [
-        { title: 'Clínico 360° (Pulse · Risk · Stewardship · Audit)', href: '/clinico360' },
-        { title: 'Reportar erros em quizzes / casos', href: '/clinico360' },
+        { title: 'Clínico 360° (Pulse · Risk · Stewardship · Audit)', href: '/painel' },
+        { title: 'Reportar erros em quizzes / casos', href: '/painel' },
         { title: 'Mode isolation: vês só o que é teu', href: '/settings?tab=ferramentas' },
       ],
       caregiver: [

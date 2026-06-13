@@ -130,7 +130,6 @@ export const TOOLS: Tool[] = [
   // Ferramentas pro — calculadoras consolidadas num único hub (/calculos)
   { id: '/calculos',     label: 'Calculadoras clínicas',         desc: 'Escalas, eGFR/CrCl, IV, PK, eletrólitos, doses urgência e pediátricas', category: 'clinical_tools', modes: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
   { id: '/tpn',          label: 'Nutrição parentérica',          desc: 'ASPEN 2022 · cálculo · rótulo',    category: 'clinical_tools', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_hospital'], plan: 'pro' },
-  { id: '/clinico360',   label: 'Clínico 360°',                  desc: 'Pulse · Risk · Stewardship · Audit', category: 'clinical_tools', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_hospital'], plan: 'pro' },
   // (calculators, pk-dosing, iv-calc, iv-compatibility, electrolytes, emergency-doses,
   //  dose-crianca, escalas → agora dentro do hub /calculos. Páginas mantidas, fora do menu.)
 

@@ -6,10 +6,8 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useEnabledTools } from '@/lib/useEnabledTools'
-import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
+import { type ToolMode } from '@/lib/toolRegistry'
 import { planById, planName } from '@/lib/plans'
-import OrgsSettings from '@/components/settings/OrgsSettings'
 import SecuritySettings from '@/components/settings/SecuritySettings'
 import IntegrationsSettings from '@/components/settings/IntegrationsSettings'
 
@@ -52,15 +50,15 @@ function SettingsPage() {
   const { user, supabase } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const validTabs = ['profile', 'ferramentas', 'organizacoes', 'seguranca', 'integracoes', 'connect', 'account', 'notifications'] as const
+  const validTabs = ['profile', 'seguranca', 'integracoes', 'connect', 'account', 'notifications'] as const
   type SettingsTab = typeof validTabs[number]
   const requestedTab = searchParams?.get('tab')
-  // O antigo separador "institution" foi fundido com "organizacoes".
-  const initialTab = (requestedTab === 'institution'
-    ? 'organizacoes'
-    : (requestedTab && (validTabs as readonly string[]).includes(requestedTab)
-        ? (requestedTab as SettingsTab)
-        : 'profile')) as SettingsTab
+  // Separadores antigos (ferramentas/organizacoes/institution) foram removidos na
+  // reformulação institucional — o tipo de instituição vive agora em "Perfil" e o
+  // produto monta-se sozinho a partir dele. Pedidos antigos caem em "Perfil".
+  const initialTab = ((requestedTab && (validTabs as readonly string[]).includes(requestedTab)
+    ? (requestedTab as SettingsTab)
+    : 'profile')) as SettingsTab
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
   const [cancelBusy, setCancelBusy] = useState(false)
@@ -112,7 +110,6 @@ function SettingsPage() {
     window.addEventListener('storage', h)
     return () => window.removeEventListener('storage', h)
   }, [])
-  const tools = useEnabledTools(toolMode, toolMode === 'clinical' ? (clinicInst || 'nursing_home') : undefined)
 
   const downloadExport = async (format: 'json' | 'csv') => {
     setExporting(true)
@@ -233,8 +230,6 @@ function SettingsPage() {
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 14 }}>Definições</h1>
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
-            <button onClick={() => setTab('ferramentas')} style={tabStyle('ferramentas')}>Ferramentas</button>
-            <button onClick={() => setTab('organizacoes')} style={tabStyle('organizacoes')}>Organização</button>
             <button onClick={() => setTab('seguranca')} style={tabStyle('seguranca')}>Segurança</button>
             <button onClick={() => setTab('integracoes')} style={tabStyle('integracoes')}>Integrações</button>
             <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
@@ -250,7 +245,7 @@ function SettingsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Tipo de instituição</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>Define o painel, o menu e as ferramentas clínicas. Escolhe Lar/ERPI para o painel completo de cuidados continuados.</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>O Phlox monta-se à volta do tipo que escolheres — o painel, o menu e as ferramentas certas para a tua instituição. Sem configurar nada.</div>
               <div className="inst-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {INSTITUTION_OPTIONS.map(o => {
                   const active = instType === o.value
@@ -305,57 +300,6 @@ function SettingsPage() {
           </div>
         )}
 
-        {tab === 'ferramentas' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>As tuas ferramentas</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 4, lineHeight: 1.55 }}>
-                Liga ou desliga ferramentas. As que estiverem ON aparecem na tua página de início ({expMode === 'clinical' ? 'menu lateral' : '/inicio'}).
-                {expMode === 'clinical' && <> No modo clínico, esta lista é <strong>por instituição</strong> — se trabalhas em mais que uma, podes ter listas diferentes (muda no separador Instituição).</>}
-              </div>
-              {expMode === 'clinical' && clinicInst && (
-                <div style={{ marginTop: 10, padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>🏥</span>
-                  <span>A configurar para: <strong>{INSTITUTION_OPTIONS.find(i => i.value === clinicInst)?.label || clinicInst}</strong></span>
-                </div>
-              )}
-              {tools.customised && <button onClick={tools.reset} style={{ marginTop: 10, fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600, padding: 0 }}>Repor predefinições</button>}
-            </div>
-            {Object.entries(TOOL_CATEGORIES).filter(([cat]) => tools.all.some(t => t.category === cat)).map(([cat, meta]) => (
-              <div key={cat} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{meta.label}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {tools.all.filter(t => t.category === cat).map(t => {
-                    const on = tools.isOn(t.id)
-                    const badge = PLAN_BADGE[t.plan]
-                    const isDefault = tools.defaults.includes(t.id)
-                    return (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--bg-3)' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</span>
-                            {badge && <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: badge.bg, padding: '1px 6px', borderRadius: 4 }}>{badge.label}</span>}
-                            {isDefault && <span style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>por defeito</span>}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{t.desc}</div>
-                        </div>
-                        <button onClick={() => tools.toggle(t.id)} aria-label={on ? 'Desativar' : 'Ativar'}
-                          style={{ width: 42, height: 24, borderRadius: 12, background: on ? '#0d6e42' : 'var(--bg-3)', border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-                          <span style={{ position: 'absolute', top: 2, left: on ? 20 : 2, width: 20, height: 20, borderRadius: '50%', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {tab === 'organizacoes' && <OrgsSettings />}
 
         {tab === 'seguranca' && <SecuritySettings />}
 

@@ -64,7 +64,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
       // /counseling, /electrolytes, /nota-clinica, /handover (ainda incompletas
       // ou duplicadas com calculos / oracle). O utilizador pode reativar em
       // /settings/tools.
-      { href: '/clinico360',         icon: '🌐', label: 'Clínico 360°',        desc: 'Pulse · Risk · Stewardship · Benchmark · Audit', badge: 'Premium' },
       { href: '/cockpit',            icon: '🎛️', label: 'Cockpit Operacional', desc: 'Dashboard do turno · Alertas · KPIs' },
       { href: '/turno',              icon: '🏥', label: 'Turno',               desc: 'Gestão de doentes e doses' },
       { href: '/rounds',             icon: '📋', label: 'Ronda Farmacêutica',  desc: 'PCNE e intervenções' },

@@ -1,8 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc, type PrintRecord } from '@/lib/print'
+
+// Fundido no "Registo do dia" (/care-log) como aba "Feridas" (FeridasTool
+// reutilizado). A rota /feridas redireciona p/ não partir links antigos.
+export default function FeridasRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/care-log?tab=feridas') }, [r])
+  return null
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type WStatus = 'active' | 'healing' | 'healed'
@@ -53,7 +62,7 @@ const daysSince = (d?: string | null) => d ? Math.floor((Date.now() - new Date(d
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
-export default function FeridasPage() {
+export function FeridasTool() {
   const { user, supabase } = useAuth() as any
   const [patients, setPatients] = useState<Patient[]>([])
   const [wounds, setWounds] = useState<Wound[]>([])

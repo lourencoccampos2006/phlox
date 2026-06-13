@@ -1,8 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+
+// Fundido no "Registo do dia" (/care-log). A hidratação é agora uma aba lá
+// (o HidratacaoTool é reutilizado). A rota /hidratacao redireciona p/ não partir
+// links antigos.
+export default function HidratacaoRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/care-log?tab=hidratacao') }, [r])
+  return null
+}
 
 interface Patient { id: string; name: string; room_number?: string | null; active?: boolean }
 interface Log { id: string; patient_id: string; at: string; kind: 'fluid' | 'bowel' | 'urine'; fluid_ml?: number | null; bristol?: number | null; urine?: string | null; notes?: string | null }
@@ -10,7 +20,7 @@ interface Log { id: string; patient_id: string; at: string; kind: 'fluid' | 'bow
 const FLUID_GOAL = 1500 // ml/dia (meta de referência para idosos)
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
-export default function HidratacaoPage() {
+export function HidratacaoTool() {
   const { user, supabase } = useAuth() as any
   const [patients, setPatients] = useState<Patient[]>([])
   const [logs, setLogs] = useState<Log[]>([])

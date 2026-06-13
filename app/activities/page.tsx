@@ -1,8 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
+
+// Fundido no "Registo do dia" (/care-log) como aba "Atividades" (AtividadesTool
+// reutilizado). A rota /activities redireciona p/ não partir links antigos.
+export default function AtividadesRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/care-log?tab=atividades') }, [r])
+  return null
+}
 
 interface Activity {
   id: string
@@ -61,7 +70,7 @@ function typeFor(id: string) {
   return TYPES.find(t => t.id === id) || TYPES[TYPES.length - 1]
 }
 
-export default function ActivitiesPage() {
+export function AtividadesTool() {
   const { user, supabase } = useAuth() as any
   const [view, setView]         = useState<'today' | 'week' | 'all'>('today')
   const [activities, setActivities] = useState<Activity[]>([])

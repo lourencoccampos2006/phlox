@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import ClinicalLayout from '@/components/ClinicalLayout'
+import InstitutionShell from '@/components/InstitutionShell'
 import PlanGate from '@/components/PlanGate'
 import ToolUseTracker from '@/components/ToolUseTracker'
 import { planForRoute } from '@/lib/planRoutes'
@@ -82,7 +82,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return (
       <>
         <ToolUseTracker />
-        <ClinicalLayout>{gated(children)}</ClinicalLayout>
+        <InstitutionShell>{gated(children)}</InstitutionShell>
         <ClinicalCommandPalette />
         <PhloxCopilot />
         <UniversalSearch />

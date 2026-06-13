@@ -3,6 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import RegistoDoDia from './RegistoDoDia'
+
+// O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
+// feridas + atividades, adaptadas por instituição). O formulário de registo em si
+// é o CareLogTool (exportado abaixo), usado como a aba "Registo".
+export default function CareLogPage() { return <RegistoDoDia /> }
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
@@ -64,7 +70,7 @@ function bpFlag(sys?: number, dia?: number) {
   return null
 }
 
-export default function CareLogPage() {
+export function CareLogTool() {
   const { user, supabase } = useAuth() as any
 
   const today = new Date().toISOString().slice(0, 10)

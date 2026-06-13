@@ -91,7 +91,11 @@
       "Bash(grep -E \"^//|export default\")",
       "Bash(xargs grep -A14 \"activities\")",
       "Bash(xargs grep -A20 \"create table.*patients\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(grep -E \"^//|export default|redirect\")",
+      "Bash(grep -E \"^//|redirect|export default\")",
+      "Bash(sed -i \"s|href: '/clinico360', cta: 'Abrir 360°'|href: '/painel', cta: 'Abrir painel'|g\" app/brief/page.tsx)",
+      "Bash(sed -i \"s|href: '/clinico360'|href: '/painel'|g\" app/brief/page.tsx)"
     ]
   }
 }
