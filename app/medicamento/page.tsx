@@ -15,6 +15,7 @@
 //  • Estrutura: resposta dividida em secções claras com cores semânticas
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { usePhloxContext } from '@/lib/copilotContext'
 import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
@@ -65,7 +66,15 @@ const RX_META: Record<Result['prescription'], { label: string; color: string; bg
   'depende da dose':              { label: 'Depende da dose',            color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', icon: 'ⓘ' },
 }
 
-export default function MedicamentoPage() {
+// Fundido no Phlox Scan (/scan) como aba "Medicamento" (mantém pesquisa por texto
+// E foto). Redirect p/ não partir links antigos.
+export default function MedicamentoRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/scan?tab=medicamento') }, [r])
+  return null
+}
+
+export function MedicamentoTool() {
   const { user } = useAuth() as any
   const [name, setName] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)

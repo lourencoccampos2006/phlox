@@ -1,9 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { printDoc, type PrintRecord } from '@/lib/print'
+
+// Fundido em "Revisão de medicação" (/med-review) como aba "Por pessoa" (revisão
+// por IA de cada residente/utente). Redirect p/ não partir links antigos.
+export default function ResidentesRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/med-review?tab=pessoa') }, [r])
+  return null
+}
 
 type RiskLevel = 'CRITICO' | 'ALTO' | 'MODERADO' | 'BAIXO'
 
@@ -46,7 +55,7 @@ function daysSince(iso?: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
 }
 
-export default function ResidentesPage() {
+export function ResidentesTool() {
   const { user, supabase } = useAuth()
   const canUse = ['pro', 'clinic'].includes((user as any)?.plan || '')
 

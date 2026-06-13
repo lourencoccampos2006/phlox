@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface CounselingResult {
   drug_name: string
@@ -24,7 +25,14 @@ const COMMON_DRUGS = [
   'Ibuprofeno', 'Paracetamol', 'Methotrexato', 'Prednisolona', 'Alendronato',
 ]
 
-export default function CounselingPage() {
+// Fundido no "Balcão" (/balcao) como aba "Aconselhamento" (CounselingTool reutilizado).
+export default function CounselingRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/balcao?tab=conselho') }, [r])
+  return null
+}
+
+export function CounselingTool() {
   const [drug, setDrug] = useState('')
   const [indication, setIndication] = useState('')
   const [age, setAge] = useState('')

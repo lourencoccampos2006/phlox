@@ -8,6 +8,11 @@
 // põe a marca Phlox no telemóvel de um novo utilizador.
 
 import { useState, useCallback } from 'react'
+import BalcaoHub from './BalcaoHub'
+
+// /balcao é agora a fusão "Balcão" (abas: indicação + vendas + sala + atendimentos
+// + aconselhamento). O AtendimentoTool abaixo é a aba "Indicação".
+export default function BalcaoPage() { return <BalcaoHub /> }
 import { useAuth } from '@/components/AuthContext'
 
 const ACCENT = '#0d6e42'
@@ -26,7 +31,7 @@ interface Counter {
   followUp: string
 }
 
-export default function BalcaoPage() {
+export function AtendimentoTool() {
   const { user, supabase } = useAuth() as any
   const [complaint, setComplaint] = useState('')
   const [context, setContext] = useState('')

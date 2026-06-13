@@ -1,6 +1,16 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
+
+// A passagem de turno é agora a aba "Passagem" do Centro de Turno (/turno), que
+// já gera o relatório do turno a partir dos registos do dia. Redirect p/ não
+// partir links antigos.
+export default function HandoverRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/turno?tab=passagem') }, [r])
+  return null
+}
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -55,7 +65,9 @@ function buildVitalsAlerts(v: CareRec['vitals'], name: string, pid: string): Cli
   return a
 }
 
-export default function HandoverPage() {
+// Mantido como named export (não-default) — a aba Passagem do /turno é a versão
+// usada; este código fica disponível caso se queira a versão standalone.
+function HandoverPageLegacy() {
   const { user, supabase } = useAuth()
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -40,7 +41,9 @@ function roomKey(r?: string | null) { if (!r) return 999999; const n = parseInt(
 
 export default function TurnoPage() {
   const { user, supabase } = useAuth() as any
-  const [tab, setTab] = useState<Tab>('tarefas')
+  const sp = useSearchParams()
+  const initialTab = (['tarefas', 'ronda', 'passagem'] as const).includes(sp?.get('tab') as Tab) ? (sp!.get('tab') as Tab) : 'tarefas'
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [loading, setLoading] = useState(true)
   const [patients, setPatients] = useState<Patient[]>([])
   const [care, setCare] = useState<CareRec[]>([])

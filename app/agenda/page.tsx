@@ -2,6 +2,19 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import FusionTabs from '@/components/FusionTabs'
+import { RastreiosTool } from '../rastreios/page'
+
+// /agenda é agora "Agenda e rastreios": marcações + plano de rastreios/vacinas.
+export default function AgendaPage() {
+  return <FusionTabs
+    eyebrow="Agenda" title="Agenda e rastreios"
+    subtitle="As marcações do dia e o plano de rastreios e vacinas, num só sítio."
+    tabs={[
+      { id: 'agenda', label: 'Agenda', icon: '📅', render: () => <AgendaTool /> },
+      { id: 'rastreios', label: 'Rastreios', icon: '🧪', render: () => <RastreiosTool /> },
+    ]} />
+}
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -37,7 +50,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10)
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
-export default function AgendaPage() {
+function AgendaTool() {
   const { user, supabase } = useAuth() as any
   const [patients, setPatients] = useState<Patient[]>([])
   const [appts, setAppts] = useState<Appt[]>([])

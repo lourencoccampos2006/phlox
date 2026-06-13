@@ -3,6 +3,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import FusionTabs from '@/components/FusionTabs'
+import { AuditoriaTool } from '../auditoria/page'
+import { ADRReportTool } from '../adr-report/page'
+
+// /documentos é agora a fusão "Conformidade": Documentos + Auditoria + Notificação
+// RAM. Cada aba é o componente original intacto.
+export default function DocumentosPage() {
+  return <FusionTabs
+    eyebrow="Conformidade" title="Documentos e conformidade"
+    subtitle="Documentos, auditoria e notificação de reações adversas, num só sítio."
+    tabs={[
+      { id: 'docs', label: 'Documentos', icon: '📁', render: () => <DocumentosTool /> },
+      { id: 'auditoria', label: 'Auditoria', icon: '🔍', render: () => <AuditoriaTool /> },
+      { id: 'ram', label: 'Notificação RAM', icon: '⚠️', render: () => <ADRReportTool /> },
+    ]} />
+}
 
 type Cat = 'contrato' | 'consentimento' | 'identificacao' | 'medico' | 'seguro' | 'rgpd' | 'financeiro' | 'outro'
 interface Patient { id: string; name: string; active?: boolean }
@@ -23,7 +39,7 @@ const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--bor
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 const daysTo = (d?: string | null) => d ? Math.round((new Date(d).getTime() - Date.now()) / 86400000) : null
 
-export default function DocumentosPage() {
+function DocumentosTool() {
   const { user, supabase } = useAuth() as any
   const [patients, setPatients] = useState<Patient[]>([])
   const [docs, setDocs] = useState<Doc[]>([])

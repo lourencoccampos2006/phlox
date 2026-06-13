@@ -73,13 +73,14 @@ const T = {
   activities: { href: '/activities', label: 'Atividades', hint: 'Plano do dia e quem participou', icon: '🎯' },
   family:  { href: '/family', label: 'Famílias', hint: 'Mostra às famílias como correu o dia', icon: '👨‍👩‍👧' },
   incidents: { href: '/incidents', label: 'Ocorrências', hint: 'Regista quedas, recusas e outros eventos', icon: '⚠️' },
-  careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação por pessoa', icon: '📝' },
+  careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: '📝' },
   assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
-  team:    { href: '/team', label: 'Equipa', hint: 'Quem está, tarefas e escala', icon: '👥' },
+  team:    { href: '/schedule', label: 'Equipa', hint: 'Quem está, escalas e tarefas', icon: '👥' },
   quality: { href: '/quality', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: '📊' },
   meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: '🔍' },
   calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: '🧮' },
   reconcile: { href: '/reconciliacao', label: 'Conferir medicação', hint: 'Compara a medicação de casa com a do centro', icon: '🔄' },
+  balcao:  { href: '/balcao', label: 'Balcão', hint: 'Indicação, vendas, fila e aconselhamento', icon: '🏪' },
   counsel: { href: '/counseling', label: 'Aconselhamento', hint: 'Apoio ao utente no balcão', icon: '🗣️' },
   stock:   { href: '/stock', label: 'Stock e validades', hint: 'Existências, lotes e prazos', icon: '📦' },
   sales:   { href: '/vendas', label: 'Vendas', hint: 'Caixa e dispensa ao balcão', icon: '🛒' },
@@ -88,7 +89,7 @@ const T = {
   appts:   { href: '/agenda', label: 'Agenda', hint: 'Marcações e consultas', icon: '📅' },
   screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: '🧪' },
   wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: '🩹' },
-  handover:{ href: '/handover', label: 'Passagem de turno', hint: 'Resumo do turno para a equipa seguinte', icon: '🔁' },
+  handover:{ href: '/turno?tab=passagem', label: 'Passagem de turno', hint: 'Resumo do turno para a equipa seguinte', icon: '🔁' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +115,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Utentes', 'As pessoas que frequentam o centro'),
-      T.meds, T.activities, T.family, T.careLog, T.reconcile,
+      T.meds, T.careLog, T.family, T.reconcile,
     ],
     extraTools: [ T.incidents, T.assessments, T.team, T.quality, T.meds_check, T.calc ],
   },
@@ -139,7 +140,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.assessments, T.wounds, T.family,
     ],
-    extraTools: [ T.incidents, T.activities, T.team, T.quality, T.handover, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.team, T.quality, T.handover, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
@@ -158,7 +159,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Utentes', 'Clientes com ficha e medicação'),
-      T.sales, T.stock, T.counsel, T.meds_check, T.screenings,
+      T.balcao, T.stock, T.meds_check, T.screenings,
     ],
     extraTools: [ T.team, T.quality, T.calc, T.reconcile ],
   },

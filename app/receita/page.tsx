@@ -6,7 +6,8 @@
 // 2026-06-01: adicionado botão "Associar à minha medicação" — antes o
 // utilizador via a explicação mas tinha de adicionar tudo manualmente.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import ProfileSelector from '@/components/ProfileSelector'
@@ -42,7 +43,14 @@ function downscale(file: File, maxDim = 1400, q = 0.85): Promise<{ b64: string; 
 
 const matchSlot = (times: string[], slot: string) => (times || []).some(t => t.toLowerCase().includes(slot))
 
-export default function ReceitaPage() {
+// Fundido no Phlox Scan (/scan) como aba "Receita" (foto da receita → horário de tomas).
+export default function ReceitaRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/scan?tab=receita') }, [r])
+  return null
+}
+
+export function ReceitaTool() {
   const { user, supabase } = useAuth() as any
   const toast = useToast()
   const [profile, setProfile] = useState<ActiveProfile | null>(getActiveProfile())

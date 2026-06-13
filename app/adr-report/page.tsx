@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
@@ -29,7 +30,14 @@ const CAUSALITY_COLOR: Record<string, string> = {
   'Inclassificável': '#6b7280',
 }
 
-export default function ADRReportPage() {
+// Fundido em "Conformidade" (/documentos) como aba "Notificação RAM" (ADRReportTool).
+export default function ADRReportRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/documentos?tab=ram') }, [r])
+  return null
+}
+
+export function ADRReportTool() {
   const { user, supabase } = useAuth()
   const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [form, setForm] = useState({

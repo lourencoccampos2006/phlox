@@ -5,8 +5,17 @@
 // responsável, prioridade e recorrência. Dá utilidade diária a quem não é clínico.
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+
+// Fundido em "Equipa & Escalas" (/schedule) como aba "Tarefas" (TarefasTool
+// reutilizado). A rota /tarefas-equipa redireciona p/ não partir links antigos.
+export default function TarefasRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/schedule?tab=tarefas') }, [r])
+  return null
+}
 
 interface Task {
   id: string; title: string; area: string; assignee?: string | null
@@ -35,7 +44,7 @@ const PRI: Record<string, { label: string; color: string }> = {
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
-export default function TarefasEquipaPage() {
+export function TarefasTool() {
   const { user, supabase } = useAuth() as any
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)

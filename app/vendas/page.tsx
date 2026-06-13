@@ -8,6 +8,7 @@
 // O Phlox não é certificado AT — é MEGA-COMPATÍVEL: delega a emissão fiscal.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -26,7 +27,14 @@ const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--bor
 const METHODS = ['dinheiro', 'multibanco', 'mbway', 'transferencia', 'comparticipado', 'isento']
 const METHOD_LABEL: Record<string, string> = { dinheiro: 'Dinheiro', multibanco: 'Multibanco', mbway: 'MB WAY', transferencia: 'Transferência', comparticipado: 'Comparticipado', isento: 'Isento' }
 
-export default function VendasPage() {
+// Fundido no "Balcão" (/balcao) como aba "Vendas" (VendasTool reutilizado).
+export default function VendasRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/balcao?tab=vendas') }, [r])
+  return null
+}
+
+export function VendasTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)

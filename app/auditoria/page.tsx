@@ -5,6 +5,7 @@
 // e exporta para JSON (RGPD: direito à portabilidade).
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { AUDIT_ACTIONS, actionLabel, categoryLabel, verifyChain, type AuditCategory } from '@/lib/audit'
@@ -19,7 +20,14 @@ interface Ev {
 
 const CAT_COLOR: Record<string, string> = { clinical: '#dc2626', billing: '#0d6e42', auth: '#7c3aed', settings: '#2563eb', data: '#0891b2', integration: '#ca8a04', general: '#64748b' }
 
-export default function AuditoriaPage() {
+// Fundido em "Conformidade" (/documentos) como aba "Auditoria" (AuditoriaTool reutilizado).
+export default function AuditoriaRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/documentos?tab=auditoria') }, [r])
+  return null
+}
+
+export function AuditoriaTool() {
   const { user, supabase } = useAuth() as any
   const [events, setEvents] = useState<Ev[]>([])
   const [loading, setLoading] = useState(true)

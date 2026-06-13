@@ -2,14 +2,22 @@
 
 // Gestão de Rastreios (Centro de Saúde / USF) — plano de rastreios/vacinas por utente.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { printDoc } from '@/lib/print'
 
 interface Due { name: string; rationale: string; frequency: string; action: string }
 interface Up { name: string; when: string }
 interface Result { profile: string; due_now: Due[]; upcoming: Up[]; risk_factors_to_address: string[]; notes: string }
 
-export default function RastreiosPage() {
+// Fundido em "Agenda" (/agenda) como aba "Rastreios" (RastreiosTool reutilizado).
+export default function RastreiosRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/agenda?tab=rastreios') }, [r])
+  return null
+}
+
+export function RastreiosTool() {
   const [age, setAge] = useState('')
   const [sex, setSex] = useState('')
   const [risk, setRisk] = useState('')

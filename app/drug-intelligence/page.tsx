@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 
 type FormularyStatus = 'approved' | 'restricted' | 'non_formulary' | 'under_review'
@@ -54,7 +55,14 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }
 const labelStyle: React.CSSProperties = { display: 'block', fontWeight: 600, fontSize: 12, color: '#374151', marginBottom: 4 }
 
-export default function DrugIntelligencePage() {
+// Fundido em "Validação" (/prescription-queue) como aba "Drug Intelligence".
+export default function DrugIntelligenceRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/prescription-queue?tab=intel') }, [r])
+  return null
+}
+
+export function DrugIntelligenceTool() {
   const { user, supabase } = useAuth()
   const [tab, setTab] = useState<'formulary' | 'shortages' | 'analytics'>('formulary')
   const [formulary, setFormulary]   = useState<FormularyDrug[]>([])

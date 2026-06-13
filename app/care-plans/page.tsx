@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc, type PrintRecord, type PrintSection } from '@/lib/print'
 import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
@@ -62,7 +63,14 @@ const EMPTY_PLAN: Omit<CarePlan, 'patient_id'> = {
   positioning_schedule: '',
 }
 
-export default function CarePlansPage() {
+// Fundido em "Avaliações" (/assessments) como aba "Planos de cuidados" (CarePlansTool).
+export default function CarePlansRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/assessments?tab=planos') }, [r])
+  return null
+}
+
+export function CarePlansTool() {
   const { user, supabase } = useAuth()
   const [patients, setPatients] = useState<Patient[]>([])
   const [plans, setPlans] = useState<Record<string, CarePlan>>({})

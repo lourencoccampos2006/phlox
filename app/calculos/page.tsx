@@ -550,6 +550,9 @@ export default function Calculos() {
           ['/electrolytes', '⚡ Eletrólitos'],
           ['/emergency-doses', '🚨 Doses de urgência'],
           ['/dose-crianca', '👶 Dose pediátrica'],
+          ['/antibiotics', '🦠 Antibioterapia'],
+          ['/tpn', '🧴 Nutrição parentérica'],
+          ['/protocol', '📋 Protocolos'],
           ['/calculators', '📊 Mais escalas'],
         ].map(([href, label]) => (
           <a key={href} href={href} style={{ padding: '7px 13px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 999, fontSize: 12.5, fontWeight: 600, color: '#334155', textDecoration: 'none' }}>{label}</a>

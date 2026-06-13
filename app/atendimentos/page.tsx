@@ -27,7 +27,14 @@ const TYPE_KEYS = Object.keys(TYPES)
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
-export default function AtendimentosPage() {
+// Fundido no "Balcão" (/balcao) como aba "Atendimentos" (AtendimentosTool reutilizado).
+export default function AtendimentosRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/balcao?tab=atendimentos') }, [r])
+  return null
+}
+
+export function AtendimentosTool() {
   const { user, supabase } = useAuth() as any
   const router = useRouter()
   const [encs, setEncs] = useState<Enc[]>([])

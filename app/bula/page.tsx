@@ -4,7 +4,8 @@
 // Tradutor de Bula — gratuito, sem login obrigatório.
 // Converte texto de bulas em linguagem simples para doentes.
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
@@ -24,7 +25,14 @@ interface BulaResult {
   receita_medica?: { necessaria: boolean; nota: string }
 }
 
-export default function BulaPage() {
+// Fundido no Phlox Scan (/scan) como aba "Bula" (mantém texto E foto).
+export default function BulaRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/scan?tab=bula') }, [r])
+  return null
+}
+
+export function BulaTool() {
   const { user } = useAuth()
   const usage = useUsageLimit('bula')
   const [showUpgrade, setShowUpgrade] = useState(false)

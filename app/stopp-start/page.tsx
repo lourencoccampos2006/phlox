@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+
+// Fundido em "Revisão de medicação" (/med-review) como aba STOPP/START
+// (StoppStartTool reutilizado). Redirect p/ não partir links antigos.
+export default function StoppStartRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/med-review?tab=stopp') }, [r])
+  return null
+}
 
 interface STOPPItem {
   code: string; criterion: string; drug: string
@@ -38,7 +47,7 @@ const COMMON_CONDITIONS = [
   'Cancro activo', 'Epilepsia', 'Glaucoma', 'Hiperplasia prostática benigna',
 ]
 
-export default function STOPPStartPage() {
+export function StoppStartTool() {
   const { user, supabase } = useAuth()
   const [form, setForm] = useState({
     age: '', sex: '', diagnoses: '', medications: '', labs: '',

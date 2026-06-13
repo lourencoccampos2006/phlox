@@ -3,6 +3,20 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
+import FusionTabs from '@/components/FusionTabs'
+import { CarePlansTool } from '../care-plans/page'
+
+// /assessments é agora "Avaliações e planos": escalas (Barthel, MNA…) + planos
+// de cuidados, em abas. Cada aba é o componente original intacto.
+export default function AssessmentsPage() {
+  return <FusionTabs
+    eyebrow="Avaliações" title="Avaliações e planos de cuidados"
+    subtitle="Escalas validadas e os planos de cuidados de cada pessoa, juntos."
+    tabs={[
+      { id: 'escalas', label: 'Escalas', icon: '📐', render: () => <AssessmentsTool /> },
+      { id: 'planos', label: 'Planos de cuidados', icon: '📋', render: () => <CarePlansTool /> },
+    ]} />
+}
 
 type ScaleType = 'barthel' | 'braden' | 'morse' | 'mmse' | 'mna'
 
@@ -175,7 +189,7 @@ function trendInfo(scale: ScaleType, current: number, prev: number | null) {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function AssessmentsPage() {
+function AssessmentsTool() {
   const { user, supabase } = useAuth()
   const [tab, setTab] = useState<ScaleType>('barthel')
   const [patients, setPatients] = useState<Patient[]>([])

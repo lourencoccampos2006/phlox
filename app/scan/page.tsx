@@ -9,6 +9,26 @@ import { useState, useRef, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { extractFromFile } from '@/lib/docExtract'
+import FusionTabs from '@/components/FusionTabs'
+import { MedicamentoTool } from '../medicamento/page'
+import { BulaTool } from '../bula/page'
+import { ReceitaTool } from '../receita/page'
+
+// /scan é o Phlox Scan unificado: foto de qualquer coisa (auto-deteta) + abas
+// dedicadas para Medicamento (com pesquisa por texto), Bula e Receita. Cada aba é
+// o componente original intacto — a pesquisa por texto e o horário de tomas
+// mantêm-se.
+export default function ScanPage() {
+  return <FusionTabs
+    eyebrow="Phlox Scan" title="Foto de qualquer coisa de saúde"
+    subtitle="Tira uma foto e o Phlox percebe — ou usa as abas para medicamento, bula ou receita."
+    tabs={[
+      { id: 'foto', label: 'Foto (auto)', icon: '📸', render: () => <ScanTool /> },
+      { id: 'medicamento', label: 'Medicamento', icon: '💊', render: () => <MedicamentoTool /> },
+      { id: 'bula', label: 'Bula', icon: '📑', render: () => <BulaTool /> },
+      { id: 'receita', label: 'Receita', icon: '📋', render: () => <ReceitaTool /> },
+    ]} />
+}
 
 const ACCENT = '#0d6e42'
 
@@ -37,7 +57,7 @@ const KIND_META: Record<string, { icon: string; label: string }> = {
 }
 const STATUS_COLOR: Record<string, string> = { normal: '#0d6e42', baixo: '#b45309', alto: '#dc2626' }
 
-export default function ScanPage() {
+function ScanTool() {
   const { user, supabase } = useAuth() as any
   const [busy, setBusy] = useState('')
   const [res, setRes] = useState<ScanResult | null>(null)

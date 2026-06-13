@@ -33,6 +33,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import FusionTabs from '@/components/FusionTabs'
+import { DrugIntelligenceTool } from '../drug-intelligence/page'
+
+// /prescription-queue é agora "Validação": fila de validação de receitas +
+// Drug Intelligence, em abas. Cada aba é o componente original intacto.
+export default function PrescriptionQueuePage() {
+  return <FusionTabs
+    eyebrow="Validação" title="Validação de prescrições"
+    subtitle="A fila de receitas a validar e a inteligência de medicamentos, juntas."
+    tabs={[
+      { id: 'fila', label: 'Fila de validação', icon: '📬', render: () => <ValidationQueueTool /> },
+      { id: 'intel', label: 'Drug Intelligence', icon: '🧬', render: () => <DrugIntelligenceTool /> },
+    ]} />
+}
 import { useAuth } from '@/components/AuthContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -159,7 +173,7 @@ function checksAllPassed(checks: ClinicalChecks) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function PrescriptionQueue() {
+function ValidationQueueTool() {
   const { user, supabase } = useAuth() as any
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [selected, setSelected] = useState<Prescription | null>(null)

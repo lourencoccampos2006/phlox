@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react'
 import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import MedReviewHub from './MedReviewHub'
+
+// /med-review é agora a fusão "Revisão de medicação" (abas: revisão + STOPP/START
+// + por pessoa). O MedReviewTool abaixo é a aba "Revisão".
+export default function MedReviewPage() { return <MedReviewHub /> }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,7 +254,7 @@ ${review.positives.map(p => `<div class="positive">✓ ${p}</div>`).join('')}` :
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function MedReviewPage() {
+export function MedReviewTool() {
   const { user, supabase } = useAuth()
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'

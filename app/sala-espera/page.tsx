@@ -5,6 +5,7 @@
 // Resolve o problema das instituições sem doentes fixos: dá valor a cada visita ocasional.
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
@@ -25,7 +26,14 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 function waitMin(from: string) { return Math.max(0, Math.round((Date.now() - new Date(from).getTime()) / 60000)) }
 
-export default function SalaEsperaPage() {
+// Fundido no "Balcão" (/balcao) como aba "Sala de espera" (SalaEsperaTool reutilizado).
+export default function SalaEsperaRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/balcao?tab=sala') }, [r])
+  return null
+}
+
+export function SalaEsperaTool() {
   const { user, supabase } = useAuth() as any
   const [rows, setRows] = useState<W[]>([])
   const [loading, setLoading] = useState(true)

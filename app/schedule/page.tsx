@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { TarefasTool } from '../tarefas-equipa/page'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'team' | 'schedule' | 'config'
+type Tab = 'team' | 'schedule' | 'tarefas' | 'config'
 type Shift = 'manha' | 'tarde' | 'noite'
 type MemberStatus = 'on_shift' | 'break' | 'off' | 'sick' | 'vacation'
 
@@ -126,8 +128,10 @@ const sel: React.CSSProperties = { ...inp, cursor: 'pointer' }
 
 export default function EquipaPage() {
   const { user, supabase } = useAuth()
+  const sp = useSearchParams()
+  const initialTab = (['team', 'schedule', 'tarefas', 'config'] as const).includes(sp?.get('tab') as Tab) ? (sp!.get('tab') as Tab) : 'team'
 
-  const [tab, setTab] = useState<Tab>('team')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [members, setMembers] = useState<TeamMember[]>([])
   const [shifts, setShifts] = useState<ShiftAssignment[]>([])
   const [loading, setLoading] = useState(true)
@@ -331,6 +335,7 @@ export default function EquipaPage() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {tabBtn('team', 'Equipa')}
           {tabBtn('schedule', 'Escalas')}
+          {tabBtn('tarefas', 'Tarefas')}
           {tabBtn('config', 'Configurar turnos')}
         </div>
 
@@ -600,6 +605,9 @@ export default function EquipaPage() {
             )}
           </>
         )}
+
+        {/* ═════════════════════════════════════════════════════ TAREFAS ══ */}
+        {tab === 'tarefas' && <TarefasTool />}
 
         {/* ═════════════════════════════════════════════════════ CONFIG ══ */}
         {tab === 'config' && (
