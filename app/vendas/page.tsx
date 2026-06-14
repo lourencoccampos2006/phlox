@@ -299,7 +299,7 @@ export function VendasTool() {
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 26, margin: '0 0 12px' }}>Ponto de Venda</h1>
         <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5, lineHeight: 1.6 }}>
-          Para usar o POS, corre <strong>supabase/sprint33_sales.sql</strong> e <strong>supabase/sprint34_pos.sql</strong> no Supabase. Depois adiciona produtos com código de barras e preço em <Link href="/stock" style={{ color: '#b45309', fontWeight: 700 }}>Stock</Link>.
+          Para usar o POS, adiciona primeiro produtos com código de barras e preço em <Link href="/stock" style={{ color: '#b45309', fontWeight: 700 }}>Stock</Link>.
         </div>
       </div>
     </div>

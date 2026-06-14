@@ -537,8 +537,8 @@ export function FeridasTool() {
 
         {tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Base de dados por configurar</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Corre o ficheiro <strong>supabase/sprint14_wounds.sql</strong> no SQL Editor do Supabase para ativar a gestão de feridas.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : (
           <>

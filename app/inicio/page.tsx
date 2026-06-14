@@ -9,6 +9,8 @@ import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { planName } from '@/lib/plans'
 import PersonaSwitcher from '@/components/PersonaSwitcher'
 import PinnedToolsBar from '@/components/PinnedToolsBar'
+import MyTopTools from '@/components/MyTopTools'
+import NextStep from '@/components/NextStep'
 import FocusModeToggle from '@/components/FocusModeToggle'
 
 // ─── Home adaptativa — mobile-first, lista limpa. Só mostra ferramentas ativas. ─
@@ -107,6 +109,9 @@ export default function InicioPage() {
         {/* Atalhos fixos do utilizador (até 6 escolhidos por ele) */}
         <PinnedToolsBar />
 
+        {/* O site aprende: atalhos automáticos para o que o utilizador mais usa */}
+        <MyTopTools />
+
         {/* Hero — ação principal do modo */}
         {(() => { const h = (HERO as Record<string, typeof HERO.personal | undefined>)[toolMode]; if (!h) return null; return (
           <Link href={h.href} style={{ textDecoration: 'none' }}>
@@ -121,6 +126,9 @@ export default function InicioPage() {
             </div>
           </Link>
         )})()}
+
+        {/* Fluxo guiado: o próximo passo certo, com base no estado real do utilizador */}
+        <NextStep mode={toolMode} />
 
         {enabledTools.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '32px 20px', textAlign: 'center' }}>

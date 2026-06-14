@@ -6,9 +6,11 @@
 // Substitui o antigo /organizar — faz tudo o que ele fazia e muito mais.
 
 import { useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { extractFromFile } from '@/lib/docExtract'
+import { sendToTool } from '@/lib/toolBridge'
 import FusionTabs from '@/components/FusionTabs'
 import { MedicamentoTool } from '../medicamento/page'
 import { BulaTool } from '../bula/page'
@@ -59,6 +61,7 @@ const STATUS_COLOR: Record<string, string> = { normal: '#0d6e42', baixo: '#b4530
 
 function ScanTool() {
   const { user, supabase } = useAuth() as any
+  const router = useRouter()
   const [busy, setBusy] = useState('')
   const [res, setRes] = useState<ScanResult | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
@@ -202,6 +205,12 @@ function ScanTool() {
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                 <button onClick={importMeds} disabled={!!busy || imported} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{imported ? '✓ Guardado' : 'Guardar na minha medicação'}</button>
+                {/* Handoff: leva os medicamentos extraídos para "Os meus medicamentos",
+                    onde o utilizador os revê, edita doses e ativa lembretes. */}
+                <button onClick={() => sendToTool(router, '/mymeds', {
+                  kind: 'meds', note: 'Importado do Phlox Scan', from: '/scan',
+                  payload: { meds: meds.filter(m => m._import).map(m => ({ name: m.name, dose: m.dose || null, frequency: m.frequency || null })) },
+                })} disabled={!!busy || !meds.some(m => m._import)} style={{ padding: '11px 20px', background: 'white', color: ACCENT, border: `1px solid ${ACCENT}`, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Rever e adicionar lembretes →</button>
                 <button onClick={checkInteractions} disabled={!!busy} style={{ padding: '11px 20px', background: 'white', color: ACCENT, border: `1px solid ${ACCENT}`, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Verificar interações</button>
               </div>
               {imported && <div style={{ marginTop: 10, fontSize: 13, color: ACCENT }}>✓ Guardado. <Link href="/mymeds" style={{ color: ACCENT, fontWeight: 700 }}>Ver a minha medicação →</Link></div>}

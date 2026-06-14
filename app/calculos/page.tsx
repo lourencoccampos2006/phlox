@@ -559,7 +559,7 @@ export default function Calculos() {
         ))}
       </div>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
+      <div className="calc-layout" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px clamp(14px,4vw,24px)', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
 
         {/* Sidebar */}
         <div>
@@ -615,7 +615,7 @@ export default function Calculos() {
               <span style={{ marginLeft: 'auto', fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>{def.category}</span>
             </div>
           </div>
-          <div style={{ padding: '20px' }}>
+          <div className="calc-panel" style={{ padding: 'clamp(14px,4vw,20px)' }}>
             <ActiveCalc />
           </div>
         </div>
@@ -624,6 +624,14 @@ export default function Calculos() {
       <style>{`
         @media(max-width:768px){
           .calc-layout{grid-template-columns:1fr!important}
+          /* Os inputs/resultados dos cálculos colapsam para 1 coluna no telemóvel
+             (os grids são estilos inline 1fr 1fr / 1fr 1fr 1fr que não cabiam). */
+          .calc-panel [style*="grid-template-columns"]{grid-template-columns:1fr!important}
+          .calc-panel [style*="140px"]{grid-template-columns:1fr!important}
+        }
+        @media(min-width:480px) and (max-width:768px){
+          /* em ecrãs um pouco maiores, 2 colunas para resultados curtos */
+          .calc-panel [style*="1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
         }
         input:focus{border-color:#0d9488!important;box-shadow:0 0 0 3px #0d948820}
         select:focus{outline:2px solid #0d9488;outline-offset:1px}

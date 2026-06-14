@@ -3,13 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import Link from 'next/link'
+
+// Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
+function LocBadge({ loc }: { loc?: string | null }) {
+  if (loc === 'casa') return <span style={{ fontSize: 10, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 7px', borderRadius: 99 }}>🏠 em casa</span>
+  if (loc === 'ambos') return <span style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 7px', borderRadius: 99 }}>casa + centro</span>
+  return <span style={{ fontSize: 10, fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '1px 7px', borderRadius: 99 }}>no centro</span>
+}
 
 interface Patient {
   id: string; name: string; age: number | null; room_number: string | null
   conditions: string | null; allergies: string | null
 }
-interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null }
+interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: 'centro' | 'casa' | 'ambos' | null }
 type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held' | null
 interface AdminRecord {
@@ -135,6 +143,8 @@ function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null;
 
 export default function MARPage() {
   const { user, supabase } = useAuth()
+  const { institution } = useClinicPrefs()
+  const isDayCare = institution === 'day_care'   // ponte casa↔centro só faz sentido aqui
   const isPro = ['pro', 'clinic'].includes(user?.plan || '')
 
   const [patients, setPatients]               = useState<Patient[]>([])
@@ -179,9 +189,11 @@ export default function MARPage() {
 
   useEffect(() => {
     if (!selectedId) { setMeds([]); return }
-    supabase.from('patient_meds').select('id, name, dose, frequency, indication, shifts')
+    // select('*') para incluir take_location sem rebentar se a coluna ainda não
+    // tiver sido migrada (sprint86) na base de dados em produção.
+    supabase.from('patient_meds').select('*')
       .eq('patient_id', selectedId).eq('active', true)
-      .then(({ data }) => setMeds(data || []))
+      .then(({ data }: any) => setMeds(data || []))
   }, [selectedId, supabase])
 
   useEffect(() => {
@@ -459,10 +471,12 @@ export default function MARPage() {
                   transition: 'opacity 0.15s, background 0.2s',
                 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: isAdministered ? '#16a34a' : '#0f172a', letterSpacing: '-0.01em' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: isAdministered ? '#16a34a' : '#0f172a', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       {med.name}
+                      {isDayCare && <LocBadge loc={med.take_location} />}
                     </div>
                     {med.indication && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{med.indication}</div>}
+                    {isDayCare && med.take_location === 'casa' && <div style={{ fontSize: 11, color: '#b45309', marginTop: 2 }}>A família dá em casa — não administrar no centro.</div>}
                   </div>
                   <div style={{ fontSize: 13, color: '#374151' }}>{med.dose || '—'}</div>
                   <div style={{ fontSize: 12, color: '#64748b' }}>{med.frequency || '—'}</div>

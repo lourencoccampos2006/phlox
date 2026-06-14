@@ -108,8 +108,8 @@ export default function ConformidadePage() {
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Conformidade por configurar</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Corre <strong>supabase/sprint32_institution_ops.sql</strong> no Supabase para ativar.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 10 }} />)}</div>

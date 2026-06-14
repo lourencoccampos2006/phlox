@@ -80,7 +80,8 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const [showAddContact, setShowAddContact] = useState(false)
   const [contactForm, setContactForm] = useState({ name: '', relationship: '', phone: '', email: '', is_emergency: true, is_legal_guardian: false, can_visit: true, notes: '' })
   const [savingContact, setSavingContact] = useState(false)
-  const [newMed, setNewMed] = useState<{ name: string; dose: string; frequency: string; indication: string; shifts: string[] }>({ name: '', dose: '', frequency: '', indication: '', shifts: [] })
+  const isDayCare = institution === 'day_care'
+  const [newMed, setNewMed] = useState<{ name: string; dose: string; frequency: string; indication: string; shifts: string[]; take_location: 'centro' | 'casa' | 'ambos' }>({ name: '', dose: '', frequency: '', indication: '', shifts: [], take_location: 'centro' })
   const [adding, setAdding] = useState(false)
   const [suggestions, setSuggestions] = useState<{ display: string; dci: string; isBrand: boolean }[]>([])
   // ── Leitura de prescrição por foto (IA) ──
@@ -249,13 +250,15 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
       frequency: newMed.frequency || null,
       indication: newMed.indication || null,
       shifts: newMed.shifts.length ? newMed.shifts : null,
+      // só guarda take_location em centro de dia (default 'centro' na BD)
+      ...(isDayCare ? { take_location: newMed.take_location } : {}),
     }).select().single()
     if (error) console.error('addMed error:', error.message)
     if (data) {
       setMeds(p => [data, ...p])
       // updated_at is handled automatically by trigger
     }
-    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [] })
+    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], take_location: 'centro' })
     setSuggestions([])
     setAdding(false)
   }
@@ -804,6 +807,22 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                 })}
                 <span style={{ fontSize: 10.5, color: 'var(--ink-5)' }}>{newMed.shifts.length === 0 ? 'Sem seleção = todos os turnos' : ''}</span>
               </div>
+              {/* Centro de dia: onde é dada esta toma — a ponte casa↔centro */}
+              {isDayCare && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 600 }}>Onde se toma:</span>
+                  {([['centro', '☀️ No centro'], ['casa', '🏠 Em casa'], ['ambos', 'Casa + centro']] as [string, string][]).map(([v, l]) => {
+                    const on = newMed.take_location === v
+                    return (
+                      <button key={v} type="button" onClick={() => setNewMed(p => ({ ...p, take_location: v as any }))}
+                        style={{ padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', border: `1.5px solid ${on ? '#0d9488' : 'var(--border)'}`, background: on ? '#f0fdfa' : 'white', color: on ? '#0d9488' : 'var(--ink-4)' }}>
+                        {l}
+                      </button>
+                    )
+                  })}
+                  <span style={{ fontSize: 10.5, color: 'var(--ink-5)' }}>A família vê o que dá em casa.</span>
+                </div>
+              )}
             </div>
 
             {/* Med list */}

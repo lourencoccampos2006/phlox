@@ -205,8 +205,8 @@ export default function ProtocolosPage() {
 
         {tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Base de dados por configurar</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Corre <strong>supabase/sprint16_protocols.sql</strong> no SQL Editor do Supabase para ativar os protocolos.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 12 }} />)}</div>

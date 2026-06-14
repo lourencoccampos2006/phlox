@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePhloxContext } from '@/lib/copilotContext'
+import { useHandoff } from '@/lib/toolBridge'
 import { useAuth } from '@/components/AuthContext'
 import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
@@ -257,6 +258,16 @@ export default function MyMedsPage() {
 
   // Scan receita
   const [scannedMeds, setScannedMeds] = useState<ScannedMed[]>([])
+  // Handoff: medicamentos enviados de outra ferramenta (ex: Phlox Scan) chegam
+  // aqui pré-preenchidos e pré-selecionados, prontos a rever e guardar.
+  const handoff = useHandoff('meds')
+  const [handoffNote, setHandoffNote] = useState<string | null>(null)
+  useEffect(() => {
+    if (handoff?.payload?.meds?.length) {
+      setScannedMeds(handoff.payload.meds.map((m: any) => ({ name: m.name, dose: m.dose ?? null, frequency: m.frequency ?? null, indication: m.indication ?? null, selected: true })))
+      setHandoffNote(handoff.note || 'Importado')
+    }
+  }, [handoff])
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState<string|null>(null)
   const [addingAll, setAddingAll] = useState(false)
@@ -1223,6 +1234,11 @@ export default function MyMedsPage() {
 
               {scannedMeds.length > 0 && (
                 <div>
+                  {handoffNote && (
+                    <div style={{ fontSize: 12.5, color: '#0d6e42', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontWeight: 600 }}>
+                      ✓ {handoffNote} — revê e guarda os que quiseres.
+                    </div>
+                  )}
                   <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:10 }}>
                     {scannedMeds.filter(m=>m.selected).length} de {scannedMeds.length} selecionado{scannedMeds.filter(m=>m.selected).length!==1?'s':''} — toca para desselecionar
                   </div>

@@ -190,8 +190,8 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação por configurar</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Corre <strong>supabase/sprint33_sales.sql</strong> no Supabase para ativar as vendas/atos.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : (
           <>

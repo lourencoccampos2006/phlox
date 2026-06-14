@@ -94,7 +94,7 @@ export default function ApiKeysPage() {
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
-            Corre <strong>supabase/sprint40_api_keys.sql</strong> no Supabase para ativar.
+            Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : loading ? (
           <div className="skeleton" style={{ height: 160, borderRadius: 14 }} />

@@ -95,7 +95,7 @@ export default function VigiaPage() {
         </div>
       </div>
 
-      {needsMigration && <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13, marginBottom: 12 }}>Aplica <b>supabase/sprint82_vigilancia.sql</b> para ativar.</div>}
+      {needsMigration && <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13, marginBottom: 12 }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>}
 
       {/* Banner: residentes que pioraram desde a última vigilância (automática) */}
       {(() => {

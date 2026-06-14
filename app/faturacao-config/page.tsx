@@ -107,7 +107,7 @@ export default function FaturacaoConfigPage() {
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
-            Corre <strong>supabase/sprint34_pos.sql</strong> no Supabase para ativar a integração.
+            Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : loading ? (
           <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />

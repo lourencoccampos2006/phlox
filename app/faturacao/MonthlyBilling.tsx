@@ -155,8 +155,8 @@ export default function MonthlyBilling() {
 
         {tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação por configurar</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Corre <strong>supabase/sprint22_billing.sql</strong> no Supabase para ativar.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : (
           <>

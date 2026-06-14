@@ -97,8 +97,8 @@ export default function ConsentimentosPage() {
 
         {missing && (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 18, marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e', marginBottom: 4 }}>Arquivo por configurar</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Podes gerar e imprimir já. Para <strong>arquivar</strong> consentimentos, corre <strong>supabase/sprint32_institution_ops.sql</strong>.</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e', marginBottom: 4 }}>Arquivo indisponível de momento</div>
+            <div style={{ fontSize: 13, color: '#92400e' }}>Podes gerar e imprimir já. O arquivo de consentimentos está temporariamente indisponível.</div>
           </div>
         )}
 

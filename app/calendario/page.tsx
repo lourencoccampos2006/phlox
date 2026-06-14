@@ -156,7 +156,7 @@ export default function CalendarioPage() {
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
-            Corre <strong>supabase/sprint43_calendar.sql</strong> no Supabase para ativar o calendário.
+            Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : (
           <>

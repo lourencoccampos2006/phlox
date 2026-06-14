@@ -151,10 +151,13 @@ export default function IntegracoesPage() {
   const [snsText, setSnsText] = useState('')
   const [parsedSns, setParsedSns] = useState<ParsedMed[]>([])
 
-  const handleAppleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const processAppleFile = async (file: File | undefined | null) => {
     if (!file) return
     setError(null); setParsed(null)
+    if (/\.zip$/i.test(file.name)) {
+      setError('Recebemos um .zip — extrai-o primeiro e seleciona o ficheiro export.xml que está lá dentro.')
+      return
+    }
     const text = await file.text()
     const result = parseAppleHealthXML(text)
     if (result.vitals.length === 0 && result.meds.length === 0) {
@@ -163,6 +166,8 @@ export default function IntegracoesPage() {
     }
     setParsed(result)
   }
+  const handleAppleFile = (e: React.ChangeEvent<HTMLInputElement>) => processAppleFile(e.target.files?.[0])
+  const [dragging, setDragging] = useState(false)
 
   const handleCSVFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -308,8 +313,11 @@ export default function IntegracoesPage() {
               </div>
             </div>
 
-            <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 14, padding: 32, textAlign: 'center', cursor: 'pointer' }}
-              onClick={() => appleRef.current?.click()}>
+            <div style={{ background: dragging ? '#f0fdfa' : 'white', border: `2px dashed ${dragging ? '#0d9488' : 'var(--border)'}`, borderRadius: 14, padding: 32, textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+              onClick={() => appleRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragging(true) }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={e => { e.preventDefault(); setDragging(false); processAppleFile(e.dataTransfer.files?.[0]) }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📂</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Selecionar export.xml</div>
               <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Arrasta o ficheiro aqui ou clica para selecionar</div>

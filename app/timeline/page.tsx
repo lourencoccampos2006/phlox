@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile } from '@/lib/profileContext'
+import { printDoc } from '@/lib/print'
 import Link from 'next/link'
 
 // ─── Event types ──────────────────────────────────────────────────────────────
@@ -385,6 +386,29 @@ export default function TimelinePage() {
     supabase.from('family_profiles').select('id, name').eq('user_id', user.id).order('name').then(({ data }) => setFamilyProfiles(data || []))
   }, [user, supabase])
 
+  // ─── Exportar PDF (para levar/enviar ao médico) — usa o printDoc partilhado ──
+  const exportPDF = () => {
+    if (events.length === 0) return
+    const fmt = (d: string) => new Date(d).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })
+    // Agrupa por mês, como na vista, para o PDF sair organizado.
+    const groups: { month: string; items: TimelineEvent[] }[] = []
+    events.forEach(e => {
+      const m = e.date.slice(0, 7)
+      const g = groups.find(x => x.month === m)
+      if (g) g.items.push(e); else groups.push({ month: m, items: [e] })
+    })
+    printDoc({
+      docTitle: 'História de saúde',
+      docSubtitle: profileName || user?.name || '',
+      institution: 'Phlox',
+      sections: groups.map(g => ({
+        heading: new Date(g.month + '-01').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }),
+        records: [{ title: '', bullets: g.items.map(e => `${fmt(e.date)} — ${e.title}${e.detail ? ` (${e.detail})` : ''}`) }],
+      })),
+      footerNote: 'Gerado pelo Phlox a partir dos teus registos. Para informação, não substitui avaliação médica.',
+    })
+  }
+
   // ─── AI Correlations ──────────────────────────────────────────────────────
 
   const analyseCorrelations = async () => {
@@ -515,6 +539,11 @@ export default function TimelinePage() {
             <Link href="/health-pass" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               📲 Mostrar ao médico (QR)
             </Link>
+            {events.length > 0 && (
+              <button onClick={exportPDF} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>
+                🖨 Exportar PDF
+              </button>
+            )}
           </div>
 
           {/* Tabs */}
