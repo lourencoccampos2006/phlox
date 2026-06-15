@@ -104,7 +104,8 @@
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
       "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
       "PowerShell(\"cleared\")",
-      "Bash(grep -m2 '\"@/\\\\*\"' tsconfig.json)"
+      "Bash(grep -m2 '\"@/\\\\*\"' tsconfig.json)",
+      "Bash(grep -vE '^\\(api|auth\\)$')"
     ]
   }
 }
