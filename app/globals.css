@@ -127,7 +127,10 @@ img, video, iframe { max-width: 100%; height: auto; }
 
 /* ── Layout containers ────────────────────────────── */
 .page-container { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 20px; }
-.page-body      { padding: 28px 20px 80px; }
+/* Entrada suave do conteúdo em cada página — faz a navegação parecer fluida e
+   premium, sem custo de risco (usado em ~145 páginas). Respeita prefers-reduced-motion. */
+.page-body      { padding: 28px 20px 80px; animation: fadeUp 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
+@media (prefers-reduced-motion: reduce) { .page-body { animation: none; } }
 
 /* ── Main layout ── */
 .phlox-main {

@@ -99,7 +99,12 @@
       "Bash(xargs grep -A18 \"patient_meds\")",
       "Bash(sort -t t -k2 -n)",
       "Bash(grep -nE \"const \\\\{ user, supabase \\\\} = useAuth|isPro|const isDayCare\" app/mar/page.tsx)",
-      "Bash(grep -vE \"^$\")"
+      "Bash(grep -vE \"^$\")",
+      "Bash(grep -nE \"return \\\\\\(|</div>\\\\s*$|page-body|maxWidth\" app/portal-familia/page.tsx)",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(\"cleared\")",
+      "Bash(grep -m2 '\"@/\\\\*\"' tsconfig.json)"
     ]
   }
 }

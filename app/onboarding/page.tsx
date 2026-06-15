@@ -19,6 +19,32 @@ const PROFILES: { id: Profile; label: string; desc: string; accent: string; bg: 
   { id: 'professional', label: 'Profissional / Instituição', desc: 'Gerir e trabalhar numa organização de saúde', accent: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
 ]
 
+// Primeiras ações por perfil — o "valor em 60s". Em vez de despejar o utilizador
+// numa home vazia, damos-lhe 2-3 ações concretas para fazer JÁ. O 1º passo é a
+// tappar, não a procurar. (Profissional vê ações por tipo de instituição.)
+const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; href: string }[]> = {
+  personal: [
+    { icon: '📸', label: 'Adicionar a minha medicação', sub: 'Tira foto à caixa ou à receita', href: '/scan' },
+    { icon: '🔍', label: 'Verificar interações', sub: 'Vê se os teus medicamentos se dão bem', href: '/interactions' },
+    { icon: '🧬', label: 'Perceber análises', sub: 'Cada valor em linguagem simples', href: '/labs' },
+  ],
+  caregiver: [
+    { icon: '👨‍👩‍👧', label: 'Criar o perfil do familiar', sub: 'Um espaço só para a saúde de quem cuidas', href: '/familia' },
+    { icon: '📸', label: 'Organizar a medicação dele/dela', sub: 'Foto da receita ou das caixas', href: '/scan' },
+    { icon: '🩺', label: 'Devo ir ao médico?', sub: 'Ajuda a decidir num momento de aflição', href: '/saude-agora' },
+  ],
+  student: [
+    { icon: '🏆', label: 'Entrar na Arena', sub: 'Treina casos e sobe de liga', href: '/arena' },
+    { icon: '🎯', label: 'Onde focar', sub: 'O Phlox diz-te onde estás mais fraco', href: '/study360' },
+    { icon: '🧑‍🏫', label: 'AI Tutor', sub: 'Explica conceitos passo a passo', href: '/tutor' },
+  ],
+  professional: [
+    { icon: '☀️', label: 'Abrir o meu painel', sub: 'O dia da tua instituição, montado de raiz', href: '/painel' },
+    { icon: '🧑‍🤝‍🧑', label: 'Adicionar utentes', sub: 'As pessoas que vais acompanhar', href: '/patients' },
+    { icon: '👀', label: 'Ver a demonstração', sub: '1 minuto, com dados de exemplo', href: '/demo' },
+  ],
+}
+
 const INSTITUTIONS = [
   { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },
   { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },
@@ -89,7 +115,7 @@ export default function OnboardingPage() {
     return 'personal'
   }
 
-  async function finish() {
+  async function finish(dest?: string) {
     if (!user || saving) return
     setSaving(true)
     const answers = { profile, instType, role, area, year, sub }
@@ -114,9 +140,9 @@ export default function OnboardingPage() {
       student_year: profile === 'student' ? year : null,
       onboarding_answers: answers,
     }).eq('id', user.id)
-    // Todos vão para /inicio (adapta-se ao modo). O modo clínico mostra paywall
-    // se o plano não chegar; o cockpit/ferramentas pro ficam atrás de gate.
-    router.push('/inicio')
+    // Vai para o destino escolhido (uma primeira ação) ou /inicio por defeito.
+    // O modo clínico mostra paywall se o plano não chegar; ferramentas pro atrás de gate.
+    router.push(dest || '/inicio')
   }
 
   // ── Reusable bits ──
@@ -250,18 +276,27 @@ export default function OnboardingPage() {
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: meta.bg, border: `2px solid ${meta.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px' }}>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
               </div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, marginBottom: 12, letterSpacing: '-0.02em' }}>Está tudo pronto!</h2>
-              <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28, maxWidth: 420, margin: '0 auto 28px' }}>
-                {profile === 'professional' ? 'O teu espaço clínico está configurado para a tua instituição. Mostramos só as ferramentas profissionais que precisas — podes adicionar mais nas Definições.'
-                  : profile === 'student' ? 'Modo estudo adaptado à tua área. Treina, estuda e compete na comunidade.'
-                  : profile === 'caregiver' ? 'O teu espaço de cuidador está pronto, com ferramentas focadas na família.'
-                  : 'O teu espaço pessoal está pronto, simples e direto ao que precisas.'}
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, marginBottom: 8, letterSpacing: '-0.02em' }}>Está tudo pronto!</h2>
+              <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 22, maxWidth: 420, margin: '0 auto 22px' }}>
+                Por onde queres começar? Escolhe uma — podes fazer o resto depois.
               </p>
-              <button onClick={finish} disabled={saving} style={{ width: '100%', maxWidth: 360, padding: '14px', background: saving ? 'var(--bg-3)' : accent, color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                {saving ? 'A configurar…' : 'Entrar na plataforma →'}
-              </button>
-              <div style={{ marginTop: 14 }}>
-                <button onClick={() => go(1)} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>← Rever respostas</button>
+              {/* Primeiras ações — valor imediato, 1 toque */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, maxWidth: 400, margin: '0 auto' }}>
+                {(FIRST_ACTIONS[profile || 'personal'] || FIRST_ACTIONS.personal).map(a => (
+                  <button key={a.href} onClick={() => finish(a.href)} disabled={saving}
+                    style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', background: 'white', border: `1.5px solid ${meta.border}`, borderRadius: 12, cursor: saving ? 'wait' : 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
+                    <span style={{ fontSize: 22, flexShrink: 0 }}>{a.icon}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>{a.label}</span>
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{a.sub}</span>
+                    </span>
+                    <span style={{ color: accent, fontSize: 18, flexShrink: 0 }}>→</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 16, display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center' }}>
+                <button onClick={() => finish()} disabled={saving} style={{ background: 'none', border: 'none', fontSize: 13, color: accent, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A configurar…' : 'Só entrar →'}</button>
+                <button onClick={() => go(1)} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>← Rever</button>
               </div>
             </div>
           )}

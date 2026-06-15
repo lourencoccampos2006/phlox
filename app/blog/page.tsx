@@ -64,6 +64,20 @@ const ARTICLES = [
     tag: 'Renal', date: '2026-02-20', readTime: '8 min',
     color: '#0891b2',
   },
+  {
+    slug: 'organizar-medicacao-idoso',
+    title: 'Como Organizar a Medicação de um Idoso em Casa',
+    desc: 'Guia prático para cuidadores: um sistema simples para nunca trocar, falhar ou repetir tomas. Caixa semanal, gatilhos e lembretes.',
+    tag: 'Cuidadores', date: '2026-06-15', readTime: '7 min',
+    color: '#b45309',
+  },
+  {
+    slug: 'sinais-desidratacao-idosos',
+    title: 'Sinais de Desidratação em Idosos — O Que Vigiar',
+    desc: 'Sinais precoces e de alarme, quanto deve beber por dia, quando há mais risco e quando é urgente. Para cuidadores e famílias.',
+    tag: 'Cuidar de idosos', date: '2026-06-15', readTime: '6 min',
+    color: '#0e7490',
+  },
 ]
 
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
@@ -74,6 +88,8 @@ const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   'Suplementos': { bg: '#fefce8', color: '#d97706' },
   'Geriatria':   { bg: '#eff6ff', color: '#1d4ed8' },
   'Renal':       { bg: '#ecfeff', color: '#0891b2' },
+  'Cuidadores':  { bg: '#fffbeb', color: '#b45309' },
+  'Cuidar de idosos': { bg: '#ecfeff', color: '#0e7490' },
 }
 
 export default function BlogIndexPage() {

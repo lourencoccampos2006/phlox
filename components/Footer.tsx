@@ -38,6 +38,8 @@ export default function Footer() {
 
           <nav style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
             {[
+              ['Centro de Dia', '/centro-de-dia'],
+              ['Blog', '/blog'],
               ['Planos', '/pricing'],
               ['Trust', '/trust'],
               ['Estado', '/status'],

@@ -66,6 +66,7 @@ const CAMINHOS = [
   { emoji: '💊', t: 'A minha medicação', d: 'Guardar os comprimidos, lembretes de toma e ver se se dão bem.', href: '/login?mode=personal' },
   { emoji: '🧓', t: 'Cuidar de alguém', d: 'Organizar a medicação de um familiar e ter tudo num sítio.', href: '/login?mode=caregiver' },
   { emoji: '📚', t: 'Estudar saúde', d: 'Casos, quizzes e treino para o curso de medicina, farmácia ou enfermagem.', href: '/login?mode=student' },
+  { emoji: '☀️', t: 'Tenho um centro de dia', d: 'O dia dos utentes e as famílias tranquilas — montado de raiz para si.', href: '/centro-de-dia' },
   { emoji: '🏥', t: 'Trabalho em saúde', d: 'Ferramentas para farmácia, lar, hospital ou clínica.', href: '/login?mode=clinical' },
 ]
 
