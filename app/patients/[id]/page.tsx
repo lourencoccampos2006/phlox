@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 import DrugReferenceButton from '@/components/DrugReferenceButton'
 import { analyzeResident, SEVERITY_STYLE as ECO_SEV } from '@/lib/residentSignals'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -67,6 +68,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
   const router = useRouter()
   const { institution } = useClinicPrefs()
   const isNH = institution === 'nursing_home'
+  const cfg = institutionConfig(institution)
   const [patient, setPatient] = useState<Patient | null>(null)
   const [meds, setMeds] = useState<PatientMed[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -220,11 +222,11 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     }
     sections.push({ heading: 'Validação', records: [{ title: 'Assinaturas', fields: [{ label: 'Profissional', value: '' }, { label: 'Data', value: '' }] }] })
     printDoc({
-      docTitle: 'Ficha do Residente',
-      docSubtitle: `${patient.name}${p.room_number ? ' · Quarto ' + p.room_number : ''}`,
-      institution: 'Lar / ERPI',
+      docTitle: `Ficha do ${cfg.personNoun}`,
+      docSubtitle: `${patient.name}${cfg.hasBeds && p.room_number ? ` · ${cfg.roomLabel} ` + p.room_number : ''}`,
+      institution: cfg.unitNoun,
       sections,
-      footerNote: 'Ficha-resumo do residente · Phlox',
+      footerNote: `Ficha-resumo do ${cfg.personNoun.toLowerCase()} · Phlox`,
     })
   }
 
@@ -437,7 +439,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
           {/* Back */}
           <Link href="/patients" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', marginBottom: 16 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-            {isNH ? 'Residentes' : 'Doentes'}
+            {cfg.personNounPlural}
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>

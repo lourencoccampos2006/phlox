@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc } from '@/lib/print'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 interface Patient { id: string; name: string; room_number?: string }
 
@@ -84,6 +86,10 @@ const EMPTY_FORM = {
 
 export default function IncidentsPage() {
   const { user, supabase } = useAuth()
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const person = cfg.personNoun                 // "Residente" | "Utente" | "Doente"
+  const personLower = person.toLowerCase()
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +125,7 @@ export default function IncidentsPage() {
 
   // Cria (após confirmação) uma mensagem de alerta no Portal Família para uma ocorrência grave
   const maybeNotifyFamily = async (patientId: string, type: string, severity: string) => {
-    const patName = patients.find(p => p.id === patientId)?.name || 'o/a residente'
+    const patName = patients.find(p => p.id === patientId)?.name || `o/a ${personLower}`
     const sevLabel = SEV_STYLE[severity]?.label || severity
     if (!confirm(`Ocorrência ${sevLabel.toLowerCase()} registada para ${patName}.\n\nComunicar à família agora (cria mensagem no Portal Família)?`)) return
     // contacto de urgência (se existir) deste residente
@@ -142,7 +148,7 @@ export default function IncidentsPage() {
     setSaving(true)
     setSaveError('')
     try {
-      if (!form.patient_id) throw new Error('Seleciona um residente')
+      if (!form.patient_id) throw new Error(`Seleciona ${cfg.personNounIndef}`)
       if (!form.description.trim()) throw new Error('A descrição é obrigatória')
 
       const payload = {
@@ -245,7 +251,7 @@ export default function IncidentsPage() {
             </button>
             <button onClick={() => {
               const fields = [
-                { label: 'Residente', value: selected.patient_name || '—' },
+                { label: person, value: selected.patient_name || '—' },
                 { label: 'Tipo', value: TYPE_LABELS[selected.type] || selected.type },
                 { label: 'Gravidade', value: ss.label },
                 { label: 'Estado', value: st.label },
@@ -363,7 +369,7 @@ export default function IncidentsPage() {
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar residente ou descrição..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${personLower} ou descrição...`}
             style={{ flex: 1, minWidth: 180, border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
             style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', background: 'white', color: 'var(--ink-2)', cursor: 'pointer' }}>
@@ -450,10 +456,10 @@ export default function IncidentsPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <Label>Residente *</Label>
+                  <Label>{person} *</Label>
                   <select value={form.patient_id} onChange={e => f('patient_id', e.target.value)} style={selectStyle}>
-                    <option value="">Selecionar residente...</option>
-                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` — Q${p.room_number}` : ''}</option>)}
+                    <option value="">{`Selecionar ${personLower}...`}</option>
+                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{cfg.hasBeds && p.room_number ? ` — ${cfg.roomLabel[0]}${p.room_number}` : ''}</option>)}
                   </select>
                 </div>
 

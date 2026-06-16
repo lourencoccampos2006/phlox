@@ -7,6 +7,8 @@ import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 type Tab = 'tarefas' | 'ronda' | 'passagem'
@@ -41,6 +43,9 @@ function roomKey(r?: string | null) { if (!r) return 999999; const n = parseInt(
 
 export default function TurnoPage() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const person = cfg.personNoun
   const sp = useSearchParams()
   const initialTab = (['tarefas', 'ronda', 'passagem'] as const).includes(sp?.get('tab') as Tab) ? (sp!.get('tab') as Tab) : 'tarefas'
   const [tab, setTab] = useState<Tab>(initialTab)
@@ -117,8 +122,8 @@ export default function TurnoPage() {
 
   useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'wounds', 'hydration_logs', 'patient_meds'], userId: user?.id, onChange: load })
 
-  const nameOf = (id: string) => patients.find(p => p.id === id)?.name || 'Residente'
-  const roomOf = (id: string) => { const r = patients.find(p => p.id === id)?.room_number; return r ? `Q${r}` : '' }
+  const nameOf = (id: string) => patients.find(p => p.id === id)?.name || person
+  const roomOf = (id: string) => { if (!cfg.hasBeds) return ''; const r = patients.find(p => p.id === id)?.room_number; return r ? `${cfg.roomLabel[0]}${r}` : '' }
 
   // ── Risk map: one analysis per resident, reused across tabs (same engine as Cockpit/ficha) ──
   const riskByPt: Record<string, { score: number; level: Severity; signals: Signal[]; summary: string }> = {}
@@ -160,11 +165,11 @@ export default function TurnoPage() {
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 12 }} />)}</div>
         ) : tab === 'tarefas' ? (
-          <TarefasTab patients={patients} care={care} mar={mar} incidents={incidents} assessments={assessments} shift={shift} nameOf={nameOf} roomOf={roomOf} />
+          <TarefasTab patients={patients} care={care} mar={mar} incidents={incidents} assessments={assessments} shift={shift} nameOf={nameOf} roomOf={roomOf} cfg={cfg} />
         ) : tab === 'ronda' ? (
-          <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} riskByPt={riskByPt} />
+          <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} riskByPt={riskByPt} cfg={cfg} />
         ) : (
-          <PassagemTab patients={patients} care={care} mar={mar} incidents={incidents} shift={shift} nameOf={nameOf} roomOf={roomOf} riskByPt={riskByPt} />
+          <PassagemTab patients={patients} care={care} mar={mar} incidents={incidents} shift={shift} nameOf={nameOf} roomOf={roomOf} riskByPt={riskByPt} cfg={cfg} />
         )}
       </div>
     </div>
@@ -173,7 +178,7 @@ export default function TurnoPage() {
 
 // ─── TAREFAS ────────────────────────────────────────────────────────────────
 
-function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf, roomOf }: any) {
+function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf, roomOf, cfg }: any) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   interface Task { id: string; prio: Prio; category: string; title: string; sub: string; href: string }
   const tasks: Task[] = []
@@ -207,7 +212,7 @@ function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        {[{ n: highN, l: 'Urgentes', c: '#dc2626', bg: '#fef2f2', bd: '#fecaca' }, { n: visible.length - highN, l: 'A fazer', c: '#d97706', bg: '#fffbeb', bd: '#fde68a' }, { n: patients.length, l: 'Residentes', c: '#0b1120', bg: 'white', bd: 'var(--border)' }].map(s => (
+        {[{ n: highN, l: 'Urgentes', c: '#dc2626', bg: '#fef2f2', bd: '#fecaca' }, { n: visible.length - highN, l: 'A fazer', c: '#d97706', bg: '#fffbeb', bd: '#fde68a' }, { n: patients.length, l: cfg.personNounPlural, c: '#0b1120', bg: 'white', bd: 'var(--border)' }].map(s => (
           <div key={s.l} style={{ flex: '1 1 110px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 12, padding: '13px 16px' }}>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: s.c, lineHeight: 1 }}>{s.n}</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{s.l}</div>
@@ -256,7 +261,7 @@ function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf
 
 // ─── RONDA ──────────────────────────────────────────────────────────────────
 
-function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
+function RondaTab({ patients, shift, today, supabase, user, riskByPt, cfg: instCfg }: any) {
   const [idx, setIdx] = useState(0)
   const [status, setStatus] = useState<StatusTag | null>(null)
   const [note, setNote] = useState('')
@@ -283,7 +288,7 @@ function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
     setSaving(false); advance()
   }
 
-  if (total === 0) return <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 40, textAlign: 'center', color: 'var(--ink-4)' }}>Sem residentes. <Link href="/patients" style={{ color: '#0d6e42' }}>Adicionar →</Link></div>
+  if (total === 0) return <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 40, textAlign: 'center', color: 'var(--ink-4)' }}>Sem {instCfg.personNounPlural.toLowerCase()}. <Link href="/patients" style={{ color: '#0d6e42' }}>Adicionar →</Link></div>
 
   if (finished) {
     return (
@@ -297,7 +302,7 @@ function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
             const d = done[p.id]; const cfg = d ? STATUS_CFG[d] : null
             return (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)', width: 44 }}>{p.room_number ? `Q${p.room_number}` : '—'}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)', width: 44 }}>{instCfg.hasBeds && p.room_number ? `${instCfg.roomLabel[0]}${p.room_number}` : '—'}</span>
                 <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{p.name}</span>
                 {cfg ? <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`, padding: '2px 9px', borderRadius: 6 }}>{cfg.label}</span> : <span style={{ fontSize: 11, color: 'var(--ink-5)' }}>—</span>}
               </div>
@@ -319,7 +324,7 @@ function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ronda</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={() => { setByRisk(v => !v); setIdx(0) }} style={{ fontSize: 11, fontWeight: 600, color: byRisk ? '#0d6e42' : 'var(--ink-4)', background: byRisk ? '#eef6f1' : 'white', border: `1px solid ${byRisk ? '#0d6e42' : 'var(--border)'}`, borderRadius: 7, padding: '4px 9px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-              {byRisk ? '↓ Por risco' : '↓ Por quarto'}
+              {byRisk ? '↓ Por risco' : `↓ Por ${instCfg.roomLabel.toLowerCase()}`}
             </button>
             <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>{idx + 1} de {total}</span>
           </div>
@@ -332,7 +337,7 @@ function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
             <div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>{current.name}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>{current.room_number ? `Quarto ${current.room_number}` : 'Sem quarto'}{current.age ? ` · ${current.age} anos` : ''}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>{instCfg.hasBeds ? (current.room_number ? `${instCfg.roomLabel} ${current.room_number}` : `Sem ${instCfg.roomLabel.toLowerCase()}`) : ''}{current.age ? `${instCfg.hasBeds ? ' · ' : ''}${current.age} anos` : ''}</div>
             </div>
             {lv && curRisk.level !== 'good' && (
               <span style={{ fontSize: 11, fontWeight: 700, color: lv.color, background: lv.bg, border: `1px solid ${lv.border}`, padding: '3px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -384,7 +389,7 @@ function RondaTab({ patients, shift, today, supabase, user, riskByPt }: any) {
 
 // ─── PASSAGEM ───────────────────────────────────────────────────────────────
 
-function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, riskByPt }: any) {
+function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, riskByPt, cfg }: any) {
   const [signedBy, setSignedBy] = useState('')
 
   const careByPt: Record<string, CareRec> = {}
@@ -420,7 +425,7 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, ri
       const cr = careByPt[p.id]
       const incs = incByPt[p.id] || []
       const fields = [
-        { label: 'Quarto', value: p.room_number ? `Q${p.room_number}` : '—' },
+        ...(cfg.hasBeds ? [{ label: cfg.roomLabel, value: p.room_number ? `${cfg.roomLabel[0]}${p.room_number}` : '—' }] : []),
         { label: 'Idade', value: p.age ? `${p.age} anos` : '—' },
       ]
       const bullets: string[] = []
@@ -445,11 +450,11 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, ri
       institution: inst,
       author: signedBy || undefined,
       meta: [
-        { label: 'residentes', value: String(patients.length) },
+        { label: cfg.personNounPlural.toLowerCase(), value: String(patients.length) },
         { label: 'alertas', value: String(scored.filter((x: any) => statusOf(x.p).label === 'Alerta').length) },
         { label: 'a vigiar', value: String(scored.filter((x: any) => statusOf(x.p).label === 'Vigiar').length) },
       ],
-      sections: [{ heading: `Residentes — turno ${SHIFT_LABEL[shift as Shift]}`, records }],
+      sections: [{ heading: `${cfg.personNounPlural} — turno ${SHIFT_LABEL[shift as Shift]}`, records }],
       footerNote: 'Passagem de turno · Phlox',
     })
   }
@@ -457,7 +462,7 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, ri
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Resumo automático por residente, ordenado por prioridade.</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Resumo automático por {cfg.personNoun.toLowerCase()}, ordenado por prioridade.</div>
         <button onClick={doPrint} style={{ padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 7 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir passagem

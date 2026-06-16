@@ -5,11 +5,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callGeminiVisionJSON, aiJSON } from '@/lib/ai'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
+import { enforceDailyLimit } from '@/lib/serverLimit'
 
 export const maxDuration = 45
 
 export async function POST(req: NextRequest) {
   if (!checkRateLimit(getIP(req), 15, 60_000).allowed) return rateLimitResponse()
+  // Limite diário server-side (Base/Plus). Pro/Institucional = ilimitado.
+  const gate = await enforceDailyLimit(req, 'scan')
+  if (!gate.ok) return gate.response!
   const body = await req.json().catch(() => null) as { image?: string; mimeType?: string; text?: string } | null
   if (!body?.image && !body?.text) return NextResponse.json({ error: 'Imagem ou documento obrigatório' }, { status: 400 })
 

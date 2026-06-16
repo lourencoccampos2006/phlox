@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiComplete } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { enforceDailyLimit } from '@/lib/serverLimit'
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
   const rl = checkRateLimit(ip, 20, 60_000)
   if (!rl.allowed) return rateLimitResponse()
+  // Chat com a medicação: ilimitado no Pro; provadela diária nos outros planos.
+  const gate = await enforceDailyLimit(req, 'chat_med')
+  if (!gate.ok) return gate.response!
 
   const body = await req.json().catch(() => null)
   if (!body?.message) return NextResponse.json({ error: 'Mensagem obrigatória' }, { status: 400 })

@@ -6,6 +6,8 @@ import { useLiveData } from '@/lib/useLiveData'
 import FusionTabs from '@/components/FusionTabs'
 import { AuditoriaTool } from '../auditoria/page'
 import { ADRReportTool } from '../adr-report/page'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 // /documentos é agora a fusão "Conformidade": Documentos + Auditoria + Notificação
 // RAM. Cada aba é o componente original intacto.
@@ -41,6 +43,10 @@ const daysTo = (d?: string | null) => d ? Math.round((new Date(d).getTime() - Da
 
 function DocumentosTool() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const person = cfg.personNoun
+  const personLower = person.toLowerCase()
   const [patients, setPatients] = useState<Patient[]>([])
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,7 +75,7 @@ function DocumentosTool() {
   useEffect(() => { load() }, [load])
   useLiveData({ supabase, table: ['documents', 'patients'], userId: user?.id, onChange: load })
 
-  const nameOf = (id?: string | null) => id ? (patients.find(p => p.id === id)?.name || 'Residente') : 'Instituição'
+  const nameOf = (id?: string | null) => id ? (patients.find(p => p.id === id)?.name || person) : cfg.unitNoun
 
   async function save() {
     if (!user || !form.name.trim() || !file) { setErr('Nome e ficheiro são obrigatórios.'); return }
@@ -122,7 +128,7 @@ function DocumentosTool() {
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Documental</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Documentos</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Contratos, consentimentos, RGPD e relatórios — por residente e da instituição.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Contratos, consentimentos, RGPD e relatórios — por {personLower} e da instituição.</p>
           </div>
           <button onClick={() => { setForm(blank); setFile(null); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Documento</button>
         </div>
@@ -138,7 +144,7 @@ function DocumentosTool() {
               {expired > 0 && <button onClick={() => setExpFilter(f => f === 'expired' ? 'all' : 'expired')} style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: expFilter === 'expired' ? '#fee2e2' : '#fef2f2', border: `1.5px solid ${expFilter === 'expired' ? '#dc2626' : '#fca5a5'}`, padding: '5px 11px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{expired} expirado(s)</button>}
               {expiring > 0 && <button onClick={() => setExpFilter(f => f === 'expiring' ? 'all' : 'expiring')} style={{ fontSize: 12, fontWeight: 700, color: '#d97706', background: expFilter === 'expiring' ? '#fef3c7' : '#fffbeb', border: `1.5px solid ${expFilter === 'expiring' ? '#d97706' : '#fde68a'}`, padding: '5px 11px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{expiring} a expirar (≤30d)</button>}
               {expFilter !== 'all' && <button onClick={() => setExpFilter('all')} style={{ fontSize: 12, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>limpar filtro</button>}
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar documento ou residente..." style={{ ...inp, width: 260, flex: '0 1 260px', marginLeft: 'auto' }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar documento ou ${personLower}...`} style={{ ...inp, width: 260, flex: '0 1 260px', marginLeft: 'auto' }} />
             </div>
 
             {loading ? (
@@ -189,7 +195,7 @@ function DocumentosTool() {
               <div><span style={lbl}>Nome *</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Contrato de prestação de serviços" style={inp} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div><span style={lbl}>Categoria</span><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} style={inp}>{CAT_KEYS.map(c => <option key={c} value={c}>{CATS[c].label}</option>)}</select></div>
-                <div><span style={lbl}>Residente</span><select value={form.patient_id} onChange={e => setForm({ ...form, patient_id: e.target.value })} style={inp}><option value="">Instituição</option>{patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+                <div><span style={lbl}>{person}</span><select value={form.patient_id} onChange={e => setForm({ ...form, patient_id: e.target.value })} style={inp}><option value="">{cfg.unitNoun}</option>{patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
               </div>
               <div><span style={lbl}>Validade (opcional)</span><input type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} style={inp} /></div>
               <div>

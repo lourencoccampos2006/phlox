@@ -107,9 +107,9 @@ export default function BibliotecaPage() {
       <div className="page-container page-body" style={{ maxWidth: 520, textAlign: 'center' }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12 }}>Biblioteca de estudo</div>
         <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>
-          Carrega PDFs, slides ou Word e o Phlox gera resumo, perguntas e flashcards. Disponível no plano Student.
+          Carrega PDFs, slides ou Word e o Phlox gera resumo, perguntas e flashcards. Disponível no plano Plus.
         </p>
-        <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700 }}>Ver Student →</Link>
+        <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700 }}>Ver plano Plus →</Link>
       </div>
     </div>
   )
@@ -121,7 +121,7 @@ export default function BibliotecaPage() {
         {/* Header */}
         <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Estudo · Student</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Estudo · Plus</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Biblioteca</h1>
             <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>
               Sobe o material da aula. Sai com resumo, conceitos-chave, perguntas e flashcards prontos a usar.

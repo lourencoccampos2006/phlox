@@ -283,7 +283,7 @@ export default function PlanoPage() {
 
                 {!canGenerate ? (
                   <div style={{ padding: '12px 14px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, textAlign: 'center' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>Disponível no plano Student</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>Disponível no plano Plus</div>
                     <div style={{ fontSize: 12, color: '#7c3aed', opacity: 0.8, marginBottom: 8 }}>O Care Plan requer processamento AI avançado</div>
                     <Link href="/pricing" style={{ fontSize: 12, color: '#7c3aed', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, border: '1px solid #e9d5ff', padding: '5px 12px', borderRadius: 5, display: 'inline-block' }}>
                       Ver planos →

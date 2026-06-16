@@ -129,8 +129,8 @@ function SimuladorContent() {
       <div className="page-container page-body" style={{ maxWidth: 480 }}>
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 32px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12 }}>Simulador Clínico</div>
-          <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>Casos clínicos · Turno virtual · Casos evolutivos. Disponível no plano Student.</p>
-          <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>Ver plano Student →</Link>
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>Casos clínicos · Turno virtual · Casos evolutivos. Disponível no plano Plus.</p>
+          <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>Ver plano Plus →</Link>
         </div>
       </div>
     </div>
@@ -142,7 +142,7 @@ function SimuladorContent() {
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
 
         <div style={{ marginBottom: 32 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Simulação · Student</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Simulação · Plus</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3.5vw,38px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 10 }}>Simulador Clínico</h1>
           <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.65 }}>Escolhe o modo, a área e o nível. O resto é contigo.</p>
         </div>

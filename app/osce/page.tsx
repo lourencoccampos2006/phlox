@@ -234,7 +234,7 @@ export default function OSCEPage() {
             Simulação de OSCE para todos os cursos de saúde. Medicina, Farmácia, Enfermagem, Nutrição, Fisioterapia. A AI faz de doente. Tu fazes de profissional. Com timer e feedback estação por estação.
           </p>
           <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '13px 32px', borderRadius: 8, fontSize: 15, fontWeight: 700 }}>
-            Ver plano Student →
+            Ver plano Plus →
           </Link>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function OSCEPage() {
         <div className="page-container page-body" style={{ maxWidth: 700 }}>
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#7c3aed', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 2, background: '#7c3aed', borderRadius: 1 }} />Phlox OSCE · Student
+              <div style={{ width: 10, height: 2, background: '#7c3aed', borderRadius: 1 }} />Phlox OSCE · Plus
             </div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, marginBottom: 8 }}>
               Simulação de OSCE

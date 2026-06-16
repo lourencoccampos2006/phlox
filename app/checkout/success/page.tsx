@@ -22,7 +22,7 @@ function SuccessContent() {
           ✓
         </div>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.02em' }}>
-          Bem-vindo ao plano {plan === 'pro' ? 'Pro' : 'Student'}!
+          Bem-vindo ao plano {plan === 'pro' ? 'Pro' : 'Plus'}!
         </h1>
         <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 32 }}>
           O teu pagamento foi processado com sucesso. O teu plano está activo — todas as ferramentas estão disponíveis agora.

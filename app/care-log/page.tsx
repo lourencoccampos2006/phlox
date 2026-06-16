@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import RegistoDoDia from './RegistoDoDia'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 // O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
 // feridas + atividades, adaptadas por instituição). O formulário de registo em si
@@ -72,6 +74,9 @@ function bpFlag(sys?: number, dia?: number) {
 
 export function CareLogTool() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const personLower = cfg.personNoun.toLowerCase()
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -465,7 +470,7 @@ export function CareLogTool() {
               disabled={!patientId || saving}
               style={{ width: '100%', padding: '14px 20px', background: !patientId ? '#e5e7eb' : saved ? '#16a34a' : '#0b1120', color: !patientId ? '#9ca3af' : '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: !patientId ? 'default' : 'pointer', transition: 'background 0.2s' }}
             >
-              {saving ? 'A guardar...' : saved ? '✓ Registo guardado' : `Guardar registo — ${pat?.name || 'Selecionar residente'}`}
+              {saving ? 'A guardar...' : saved ? '✓ Registo guardado' : `Guardar registo — ${pat?.name || `Selecionar ${personLower}`}`}
             </button>
           </div>
         </div>
@@ -474,13 +479,13 @@ export function CareLogTool() {
         <div style={{ position: 'sticky', top: 20 }}>
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16, maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {pat ? `Últimos registos — ${pat.name}` : 'Selecionar residente para ver histórico'}
+              {pat ? `Últimos registos — ${pat.name}` : `Selecionar ${personLower} para ver histórico`}
             </div>
             {loading ? (
               <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 20 }}>A carregar...</div>
             ) : patientRecords.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 20 }}>
-                {patientId ? 'Sem registos ainda' : 'Seleciona um residente'}
+                {patientId ? 'Sem registos ainda' : `Seleciona ${cfg.personNounIndef}`}
               </div>
             ) : patientRecords.slice(0, 15).map(r => {
               const s = SHIFTS[r.shift as Shift] || SHIFTS.manha

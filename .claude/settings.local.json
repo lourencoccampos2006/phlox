@@ -107,7 +107,27 @@
       "Bash(grep -m2 '\"@/\\\\*\"' tsconfig.json)",
       "Bash(grep -vE '^\\(api|auth\\)$')",
       "Bash(sed -i \"s/'pharmacy_hospital', //g; s/, 'pharmacy_hospital'//g; s/'pharmacy_hospital'//g\" toolRegistry.ts)",
-      "Bash(sed -i \"s/'hospital', //g; s/, 'hospital'//g; s/'hospital'//g\" toolRegistry.ts)"
+      "Bash(sed -i \"s/'hospital', //g; s/, 'hospital'//g; s/'hospital'//g\" toolRegistry.ts)",
+      "WebSearch",
+      "WebFetch(domain:cm-feira.pt)",
+      "WebFetch(domain:via-senior.com)",
+      "WebFetch(domain:www.pai.pt)",
+      "WebFetch(domain:www.misericordia-feira.pt)",
+      "WebFetch(domain:rede-social.cm-feira.pt)",
+      "Bash(sed -i -e 's/Exclusivo Student\\\\./Exclusivo Plus./g' app/hive/page.tsx app/tutor/page.tsx app/ficha/page.tsx)",
+      "Bash(sed -i -e 's/· Student/· Plus/g' app/tutor/page.tsx app/osce/page.tsx app/biblioteca/page.tsx app/simulador/page.tsx app/ficha/page.tsx)",
+      "Bash(sed -i -e 's/Ver Student →/Ver plano Plus →/g' app/biblioteca/page.tsx app/study360/page.tsx)",
+      "Bash(sed -i -e 's/Estudo · Student/Estudo · Plus/g' app/biblioteca/page.tsx)",
+      "Bash(sed -i -e 's/Student · Premium/Plus · Premium/g' app/study360/page.tsx)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
+      "Bash(grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
+      "Bash(grep -n -A3 \"Type error\" /tmp/phlox_build.log | head -12)",
+      "Bash(grep -n \"^./app\" /tmp/phlox_build.log | head -3)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; echo \"--- error context \\(if any\\) ---\"; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -16)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A3 \"Type error\" /tmp/phlox_build.log | head -10)",
+      "Bash(node scripts/check-vocab.mjs)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -14)"
     ]
   }
 }

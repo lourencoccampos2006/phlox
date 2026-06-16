@@ -20,6 +20,8 @@ import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
 import { useAuth } from '@/components/AuthContext'
 import ShareCard from '@/components/ShareCard'
+import { useUsageLimit } from '@/lib/useUsageLimit'
+import UpgradeNudge from '@/components/UpgradeNudge'
 
 interface Result {
   identified: string
@@ -68,13 +70,14 @@ const RX_META: Record<Result['prescription'], { label: string; color: string; bg
 // Página própria outra vez (a fusão em /scan foi desfeita). Mantém pesquisa por
 // texto E foto. É o componente exportado como default.
 export default function MedicamentoTool() {
-  const { user } = useAuth() as any
+  const { user, supabase } = useAuth() as any
   const [name, setName] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [infomedCode, setInfomedCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
+  const usage = useUsageLimit('medicamento')
 
   // Publica para o Copilot o medicamento pesquisado + resultado
   usePhloxContext(
@@ -87,6 +90,7 @@ export default function MedicamentoTool() {
   async function explain(override?: string) {
     const nm = (typeof override === 'string' ? override : name).trim()
     if (!nm && !photo && !infomedCode.trim()) return
+    if (usage.hit) { setResult(null); setError('limit'); return }
     setLoading(true); setError(''); setResult(null)
     try {
       let payload: any = { name: nm }
@@ -94,12 +98,17 @@ export default function MedicamentoTool() {
       // O código INFARMED/CNPEM, quando fornecido, é a identificação mais fiável.
       // Incluímos sempre que o utilizador o forneceu — funciona como âncora.
       if (infomedCode.trim()) payload.infomed_code = infomedCode.trim()
+      const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/medicamento', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
+      if (res.status === 429 || data.limit_reached) { setError('limit'); return }
       if (!res.ok) throw new Error(data.error || 'Erro')
       setResult(data)
+      usage.increment()
     } catch (e: any) {
       setError(e.message || 'Não foi possível. Tenta uma foto da caixa ou bula em /scan.')
     } finally { setLoading(false) }
@@ -211,7 +220,14 @@ export default function MedicamentoTool() {
             </div>
           </details>
 
-          {error && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{error}</div>}
+          {error === 'limit'
+            ? <UpgradeNudge used={usage.used} limit={usage.limit} what="consultas de medicamento" plan="pro" />
+            : error && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{error}</div>}
+          {!usage.unlimited && !result && error !== 'limit' && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 10, textAlign: 'center' }}>
+              {usage.remaining} de {usage.limit} consultas grátis hoje
+            </div>
+          )}
         </div>
 
         {/* Loading skeleton */}

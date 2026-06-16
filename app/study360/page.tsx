@@ -1,6 +1,6 @@
 'use client'
 
-// /study360 — Hub do plano Student.
+// /study360 — Hub do plano Plus.
 //   • SRS: cards para rever hoje (algoritmo SM-2)
 //   • Plano de estudo: criar plano por data de exame + tópicos
 //   • Pomodoro: timer de sessão com track de minutos/dia
@@ -32,9 +32,9 @@ export default function Study360() {
       <div className="page-container page-body" style={{ maxWidth: 520, textAlign: 'center' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28 }}>Estudo 360°</h1>
         <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, marginBottom: 24 }}>
-          Algoritmo de revisão SM-2 (Anki), plano por data de exame e sessões com tracker. Disponível no plano Student.
+          Algoritmo de revisão SM-2 (Anki), plano por data de exame e sessões com tracker. Disponível no plano Plus.
         </p>
-        <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700 }}>Ver Student →</Link>
+        <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700 }}>Ver plano Plus →</Link>
       </div>
     </div>
   )
@@ -43,7 +43,7 @@ export default function Study360() {
     <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 980 }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Student · Premium</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Plus · Premium</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', margin: 0, fontWeight: 400, letterSpacing: '-0.02em' }}>Estudo 360°</h1>
           <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Algoritmo de revisão espaçada, plano por exame, Pomodoro e métricas.</p>
         </div>

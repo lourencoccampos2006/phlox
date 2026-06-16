@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 interface FamilyContact {
   id: string
@@ -73,6 +75,10 @@ const TEMPLATES = [
 
 export default function FamilyPage() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const person = cfg.personNoun
+  const personLower = person.toLowerCase()
   const [tab, setTab] = useState<'conversa' | 'messages' | 'visits' | 'contacts'>('conversa')
   const [contacts, setContacts] = useState<FamilyContact[]>([])
   const [messages, setMessages] = useState<FamilyMessage[]>([])
@@ -210,7 +216,7 @@ export default function FamilyPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Portal Família</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Comunicação com familiares e tutores legais dos residentes</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Comunicação com familiares e tutores legais dos {cfg.personNounPlural.toLowerCase()}</p>
         </div>
         <button
           onClick={() => setShowCompose(true)}
@@ -268,7 +274,7 @@ export default function FamilyPage() {
         <>
           {/* Conversa tab — fio em tempo real lar↔família por residente */}
           {tab === 'conversa' && (
-            <FamilyThread patients={patients} contacts={enrichedContacts} user={user} supabase={supabase}
+            <FamilyThread patients={patients} contacts={enrichedContacts} user={user} supabase={supabase} cfg={cfg}
               unreadByPt={unreadByPt} onRead={(pid: string) => setUnreadByPt(prev => { const n = { ...prev }; delete n[pid]; return n })} />
           )}
 
@@ -327,7 +333,7 @@ export default function FamilyPage() {
                     </div>
                     <div style={{ fontWeight: 700, fontSize: 16, color: '#0b1120', marginBottom: 8 }}>{selected.subject}</div>
                     <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
-                      {selected.patient_name && <div><strong>Residente:</strong> {selected.patient_name}</div>}
+                      {selected.patient_name && <div><strong>{person}:</strong> {selected.patient_name}</div>}
                       {selected.contact_name && <div><strong>Familiar:</strong> {selected.contact_name}</div>}
                       <div><strong>Data:</strong> {new Date(selected.created_at).toLocaleString('pt-PT')}</div>
                     </div>
@@ -362,7 +368,7 @@ export default function FamilyPage() {
                       <div key={v.id} style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 200 }}>
                           <div style={{ fontWeight: 600, fontSize: 14, color: '#0b1120' }}>
-                            {v.contact_name || 'Familiar'} → {v.patient_name || 'Residente'}
+                            {v.contact_name || 'Familiar'} → {v.patient_name || person}
                           </div>
                           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>
                             📅 {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })} às {v.requested_time}
@@ -401,7 +407,7 @@ export default function FamilyPage() {
             const groups = new Map<string, { patientName: string; room?: string; contacts: FamilyContact[] }>()
             filtered.forEach(c => {
               const key = c.patient_id || 'sem'
-              if (!groups.has(key)) groups.set(key, { patientName: c.patient_name || 'Sem residente', room: c.patient_room, contacts: [] })
+              if (!groups.has(key)) groups.set(key, { patientName: c.patient_name || `Sem ${personLower}`, room: c.patient_room, contacts: [] })
               groups.get(key)!.contacts.push(c)
             })
             const groupList = Array.from(groups.values()).sort((a, b) => a.patientName.localeCompare(b.patientName))
@@ -410,14 +416,14 @@ export default function FamilyPage() {
                 {enrichedContacts.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
                     <div style={{ fontWeight: 600, color: '#374151' }}>Sem contactos familiares</div>
-                    <div style={{ fontSize: 13, marginTop: 4 }}>Adiciona contactos no perfil de cada residente</div>
+                    <div style={{ fontSize: 13, marginTop: 4 }}>Adiciona contactos no perfil de cada {personLower}</div>
                   </div>
                 ) : (
                   <>
                     <input
                       value={contactSearch}
                       onChange={e => setContactSearch(e.target.value)}
-                      placeholder="Pesquisar por contacto, residente, parentesco ou telefone..."
+                      placeholder={`Pesquisar por contacto, ${personLower}, parentesco ou telefone...`}
                       style={{ width: '100%', maxWidth: 420, marginBottom: 18, padding: '9px 13px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }}
                     />
                     {groupList.length === 0 ? (
@@ -493,7 +499,7 @@ export default function FamilyPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Residente *</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{person} *</label>
                   <select value={compose.patient_id} onChange={e => setCompose(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
                     <option value="">Selecionar...</option>
                     {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` (Q.${p.room_number})` : ''}</option>)}
@@ -552,7 +558,7 @@ export default function FamilyPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="vf-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Residente *</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{person} *</label>
                   <select value={visitForm.patient_id} onChange={e => setVisitForm(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
                     <option value="">Selecionar...</option>
                     {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` (Q.${p.room_number})` : ''}</option>)}
@@ -585,7 +591,7 @@ export default function FamilyPage() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Notas</label>
-                <textarea value={visitForm.notes} onChange={e => setVisitForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Ex: trouxe roupa lavada, almoçou com o residente..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+                <textarea value={visitForm.notes} onChange={e => setVisitForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder={`Ex: trouxe roupa lavada, almoçou com o/a ${personLower}...`} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
               </div>
               <button onClick={saveVisit} disabled={!visitForm.patient_id || savingVisit}
                 style={{ padding: '12px 20px', background: visitForm.patient_id ? '#7c3aed' : '#e5e7eb', color: visitForm.patient_id ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: visitForm.patient_id ? 'pointer' : 'default', marginTop: 4 }}>
@@ -634,7 +640,7 @@ const ACTIVITY_OPTS = [
 ]
 const optLabel = (arr: { v: string; label: string; emoji: string }[], v?: string) => arr.find(o => o.v === v)
 
-function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }: any) {
+function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, cfg }: any) {
   const [patientId, setPatientId] = useState('')
   const [msgs, setMsgs] = useState<ThreadMsg[]>([])
   const [loading, setLoading] = useState(false)
@@ -774,9 +780,9 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
     <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 320px)', minHeight: 420 }}>
       {/* Lista de residentes */}
       <div className="ft-list" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflowY: 'auto' }}>
-        <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Residentes</div>
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{cfg.personNounPlural}</div>
         {patients.length === 0 ? (
-          <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>Sem residentes.</div>
+          <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>Sem {cfg.personNounPlural.toLowerCase()}.</div>
         ) : patients.map((p: Patient) => {
           const active = p.id === patientId
           const nContacts = contacts.filter((c: FamilyContact) => c.patient_id === p.id).length
@@ -801,7 +807,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead }
         {!patientId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: 8, padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 36 }}>💬</div>
-            <div style={{ fontWeight: 600, color: '#374151' }}>Seleciona um residente</div>
+            <div style={{ fontWeight: 600, color: '#374151' }}>Seleciona {cfg.personNounIndef}</div>
             <div style={{ fontSize: 13, maxWidth: 320, lineHeight: 1.5 }}>Conversa direta com a família, com atualizações, fotos e boletins de bem-estar — tudo registado no Phlox.</div>
           </div>
         ) : (

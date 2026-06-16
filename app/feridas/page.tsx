@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 // Fundido no "Registo do dia" (/care-log) como aba "Feridas" (FeridasTool
 // reutilizado). A rota /feridas redireciona p/ não partir links antigos.
@@ -64,6 +66,10 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 export function FeridasTool() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const person = cfg.personNoun
+  const personLower = person.toLowerCase()
   const [patients, setPatients] = useState<Patient[]>([])
   const [wounds, setWounds] = useState<Wound[]>([])
   const [assessments, setAssessments] = useState<WAssessment[]>([])
@@ -174,8 +180,8 @@ export function FeridasTool() {
 
   useEffect(() => { load() }, [load])
 
-  const nameOf = (id: string) => patients.find(p => p.id === id)?.name || 'Residente'
-  const roomOf = (id: string) => { const r = patients.find(p => p.id === id)?.room_number; return r ? `Q${r}` : '' }
+  const nameOf = (id: string) => patients.find(p => p.id === id)?.name || person
+  const roomOf = (id: string) => { if (!cfg.hasBeds) return ''; const r = patients.find(p => p.id === id)?.room_number; return r ? `${cfg.roomLabel[0]}${r}` : '' }
   const woundAssessments = (wid: string) => assessments.filter(a => a.wound_id === wid).sort((x, y) => x.date.localeCompare(y.date))
 
   // latest known measurements (from assessments or wound base)
@@ -268,8 +274,8 @@ export function FeridasTool() {
       title: `${TYPE_LABELS[w.type]} · ${w.location}`,
       tags: [{ label: STATUS_CFG[w.status].label, color: STATUS_CFG[w.status].color }, ...(w.stage ? [{ label: STAGE_CFG[w.stage]?.label || w.stage, color: STAGE_CFG[w.stage]?.color || '#64748b' }] : [])],
       fields: [
-        { label: 'Residente', value: nameOf(w.patient_id) },
-        { label: 'Quarto', value: roomOf(w.patient_id) || '—' },
+        { label: person, value: nameOf(w.patient_id) },
+        ...(cfg.hasBeds ? [{ label: cfg.roomLabel, value: roomOf(w.patient_id) || '—' }] : []),
         { label: 'Início', value: w.onset_date || '—' },
         { label: 'Dias em evolução', value: String(daysSince(w.onset_date) ?? '—') },
         { label: 'Dimensão atual', value: latestArea(w) != null ? `${latestArea(w)} cm²` : '—' },
@@ -564,7 +570,7 @@ export function FeridasTool() {
                   {fl === 'open' ? 'Em curso' : fl === 'healed' ? 'Cicatrizadas' : 'Todas'}
                 </button>
               ))}
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar residente ou local..." style={{ ...inp, width: 240, flex: '0 1 240px', marginLeft: 'auto' }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${personLower} ou local...`} style={{ ...inp, width: 240, flex: '0 1 240px', marginLeft: 'auto' }} />
             </div>
 
             {loading ? (
@@ -611,10 +617,10 @@ export function FeridasTool() {
       {showAdd && (
         <Modal title="Registar ferida" onClose={() => setShowAdd(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div><span style={lbl}>Residente *</span>
+            <div><span style={lbl}>{person} *</span>
               <select value={wForm.patient_id} onChange={e => setWForm({ ...wForm, patient_id: e.target.value })} style={inp}>
                 <option value="">Selecionar...</option>
-                {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` — Q${p.room_number}` : ''}</option>)}
+                {patients.map(p => <option key={p.id} value={p.id}>{p.name}{cfg.hasBeds && p.room_number ? ` — ${cfg.roomLabel[0]}${p.room_number}` : ''}</option>)}
               </select>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

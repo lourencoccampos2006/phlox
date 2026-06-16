@@ -390,8 +390,8 @@ export default function ArenaPage() {
             <LeagueIcon id="diamond" size={56} color="#7c3aed" />
           </div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:'var(--ink)', marginBottom:12 }}>Phlox Arena</div>
-          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:28 }}>Bronze → Diamante. Casos de 8 domínios. XP real. Leaderboard global. Disponível no plano Student.</p>
-          <Link href="/pricing" style={{ display:'inline-block', background:'#7c3aed', color:'white', textDecoration:'none', padding:'13px 32px', borderRadius:8, fontSize:14, fontWeight:700 }}>Ver plano Student →</Link>
+          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:28 }}>Bronze → Diamante. Casos de 8 domínios. XP real. Leaderboard global. Disponível no plano Plus.</p>
+          <Link href="/pricing" style={{ display:'inline-block', background:'#7c3aed', color:'white', textDecoration:'none', padding:'13px 32px', borderRadius:8, fontSize:14, fontWeight:700 }}>Ver plano Plus →</Link>
         </div>
       </div>
     </div>

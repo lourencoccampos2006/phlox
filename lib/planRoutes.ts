@@ -21,20 +21,24 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/api-keys', min: 'clinic', tool: 'Chaves de API', note: 'API pública com chaves rotáveis, scopes e rate limit por chave.' },
   { prefix: '/sso-config', min: 'clinic', tool: 'SSO Empresarial', note: 'SAML/OIDC com Microsoft Entra ID, Google Workspace e Okta.' },
 
-  // ── Pro (individual avançado) ──
+  // ── Pro: pessoa / cuidador avançado ──
+  { prefix: '/saude360', min: 'pro', tool: 'Saúde 360°', note: 'A tua saúde toda num só sítio: adesão à medicação, análises, agenda e o que precisa de atenção.' },
+  { prefix: '/relatorio', min: 'pro', tool: 'Relatório semanal', note: 'Resumo por IA de como correu a tua semana de saúde.' },
+  { prefix: '/familia360', min: 'pro', tool: 'Família 360°', note: 'Tudo de quem cuidas num só painel: medicação, mensagens e sobrecarga do cuidador (Zarit).' },
+
+  // ── Pro: ferramentas clínicas individuais ──
   { prefix: '/motor-clinico', min: 'pro', tool: 'Decision Engine', note: 'Motor de regras clínicas determinístico, com 25+ regras (STOPP/Beers/renal/QTc/anticolinérgico).' },
   { prefix: '/vigia', min: 'pro', tool: 'Vigia Clínico do Lar', note: 'Vigilância farmacológica automática de todos os residentes — interações, STOPP/Beers, polimedicação, priorizado por risco.' },
   { prefix: '/copiloto', min: 'pro', tool: 'AI Copilot clínico', note: 'IA ancorada no Decision Engine — cita cada recomendação por id de regra.' },
   { prefix: '/insights', min: 'pro', tool: 'Phlox Insights', note: 'Benchmarks anonimizados contra o pool do mesmo tipo de instituição.' },
   { prefix: '/reconciliacao', min: 'pro', tool: 'Reconciliação Terapêutica', note: 'Reconciliação de medicação na transição de cuidados.' },
-  { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação.' },
   { prefix: '/med-review', min: 'pro', tool: 'Revisão da Medicação', note: 'Revisão farmacoterapêutica avançada.' },
   { prefix: '/tpn', min: 'pro', tool: 'Nutrição Parentérica (TPN)', note: 'Cálculo e validação de TPN.' },
   { prefix: '/stopp-start', min: 'pro', tool: 'STOPP/START', note: 'Critérios de prescrição potencialmente inapropriada.' },
-  { prefix: '/labs', min: 'student', tool: 'Interpretação de Análises', note: 'Leitura guiada de análises.' },
 
   // ── Estudo (Plus) ──
-  { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico' },
+  { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação por IA.' },
+  { prefix: '/labs', min: 'student', tool: 'Interpretação de Análises', note: 'Leitura guiada de análises.' },
   { prefix: '/osce', min: 'student', tool: 'OSCE' },
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },
   { prefix: '/tutor', min: 'student', tool: 'AI Tutor' },

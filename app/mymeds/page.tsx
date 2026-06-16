@@ -10,6 +10,8 @@ import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { startClientReminderLoop, stopClientReminderLoop } from '@/lib/clientReminder'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import { useUsageLimit } from '@/lib/useUsageLimit'
+import UpgradeNudge from '@/components/UpgradeNudge'
 
 interface ScannedMed {
   name: string; dose: string|null; frequency: string|null; indication: string|null; selected: boolean
@@ -282,6 +284,8 @@ export default function MyMedsPage() {
 
   const plan = (user?.plan || 'free') as string
   const canAnalyse = plan !== 'free'
+  // Chat com a medicação: ilimitado no Pro; provadela limitada nos outros planos.
+  const chatUsage = useUsageLimit('chat_med')
 
   // ─── Load meds + today's logs ─────────────────────────────────────────────────
 
@@ -631,8 +635,10 @@ export default function MyMedsPage() {
   const sendChat = async (messageText?: string) => {
     const text = (messageText ?? chatInput).trim()
     if (!text || chatLoading) return
+    if (chatUsage.hit) { return }   // limite atingido → mostramos o nudge na UI
     setChatMessages(prev => [...prev, { role: 'user', content: text }])
     setChatInput(''); setChatLoading(true)
+    chatUsage.increment()
     try {
       const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/chat-med', {
@@ -641,6 +647,12 @@ export default function MyMedsPage() {
         body: JSON.stringify({ message: text, meds: meds.map(m => ({ name: m.name, dose: m.dose, frequency: m.frequency })), history: chatMessages.slice(-6), familyProfile: activeProfile?.type === 'family' ? { name: familyProfileData?.name || activeProfile.name, age: familyProfileData?.age, conditions: familyProfileData?.conditions, allergies: familyProfileData?.allergies } : null }),
       })
       const data = await res.json()
+      if (res.status === 429 || data.limit_reached) {
+        // O servidor confirmou o limite (fonte de verdade). Mostra mensagem clara.
+        setChatMessages(prev => [...prev, { role: 'assistant', content: `Chegaste ao limite de perguntas grátis de hoje. Com o Pro o chat com a tua medicação é ilimitado — vê em /pricing. O limite renova à meia-noite.` }])
+        setChatLoading(false)
+        return
+      }
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Não consegui responder. Tenta novamente.' }])
     } catch {
       setChatMessages(prev => [...prev, { role: 'assistant', content: 'Erro ao contactar o assistente.' }])
@@ -859,7 +871,7 @@ export default function MyMedsPage() {
                 <span style={{ fontSize:20, flexShrink:0 }}>⚡</span>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:13, fontWeight:700, color:'var(--green-2)', marginBottom:2 }}>Verifica as interações entre os teus {meds.length} medicamentos</div>
-                  <div style={{ fontSize:12, color:'var(--green-2)', opacity:0.8 }}>Disponível no plano Student — 3,99€/mês</div>
+                  <div style={{ fontSize:12, color:'var(--green-2)', opacity:0.8 }}>Disponível no plano Plus — 3,99€/mês</div>
                 </div>
                 <Link href="/pricing" style={{ padding:'8px 14px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:7, fontSize:12, fontWeight:700, flexShrink:0 }}>Desbloquear →</Link>
               </div>
@@ -1010,7 +1022,7 @@ export default function MyMedsPage() {
                 <div style={{ fontSize:36, marginBottom:12 }}>⚡</div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Sem análise ainda</div>
                 <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>
-                  {!canAnalyse ? 'Requer plano Student.' : meds.length < 2 ? 'Adiciona pelo menos 2 medicamentos.' : 'Clica em "Analisar" para verificar.'}
+                  {!canAnalyse ? 'Requer plano Plus.' : meds.length < 2 ? 'Adiciona pelo menos 2 medicamentos.' : 'Clica em "Analisar" para verificar.'}
                 </div>
                 {canAnalyse && meds.length >= 2 && (
                   <button onClick={analyse} disabled={analysing}
@@ -1018,7 +1030,7 @@ export default function MyMedsPage() {
                     Analisar agora →
                   </button>
                 )}
-                {!canAnalyse && <Link href="/pricing" style={{ display:'inline-block', padding:'11px 22px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:8, fontSize:13, fontWeight:700 }}>Ver plano Student →</Link>}
+                {!canAnalyse && <Link href="/pricing" style={{ display:'inline-block', padding:'11px 22px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:8, fontSize:13, fontWeight:700 }}>Ver plano Plus →</Link>}
               </div>
             )}
             {analysed && alerts.length === 0 && (
@@ -1102,20 +1114,24 @@ export default function MyMedsPage() {
               )}
               <div ref={chatEndRef} />
             </div>
-            <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)', background:'var(--bg)' }}>
-              <input value={chatInput} onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChat() } }}
-                placeholder={meds.length > 0 ? 'Pergunta sobre os teus medicamentos...' : 'Adiciona medicamentos primeiro...'}
-                disabled={chatLoading}
-                style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', fontSize:13, outline:'none', background:'white', fontFamily:'var(--font-sans)' }} />
-              <button onClick={() => sendChat()} disabled={!chatInput.trim() || chatLoading}
-                style={{ padding:'11px 18px', background:chatInput.trim()?'var(--green)':'var(--bg-3)', color:chatInput.trim()?'white':'var(--ink-5)', border:'none', borderRadius:24, cursor:chatInput.trim()?'pointer':'default', fontSize:13, fontWeight:700, flexShrink:0 }}>
-                →
-              </button>
-            </div>
-            <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', textAlign:'center', marginTop:8 }}>
-              Informativo — não substitui aconselhamento médico.
-            </div>
+            {chatUsage.hit
+              ? <UpgradeNudge used={chatUsage.used} limit={chatUsage.limit} what="perguntas à tua medicação" plan="pro" />
+              : <>
+                  <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)', background:'var(--bg)' }}>
+                    <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChat() } }}
+                      placeholder={meds.length > 0 ? 'Pergunta sobre os teus medicamentos...' : 'Adiciona medicamentos primeiro...'}
+                      disabled={chatLoading}
+                      style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:24, padding:'11px 16px', fontSize:13, outline:'none', background:'white', fontFamily:'var(--font-sans)' }} />
+                    <button onClick={() => sendChat()} disabled={!chatInput.trim() || chatLoading}
+                      style={{ padding:'11px 18px', background:chatInput.trim()?'var(--green)':'var(--bg-3)', color:chatInput.trim()?'white':'var(--ink-5)', border:'none', borderRadius:24, cursor:chatInput.trim()?'pointer':'default', fontSize:13, fontWeight:700, flexShrink:0 }}>
+                      →
+                    </button>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', textAlign:'center', marginTop:8 }}>
+                    Informativo — não substitui aconselhamento médico.{!chatUsage.unlimited && ` · ${chatUsage.remaining} perguntas grátis hoje`}
+                  </div>
+                </>}
           </div>
         )}
 

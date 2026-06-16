@@ -5,6 +5,8 @@ import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
 import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 // /assessments é agora "Avaliações e planos": escalas (Barthel, MNA…) + planos
 // de cuidados, em abas. Cada aba é o componente original intacto.
@@ -191,6 +193,10 @@ function trendInfo(scale: ScaleType, current: number, prev: number | null) {
 // ── Component ─────────────────────────────────────────────────────────────────
 function AssessmentsTool() {
   const { user, supabase } = useAuth()
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const person = cfg.personNoun
+  const personLower = person.toLowerCase()
   const [tab, setTab] = useState<ScaleType>('barthel')
   const [patients, setPatients] = useState<Patient[]>([])
   const [records, setRecords] = useState<AssessmentRecord[]>([])
@@ -264,7 +270,7 @@ function AssessmentsTool() {
     const pat = patients.find(p => p.id === patientId)
     const levelOf = (s: number) => (tab === 'barthel' ? barthelLevel(s) : tab === 'braden' ? bradenLevel(s) : tab === 'morse' ? morseLevel(s) : tab === 'mmse' ? mmseLevel(s) : mnaLevel(s)).label
     printDoc({
-      docTitle: `${SCALES[tab].label} — ${pat?.name || 'Residente'}`,
+      docTitle: `${SCALES[tab].label} — ${pat?.name || person}`,
       docSubtitle: SCALES[tab].desc,
       author: evaluatedBy || undefined,
       meta: [
@@ -330,7 +336,7 @@ function AssessmentsTool() {
               {[
                 { label: 'Avaliações hoje', value: records.filter(r => r.date === new Date().toISOString().slice(0,10)).length },
                 { label: 'Total registadas', value: records.length },
-                { label: 'Residentes', value: new Set(records.map(r => r.patient_id)).size },
+                { label: cfg.personNounPlural, value: new Set(records.map(r => r.patient_id)).size },
               ].map(s => (
                 <div key={s.label} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 14px', textAlign: 'center' }}>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>{s.value}</div>
@@ -394,9 +400,9 @@ function AssessmentsTool() {
               {/* Patient + date controls */}
               <div className="assess-controls" style={{ display: 'grid', gridTemplateColumns: '1fr 160px 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
-                  <label style={labelStyle}>Residente</label>
+                  <label style={labelStyle}>{person}</label>
                   <select style={inputStyle} value={patientId} onChange={e => setPatientId(e.target.value)}>
-                    <option value="">Seleccionar residente…</option>
+                    <option value="">{`Seleccionar ${personLower}…`}</option>
                     {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}</option>)}
                   </select>
                 </div>
@@ -497,7 +503,7 @@ function AssessmentsTool() {
                   {(patientId ? patientRecords : allTabRecords).length === 0 ? (
                     <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
                       <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-                      <div style={{ fontSize: 13 }}>Sem avaliações{patientId ? ' para este residente' : ''}.</div>
+                      <div style={{ fontSize: 13 }}>Sem avaliações{patientId ? ` para este ${personLower}` : ''}.</div>
                     </div>
                   ) : (patientId ? patientRecords : allTabRecords).map(r => {
                     const lvl = tab === 'barthel' ? barthelLevel(r.score) : tab === 'braden' ? bradenLevel(r.score) : tab === 'morse' ? morseLevel(r.score) : tab === 'mmse' ? mmseLevel(r.score) : mnaLevel(r.score)

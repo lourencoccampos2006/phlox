@@ -16,7 +16,15 @@ export interface InstitutionConfig {
   personNoun: string        // "Residente" | "Utente" | "Doente"
   personNounPlural: string
   personShort: string       // singular curto para KPIs
+  personNounIndef: string   // "um residente" | "um utente" — para frases
   unitNoun: string          // "Lar" | "Farmácia" | "Clínica" | ...
+  // Vocabulário fino das ferramentas (evita "Residente"/"Evento do lar" hardcoded)
+  noPersonEventLabel: string   // opção "sem pessoa associada" na agenda/eventos
+  appointmentNoun: string      // "Marcação" | "Atendimento" | "Consulta"
+  appointmentNounPlural: string
+  roomLabel: string            // "Quarto" | "Posto" | "Gabinete" | "—"
+  addPersonCta: string         // "Adicionar residente" | "Adicionar utente"
+  emptyPeopleMsg: string       // mensagem quando não há pessoas ainda
   // Capacidades (que módulos fazem sentido)
   hasBeds: boolean          // ocupação de camas/quartos
   hasShifts: boolean        // turnos manhã/tarde/noite
@@ -35,7 +43,9 @@ export interface InstitutionConfig {
 
 const CFG: Record<InstitutionType, InstitutionConfig> = {
   nursing_home: {
-    personNoun: 'Residente', personNounPlural: 'Residentes', personShort: 'Residentes', unitNoun: 'Lar / ERPI',
+    personNoun: 'Residente', personNounPlural: 'Residentes', personShort: 'Residentes', personNounIndef: 'um residente', unitNoun: 'Lar / ERPI',
+    noPersonEventLabel: 'Evento do lar', appointmentNoun: 'Marcação', appointmentNounPlural: 'Marcações',
+    roomLabel: 'Quarto', addPersonCta: 'Adicionar residente', emptyPeopleMsg: 'Ainda não há residentes registados.',
     hasBeds: true, hasShifts: true, hasMAR: true, hasWounds: true, hasWaitingRoom: false,
     hasAppointments: true, hasWalkins: false, hasFamilies: true, hasDispensing: false, hasScreenings: false,
     revenue: 'monthly_fee', currencyFlow: 'Mensalidades e comparticipações',
@@ -44,25 +54,33 @@ const CFG: Record<InstitutionType, InstitutionConfig> = {
     // Centro de Dia: o utente vem de dia e volta a casa à noite. Não há camas
     // nem turno da noite. A medicação é só a do horário do dia. A família vê o
     // utente todos os dias — o portal de famílias é central.
-    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', unitNoun: 'Centro de Dia',
+    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', personNounIndef: 'um utente', unitNoun: 'Centro de Dia',
+    noPersonEventLabel: 'Evento do centro', appointmentNoun: 'Marcação', appointmentNounPlural: 'Marcações',
+    roomLabel: 'Sala', addPersonCta: 'Adicionar utente', emptyPeopleMsg: 'Ainda não há utentes registados.',
     hasBeds: false, hasShifts: false, hasMAR: true, hasWounds: false, hasWaitingRoom: false,
     hasAppointments: true, hasWalkins: false, hasFamilies: true, hasDispensing: false, hasScreenings: false,
     revenue: 'monthly_fee', currencyFlow: 'Mensalidades e comparticipações',
   },
   pharmacy_community: {
-    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', unitNoun: 'Farmácia',
+    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', personNounIndef: 'um utente', unitNoun: 'Farmácia',
+    noPersonEventLabel: 'Evento da farmácia', appointmentNoun: 'Atendimento', appointmentNounPlural: 'Atendimentos',
+    roomLabel: 'Posto', addPersonCta: 'Adicionar utente', emptyPeopleMsg: 'Ainda não há utentes com ficha.',
     hasBeds: false, hasShifts: true, hasMAR: false, hasWounds: false, hasWaitingRoom: true,
     hasAppointments: false, hasWalkins: true, hasFamilies: false, hasDispensing: true, hasScreenings: true,
     revenue: 'pos_sales', currencyFlow: 'Vendas e dispensa ao balcão',
   },
   clinic: {
-    personNoun: 'Doente', personNounPlural: 'Doentes', personShort: 'Doentes', unitNoun: 'Clínica',
+    personNoun: 'Doente', personNounPlural: 'Doentes', personShort: 'Doentes', personNounIndef: 'um doente', unitNoun: 'Clínica',
+    noPersonEventLabel: 'Evento da clínica', appointmentNoun: 'Consulta', appointmentNounPlural: 'Consultas',
+    roomLabel: 'Gabinete', addPersonCta: 'Adicionar doente', emptyPeopleMsg: 'Ainda não há doentes registados.',
     hasBeds: false, hasShifts: false, hasMAR: false, hasWounds: false, hasWaitingRoom: true,
     hasAppointments: true, hasWalkins: true, hasFamilies: false, hasDispensing: false, hasScreenings: true,
     revenue: 'fee_for_service', currencyFlow: 'Atos clínicos e recibos',
   },
   health_center: {
-    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', unitNoun: 'Centro de Saúde / USF',
+    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', personNounIndef: 'um utente', unitNoun: 'Centro de Saúde / USF',
+    noPersonEventLabel: 'Evento da unidade', appointmentNoun: 'Consulta', appointmentNounPlural: 'Consultas',
+    roomLabel: 'Gabinete', addPersonCta: 'Adicionar utente', emptyPeopleMsg: 'Ainda não há utentes registados.',
     hasBeds: false, hasShifts: true, hasMAR: false, hasWounds: false, hasWaitingRoom: true,
     hasAppointments: true, hasWalkins: true, hasFamilies: false, hasDispensing: false, hasScreenings: true,
     revenue: 'fee_for_service', currencyFlow: 'Atos e taxas moderadoras',

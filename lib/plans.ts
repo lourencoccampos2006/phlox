@@ -26,56 +26,64 @@ export interface PlanDef {
 
 export const PLANS: PlanDef[] = [
   {
-    id: 'free', name: 'Base', tagline: 'Para começar — com anúncios', price: { monthly: 0, annual: 0, annualTotal: 0 },
+    id: 'free', name: 'Base', tagline: 'Para experimentar — com anúncios', price: { monthly: 0, annual: 0, annualTotal: 0 },
     rank: 0, ads: true, color: '#475569', cta: 'Começar grátis', href: '/login', audience: 'individual',
     features: [
       'Ferramentas essenciais do teu perfil',
-      'Verificar interações (5/dia)',
-      'Assistente Phlox (5/dia)',
-      'Perceber bulas e análises (limitado)',
+      'Phlox Scan — 3 fotos/dia',
+      'Verificar interações (3/dia)',
+      'Perguntar à IA de saúde (3/dia)',
+      'Lembretes de toma básicos',
       'Com anúncios discretos',
     ],
   },
   {
-    id: 'student', name: 'Plus', tagline: 'Mais ferramentas, sem anúncios', price: { monthly: 3.99, annual: 3.19, annualTotal: 38.28 },
+    id: 'student', name: 'Plus', tagline: 'Para estudantes de saúde — sem anúncios', price: { monthly: 3.99, annual: 3.19, annualTotal: 38.28 },
     rank: 1, ads: false, color: '#7c3aed', cta: 'Escolher Plus', href: '/checkout?plan=student', audience: 'individual',
     features: [
       'Tudo do Base, sem anúncios',
-      'Limites muito mais altos (50/dia)',
-      'Estudo: Arena, flashcards, AI Tutor',
-      'Relatórios e objetivos de saúde',
-      'Histórico guardado',
+      'Estudo sem limites: flashcards, Arena, AI Tutor',
+      'Simulador clínico, OSCE e Modo Exame',
+      'Interpretar análises e ECGs com IA',
+      'Estágio: doentes, diário e relatórios',
+      'Limites mais altos nas ferramentas de saúde (30/dia)',
     ],
   },
   {
-    id: 'pro', name: 'Pro', tagline: 'Tudo desbloqueado, sem limites', price: { monthly: 12.99, annual: 10.39, annualTotal: 124.68 },
+    id: 'pro', name: 'Pro', tagline: 'Para quem leva a saúde a sério — pessoas, cuidadores e profissionais', price: { monthly: 12.99, annual: 10.39, annualTotal: 124.68 },
     rank: 2, ads: false, highlight: true, badge: 'Mais popular', color: '#0d6e42', cta: 'Escolher Pro', href: '/checkout?plan=pro', audience: 'individual',
     features: [
-      'Tudo do Plus, sem limites',
-      'IA clínica avançada',
-      'Simulador clínico e OSCE',
-      'Todas as ferramentas individuais',
+      'Tudo sem anúncios e sem limites diários',
+      'Lembretes de toma no telemóvel (push) + confirmação',
+      'Phlox Scan e IA de saúde ilimitados',
+      'Chat com a tua medicação — pergunta em português',
+      'Saúde 360°: adesão, análises e agenda num só sítio',
+      'Partilhar a tua saúde com família e médico (QR)',
+      'Ferramentas clínicas individuais: revisão de medicação, motor clínico, OSCE',
       'Suporte prioritário',
     ],
   },
   {
-    id: 'clinic', name: 'Institucional', tagline: 'Para lares, farmácias e organizações', price: { monthly: 149, annual: 124.08, annualTotal: 1489 },
+    id: 'clinic', name: 'Institucional', tagline: 'Para lares, centros de dia e farmácias', price: { monthly: 149, annual: 124.08, annualTotal: 1489 },
     rank: 3, ads: false, color: '#1d4ed8', cta: 'Falar connosco', href: '/connect', audience: 'organization',
     features: [
-      'Espaço clínico completo da organização',
-      'Personalização: logo, cores, protocolos, horários',
-      'Painel de gestão, MAR, feridas, escalas',
-      'Equipa, residentes/doentes ilimitados',
+      'Espaço da organização talhado ao tipo (lar, centro de dia, farmácia)',
+      'Personalização: logo, cores, vocabulário, protocolos',
+      'Painel por instituição, MAR, feridas, escalas, balcão',
+      'Equipa, residentes/utentes/doentes ilimitados',
       'Dados em tempo real entre toda a equipa',
-      'Relatórios e impressões profissionais',
+      'Portal das famílias e relatórios profissionais',
     ],
   },
 ]
 
 // ─── Limites diários por plano (ferramentas "grátis · limitado") ──────────────
+// Base apertado de propósito (experimentar, não viver nele). Plus = estudante:
+// limites de saúde modestos mas estudo SEM limite (gerido no gating, não aqui).
+// Pro/Institucional = sem limites.
 const LIMITS: Record<PlanId, Record<string, number>> = {
-  free:    { interactions: 5, ai: 5, drug_reference: 10, labs: 3, bula: 10, tutor: 5, arena: 3 },
-  student: { interactions: 50, ai: 50, drug_reference: 100, labs: 30, bula: 100, tutor: 50, arena: 30 },
+  free:    { interactions: 3, ai: 3, drug_reference: 5, labs: 2, scan: 3, medicamento: 5, chat_med: 3, tutor: 5, arena: 3 },
+  student: { interactions: 15, ai: 15, drug_reference: 50, labs: 30, scan: 15, medicamento: 30, chat_med: 10, tutor: Infinity, arena: Infinity },
   pro:     {},
   clinic:  {},
 }

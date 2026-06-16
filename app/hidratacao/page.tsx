@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 // Fundido no "Registo do dia" (/care-log). A hidratação é agora uma aba lá
 // (o HidratacaoTool é reutilizado). A rota /hidratacao redireciona p/ não partir
@@ -22,6 +24,8 @@ const todayStr = () => new Date().toISOString().slice(0, 10)
 
 export function HidratacaoTool() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
   const [logs, setLogs] = useState<Log[]>([])
   const [loading, setLoading] = useState(true)
@@ -125,7 +129,7 @@ export function HidratacaoTool() {
               ))}
             </div>
 
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar residente..." style={{ width: '100%', maxWidth: 280, marginBottom: 14, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${cfg.personNoun.toLowerCase()}...`} style={{ width: '100%', maxWidth: 280, marginBottom: 14, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
 
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 12 }} />)}</div>

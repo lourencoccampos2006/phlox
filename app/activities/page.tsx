@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 // Fundido no "Registo do dia" (/care-log) como aba "Atividades" (AtividadesTool
 // reutilizado). A rota /activities redireciona p/ não partir links antigos.
@@ -72,6 +74,8 @@ function typeFor(id: string) {
 
 export function AtividadesTool() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const [view, setView]         = useState<'today' | 'week' | 'all'>('today')
   const [activities, setActivities] = useState<Activity[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
@@ -222,8 +226,8 @@ export function AtividadesTool() {
             })),
           },
           ...(lowPart.length ? [{
-            heading: 'Residentes com baixa participação (≤1 atividade)',
-            records: [{ title: `${lowPart.length} residente(s)`, bullets: lowPart.map(p => `${p.name}${p.room_number ? ` · Q${p.room_number}` : ''} — ${byPatient[p.id] || 0} participaçõe(s)`) }],
+            heading: `${cfg.personNounPlural} com baixa participação (≤1 atividade)`,
+            records: [{ title: `${lowPart.length} ${cfg.personNoun.toLowerCase()}(s)`, bullets: lowPart.map(p => `${p.name}${cfg.hasBeds && p.room_number ? ` · ${cfg.roomLabel[0]}${p.room_number}` : ''} — ${byPatient[p.id] || 0} participaçõe(s)`) }],
           }] : []),
           { heading: 'Validação', records: [{ title: 'Responsável pela animação', fields: [{ label: 'Nome', value: '' }, { label: 'Assinatura', value: '' }, { label: 'Data', value: '' }] }] },
         ],

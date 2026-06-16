@@ -221,7 +221,7 @@ export default function ShiftSimulatorPage() {
             Gere 3 doentes, toma decisões clínicas sequenciais, recebe score e feedback detalhado do "chefe de serviço".
           </p>
           <Link href="/pricing" style={{ display: 'inline-flex', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '13px 26px', borderRadius: 8, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Activar Student
+            Activar Plus
           </Link>
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function ShiftSimulatorPage() {
         {phase === 'setup' && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: 36 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#7c3aed', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Simulador Student</div>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#7c3aed', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Simulador Plus</div>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 10 }}>Turno Virtual</h1>
               <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.6 }}>
                 3 doentes. Diagnóstico e tratamento farmacológico. Score e feedback no fim.

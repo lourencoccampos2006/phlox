@@ -637,6 +637,15 @@ function QuizMode({ topic, domain, questions, onBack, onSession }: {
 
 export default function StudyPage() {
   const { user, supabase } = useAuth()
+  // Vindo do hub /aprender (?mode=quiz|flashcards) memorizamos a atividade
+  // pretendida para arrancar nesse modo assim que o utilizador escolhe o tópico.
+  const [intent, setIntent] = useState<'quiz' | 'flashcards' | null>(null)
+  useEffect(() => {
+    try {
+      const m = new URLSearchParams(window.location.search).get('mode')
+      if (m === 'quiz' || m === 'flashcards') setIntent(m)
+    } catch {}
+  }, [])
   const [mode, setMode] = useState<StudyMode>('home')
   const [selectedDomain, setSelectedDomain] = useState<typeof DOMAINS[0] | null>(null)
   const [selectedTopic, setSelectedTopic] = useState('')
@@ -746,7 +755,7 @@ export default function StudyPage() {
               <>
                 {/* Header */}
                 <div style={{ marginBottom:28 }}>
-                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8 }}>Plataforma de Estudo · Student</div>
+                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8 }}>Plataforma de Estudo · Plus</div>
                   <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(22px,3vw,32px)', color:'var(--ink)', fontWeight:400, marginBottom:8, letterSpacing:'-0.01em' }}>
                     Todas as áreas das ciências da saúde
                   </h1>
@@ -759,11 +768,11 @@ export default function StudyPage() {
                   <div style={{ background:'#faf5ff', border:'2px solid #e9d5ff', borderRadius:12, padding:'24px', marginBottom:24, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
                     <span style={{ fontSize:32, flexShrink:0 }}>🎓</span>
                     <div style={{ flex:1, minWidth:200 }}>
-                      <div style={{ fontSize:15, fontWeight:700, color:'#5b21b6', marginBottom:4 }}>Plataforma Student — Todas as áreas</div>
-                      <div style={{ fontSize:13, color:'#7c3aed', lineHeight:1.6 }}>Farmacologia, Medicina Interna, Emergência, Cirurgia, Pediatria e mais. Com repetição espaçada e tracking real.</div>
+                      <div style={{ fontSize:15, fontWeight:700, color:'#5b21b6', marginBottom:4 }}>Plano Plus — estudo sem limites</div>
+                      <div style={{ fontSize:13, color:'#7c3aed', lineHeight:1.6 }}>Farmacologia, Medicina Interna, Emergência, Cirurgia, Pediatria e mais. Flashcards e quizzes por IA, repetição espaçada e progresso real — por 3,99€/mês.</div>
                     </div>
-                    <Link href="/pricing" style={{ background:'#7c3aed', color:'white', textDecoration:'none', padding:'11px 22px', borderRadius:8, fontSize:14, fontWeight:700, flexShrink:0 }}>
-                      Activar Student →
+                    <Link href="/checkout?plan=student" style={{ background:'#7c3aed', color:'white', textDecoration:'none', padding:'11px 22px', borderRadius:8, fontSize:14, fontWeight:700, flexShrink:0 }}>
+                      Activar Plus →
                     </Link>
                   </div>
                 )}
@@ -800,7 +809,7 @@ export default function StudyPage() {
                           </div>
                         ) : (
                           <div style={{ marginTop:'auto', fontSize:11, color:domain.color, fontFamily:'var(--font-mono)', fontWeight:700 }}>
-                            {isStudent ? 'Começar →' : 'Requer Student'}
+                            {isStudent ? 'Começar →' : 'Requer Plus'}
                           </div>
                         )}
                       </button>
@@ -835,14 +844,18 @@ export default function StudyPage() {
                           {ts && <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginTop:2 }}>{ts.sessions} sessão{ts.sessions>1?'ões':''} · último score: <span style={{ color:scoreColor, fontWeight:700 }}>{ts.lastScore}%</span></div>}
                         </div>
                         <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                          <button onClick={() => start(topic, 'flashcards')}
-                            style={{ padding:'8px 14px', background:selectedDomain.color, color:'white', border:'none', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
-                            Flashcards
-                          </button>
-                          <button onClick={() => start(topic, 'quiz')}
-                            style={{ padding:'8px 14px', background:'white', color:selectedDomain.color, border:`1.5px solid ${selectedDomain.border}`, borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
-                            Quiz
-                          </button>
+                          {/* O modo que veio do hub (?mode=) fica como ação principal (preenchida). */}
+                          {(['flashcards','quiz'] as ('flashcards'|'quiz')[]).map(m => {
+                            const primary = intent ? m === intent : m === 'flashcards'
+                            return (
+                              <button key={m} onClick={() => start(topic, m)}
+                                style={primary
+                                  ? { padding:'8px 14px', background:selectedDomain.color, color:'white', border:'none', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }
+                                  : { padding:'8px 14px', background:'white', color:selectedDomain.color, border:`1.5px solid ${selectedDomain.border}`, borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                                {m === 'flashcards' ? 'Flashcards' : 'Quiz'}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     )

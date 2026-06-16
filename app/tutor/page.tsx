@@ -173,10 +173,10 @@ export default function TutorPage() {
           <div style={{ fontSize:48, marginBottom:16 }}>🧑‍🏫</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:24, color:'var(--ink)', marginBottom:12 }}>Phlox AI Tutor</div>
           <p style={{ fontSize:14, color:'var(--ink-4)', lineHeight:1.7, marginBottom:24, maxWidth:400, margin:'0 auto 24px' }}>
-            Tutoria socrática em qualquer área das ciências da saúde. A AI não te dá as respostas — guia o teu raciocínio, corrige erros, e avalia o teu conhecimento. Exclusivo Student.
+            Tutoria socrática em qualquer área das ciências da saúde. A AI não te dá as respostas — guia o teu raciocínio, corrige erros, e avalia o teu conhecimento. Exclusivo Plus.
           </p>
           <Link href="/pricing" style={{ display:'inline-block', background:'#7c3aed', color:'white', textDecoration:'none', padding:'12px 24px', borderRadius:8, fontSize:14, fontWeight:700 }}>
-            Ver plano Student →
+            Ver plano Plus →
           </Link>
         </div>
       </div>
@@ -192,7 +192,7 @@ export default function TutorPage() {
         <div className="page-container page-body" style={{ maxWidth:680, margin:'0 auto', flex:1 }}>
           <div style={{ marginBottom:28 }}>
             <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#7c3aed', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-              <div style={{ width:10, height:2, background:'#7c3aed', borderRadius:1 }} />Phlox AI Tutor · Student
+              <div style={{ width:10, height:2, background:'#7c3aed', borderRadius:1 }} />Phlox AI Tutor · Plus
             </div>
             <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(22px,3vw,30px)', color:'var(--ink)', fontWeight:400, marginBottom:10 }}>Tutoria Socrática</h1>
             <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, maxWidth:500 }}>

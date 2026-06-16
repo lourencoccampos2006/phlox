@@ -446,9 +446,9 @@ export default function DecisaoPage() {
         {!canPlay && (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '28px', marginBottom: 32, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Phlox Decisão — Student +</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Phlox Decisão — Plus</div>
               <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>
-                Simulação de raciocínio clínico com evolução dinâmica. Disponível a partir do plano Student (3,99€/mês).
+                Simulação de raciocínio clínico com evolução dinâmica. Disponível a partir do plano Plus (3,99€/mês).
               </p>
             </div>
             <Link href="/pricing"
@@ -496,7 +496,7 @@ export default function DecisaoPage() {
                   onClick={() => canPlay ? startCase(c) : undefined}
                   disabled={loading || !canPlay}
                   style={{ width: '100%', padding: '11px', background: !canPlay ? 'var(--bg-3)' : loading && selectedCase?.id === c.id ? 'var(--bg-3)' : c.color, color: !canPlay ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: !canPlay ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'opacity 0.15s' }}>
-                  {loading && selectedCase?.id === c.id ? 'A preparar caso...' : canPlay ? 'Iniciar →' : 'Student+'}
+                  {loading && selectedCase?.id === c.id ? 'A preparar caso...' : canPlay ? 'Iniciar →' : 'Plus'}
                 </button>
               </div>
             </div>

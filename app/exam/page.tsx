@@ -35,10 +35,10 @@ function UpgradeGate() {
         Simulação real de exame de Farmacologia Clínica. Timer, banco de questões cumulativo, análise de pontos fracos por classe.
       </p>
       <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 28, fontFamily: 'var(--font-mono)' }}>
-        Funcionalidade exclusiva do plano Student.
+        Funcionalidade exclusiva do plano Plus.
       </p>
       <Link href="/pricing" style={{ background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
-        Student — 3,99€/mês →
+        Plus — 3,99€/mês →
       </Link>
     </div>
   )

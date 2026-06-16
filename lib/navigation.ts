@@ -25,11 +25,12 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'medication', label: 'Medicação', color: '#0d9488',
     tools: [
+      { href: '/scan',         icon: '📷', label: 'Phlox Scan',          desc: 'Foto a receita, caixa, análise ou bula → a IA percebe' },
+      { href: '/medicamento',  icon: '💡', label: 'O que é este medicamento?', desc: 'Escreve o nome → para que serve e cuidados' },
       { href: '/mymeds',       icon: '💊', label: 'Os meus medicamentos', desc: 'Lista, lembretes e adesão' },
       { href: '/interactions', icon: '🔍', label: 'Verificar interações',  desc: 'Qualquer combinação' },
       { href: '/food-drug',    icon: '🥗', label: 'Alimentos a evitar',   desc: 'O que não misturar' },
       { href: '/calendario-meds', icon: '⏰', label: 'A que horas devo tomar?', desc: 'Horário ideal de toma · IA', badge: 'Novo' },
-      { href: '/scan',         icon: '📷', label: 'Perceber uma bula',    desc: 'Foto da bula → linguagem simples' },
       { href: '/optimizer',    icon: '⚡', label: 'Otimizar prescrição',  desc: 'Genéricos, STOPP/START', badge: 'Novo' },
     ],
   },

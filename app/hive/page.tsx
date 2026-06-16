@@ -308,10 +308,10 @@ export default function HivePage() {
             <div style={{ fontSize: 40, marginBottom: 14 }}>🐝</div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 12 }}>Phlox Hive</div>
             <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 24 }}>
-              Dados de toda a comunidade Phlox. Os tópicos mais difíceis, os teus pontos cegos vs a comunidade, e as dicas que surgem dos padrões de erro. Exclusivo Student.
+              Dados de toda a comunidade Phlox. Os tópicos mais difíceis, os teus pontos cegos vs a comunidade, e as dicas que surgem dos padrões de erro. Exclusivo Plus.
             </p>
             <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
-              Ver plano Student →
+              Ver plano Plus →
             </Link>
           </div>
         ) : insights.length === 0 ? (

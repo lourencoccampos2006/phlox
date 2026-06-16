@@ -111,7 +111,7 @@ function UpgradeGate({ plan }: { plan: string }) {
           ))}
         </div>
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--green)', color: 'white', padding: '10px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
-          🔒 Disponível no plano Student
+          🔒 Disponível no plano Plus
         </div>
       </div>
 
@@ -123,7 +123,7 @@ function UpgradeGate({ plan }: { plan: string }) {
         Faz upload do PDF das tuas análises. Recebe uma interpretação completa — o que está fora do normal, o que significa, o que perguntar ao médico, e o que podes fazer já.
       </p>
       <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 28 }}>
-        Com o teu plano {plan === 'free' ? 'Student — 3,99€/mês' : 'Pro — 12,99€/mês'}.
+        Com o teu plano {plan === 'free' ? 'Plus — 3,99€/mês' : 'Pro — 12,99€/mês'}.
       </p>
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -126,7 +126,7 @@ function UpgradeGate() {
           O teu farmacologista clínico pessoal. Conhece os teus medicamentos, faz as perguntas certas, e dá respostas clínicas reais — com raciocínio transparente e fontes verificadas.
         </p>
         <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 28, fontFamily: 'var(--font-mono)' }}>
-          Disponível no plano Student (3,99€/mês).
+          Disponível no plano Plus (3,99€/mês).
         </p>
         <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', marginBottom: 28, textAlign: 'left' }}>
           {[

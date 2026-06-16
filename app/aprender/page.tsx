@@ -50,8 +50,8 @@ const SECTIONS: Section[] = [
       { href: '/study/lab',           title: 'Lab interpreter',     desc: 'Valores ref. + interpretação IA',  icon: '🧪', badge: 'novo' },
       { href: '/study/procedimentos', title: 'Procedimentos',       desc: 'Guias passo-a-passo com checklist', icon: '✅', badge: 'novo' },
       { href: '/interactions',        title: 'Verificar interações', desc: 'Drug-drug + foto OCR',             icon: '💊' },
-      { href: '/calculators/renal-dose', title: 'Calculadoras',     desc: 'Doses, GFR, scores',                 icon: '🧮' },
-      { href: '/scan',                title: 'Bulas',                desc: 'Pesquisa rápida INFARMED',           icon: '💊' },
+      { href: '/calculos',            title: 'Calculadoras clínicas', desc: 'Doses, eGFR/CrCl, scores, pediatria', icon: '🧮' },
+      { href: '/medicamento',         title: 'O que é este medicamento?', desc: 'Para que serve, receita e cuidados', icon: '💡' },
     ],
   },
   {

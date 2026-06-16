@@ -52,6 +52,7 @@ export const TOOLS: Tool[] = [
   // ══ PESSOAL / CUIDADOR / ESTUDANTE ════════════════════════════════════════
   // ── Medicação ──
   { id: '/scan',         label: 'Phlox Scan — foto de qualquer coisa', desc: 'Receita, caixa, análise ou relatório: a IA percebe', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreve o nome e percebe para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/mymeds',       label: 'Os meus medicamentos',          desc: 'Lista, lembretes e adesão',        category: 'meds',       modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/interactions', label: 'Os meus medicamentos dão-se bem?', desc: 'Verificar interações',          category: 'meds',       modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free_limited' },
   { id: '/food-drug',    label: 'O que não posso misturar?',     desc: 'Alimentos e álcool a evitar',      category: 'meds',       modes: ['personal', 'caregiver'], plan: 'free' },
@@ -59,13 +60,13 @@ export const TOOLS: Tool[] = [
   // ── A minha saúde ──
   { id: '/vitals',       label: 'Acompanhar tensão, peso e açúcar', desc: 'Registo e tendências',          category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/sintomas',     label: 'Como me sinto hoje?',           desc: 'Diário de sintomas e bem-estar',   category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/relatorio',    label: 'Como correu a minha semana?',   desc: 'Relatório semanal por IA',         category: 'health',     modes: ['personal', 'caregiver'], plan: 'student' },
+  { id: '/relatorio',    label: 'Como correu a minha semana?',   desc: 'Relatório semanal por IA',         category: 'health',     modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/saude-agora',  label: 'Devo ir ao médico ou ajudar já?', desc: 'Triagem + primeiros socorros num só', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/medico-bolso', label: 'O Phlox olha pela minha saúde',   desc: 'Deteta sozinho o que merece atenção', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises e sintomas numa linha do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Cofre de documentos clínicos',  desc: 'Análises, receitas, partilha por código', category: 'health', modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
-  { id: '/saude360',     label: 'Vista 360° da minha saúde',     desc: 'Adesão + análises + agenda',       category: 'health',     modes: ['personal'], plan: 'student' },
+  { id: '/saude360',     label: 'Vista 360° da minha saúde',     desc: 'Adesão + análises + agenda',       category: 'health',     modes: ['personal'], plan: 'pro' },
   { id: '/health-pass',  label: 'Mostrar a minha saúde (QR)',    desc: 'QR para o médico/farmácia ver tudo', category: 'health',   modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Perceber ──
@@ -74,7 +75,7 @@ export const TOOLS: Tool[] = [
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'Gerir os perfis da família',    desc: 'Um perfil por familiar',           category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'free' },
-  { id: '/familia360',   label: 'Família 360°',                  desc: 'Inbox + reconciliação + Zarit',    category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'student' },
+  { id: '/familia360',   label: 'Família 360°',                  desc: 'Inbox + reconciliação + Zarit',    category: 'family',     modes: ['caregiver'], default: ['caregiver'], plan: 'pro' },
 
   // ── Estudar & treinar ── (consolidado: máx ~14 ferramentas no modo estudante)
   { id: '/arena',        label: 'Competir na Arena',             desc: 'Ligas Bronze → Diamante',          category: 'study',      modes: ['student'], default: ['student'], plan: 'free_limited' },

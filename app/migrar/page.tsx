@@ -141,7 +141,7 @@ export default function MigrarPage() {
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 36px', textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, marginBottom: 14 }}>Phlox Migração</h1>
           <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.75, marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
-            Importa dados de Sifarma, SClínico, PHC, Excel, MySNS ou qualquer documento clínico. Disponível no plano Student+.
+            Importa dados de Sifarma, SClínico, PHC, Excel, MySNS ou qualquer documento clínico. Disponível no plano Plus ou superior.
           </p>
           <Link href="/pricing" style={{ display: 'inline-block', background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>Ver planos →</Link>
         </div>

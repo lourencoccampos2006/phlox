@@ -153,7 +153,7 @@ export default function OptimizerPage() {
               <div style={{ padding:'16px', background:'var(--green-light)', border:'1px solid var(--green-mid)', borderRadius:10, display:'flex', alignItems:'center', gap:12 }}>
                 <span style={{ fontSize:24 }}>⚡</span>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--green-2)', marginBottom:2 }}>Requer plano Student ou superior</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--green-2)', marginBottom:2 }}>Requer plano Plus ou superior</div>
                   <div style={{ fontSize:12, color:'var(--green-2)', opacity:0.8 }}>Análise completa de prescrição disponível a partir de 3,99€/mês.</div>
                 </div>
                 <Link href="/pricing" style={{ padding:'9px 16px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:8, fontSize:13, fontWeight:700, flexShrink:0 }}>Ver planos →</Link>

@@ -676,7 +676,7 @@ export default function TimelinePage() {
                 </div>
                 {!canAnalyse ? (
                   <Link href="/pricing" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
-                    Activar Student para análise IA →
+                    Activar Plus para análise IA →
                   </Link>
                 ) : events.length < 3 ? (
                   <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>

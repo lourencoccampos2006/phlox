@@ -246,7 +246,7 @@ export default function QuickCheckPage() {
                     💬 <strong>Faz perguntas</strong> sobre esta medicação com o Phlox AI — o teu farmacologista clínico pessoal.
                   </div>
                   <Link href="/ai" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '8px 16px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    Phlox AI — Student →
+                    Phlox AI — Plus →
                   </Link>
                 </div>
               )}

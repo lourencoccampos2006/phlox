@@ -101,10 +101,10 @@ export default function FichaPage() {
           <div style={{ fontSize:40, marginBottom:14 }}>🧠</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:'var(--ink)', marginBottom:12 }}>Ficha de Fármaco com Mnemónica</div>
           <p style={{ fontSize:14, color:'var(--ink-4)', lineHeight:1.7, marginBottom:24 }}>
-            Mecanismo com analogia, mnemónica para efeitos adversos, interações como história e quiz no final. Exclusivo Student.
+            Mecanismo com analogia, mnemónica para efeitos adversos, interações como história e quiz no final. Exclusivo Plus.
           </p>
           <Link href="/pricing" style={{ display:'inline-block', background:'#7c3aed', color:'white', textDecoration:'none', padding:'12px 24px', borderRadius:8, fontSize:14, fontWeight:700 }}>
-            Ver plano Student →
+            Ver plano Plus →
           </Link>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function FichaPage() {
         {/* Header */}
         <div style={{ marginBottom:24 }}>
           <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#7c3aed', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-            <div style={{ width:10, height:2, background:'#7c3aed', borderRadius:1 }} />Ficha de Fármaco · Student
+            <div style={{ width:10, height:2, background:'#7c3aed', borderRadius:1 }} />Ficha de Fármaco · Plus
           </div>
           <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(20px,3vw,28px)', color:'var(--ink)', fontWeight:400, marginBottom:8 }}>Ficha com Mnemónica</h1>
           <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, maxWidth:520 }}>Mecanismo com analogia, mnemónica para efeitos adversos, interações como história, e quiz no final. A ficha que o ChatGPT não consegue fazer.</p>

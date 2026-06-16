@@ -18,6 +18,8 @@ export default function AgendaPage() {
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 type ApptType = 'consulta' | 'exame' | 'terapia' | 'visita_medica' | 'transporte' | 'reuniao' | 'vacina' | 'outro'
 type ApptStatus = 'scheduled' | 'done' | 'cancelled'
@@ -52,6 +54,8 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 function AgendaTool() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
   const [appts, setAppts] = useState<Appt[]>([])
   const [loading, setLoading] = useState(true)
@@ -79,8 +83,9 @@ function AgendaTool() {
   useEffect(() => { load() }, [load])
   useLiveData({ supabase, table: ['appointments', 'patients'], userId: user?.id, onChange: load })
 
-  const nameOf = (id?: string | null) => id ? (patients.find(p => p.id === id)?.name || 'Residente') : 'Lar'
-  const roomOf = (id?: string | null) => { const r = id && patients.find(p => p.id === id)?.room_number; return r ? `Q${r}` : '' }
+  const nameOf = (id?: string | null) => id ? (patients.find(p => p.id === id)?.name || cfg.personNoun) : cfg.noPersonEventLabel
+  // Só mostramos "quarto" onde isso existe (lar). Noutras instituições não há camas.
+  const roomOf = (id?: string | null) => { if (!cfg.hasBeds) return ''; const r = id && patients.find(p => p.id === id)?.room_number; return r ? `${cfg.roomLabel[0]}${r}` : '' }
 
   function openNew() { setForm(blank); setEditId(null); setShowForm(true) }
   function openEdit(a: Appt) { setForm({ patient_id: a.patient_id || '', title: a.title, type: a.type, date: a.date, time: a.time || '', location: a.location || '', speciality: a.speciality || '', transport: !!a.transport, transport_notes: a.transport_notes || '', responsible: a.responsible || '', notes: a.notes || '' }); setEditId(a.id); setShowForm(true) }
@@ -157,7 +162,7 @@ function AgendaTool() {
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Agenda</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Agenda Clínica & Transportes</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Consultas, exames, terapias, visitas e transportes — por residente, num só sítio.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>{cfg.appointmentNounPlural}, exames, terapias, visitas e transportes — por {cfg.personNoun.toLowerCase()}, num só sítio.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={printTransports} style={{ padding: '10px 14px', background: 'white', border: `1.5px solid ${stats.transportes ? '#d97706' : 'var(--border)'}`, color: stats.transportes ? '#d97706' : 'var(--ink-4)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🚐 Folha de transportes{stats.transportes ? ` (${stats.transportes})` : ''}</button>
@@ -261,7 +266,7 @@ function AgendaTool() {
               <div><span style={lbl}>Título *</span><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: Consulta de Cardiologia" style={inp} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div><span style={lbl}>Tipo</span><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inp}>{TYPE_KEYS.map(t => <option key={t} value={t}>{TYPES[t].label}</option>)}</select></div>
-                <div><span style={lbl}>Residente</span><select value={form.patient_id} onChange={e => setForm({ ...form, patient_id: e.target.value })} style={inp}><option value="">Evento do lar</option>{patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+                <div><span style={lbl}>{cfg.personNoun}</span><select value={form.patient_id} onChange={e => setForm({ ...form, patient_id: e.target.value })} style={inp}><option value="">{cfg.noPersonEventLabel}</option>{patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div><span style={lbl}>Data *</span><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={inp} /></div>

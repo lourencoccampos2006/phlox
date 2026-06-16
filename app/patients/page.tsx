@@ -403,7 +403,7 @@ export default function PatientsPage() {
                         <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: 18 }}>✅</span>
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{importPreview.rows.length} residente{importPreview.rows.length !== 1 ? 's' : ''} encontrado{importPreview.rows.length !== 1 ? 's' : ''}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{importPreview.rows.length} {patientLabel}{importPreview.rows.length !== 1 ? 's' : ''} encontrado{importPreview.rows.length !== 1 ? 's' : ''}</div>
                             <div style={{ fontSize: 11, color: '#16a34a' }}>Colunas detetadas: {Object.keys(importPreview.mapping).join(', ')}</div>
                           </div>
                         </div>
@@ -440,7 +440,7 @@ export default function PatientsPage() {
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button onClick={doImport} disabled={importLoading}
                             style={{ flex: 1, padding: '12px', background: importLoading ? '#94a3b8' : '#0d9488', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: importLoading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                            {importLoading ? 'A importar...' : `Importar ${importPreview.rows.length} residentes →`}
+                            {importLoading ? 'A importar...' : `Importar ${importPreview.rows.length} ${patientLabelPlural} →`}
                           </button>
                           <button onClick={() => { setImportPreview(null); setImportError('') }} disabled={importLoading}
                             style={{ padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>
@@ -468,7 +468,7 @@ export default function PatientsPage() {
             {patients.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 16 }}>
                 {[
-                  { label: isNursingHome ? 'Residentes' : 'Total', value: patients.length, color: '#1d4ed8', bg: '#eff6ff' },
+                  { label: patientLabelCap, value: patients.length, color: '#1d4ed8', bg: '#eff6ff' },
                   { label: 'Com alertas', value: patients.filter(p => p.alerts && p.alerts > 0).length, color: '#991b1b', bg: '#fee2e2' },
                   { label: 'Polimedicados', value: patients.filter(p => p.meds_count && p.meds_count >= 5).length, color: '#854d0e', bg: '#fef9c3' },
                 ].map(s => (
@@ -495,11 +495,11 @@ export default function PatientsPage() {
                 ) : (
                   <>
                     <div style={{ fontSize: 32, marginBottom: 12 }}>👤</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Nenhum doente ainda</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>{isNursingHome ? 'Adiciona o primeiro residente do lar.' : 'Cria o primeiro perfil clínico.'}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>{_cfg.emptyPeopleMsg}</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>{isNursingHome ? 'Adiciona o primeiro residente do lar.' : `Cria o primeiro perfil de ${patientLabel}.`}</div>
                     <button onClick={() => setShowAdd(true)}
                       style={{ background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, padding: '11px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                      {isNursingHome ? 'Admitir primeiro residente →' : 'Criar primeiro doente →'}
+                      {_cfg.addPersonCta} →
                     </button>
                   </>
                 )}
@@ -570,7 +570,7 @@ export default function PatientsPage() {
                     </Link>
                     <button
                       onClick={e => { e.preventDefault(); deletePatient(patient.id, patient.name) }}
-                      title="Remover residente"
+                      title={`Remover ${patientLabel}`}
                       style={{ padding: '16px 14px', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', opacity: 0.4, fontSize: 16, flexShrink: 0, transition: 'opacity 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                       onMouseLeave={e => (e.currentTarget.style.opacity = '0.4')}

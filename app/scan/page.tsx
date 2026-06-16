@@ -11,6 +11,8 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { extractFromFile } from '@/lib/docExtract'
 import { sendToTool } from '@/lib/toolBridge'
+import { useUsageLimit } from '@/lib/useUsageLimit'
+import UpgradeNudge from '@/components/UpgradeNudge'
 
 // /scan — Phlox Scan: SÓ a foto auto-deteta. Voltou a ser uma ferramenta
 // dedicada e simples (a fusão anterior em abas era frágil e rebentava).
@@ -20,6 +22,26 @@ export default function ScanPage() {
 }
 
 const ACCENT = '#0d6e42'
+
+// Reduz a foto antes de enviar. As fotos da câmara (3–12 MB) em base64 estouravam
+// o payload e o tempo da chamada de visão → "erro ao processar". Reduzir para
+// ~1280px/JPEG 0.82 mantém a legibilidade do texto e corta o tamanho ~10×.
+function downscaleImage(file: File, maxDim = 1280, q = 0.82): Promise<{ b64: string; mime: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image(); const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let w = img.width, h = img.height
+      if (w > maxDim || h > maxDim) { if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim } else { w = Math.round(w * maxDim / h); h = maxDim } }
+      const c = document.createElement('canvas'); c.width = w; c.height = h
+      const ctx = c.getContext('2d'); if (!ctx) { reject(new Error('canvas')); return }
+      ctx.drawImage(img, 0, 0, w, h)
+      resolve({ b64: (c.toDataURL('image/jpeg', q).split(',')[1]) || '', mime: 'image/jpeg' })
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')) }
+    img.src = url
+  })
+}
 
 interface Med { name: string; dose?: string; frequency?: string; _import?: boolean }
 interface LabValue { name: string; value?: string; status?: string; note?: string }
@@ -56,6 +78,7 @@ function ScanTool() {
   const [imported, setImported] = useState(false)
   const [interactions, setInteractions] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const scanUsage = useUsageLimit('scan')
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -67,6 +90,8 @@ function ScanTool() {
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
+    // Limite diário (Base/Plus). Pro/Institucional = ilimitado.
+    if (scanUsage.hit) { reset(); setErr('limit'); return }
     reset()
     // Deteção robusta de imagem: a câmara do telemóvel devolve muitas vezes
     // file.type vazio (ou HEIC). Não confiar só no mimeType — olhar também à
@@ -84,20 +109,30 @@ function ScanTool() {
       let payload: any
       if (isImage) {
         setBusy('A interpretar a imagem…')
-        const b64 = await new Promise<string>((res2, rej) => {
-          const rd = new FileReader()
-          rd.onload = () => {
-            const result = String(rd.result || '')
-            const comma = result.indexOf(',')
-            // data URL = "data:<mime>;base64,<dados>" — corta no PRIMEIRO vírgula.
-            if (comma < 0) { rej(new Error('Não consegui ler a imagem. Tenta outra foto.')); return }
-            res2(result.slice(comma + 1))
-          }
-          rd.onerror = () => rej(new Error('Não consegui ler a imagem. Tenta outra foto.'))
-          rd.readAsDataURL(file)
-        })
-        // mimeType: usa o do ficheiro; se vazio (câmara), assume jpeg.
-        payload = { image: b64, mimeType: file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg' }
+        // 1ª via: reduzir no canvas (corta tamanho ~10×). Se o browser não souber
+        // descodificar (ex: HEIC antigo), recai na leitura crua do ficheiro.
+        let b64 = ''
+        let mime = 'image/jpeg'
+        try {
+          const small = await downscaleImage(file)
+          if (!small.b64) throw new Error('empty')
+          b64 = small.b64; mime = small.mime
+        } catch {
+          const raw = await new Promise<string>((res2, rej) => {
+            const rd = new FileReader()
+            rd.onload = () => {
+              const result = String(rd.result || '')
+              const comma = result.indexOf(',')
+              if (comma < 0) { rej(new Error('Não consegui ler a imagem. Tenta outra foto.')); return }
+              res2(result.slice(comma + 1))
+            }
+            rd.onerror = () => rej(new Error('Não consegui ler a imagem. Tenta outra foto.'))
+            rd.readAsDataURL(file)
+          })
+          b64 = raw
+          mime = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg'
+        }
+        payload = { image: b64, mimeType: mime }
       } else {
         // PDF / Word / texto → extrai no browser e envia o texto
         setBusy('A ler o documento…')
@@ -105,11 +140,13 @@ function ScanTool() {
         if (!ex.text || ex.text.trim().length < 10) throw new Error('Documento sem texto legível.')
         payload = { text: ex.text }
       }
-      const r = await fetch('/api/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const r = await fetch('/api/scan', { method: 'POST', headers: await auth(), body: JSON.stringify(payload) })
       const j = await r.json()
+      if (r.status === 429 || j.limit_reached) { setErr('limit'); return }
       if (!r.ok) throw new Error(j.error || 'Não consegui interpretar.')
       setRes(j)
       setMeds((j.meds || []).map((m: Med) => ({ ...m, _import: true })))
+      scanUsage.increment()
     } catch (e: any) { setErr(e.message || 'Erro ao processar.') } finally { setBusy('') }
   }
 
@@ -154,7 +191,16 @@ function ScanTool() {
         <input ref={fileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onFile} style={{ display: 'none' }} />
       </div>
 
-      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 12, borderRadius: 8, marginTop: 14, fontSize: 13 }}>{err}</div>}
+      {err === 'limit'
+        ? <UpgradeNudge used={scanUsage.used} limit={scanUsage.limit} what="fotos no Phlox Scan" plan="pro" />
+        : err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 12, borderRadius: 8, marginTop: 14, fontSize: 13 }}>{err}</div>}
+
+      {/* Contador discreto de uso restante (só planos limitados) */}
+      {!scanUsage.unlimited && !res && err !== 'limit' && (
+        <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10, textAlign: 'center' }}>
+          {scanUsage.remaining} de {scanUsage.limit} análises grátis hoje
+        </div>
+      )}
 
       {/* Resultado interpretado */}
       {res && meta && (

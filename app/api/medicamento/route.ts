@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
 import { resolveDrugName } from '@/lib/drugNames'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { enforceDailyLimit } from '@/lib/serverLimit'
 
 // Lookup local primeiro — tabela infarmed_drugs (sprint74) com 50+ medicamentos
 // mais comuns em Portugal. Se há match, evita IA totalmente.
@@ -154,6 +155,9 @@ export async function POST(req: NextRequest) {
   const ip = getIP(req)
   const rl = checkRateLimit(ip, 20, 60_000)
   if (!rl.allowed) return rateLimitResponse()
+  // Limite diário server-side (Base/Plus). Pro/Institucional = ilimitado.
+  const gate = await enforceDailyLimit(req, 'medicamento')
+  if (!gate.ok) return gate.response!
 
   const body = await req.json().catch(() => null)
   if (!body?.name && !body?.image && !body?.infomed_code) return NextResponse.json({ error: 'Nome, foto ou nº INFARMED/CNPEM obrigatório' }, { status: 400 })
