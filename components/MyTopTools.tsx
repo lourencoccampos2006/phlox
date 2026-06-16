@@ -14,7 +14,7 @@ const LABELS: Record<string, { label: string; icon: string }> = {
   '/familia': { label: 'Família', icon: '👨‍👩‍👧' },
   '/interactions': { label: 'Interações', icon: '⚗' },
   '/sintomas': { label: 'Sintomas', icon: '🌡' },
-  '/bula': { label: 'Perceber bula', icon: '📄' },
+  '/scan': { label: 'Perceber bula', icon: '📄' },
   '/ai': { label: 'Phlox AI', icon: '✨' },
   '/arena': { label: 'Arena', icon: '🏆' },
   '/exam': { label: 'OSCE', icon: '🩺' },

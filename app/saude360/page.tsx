@@ -171,14 +171,6 @@ export default function Saude360Page() {
             )}
           </Card>
 
-          {/* Perfil de risco */}
-          <Card>
-            <CardHead label="Perfil de risco" right="SCORE2 · ACB · STOPP" href="/risco" />
-            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.55, margin: 0 }}>
-              Cruza a tua medicação e os teus vitais com algoritmos validados. <Link href="/risco" style={{ color: '#0d6e42', fontWeight: 700 }}>Abrir →</Link>
-            </p>
-          </Card>
-
         </div>
 
         {loading && <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginTop: 16 }}>A carregar dados…</div>}

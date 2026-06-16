@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
         id: 'polypharmacy', severity: 'info', icon: '🧓',
         title: 'Muitos medicamentos ao mesmo tempo',
         detail: `Tomas ${medsList.length} medicamentos. ${benzo ? `Um deles (${benzo.name}) merece atenção na tua idade. ` : ''}Vale a pena pedir ao médico uma revisão de toda a medicação.`,
-        action: { label: 'Ver o meu perfil de risco', route: '/risco' },
+        action: { label: 'Verificar a minha medicação', route: '/interactions' },
       })
     }
 

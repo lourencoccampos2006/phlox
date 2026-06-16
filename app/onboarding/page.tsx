@@ -45,14 +45,13 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
   ],
 }
 
+// Clínica e Centro de Saúde existem no código mas estão escondidos por agora —
+// o foco é Lar, Centro de Dia e Farmácia Comunitária. Hospital e Farmácia
+// Hospitalar foram removidos (demasiado ambicioso para já).
 const INSTITUTIONS = [
   { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },
   { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },
-  { id: 'hospital',           label: 'Hospital',             desc: 'Doentes, rondas, validação' },
-  { id: 'clinic',             label: 'Clínica',              desc: 'Doentes, consultas' },
-  { id: 'pharmacy_hospital',  label: 'Farmácia Hospitalar',  desc: 'Validação, farmacoterapia' },
   { id: 'pharmacy_community', label: 'Farmácia Comunitária', desc: 'Clientes, interações' },
-  { id: 'health_center',      label: 'Centro de Saúde',      desc: 'Utentes, CSP' },
 ]
 const ROLES = [
   { id: 'nurse', label: 'Enfermeiro(a)' }, { id: 'pharmacist', label: 'Farmacêutico(a)' },

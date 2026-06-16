@@ -28,14 +28,12 @@ const MODE_OPTIONS = [
   { value: 'personal',  label: 'Uso Pessoal',           sub: 'A minha própria saúde' },
 ]
 
+// Clínica e Centro de Saúde existem mas estão escondidos por agora; Hospital e
+// Farmácia Hospitalar foram removidos. Foco: Lar, Centro de Dia, Farm. Comunitária.
 const INSTITUTION_OPTIONS = [
   { value: 'nursing_home',       label: 'Lar / ERPI',            sub: 'Residentes · Turnos · MAR' },
   { value: 'day_care',           label: 'Centro de Dia',         sub: 'Utentes · Atividades · Famílias' },
-  { value: 'hospital',           label: 'Hospital',              sub: 'Doentes · Rondas · Validação' },
-  { value: 'clinic',             label: 'Clínica',               sub: 'Doentes · Consultas' },
-  { value: 'pharmacy_hospital',  label: 'Farmácia Hospitalar',   sub: 'Validação · Farmacoterapia' },
   { value: 'pharmacy_community', label: 'Farmácia Comunitária',  sub: 'Clientes · Interações' },
-  { value: 'health_center',      label: 'Centro de Saúde',       sub: 'Utentes · CSP' },
 ]
 const INST_KEY = 'phlox-clinic-institution'
 
@@ -86,7 +84,7 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [instType, setInstType] = useState('hospital')
+  const [instType, setInstType] = useState('nursing_home')
 
   useEffect(() => {
     const stored = localStorage.getItem(INST_KEY)

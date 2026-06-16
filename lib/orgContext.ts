@@ -2,8 +2,8 @@
 
 // lib/orgContext.ts
 // Active organization context. Cada utilizador pode pertencer a várias
-// organizações (hospital, clínica, farmácia, lar). A "active org" decide
-// que dados clínicos aparecem na UI e que capabilities estão em vigor.
+// organizações (lar, centro de dia, farmácia comunitária, clínica). A "active
+// org" decide que dados clínicos aparecem na UI e que capabilities estão em vigor.
 
 import { useEffect, useState, useCallback } from 'react'
 
@@ -25,14 +25,8 @@ export const ALL_CAPABILITIES = [
   'team.read','team.manage','team.schedule',
   'quality.read','quality.write','audit.read',
   'org.admin','org.billing_settings',
-  'beds.read','beds.write',
-  'triage.read','triage.write',
-  'surgery.read','surgery.write',
   'suppliers.read','suppliers.write',
   'loyalty.read','loyalty.write',
-  'bi.use','automation.read','automation.write','agent.use',
-  'crm.read','crm.write',
-  'telemed.read','telemed.write',
   'translate.use',
 ]
 

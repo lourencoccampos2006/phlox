@@ -8,7 +8,6 @@ import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import DrugReferenceButton from '@/components/DrugReferenceButton'
-import EpisodesPanel from '@/components/EpisodesPanel'
 import { analyzeResident, SEVERITY_STYLE as ECO_SEV } from '@/lib/residentSignals'
 import { printDoc, type PrintRecord } from '@/lib/print'
 
@@ -587,10 +586,6 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
         {/* OVERVIEW */}
         {tab === 'overview' && (
           <div>
-            {/* 2026-06-02: Painel de episódios clínicos no topo */}
-            <div style={{ marginBottom: 16 }}>
-              <EpisodesPanel patientId={patient.id} />
-            </div>
             {/* Estado Clínico Global — integra TODOS os dados do residente */}
             {ecoAnalysis && (() => {
               const lv = ECO_SEV[ecoAnalysis.level]

@@ -4,7 +4,7 @@
 // Mantém o site simples: cada persona vê o que faz sentido, nada mais.
 
 export type ExperienceMode = 'personal' | 'caregiver' | 'student' | 'clinical'
-export type InstitutionType = 'pharmacy_community' | 'pharmacy_hospital' | 'nursing_home' | 'clinic' | 'health_center' | 'hospital' | null
+export type InstitutionType = 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center' | null
 
 export interface PersonaHero {
   title: string
@@ -45,7 +45,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     daily: [
       { label: 'Sintomas de hoje', href: '/sintomas', icon: '🌡' },
       { label: 'Verificar interações', href: '/interactions', icon: '⚗' },
-      { label: 'Perceber bula', href: '/bula', icon: '📄' },
+      { label: 'Perceber bula', href: '/scan', icon: '📄' },
       { label: 'Hidratação', href: '/agua', icon: '💧' },
       { label: 'Peso', href: '/pesar', icon: '⚖' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
@@ -67,7 +67,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     daily: [
       { label: 'Sintomas / diário', href: '/sintomas', icon: '🌡' },
       { label: 'Preparar consulta', href: '/preparar-consulta', icon: '📋' },
-      { label: 'Perceber bula', href: '/bula', icon: '📄' },
+      { label: 'Perceber bula', href: '/scan', icon: '📄' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },

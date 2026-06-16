@@ -123,41 +123,6 @@ export const INSTITUTION_HUB: Record<InstitutionType, HubSection[]> = {
     { id: 'equipa', title: SECTION_META.equipa.title, hint: 'Secretaria, técnicos e limpeza', tools: [ T.team, T.tarefas ]},
   ],
 
-  // ───────────────────────── HOSPITAL ─────────────────────────
-  hospital: [
-    { id: 'clinica', title: SECTION_META.clinica.title, hint: 'Serviço e enfermaria', tools: [
-      T.patients, T.rounds, T.soap, T.reconciliacao, T.interactions,
-    ]},
-    { id: 'secretaria', title: SECTION_META.secretaria.title, hint: 'Admissão e quem chega', tools: [
-      T.salaEspera, T.atendimentos('Atendimento / contacto registado'), T.healthpass,
-    ]},
-    { id: 'operacoes', title: SECTION_META.operacoes.title, hint: 'Gestão de serviço', tools: [
-      T.tarefas, T.stock, T.schedule, T.roi,
-    ]},
-    { id: 'legal', title: SECTION_META.legal.title, hint: 'Consentimentos e segurança', tools: [
-      T.consentimentos, T.conformidade, T.incidents,
-    ]},
-    { id: 'equipa', title: SECTION_META.equipa.title, hint: 'Equipa multidisciplinar e auxiliares', tools: [ T.team, T.tarefas ]},
-  ],
-
-  // ───────────────────────── FARMÁCIA HOSPITALAR ─────────────────────────
-  pharmacy_hospital: [
-    { id: 'clinica', title: SECTION_META.clinica.title, hint: 'Validação e farmácia clínica', tools: [
-      T.reconciliacao, T.interactions, T.patients,
-      { href: '/tpn', label: 'Nutrição parentérica (TPN)', desc: 'Cálculo e validação', icon: '🧪', roles: ['pharmacist', 'pharmacist_director'] },
-    ]},
-    { id: 'operacoes', title: SECTION_META.operacoes.title, hint: 'Logística do medicamento', tools: [
-      T.stock, T.tarefas, T.schedule, T.roi,
-    ]},
-    { id: 'secretaria', title: SECTION_META.secretaria.title, hint: 'Pedidos e dispensa', tools: [
-      T.atendimentos('Dispensa / pedido registado'), T.healthpass,
-    ]},
-    { id: 'legal', title: SECTION_META.legal.title, hint: 'Rastreabilidade e auditoria', tools: [
-      T.conformidade, T.incidents, T.consentimentos,
-    ]},
-    { id: 'equipa', title: SECTION_META.equipa.title, hint: 'Farmacêuticos, TDT e auxiliares', tools: [ T.team, T.tarefas ]},
-  ],
-
   // ───────────────────────── LAR / ERPI ─────────────────────────
   // O lar mantém o cockpit clínico rico próprio; o hub acrescenta gestão/legal/pessoas.
   nursing_home: [

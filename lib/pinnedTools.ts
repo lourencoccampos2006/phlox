@@ -11,7 +11,7 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   // Pessoal
   { path: '/mymeds',            label: 'A minha medicação',     icon: '💊', group: 'Pessoal' },
   { path: '/interactions',      label: 'Verificar interações',  icon: '⚗',  group: 'Pessoal' },
-  { path: '/bula',              label: 'Perceber bula',          icon: '📄', group: 'Pessoal' },
+  { path: '/scan',              label: 'Perceber bula',          icon: '📄', group: 'Pessoal' },
   { path: '/sintomas',          label: 'Sintomas',               icon: '🌡', group: 'Pessoal' },
   { path: '/preparar-consulta', label: 'Preparar consulta',      icon: '📋', group: 'Pessoal' },
   { path: '/cartao-emergencia', label: 'Cartão emergência',      icon: '🆘', group: 'Pessoal' },

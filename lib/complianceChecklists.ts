@@ -47,20 +47,6 @@ const EXTRA: Record<InstitutionType, ComplianceGroup[]> = {
       { key: 'cli_recibos', title: 'Recibos e faturação', detail: 'Emissão de fatura-recibo conforme obrigações fiscais.' },
     ]},
   ],
-  hospital: [
-    { group: 'Hospital / serviço', items: [
-      { key: 'hosp_consentimento_cirurgico', title: 'Consentimento cirúrgico/procedimentos', detail: 'Consentimento informado específico por procedimento invasivo.' },
-      { key: 'hosp_infecao', title: 'Comissão de controlo de infeção', detail: 'Protocolos PPCIRA implementados e auditados.', ref: 'DGS PPCIRA' },
-      { key: 'hosp_farmacovigilancia', title: 'Farmacovigilância', detail: 'Notificação de reações adversas ao INFARMED.' },
-    ]},
-  ],
-  pharmacy_hospital: [
-    { group: 'Farmácia hospitalar', items: [
-      { key: 'fh_rastreabilidade', title: 'Rastreabilidade do medicamento', detail: 'Registo de lote e validade desde a receção à administração.' },
-      { key: 'fh_citostaticos', title: 'Preparação de citostáticos', detail: 'Câmara de fluxo e procedimentos de manipulação segura.' },
-      { key: 'fh_psicotropicos', title: 'Controlo de psicotrópicos', detail: 'Registo e conferência de estupefacientes.', ref: 'DL 15/93' },
-    ]},
-  ],
   nursing_home: [
     { group: 'Lar / ERPI', items: [
       { key: 'erpi_licenca', title: 'Licença de funcionamento ERPI', detail: 'Acordo/licença da Segurança Social válida.', ref: 'Segurança Social' },

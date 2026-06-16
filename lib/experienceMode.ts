@@ -154,7 +154,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/objetivos',     label: 'Objetivos de Saúde',     sub: 'Definir metas · acompanhar progresso', badge: 'Novo' },
         { href: '/relatorio',     label: 'Relatório Semanal',      sub: 'IA analisa a semana e dá recomendações', badge: 'Novo' },
         { href: '/link',          label: 'Phlox Link',             sub: 'Partilhar dados com médico ou farmacêutico', badge: 'Novo' },
-        { href: '/bula',          label: 'Perceber a Bula',        sub: 'Texto técnico em linguagem simples', badge: 'Grátis' },
+        { href: '/scan',          label: 'Perceber a Bula',        sub: 'Texto técnico em linguagem simples', badge: 'Grátis' },
       ],
     },
     {
@@ -214,7 +214,7 @@ export const ROUTE_GROUPS: Record<ExperienceMode, RouteGroup[]> = {
         { href: '/passport',      label: 'Passaporte de Saúde',   sub: 'Documento completo · imprimir · QR · bilingue', badge: 'Novo' },
         { href: '/link',          label: 'Phlox Link',            sub: 'Partilhar dados com médico ou familiar', badge: 'Novo' },
         { href: '/relatorio',     label: 'Relatório Semanal',     sub: 'IA analisa a tua semana e dá recomendações', badge: 'Novo' },
-        { href: '/bula',          label: 'Perceber a Bula',       sub: 'Texto técnico em linguagem simples', badge: 'Grátis' },
+        { href: '/scan',          label: 'Perceber a Bula',       sub: 'Texto técnico em linguagem simples', badge: 'Grátis' },
       ],
     },
   ],

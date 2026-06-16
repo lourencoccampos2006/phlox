@@ -12,7 +12,6 @@ import { useActiveOrg } from '@/lib/orgContext'
 const KIND_META: Record<string, { label: string; icon: string }> = {
   lab:     { label: 'Laboratório de análises',   icon: '🧪' },
   imaging: { label: 'Imagiologia / PACS',         icon: '🩻' },
-  hospital:{ label: 'Hospital (SClínico)',        icon: '🏥' },
   sus:     { label: 'SPMS / SNS24 / RSE',         icon: '🇵🇹' },
   other:   { label: 'Outro',                       icon: '·' },
 }

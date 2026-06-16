@@ -4,7 +4,7 @@ const SUGGESTIONS = [
   { href: '/interactions', label: 'Verificar Interações', icon: '⚡' },
   { href: '/ai',           label: 'Phlox AI',             icon: '🤖' },
   { href: '/calculators',  label: 'Calculadoras',          icon: '🧮' },
-  { href: '/bula',         label: 'Tradutor de Bula',      icon: '📋' },
+  { href: '/scan',         label: 'Tradutor de Bula',      icon: '📋' },
 ]
 
 export default function NotFound() {

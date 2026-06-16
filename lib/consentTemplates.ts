@@ -58,10 +58,8 @@ const FAMILIA: ConsentTemplate = {
 
 const BY_INST: Record<InstitutionType, ConsentTemplate[]> = {
   pharmacy_community: [RGPD, FARMACEUTICO, IMAGEM],
-  pharmacy_hospital:  [RGPD, FARMACEUTICO],
   health_center:      [RGPD, PROCEDIMENTO, VACINA, IMAGEM],
   clinic:             [RGPD, PROCEDIMENTO, IMAGEM],
-  hospital:           [RGPD, PROCEDIMENTO, IMAGEM],
   nursing_home:       [RGPD, ERPI, FAMILIA, IMAGEM],
   day_care:           [RGPD, FAMILIA, IMAGEM, FARMACEUTICO],
 }

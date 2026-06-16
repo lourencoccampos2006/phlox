@@ -71,9 +71,9 @@ export default function PostBeers() {
         </div>
 
         <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Vê o teu perfil de risco</div>
-          <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>O Phlox cruza a tua medicação com os critérios STOPP/Beers e a carga anticolinérgica — para levares à conversa com o médico.</p>
-          <Link href="/risco" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Ver o meu perfil de risco →</Link>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Verifica a tua medicação</div>
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>O Phlox cruza a tua medicação à procura de interações e fármacos a evitar no idoso — para levares à conversa com o médico.</p>
+          <Link href="/interactions" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Verificar a minha medicação →</Link>
         </div>
 
         <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>

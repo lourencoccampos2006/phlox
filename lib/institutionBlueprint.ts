@@ -205,48 +205,6 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     extraTools: [ T.team, T.quality, T.calc, T.rounds ],
   },
 
-  // ── HOSPITAL / SERVIÇO — denso e sóbrio.
-  hospital: {
-    productName: 'o seu Serviço',
-    tagline: 'Doentes, rondas e validação, com a farmácia clínica integrada.',
-    tone: 'sober',
-    accent: '#1e3a5f', accentSoft: '#eff6ff',
-    greetingLead: (n) => `Bom trabalho${n ? `, ${n}` : ''}.`,
-    cockpit: [
-      { id: 'people_watch', size: 'hero', essential: true },
-      { id: 'med_round',    size: 'large', essential: true },
-      { id: 'validation_queue', size: 'large' },
-      { id: 'incidents',    size: 'medium' },
-      { id: 'tasks',        size: 'small' },
-      { id: 'quick_actions', size: 'small', essential: true },
-    ],
-    coreTools: [
-      T.people('Doentes', 'Doentes internados e medicação'),
-      T.meds, T.rounds, T.queue, T.reconcile, T.calc,
-    ],
-    extraTools: [ T.team, T.quality, T.handover, T.meds_check, T.wounds ],
-  },
-
-  // ── FARMÁCIA HOSPITALAR — distribuição interna. Sóbrio.
-  pharmacy_hospital: {
-    productName: 'a sua Farmácia Hospitalar',
-    tagline: 'Validação, distribuição e farmacoterapia, sem ruído.',
-    tone: 'sober',
-    accent: '#6d28d9', accentSoft: '#f5f3ff',
-    greetingLead: (n) => `Bom trabalho${n ? `, ${n}` : ''}.`,
-    cockpit: [
-      { id: 'validation_queue', size: 'hero', essential: true },
-      { id: 'people_watch', size: 'large', essential: true },
-      { id: 'med_round',    size: 'medium' },
-      { id: 'tasks',        size: 'small' },
-      { id: 'quick_actions', size: 'small', essential: true },
-    ],
-    coreTools: [
-      T.people('Doentes', 'Doentes e farmacoterapia'),
-      T.queue, T.meds, T.stock, T.rounds, T.calc,
-    ],
-    extraTools: [ T.team, T.quality, T.reconcile, T.meds_check ],
-  },
 }
 
 export function blueprintFor(institution: InstitutionType): InstitutionBlueprint {

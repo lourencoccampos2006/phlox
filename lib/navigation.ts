@@ -29,7 +29,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/interactions', icon: '🔍', label: 'Verificar interações',  desc: 'Qualquer combinação' },
       { href: '/food-drug',    icon: '🥗', label: 'Alimentos a evitar',   desc: 'O que não misturar' },
       { href: '/calendario-meds', icon: '⏰', label: 'A que horas devo tomar?', desc: 'Horário ideal de toma · IA', badge: 'Novo' },
-      { href: '/bula',         icon: '📄', label: 'Perceber uma bula',    desc: 'Em linguagem simples' },
+      { href: '/scan',         icon: '📷', label: 'Perceber uma bula',    desc: 'Foto da bula → linguagem simples' },
       { href: '/optimizer',    icon: '⚡', label: 'Otimizar prescrição',  desc: 'Genéricos, STOPP/START', badge: 'Novo' },
     ],
   },
@@ -38,7 +38,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     tools: [
       { href: '/saude-agora', icon: '🚨', label: 'Saúde agora',          desc: 'Devo ir ao médico? Primeiros socorros · 112' },
       { href: '/saude360',  icon: '🌐', label: 'Saúde 360°',           desc: 'Adesão + análises + agenda num só ecrã', badge: 'Premium' },
-      { href: '/risco',     icon: '🎯', label: 'Perfil de risco',      desc: 'SCORE2, STOPP, ACB com referências', badge: 'Premium' },
       { href: '/vault',     icon: '🔒', label: 'Cofre de saúde',       desc: 'Documentos com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Sinais vitais',        desc: 'Tensão, pulso, peso' },
       { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'QR code de emergência' },
@@ -221,7 +220,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/vitals',       icon: '❤️', label: 'Saúde',       desc: 'Tensão, pulso, peso' },
     { href: '/ai',           icon: '🤖', label: 'Perguntar',   desc: 'Dúvida de saúde' },
     { href: '/passport',     icon: '🆘', label: 'Passaporte',  desc: 'QR de emergência' },
-    { href: '/bula',         icon: '📄', label: 'Bula',        desc: 'Em linguagem simples' },
+    { href: '/scan',         icon: '📄', label: 'Bula',        desc: 'Em linguagem simples' },
   ],
   caregiver: [
     { href: '/familia',      icon: '👨‍👩‍👧', label: 'Dashboard',  desc: 'Resumo de todos os familiares', badge: 'Novo' },

@@ -8,7 +8,7 @@
 // hospital, e vice-versa).
 
 export type ToolMode = 'personal' | 'caregiver' | 'student' | 'clinical'
-export type InstType = 'hospital' | 'pharmacy_hospital' | 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center'
+export type InstType = 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center'
 export type ToolPlan = 'free' | 'free_limited' | 'student' | 'pro'
 
 export interface Tool {
@@ -44,11 +44,9 @@ export const TOOL_CATEGORIES: Record<string, { label: string; color: string }> =
 // não mudar a experiência ao utilizador atual.
 const NH:  InstType[] = ['nursing_home']
 const PHC: InstType[] = ['pharmacy_community']
-const PHH: InstType[] = ['pharmacy_hospital']
-const HOS: InstType[] = ['hospital']
 const CLN: InstType[] = ['clinic']
 const HC:  InstType[] = ['health_center']
-const ALL_INST: InstType[] = ['hospital', 'pharmacy_hospital', 'pharmacy_community', 'nursing_home', 'clinic', 'health_center']
+const ALL_INST: InstType[] = ['pharmacy_community', 'nursing_home', 'clinic', 'health_center']
 
 export const TOOLS: Tool[] = [
   // ══ PESSOAL / CUIDADOR / ESTUDANTE ════════════════════════════════════════
@@ -64,7 +62,6 @@ export const TOOLS: Tool[] = [
   { id: '/relatorio',    label: 'Como correu a minha semana?',   desc: 'Relatório semanal por IA',         category: 'health',     modes: ['personal', 'caregiver'], plan: 'student' },
   { id: '/saude-agora',  label: 'Devo ir ao médico ou ajudar já?', desc: 'Triagem + primeiros socorros num só', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/medico-bolso', label: 'O Phlox olha pela minha saúde',   desc: 'Deteta sozinho o que merece atenção', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/risco',        label: 'O meu perfil de risco',         desc: 'SCORE2 + STOPP + carga anticolinérgica', category: 'health', modes: ['personal', 'caregiver'], plan: 'student' },
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises e sintomas numa linha do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Cofre de documentos clínicos',  desc: 'Análises, receitas, partilha por código', category: 'health', modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
@@ -101,21 +98,21 @@ export const TOOLS: Tool[] = [
   // Fluxo de trabalho — base, vista por todos por defeito
   { id: '/cockpit',      label: 'Cockpit operacional',           desc: 'Dashboard do turno · alertas · KPIs', category: 'clinical_daily', modes: ['clinical'], default: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
   { id: '/patients',     label: 'Doentes / utentes',             desc: 'Fichas, medicação, alertas',       category: 'clinical_daily', modes: ['clinical'], default: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
-  { id: '/mar',          label: 'Administração (MAR)',           desc: 'Registo por turno · alertas',      category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'hospital', 'pharmacy_hospital'], plan: 'pro' },
-  { id: '/rounds',       label: 'Ronda farmacêutica',            desc: 'PCNE · intervenções',              category: 'clinical_daily', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_hospital', 'nursing_home', 'clinic'], plan: 'pro' },
+  { id: '/mar',          label: 'Administração (MAR)',           desc: 'Registo por turno · alertas',      category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
+  { id: '/rounds',       label: 'Ronda farmacêutica',            desc: 'PCNE · intervenções',              category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'clinic'], plan: 'pro' },
   { id: '/vigia',        label: 'Vigia Clínico do Lar',          desc: 'Vigilância farmacológica IA · todos os residentes', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
-  { id: '/turno',        label: 'Turno',                         desc: 'Visão do turno actual',            category: 'clinical_daily', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_hospital', 'nursing_home'], plan: 'pro' },
-  { id: '/reconciliacao', label: 'Reconciliação de alta',         desc: 'Foto da nota de alta → o que mudou, omissões e conflitos', category: 'clinical_daily', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_hospital', 'clinic', 'nursing_home'], plan: 'pro' },
+  { id: '/turno',        label: 'Turno',                         desc: 'Visão do turno actual',            category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
+  { id: '/reconciliacao', label: 'Reconciliação de alta',         desc: 'Foto da nota de alta → o que mudou, omissões e conflitos', category: 'clinical_daily', modes: ['clinical'], default_inst: ['clinic', 'nursing_home'], plan: 'pro' },
 
   // NH específicas
   { id: '/care-log',     label: 'Registos diários (lar)',        desc: 'Sinais vitais, alimentação, humor', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
-  { id: '/assessments',  label: 'Avaliações (Braden, MNA, ...)', desc: 'Escalas clínicas',                 category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'hospital'], plan: 'pro' },
-  { id: '/incidents',    label: 'Ocorrências',                   desc: 'Quedas, erros med, comportamento', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'hospital'], plan: 'pro' },
+  { id: '/assessments',  label: 'Avaliações (Braden, MNA, ...)', desc: 'Escalas clínicas',                 category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
+  { id: '/incidents',    label: 'Ocorrências',                   desc: 'Quedas, erros med, comportamento', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/family',       label: 'Famílias (lar)',                desc: 'Mensagens, visitas, contactos',    category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
 
   // Decisão clínica
   { id: '/oracle',       label: 'Oracle — AI consulta',          desc: 'SOAP · nota clínica · PCNE v9.1 · plano', category: 'clinical_decision', modes: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
-  { id: '/food-drug',    label: 'Fármaco-alimento',              desc: 'Toranja · álcool · vitK · tiramina', category: 'clinical_decision', modes: ['clinical'], default_inst: ['pharmacy_community', 'pharmacy_hospital'], plan: 'pro' },
+  { id: '/food-drug',    label: 'Fármaco-alimento',              desc: 'Toranja · álcool · vitK · tiramina', category: 'clinical_decision', modes: ['clinical'], default_inst: ['pharmacy_community'], plan: 'pro' },
 
   // Ferramentas pro — calculadoras consolidadas num único hub (/calculos)
   { id: '/calculos',     label: 'Calculadoras clínicas',         desc: 'Escalas, eGFR/CrCl, IV, PK, eletrólitos, doses urgência e pediátricas', category: 'clinical_tools', modes: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
@@ -123,25 +120,25 @@ export const TOOLS: Tool[] = [
   //  dose-crianca, escalas → agora dentro do hub /calculos. Páginas mantidas, fora do menu.)
 
   // Operações & equipa
-  { id: '/stock',        label: 'Stock & validades',             desc: 'Existências · ruturas · prazos',   category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'pharmacy_hospital', 'nursing_home', 'hospital', 'clinic'], plan: 'pro' },
-  { id: '/schedule',     label: 'Escalas / equipa',              desc: 'Turnos · vagas · competências',    category: 'clinical_ops', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_community'], plan: 'pro' },
-  { id: '/team',         label: 'Equipa & tarefas',              desc: 'Membros, papéis, turnos, tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['hospital', 'nursing_home'], plan: 'pro' },
+  { id: '/stock',        label: 'Stock & validades',             desc: 'Existências · ruturas · prazos',   category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'nursing_home', 'clinic'], plan: 'pro' },
+  { id: '/schedule',     label: 'Escalas / equipa',              desc: 'Turnos · vagas · competências',    category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community'], plan: 'pro' },
+  { id: '/team',         label: 'Equipa & tarefas',              desc: 'Membros, papéis, turnos, tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/agenda',       label: 'Agenda',                        desc: 'Marcações · lembretes',            category: 'clinical_ops', modes: ['clinical'], default_inst: ['clinic', 'health_center', 'pharmacy_community'], plan: 'pro' },
   { id: '/faturacao',    label: 'Faturação',                     desc: 'Emissão e exportação',             category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'clinic'], plan: 'pro' },
   { id: '/balcao',       label: 'Modo balcão',                   desc: 'Atender e entregar o aconselhamento no telemóvel do utente (QR)', category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community'], plan: 'pro' },
 
   // Qualidade & farmacovigilância
-  { id: '/quality',      label: 'Central de qualidade',          desc: 'KPIs · segurança · alertas/recalls · intervenções', category: 'clinical_quality', modes: ['clinical'], default_inst: ['hospital', 'pharmacy_hospital', 'nursing_home'], plan: 'pro' },
-  { id: '/prescription-queue', label: 'Fila de validação',       desc: 'Revisão clínica · audit trail',    category: 'clinical_quality', modes: ['clinical'], default_inst: ['pharmacy_community', 'pharmacy_hospital'], plan: 'pro' },
+  { id: '/quality',      label: 'Central de qualidade',          desc: 'KPIs · segurança · alertas/recalls · intervenções', category: 'clinical_quality', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
+  { id: '/prescription-queue', label: 'Fila de validação',       desc: 'Revisão clínica · audit trail',    category: 'clinical_quality', modes: ['clinical'], default_inst: ['pharmacy_community'], plan: 'pro' },
 
   // Legal & documentos
-  { id: '/documentos',   label: 'Documentos & conformidade',     desc: 'Arquivo · consentimentos · RGPD/normas', category: 'clinical_legal', modes: ['clinical'], default_inst: ['nursing_home', 'hospital', 'clinic', 'pharmacy_community'], plan: 'pro' },
-  { id: '/carta',        label: 'Carta de alta',                 desc: 'Geração farmacoterapêutica',       category: 'clinical_legal', modes: ['clinical'], default_inst: ['hospital'], plan: 'pro' },
+  { id: '/documentos',   label: 'Documentos & conformidade',     desc: 'Arquivo · consentimentos · RGPD/normas', category: 'clinical_legal', modes: ['clinical'], default_inst: ['nursing_home', 'clinic', 'pharmacy_community'], plan: 'pro' },
+  { id: '/carta',        label: 'Carta de alta',                 desc: 'Geração farmacoterapêutica',       category: 'clinical_legal', modes: ['clinical'], default_inst: [], plan: 'pro' },
   { id: '/connect',      label: 'Phlox Connect',                 desc: 'Partilhar dados com equipa',       category: 'clinical_legal', modes: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
 
   // Suprimidos por agora (referências antigas no nav `EXTRA_TOOLS`): mantemos
   // apenas no settings se o utilizador quiser activar manualmente.
-  { id: '/med-review',   label: 'Revisão e otimização de medicação', desc: 'Análise do esquema · genéricos · STOPP/START', category: 'clinical_decision', modes: ['clinical'], default_inst: ['pharmacy_community', 'pharmacy_hospital', 'hospital', 'clinic', 'nursing_home'], plan: 'pro' },
+  { id: '/med-review',   label: 'Revisão e otimização de medicação', desc: 'Análise do esquema · genéricos · STOPP/START', category: 'clinical_decision', modes: ['clinical'], default_inst: ['pharmacy_community', 'clinic', 'nursing_home'], plan: 'pro' },
   { id: '/migrar',       label: 'Migrar dados',                  desc: 'SClínico · Sifarma · Excel · PDF', category: 'clinical_legal', modes: ['clinical'], plan: 'pro' },
 ]
 

@@ -18,21 +18,23 @@ const PhloxCopilot = dynamic(() => import('@/components/PhloxCopilot'), { ssr: f
 const UniversalSearch = dynamic(() => import('@/components/UniversalSearch'), { ssr: false })
 const ClinicalCommandPalette = dynamic(() => import('@/components/ClinicalCommandPalette'), { ssr: false })
 
+// Rotas que correm DENTRO do shell institucional (sidebar do blueprint).
+// Tem de cobrir TODAS as ferramentas que o blueprint referencia (core + extra),
+// senão essas páginas abrem sem a navegação do produto. Mantido em sincronia com
+// lib/institutionBlueprint.ts.
 const CLINICAL_PREFIXES = [
   '/cockpit', '/patients', '/rounds', '/mar', '/team', '/turno', '/hoje', '/painel', '/ronda-guiada',
   '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
   '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
   '/schedule', '/census', '/roi', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos',
   '/indicacao', '/soap', '/rastreios', '/atendimentos',
+  // ferramentas do blueprint que faltavam (abriam sem sidebar institucional)
+  '/reconciliacao', '/interactions', '/calculos', '/balcao', '/counseling',
   '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
   '/insights', '/copiloto', '/reach', '/brief', '/calc', '/codes',
   '/guardados', '/calendario',
-  '/clinico360',
-  '/hospital',
   '/farmacia',
-  '/bi', '/automacoes',
-  '/crm', '/telemedicina', '/traduzir',
-  '/organizacao',
+  '/traduzir',
   '/aprender', '/study', '/estagio',
 ]
 

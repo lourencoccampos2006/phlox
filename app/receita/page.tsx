@@ -7,7 +7,6 @@
 // utilizador via a explicação mas tinha de adicionar tudo manualmente.
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import ProfileSelector from '@/components/ProfileSelector'
@@ -43,14 +42,8 @@ function downscale(file: File, maxDim = 1400, q = 0.85): Promise<{ b64: string; 
 
 const matchSlot = (times: string[], slot: string) => (times || []).some(t => t.toLowerCase().includes(slot))
 
-// Fundido no Phlox Scan (/scan) como aba "Receita" (foto da receita → horário de tomas).
-export default function ReceitaRedirect() {
-  const r = useRouter()
-  useEffect(() => { r.replace('/scan?tab=receita') }, [r])
-  return null
-}
-
-export function ReceitaTool() {
+// Página própria outra vez (a fusão em /scan foi desfeita).
+export default function ReceitaTool() {
   const { user, supabase } = useAuth() as any
   const toast = useToast()
   const [profile, setProfile] = useState<ActiveProfile | null>(getActiveProfile())

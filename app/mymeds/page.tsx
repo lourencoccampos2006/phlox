@@ -22,6 +22,7 @@ interface Med {
   started_at: string|null; created_at: string
   pills_remaining?: number | null
   pills_per_day?: number | null
+  stock_updated_at?: string | null  // quando o stock foi posto/atualizado → conta os dias a partir daqui
 }
 
 interface DoseLog {
@@ -539,8 +540,19 @@ export default function MyMedsPage() {
   // 2026-06-01: o utilizador reportou "não tem sítio onde meter isso (refill)".
   const updateRefill = async (medId: string, pills: number | null, perDay: number | null) => {
     const table = activeProfile?.type === 'family' ? 'family_profile_meds' : 'personal_meds'
-    const patch = { pills_remaining: pills, pills_per_day: perDay }
-    const { error } = await supabase.from(table).update(patch).eq('id', medId)
+    const now = new Date().toISOString()
+    // Marca QUANDO o stock foi posto → o contador de dias passa a descontar
+    // os dias decorridos (antes ficava sempre o mesmo número, não atualizava).
+    const patch = { pills_remaining: pills, pills_per_day: perDay, stock_updated_at: now }
+    let { error } = await supabase.from(table).update(patch).eq('id', medId)
+    // Se a coluna stock_updated_at ainda não existe na BD, grava sem ela (degrada
+    // com elegância — o contador usa created_at como fallback).
+    if (error && /stock_updated_at/.test(error.message || '')) {
+      const fallback = { pills_remaining: pills, pills_per_day: perDay }
+      const retry = await supabase.from(table).update(fallback).eq('id', medId)
+      error = retry.error
+      if (!error) { setMeds(p => p.map(m => m.id === medId ? { ...m, ...fallback } : m)); return }
+    }
     if (error) { alert(`Não foi possível atualizar stock: ${error.message}`); return }
     setMeds(p => p.map(m => m.id === medId ? { ...m, ...patch } : m))
   }
@@ -922,10 +934,19 @@ export default function MyMedsPage() {
                             ? Math.floor((Date.now() - new Date(med.created_at).getTime()) / (1000 * 60 * 60 * 24))
                             : 0
                         const needsRefill = daysSinceStart >= 25
-                        // Calcula dias até acabar (refill projection) com base no stock.
-                        const stockDays = (med.pills_remaining != null && med.pills_per_day && med.pills_per_day > 0)
-                          ? Math.floor((med.pills_remaining || 0) / med.pills_per_day)
-                          : null
+                        // Dias até acabar o stock. O stock foi posto em stock_updated_at
+                        // (ou, em falta, na criação): a partir daí descontamos os dias
+                        // já decorridos × doses/dia, para o número ATUALIZAR sozinho com
+                        // o passar dos dias (antes ficava congelado no valor inicial).
+                        let stockDays: number | null = null
+                        if (med.pills_remaining != null && med.pills_per_day && med.pills_per_day > 0) {
+                          const setAt = med.stock_updated_at || med.created_at
+                          const daysElapsed = setAt
+                            ? Math.max(0, Math.floor((Date.now() - new Date(setAt).getTime()) / (1000 * 60 * 60 * 24)))
+                            : 0
+                          const pillsLeftNow = (med.pills_remaining || 0) - daysElapsed * med.pills_per_day
+                          stockDays = Math.max(0, Math.floor(pillsLeftNow / med.pills_per_day))
+                        }
                         const stockCritical = stockDays != null && stockDays <= 3
                         const stockWarn = stockDays != null && stockDays > 3 && stockDays <= 7
                         return (
@@ -939,7 +960,7 @@ export default function MyMedsPage() {
                                 {hasGrave && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', background:'#fee2e2', border:'1px solid #fca5a5', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>Alerta</span>}
                                 {hasReminder && <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius:3 }}>🔔 {med.reminder_times!.join(' · ')}</span>}
                                 {stockDays != null && (
-                                  <span title={`${med.pills_remaining} cp restantes · ${med.pills_per_day}/dia`} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color: stockCritical?'#991b1b':stockWarn?'#b45309':'#0d6e42', background: stockCritical?'#fee2e2':stockWarn?'#fffbeb':'#f0fdf5', border:`1px solid ${stockCritical?'#fca5a5':stockWarn?'#fde68a':'#bbf7d0'}`, padding:'1px 5px', borderRadius:3 }}>
+                                  <span title={`≈ ${stockDays * (med.pills_per_day || 1)} cp restantes · ${med.pills_per_day}/dia · acaba em ${stockDays} dias`} style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color: stockCritical?'#991b1b':stockWarn?'#b45309':'#0d6e42', background: stockCritical?'#fee2e2':stockWarn?'#fffbeb':'#f0fdf5', border:`1px solid ${stockCritical?'#fca5a5':stockWarn?'#fde68a':'#bbf7d0'}`, padding:'1px 5px', borderRadius:3 }}>
                                     📦 {stockDays}d
                                   </span>
                                 )}
@@ -1390,7 +1411,18 @@ export default function MyMedsPage() {
 // family_profile_meds (a função updateRefill já trata da tabela certa).
 function RefillEditor({ med, onSave }: { med: Med; onSave: (pills: number | null, perDay: number | null) => void }) {
   const [open, setOpen] = useState(false)
-  const [pills, setPills] = useState<string>(med.pills_remaining != null ? String(med.pills_remaining) : '')
+  // Pré-preenche com o stock ATUAL projetado (desconta os dias já decorridos
+  // desde que o stock foi posto), não com o número antigo congelado — assim
+  // reabrir e gravar não "ressuscita" comprimidos que já foram tomados.
+  const livePills = (() => {
+    if (med.pills_remaining == null) return null
+    const setAt = med.stock_updated_at || med.created_at
+    const perDayNum = med.pills_per_day || 0
+    if (!setAt || perDayNum <= 0) return med.pills_remaining
+    const daysElapsed = Math.max(0, Math.floor((Date.now() - new Date(setAt).getTime()) / (1000 * 60 * 60 * 24)))
+    return Math.max(0, med.pills_remaining - daysElapsed * perDayNum)
+  })()
+  const [pills, setPills] = useState<string>(livePills != null ? String(livePills) : '')
   const [perDay, setPerDay] = useState<string>(med.pills_per_day != null ? String(med.pills_per_day) : '')
   // Modal central — não precisa de ref; fecha pelo backdrop / ESC.
   useEffect(() => {

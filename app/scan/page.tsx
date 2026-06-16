@@ -11,25 +11,12 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { extractFromFile } from '@/lib/docExtract'
 import { sendToTool } from '@/lib/toolBridge'
-import FusionTabs from '@/components/FusionTabs'
-import { MedicamentoTool } from '../medicamento/page'
-import { BulaTool } from '../bula/page'
-import { ReceitaTool } from '../receita/page'
 
-// /scan é o Phlox Scan unificado: foto de qualquer coisa (auto-deteta) + abas
-// dedicadas para Medicamento (com pesquisa por texto), Bula e Receita. Cada aba é
-// o componente original intacto — a pesquisa por texto e o horário de tomas
-// mantêm-se.
+// /scan — Phlox Scan: SÓ a foto auto-deteta. Voltou a ser uma ferramenta
+// dedicada e simples (a fusão anterior em abas era frágil e rebentava).
+// Para texto: /medicamento e /receita são páginas próprias.
 export default function ScanPage() {
-  return <FusionTabs
-    eyebrow="Phlox Scan" title="Foto de qualquer coisa de saúde"
-    subtitle="Tira uma foto e o Phlox percebe — ou usa as abas para medicamento, bula ou receita."
-    tabs={[
-      { id: 'foto', label: 'Foto (auto)', icon: '📸', render: () => <ScanTool /> },
-      { id: 'medicamento', label: 'Medicamento', icon: '💊', render: () => <MedicamentoTool /> },
-      { id: 'bula', label: 'Bula', icon: '📑', render: () => <BulaTool /> },
-      { id: 'receita', label: 'Receita', icon: '📋', render: () => <ReceitaTool /> },
-    ]} />
+  return <ScanTool />
 }
 
 const ACCENT = '#0d6e42'
@@ -81,15 +68,36 @@ function ScanTool() {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
     reset()
-    const isImage = file.type.startsWith('image/')
+    // Deteção robusta de imagem: a câmara do telemóvel devolve muitas vezes
+    // file.type vazio (ou HEIC). Não confiar só no mimeType — olhar também à
+    // extensão e tratar "tipo desconhecido" como imagem (caso da foto auto).
+    const name = (file.name || '').toLowerCase()
+    const isDoc = /\.(pdf|docx?|pptx?|txt|md)$/.test(name) || file.type === 'application/pdf'
+      || file.type.startsWith('text/')
+      || file.type.includes('word') || file.type.includes('officedocument')
+    const isImage = !isDoc && (
+      file.type.startsWith('image/') ||
+      file.type === '' ||                       // câmara sem mimeType
+      /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/.test(name)
+    )
     try {
       let payload: any
       if (isImage) {
         setBusy('A interpretar a imagem…')
         const b64 = await new Promise<string>((res2, rej) => {
-          const rd = new FileReader(); rd.onload = () => res2(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(file)
+          const rd = new FileReader()
+          rd.onload = () => {
+            const result = String(rd.result || '')
+            const comma = result.indexOf(',')
+            // data URL = "data:<mime>;base64,<dados>" — corta no PRIMEIRO vírgula.
+            if (comma < 0) { rej(new Error('Não consegui ler a imagem. Tenta outra foto.')); return }
+            res2(result.slice(comma + 1))
+          }
+          rd.onerror = () => rej(new Error('Não consegui ler a imagem. Tenta outra foto.'))
+          rd.readAsDataURL(file)
         })
-        payload = { image: b64, mimeType: file.type }
+        // mimeType: usa o do ficheiro; se vazio (câmara), assume jpeg.
+        payload = { image: b64, mimeType: file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg' }
       } else {
         // PDF / Word / texto → extrai no browser e envia o texto
         setBusy('A ler o documento…')

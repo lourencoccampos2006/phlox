@@ -40,11 +40,18 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('clinic', 'Vigia Clínico do Lar')
   const db = sb(req)
-  const [pats, vig] = await Promise.all([
-    db.from('patients').select('id, name, age, sex, room, risk_level, alert_count, last_review').eq('user_id', userId),
-    db.from('patient_vigilance').select('*').eq('user_id', userId),
-  ])
-  if (pats.error && /does not exist/i.test(pats.error.message)) return NextResponse.json({ patients: [], needs_migration: true })
+  // Selecionar SÓ colunas garantidas — colunas opcionais (alert_count, last_review)
+  // podiam não existir e faziam a query inteira falhar → "sem residentes" + banner
+  // de migração, mesmo havendo residentes. Os residentes têm de carregar sempre.
+  const pats = await db.from('patients').select('id, name, age, sex, room, risk_level').eq('user_id', userId)
+  // Se a PRÓPRIA tabela patients não existir, aí sim é migração em falta.
+  if (pats.error && /relation .*patients.* does not exist|table .*patients.* does not exist/i.test(pats.error.message))
+    return NextResponse.json({ patients: [], needs_migration: true })
+  if (pats.error) return NextResponse.json({ patients: [], error: pats.error.message })
+
+  // A vigilância é OPCIONAL: se a tabela ainda não existe (sem scan), seguimos
+  // com os residentes sem dados de risco — não bloqueia a página.
+  const vig = await db.from('patient_vigilance').select('*').eq('user_id', userId)
   const vigMap: Record<string, any> = {}
   for (const v of (vig.data || [])) vigMap[v.patient_id] = v
   const rows = (pats.data || []).map((p: any) => ({ ...p, vigilance: vigMap[p.id] || null }))

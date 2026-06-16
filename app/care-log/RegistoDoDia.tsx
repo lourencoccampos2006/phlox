@@ -26,11 +26,10 @@ const TAB_META: Record<TabId, { label: string; icon: string }> = {
 }
 
 // Que abas cada tipo de instituição vê (ordem importa). Centro de dia destaca
-// atividades; lar/hospital têm feridas; farmácias não usam este registo.
+// atividades; lar tem feridas; farmácias não usam este registo.
 const TABS_BY_INST: Record<string, TabId[]> = {
   day_care:      ['registo', 'hidratacao', 'atividades'],
   nursing_home:  ['registo', 'hidratacao', 'feridas', 'atividades'],
-  hospital:      ['registo', 'hidratacao', 'feridas'],
   clinic:        ['registo', 'hidratacao'],
   health_center: ['registo', 'hidratacao'],
 }

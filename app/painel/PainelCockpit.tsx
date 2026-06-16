@@ -31,6 +31,9 @@ export default function PainelCockpit() {
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState(false)
 
+  // que blocos este tipo de instituição usa (decide o que vale a pena carregar)
+  const blockIds = useMemo(() => new Set(bp.cockpit.map(b => b.id)), [bp])
+
   // dados reais
   const [patients, setPatients] = useState<PatientRow[]>([])
   const [careToday, setCareToday] = useState<any[]>([])
@@ -39,6 +42,12 @@ export default function PainelCockpit() {
   const [incidents, setIncidents] = useState<any[]>([])
   const [family, setFamily] = useState<any[]>([])
   const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
+  // farmácia / clínica / transversal
+  const [salesToday, setSalesToday] = useState<{ count: number; total: number }>({ count: 0, total: 0 })
+  const [lowStock, setLowStock] = useState(0)
+  const [rxQueue, setRxQueue] = useState({ pending: 0, total: 0 })
+  const [apptsToday, setApptsToday] = useState<any[]>([])
+  const [tasks, setTasks] = useState<any[]>([])
 
   useEffect(() => {
     setMounted(true)
@@ -68,8 +77,37 @@ export default function PainelCockpit() {
     const m: Record<string, string[]> = {}
     ;(meds.data || []).forEach((x: any) => { (m[x.patient_id] ||= []).push(x.name) })
     setMedsByPt(m)
+
+    // Blocos específicos (farmácia / clínica / transversais). Só consultamos o
+    // que ESTE tipo de instituição mostra — e cada query é tolerante a tabelas
+    // que ainda não existam (devolve vazio sem partir o cockpit).
+    const safe = async (q: any, fallback: any) => { try { const r = await q; return r.error ? fallback : r } catch { return { data: fallback } } }
+
+    if (blockIds.has('sales_today')) {
+      const start = new Date(); start.setHours(0, 0, 0, 0)
+      const r = await safe(supabase.from('sales').select('total,at').eq('user_id', user.id).gte('at', start.toISOString()), [])
+      const rows = r.data || []
+      setSalesToday({ count: rows.length, total: rows.reduce((s: number, x: any) => s + (Number(x.total) || 0), 0) })
+    }
+    if (blockIds.has('counter')) {
+      const r = await safe(supabase.from('stock_items').select('id,quantity,min_quantity').eq('user_id', user.id), [])
+      setLowStock((r.data || []).filter((x: any) => x.min_quantity != null && (x.quantity ?? 0) <= x.min_quantity).length)
+    }
+    if (blockIds.has('validation_queue') || blockIds.has('counter')) {
+      const r = await safe(supabase.from('prescription_queue').select('status').eq('user_id', user.id), [])
+      const rows = r.data || []
+      setRxQueue({ pending: rows.filter((x: any) => x.status === 'pending' || x.status === 'reviewing').length, total: rows.length })
+    }
+    if (blockIds.has('appointments')) {
+      const r = await safe(supabase.from('appointments').select('id,title,time,status,patient_id').eq('user_id', user.id).eq('date', d).order('time'), [])
+      setApptsToday(r.data || [])
+    }
+    if (blockIds.has('tasks')) {
+      const r = await safe(supabase.from('team_tasks').select('id,title,status,priority').eq('user_id', user.id).neq('status', 'done').limit(20), [])
+      setTasks(r.data || [])
+    }
     setLoading(false)
-  }, [user, supabase])
+  }, [user, supabase, blockIds])
 
   useEffect(() => { load() }, [load])
 
@@ -137,7 +175,7 @@ export default function PainelCockpit() {
             <BlockShell key={block.id} block={block} editing={editing} hidden={hidden.has(block.id)} onToggle={() => toggleHide(block.id)} accent={bp.accent}>
               <BlockBody
                 id={block.id} bp={bp} cfg={cfg} loading={loading}
-                ctx={{ patients, careToday, withCareToday, marToday, marTaken, acts, incidents, family, attention, firstName }}
+                ctx={{ patients, careToday, withCareToday, marToday, marTaken, acts, incidents, family, attention, firstName, salesToday, lowStock, rxQueue, apptsToday, tasks }}
               />
             </BlockShell>
           ))}
@@ -174,6 +212,8 @@ const blkTitle: React.CSSProperties = { fontSize: 13, fontWeight: 800, color: '#
 interface Ctx {
   patients: PatientRow[]; careToday: any[]; withCareToday: Set<string>; marToday: any[]; marTaken: number
   acts: any[]; incidents: any[]; family: any[]; attention: any[]; firstName: string
+  salesToday: { count: number; total: number }; lowStock: number
+  rxQueue: { pending: number; total: number }; apptsToday: any[]; tasks: any[]
 }
 
 function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: any; loading: boolean; ctx: Ctx }) {
@@ -293,12 +333,94 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
         </div>
       )
     }
-    // Blocos de farmácia/clínica/hospital — placeholders honestos que ligam à tool real
-    case 'counter':        return <LinkBlock title="🧾 Balcão" hint="Atendimentos e fila de utentes" href="/balcao" accent={bp.accent} />
-    case 'sales_today':    return <LinkBlock title="🛒 Vendas de hoje" hint="Caixa e dispensa do dia" href="/vendas" accent={bp.accent} />
-    case 'validation_queue': return <LinkBlock title="📬 Validação" hint="Prescrições a validar" href="/prescription-queue" accent={bp.accent} />
-    case 'appointments':   return <LinkBlock title="📅 Agenda de hoje" hint="Marcações e consultas" href="/agenda" accent={bp.accent} />
-    case 'tasks':          return <LinkBlock title="✅ Tarefas" hint="Pendentes da equipa" href="/tarefas-equipa" accent={bp.accent} />
+    // ── Farmácia ────────────────────────────────────────────────────────────
+    case 'counter': {
+      // O "balcão" do dia: fila de receitas a validar + ruturas de stock a saltar à vista.
+      const q = ctx.rxQueue
+      return (
+        <div style={{ ...card, background: bp.accent, border: 'none', color: 'white' }}>
+          <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 600, marginBottom: 12 }}>Balcão de hoje</div>
+          <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', marginBottom: 14 }}>
+            <Stat n={q.pending} l="receitas a validar" light />
+            <Stat n={ctx.lowStock} l="produtos em rutura" light />
+            <Stat n={ctx.patients.length} l={noun} light />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <CtaPill href="/balcao" label="Abrir balcão" />
+            <CtaPill href="/vendas" label="Vender" />
+            {q.pending > 0 && <CtaPill href="/prescription-queue" label={`Validar (${q.pending})`} />}
+          </div>
+        </div>
+      )
+    }
+    case 'sales_today': {
+      const { count, total } = ctx.salesToday
+      return (
+        <div style={card}>
+          <div style={blkTitle}>🛒 Vendas de hoje</div>
+          {count === 0 ? <Empty msg="Ainda não há vendas registadas hoje." href="/vendas" cta="Abrir caixa" />
+          : <>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>
+                {total.toFixed(2).replace('.', ',')}<span style={{ fontSize: 15, color: '#94a3b8', fontWeight: 700 }}> €</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{count} {count === 1 ? 'venda' : 'vendas'} · ticket médio {(total / count).toFixed(2).replace('.', ',')} €</div>
+              <Link href="/vendas" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>Ver caixa →</Link>
+            </>}
+        </div>
+      )
+    }
+    case 'validation_queue': {
+      const q = ctx.rxQueue
+      return (
+        <div style={card}>
+          <div style={blkTitle}>📬 Receitas a validar {q.pending > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{q.pending}</span>}</div>
+          {q.pending === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Fila limpa — nada por validar. ✓</div>
+          : <div style={{ fontSize: 13, color: '#334155' }}><b style={{ color: '#b45309' }}>{q.pending}</b> à espera de validação · <Link href="/prescription-queue" style={{ color: bp.accent, fontWeight: 700 }}>abrir fila</Link></div>}
+        </div>
+      )
+    }
+    // ── Clínica / CSP ─────────────────────────────────────────────────────────
+    case 'appointments': {
+      const appts = ctx.apptsToday
+      const done = appts.filter(a => a.status === 'done').length
+      const upcoming = appts.filter(a => a.status === 'scheduled')
+      return (
+        <div style={card}>
+          <div style={blkTitle}>📅 Agenda de hoje <span style={{ color: '#94a3b8', fontWeight: 600 }}>{done}/{appts.length}</span></div>
+          {appts.length === 0 ? <Empty msg="Sem marcações para hoje." href="/agenda" cta="Abrir agenda" />
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {upcoming.slice(0, 6).map(a => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: bp.accent, fontWeight: 700, minWidth: 42 }}>{a.time?.slice(0, 5) || '—'}</span>
+                  <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
+                </div>
+              ))}
+              {upcoming.length === 0 && <div style={{ fontSize: 12.5, color: '#16a34a' }}>Tudo feito por hoje. ✓</div>}
+              <Link href="/agenda" style={{ marginTop: 4, fontSize: 12, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>Ver agenda →</Link>
+            </div>}
+        </div>
+      )
+    }
+    // ── Transversal ───────────────────────────────────────────────────────────
+    case 'tasks': {
+      const open = ctx.tasks
+      const urgent = open.filter(t => t.priority === 'high' || t.priority === 'urgent').length
+      return (
+        <div style={card}>
+          <div style={blkTitle}>✅ Tarefas {open.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: urgent ? '#b91c1c' : '#64748b', background: urgent ? '#fef2f2' : '#f1f5f9', padding: '2px 7px', borderRadius: 6 }}>{open.length}</span>}</div>
+          {open.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Sem tarefas pendentes. ✓</div>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {open.slice(0, 4).map(t => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#334155' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: (t.priority === 'high' || t.priority === 'urgent') ? '#dc2626' : '#cbd5e1', flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                </div>
+              ))}
+              <Link href="/tarefas-equipa" style={{ marginTop: 4, fontSize: 12, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>Ver tarefas →</Link>
+            </div>}
+        </div>
+      )
+    }
     default: return null
   }
 }
@@ -314,10 +436,7 @@ function Chip({ label, tone }: { label: string; tone: 'ok' | 'pending' }) {
 function Empty({ msg, href, cta }: { msg: string; href: string; cta: string }) {
   return <div style={{ textAlign: 'center', padding: '14px 0' }}><div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>{msg}</div><Link href={href} style={{ fontSize: 12.5, fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}>{cta} →</Link></div>
 }
-function LinkBlock({ title, hint, href, accent }: { title: string; hint: string; href: string; accent: string }) {
-  return <Link href={href} style={{ ...card, display: 'block', textDecoration: 'none' }}>
-    <div style={blkTitle}>{title}</div>
-    <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 10 }}>{hint}</div>
-    <span style={{ fontSize: 12.5, fontWeight: 700, color: accent }}>Abrir →</span>
-  </Link>
+// Botão claro sobre fundo de acento (usado no bloco "balcão" da farmácia).
+function CtaPill({ href, label }: { href: string; label: string }) {
+  return <Link href={href} style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 8, padding: '7px 13px', fontSize: 12.5, fontWeight: 700 }}>{label} →</Link>
 }

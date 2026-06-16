@@ -22,7 +22,7 @@ const TOOLS = [
     featured: true,
   },
   {
-    href: '/bula',
+    href: '/scan',
     icon: '📄',
     label: 'Perceber uma bula',
     desc: 'Cola aqui qualquer texto de bula e o Phlox explica em linguagem simples o que realmente importa.',

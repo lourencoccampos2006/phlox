@@ -10,10 +10,11 @@ export type ClinicalRole =
   | 'doctor'
   | 'administrator'
 
+// Tipos suportados. Hospital e farmácia hospitalar foram removidos (demasiado
+// ambicioso para agora) — o foco é lar, centro de dia, farmácia comunitária,
+// clínica e centro de saúde.
 export type InstitutionType =
-  | 'hospital'
   | 'clinic'
-  | 'pharmacy_hospital'
   | 'pharmacy_community'
   | 'nursing_home'
   | 'day_care'
@@ -29,9 +30,7 @@ export const ROLE_META: Record<ClinicalRole, { label: string; icon: string; colo
 }
 
 export const INST_META: Record<InstitutionType, { label: string; icon: string; shortLabel: string }> = {
-  hospital:           { label: 'Hospital',                  icon: '🏥', shortLabel: 'Hospital' },
   clinic:             { label: 'Clínica',                   icon: '🏠', shortLabel: 'Clínica' },
-  pharmacy_hospital:  { label: 'Farmácia Hospitalar',       icon: '⚗️', shortLabel: 'Farm. Hosp.' },
   pharmacy_community: { label: 'Farmácia Comunitária',      icon: '🏪', shortLabel: 'Farm. Com.' },
   nursing_home:       { label: 'Lar / ERPI',                icon: '🤝', shortLabel: 'Lar/ERPI' },
   day_care:           { label: 'Centro de Dia',             icon: '☀️', shortLabel: 'C. Dia' },
@@ -43,7 +42,7 @@ const INST_KEY = 'phlox-clinic-institution'
 
 export function useClinicPrefs() {
   const [role, setRoleState] = useState<ClinicalRole>('pharmacist')
-  const [institution, setInstState] = useState<InstitutionType>('hospital')
+  const [institution, setInstState] = useState<InstitutionType>('nursing_home')
 
   useEffect(() => {
     const r = localStorage.getItem(ROLE_KEY) as ClinicalRole | null

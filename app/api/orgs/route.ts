@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!body?.name || !body?.kind) {
     return NextResponse.json({ error: 'Nome e tipo obrigatórios' }, { status: 400 })
   }
-  const KINDS = ['hospital','clinic','nursing_home','pharmacy_community','pharmacy_hospital','health_center','solo','other']
+  const KINDS = ['clinic','nursing_home','pharmacy_community','health_center','solo','other']
   if (!KINDS.includes(body.kind)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
 
   const db = sb(req)

@@ -113,7 +113,7 @@ export default function BriefPage() {
       suggestion = { title: 'Cartões para rever', desc: 'O algoritmo de revisão espaçada espera por ti no Estudo 360°.', href: '/study360', cta: 'Rever agora' }
     } else {
       // personal
-      suggestion = { title: 'Perfil de risco', desc: 'Vê SCORE2, ACB e flags STOPP a partir do que já tens no Phlox.', href: '/risco', cta: 'Calcular risco' }
+      suggestion = { title: 'Saúde 360°', desc: 'Adesão, análises e agenda da tua saúde num só ecrã.', href: '/saude360', cta: 'Abrir Saúde 360°' }
     }
 
     // ── novidades por modo ────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ export default function BriefPage() {
       personal: [
         { title: 'Saúde 360°: adesão, sparklines, refill', href: '/saude360' },
         { title: 'Cofre de saúde: anexa PDFs e imagens', href: '/vault' },
-        { title: 'Risco pessoal: SCORE2, ACB, STOPP', href: '/risco' },
+        { title: 'Estou em dia? Rastreios e vacinas (DGS)', href: '/preventivo' },
       ],
     }
     const whats_new = NEWS_BY_MODE[mode] || NEWS_BY_MODE.personal

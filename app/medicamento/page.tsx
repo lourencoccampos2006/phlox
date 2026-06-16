@@ -15,7 +15,6 @@
 //  • Estrutura: resposta dividida em secções claras com cores semânticas
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { usePhloxContext } from '@/lib/copilotContext'
 import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
@@ -66,15 +65,9 @@ const RX_META: Record<Result['prescription'], { label: string; color: string; bg
   'depende da dose':              { label: 'Depende da dose',            color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', icon: 'ⓘ' },
 }
 
-// Fundido no Phlox Scan (/scan) como aba "Medicamento" (mantém pesquisa por texto
-// E foto). Redirect p/ não partir links antigos.
-export default function MedicamentoRedirect() {
-  const r = useRouter()
-  useEffect(() => { r.replace('/scan?tab=medicamento') }, [r])
-  return null
-}
-
-export function MedicamentoTool() {
+// Página própria outra vez (a fusão em /scan foi desfeita). Mantém pesquisa por
+// texto E foto. É o componente exportado como default.
+export default function MedicamentoTool() {
   const { user } = useAuth() as any
   const [name, setName] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
@@ -108,7 +101,7 @@ export function MedicamentoTool() {
       if (!res.ok) throw new Error(data.error || 'Erro')
       setResult(data)
     } catch (e: any) {
-      setError(e.message || 'Não foi possível. Tenta uma foto da bula em /bula.')
+      setError(e.message || 'Não foi possível. Tenta uma foto da caixa ou bula em /scan.')
     } finally { setLoading(false) }
   }
 
@@ -273,7 +266,7 @@ export function MedicamentoTool() {
                 <div style={{ fontSize: 12.5, opacity: 0.85, marginBottom: 12, lineHeight: 1.55 }}>
                   {result.fallback_advice || 'A informação acima pode estar incorreta. Em vez disso, tira uma foto à BULA (onde está o texto técnico do medicamento) — o motor de bula tem maior precisão.'}
                 </div>
-                <Link href="/bula" style={{ display: 'inline-block', padding: '9px 16px', background: 'white', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>📷 Ir à ferramenta /bula →</Link>
+                <Link href="/scan" style={{ display: 'inline-block', padding: '9px 16px', background: 'white', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>📷 Tirar foto à bula no Scan →</Link>
               </div>
             )}
 
@@ -360,8 +353,8 @@ export function MedicamentoTool() {
                   + Adicionar à minha lista
                 </Link>
               )}
-              <Link href="/bula" style={{ flex: '1 1 100%', textAlign: 'center', padding: '11px', background: 'white', border: '1px dashed var(--border)', borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none' }}>
-                Não te pareceu certo? Tira foto à bula em /bula →
+              <Link href="/scan" style={{ flex: '1 1 100%', textAlign: 'center', padding: '11px', background: 'white', border: '1px dashed var(--border)', borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none' }}>
+                Não te pareceu certo? Tira foto à bula no Scan →
               </Link>
             </div>
 

@@ -12,6 +12,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
+import { conditionRisk, calcCrCl, riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
 
 // ─── PCNE Classification v9.1 (simplified) ───────────────────────────────────
 const PCNE_PROBLEMS = [
@@ -93,54 +94,8 @@ const RISK_STYLE = {
   low:      { label:'BAIXO',    color:'#0d6e42', bg:'#f0fdf5', border:'#bbf7d0', dot:'#16a34a' },
 }
 
-function calcCrCl(p: Patient): number|null {
-  if (!p.age || !p.weight || !p.creatinine) return null
-  return Math.round(((140-p.age)*p.weight*(p.sex==='F'?0.85:1))/(72*p.creatinine)*10)/10
-}
-
-// Condition-based clinical risk — used in addition to drug-interaction alerts
-function conditionRisk(p: Patient): number {
-  let s = 0
-  const c = (p.conditions || '').toLowerCase()
-
-  // Oncological / terminal
-  if (/cancro|cancer|carcinoma|tumor|neoplasia|oncol|leucemia|linfoma|mieloma|sarcoma|metást/.test(c)) s += 40
-  if (/terminal|paliat|hospice|cuidados de conforto/.test(c)) s += 50
-  if (/transplante/.test(c)) s += 22
-
-  // Organ failure
-  if (/diálise|hemodiálise|periton/.test(c)) s += 38
-  if (/insuficiência renal|irc|drc g[45]|ckd [45]|rim (crónico|agudo)/.test(c)) s += 28
-  if (/insuficiência hepática|cirrose|child.pugh [bc]|hepatite (b|c) crónica/.test(c)) s += 28
-  if (/insuficiência cardíaca|ic [34]|feve [<≤]|ic avançada/.test(c)) s += 22
-  if (/insuficiência respiratória|dpoc grave|dpoc estadio [34]|fibrose pulmonar|hap/.test(c)) s += 18
-
-  // Neurological / cognitive
-  if (/demência|alzheimer|parkinson|eps/.test(c)) s += 15
-  if (/avc|acidente vascular|epilepsia|convul/.test(c)) s += 10
-
-  // Haematological / immunological
-  if (/anticoagul|varfarina|warfarin|dabigatran|rivaroxaban|apixaban/.test(c)) s += 12
-  if (/imunossuprimid|transplantado|vih|hiv|vdih/.test(c)) s += 18
-
-  // Metabolic
-  if (/diabetes/.test(c)) s += 8
-  if (/hipertiroid|hipotiroid|addison|cushing/.test(c)) s += 8
-
-  // Age-based risk (even without conditions)
-  if ((p.age || 0) >= 85) s += 22
-  else if ((p.age || 0) >= 75) s += 12
-
-  // CrCl-derived renal risk (when creatinine available but condition not stated)
-  const crcl = calcCrCl(p)
-  if (crcl !== null) {
-    if (crcl < 15) s += 35
-    else if (crcl < 30) s += 22
-    else if (crcl < 60) s += 8
-  }
-
-  return Math.min(s, 70) // cap so it combines with alert scores meaningfully
-}
+// conditionRisk / calcCrCl vêm agora de @/lib/riskScore (fonte única partilhada
+// com o /patients), para o score ser IDÊNTICO nas duas páginas.
 
 // ─── Patient row in the list ──────────────────────────────────────────────────
 
@@ -637,25 +592,28 @@ export default function RoundsPage() {
     setInterventions(ivs||[])
     setLoading(false)
 
-    // Helper: turn a numeric score into a level
-    const toLevel = (s: number): RiskScore['level'] => s >= 70 ? 'critical' : s >= 45 ? 'high' : s >= 20 ? 'moderate' : 'low'
+    // Nível a partir do score — delega na fonte única partilhada.
+    const toLevel = (s: number): RiskScore['level'] => riskLevel(s)
 
     // Trigger risk analysis for each patient
     patientsWithCount.forEach(async (p: any) => {
       if (!p.id) return
 
-      // 1) INSTANT local pre-score (polimedicação + condições + idade) — sem esperar pela IA
+      // O SCORE é DETERMINÍSTICO: depende só de dados guardados (condições, idade,
+      // CrCl, nº de fármacos). NÃO depende da IA — antes a contagem de alertas da IA
+      // entrava no score, logo o número mudava a cada abertura (a IA não é
+      // determinística) e nunca batia certo com o /patients. A IA agora SÓ enriquece
+      // a lista qualitativa de alertas e o resumo; o número fica estável.
       const condScore = conditionRisk(p)
-      const localScore = Math.min(100, condScore + Math.min(30, (p.meds_count || 0) * 3))
-      setRisks(prev => ({ ...prev, [p.id]: { score: localScore, level: toLevel(localScore), alerts: [], summary: 'Risco local — a refinar com IA…' } }))
+      const stableScore = calcRiskScore(p)  // = condScore + polimedicação (fonte única)
+      setRisks(prev => ({ ...prev, [p.id]: { score: stableScore, level: toLevel(stableScore), alerts: [], summary: 'A carregar alertas clínicos…' } }))
 
       const { data: pMeds } = await supabase.from('patient_meds')
         .select('id, name, dose, frequency, indication').eq('patient_id', p.id)
       setMeds(prev => ({ ...prev, [p.id]: pMeds || [] }))
 
       if ((pMeds||[]).length < 1) {
-        const s = Math.min(100, condScore)
-        setRisks(prev => ({ ...prev, [p.id]: { score: s, level: toLevel(s), alerts:[], summary: condScore > 0 ? 'Risco por condições clínicas. Sem medicamentos registados.' : 'Sem medicamentos registados.' } }))
+        setRisks(prev => ({ ...prev, [p.id]: { score: stableScore, level: toLevel(stableScore), alerts:[], summary: condScore > 0 ? 'Risco por condições clínicas. Sem medicamentos registados.' : 'Sem medicamentos registados.' } }))
         return
       }
 
@@ -669,17 +627,13 @@ export default function RoundsPage() {
         if (!res.ok) throw new Error('analyze failed')
         const data = await res.json()
         const alerts: PatientAlert[] = data.alerts || []
-        const critical = alerts.filter(a => a.severity==='grave').length
-        const moderate = alerts.filter(a => a.severity==='moderada').length
-        const score = Math.min(100, critical*30 + moderate*15 + Math.min(25, (pMeds||[]).length*3) + condScore)
-        const level = toLevel(score)
-        const riskLevelMap: Record<string,'CRITICO'|'ALTO'|'MODERADO'|'BAIXO'> = { critical:'CRITICO', high:'ALTO', moderate:'MODERADO', low:'BAIXO' }
-        supabase.from('patients').update({ risk_level: riskLevelMap[level], alert_count: critical + moderate, last_review: new Date().toISOString() }).eq('id', p.id).then(() => {})
-        setRisks(prev => ({ ...prev, [p.id]: { score, level, alerts, summary: data.summary||'' } }))
+        // Score IGUAL ao pré-score (não muda com a IA). Guardamos o nº de alertas
+        // detetados (determinístico, contagem) para o /patients ler o mesmo valor.
+        supabase.from('patients').update({ alert_count: alerts.length, last_review: new Date().toISOString() }).eq('id', p.id).then(() => {})
+        setRisks(prev => ({ ...prev, [p.id]: { score: stableScore, level: toLevel(stableScore), alerts, summary: data.summary||'' } }))
       } catch {
-        // IA indisponível → manter o score local em vez de mostrar erro/zero
-        const s = Math.min(100, condScore + Math.min(30, (pMeds||[]).length * 3))
-        setRisks(prev => ({ ...prev, [p.id]: { score: s, level: toLevel(s), alerts: [], summary: 'Risco estimado localmente (IA indisponível).' } }))
+        // IA indisponível → mantém o score (já é estável) e só ajusta a nota.
+        setRisks(prev => ({ ...prev, [p.id]: { score: stableScore, level: toLevel(stableScore), alerts: [], summary: 'Risco por dados clínicos (alertas da IA indisponíveis).' } }))
       }
     })
   }, [user, supabase, isPro])

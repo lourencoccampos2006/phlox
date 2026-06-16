@@ -38,7 +38,7 @@ const SEV_COLOR: Record<string, string> = {
   minor: '#6b7280', moderate: '#d97706', major: '#dc2626', critical: '#7f1d1d',
 }
 const INST_LABELS: Record<string, string> = {
-  hospital: 'Hospital', clinic: 'Clínica', pharmacy_hospital: 'Farmácia Hospitalar',
+  clinic: 'Clínica', day_care: 'Centro de Dia',
   pharmacy_community: 'Farmácia Comunitária', nursing_home: 'Lar / ERPI', health_center: 'Centro de Saúde',
 }
 

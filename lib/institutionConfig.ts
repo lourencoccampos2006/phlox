@@ -67,18 +67,6 @@ const CFG: Record<InstitutionType, InstitutionConfig> = {
     hasAppointments: true, hasWalkins: true, hasFamilies: false, hasDispensing: false, hasScreenings: true,
     revenue: 'fee_for_service', currencyFlow: 'Atos e taxas moderadoras',
   },
-  hospital: {
-    personNoun: 'Doente', personNounPlural: 'Doentes', personShort: 'Doentes', unitNoun: 'Hospital / Serviço',
-    hasBeds: true, hasShifts: true, hasMAR: true, hasWounds: true, hasWaitingRoom: true,
-    hasAppointments: true, hasWalkins: true, hasFamilies: true, hasDispensing: false, hasScreenings: false,
-    revenue: 'fee_for_service', currencyFlow: 'Atos e episódios',
-  },
-  pharmacy_hospital: {
-    personNoun: 'Doente', personNounPlural: 'Doentes', personShort: 'Doentes', unitNoun: 'Farmácia Hospitalar',
-    hasBeds: false, hasShifts: true, hasMAR: true, hasWounds: false, hasWaitingRoom: false,
-    hasAppointments: false, hasWalkins: false, hasFamilies: false, hasDispensing: true, hasScreenings: false,
-    revenue: 'internal', currencyFlow: 'Distribuição interna (sem faturação ao doente)',
-  },
 }
 
 export function institutionConfig(institution: InstitutionType): InstitutionConfig {

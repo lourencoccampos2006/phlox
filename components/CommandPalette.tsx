@@ -30,7 +30,7 @@ const TOOLS: Tool[] = [
   { href: '/oracle', label: 'Oracle — Farmacêutico AI', desc: 'Consulta estruturada com plano de intervenção', icon: '🔮', category: 'IA & Análise' },
   { href: '/schedule', label: 'Horário Inteligente', desc: 'IA cria o horário perfeito para a tua medicação', icon: '⏰', category: 'IA & Análise' },
   { href: '/optimizer', label: 'Otimizar Prescrição', desc: 'Genéricos mais baratos · STOPP/START · segurança', icon: '⚡', category: 'IA & Análise' },
-  { href: '/bula', label: 'Tradutor de Bula', desc: 'Texto técnico em linguagem simples', icon: '📖', category: 'IA & Análise', badge: 'Grátis' },
+  { href: '/scan', label: 'Tradutor de Bula', desc: 'Texto técnico em linguagem simples', icon: '📖', category: 'IA & Análise', badge: 'Grátis' },
   { href: '/labs', label: 'Perceber as Análises', desc: 'O que está fora do normal e o que fazer', icon: '🧬', category: 'IA & Análise' },
   // Documentos
   { href: '/passport', label: 'Passaporte de Saúde', desc: 'Cartão de emergência com QR code e PDF', icon: '🪪', category: 'Documentos' },

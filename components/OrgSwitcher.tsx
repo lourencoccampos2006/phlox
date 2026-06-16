@@ -10,12 +10,10 @@ import { useMemberships, setActiveOrgId } from '@/lib/orgContext'
 import { ROLE_META } from '@/lib/capabilities'
 
 const KIND_LABELS: Record<string, string> = {
-  hospital: 'Hospital',
-  clinic: 'Clínica',
   nursing_home: 'Lar / ERPI',
   day_care: 'Centro de Dia',
   pharmacy_community: 'Farmácia comunitária',
-  pharmacy_hospital: 'Farmácia hospitalar',
+  clinic: 'Clínica',
   health_center: 'Centro de saúde',
   solo: 'Profissional individual',
   other: 'Outro',

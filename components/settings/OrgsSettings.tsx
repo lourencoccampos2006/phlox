@@ -13,12 +13,10 @@ import { ROLE_META, CAPABILITY_CATEGORIES } from '@/lib/capabilities'
 import { useSearchParams } from 'next/navigation'
 
 const KINDS = [
-  { value: 'hospital',           label: 'Hospital' },
-  { value: 'clinic',             label: 'Clínica' },
   { value: 'nursing_home',       label: 'Lar / ERPI' },
   { value: 'day_care',           label: 'Centro de Dia' },
   { value: 'pharmacy_community', label: 'Farmácia comunitária' },
-  { value: 'pharmacy_hospital',  label: 'Farmácia hospitalar' },
+  { value: 'clinic',             label: 'Clínica' },
   { value: 'health_center',      label: 'Centro de saúde' },
   { value: 'solo',               label: 'Profissional individual' },
   { value: 'other',              label: 'Outro' },

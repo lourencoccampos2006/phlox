@@ -51,7 +51,7 @@ const SECTIONS: Section[] = [
       { href: '/study/procedimentos', title: 'Procedimentos',       desc: 'Guias passo-a-passo com checklist', icon: '✅', badge: 'novo' },
       { href: '/interactions',        title: 'Verificar interações', desc: 'Drug-drug + foto OCR',             icon: '💊' },
       { href: '/calculators/renal-dose', title: 'Calculadoras',     desc: 'Doses, GFR, scores',                 icon: '🧮' },
-      { href: '/bula',                title: 'Bulas',                desc: 'Pesquisa rápida INFARMED',           icon: '💊' },
+      { href: '/scan',                title: 'Bulas',                desc: 'Pesquisa rápida INFARMED',           icon: '💊' },
     ],
   },
   {

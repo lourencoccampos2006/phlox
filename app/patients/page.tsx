@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { conditionRisk, riskScore as calcRiskScore } from '@/lib/riskScore'
 
 function parseCSV(text: string): string[][] {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
@@ -180,19 +181,9 @@ export default function PatientsPage() {
     load()
   }
 
-  const conditionRiskScore = (p: Patient): number => {
-    let s = 0
-    const c = (p.conditions || '').toLowerCase()
-    if (/cancro|cancer|carcinoma|tumor|neoplasia|oncol|leucemia|linfoma|mieloma|metást/.test(c)) s += 40
-    if (/terminal|paliat|hospice/.test(c)) s += 50
-    if (/diálise|hemodiálise/.test(c)) s += 38
-    if (/insuficiência renal|irc|drc g[45]/.test(c)) s += 28
-    if (/insuficiência hepática|cirrose/.test(c)) s += 28
-    if (/insuficiência cardíaca|ic [34]/.test(c)) s += 22
-    if ((p as any).age >= 85) s += 22
-    else if ((p as any).age >= 75) s += 12
-    return Math.min(s, 70)
-  }
+  // Risco por condições — fonte ÚNICA partilhada com o /rounds (@/lib/riskScore),
+  // para o score ser idêntico nas duas páginas (antes divergiam).
+  const conditionRiskScore = (p: Patient): number => conditionRisk(p as any)
 
   const relativeDate = (iso: string | null | undefined): string => {
     if (!iso) return ''
@@ -210,10 +201,10 @@ export default function PatientsPage() {
       (p.conditions || '').toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
-      // Sort: with alerts first, then by condition risk score, then alphabetically
-      const aRisk = (a.alerts || 0) * 30 + conditionRiskScore(a)
-      const bRisk = (b.alerts || 0) * 30 + conditionRiskScore(b)
-      return bRisk - aRisk
+      // Ordena pelo MESMO score do /rounds (fonte única). Desempate por nº de alertas.
+      const ar = calcRiskScore(a as any), br = calcRiskScore(b as any)
+      if (br !== ar) return br - ar
+      return (b.alerts || 0) - (a.alerts || 0)
     })
 
   const riskBadge = (p: Patient) => {
@@ -567,7 +558,7 @@ export default function PatientsPage() {
                               {patient.meds_count} med.
                             </span>
                           )}
-                          {(() => { const rs = conditionRiskScore(patient); if (rs >= 45) return <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rs >= 70 ? '#991b1b' : '#854d0e', background: rs >= 70 ? '#fee2e2' : '#fef9c3', border: `1px solid ${rs >= 70 ? '#fecaca' : '#fde68a'}`, borderRadius: 3, padding: '2px 5px', letterSpacing: '0.06em' }}>{rs >= 70 ? 'CRÍTICO' : 'ALTO'}</span>; return null })()}
+                          {(() => { const rs = calcRiskScore(patient as any); if (rs >= 45) return <span title={`Risco ${rs}/100 — igual ao do Rounds`} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rs >= 70 ? '#991b1b' : '#854d0e', background: rs >= 70 ? '#fee2e2' : '#fef9c3', border: `1px solid ${rs >= 70 ? '#fecaca' : '#fde68a'}`, borderRadius: 3, padding: '2px 5px', letterSpacing: '0.06em' }}>{rs >= 70 ? 'CRÍTICO' : 'ALTO'} · {rs}</span>; return null })()}
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                         </div>
                         {patient.updated_at && (
