@@ -786,10 +786,18 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
     try {
       const today = new Date().toISOString().slice(0, 10)
       const first = (patients.find((p: any) => p.id === patientId)?.name || '').split(' ')[0] || (cfg?.personNoun || 'a pessoa')
-      const [{ data: care }, { data: hydr }, { data: acts }] = await Promise.all([
+      const dayStart = today + 'T00:00:00'
+      const dayEnd = today + 'T23:59:59'
+      // Atividades de hoje (a participação não tem data — vem da atividade).
+      const todayActs = await supabase.from('activities').select('id').eq('user_id', user.id).eq('date', today)
+        .then((r: any) => r.data || [], () => [])
+      const todayActIds: string[] = (todayActs || []).map((a: any) => a.id)
+      const [{ data: care }, { data: hydr }, { data: parts2 }] = await Promise.all([
         supabase.from('care_records').select('mood,nutrition').eq('user_id', user.id).eq('patient_id', patientId).eq('date', today).order('created_at', { ascending: false }).limit(1),
-        supabase.from('hydration_logs').select('amount_ml').eq('user_id', user.id).eq('patient_id', patientId).eq('date', today),
-        supabase.from('activity_participation').select('activity_id').eq('user_id', user.id).eq('patient_id', patientId).eq('date', today),
+        supabase.from('hydration_logs').select('fluid_ml,kind,at').eq('user_id', user.id).eq('patient_id', patientId).gte('at', dayStart).lte('at', dayEnd),
+        todayActIds.length
+          ? supabase.from('activity_participations').select('activity_id,attended').eq('patient_id', patientId).in('activity_id', todayActIds)
+          : Promise.resolve({ data: [] }),
       ].map(p => p.then((r: any) => r, () => ({ data: [] }))) as any)
       const rec = (care || [])[0]
       const parts: string[] = []
@@ -799,11 +807,11 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
       // Refeições
       const ap = rec?.nutrition?.appetite
       if (ap) parts.push(ap === 'Bom' ? `comeu bem às refeições` : ap === 'Razoável' ? `comeu razoavelmente` : `comeu pouco — vamos continuar atentos`)
-      // Hidratação
-      const ml = (hydr || []).reduce((s: number, x: any) => s + (Number(x.amount_ml) || 0), 0)
+      // Hidratação (só registos de fluido)
+      const ml = (hydr || []).filter((x: any) => x.kind === 'fluid').reduce((s: number, x: any) => s + (Number(x.fluid_ml) || 0), 0)
       if (ml > 0) parts.push(`bebeu cerca de ${ml} ml de líquidos`)
-      // Atividades
-      const nAct = (acts || []).length
+      // Atividades (participações com presença confirmada)
+      const nAct = (parts2 || []).filter((p: any) => p.attended).length
       if (nAct > 0) parts.push(`participou em ${nAct} atividade${nAct > 1 ? 's' : ''}`)
 
       let msg: string
@@ -920,12 +928,20 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
                 </div>
               )}
 
-              {/* Gerar "como correu o dia" a partir dos registos — 1 toque, depois rever e enviar */}
+              {/* Atalhos de mensagem — gerar do dia + frases rápidas (poupa tempo à equipa) */}
               {mode === 'message' && (
-                <button onClick={composeDaySummary} disabled={prefilling}
-                  style={{ alignSelf: 'flex-start', marginBottom: 8, padding: '6px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: prefilling ? 'wait' : 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>
-                  {prefilling ? 'A compor…' : '✨ Gerar mensagem do dia'}
-                </button>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                  <button onClick={composeDaySummary} disabled={prefilling}
+                    style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: prefilling ? 'wait' : 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>
+                    {prefilling ? 'A compor…' : '✨ Gerar mensagem do dia'}
+                  </button>
+                  {['Tomou a medicação ✓', 'Almoçou bem 🍽️', 'Dormiu/descansou bem 😴', 'Participou nas atividades 🎯', 'Está tudo tranquilo 🌿'].map(t => (
+                    <button key={t} onClick={() => setText(prev => prev ? prev + ' ' + t : t)}
+                      style={{ padding: '6px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid #e5e7eb', background: 'white', color: '#475569' }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
               )}
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>

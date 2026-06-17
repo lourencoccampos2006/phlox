@@ -5,6 +5,7 @@
     }
   },
   "crons": [
-    { "path": "/api/vigilancia/cron", "schedule": "0 5 * * *" }
+    { "path": "/api/vigilancia/cron", "schedule": "0 5 * * *" },
+    { "path": "/api/push/cron", "schedule": "*/15 * * * *" }
   ]
 }

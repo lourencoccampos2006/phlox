@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { PERSONA_NAV, MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
+import { MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
 
 type HeaderUser = {
@@ -332,7 +332,6 @@ function MobileDrawer({ open, onClose, user, signOut }: {
 
   const mode: ExperienceMode = user?.experience_mode || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
-  const personaLinks = user ? (PERSONA_NAV[mode] || PERSONA_NAV.personal) : []
 
   return (
     <>
@@ -366,18 +365,8 @@ function MobileDrawer({ open, onClose, user, signOut }: {
             </div>
           )}
 
-          {personaLinks.length > 0 && (
-            <div style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ padding: '4px 18px 8px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Navegação</div>
-              {personaLinks.map((link: any) => (
-                <Link key={link.href} href={link.href} onClick={onClose} className="mob-item"
-                  style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a' }}>
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          )}
-
+          {/* Drawer = conta + utilidades, enxuto. A navegação por ferramentas vive
+              no /inicio (não a duplicamos aqui — antes ficava demasiado carregado). */}
           {(user
             ? [
                 { href: '/inicio', label: '🏠 Início' },

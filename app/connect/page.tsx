@@ -352,15 +352,28 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
 
       {/* Message input */}
       {consult.status !== 'resolved' && (
-        <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-          <input value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-            placeholder="Adicionar comentário..."
-            style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-          <button onClick={sendMessage} disabled={!input.trim() || sending}
-            style={{ padding: '9px 16px', background: input.trim() ? 'var(--ink)' : 'var(--bg-3)', color: input.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
-            Enviar
-          </button>
+        <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)' }}>
+          {/* Respostas clínicas rápidas — quando ainda não se escreveu nada */}
+          {!input.trim() && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              {['Concordo com a recomendação.', 'Vou monitorizar e dou feedback.', 'Podes detalhar a dose/posologia?', 'Já comuniquei ao médico assistente.'].map(t => (
+                <button key={t} onClick={() => setInput(t)}
+                  style={{ padding: '5px 10px', borderRadius: 16, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: 'white', color: 'var(--ink-3)' }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              placeholder="Adicionar comentário..."
+              style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+            <button onClick={sendMessage} disabled={!input.trim() || sending}
+              style={{ padding: '9px 16px', background: input.trim() ? 'var(--ink)' : 'var(--bg-3)', color: input.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              {sending ? '…' : 'Enviar'}
+            </button>
+          </div>
         </div>
       )}
     </div>

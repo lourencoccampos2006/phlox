@@ -272,7 +272,6 @@ function AIChat() {
   const initialQuery = searchParams.get('q')       // pre-filled question from homepage
 
   const plan = (user?.plan || 'free') as string
-  const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
   const isPro = plan === 'pro' || plan === 'clinic'
   const isFamilyProfile = !!profileId && profileId !== 'self'
   const isClinicalPatient = !!patientId
@@ -604,6 +603,16 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
       })
 
       const data = await res.json()
+      if (res.status === 429 || data.limit_reached) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Chegaste ao limite de perguntas grátis de hoje. Com o **Pro** (12,99€/mês) o Phlox AI é ilimitado e conhece a tua medicação — vê em [/pricing](/pricing). O limite renova à meia-noite.',
+          timestamp: new Date(),
+        }])
+        setIsTyping(false)
+        return
+      }
       if (!res.ok) throw new Error(data.error)
 
       setMessages(prev => [...prev, {
@@ -661,7 +670,10 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
 
 
-      {!isStudent ? (
+      {/* Toda a gente entra. O plano Base tem 3 perguntas/dia (limite imposto no
+          servidor); Plus/Pro são ilimitados. Antes havia um paywall total aqui,
+          o que contradizia o "free_limited" do registry. */}
+      {false ? (
         <UpgradeGate />
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 880, width: '100%', margin: '0 auto', padding: '0 22px' }}>

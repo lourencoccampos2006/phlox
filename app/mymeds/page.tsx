@@ -98,19 +98,30 @@ function slotIsCovered(slotTime: string, logs: DoseLog[], slotIndex: number, tot
 
 // ─── Reminder Modal ────────────────────────────────────────────────────────────
 
-function ReminderModal({ meds, onSave, onClose }: {
-  meds: Med[]; onSave: (medId: string, times: string[]) => void; onClose: () => void
+function ReminderModal({ meds, pushMsg, onSave, onClose }: {
+  meds: Med[]; pushMsg?: string; onSave: (medId: string, times: string[]) => void; onClose: () => void
 }) {
   const [times, setTimes] = useState<Record<string, string[]>>(
     Object.fromEntries(meds.map(m => [m.id, m.reminder_times || []]))
   )
   const SLOTS = ['07:00','09:00','12:00','13:00','18:00','20:00','22:00']
+  const [custom, setCustom] = useState<Record<string, string>>({})
   const toggleTime = (medId: string, slot: string) => {
     setTimes(prev => {
       const cur = prev[medId] || []
       const next = cur.includes(slot) ? cur.filter(t => t !== slot) : [...cur, slot].sort()
       return { ...prev, [medId]: next }
     })
+  }
+  const addCustom = (medId: string) => {
+    const t = custom[medId]
+    if (!t || !/^\d{2}:\d{2}$/.test(t)) return
+    setTimes(prev => {
+      const cur = prev[medId] || []
+      if (cur.includes(t)) return prev
+      return { ...prev, [medId]: [...cur, t].sort() }
+    })
+    setCustom(prev => ({ ...prev, [medId]: '' }))
   }
   return (
     <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}
@@ -119,22 +130,35 @@ function ReminderModal({ meds, onSave, onClose }: {
         onClick={e => e.stopPropagation()}>
         <div style={{ width:36, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 20px' }} />
         <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Lembretes de toma</div>
-        <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom:20 }}>Receberás uma notificação push no horário escolhido.</div>
+        <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom: pushMsg ? 10 : 20 }}>Escolhe os horários de cada medicamento. Recebes um lembrete a essa hora.</div>
+        {pushMsg && (
+          <div style={{ fontSize:12, color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'9px 12px', marginBottom:16, lineHeight:1.5 }}>{pushMsg}</div>
+        )}
         {meds.map(med => (
           <div key={med.id} style={{ marginBottom:20 }}>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:8 }}>
               💊 {med.name}{med.dose ? ` ${med.dose}` : ''}
             </div>
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-              {SLOTS.map(slot => {
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
+              {/* Presets + quaisquer horas personalizadas já escolhidas */}
+              {Array.from(new Set([...SLOTS, ...(times[med.id]||[])])).sort().map(slot => {
                 const active = (times[med.id]||[]).includes(slot)
                 return (
                   <button key={slot} onClick={() => toggleTime(med.id, slot)}
                     style={{ padding:'7px 13px', borderRadius:20, border:`1.5px solid ${active?'var(--green)':'var(--border)'}`, background:active?'var(--green-light)':'white', color:active?'var(--green-2)':'var(--ink-4)', fontSize:12, fontWeight:active?700:400, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
-                    {slot}
+                    {active ? '✓ ' : ''}{slot}
                   </button>
                 )
               })}
+            </div>
+            {/* Hora personalizada — qualquer horário, não só os predefinidos */}
+            <div style={{ display:'flex', gap:6, marginTop:8, alignItems:'center' }}>
+              <input type="time" value={custom[med.id] || ''} onChange={e => setCustom(prev => ({ ...prev, [med.id]: e.target.value }))}
+                style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'7px 10px', fontSize:13, fontFamily:'var(--font-mono)', outline:'none', background:'white' }} />
+              <button onClick={() => addCustom(med.id)} disabled={!custom[med.id]}
+                style={{ padding:'7px 14px', borderRadius:8, border:'1.5px solid var(--green)', background: custom[med.id] ? 'var(--green)' : 'white', color: custom[med.id] ? 'white' : 'var(--ink-5)', fontSize:12.5, fontWeight:700, cursor: custom[med.id] ? 'pointer' : 'default' }}>
+                + Hora
+              </button>
             </div>
           </div>
         ))}
@@ -258,6 +282,7 @@ export default function MyMedsPage() {
   const [reminderOpen, setReminderOpen] = useState(false)
   const [pushSupported, setPushSupported] = useState(false)
   const [pushGranted, setPushGranted] = useState(false)
+  const [pushMsg, setPushMsg] = useState('')   // feedback honesto quando o push não fica ativo
 
   // Scan receita
   const [scannedMeds, setScannedMeds] = useState<ScannedMed[]>([])
@@ -407,27 +432,44 @@ export default function MyMedsPage() {
 
   // ─── Push subscription ────────────────────────────────────────────────────────
 
+  // A chave VAPID tem de ir como Uint8Array para o pushManager.subscribe — passar
+  // a string base64 crua atira InvalidAccessError na maioria dos browsers.
+  function urlBase64ToUint8Array(base64: string): ArrayBuffer {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const raw = atob(b64)
+    const buf = new ArrayBuffer(raw.length)
+    const view = new Uint8Array(buf)
+    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i)
+    return buf
+  }
+
   const requestPushAndOpen = async () => {
-    if (!pushSupported) return
+    // Abrir SEMPRE o editor de horários — definir horas é útil mesmo sem push
+    // (o lembrete dentro da app funciona). O push é um extra por cima.
+    setReminderOpen(true)
+    if (!pushSupported) { setPushMsg('Este dispositivo/navegador não suporta notificações push. Os horários ficam guardados na mesma.'); return }
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!vapidKey) { setPushMsg('As notificações push ainda não estão ativadas no servidor. Os horários ficam guardados e o lembrete funciona com a app aberta.'); return }
     if (Notification.permission !== 'granted') {
       const perm = await Notification.requestPermission()
       setPushGranted(perm === 'granted')
-      if (perm !== 'granted') return
+      if (perm !== 'granted') { setPushMsg('Sem permissão para notificações. Podes ativá-la nas definições do telemóvel.'); return }
     }
     try {
       const reg = await navigator.serviceWorker.register('/sw.js')
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (vapidKey) {
-        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey })
-        const { data: sd } = await supabase.auth.getSession()
-        await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-          body: JSON.stringify({ subscription: sub.toJSON() }),
-        })
-      }
-    } catch {}
-    setReminderOpen(true)
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidKey) })
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      })
+      setPushMsg(res.ok ? '' : 'Não foi possível registar as notificações agora — os horários ficam guardados na mesma.')
+      if (res.ok) setPushGranted(true)
+    } catch (e: any) {
+      setPushMsg('Não foi possível ativar o push neste dispositivo. Os horários ficam guardados e o lembrete funciona com a app aberta.')
+    }
   }
 
   const saveReminder = async (medId: string, times: string[]) => {
@@ -1409,7 +1451,7 @@ export default function MyMedsPage() {
       )}
 
       {reminderOpen && meds.length > 0 && (
-        <ReminderModal meds={meds} onSave={saveReminder} onClose={() => setReminderOpen(false)} />
+        <ReminderModal meds={meds} pushMsg={pushMsg} onSave={saveReminder} onClose={() => { setReminderOpen(false); setPushMsg('') }} />
       )}
 
       <style>{`

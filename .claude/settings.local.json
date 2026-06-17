@@ -133,7 +133,19 @@
       "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -14; echo \"--- vocab lint ---\"; node scripts/check-vocab.mjs 2>&1 | head -3)",
       "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
       "Bash(grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
-      "Bash(xargs grep -l \"FHIR\\\\|Bundle\\\\|fhir\")"
+      "Bash(xargs grep -l \"FHIR\\\\|Bundle\\\\|fhir\")",
+      "Bash(node -e \"const m=require\\('./lib/navigation.ts'\\); \")",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -12)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && echo \"=== vercel.json ===\"; cat vercel.json 2>/dev/null || echo \"NÃO EXISTE\"; echo \"=== build status ===\"; grep -n \"Compiled successfully\\\\|Type error\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
+      "Bash(grep -n -A3 \"Type error\" /tmp/phlox_build.log | head; echo \"---file---\"; grep -n \"^./app\" /tmp/phlox_build.log | head -2)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\\\\|is declared but\\\\|is defined but never used\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -12)",
+      "Bash(find app/sso -name \"page.tsx\")",
+      "Bash(grep -rn 'href=\"/sso\"' app/)",
+      "Bash(head -20 app/diary/page.tsx)",
+      "Bash(head -8 app/perfis/page.tsx)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && sleep 2; npx next build > /tmp/phlox_build2.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build2.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build2.log | head -12)",
+      "Bash(grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\" /tmp/phlox_build2.log | head)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/pb_final.log 2>&1; echo \"EXIT=$?\"; grep -c \"Compiled successfully\" /tmp/pb_final.log; node scripts/check-vocab.mjs 2>&1 | head -2)"
     ]
   }
 }

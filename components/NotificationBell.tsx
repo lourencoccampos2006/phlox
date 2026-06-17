@@ -69,7 +69,7 @@ export default function NotificationBell() {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 499 }} />
-          <div style={{ position: 'fixed', right: dropRight, top: 64, width: 320, maxWidth: 'none', background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.14)', zIndex: 500, overflow: 'hidden' }}>
+          <div style={{ position: 'fixed', right: Math.max(8, dropRight), top: 64, width: 'min(320px, calc(100vw - 16px))', background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.14)', zIndex: 500, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Notificações</span>
             </div>

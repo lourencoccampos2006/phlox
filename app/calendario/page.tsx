@@ -19,6 +19,8 @@ interface CalEvent {
   kind: 'consulta' | 'exame' | 'medicacao' | 'lembrete' | 'event'
   location?: string | null
   remind_minutes_before?: number | null
+  outcome?: string | null
+  outcome_at?: string | null
   /** Eventos DERIVADOS (toma de medicação, medicação a acabar) — só leitura,
    *  não vivem na BD, vêm da medicação registada. Não editáveis/elimináveis. */
   derived?: 'med_dose' | 'med_runout'
@@ -49,6 +51,7 @@ export default function CalendarioPage() {
   const [events, setEvents] = useState<CalEvent[]>([])
   const [meds, setMeds] = useState<MedRow[]>([])
   const [showMeds, setShowMeds] = useState(true)   // sobreposição de medicação ligada por defeito
+  const [followupDraft, setFollowupDraft] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -91,6 +94,16 @@ export default function CalendarioPage() {
       all_day: false, remind_minutes_before: 60,
     })
     setShowForm(true)
+  }
+
+  // Calendário inteligente: guarda o desfecho ("como correu") de um evento passado.
+  async function saveOutcome(id: string, outcome: string) {
+    const txt = outcome.trim()
+    if (!txt) return
+    await supabase.from('cal_events').update({ outcome: txt, outcome_at: new Date().toISOString() }).eq('id', id)
+    setEvents(p => p.map(e => e.id === id ? { ...e, outcome: txt, outcome_at: new Date().toISOString() } : e))
+    setFollowupDraft(d => { const n = { ...d }; delete n[id]; return n })
+    toast.success('Registado', 'Obrigado por dizer como correu.')
   }
 
   async function save() {
@@ -190,6 +203,18 @@ export default function CalendarioPage() {
 
   const allEvents = useMemo(() => [...events, ...derivedEvents], [events, derivedEvents])
 
+  // ── Follow-up "como correu?" — eventos passados (consulta/exame/event) sem
+  // desfecho registado. O calendário pergunta e tu respondes num campo. Fecha o
+  // ciclo: marcar → acontecer → registar como correu.
+  const needsFollowup = useMemo(() => {
+    const now = Date.now()
+    return events
+      .filter(e => !e.outcome && new Date(e.starts_at).getTime() < now && ['consulta', 'exame', 'event'].includes(e.kind))
+      .filter(e => now - new Date(e.starts_at).getTime() < 14 * 86400000) // só dos últimos 14 dias
+      .sort((a, b) => b.starts_at.localeCompare(a.starts_at))
+      .slice(0, 5)
+  }, [events])
+
   // ── grelha do mês ──
   const monthLabel = month.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
   const firstWeekday = (month.getDay() + 6) % 7 // segunda=0
@@ -234,6 +259,39 @@ export default function CalendarioPage() {
             <button onClick={exportMonthICS} style={secondaryBtn}>↓ .ics</button>
           </div>
         </div>
+
+        {/* Follow-up inteligente: "como correu?" para eventos passados sem desfecho */}
+        {!missing && needsFollowup.length > 0 && (
+          <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#0f766e', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span>💬</span> Como correu?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {needsFollowup.map(e => (
+                <div key={e.id} style={{ background: 'white', border: '1px solid #d1fae5', borderRadius: 10, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0b1120', marginBottom: 6 }}>
+                    {KIND_META[e.kind]?.icon} {e.title}
+                    <span style={{ fontWeight: 500, color: '#94a3b8', marginLeft: 6, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                      {new Date(e.starts_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      value={followupDraft[e.id] || ''}
+                      onChange={ev => setFollowupDraft(d => ({ ...d, [e.id]: ev.target.value }))}
+                      onKeyDown={ev => { if (ev.key === 'Enter') saveOutcome(e.id, followupDraft[e.id] || '') }}
+                      placeholder="Ex: correu bem, médico ajustou a medicação…"
+                      style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '8px 11px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                    <button onClick={() => saveOutcome(e.id, followupDraft[e.id] || '')} disabled={!(followupDraft[e.id] || '').trim()}
+                      style={{ padding: '8px 14px', background: (followupDraft[e.id] || '').trim() ? '#0d9488' : '#e5e7eb', color: (followupDraft[e.id] || '').trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: (followupDraft[e.id] || '').trim() ? 'pointer' : 'default' }}>
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>

@@ -97,12 +97,13 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
           style={{ display: 'none', background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#475569' }}>☰</button>
 
         {/* nome do produto */}
-        <Link href="/painel" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 9, minWidth: 0 }}>
+        <Link href="/painel" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 9, minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
           <span style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: 16, fontWeight: warm ? 600 : 800, color: '#0b1120', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bp.productName}</span>
         </Link>
 
-        {/* dia (centro) */}
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 13, color: '#94a3b8', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden' }} className="ish-date">
+        {/* dia (centro). Esconde-se em mobile via opacity, MAS mantém o flex-grow
+            como espaçador — senão os controlos da direita colam-se ao nome. */}
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 13, color: '#94a3b8', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden' }} className="ish-date">
           {mounted ? greetingDate() : ''}
         </div>
 
@@ -140,7 +141,9 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         @media (max-width: 860px) {
           .ish-sidebar { display: none; }
           .ish-burger { display: inline-block !important; }
-          .ish-date { display: none; }
+          /* Mantém o espaçador flex (empurra os controlos p/ a direita) mas
+             esconde o texto da data — antes era display:none e o header colapsava. */
+          .ish-date { color: transparent !important; }
         }
       `}</style>
     </div>
