@@ -776,6 +776,48 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
     } finally { setPrefilling(false) }
   }
 
+  // "Como correu o dia" — compõe uma mensagem CALOROSA a partir dos registos do
+  // dia (humor, refeições, atividade, hidratação). Determinístico (sem custo de
+  // IA, sempre fiável). É o que as famílias querem receber, em palavras. A equipa
+  // revê e envia com um toque. Pensado para centro de dia, útil também no lar.
+  async function composeDaySummary() {
+    if (!patientId) return
+    setPrefilling(true)
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const first = (patients.find((p: any) => p.id === patientId)?.name || '').split(' ')[0] || (cfg?.personNoun || 'a pessoa')
+      const [{ data: care }, { data: hydr }, { data: acts }] = await Promise.all([
+        supabase.from('care_records').select('mood,nutrition').eq('user_id', user.id).eq('patient_id', patientId).eq('date', today).order('created_at', { ascending: false }).limit(1),
+        supabase.from('hydration_logs').select('amount_ml').eq('user_id', user.id).eq('patient_id', patientId).eq('date', today),
+        supabase.from('activity_participation').select('activity_id').eq('user_id', user.id).eq('patient_id', patientId).eq('date', today),
+      ].map(p => p.then((r: any) => r, () => ({ data: [] }))) as any)
+      const rec = (care || [])[0]
+      const parts: string[] = []
+      // Humor
+      const lvl = rec?.mood?.level
+      if (lvl != null) parts.push(lvl >= 4 ? `esteve bem-disposto(a) e participativo(a)` : lvl === 3 ? `teve um dia tranquilo` : `esteve um pouco mais em baixo, demos-lhe atenção redobrada`)
+      // Refeições
+      const ap = rec?.nutrition?.appetite
+      if (ap) parts.push(ap === 'Bom' ? `comeu bem às refeições` : ap === 'Razoável' ? `comeu razoavelmente` : `comeu pouco — vamos continuar atentos`)
+      // Hidratação
+      const ml = (hydr || []).reduce((s: number, x: any) => s + (Number(x.amount_ml) || 0), 0)
+      if (ml > 0) parts.push(`bebeu cerca de ${ml} ml de líquidos`)
+      // Atividades
+      const nAct = (acts || []).length
+      if (nAct > 0) parts.push(`participou em ${nAct} atividade${nAct > 1 ? 's' : ''}`)
+
+      let msg: string
+      if (parts.length === 0) {
+        msg = `Olá! Partilhamos como correu o dia do/a ${first}. Foi um dia tranquilo connosco. Qualquer questão, estamos à disposição. 🌿`
+      } else {
+        const body = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}`
+        msg = `Olá! Hoje o/a ${first} ${body}. Foi um gosto tê-lo(a) connosco. Qualquer questão, estamos à disposição. 🌿`
+      }
+      setMode('message')
+      setText(msg)
+    } finally { setPrefilling(false) }
+  }
+
   return (
     <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 320px)', minHeight: 420 }}>
       {/* Lista de residentes */}
@@ -876,6 +918,14 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Gerar "como correu o dia" a partir dos registos — 1 toque, depois rever e enviar */}
+              {mode === 'message' && (
+                <button onClick={composeDaySummary} disabled={prefilling}
+                  style={{ alignSelf: 'flex-start', marginBottom: 8, padding: '6px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: prefilling ? 'wait' : 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>
+                  {prefilling ? 'A compor…' : '✨ Gerar mensagem do dia'}
+                </button>
               )}
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>

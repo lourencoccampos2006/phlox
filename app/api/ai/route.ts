@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiComplete } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
+import { enforceDailyLimit } from '@/lib/serverLimit'
 
 
 export async function POST(req: NextRequest) {
@@ -10,8 +11,9 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) return rateLimitResponse()
 
   const { plan, userId } = await getUserPlan(req)
-  // Free plan: limited to 5 messages per session (handled by rate limit)
-  // All plans can use AI - Pro gets clinical patient context
+  // Limite diário server-side por utilizador (Base/Plus). Pro/Institucional = ilimitado.
+  const gate = await enforceDailyLimit(req, 'ai')
+  if (!gate.ok) return gate.response!
 
   const body = await req.json().catch(() => null)
   if (!body?.messages || !Array.isArray(body.messages)) {

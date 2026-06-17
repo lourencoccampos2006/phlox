@@ -6,11 +6,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON, callGeminiVisionJSON } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { getUserPlan } from '@/lib/planGate'
+import { enforceDailyLimit } from '@/lib/serverLimit'
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
   const rl = checkRateLimit(ip, 5, 60_000)
   if (!rl.allowed) return rateLimitResponse()
+  // Limite diário server-side (Base/Plus). Pro/Institucional = ilimitado.
+  const gate = await enforceDailyLimit(req, 'labs')
+  if (!gate.ok) return gate.response!
 
   const { userId } = await getUserPlan(req)
 

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ShareButton from '@/components/ShareButton'
 import ShareCard from '@/components/ShareCard'
+import SaveButton from '@/components/SaveButton'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
 import { useUsageLimit } from '@/lib/useUsageLimit'
@@ -466,6 +467,15 @@ export default function InteractionsPage() {
                         {copied ? '✓ Copiado' : '⎘ Copiar'}
                       </button>
                       <ShareButton title={`${drugs.join(' + ')} — ${result?.severity || ''}`} text={result?.summary || ''} />
+                      <SaveButton
+                        kind="med_check"
+                        title={`Interação: ${drugs.join(' + ')}`}
+                        preview={result?.summary || result?.recommendation || ''}
+                        href="/interactions"
+                        data={{ drugs, result }}
+                        color={sev?.color || '#0d6e42'}
+                        size="sm"
+                      />
                       <ShareCard
                         title={drugs.join(' + ')}
                         badge={result?.severity}

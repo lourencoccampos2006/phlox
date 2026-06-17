@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
+import { printDoc, type PrintRecord } from '@/lib/print'
 import Link from 'next/link'
 
 // Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
@@ -144,6 +146,7 @@ function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null;
 export default function MARPage() {
   const { user, supabase } = useAuth()
   const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const isDayCare = institution === 'day_care'   // ponte casa↔centro só faz sentido aqui
   const isPro = ['pro', 'clinic'].includes(user?.plan || '')
 
@@ -167,6 +170,10 @@ export default function MARPage() {
 
   const selectedPatient = patients.find(p => p.id === selectedId) ?? null
 
+  // printMARSheet via ref para o atalho de teclado usar sempre a versão fresca
+  // (o handler é registado uma vez com deps []).
+  const printRef = useRef<() => void>(() => {})
+
   // Keyboard shortcuts
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -174,7 +181,7 @@ export default function MARPage() {
       if (e.key === '1') setShift('manha')
       else if (e.key === '2') setShift('tarde')
       else if (e.key === '3') setShift('noite')
-      else if (e.key === 'p' || e.key === 'P') window.print()
+      else if (e.key === 'p' || e.key === 'P') printRef.current()
     }
     window.addEventListener('keydown', fn)
     return () => window.removeEventListener('keydown', fn)
@@ -228,6 +235,49 @@ export default function MARPage() {
   }, [patients, date, shift, user, isPro, supabase, liveTick])
 
   const getRecord = (medId: string) => records.find(r => r.med_id === medId && r.shift === shift) ?? null
+
+  // ── Folha de MAR profissional (A4) — documento de auditoria ──────────────────
+  // Um registo por pessoa, com cada medicação devida no turno e o seu estado.
+  // Doses por administrar aparecem destacadas (é o que a Segurança Social verifica).
+  const STATUS_PT: Record<string, string> = { administered: 'Administrado', refused: 'Recusado', held: 'Suspenso' }
+  function printMARSheet() {
+    const sl = SHIFTS[shift]
+    let totalDue = 0, totalDone = 0, totalMissing = 0
+    const records: PrintRecord[] = patients.map(p => {
+      const due = (allMedsMap[p.id] || []).filter(m => dueInShift(m, shift))
+      const recByMed: Record<string, string> = {}
+      allDayRecs.filter(r => r.patient_id === p.id && r.shift === shift).forEach(r => { recByMed[r.med_id] = r.status })
+      totalDue += due.length
+      const bullets = due.map(m => {
+        const st = recByMed[m.id]
+        if (st) { totalDone++; return `${m.name}${m.dose ? ` ${m.dose}` : ''} — ${STATUS_PT[st] || st}` }
+        totalMissing++; return `${m.name}${m.dose ? ` ${m.dose}` : ''} — ☐ POR ADMINISTRAR`
+      })
+      const missing = due.filter(m => !recByMed[m.id]).length
+      return {
+        title: p.name,
+        meta: [cfg.hasBeds && p.room_number ? `${cfg.roomLabel} ${p.room_number}` : '', p.age ? `${p.age} anos` : ''].filter(Boolean).join(' · '),
+        tags: missing > 0 ? [{ label: `${missing} por dar`, color: '#b91c1c' }] : [{ label: 'Completo', color: '#16a34a' }],
+        bullets: bullets.length ? bullets : ['Sem medicação para este turno.'],
+      }
+    }).filter(r => r.bullets[0] !== 'Sem medicação para este turno.')
+
+    printDoc({
+      docTitle: 'Registo de Administração de Medicação (MAR)',
+      docSubtitle: `Turno ${sl.label} (${sl.time}) · ${new Date(date + 'T00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
+      institution: cfg.unitNoun,
+      author: (user as any)?.name || user?.email || '',
+      meta: [
+        { label: cfg.personNounPlural, value: String(records.length) },
+        { label: 'Doses devidas', value: String(totalDue) },
+        { label: 'Administradas', value: String(totalDone) },
+        { label: 'Por administrar', value: String(totalMissing) },
+      ],
+      sections: [{ heading: `${cfg.personNounPlural} — turno ${sl.label}`, records }],
+      footerNote: 'Documento gerado pelo Phlox · Confidencial · Assinatura do responsável: __________________',
+    })
+  }
+  printRef.current = printMARSheet
 
   const doAdmin = async (medId: string, status: AdminStatus, notes: string) => {
     if (!user || !selectedId) return
@@ -303,9 +353,9 @@ export default function MARPage() {
             <div style={{ flex: 1 }} />
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
               style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151', minWidth: 0 }} />
-            <button onClick={() => window.print()} className="mar-print"
+            <button onClick={printMARSheet} className="mar-print" title="Folha de MAR de todos os utentes para este turno (A4, para auditoria)"
               style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              Imprimir
+              🖨 Folha de MAR
             </button>
             <Link href="/handover" className="mar-passagem"
               style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>

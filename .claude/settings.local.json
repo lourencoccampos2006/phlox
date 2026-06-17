@@ -127,7 +127,13 @@
       "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; echo \"--- error context \\(if any\\) ---\"; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -16)",
       "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A3 \"Type error\" /tmp/phlox_build.log | head -10)",
       "Bash(node scripts/check-vocab.mjs)",
-      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -14)"
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -14)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; echo \"--- vocab lint ---\"; node scripts/check-vocab.mjs 2>&1 | head -3)",
+      "Bash(grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\\\\|vocabulário\\\\|✓ Sem\" /tmp/phlox_build.log | head)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Type error\\\\|Failed to compile\\\\|Compiled successfully\\\\|exited with code: 1\" /tmp/phlox_build.log | head; grep -n -A4 \"Type error\" /tmp/phlox_build.log | head -14; echo \"--- vocab lint ---\"; node scripts/check-vocab.mjs 2>&1 | head -3)",
+      "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/phlox_build.log 2>&1; echo \"EXIT=$?\"; grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
+      "Bash(grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\" /tmp/phlox_build.log | head)",
+      "Bash(xargs grep -l \"FHIR\\\\|Bundle\\\\|fhir\")"
     ]
   }
 }

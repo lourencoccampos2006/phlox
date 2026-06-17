@@ -8,6 +8,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { buildProducts, type ImportedProduct } from '@/lib/productImport'
+import { printDoc, type PrintRecord } from '@/lib/print'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 
 interface Item {
   id: string; name: string; category: string; quantity: number; min_quantity: number
@@ -30,6 +33,8 @@ function expiryDays(d?: string | null) { return d ? Math.floor((new Date(d + 'T1
 
 export default function StockPage() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
@@ -120,8 +125,59 @@ export default function StockPage() {
 
   const shown = filter === 'all' ? items : items.filter(i => i.category === filter)
   const low = items.filter(i => i.min_quantity > 0 && i.quantity <= i.min_quantity)
-  const expiringSoon = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d <= 30 })
+  const expiringSoon = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d >= 0 && d <= 30 })
   const expired = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d < 0 })
+
+  // Relatório profissional (A4): ruturas para encomendar + validades a expirar +
+  // produtos fora de validade. É o documento de ordem de compra / auditoria.
+  function printStockReport() {
+    const fmtQty = (i: Item) => `${i.quantity}${i.unit ? ' ' + i.unit : ''}`
+    const sections = []
+    if (low.length) sections.push({
+      heading: `Ruturas — repor (${low.length})`,
+      records: low.map<PrintRecord>(i => ({
+        title: i.name,
+        meta: i.location ? `Local: ${i.location}` : '',
+        tags: [{ label: i.quantity === 0 ? 'ESGOTADO' : 'Stock baixo', color: '#b91c1c' }],
+        fields: [{ label: 'Em stock', value: fmtQty(i) }, { label: 'Mínimo', value: String(i.min_quantity) }, { label: 'A repor', value: String(Math.max(0, i.min_quantity - i.quantity)) }, { label: 'Categoria', value: i.category || '—' }],
+      })),
+    })
+    if (expired.length) sections.push({
+      heading: `Fora de validade — retirar (${expired.length})`,
+      records: expired.map<PrintRecord>(i => ({
+        title: i.name,
+        tags: [{ label: 'EXPIRADO', color: '#7f1d1d' }],
+        fields: [{ label: 'Validade', value: i.expiry_date || '—' }, { label: 'Quantidade', value: fmtQty(i) }, { label: 'Local', value: i.location || '—' }],
+      })),
+    })
+    if (expiringSoon.length) sections.push({
+      heading: `Validade a expirar (≤30 dias) — ${expiringSoon.length}`,
+      records: expiringSoon.map<PrintRecord>(i => {
+        const d = expiryDays(i.expiry_date)
+        return {
+          title: i.name,
+          tags: [{ label: `${d} dias`, color: '#b45309' }],
+          fields: [{ label: 'Validade', value: i.expiry_date || '—' }, { label: 'Quantidade', value: fmtQty(i) }, { label: 'Local', value: i.location || '—' }],
+        }
+      }),
+    })
+    if (!sections.length) sections.push({ heading: 'Tudo em ordem', records: [{ title: 'Sem ruturas nem validades a expirar', body: 'Não há produtos em rutura, expirados ou a expirar nos próximos 30 dias.' }] })
+
+    printDoc({
+      docTitle: 'Relatório de Stock & Validades',
+      docSubtitle: new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+      institution: cfg.unitNoun,
+      author: (user as any)?.name || user?.email || '',
+      meta: [
+        { label: 'Produtos', value: String(items.length) },
+        { label: 'Ruturas', value: String(low.length) },
+        { label: 'A expirar', value: String(expiringSoon.length) },
+        { label: 'Expirados', value: String(expired.length) },
+      ],
+      sections,
+      footerNote: 'Relatório gerado pelo Phlox · Verificado por: __________________',
+    })
+  }
 
   const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
 
@@ -135,6 +191,8 @@ export default function StockPage() {
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Existências, ruturas e prazos — de medicamentos a EPI e produtos de limpeza.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={printStockReport} title="Relatório A4 de ruturas e validades — para encomendas e auditoria"
+              style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>🖨 Relatório</button>
             <button onClick={() => { setImporting(true); setPreview(null); setImportMsg('') }} style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Importar CSV</button>
             <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Produto</button>
           </div>

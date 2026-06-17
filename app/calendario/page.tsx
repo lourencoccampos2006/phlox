@@ -3,7 +3,7 @@
 // /calendario — Calendário pessoal do Phlox. Vista de mês + lista próximos eventos.
 // CRUD simples; exporta para Apple/Google Calendar via .ics.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
@@ -19,6 +19,15 @@ interface CalEvent {
   kind: 'consulta' | 'exame' | 'medicacao' | 'lembrete' | 'event'
   location?: string | null
   remind_minutes_before?: number | null
+  /** Eventos DERIVADOS (toma de medicação, medicação a acabar) — só leitura,
+   *  não vivem na BD, vêm da medicação registada. Não editáveis/elimináveis. */
+  derived?: 'med_dose' | 'med_runout'
+}
+
+interface MedRow {
+  id: string; name: string; dose?: string | null
+  reminder_times?: string[] | null
+  pills_remaining?: number | null; pills_per_day?: number | null; stock_updated_at?: string | null; created_at?: string
 }
 
 const KIND_META: Record<CalEvent['kind'], { label: string; color: string; icon: string }> = {
@@ -38,6 +47,8 @@ export default function CalendarioPage() {
   const { user, supabase } = useAuth() as any
   const toast = useToast()
   const [events, setEvents] = useState<CalEvent[]>([])
+  const [meds, setMeds] = useState<MedRow[]>([])
+  const [showMeds, setShowMeds] = useState(true)   // sobreposição de medicação ligada por defeito
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -55,6 +66,17 @@ export default function CalendarioPage() {
       .order('starts_at', { ascending: true })
     if (error) { if (/relation .*cal_events.* does not exist/i.test(error.message)) setMissing(true); setEvents([]) }
     else { setMissing(false); setEvents(data || []) }
+
+    // Medicação do utilizador → alimenta a sobreposição de tomas + "a acabar".
+    // Tolerante a colunas que ainda não existam (esquemas antigos).
+    try {
+      let m = await supabase.from('personal_meds')
+        .select('id,name,dose,reminder_times,pills_remaining,pills_per_day,stock_updated_at,created_at')
+        .eq('user_id', user.id)
+      if (m.error) m = await supabase.from('personal_meds').select('id,name,dose,reminder_times').eq('user_id', user.id)
+      setMeds(m.data || [])
+    } catch { setMeds([]) }
+
     setLoading(false)
   }, [user, supabase, month])
 
@@ -102,7 +124,11 @@ export default function CalendarioPage() {
   }
 
   function exportMonthICS() {
-    const monthEvents = events.filter(e => {
+    // Exporta os eventos reais + os lembretes de "medicação a acabar" (úteis no
+    // calendário externo). As tomas diárias ficam de fora — seriam centenas de
+    // entradas; quem quer lembretes de toma usa as notificações do /mymeds.
+    const monthEvents = allEvents.filter(e => {
+      if (e.derived === 'med_dose') return false
       const d = new Date(e.starts_at)
       return d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()
     })
@@ -119,6 +145,51 @@ export default function CalendarioPage() {
     toast.success('Calendário exportado')
   }
 
+  // ── eventos DERIVADOS da medicação (só leitura) ──
+  // Tomas: para cada med com reminder_times, cria um evento por horário em cada
+  // dia do intervalo visível. "A acabar": calcula a data de fim do stock.
+  const derivedEvents = useMemo<CalEvent[]>(() => {
+    if (!showMeds || meds.length === 0) return []
+    const out: CalEvent[] = []
+    const start = new Date(month.getFullYear(), month.getMonth(), 1)
+    const end = new Date(month.getFullYear(), month.getMonth() + 1, 0)
+    for (const med of meds) {
+      // 1) Tomas diárias (a partir dos horários definidos no /mymeds)
+      const times = (med.reminder_times || []).filter(Boolean)
+      if (times.length) {
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          for (const t of times) {
+            const [h, mi] = t.split(':').map(Number)
+            if (isNaN(h)) continue
+            const when = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, mi || 0)
+            out.push({
+              id: `dose-${med.id}-${when.toISOString()}`, derived: 'med_dose',
+              title: `${med.name}${med.dose ? ` ${med.dose}` : ''}`,
+              starts_at: when.toISOString(), all_day: false, kind: 'medicacao',
+            })
+          }
+        }
+      }
+      // 2) Medicação a acabar (do stock countdown, sprint87)
+      if (med.pills_remaining != null && med.pills_per_day && med.pills_per_day > 0) {
+        const setAt = med.stock_updated_at || med.created_at
+        const base = setAt ? new Date(setAt) : new Date()
+        const daysLeft = Math.floor((med.pills_remaining || 0) / med.pills_per_day)
+        const runout = new Date(base.getFullYear(), base.getMonth(), base.getDate() + daysLeft, 9, 0)
+        if (runout >= start && runout <= end) {
+          out.push({
+            id: `runout-${med.id}`, derived: 'med_runout',
+            title: `${med.name} acaba`, description: 'Repor o stock — a tua medicação está a terminar.',
+            starts_at: runout.toISOString(), all_day: true, kind: 'lembrete',
+          })
+        }
+      }
+    }
+    return out
+  }, [meds, month, showMeds])
+
+  const allEvents = useMemo(() => [...events, ...derivedEvents], [events, derivedEvents])
+
   // ── grelha do mês ──
   const monthLabel = month.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
   const firstWeekday = (month.getDay() + 6) % 7 // segunda=0
@@ -127,15 +198,21 @@ export default function CalendarioPage() {
   for (let i = 0; i < firstWeekday; i++) cells.push({ events: [] })
   for (let d = 1; d <= daysInMonth; d++) {
     const day = new Date(month.getFullYear(), month.getMonth(), d)
-    const dayEvents = events.filter(e => {
+    const dayEvents = allEvents.filter(e => {
       const ed = new Date(e.starts_at)
       return ed.getFullYear() === day.getFullYear() && ed.getMonth() === day.getMonth() && ed.getDate() === day.getDate()
-    })
+    }).sort((a, b) => a.starts_at.localeCompare(b.starts_at))
     cells.push({ date: day, events: dayEvents })
   }
   while (cells.length % 7) cells.push({ events: [] })
   const today = new Date(); today.setHours(0, 0, 0, 0)
-  const upcoming = events.filter(e => new Date(e.starts_at) >= today).slice(0, 8)
+  const now = new Date()
+  // "Próximos eventos" mostra os reais + medicação a acabar (não a torrente de tomas
+  // diárias, que poluiria a lista). As tomas vêem-se na grelha.
+  const upcoming = allEvents
+    .filter(e => new Date(e.starts_at) >= now && e.derived !== 'med_dose')
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    .slice(0, 8)
 
   return (
     <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)' }}>
@@ -148,7 +225,11 @@ export default function CalendarioPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>O meu calendário</h1>
             <p style={{ fontSize: 13.5, color: '#64748b', margin: '5px 0 0' }}>Consultas, exames, medicações, lembretes — num só sítio. Exporta para Apple/Google Calendar.</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setShowMeds(s => !s)} title="Mostrar/ocultar tomas e medicação a acabar"
+              style={{ ...secondaryBtn, background: showMeds ? '#ecfeff' : 'white', borderColor: showMeds ? '#67e8f9' : '#e5e7eb', color: showMeds ? '#0891b2' : '#64748b' }}>
+              💊 Medicação {showMeds ? 'on' : 'off'}
+            </button>
             <button onClick={() => openNew()} style={primaryBtn}>＋ Novo</button>
             <button onClick={exportMonthICS} style={secondaryBtn}>↓ .ics</button>
           </div>
@@ -192,9 +273,12 @@ export default function CalendarioPage() {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {c.events.slice(0, 3).map(e => {
                               const m = KIND_META[e.kind]
+                              const t = e.derived ? '' : new Date(e.starts_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
                               return (
-                                <div key={e.id} onClick={ev => { ev.stopPropagation(); setEdit(e); setShowForm(true) }}
-                                  style={{ background: m.color + '14', color: m.color, fontSize: 10.5, padding: '2px 5px', borderRadius: 4, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div key={e.id}
+                                  onClick={ev => { ev.stopPropagation(); if (e.derived) { window.location.href = '/mymeds' } else { setEdit(e); setShowForm(true) } }}
+                                  title={e.derived === 'med_dose' ? 'Toma de medicação · abrir Os meus medicamentos' : e.derived === 'med_runout' ? 'Medicação a acabar · abrir Os meus medicamentos' : e.title}
+                                  style={{ background: m.color + (e.derived ? '0d' : '14'), color: m.color, fontSize: 10.5, padding: '2px 5px', borderRadius: 4, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', border: e.derived === 'med_runout' ? `1px solid ${m.color}66` : 'none', opacity: e.derived === 'med_dose' ? 0.85 : 1 }}>
                                   {m.icon} {e.title}
                                 </div>
                               )
@@ -230,8 +314,12 @@ export default function CalendarioPage() {
                             {e.location ? ` · ${e.location}` : ''}
                           </div>
                         </div>
-                        <button onClick={() => { setEdit(e); setShowForm(true) }} style={ghostBtn}>Editar</button>
-                        <button onClick={() => del(e.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', fontSize: 16, color: '#94a3b8', cursor: 'pointer' }}>×</button>
+                        {e.derived
+                          ? <Link href="/mymeds" style={{ ...ghostBtn, textDecoration: 'none', display: 'inline-block' }}>Medicação</Link>
+                          : <>
+                              <button onClick={() => { setEdit(e); setShowForm(true) }} style={ghostBtn}>Editar</button>
+                              <button onClick={() => del(e.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', fontSize: 16, color: '#94a3b8', cursor: 'pointer' }}>×</button>
+                            </>}
                       </div>
                     )
                   })}

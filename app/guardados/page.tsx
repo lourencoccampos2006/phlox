@@ -147,9 +147,9 @@ function EmptyState() {
         Em qualquer ferramenta procura o botão <strong>☆ Guardar</strong>. Aqui voltas a encontrar tudo, organizado.
       </p>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Link href="/medicamento" style={chipLink}>O que é este medicamento? ↗</Link>
         <Link href="/explica" style={chipLink}>Explica-me ↗</Link>
-        <Link href="/mnemonicas" style={chipLink}>Mnemónicas ↗</Link>
-        <Link href="/quickcheck" style={chipLink}>Análise de meds ↗</Link>
+        <Link href="/preparar-consulta" style={chipLink}>Preparar consulta ↗</Link>
       </div>
     </div>
   )

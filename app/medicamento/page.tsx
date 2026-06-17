@@ -20,6 +20,7 @@ import Link from 'next/link'
 import DrugAutocomplete from '@/components/DrugAutocomplete'
 import { useAuth } from '@/components/AuthContext'
 import ShareCard from '@/components/ShareCard'
+import SaveButton from '@/components/SaveButton'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import UpgradeNudge from '@/components/UpgradeNudge'
 
@@ -349,8 +350,16 @@ export default function MedicamentoTool() {
               </div>
             )}
 
-            {/* Partilhar (viralidade) */}
-            <div style={{ marginTop: 2 }}>
+            {/* Guardar + Partilhar */}
+            <div style={{ marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <SaveButton
+                kind="med_check"
+                title={result.identified || result.queried || 'Medicamento'}
+                preview={result.what_it_is || (result.what_it_treats || []).slice(0, 3).join(', ')}
+                href="/medicamento"
+                data={result}
+                color="#0d9488"
+              />
               <ShareCard
                 title={result.identified || result.queried || 'Medicamento'}
                 lines={[result.what_it_is || '', result.what_it_treats?.length ? `Para: ${result.what_it_treats.slice(0, 3).join(', ')}` : ''].filter(Boolean)}
@@ -361,7 +370,9 @@ export default function MedicamentoTool() {
 
             {/* CTA */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-              <Link href="/interactions" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>
+              {/* Handoff: leva o medicamento identificado já preenchido para o
+                  verificador de interações (que lê ?drugs=). */}
+              <Link href={`/interactions?drugs=${encodeURIComponent(result.active || result.identified || name)}`} style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>
                 ⚗ Verificar interações
               </Link>
               {user && (

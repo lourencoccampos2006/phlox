@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import NotificationBell from '@/components/NotificationBell'
-import OrgSwitcher from '@/components/OrgSwitcher'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { PERSONA_NAV, MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
@@ -261,9 +260,8 @@ function UserMenu({ user, signOut, supabase, isDark }: {
 
             {[
               { href: '/inicio',       label: 'Início',          icon: '🏠' },
-              { href: '/aprender',     label: 'Aprender',        icon: '📚' },
-              { href: '/estagio',      label: 'Estágio',         icon: '🎓' },
-              { href: '/organizacao',  label: 'A minha org',     icon: '🏥' },
+              // Aprender só faz sentido para estudantes — não polui o menu dos outros.
+              ...(mode === 'student' ? [{ href: '/aprender', label: 'Aprender', icon: '📚' }] : []),
               { href: '/guardados',    label: 'Guardados',       icon: '★' },
               { href: '/calendario',   label: 'Calendário',      icon: '📅' },
               { href: '/settings',     label: 'Definições',      icon: '⚙️' },
@@ -383,9 +381,9 @@ function MobileDrawer({ open, onClose, user, signOut }: {
           {(user
             ? [
                 { href: '/inicio', label: '🏠 Início' },
-                { href: '/aprender', label: '📚 Aprender' },
-                { href: '/organizacao', label: '🏥 A minha organização' },
+                ...(mode === 'student' ? [{ href: '/aprender', label: '📚 Aprender' }] : []),
                 { href: '/guardados', label: '★ Guardados' },
+                { href: '/calendario', label: '📅 Calendário' },
                 { href: '/settings', label: '⚙️ Definições' },
               ]
             : [{ href: '/pricing', label: 'Preços' }, { href: '/about', label: 'Sobre' }]
@@ -542,10 +540,6 @@ export default function Header() {
                   {!isDark && <kbd className="hdr-search-kbd" style={{ fontSize: 10, color: '#cbd5e1', background: 'white', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>⌘K</kbd>}
                 </button>
 
-                {/* 2026-06-02: OrgSwitcher entre search e bell. Aparece apenas a
-                    utilizadores com >= 1 membership. Esconde-se em uso pessoal/estudante. */}
-                <span className="hdr-org-switcher"><OrgSwitcher compact /></span>
-
                 <NotificationBell />
 
                 <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} /></span>
@@ -635,8 +629,6 @@ export default function Header() {
           /* Esconde a barra de contexto clínico (turno+data) no header em mobile.
              Está disponível dentro das páginas. */
           .hdr-clinical-context { display:none !important; }
-          /* Reduz padding do OrgSwitcher e esconde nome longo */
-          .hdr-org-switcher button { padding: 4px 6px !important; }
         }
         /* Medium desktop: hide search label/kbd */
         @media (max-width:1100px) {

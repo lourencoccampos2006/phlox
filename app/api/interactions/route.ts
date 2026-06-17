@@ -169,6 +169,10 @@ export async function POST(req: NextRequest) {
   if (!checkRateLimit(ip)) {
     return NextResponse.json({ error: 'Demasiados pedidos. Aguarda um minuto.' }, { status: 429 })
   }
+  // Limite diário server-side por utilizador (Base/Plus). Pro/Institucional = ilimitado.
+  const { enforceDailyLimit } = await import('@/lib/serverLimit')
+  const gate = await enforceDailyLimit(req, 'interactions')
+  if (!gate.ok) return gate.response!
 
   const body = await req.json().catch(() => null)
 

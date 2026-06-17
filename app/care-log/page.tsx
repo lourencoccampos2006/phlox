@@ -6,6 +6,7 @@ import { useLiveData } from '@/lib/useLiveData'
 import RegistoDoDia from './RegistoDoDia'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 // O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
 // feridas + atividades, adaptadas por instituição). O formulário de registo em si
@@ -201,6 +202,48 @@ export function CareLogTool() {
   const patientRecords = records.filter(r => r.patient_id === patientId)
   const todayRecords = records.filter(r => r.date === today)
   const bpFlagResult = bpFlag(bpSys ? parseInt(bpSys) : undefined, bpDia ? parseInt(bpDia) : undefined)
+
+  // ── Registo de cuidados profissional (A4) — documento do processo ────────────
+  // Imprime os registos do dia selecionado para o utente escolhido, por turno.
+  function recordToPrint(r: CareRecord): PrintRecord {
+    const v = r.vitals || {}, n = r.nutrition || {}, c = r.continence || {}, m = r.mood || {}, s = r.skin || {}
+    const fields = [
+      (v.bp_sys ? { label: 'T.A.', value: `${v.bp_sys}/${v.bp_dia ?? '—'} mmHg` } : null),
+      (v.hr ? { label: 'F.C.', value: `${v.hr} bpm` } : null),
+      (v.temp ? { label: 'Temp.', value: `${v.temp} ºC` } : null),
+      (v.spo2 ? { label: 'SpO₂', value: `${v.spo2}%` } : null),
+      (v.glucose ? { label: 'Glicemia', value: `${v.glucose} mg/dL` } : null),
+      (v.weight ? { label: 'Peso', value: `${v.weight} kg` } : null),
+      (n.appetite ? { label: 'Apetite', value: n.appetite } : null),
+      (n.fluid_ml ? { label: 'Líquidos', value: `${n.fluid_ml} ml` } : null),
+      (c.urinary ? { label: 'Urinária', value: c.urinary } : null),
+      (c.bowel ? { label: 'Intestinal', value: c.bowel } : null),
+      (m.level ? { label: 'Humor', value: MOOD_OPTS.find(o => o.v === m.level)?.label || String(m.level) } : null),
+      (s.integrity ? { label: 'Pele', value: s.integrity } : null),
+    ].filter(Boolean) as { label: string; value: string }[]
+    const bullets = [m.behavior, m.activities, s.description, r.notes].filter(Boolean) as string[]
+    return {
+      title: `Turno ${SHIFTS[r.shift].label} (${SHIFTS[r.shift].hours})`,
+      meta: r.recorded_by ? `Registado por: ${r.recorded_by}` : '',
+      fields,
+      bullets: bullets.length ? bullets : undefined,
+    }
+  }
+  function printDayRecord() {
+    if (!pat) return
+    const dayRecs = patientRecords.filter(r => r.date === date).sort((a, b) => a.shift.localeCompare(b.shift))
+    printDoc({
+      docTitle: `Registo de cuidados — ${pat.name}`,
+      docSubtitle: new Date(date + 'T00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + (cfg.hasBeds && pat.room_number ? ` · ${cfg.roomLabel} ${pat.room_number}` : ''),
+      institution: cfg.unitNoun,
+      author: (user as any)?.name || user?.email || '',
+      sections: [{
+        heading: 'Registos do dia',
+        records: dayRecs.length ? dayRecs.map(recordToPrint) : [{ title: 'Sem registos neste dia', body: 'Não há registos de cuidados para a data selecionada.' }],
+      }],
+      footerNote: 'Registo de cuidados · Phlox · Confidencial · Assinatura: __________________',
+    })
+  }
 
   const inp = (extra?: React.CSSProperties): React.CSSProperties => ({
     width: '100%', padding: '10px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8,
@@ -478,8 +521,14 @@ export function CareLogTool() {
         {/* History sidebar */}
         <div style={{ position: 'sticky', top: 20 }}>
           <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16, maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {pat ? `Últimos registos — ${pat.name}` : `Selecionar ${personLower} para ver histórico`}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {pat ? `Últimos registos — ${pat.name}` : `Selecionar ${personLower} para ver histórico`}
+              </div>
+              {pat && (
+                <button onClick={printDayRecord} title="Imprimir o registo de cuidados deste dia (A4)"
+                  style={{ flexShrink: 0, padding: '4px 9px', fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>🖨 Imprimir</button>
+              )}
             </div>
             {loading ? (
               <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 20 }}>A carregar...</div>
