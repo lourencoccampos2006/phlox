@@ -24,6 +24,18 @@ function fhirJson(body: any, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Content-Type': 'application/fhir+json' } })
 }
 
+// Abrir o URL no browser faz um GET. Em vez de devolver 405 (assustador),
+// explicamos para que serve este endereço — é para os laboratórios fazerem POST.
+export async function GET() {
+  return NextResponse.json({
+    endpoint: 'Phlox — receção de resultados de laboratório',
+    como_funciona: 'Este URL é secreto e serve para o teu laboratório ENVIAR resultados (não para abrir no browser). O laboratório faz um pedido POST com um Bundle FHIR; os resultados são associados automaticamente ao utente certo (por nº SNS ou NIF).',
+    metodo_aceite: 'POST (Content-Type: application/fhir+json)',
+    o_que_dar_ao_laboratorio: 'Copia este URL completo e entrega ao laboratório. É como uma "caixa de correio" só deles.',
+    estado: 'ativo — à espera de resultados.',
+  })
+}
+
 export async function POST(req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return fhirJson(operationOutcome('error', 'Server not configured'), 503)

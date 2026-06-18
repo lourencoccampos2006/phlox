@@ -104,23 +104,23 @@ function ReminderModal({ meds, pushMsg, onSave, onClose }: {
   const [times, setTimes] = useState<Record<string, string[]>>(
     Object.fromEntries(meds.map(m => [m.id, m.reminder_times || []]))
   )
-  const SLOTS = ['07:00','09:00','12:00','13:00','18:00','20:00','22:00']
+  const SLOTS = ['08:00','13:00','20:00']   // atalhos rápidos (manhã/almoço/noite)
   const [custom, setCustom] = useState<Record<string, string>>({})
-  const toggleTime = (medId: string, slot: string) => {
-    setTimes(prev => {
-      const cur = prev[medId] || []
-      const next = cur.includes(slot) ? cur.filter(t => t !== slot) : [...cur, slot].sort()
-      return { ...prev, [medId]: next }
-    })
-  }
-  const addCustom = (medId: string) => {
-    const t = custom[medId]
+  const addTime = (medId: string, t: string) => {
     if (!t || !/^\d{2}:\d{2}$/.test(t)) return
     setTimes(prev => {
       const cur = prev[medId] || []
       if (cur.includes(t)) return prev
       return { ...prev, [medId]: [...cur, t].sort() }
     })
+  }
+  const removeTime = (medId: string, t: string) => {
+    setTimes(prev => ({ ...prev, [medId]: (prev[medId] || []).filter(x => x !== t) }))
+  }
+  const addCustom = (medId: string) => {
+    const t = custom[medId]
+    if (!t) return
+    addTime(medId, t)
     setCustom(prev => ({ ...prev, [medId]: '' }))
   }
   return (
@@ -134,34 +134,53 @@ function ReminderModal({ meds, pushMsg, onSave, onClose }: {
         {pushMsg && (
           <div style={{ fontSize:12, color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'9px 12px', marginBottom:16, lineHeight:1.5 }}>{pushMsg}</div>
         )}
-        {meds.map(med => (
-          <div key={med.id} style={{ marginBottom:20 }}>
-            <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:8 }}>
+        {meds.map(med => {
+          const chosen = times[med.id] || []
+          return (
+          <div key={med.id} style={{ marginBottom:18, paddingBottom:18, borderBottom:'1px solid var(--border)' }}>
+            <div style={{ fontSize:13.5, fontWeight:700, color:'var(--ink)', marginBottom:10 }}>
               💊 {med.name}{med.dose ? ` ${med.dose}` : ''}
             </div>
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
-              {/* Presets + quaisquer horas personalizadas já escolhidas */}
-              {Array.from(new Set([...SLOTS, ...(times[med.id]||[])])).sort().map(slot => {
-                const active = (times[med.id]||[]).includes(slot)
-                return (
-                  <button key={slot} onClick={() => toggleTime(med.id, slot)}
-                    style={{ padding:'7px 13px', borderRadius:20, border:`1.5px solid ${active?'var(--green)':'var(--border)'}`, background:active?'var(--green-light)':'white', color:active?'var(--green-2)':'var(--ink-4)', fontSize:12, fontWeight:active?700:400, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
-                    {active ? '✓ ' : ''}{slot}
-                  </button>
-                )
-              })}
-            </div>
-            {/* Hora personalizada — qualquer horário, não só os predefinidos */}
-            <div style={{ display:'flex', gap:6, marginTop:8, alignItems:'center' }}>
+
+            {/* Horas já escolhidas — cada uma com × para remover */}
+            {chosen.length > 0 ? (
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
+                {chosen.map(t => (
+                  <span key={t} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'6px 10px', borderRadius:20, background:'var(--green-light)', border:'1.5px solid var(--green)', color:'var(--green-2)', fontSize:13, fontWeight:700, fontFamily:'var(--font-mono)' }}>
+                    🔔 {t}
+                    <button onClick={() => removeTime(med.id, t)} aria-label={`Remover ${t}`}
+                      style={{ background:'none', border:'none', cursor:'pointer', color:'var(--green-2)', fontSize:15, lineHeight:1, padding:0 }}>×</button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize:12, color:'var(--ink-5)', marginBottom:10 }}>Sem horários ainda — escolhe a hora exata abaixo.</div>
+            )}
+
+            {/* Escolher a hora EXATA — destaque principal */}
+            <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:8 }}>
               <input type="time" value={custom[med.id] || ''} onChange={e => setCustom(prev => ({ ...prev, [med.id]: e.target.value }))}
-                style={{ border:'1.5px solid var(--border)', borderRadius:8, padding:'7px 10px', fontSize:13, fontFamily:'var(--font-mono)', outline:'none', background:'white' }} />
+                onKeyDown={e => { if (e.key === 'Enter') addCustom(med.id) }}
+                style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:9, padding:'10px 12px', fontSize:15, fontFamily:'var(--font-mono)', outline:'none', background:'white' }} />
               <button onClick={() => addCustom(med.id)} disabled={!custom[med.id]}
-                style={{ padding:'7px 14px', borderRadius:8, border:'1.5px solid var(--green)', background: custom[med.id] ? 'var(--green)' : 'white', color: custom[med.id] ? 'white' : 'var(--ink-5)', fontSize:12.5, fontWeight:700, cursor: custom[med.id] ? 'pointer' : 'default' }}>
-                + Hora
+                style={{ padding:'10px 16px', borderRadius:9, border:'none', background: custom[med.id] ? 'var(--green)' : 'var(--bg-3)', color: custom[med.id] ? 'white' : 'var(--ink-5)', fontSize:14, fontWeight:800, cursor: custom[med.id] ? 'pointer' : 'default', whiteSpace:'nowrap' }}>
+                + Adicionar
               </button>
             </div>
+
+            {/* Atalhos rápidos para as horas mais comuns */}
+            <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+              <span style={{ fontSize:11, color:'var(--ink-5)' }}>Rápido:</span>
+              {SLOTS.filter(s => !chosen.includes(s)).map(slot => (
+                <button key={slot} onClick={() => addTime(med.id, slot)}
+                  style={{ padding:'5px 11px', borderRadius:16, border:'1px solid var(--border)', background:'white', color:'var(--ink-3)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                  + {slot}
+                </button>
+              ))}
+            </div>
           </div>
-        ))}
+          )
+        })}
         <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)' }}>
           <button onClick={() => { meds.forEach(m => onSave(m.id, times[m.id]||[])); onClose() }}
             style={{ flex:1, padding:13, background:'var(--green)', color:'white', border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>

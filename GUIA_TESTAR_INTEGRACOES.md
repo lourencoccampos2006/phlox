@@ -1,111 +1,152 @@
-# Guia prático — testar integrações (push, FHIR, faturação)
+# Guia simples — o que são as integrações e como testá-las
 
-Tudo o que precisas para confirmar que as integrações funcionam, passo a passo.
-Não precisas de saber programar — só seguir.
+Escrito em português simples, sem termos técnicos. Lê com calma; no fim sabes
+explicar isto a um cliente sem pareceres amador.
 
 ---
 
-## 1. Notificações push reais (lembretes de toma)
+## Primeiro: o que é cada coisa (em palavras simples)
 
-O código está todo feito (`/api/push/*`, `public/sw.js`, `lib/webPush.ts`). Falta **3 variáveis de ambiente** e **um agendador**. Sem isto, os horários guardam-se mas o telemóvel não toca com a app fechada.
+**Notificações de toma** — o telemóvel toca/avisa o utilizador à hora de tomar o
+medicamento, mesmo com a app fechada. É um lembrete, como o despertador.
 
-### Passo 1 — gerar as chaves VAPID (uma vez)
-No terminal, na pasta do projeto:
-```bash
-npx web-push generate-vapid-keys
+**FHIR** — é uma "língua comum" que os sistemas de saúde usam para falar uns com
+os outros. Lê-se "faier". Quando um laboratório ou um hospital quer **enviar
+análises** para o Phlox, ou **ir buscar** a ficha de um doente, fala nesta língua.
+Não é algo que o utilizador normal veja — é uma porta nas traseiras para outros
+programas se ligarem ao teu.
+
+**Webhook do laboratório** — é uma "caixa de correio secreta" que crias para um
+laboratório. Dás-lhe o endereço (URL) e, sempre que ele tem um resultado, deixa-o
+nessa caixa. O Phlox apanha e mete na ficha do doente certo, sozinho.
+
+**Faturação** — o Phlox emite faturas-recibo e exporta um ficheiro (SAF-T) que o
+contabilista ou o programa de faturação do cliente sabe ler.
+
+---
+
+## 1. Notificações de toma — porque é que ainda não tocaram
+
+Há DUAS coisas diferentes:
+- **Escolher os horários** → já funciona, e agora podes pôr a **hora exata** que
+  quiseres (não só horas predefinidas). Vais a *Os meus medicamentos → Ativar
+  lembretes*, escolhes a hora no relógio e carregas em "+ Adicionar".
+- **O telemóvel tocar com a app fechada** → isto precisa de uma configuração
+  técnica que **só se ativa depois de tu fazeres uma coisa** (ver abaixo). Até lá,
+  os horários ficam guardados mas o telemóvel não toca sozinho.
+
+### O que tens de fazer para o telemóvel tocar (uma vez só)
+1. No teu computador, na pasta do projeto, corre no terminal:
+   ```
+   npx web-push generate-vapid-keys
+   ```
+   Isto dá-te duas "chaves" (uns códigos compridos): uma **pública** e uma **privada**.
+
+2. Na Vercel (onde o site está alojado): **Settings → Environment Variables** e
+   adiciona estas 5 linhas:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = a chave pública
+   - `VAPID_PUBLIC_KEY` = a mesma chave pública
+   - `VAPID_PRIVATE_KEY` = a chave privada
+   - `VAPID_EMAIL` = `mailto:o-teu-email@phloxclinical.com`
+   - `CRON_SECRET` = inventa uma palavra-passe qualquer (ex: `phlox-cron-2026-xyz`)
+
+3. Faz **Redeploy** na Vercel (as chaves só passam a valer num novo deploy).
+
+4. Testar: no telemóvel, instala o site como app (no Safari/Chrome: "Adicionar ao
+   ecrã principal"). Abre, vai aos lembretes, mete uma hora **2 minutos no futuro**,
+   fecha a app, espera. Deve tocar.
+
+> Se ao "Ativar lembretes" aparecer uma caixa amarela a dizer "ainda não estão
+> ativadas no servidor", é porque ainda faltam as chaves do passo 2.
+
+**O cron (o "relógio" que verifica de 15 em 15 min) já está configurado** — não
+precisas de fazer nada além das chaves.
+
+---
+
+## 2. FHIR — como testar e o que dizer
+
+### Teste 1 (5 segundos): está vivo?
+Abre no browser: `https://phloxclinical.com/api/fhir`
+→ Agora mostra uma mensagem a explicar o que é e os links (antes dava erro 404 —
+já corrigido). Se vês essa mensagem, o servidor está a funcionar.
+
+`https://phloxclinical.com/api/fhir/metadata` mostra a "ficha técnica" (aquele
+texto grande que viste). **Não precisas de perceber esse texto** — é para os
+programas, não para ti. Só serve para o sistema do laboratório confirmar o que o
+teu suporta. Pensa nele como o "menu" do restaurante escrito em código.
+
+### Teste 2: "procurar um doente por nº SNS" — explicado devagar
+Isto simula **outro sistema a pedir ao Phlox** "tens este doente?". Precisas de
+uma chave de acesso (cria em *Definições → Chaves de API*).
+
+Depois, no terminal do computador, escreves isto (substituindo as duas partes a
+maiúsculas):
 ```
-Vais receber duas chaves: **Public Key** e **Private Key**.
-
-### Passo 2 — pôr as variáveis no ambiente
-No painel da Vercel (Project → Settings → Environment Variables), adiciona:
-
-| Nome | Valor |
-|---|---|
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | a Public Key gerada |
-| `VAPID_PUBLIC_KEY` | a mesma Public Key |
-| `VAPID_PRIVATE_KEY` | a Private Key gerada |
-| `VAPID_EMAIL` | `mailto:o-teu-email@dominio.pt` |
-| `CRON_SECRET` | uma palavra-passe aleatória qualquer (ex: gerada com `openssl rand -hex 16`) |
-
-Depois faz **Redeploy** (as env vars só entram num novo deploy).
-
-> ⚠️ A `NEXT_PUBLIC_VAPID_PUBLIC_KEY` tem de existir nos dois sítios (com e sem `NEXT_PUBLIC_`) — uma é lida no browser, a outra no servidor.
-
-### Passo 3 — agendar o cron (JÁ FEITO ✅)
-Já adicionei `/api/push/cron` ao `vercel.json` (a cada 15 min). A Vercel passa a
-chamá-lo sozinha com o `CRON_SECRET` no header — só precisas de ter o `CRON_SECRET`
-nas env vars (Passo 2) e fazer Redeploy. (Se não usas Vercel Cron, qualquer
-agendador externo serve — chama `https://oteusite/api/push/cron?secret=O_TEU_CRON_SECRET`.)
-
-### Passo 4 — testar
-1. No telemóvel, abre o site **instalado como app** (Adicionar ao ecrã principal) — o iOS só permite push em apps instaladas.
-2. Vai a **Os meus medicamentos → Ativar lembretes**, aceita a permissão, define uma hora **2–3 min no futuro**.
-3. Fecha a app. Quando o cron correr (≤15 min) e a hora bater, recebes a notificação.
-4. **Teste manual imediato** (sem esperar pelo cron): no browser, abre
-   `https://oteusite/api/push/cron?secret=O_TEU_CRON_SECRET`
-   — devolve `{ sent: N }`. Se `sent ≥ 1`, o push saiu.
-
-### Como saber se está a funcionar (sinais)
-- Ao "Ativar lembretes", **não** aparece a mensagem amarela "ainda não estão ativadas no servidor" → as chaves estão bem.
-- `/api/push/cron?secret=...` devolve `sent` > 0 quando há tomas devidas.
-- Em Supabase, a tabela `push_subscriptions` tem uma linha para o teu utilizador.
-
----
-
-## 2. Integração FHIR (laboratórios, SPMS, SClínico)
-
-O Phlox **é** um servidor FHIR R4. Outros sistemas falam com ele. Endpoint base: `https://oteusite/api/fhir`.
-
-### Testar em 2 minutos (sem ferramentas)
-1. Abre no browser: `https://oteusite/api/fhir/metadata`
-   → deve devolver um JSON `CapabilityStatement` (a "ficha técnica" do servidor). Se aparece, o servidor FHIR está vivo.
-
-### Testar a sério (com autenticação)
-Precisas de uma **API key** com scope `fhir:read`/`fhir:write` (cria em Definições → as chaves de API) OU do teu token de sessão.
-
-**Procurar um doente por nº SNS** (substitui `CHAVE` e `123456789`):
-```bash
-curl -H "Authorization: Bearer CHAVE" \
-  "https://oteusite/api/fhir/Patient?identifier=123456789"
+curl -H "Authorization: Bearer A_TUA_CHAVE" "https://phloxclinical.com/api/fhir/Patient?identifier=123456789"
 ```
-→ devolve um `Bundle` FHIR com o doente (ou vazio). Confirma que **só vês os teus doentes** (a proteção anti-IDOR está ativa).
+- `curl` = um programa que faz pedidos a sites pela linha de comandos.
+- `A_TUA_CHAVE` = a chave de API que criaste.
+- `123456789` = o nº de SNS do doente que queres procurar.
 
-**Simular um laboratório a enviar resultados** (webhook):
-1. Em Definições → Integrações → "Receção de laboratórios", cria uma integração — recebes um **URL de webhook** único.
-2. Esse URL aceita um `Bundle` FHIR com `Observation`. Para testar, envia um Bundle de exemplo:
-```bash
-curl -X POST "URL_DO_WEBHOOK" \
-  -H "Content-Type: application/fhir+json" \
-  -d '{"resourceType":"Bundle","type":"collection","entry":[{"resource":{"resourceType":"Observation","status":"final","code":{"text":"Glicemia"},"valueQuantity":{"value":108,"unit":"mg/dL"},"subject":{"identifier":{"value":"123456789"}}}}]}'
-```
-→ o resultado deve aparecer associado ao doente com aquele SNS.
+→ Devolve a ficha do doente (ou vazio se não existir). **Na prática quem faz isto
+é o sistema do hospital/laboratório, não tu** — tu só precisas de saber que é
+possível e que é seguro (cada chave só vê os doentes da própria conta).
 
-### O que dizer a um laboratório/parceiro real
-"O nosso sistema expõe FHIR R4. CapabilityStatement em `/api/fhir/metadata`. Autenticação por API key (scope `fhir:read`/`fhir:write`) ou OAuth Bearer. Resources: Patient, Encounter, Observation, MedicationRequest, AllergyIntolerance, Immunization. Para nos enviarem resultados, usem o webhook que geramos por laboratório."
+### O que dizer a um cliente/parceiro
+> "O Phlox fala FHIR R4. Quem quiser ligar-se vê a ficha técnica em
+> `/api/fhir/metadata`. Autenticação por chave de API. Para nos enviarem análises,
+> damos uma caixa de correio (webhook) por laboratório."
 
----
-
-## 3. Integração com programas de faturação
-
-Hoje o Phlox **emite e exporta** faturação (não está ligado em tempo real ao Sage/PHC/etc.; exporta nos formatos que eles importam).
-
-### Testar a emissão
-1. Numa farmácia/clínica, vai a **Vendas** ou **Faturação**, regista uma venda/ato.
-2. Confirma que gera **fatura-recibo** e que o total/IVA estão certos.
-3. Em Definições → exportações fiscais (ou `/api/fiscal/finalize`), gera a **exportação fiscal** (SAF-T / CSV) — é o ficheiro que entregas ao contabilista ou importas no programa de faturação.
-
-### Como verificar que serve o programa de faturação do cliente
-- Pergunta ao cliente que programa usa (Sage, PHC, Moloni, Vendus, Sifarma…) e que **formato de importação** aceita (quase todos aceitam **SAF-T PT** ou CSV).
-- Gera a exportação no Phlox e tenta importá-la nesse programa. Se importar sem erros, está ligado.
-
-> Se um cliente exigir **sincronização automática** (não exportação manual), isso é um conector dedicado por programa — diz-me qual e construo o conector específico.
+Não precisas de saber mais do que isto para vender. Se um cliente técnico quiser
+detalhes, dizes "ligamos a equipa técnica" — e dizes-me a mim.
 
 ---
 
-## Resumo do que SÓ TU podes fazer (config/deploy)
-1. `npx web-push generate-vapid-keys` → pôr as 5 env vars na Vercel → Redeploy.
-2. Adicionar o cron ao `vercel.json` → Redeploy.
-3. Testar com o telemóvel instalado como app.
-4. (FHIR/faturação) testar com os comandos acima ou com um parceiro real.
+## 3. Webhook do laboratório — porque dava "405"
 
-Quando tiveres feito o passo 1–2, diz-me e confirmo contigo que o push está a sair.
+O endereço que criaste (`.../api/lab/webhook/k3Ap6...`) é a **caixa de correio do
+laboratório**. Ao abri-lo no browser, o browser tenta "ler" a caixa, mas a caixa
+só aceita que lá **deixem** coisas — por isso dava o erro 405.
+
+**Já corrigi**: agora, se abrires esse URL, mostra uma mensagem a explicar que é
+uma caixa de correio para o laboratório usar (em vez do erro).
+
+### Como se usa de verdade
+1. Em *Definições → Integrações → Receção de laboratórios*, crias a integração e
+   recebes o URL secreto.
+2. **Entregas esse URL ao laboratório.** Eles configuram-no no sistema deles.
+3. Quando o laboratório tem um resultado, envia-o para lá, e o Phlox mete-o na
+   ficha do doente certo (identifica pelo nº SNS).
+
+Não tens de fazer nada manualmente — é automático depois de entregares o URL.
+
+---
+
+## 4. Faturação
+
+O Phlox **emite faturas-recibo** e **exporta um ficheiro SAF-T** (o formato oficial
+português que todos os programas de faturação e os contabilistas sabem ler).
+
+### Como testar
+1. Em *Vendas* (farmácia) ou *Faturação* (clínica), regista uma venda/consulta.
+2. Confirma que sai a fatura-recibo com o total e o IVA certos.
+3. Gera a exportação fiscal (SAF-T). Esse ficheiro é o que entregas ao contabilista.
+
+### O que dizer ao cliente
+> "Emitimos faturas e exportamos SAF-T, que o seu contabilista ou programa de
+> faturação importa diretamente."
+
+Se um cliente quiser que o Phlox **fale automaticamente** com um programa específico
+(Sage, PHC, Sifarma…), isso é um trabalho extra de ligação — diz-me qual e eu faço.
+
+---
+
+## Resumo do que SÓ TU podes fazer
+1. **Notificações**: gerar as chaves VAPID + pôr na Vercel + Redeploy (Secção 1).
+2. **Migrações de base de dados**: correr no Supabase os ficheiros `supabase/sprint*.sql`
+   novos (sprint88, sprint89) — senão algumas funcionalidades novas ficam "mortas".
+3. **Deploy**: eu escrevo o código, mas o site só muda quando fazes deploy na Vercel.
+   (Por isso é que o input de hora exata "não aparecia" — ainda não estava no site.)
+
+Quando fizeres o passo 1, diz-me e testamos juntos.

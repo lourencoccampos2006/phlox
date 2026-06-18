@@ -73,13 +73,21 @@ export default function IntegrationsSettings() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Explicação simples — o que isto é, para quem não é técnico */}
+      <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 10, padding: '12px 14px', fontSize: 12.5, color: '#0f766e', lineHeight: 1.6 }}>
+        <strong>O que é isto?</strong> Esta secção liga o Phlox a outros sistemas de saúde
+        (laboratórios, hospitais). Serve para <strong>receber análises automaticamente</strong> na
+        ficha do doente. Não precisas de perceber os detalhes técnicos — para um laboratório
+        te enviar resultados, cria abaixo uma “receção” e entrega-lhe o endereço que aparece.
+      </div>
+
       {/* Endpoint FHIR */}
-      <Card title="Servidor FHIR R4" subtitle="Endpoint público para sistemas externos (laboratórios, SPMS, SClínico). Documentação em /api/fhir/metadata.">
+      <Card title="Ligação a sistemas de saúde (FHIR)" subtitle="A “língua comum” que hospitais e laboratórios usam para falar com o Phlox. Isto é para a equipa técnica deles — tu só precisas de o partilhar.">
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 12px', wordBreak: 'break-all', color: 'var(--ink-2)' }}>
           {fhirUrl}
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 8, lineHeight: 1.55 }}>
-          Autenticação por Bearer JWT (utilizadores) ou API key com scope <code>fhir:read</code>/<code>fhir:write</code>. Resources suportados: Patient, Encounter, Observation, MedicationRequest, AllergyIntolerance, Immunization.
+          Para a equipa técnica do parceiro: autenticação por Bearer JWT ou API key (scope <code>fhir:read</code>/<code>fhir:write</code>). Recursos: Patient, Encounter, Observation, MedicationRequest, AllergyIntolerance, Immunization.
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <a href="/api/fhir/metadata" target="_blank" rel="noopener" style={{ flex: 1, textAlign: 'center', padding: 9, background: 'white', color: '#0d6e42', border: '1.5px solid #bbf7d0', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Ver CapabilityStatement</a>
@@ -118,6 +126,7 @@ export default function IntegrationsSettings() {
                       <button onClick={() => patch(it.id, { active: !it.active })}
                         style={{ ...ghostBtn, color: it.active ? '#0d6e42' : '#dc2626' }}>{it.active ? 'Ativo' : 'Inativo'}</button>
                     </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-4)', marginBottom: 5 }}>📋 Entrega este endereço ao laboratório — é a “caixa de correio” onde ele deixa os resultados:</div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 10px', wordBreak: 'break-all', color: 'var(--ink-3)' }}>
                       {url}
                     </div>
