@@ -5,20 +5,15 @@ explicar isto a um cliente sem pareceres amador.
 
 ---
 
+> Nota: a integração FHIR (ligação a laboratórios/hospitais) foi **removida** nesta
+> fase — não trazia utilidade real para já. Pode voltar quando houver um cliente
+> concreto a pedi-la. Este guia foca-se no que importa agora: **notificações** e
+> **faturação**.
+
 ## Primeiro: o que é cada coisa (em palavras simples)
 
-**Notificações de toma** — o telemóvel toca/avisa o utilizador à hora de tomar o
-medicamento, mesmo com a app fechada. É um lembrete, como o despertador.
-
-**FHIR** — é uma "língua comum" que os sistemas de saúde usam para falar uns com
-os outros. Lê-se "faier". Quando um laboratório ou um hospital quer **enviar
-análises** para o Phlox, ou **ir buscar** a ficha de um doente, fala nesta língua.
-Não é algo que o utilizador normal veja — é uma porta nas traseiras para outros
-programas se ligarem ao teu.
-
-**Webhook do laboratório** — é uma "caixa de correio secreta" que crias para um
-laboratório. Dás-lhe o endereço (URL) e, sempre que ele tem um resultado, deixa-o
-nessa caixa. O Phlox apanha e mete na ficha do doente certo, sozinho.
+**Notificações de toma** — o telemóvel/computador avisa o utilizador à hora de
+tomar o medicamento. É um lembrete, como o despertador.
 
 **Faturação** — o Phlox emite faturas-recibo e exporta um ficheiro (SAF-T) que o
 contabilista ou o programa de faturação do cliente sabe ler.
@@ -103,66 +98,7 @@ foi pensado para vigiar sites, não para crons — funciona à mesma.
 
 ---
 
-## 2. FHIR — como testar e o que dizer
-
-### Teste 1 (5 segundos): está vivo?
-Abre no browser: `https://phloxclinical.com/api/fhir`
-→ Agora mostra uma mensagem a explicar o que é e os links (antes dava erro 404 —
-já corrigido). Se vês essa mensagem, o servidor está a funcionar.
-
-`https://phloxclinical.com/api/fhir/metadata` mostra a "ficha técnica" (aquele
-texto grande que viste). **Não precisas de perceber esse texto** — é para os
-programas, não para ti. Só serve para o sistema do laboratório confirmar o que o
-teu suporta. Pensa nele como o "menu" do restaurante escrito em código.
-
-### Teste 2: "procurar um doente por nº SNS" — explicado devagar
-Isto simula **outro sistema a pedir ao Phlox** "tens este doente?". Precisas de
-uma chave de acesso (cria em *Definições → Chaves de API*).
-
-Depois, no terminal do computador, escreves isto (substituindo as duas partes a
-maiúsculas):
-```
-curl -H "Authorization: Bearer A_TUA_CHAVE" "https://phloxclinical.com/api/fhir/Patient?identifier=123456789"
-```
-- `curl` = um programa que faz pedidos a sites pela linha de comandos.
-- `A_TUA_CHAVE` = a chave de API que criaste.
-- `123456789` = o nº de SNS do doente que queres procurar.
-
-→ Devolve a ficha do doente (ou vazio se não existir). **Na prática quem faz isto
-é o sistema do hospital/laboratório, não tu** — tu só precisas de saber que é
-possível e que é seguro (cada chave só vê os doentes da própria conta).
-
-### O que dizer a um cliente/parceiro
-> "O Phlox fala FHIR R4. Quem quiser ligar-se vê a ficha técnica em
-> `/api/fhir/metadata`. Autenticação por chave de API. Para nos enviarem análises,
-> damos uma caixa de correio (webhook) por laboratório."
-
-Não precisas de saber mais do que isto para vender. Se um cliente técnico quiser
-detalhes, dizes "ligamos a equipa técnica" — e dizes-me a mim.
-
----
-
-## 3. Webhook do laboratório — porque dava "405"
-
-O endereço que criaste (`.../api/lab/webhook/k3Ap6...`) é a **caixa de correio do
-laboratório**. Ao abri-lo no browser, o browser tenta "ler" a caixa, mas a caixa
-só aceita que lá **deixem** coisas — por isso dava o erro 405.
-
-**Já corrigi**: agora, se abrires esse URL, mostra uma mensagem a explicar que é
-uma caixa de correio para o laboratório usar (em vez do erro).
-
-### Como se usa de verdade
-1. Em *Definições → Integrações → Receção de laboratórios*, crias a integração e
-   recebes o URL secreto.
-2. **Entregas esse URL ao laboratório.** Eles configuram-no no sistema deles.
-3. Quando o laboratório tem um resultado, envia-o para lá, e o Phlox mete-o na
-   ficha do doente certo (identifica pelo nº SNS).
-
-Não tens de fazer nada manualmente — é automático depois de entregares o URL.
-
----
-
-## 4. Faturação
+## 2. Faturação
 
 O Phlox **emite faturas-recibo** e **exporta um ficheiro SAF-T** (o formato oficial
 português que todos os programas de faturação e os contabilistas sabem ler).
@@ -178,6 +114,27 @@ português que todos os programas de faturação e os contabilistas sabem ler).
 
 Se um cliente quiser que o Phlox **fale automaticamente** com um programa específico
 (Sage, PHC, Sifarma…), isso é um trabalho extra de ligação — diz-me qual e eu faço.
+
+---
+
+## 3. Diagnóstico — "está tudo a funcionar?"
+
+Criei um endereço que te diz, numa lista, **que funcionalidades estão prontas e
+quais precisam de uma migração SQL**. É a forma mais rápida de saber se algo está
+"partido" ou se só falta correr um ficheiro.
+
+Abre (com o teu CRON_SECRET):
+```
+https://phloxclinical.com/api/health-check?secret=O_TEU_CRON_SECRET
+```
+Mostra:
+- Se as chaves VAPID estão configuradas (notificações).
+- A lista de funcionalidades e, para cada uma, se a base de dados está pronta.
+- As que **faltam** (com o nome da migração a correr no Supabase).
+
+> Se uma ferramenta mostra "temporariamente indisponível", quase de certeza é uma
+> tabela em falta — este diagnóstico diz-te qual. Corre o `supabase/sprint*.sql`
+> correspondente e desaparece.
 
 ---
 

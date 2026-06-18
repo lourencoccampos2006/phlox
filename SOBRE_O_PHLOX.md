@@ -118,11 +118,9 @@ Cada instituição vê o seu `/painel` talhado — com dados reais:
 - **Conformidade / Consentimentos / Documentos** — checklists legais por tipo, RGPD.
 
 ### Integrações (o lado técnico)
-- **FHIR R4** — o Phlox fala a "língua" dos sistemas de saúde. Laboratórios e
-  hospitais podem ligar-se. (Ver GUIA_TESTAR_INTEGRACOES.md.)
-- **Receção de laboratórios** — dás uma "caixa de correio" ao laboratório e os
-  resultados entram sozinhos na ficha do doente.
 - **Faturação** — emite faturas-recibo e exporta SAF-T.
+- **Importação de dados** — Apple Saúde, wearables (CSV), MySNS, e medicação por foto (Scan).
+- *(A ligação FHIR a laboratórios/hospitais foi removida nesta fase — pode voltar quando houver um cliente concreto a pedi-la.)*
 
 ---
 
@@ -132,11 +130,12 @@ Cada instituição vê o seu `/painel` talhado — com dados reais:
 - Todo o lado pessoal (scan, medicamentos, interações, IA, saúde, calendário).
 - Cockpits e ferramentas das 3 instituições (lar, centro de dia, farmácia).
 - Exports profissionais A4 (MAR, cuidados, ocorrências, stock, avaliações).
-- FHIR R4 + receção de laboratórios (seguros).
 
 **Tem limites / precisa de um passo teu:**
-- **Notificações push:** o código está feito, mas só tocam depois de pores as chaves
-  VAPID (5 min — guia). Até lá, os horários guardam-se mas não toca sozinho.
+- **Notificações push:** o código está feito, mas só tocam depois de (1) pores as
+  chaves VAPID e (2) ligares o "relógio" externo gratuito (cron-job.org) — ver guia.
+  Funcionam num browser normal (computador/Android) sem instalar; no iPhone o Apple
+  obriga a "instalar" o site primeiro. Com a app aberta, já tocam sem nada disto.
 - **Faturação:** emite e exporta SAF-T; **não** sincroniza automaticamente com Sage/
   PHC/Sifarma (isso seria um conector à parte, sob pedido).
 - **Clínica e Centro de Saúde:** construídos mas escondidos — foco nos 3 tipos.
@@ -150,10 +149,11 @@ Cada instituição vê o seu `/painel` talhado — com dados reais:
 ## Perguntas prováveis de um cliente (e a resposta)
 
 **"Os dados estão seguros?"** Sim — cada conta só vê os seus dados (isolamento por
-utilizador/organização), e o FHIR tem proteções contra acesso cruzado.
+utilizador e por organização).
 
-**"Funciona no telemóvel?"** Sim, é web e instala-se como app (adicionar ao ecrã
-principal). As notificações funcionam com a app instalada.
+**"Funciona no telemóvel?"** Sim, é web. As notificações funcionam num browser
+normal no computador e no Android; no iPhone é preciso "adicionar ao ecrã principal"
+(é uma exigência da Apple, não nossa).
 
 **"As famílias veem os meus utentes todos?"** Não — cada família só vê o seu
 familiar, por um portal próprio.

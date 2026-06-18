@@ -42,6 +42,7 @@ type AuthContextType = {
   loading: boolean
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
   supabase: SupabaseClient
 }
 
@@ -50,6 +51,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signInWithGoogle: async () => {},
   signOut: async () => {},
+  refreshUser: async () => {},
   supabase,
 })
 
@@ -176,8 +178,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }
 
+  // Re-lê o perfil do utilizador atual SEM recarregar a página. Usado depois de
+  // mudar o modo/definições, para a app refletir já a mudança (na "app instalada"
+  // não há refresh do browser, por isso isto é essencial).
+  const refreshUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) await loadProfile(session.user)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, supabase }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, supabase, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -10,7 +10,6 @@ import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { planById, planName } from '@/lib/plans'
 import SecuritySettings from '@/components/settings/SecuritySettings'
-import IntegrationsSettings from '@/components/settings/IntegrationsSettings'
 
 const ROLE_OPTIONS = [
   { value: 'pharmacist',  label: 'Farmacêutico' },
@@ -46,14 +45,14 @@ export default function SettingsPageWrapper() {
 }
 
 function SettingsPage() {
-  const { user, supabase } = useAuth()
+  const { user, supabase, refreshUser } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   // "ferramentas" só existe para modos NÃO-clínicos (pessoal/cuidador/estudante)
   // — esses escolhem as suas ferramentas. No modo clínico, o produto monta-se
   // sozinho a partir do tipo de instituição (blueprint), por isso não há picker.
   // "organizacoes" foi removido (criar org era confuso e inútil).
-  const validTabs = ['profile', 'ferramentas', 'seguranca', 'integracoes', 'connect', 'account', 'notifications'] as const
+  const validTabs = ['profile', 'ferramentas', 'seguranca', 'connect', 'account', 'notifications'] as const
   type SettingsTab = typeof validTabs[number]
   const requestedTab = searchParams?.get('tab')
   const initialTab = ((requestedTab && (validTabs as readonly string[]).includes(requestedTab)
@@ -203,6 +202,9 @@ function SettingsPage() {
       experience_mode:   form.experience_mode,
       connect_visible:   form.connect_visible,
     }).eq('id', user.id)
+    // Atualiza o utilizador em memória (sem precisar de refresh do browser — essencial
+    // na "app instalada", onde o utilizador não consegue recarregar a página).
+    await refreshUser()
     setSaving(false); setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -237,7 +239,6 @@ function SettingsPage() {
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
             {notClinical && <button onClick={() => setTab('ferramentas')} style={tabStyle('ferramentas')}>Ferramentas</button>}
             <button onClick={() => setTab('seguranca')} style={tabStyle('seguranca')}>Segurança</button>
-            <button onClick={() => setTab('integracoes')} style={tabStyle('integracoes')}>Integrações</button>
             <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
@@ -352,7 +353,6 @@ function SettingsPage() {
 
         {tab === 'seguranca' && <SecuritySettings />}
 
-        {tab === 'integracoes' && <IntegrationsSettings />}
 
         {tab === 'connect' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

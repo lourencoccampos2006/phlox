@@ -7,6 +7,7 @@
 // para dar uma frase de abertura calorosa — os alertas em si vêm das regras,
 // para nunca inventarmos preocupações médicas.
 import { NextRequest, NextResponse } from 'next/server'
+import { ptGreeting } from '@/lib/ptTime'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
@@ -233,8 +234,7 @@ export async function POST(req: NextRequest) {
 
     // ── Frase de abertura (única chamada de IA, opcional/barata) ────────────
     const firstName = (profile?.name || '').split(' ')[0] || ''
-    const hour = now.getHours()
-    const greet = hour < 12 ? 'Bom dia' : hour < 20 ? 'Boa tarde' : 'Boa noite'
+    const greet = ptGreeting(now)   // hora de Portugal (servidor corre em UTC)
     let intro = `${greet}${firstName ? ', ' + firstName : ''}.`
     try {
       const urgentCount = concerns.filter(c => c.severity === 'urgent').length

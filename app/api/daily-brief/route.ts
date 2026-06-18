@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ptHour } from '@/lib/ptTime'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
@@ -73,8 +74,8 @@ export async function POST(req: NextRequest) {
     // Most recent vitals
     const latestVitals = vitalsList[0] || null
 
-    // Build context for AI
-    const hourNow = new Date().getHours()
+    // Build context for AI (hora de Portugal — o servidor corre em UTC)
+    const hourNow = ptHour()
     const timeOfDay = hourNow < 12 ? 'manhã' : hourNow < 18 ? 'tarde' : 'noite'
 
     const contextLines = [

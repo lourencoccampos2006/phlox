@@ -169,6 +169,37 @@ export default function PainelCockpit() {
           </div>
         )}
 
+        {/* Primeiros passos — só no arranque (sem pessoas ainda). Tira a instituição
+            do "painel vazio" e leva-a a ter valor em 2-3 toques. */}
+        {!loading && patients.length === 0 && (
+          <div style={{ background: bp.accentSoft, border: `1px solid ${bp.accent}33`, borderRadius: 16, padding: '18px 20px', marginBottom: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Bem-vindo{firstName ? `, ${firstName}` : ''} 👋 Vamos preparar {bp.productName.toLowerCase().replace('o seu ', 'o seu ').replace('a sua ', 'a sua ')}</div>
+            <div style={{ fontSize: 13, color: '#475569', marginBottom: 14 }}>Três passos rápidos e o painel ganha vida com os teus dados reais.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+              {[
+                { n: 1, icon: '🧑‍🤝‍🧑', label: `Adicionar ${cfg.personNounPlural.toLowerCase()}`, sub: 'Um a um ou importar de uma folha (CSV)', href: '/patients' },
+                cfg.hasMAR
+                  ? { n: 2, icon: '💊', label: 'Registar a medicação', sub: `A medicação de cada ${cfg.personNoun.toLowerCase()}`, href: '/patients' }
+                  : { n: 2, icon: '📦', label: 'Pôr o stock', sub: 'Produtos, validades e mínimos', href: '/stock' },
+                cfg.hasFamilies
+                  ? { n: 3, icon: '👨‍👩‍👧', label: 'Convidar as famílias', sub: 'Mostra-lhes como corre o dia', href: '/family' }
+                  : { n: 3, icon: '👥', label: 'Adicionar a equipa', sub: 'Quem trabalha contigo', href: '/schedule' },
+              ].map(s => (
+                <Link key={s.n} href={s.href} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '12px 14px', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{s.icon}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{s.label}</span>
+                    <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{s.sub}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <div style={{ marginTop: 12, fontSize: 12 }}>
+              <Link href="/demo" style={{ color: bp.accent, fontWeight: 700, textDecoration: 'none' }}>Ou vê primeiro a demonstração (1 min) →</Link>
+            </div>
+          </div>
+        )}
+
         {/* Grelha de blocos — montada do blueprint */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 14 }}>
           {visibleBlocks.map(block => (

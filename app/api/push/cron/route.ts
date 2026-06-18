@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendPushNotification } from '@/lib/webPush'
+import { ptHHMM, ptDate } from '@/lib/ptTime'
 
 // Called every 15 minutes by Vercel Cron (vercel.json) or an external scheduler.
 // Vercel sends: Authorization: Bearer <CRON_SECRET>
@@ -17,9 +18,12 @@ export async function GET(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const now = new Date()
-  const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  const today = now.toISOString().split('T')[0]
+  // CRÍTICO: o servidor (Vercel) corre em UTC. Os horários de toma que o utilizador
+  // escolhe estão em hora de PORTUGAL. Comparar UTC com hora local falhava por 1h
+  // no verão → as notificações nunca batiam certo. ptHHMM/ptDate dão a hora/data de
+  // Lisboa (tratam verão/inverno).
+  const nowHHMM = ptHHMM()
+  const today = ptDate()
 
   let sent = 0
   let errors = 0
