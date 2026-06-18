@@ -40,7 +40,7 @@ Há DUAS coisas diferentes:
    ```
    npx web-push generate-vapid-keys
    ```
-   Isto dá-te duas "chaves" (uns códigos compridos): uma **pública** e uma **privada**.
+   Isto dá-te duas "chaves" (uns códigos compridos): uma  **pública** e uma **privada**.
 
 2. Na Vercel (onde o site está alojado): **Settings → Environment Variables** e
    adiciona estas 5 linhas:
