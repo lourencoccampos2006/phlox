@@ -52,15 +52,54 @@ Há DUAS coisas diferentes:
 
 3. Faz **Redeploy** na Vercel (as chaves só passam a valer num novo deploy).
 
-4. Testar: no telemóvel, instala o site como app (no Safari/Chrome: "Adicionar ao
+4. **Ativar o "relógio" que verifica as tomas** (ver secção abaixo — IMPORTANTE no
+   plano grátis da Vercel).
+
+5. Testar: no telemóvel, instala o site como app (no Safari/Chrome: "Adicionar ao
    ecrã principal"). Abre, vai aos lembretes, mete uma hora **2 minutos no futuro**,
    fecha a app, espera. Deve tocar.
 
 > Se ao "Ativar lembretes" aparecer uma caixa amarela a dizer "ainda não estão
 > ativadas no servidor", é porque ainda faltam as chaves do passo 2.
 
-**O cron (o "relógio" que verifica de 15 em 15 min) já está configurado** — não
-precisas de fazer nada além das chaves.
+### O "relógio" das tomas (cron) — no plano grátis da Vercel
+
+⚠️ **O plano grátis (Hobby) da Vercel só deixa os crons correr 1× por dia.** Por
+isso é que o deploy dava erro quando tinha um cron de 15 em 15 minutos — removi-o.
+
+Para os lembretes tocarem à hora certa, precisas de um **"relógio" externo
+gratuito** que bate no Phlox a cada 10–15 min. O endpoint já existe e está
+protegido pela tua `CRON_SECRET`. Opções **100% gratuitas** (escolhe UMA):
+
+**Opção A — cron-job.org (recomendada, a mais simples):**
+1. Cria conta grátis em https://cron-job.org
+2. "Create cronjob" → URL: `https://phloxclinical.com/api/push/cron?secret=O_TEU_CRON_SECRET`
+3. Schedule: "Every 15 minutes". Guarda. Pronto — toca para sempre, de graça.
+
+**Opção B — GitHub Actions (se já tens o código no GitHub):**
+Cria `.github/workflows/push-cron.yml`:
+```yaml
+name: Phlox push reminders
+on:
+  schedule: [{ cron: '*/15 * * * *' }]
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -s "https://phloxclinical.com/api/push/cron?secret=${{ secrets.CRON_SECRET }}"
+```
+(Põe a `CRON_SECRET` em Settings → Secrets do repositório. Nota: o GitHub às vezes
+atrasa alguns minutos — para lembretes de medicação é aceitável.)
+
+**Opção C — UptimeRobot (monitor que também serve de relógio):**
+Cria um monitor HTTP gratuito que visita o URL do cron a cada 5 min. Simples, mas
+foi pensado para vigiar sites, não para crons — funciona à mesma.
+
+> **Mais barato ainda (sem agendador nenhum):** os lembretes já funcionam **com a
+> app aberta** (há um "relógio" dentro da própria app). O agendador externo é só
+> para tocar com a app FECHADA. Se quiseres começar sem complicações, podes deixar
+> isto para depois e os lembretes funcionam na mesma quando o utilizador tem a app
+> aberta.
 
 ---
 

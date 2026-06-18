@@ -166,11 +166,15 @@ ilimitados.
 
 ---
 
-## A tua "lição de casa" técnica (3 coisas)
+## A tua "lição de casa" técnica (4 coisas)
 1. **Deploy:** o site só muda quando fazes deploy na Vercel. Se "não vês" uma
    melhoria, provavelmente falta deploy.
 2. **Migrações SQL:** corre no Supabase os ficheiros `supabase/sprint*.sql` mais
    recentes (ex: sprint88, sprint89), senão funcionalidades novas ficam inativas.
 3. **Chaves VAPID:** para as notificações tocarem (guia).
+4. **Relógio das tomas (cron):** o plano grátis da Vercel só corre crons 1×/dia, por
+   isso o "relógio" dos lembretes vive **fora** da Vercel — um agendador gratuito
+   (cron-job.org) que bate no Phlox a cada 15 min. Passo a passo no
+   GUIA_TESTAR_INTEGRACOES.md. (Sem isto, os lembretes só tocam com a app aberta.)
 
-Domina estes 3 pontos e nunca mais pareces amador a falar do teu próprio produto.
+Domina estes 4 pontos e nunca mais pareces amador a falar do teu próprio produto.
