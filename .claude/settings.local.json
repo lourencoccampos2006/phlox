@@ -156,7 +156,8 @@
       "mcp__plugin_playwright_playwright__browser_snapshot",
       "mcp__plugin_playwright_playwright__browser_network_requests",
       "Bash(node \"c:/Users/Fernando/phlox/scripts/check-vocab.mjs\")",
-      "Bash(grep -n \"minmax\\(0,1fr\\) minmax\\(0,1fr\\)\\\\|cfg.personNoun} \\\\*\\\\|Selecionar \\\\${personLower}\\\\|Selecionar residente\" app/care-log/page.tsx)"
+      "Bash(grep -n \"minmax\\(0,1fr\\) minmax\\(0,1fr\\)\\\\|cfg.personNoun} \\\\*\\\\|Selecionar \\\\${personLower}\\\\|Selecionar residente\" app/care-log/page.tsx)",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot"
     ]
   }
 }

@@ -423,6 +423,10 @@ export default function LabsPage() {
       })
 
       const data = await res.json()
+      if (res.status === 429 || data.limit_reached) {
+        setError(`Chegaste ao limite grátis de hoje (3 análises/dia). Com o Plus (3,99€/mês) ficas sem limites. O limite renova à meia-noite.`)
+        return
+      }
       if (!res.ok) throw new Error(data.error)
       setReport(data)
     } catch (e: any) {

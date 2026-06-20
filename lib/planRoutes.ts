@@ -37,8 +37,10 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/stopp-start', min: 'pro', tool: 'STOPP/START', note: 'Critérios de prescrição potencialmente inapropriada.' },
 
   // ── Estudo (Plus) ──
+  // NOTA: /labs NÃO está aqui de propósito — é grátis com limite diário (3/dia,
+  // ver lib/plans.ts). /vault também é grátis. A etiqueta "Grátis · limitado"
+  // do registry passa assim a ser verdadeira.
   { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação por IA.' },
-  { prefix: '/labs', min: 'student', tool: 'Interpretação de Análises', note: 'Leitura guiada de análises.' },
   { prefix: '/osce', min: 'student', tool: 'OSCE' },
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },
   { prefix: '/tutor', min: 'student', tool: 'AI Tutor' },

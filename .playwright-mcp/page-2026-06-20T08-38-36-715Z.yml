@@ -1,0 +1,53 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - main [ref=e21]:
+    - button "← Voltar à lista" [ref=e280] [cursor=pointer]
+    - generic [ref=e281]:
+      - heading "Síndrome coronário" [level=1] [ref=e282]
+      - generic [ref=e283]: Médio
+    - generic [ref=e43]:
+      - generic [ref=e284]: Apresentação clínica
+      - paragraph [ref=e285]: Dor torácica 4h, troponina positiva.
+    - generic [ref=e286]:
+      - generic [ref=e287]:
+        - generic [ref=e288]: Tira · derivação II · 25 mm/s · 10 mm/mV
+        - generic [ref=e289]: 88 bpm · PR 165 ms · QRS 95 ms · QTc 425 ms
+      - img [ref=e291]
+      - generic [ref=e295]: Traçado gerado a partir dos parâmetros do caso (ilustrativo, derivação única) — treina o padrão; o ECG de 12 derivações está na literatura citada.
+    - generic [ref=e296]:
+      - generic [ref=e297]: Medições do traçado
+      - generic [ref=e298]:
+        - generic [ref=e299]: "Frequência: 88 bpm"
+        - generic [ref=e300]: "Eixo: normal"
+        - generic [ref=e301]: "PR: 165 ms"
+        - generic [ref=e302]: "QRS: 95 ms"
+        - generic [ref=e303]: "QTc: 425 ms"
+    - generic [ref=e304]:
+      - generic [ref=e305]: A tua interpretação
+      - textbox "Descreve achados, diagnóstico provável e o que farias de seguida." [ref=e306]
+    - generic [ref=e307]:
+      - button "Submeter para avaliação IA" [disabled] [ref=e308] [cursor=pointer]
+      - button "Revelar diagnóstico" [ref=e309] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e28] [cursor=pointer]:
+    - img [ref=e29]
+  - alert [ref=e32]
+  - generic [ref=e33]:
+    - generic [ref=e34]:
+      - generic [ref=e35]: PRIVACIDADE E COOKIES — RGPD
+      - paragraph [ref=e36]:
+        - text: Usamos cookies essenciais para o funcionamento da plataforma e, com o teu consentimento, analytics para melhorar a experiência. Não vendemos dados pessoais.
+        - link "Política de privacidade" [ref=e37] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+    - generic [ref=e38]:
+      - button "Apenas essenciais" [ref=e39] [cursor=pointer]
+      - button "Aceitar todos" [ref=e40] [cursor=pointer]
