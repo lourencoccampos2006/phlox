@@ -64,8 +64,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
       // /counseling, /electrolytes, /nota-clinica, /handover (ainda incompletas
       // ou duplicadas com calculos / oracle). O utilizador pode reativar em
       // /settings/tools.
-      { href: '/cockpit',            icon: '🎛️', label: 'Cockpit Operacional', desc: 'Dashboard do turno · Alertas · KPIs' },
-      { href: '/turno',              icon: '🏥', label: 'Turno',               desc: 'Gestão de doentes e doses' },
+      { href: '/painel',             icon: '🎛️', label: 'Painel',              desc: 'O painel da instituição, ao vivo' },
+      { href: '/turno',              icon: '🏥', label: 'Turno',               desc: 'Gestão de utentes e doses' },
       { href: '/rounds',             icon: '📋', label: 'Ronda Farmacêutica',  desc: 'PCNE e intervenções' },
       { href: '/mar',                icon: '📝', label: 'MAR',                 desc: 'Registo de administração' },
       { href: '/patients',           icon: '👥', label: 'Doentes',             desc: 'Fichas e medicação' },
@@ -112,7 +112,7 @@ export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>>
     { href: '/passport', label: 'Emergência' },
   ],
   clinical: [
-    { href: '/cockpit',            label: 'Cockpit' },
+    { href: '/painel',             label: 'Painel' },
     { href: '/turno',              label: 'Turno' },
     { href: '/rounds',             label: 'Ronda' },
     { href: '/mar',                label: 'MAR' },
@@ -221,7 +221,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/vitals',       icon: '❤️', label: 'Saúde',       desc: 'Tensão, pulso, peso' },
     { href: '/ai',           icon: '🤖', label: 'Perguntar',   desc: 'Dúvida de saúde' },
     { href: '/passport',     icon: '🆘', label: 'Passaporte',  desc: 'QR de emergência' },
-    { href: '/scan',         icon: '📄', label: 'Bula',        desc: 'Em linguagem simples' },
+    { href: '/scan',         icon: '📷', label: 'Scan',        desc: 'Foto a receita, caixa ou análise' },
   ],
   caregiver: [
     { href: '/familia',      icon: '👨‍👩‍👧', label: 'Dashboard',  desc: 'Resumo de todos os familiares', badge: 'Novo' },
@@ -232,8 +232,8 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/ai',           icon: '🤖',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
   ],
   clinical: [
-    { href: '/cockpit',            icon: '🎛️', label: 'Cockpit',       desc: 'Dashboard do turno e alertas' },
-    { href: '/turno',              icon: '🏥', label: 'Turno',         desc: 'Doentes e alertas' },
+    { href: '/painel',             icon: '🎛️', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
+    { href: '/turno',              icon: '🏥', label: 'Turno',         desc: 'Utentes e alertas' },
     { href: '/rounds',             icon: '📋', label: 'Ronda',         desc: 'PCNE e intervenções' },
     { href: '/mar',                icon: '📝', label: 'MAR',           desc: 'Registo de administração' },
     { href: '/prescription-queue', icon: '📬', label: 'Validação',     desc: 'Fila de revisão farmacêutica' },

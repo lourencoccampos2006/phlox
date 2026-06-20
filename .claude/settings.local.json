@@ -147,7 +147,16 @@
       "Bash(grep -n \"Compiled successfully\\\\|Type error\\\\|Failed to compile\\\\|exited with code: 1\" /tmp/phlox_build2.log | head)",
       "Bash(cd \"c:/Users/Fernando/phlox\" && npx next build > /tmp/pb_final.log 2>&1; echo \"EXIT=$?\"; grep -c \"Compiled successfully\" /tmp/pb_final.log; node scripts/check-vocab.mjs 2>&1 | head -2)",
       "Bash(rm -rf app/api/fhir app/api/lab)",
-      "Bash(rm -f lib/fhir.ts lib/fhirAuth.ts)"
+      "Bash(rm -f lib/fhir.ts lib/fhirAuth.ts)",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_network_requests",
+      "Bash(node \"c:/Users/Fernando/phlox/scripts/check-vocab.mjs\")",
+      "Bash(grep -n \"minmax\\(0,1fr\\) minmax\\(0,1fr\\)\\\\|cfg.personNoun} \\\\*\\\\|Selecionar \\\\${personLower}\\\\|Selecionar residente\" app/care-log/page.tsx)"
     ]
   }
 }

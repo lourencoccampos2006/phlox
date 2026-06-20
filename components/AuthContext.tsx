@@ -41,6 +41,8 @@ type AuthContextType = {
   user: User | null
   loading: boolean
   signInWithGoogle: () => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   supabase: SupabaseClient
@@ -50,6 +52,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signInWithGoogle: async () => {},
+  signInWithEmail: async () => {},
+  signUpWithEmail: async () => ({ needsConfirmation: false }),
   signOut: async () => {},
   refreshUser: async () => {},
   supabase,
@@ -170,6 +174,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
   }
 
+  const signInWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+    if (error) throw new Error(
+      /invalid login credentials/i.test(error.message) ? 'Email ou palavra-passe incorretos.' :
+      /email not confirmed/i.test(error.message) ? 'Confirma o teu email primeiro (vê a caixa de entrada).' :
+      error.message
+    )
+    // onAuthStateChange (SIGNED_IN) trata de carregar o perfil.
+  }
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(), password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    })
+    if (error) throw new Error(
+      /already registered|already exists/i.test(error.message) ? 'Já existe uma conta com este email. Tenta entrar.' :
+      /password/i.test(error.message) ? 'A palavra-passe precisa de pelo menos 6 caracteres.' :
+      error.message
+    )
+    // Se a confirmação de email estiver ligada no Supabase, não há sessão imediata.
+    return { needsConfirmation: !data.session }
+  }
+
   const signOut = async () => {
     setLoading(true)
     const { error } = await supabase.auth.signOut()
@@ -187,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, supabase, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, supabase, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

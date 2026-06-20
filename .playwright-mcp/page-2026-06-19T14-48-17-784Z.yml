@@ -1,0 +1,49 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e12]:
+    - img [ref=e16]
+    - generic [ref=e18]: Phlox
+  - contentinfo [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - link "Phlox" [ref=e22] [cursor=pointer]:
+          - /url: /
+          - img [ref=e24]
+          - generic [ref=e26]: Phlox
+        - navigation [ref=e27]:
+          - link "Centro de Dia" [ref=e28] [cursor=pointer]:
+            - /url: /centro-de-dia
+          - link "Blog" [ref=e29] [cursor=pointer]:
+            - /url: /blog
+          - link "Planos" [ref=e30] [cursor=pointer]:
+            - /url: /pricing
+          - link "Trust" [ref=e31] [cursor=pointer]:
+            - /url: /trust
+          - link "Estado" [ref=e32] [cursor=pointer]:
+            - /url: /status
+          - link "Termos" [ref=e33] [cursor=pointer]:
+            - /url: /terms
+          - link "Privacidade" [ref=e34] [cursor=pointer]:
+            - /url: /privacy
+          - link "Suporte" [ref=e35] [cursor=pointer]:
+            - /url: mailto:suporte@phloxclinical.com
+          - link "Contacto" [ref=e36] [cursor=pointer]:
+            - /url: mailto:info@phloxclinical.com
+        - link "A verificar" [ref=e37] [cursor=pointer]:
+          - /url: /status
+          - generic [ref=e39]: A verificar
+      - generic [ref=e40]:
+        - generic [ref=e41]: © 2026 Phlox · Hospedado na UE
+        - generic [ref=e42]:
+          - link "suporte@phloxclinical.com" [ref=e43] [cursor=pointer]:
+            - /url: mailto:suporte@phloxclinical.com
+          - text: ·
+          - link "info@phloxclinical.com" [ref=e44] [cursor=pointer]:
+            - /url: mailto:info@phloxclinical.com
+        - generic [ref=e45]: TLS 1.3 · AES-256 · RGPD
+  - button "Open Next.js Dev Tools" [ref=e51] [cursor=pointer]:
+    - img [ref=e52]

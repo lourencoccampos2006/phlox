@@ -7,27 +7,52 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 
 const FREE_FEATURES = [
-  'Histórico de pesquisas guardado',
-  'Lista de medicamentos pessoais',
-  'Verificador de interações (10/dia)',
-  'Tradutor de Bula ilimitado',
-  'Dose Pediátrica ilimitado',
+  'A tua lista de medicamentos, com lembretes',
+  'Phlox Scan — foto à receita ou caixa (3/dia)',
+  'Verificar interações (3/dia)',
+  'Perguntar à IA de saúde (3/dia)',
+  'A tua história de saúde guardada',
 ]
 
 const MODE_MESSAGES: Record<string, { heading: string; sub: string; color: string }> = {
-  clinical:  { heading: 'Acesso Clínico', sub: 'Ward, Connect, Rounds e co-piloto farmacológico.', color: '#1d4ed8' },
-  student:   { heading: 'Acesso Student', sub: 'Arena, OSCE, Hive e tutor socrático.', color: '#7c3aed' },
-  caregiver: { heading: 'Acesso Familiar', sub: 'Perfis familiares, calendário de tomas e alertas.', color: '#b45309' },
-  personal:  { heading: 'Acesso Pessoal', sub: 'A tua medicação, timeline e care plan.', color: '#0d6e42' },
+  clinical:  { heading: 'Acesso profissional', sub: 'Painel da instituição, medicação, ronda e portal das famílias.', color: '#1d4ed8' },
+  student:   { heading: 'Acesso estudante', sub: 'Arena, simulador, OSCE e tutor com IA.', color: '#7c3aed' },
+  caregiver: { heading: 'Acesso familiar', sub: 'Perfis da família, lembretes de toma e alertas.', color: '#b45309' },
+  personal:  { heading: 'Acesso pessoal', sub: 'A tua medicação, a tua história de saúde e a IA do Phlox.', color: '#0d6e42' },
 }
 
 function LoginContent() {
-  const { signInWithGoogle, loading, user } = useAuth()
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') || ''
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+  // Email/password
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [emailMsg, setEmailMsg] = useState('')
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(''); setEmailMsg('')
+    if (!email.trim() || !password) { setError('Preenche o email e a palavra-passe.'); return }
+    setEmailBusy(true)
+    try {
+      if (emailMode === 'signup') {
+        const { needsConfirmation } = await signUpWithEmail(email, password)
+        if (needsConfirmation) { setEmailMsg('Conta criada! Confirma o email na tua caixa de entrada para entrares.'); setEmailBusy(false); return }
+      } else {
+        await signInWithEmail(email, password)
+      }
+      // sucesso → o useEffect redireciona quando o user carregar
+    } catch (e: any) {
+      setError(e.message || 'Não foi possível autenticar.')
+      setEmailBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (user) router.push('/inicio')
@@ -161,6 +186,33 @@ function LoginContent() {
               </button>
 
               {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.12em' }}>ou com email</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              </div>
+
+              {/* Email + password */}
+              <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 14 }}>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="o-teu@email.pt" autoComplete="email"
+                  style={{ border: '1.5px solid var(--border-2)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={emailMode === 'signup' ? 'Cria uma palavra-passe (mín. 6)' : 'Palavra-passe'} autoComplete={emailMode === 'signup' ? 'new-password' : 'current-password'}
+                  style={{ border: '1.5px solid var(--border-2)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
+                <button type="submit" disabled={emailBusy}
+                  style={{ background: emailBusy ? 'var(--bg-3)' : 'var(--green)', color: emailBusy ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r)', padding: '13px', fontSize: 14, fontWeight: 800, cursor: emailBusy ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  {emailBusy ? 'A processar…' : emailMode === 'signup' ? 'Criar conta' : 'Entrar'}
+                </button>
+              </form>
+              {emailMsg && <div style={{ fontSize: 12.5, color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '9px 12px', marginBottom: 12 }}>{emailMsg}</div>}
+              <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 16 }}>
+                {emailMode === 'signin' ? (
+                  <>Ainda não tens conta? <button onClick={() => { setEmailMode('signup'); setError(''); setEmailMsg('') }} style={{ background: 'none', border: 'none', color: 'var(--green)', fontWeight: 700, cursor: 'pointer', fontSize: 12.5, fontFamily: 'var(--font-sans)' }}>Criar conta</button></>
+                ) : (
+                  <>Já tens conta? <button onClick={() => { setEmailMode('signin'); setError(''); setEmailMsg('') }} style={{ background: 'none', border: 'none', color: 'var(--green)', fontWeight: 700, cursor: 'pointer', fontSize: 12.5, fontFamily: 'var(--font-sans)' }}>Entrar</button></>
+                )}
+              </div>
+
+              {/* Divider 2 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.12em' }}>ou</span>

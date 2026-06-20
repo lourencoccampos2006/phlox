@@ -1,0 +1,56 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: A carregar
+        - progressbar [ref=e8]
+      - main [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e19]:
+            - img [ref=e21]
+            - generic [ref=e26]: Iniciar sessão com o Google
+          - generic [ref=e27]:
+            - heading "Inicie sessão" [level=1] [ref=e28]
+            - generic [ref=e30]:
+              - text: Continuar para
+              - button "elahnkznndfwrkruitpw.supabase.co" [ref=e31] [cursor=pointer]
+        - generic [ref=e34]:
+          - generic [ref=e39]:
+            - generic [ref=e44]:
+              - textbox "Email ou telemóvel" [active] [ref=e45]
+              - generic: Email ou telemóvel
+            - button "Esqueceu-se do email?" [ref=e49] [cursor=pointer]
+          - generic [ref=e52]:
+            - text: Pode rever a
+            - link "Política de Privacidade" [ref=e53] [cursor=pointer]:
+              - /url: https://phloxclinical.com/privacy
+            - text: e os
+            - link "Termos de Utilização" [ref=e54] [cursor=pointer]:
+              - /url: https://phloxclinical.com/terms
+            - text: da app elahnkznndfwrkruitpw.supabase.co antes de a usar.
+        - generic [ref=e56]:
+          - button "Seguinte" [ref=e60]:
+            - generic [ref=e63]: Seguinte
+          - button "Criar conta" [ref=e68]:
+            - generic [ref=e71]: Criar conta
+    - contentinfo [ref=e75]:
+      - combobox "Alterar idioma Português (Portugal)" [ref=e79] [cursor=pointer]:
+        - generic:
+          - generic: Português (Portugal)
+        - generic:
+          - img
+      - list [ref=e81]:
+        - listitem [ref=e82]:
+          - link "Abrir Centro de Ajuda da Conta Google (externo, abre numa nova janela)" [ref=e83] [cursor=pointer]:
+            - /url: https://support.google.com/accounts?hl=pt-PT&p=account_iph
+            - text: Ajuda
+        - listitem [ref=e84]:
+          - link "Política de Privacidade (externo, abre numa nova janela)" [ref=e85] [cursor=pointer]:
+            - /url: https://accounts.google.com/TOS?loc=PT&hl=pt-PT&privacy=true
+            - text: Privacidade
+        - listitem [ref=e86]:
+          - link "Termos de Utilização da Google (externo, abre numa nova janela)" [ref=e87] [cursor=pointer]:
+            - /url: https://accounts.google.com/TOS?loc=PT&hl=pt-PT
+            - text: Termos
+  - iframe [ref=e88]:
+    

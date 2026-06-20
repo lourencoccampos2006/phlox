@@ -1,0 +1,57 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]: A minha história de saúde
+        - generic [ref=e27]: A minha linha do tempo
+        - paragraph [ref=e28]: A tua medicação, análises, sintomas e sinais vitais reunidos numa linha do tempo — pronta para mostrares ao teu médico.
+      - generic [ref=e29]:
+        - combobox [ref=e31] [cursor=pointer]:
+          - option "qa1781881827891 (pessoal)" [selected]
+        - generic [ref=e32]:
+          - button "1 mês" [ref=e33] [cursor=pointer]
+          - button "3 meses" [ref=e34] [cursor=pointer]
+          - button "6 meses" [ref=e35] [cursor=pointer]
+          - button "1 ano" [ref=e36] [cursor=pointer]
+          - button "Tudo" [ref=e37] [cursor=pointer]
+        - link "📲 Mostrar ao médico (QR)" [ref=e38] [cursor=pointer]:
+          - /url: /health-pass
+      - generic [ref=e39]:
+        - button "Linha do tempo" [ref=e40] [cursor=pointer]
+        - button "Análises" [ref=e41] [cursor=pointer]
+        - button "Para o médico" [ref=e42] [cursor=pointer]
+    - generic [ref=e44]:
+      - button "Todos" [ref=e46] [cursor=pointer]
+      - generic [ref=e47]:
+        - generic [ref=e48]: 📋
+        - generic [ref=e49]: Sem eventos neste período
+        - generic [ref=e50]: A linha do tempo agrega medicamentos, sintomas do diário, análises e alertas. Começa por adicionar medicamentos ou registar sintomas.
+        - generic [ref=e51]:
+          - link "Adicionar medicamentos →" [ref=e52] [cursor=pointer]:
+            - /url: /mymeds
+          - link "Registar sintomas →" [ref=e53] [cursor=pointer]:
+            - /url: /diary
+  - button "Open Next.js Dev Tools" [ref=e59] [cursor=pointer]:
+    - img [ref=e60]
+  - alert [ref=e63]
+  - generic [ref=e64]:
+    - generic [ref=e65]:
+      - generic [ref=e66]: PRIVACIDADE E COOKIES — RGPD
+      - paragraph [ref=e67]:
+        - text: Usamos cookies essenciais para o funcionamento da plataforma e, com o teu consentimento, analytics para melhorar a experiência. Não vendemos dados pessoais.
+        - link "Política de privacidade" [ref=e68] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+    - generic [ref=e69]:
+      - button "Apenas essenciais" [ref=e70] [cursor=pointer]
+      - button "Aceitar todos" [ref=e71] [cursor=pointer]

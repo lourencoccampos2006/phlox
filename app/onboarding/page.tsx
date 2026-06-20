@@ -79,7 +79,7 @@ const PERSONAL_GOALS = [
 const STEP_TITLES = ['Perfil', 'Detalhes', 'Pronto']
 
 export default function OnboardingPage() {
-  const { user, supabase } = useAuth()
+  const { user, loading: authLoading, supabase } = useAuth()
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [anim, setAnim] = useState(false)
@@ -93,9 +93,10 @@ export default function OnboardingPage() {
   const [sub, setSub] = useState('')
 
   useEffect(() => {
+    if (authLoading) return   // esperar a sessão antes de redirecionar
     if (!user) router.push('/login')
     else if ((user as any)?.onboarded === true) router.push('/inicio')
-  }, [user, router])
+  }, [user, authLoading, router])
 
   const go = (n: number) => { setAnim(true); setTimeout(() => { setStep(n); setAnim(false) }, 160) }
   const meta = profile ? PROFILES.find(p => p.id === profile)! : null

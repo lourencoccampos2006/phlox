@@ -1,0 +1,54 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e23]:
+      - generic [ref=e24]: Dashboard
+      - generic [ref=e25]: A minha família
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: "0"
+          - generic [ref=e29]: Perfis
+        - generic [ref=e30]:
+          - generic [ref=e31]: "0"
+          - generic [ref=e32]: Medicamentos
+        - generic [ref=e33]:
+          - generic [ref=e34]: "0"
+          - generic [ref=e35]: Alto risco
+    - generic [ref=e36]:
+      - link "💬 O seu familiar está num lar? Entre no Portal Família com o código que a instituição lhe deu — veja atualizações, fotos e fale com a equipa." [ref=e37] [cursor=pointer]:
+        - /url: /portal-familia
+        - generic [ref=e38]:
+          - generic [ref=e39]: 💬
+          - generic [ref=e40]:
+            - generic [ref=e41]: O seu familiar está num lar?
+            - generic [ref=e42]: Entre no Portal Família com o código que a instituição lhe deu — veja atualizações, fotos e fale com a equipa.
+          - img [ref=e43]
+      - generic [ref=e45]:
+        - generic [ref=e46]: 👨‍👩‍👧
+        - generic [ref=e47]: Nenhum familiar adicionado
+        - generic [ref=e48]: Adiciona perfis familiares para gerir a sua medicação e saúde.
+        - link "Adicionar familiar →" [ref=e49] [cursor=pointer]:
+          - /url: /perfis
+  - button "Open Next.js Dev Tools" [ref=e55] [cursor=pointer]:
+    - img [ref=e56]
+  - alert [ref=e59]
+  - generic [ref=e60]:
+    - generic [ref=e61]:
+      - generic [ref=e62]: PRIVACIDADE E COOKIES — RGPD
+      - paragraph [ref=e63]:
+        - text: Usamos cookies essenciais para o funcionamento da plataforma e, com o teu consentimento, analytics para melhorar a experiência. Não vendemos dados pessoais.
+        - link "Política de privacidade" [ref=e64] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+    - generic [ref=e65]:
+      - button "Apenas essenciais" [ref=e66] [cursor=pointer]
+      - button "Aceitar todos" [ref=e67] [cursor=pointer]

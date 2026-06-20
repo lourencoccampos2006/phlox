@@ -45,7 +45,7 @@ export default function SettingsPageWrapper() {
 }
 
 function SettingsPage() {
-  const { user, supabase, refreshUser } = useAuth()
+  const { user, loading: authLoading, supabase, refreshUser } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   // "ferramentas" só existe para modos NÃO-clínicos (pessoal/cuidador/estudante)
@@ -148,6 +148,10 @@ function SettingsPage() {
   })
 
   useEffect(() => {
+    // Esperar que a sessão carregue ANTES de decidir redirecionar — senão um
+    // utilizador autenticado (com sessão a chegar com atraso) era atirado para
+    // /login, que depois saltava para /inicio. As definições ficavam inacessíveis.
+    if (authLoading) return
     if (!user) { router.push('/login'); return }
     supabase.from('profiles')
       .select('display_name, connect_handle, professional_role, institution, speciality, experience_mode, connect_visible')
@@ -163,7 +167,7 @@ function SettingsPage() {
           connect_visible:   data.connect_visible || false,
         })
       })
-  }, [user, supabase, router])
+  }, [user, authLoading, supabase, router])
 
   const checkHandle = useCallback(async (handle: string) => {
     if (!handle.trim() || !user) { setHandleAvailable(null); setHandleError(''); return }

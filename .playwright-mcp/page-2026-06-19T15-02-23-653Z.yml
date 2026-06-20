@@ -1,0 +1,79 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - link "Começar →" [ref=e10] [cursor=pointer]:
+          - /url: /login
+        - button "Abrir menu" [ref=e11] [cursor=pointer]
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - img [ref=e23]
+          - generic [ref=e26]:
+            - generic [ref=e27]: PHLOX
+            - generic [ref=e28]: CLINICAL
+        - generic [ref=e29]: Acesso à plataforma
+        - heading "Entrar no Phlox" [level=1] [ref=e30]
+      - generic [ref=e31]:
+        - paragraph [ref=e32]: Guarda pesquisas, gere a tua medicação pessoal e acede a ferramentas avançadas.
+        - generic [ref=e102]:
+          - img [ref=e103]
+          - generic [ref=e105]: Email ou palavra-passe incorretos.
+        - button "Entrar com Google" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+          - text: Entrar com Google
+        - generic [ref=e41]: ou com email
+        - generic [ref=e43]:
+          - textbox "o-teu@email.pt" [ref=e44]: qa.phlox1781881320372@gmail.com
+          - textbox "Palavra-passe" [ref=e45]: QaPhlox2026!
+          - button "Entrar" [ref=e46] [cursor=pointer]
+        - generic [ref=e47]:
+          - text: Ainda não tens conta?
+          - button "Criar conta" [ref=e48] [cursor=pointer]
+        - generic [ref=e51]: ou
+        - link "Usar sem conta — ferramentas gratuitas" [ref=e53] [cursor=pointer]:
+          - /url: /interactions
+        - generic [ref=e54]:
+          - generic [ref=e55]: Conta gratuita inclui
+          - generic [ref=e56]:
+            - img [ref=e57]
+            - generic [ref=e60]: A tua lista de medicamentos, com lembretes
+          - generic [ref=e61]:
+            - img [ref=e62]
+            - generic [ref=e65]: Phlox Scan — foto à receita ou caixa (3/dia)
+          - generic [ref=e66]:
+            - img [ref=e67]
+            - generic [ref=e70]: Verificar interações (3/dia)
+          - generic [ref=e71]:
+            - img [ref=e72]
+            - generic [ref=e75]: Perguntar à IA de saúde (3/dia)
+          - generic [ref=e76]:
+            - img [ref=e77]
+            - generic [ref=e80]: A tua história de saúde guardada
+    - paragraph [ref=e81]:
+      - text: Ao entrares, aceitas os nossos
+      - link "Termos" [ref=e82] [cursor=pointer]:
+        - /url: /terms
+      - text: e
+      - link "Política de Privacidade" [ref=e83] [cursor=pointer]:
+        - /url: /privacy
+      - text: .
+  - button "Open Next.js Dev Tools" [ref=e89] [cursor=pointer]:
+    - img [ref=e90]
+  - alert [ref=e93]
+  - generic [ref=e94]:
+    - generic [ref=e95]:
+      - generic [ref=e96]: PRIVACIDADE E COOKIES — RGPD
+      - paragraph [ref=e97]:
+        - text: Usamos cookies essenciais para o funcionamento da plataforma e, com o teu consentimento, analytics para melhorar a experiência. Não vendemos dados pessoais.
+        - link "Política de privacidade" [ref=e98] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+    - generic [ref=e99]:
+      - button "Apenas essenciais" [ref=e100] [cursor=pointer]
+      - button "Aceitar todos" [ref=e101] [cursor=pointer]

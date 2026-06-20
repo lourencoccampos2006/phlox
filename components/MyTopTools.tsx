@@ -14,13 +14,19 @@ const LABELS: Record<string, { label: string; icon: string }> = {
   '/familia': { label: 'Família', icon: '👨‍👩‍👧' },
   '/interactions': { label: 'Interações', icon: '⚗' },
   '/sintomas': { label: 'Sintomas', icon: '🌡' },
-  '/scan': { label: 'Perceber bula', icon: '📄' },
+  '/scan': { label: 'Phlox Scan', icon: '📷' },
+  '/medicamento': { label: 'O que é este medicamento?', icon: '💡' },
   '/ai': { label: 'Phlox AI', icon: '✨' },
+  '/vitals': { label: 'Tensão, peso, açúcar', icon: '❤️' },
+  '/timeline': { label: 'História de saúde', icon: '🗓' },
+  '/labs': { label: 'Perceber análises', icon: '🧬' },
+  '/calendario': { label: 'Calendário', icon: '📅' },
   '/arena': { label: 'Arena', icon: '🏆' },
-  '/exam': { label: 'OSCE', icon: '🩺' },
+  '/study': { label: 'Estudar', icon: '📚' },
+  '/osce': { label: 'OSCE', icon: '🩺' },
   '/tutor': { label: 'AI Tutor', icon: '🧑‍🏫' },
   '/cases': { label: 'Casos clínicos', icon: '📚' },
-  '/cockpit': { label: 'Cockpit', icon: '📊' },
+  '/painel': { label: 'Painel', icon: '📊' },
   '/patients': { label: 'Doentes', icon: '👥' },
   '/calc': { label: 'Calculadoras', icon: '∑' },
   '/copiloto': { label: 'AI Copilot', icon: '🤖' },
@@ -34,7 +40,10 @@ const LABELS: Record<string, { label: string; icon: string }> = {
 export default function MyTopTools() {
   const [paths, setPaths] = useState<string[]>([])
 
-  useEffect(() => { setPaths(getTopTools(5)) }, [])
+  // Só mostramos ferramentas REAIS (com rótulo amigável). Páginas utilitárias
+  // (/pricing, /inicio, /settings…) ou rotas desconhecidas não contam — antes
+  // apareciam como texto cru "→ /pricing", o que parecia um bug.
+  useEffect(() => { setPaths(getTopTools(8).filter(p => LABELS[p])) }, [])
 
   if (paths.length === 0) return null
 
@@ -44,8 +53,8 @@ export default function MyTopTools() {
         <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>O que mais usas</span>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {paths.map(p => {
-          const m = LABELS[p] || { label: p, icon: '→' }
+        {paths.slice(0, 5).map(p => {
+          const m = LABELS[p]   // garantido existir (filtrado acima)
           return (
             <Link key={p} href={p} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px',

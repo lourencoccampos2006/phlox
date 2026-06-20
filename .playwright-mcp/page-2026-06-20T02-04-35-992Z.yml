@@ -1,0 +1,60 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e11]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: Conta
+      - heading "Definições" [level=1] [ref=e15]
+      - generic [ref=e16]:
+        - button "Perfil" [ref=e17] [cursor=pointer]
+        - button "Ferramentas" [ref=e18] [cursor=pointer]
+        - button "Segurança" [ref=e19] [cursor=pointer]
+        - button "Phlox Connect" [ref=e20] [cursor=pointer]
+        - button "Notificações" [ref=e21] [cursor=pointer]
+        - button "Conta" [ref=e22] [cursor=pointer]
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Tipo de instituição
+        - generic [ref=e27]: O Phlox monta-se à volta do tipo que escolheres — o painel, o menu e as ferramentas certas para a tua instituição. Sem configurar nada.
+        - generic [ref=e28]:
+          - button "Lar / ERPI Residentes · Turnos · MAR" [ref=e29] [cursor=pointer]:
+            - generic [ref=e30]: Lar / ERPI
+            - generic [ref=e31]: Residentes · Turnos · MAR
+          - button "Centro de Dia Utentes · Atividades · Famílias" [ref=e32] [cursor=pointer]:
+            - generic [ref=e33]: Centro de Dia
+            - generic [ref=e34]: Utentes · Atividades · Famílias
+          - button "Farmácia Comunitária Clientes · Interações" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: Farmácia Comunitária
+            - generic [ref=e37]: Clientes · Interações
+      - generic [ref=e38]:
+        - generic [ref=e39]: Modo de experiência
+        - generic [ref=e40]: Define as ferramentas e o contexto que aparecem no menu.
+        - generic [ref=e41]:
+          - button "Profissional Clínico Farmácia · Hospital · Clínica" [ref=e42] [cursor=pointer]:
+            - generic [ref=e43]: Profissional Clínico
+            - generic [ref=e44]: Farmácia · Hospital · Clínica
+          - button "Estudante Medicina · Farmácia · Enfermagem · +3" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: Estudante
+            - generic [ref=e47]: Medicina · Farmácia · Enfermagem · +3
+          - button "Cuidador Familiar Gestão de medicação de familiares" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Cuidador Familiar
+            - generic [ref=e50]: Gestão de medicação de familiares
+          - button "Uso Pessoal A minha própria saúde" [ref=e51] [cursor=pointer]:
+            - generic [ref=e52]: Uso Pessoal
+            - generic [ref=e53]: A minha própria saúde
+      - generic [ref=e54]:
+        - generic [ref=e55]: Informação pessoal
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - generic [ref=e58]: Nome de apresentação
+            - 'textbox "Ex: Dra. Ana Silva" [ref=e59]'
+            - generic [ref=e60]: Aparece nos documentos e relatórios que geras no Phlox
+          - generic [ref=e61]:
+            - generic [ref=e62]: Email
+            - textbox [disabled] [ref=e63]
+      - button "Guardar alterações" [ref=e64] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e70] [cursor=pointer]:
+    - img [ref=e71]

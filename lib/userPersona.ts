@@ -45,7 +45,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     daily: [
       { label: 'Sintomas de hoje', href: '/sintomas', icon: '🌡' },
       { label: 'Verificar interações', href: '/interactions', icon: '⚗' },
-      { label: 'Perceber bula', href: '/scan', icon: '📄' },
+      { label: 'Phlox Scan', href: '/scan', icon: '📷' },
       { label: 'Hidratação', href: '/agua', icon: '💧' },
       { label: 'Peso', href: '/pesar', icon: '⚖' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
@@ -67,7 +67,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     daily: [
       { label: 'Sintomas / diário', href: '/sintomas', icon: '🌡' },
       { label: 'Preparar consulta', href: '/preparar-consulta', icon: '📋' },
-      { label: 'Perceber bula', href: '/scan', icon: '📄' },
+      { label: 'Phlox Scan', href: '/scan', icon: '📷' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },
@@ -81,7 +81,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     },
     starters: [
       { label: 'Arena de ligas', href: '/arena', icon: '🏆', desc: 'Sobe de Bronze a Diamante' },
-      { label: 'OSCE simulado', href: '/exam', icon: '🩺', desc: 'Cenário com AI como doente' },
+      { label: 'OSCE simulado', href: '/osce', icon: '🩺', desc: 'Cenário com AI como doente' },
       { label: 'AI Tutor', href: '/tutor', icon: '🧑‍🏫', desc: 'Socrático, força raciocínio' },
     ],
     daily: [
@@ -95,12 +95,12 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     mode: 'clinical', label: 'Clínico', emoji: '🩺', color: '#1d4ed8',
     hint: 'Trabalho clínico diário na minha instituição.',
     hero: {
-      title: 'O teu cockpit, ao vivo',
-      subtitle: 'Doentes, ronda, MAR, ocorrências e indicadores — adaptado ao teu tipo de instituição.',
-      cta_label: 'Abrir cockpit', cta_href: '/cockpit', accent: '#1d4ed8',
+      title: 'O teu painel, ao vivo',
+      subtitle: 'Utentes, ronda, MAR, ocorrências e indicadores — adaptado ao teu tipo de instituição.',
+      cta_label: 'Abrir painel', cta_href: '/painel', accent: '#1d4ed8',
     },
     starters: [
-      { label: 'Cockpit institucional', href: '/cockpit', icon: '📊' },
+      { label: 'Painel da instituição', href: '/painel', icon: '📊' },
       { label: 'AI Copilot (Pro)', href: '/copiloto', icon: '✨', desc: 'Ancorado no Decision Engine' },
       { label: 'Trust Center', href: '/trust', icon: '🛡' },
     ],

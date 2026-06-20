@@ -1,0 +1,166 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - heading "Bom dia, qa1781881827891" [level=1] [ref=e25]
+        - generic [ref=e26]: sábado, 20 de junho
+      - link "Plano Base" [ref=e27] [cursor=pointer]:
+        - /url: /pricing
+        - generic [ref=e29]: Plano Base
+    - generic [ref=e30]:
+      - button "🎓 Modo · Estudante" [ref=e32] [cursor=pointer]:
+        - generic [ref=e33]: 🎓
+        - text: Modo ·
+        - strong [ref=e34]: Estudante
+        - img [ref=e35]
+      - button "○ Foco" [ref=e37] [cursor=pointer]:
+        - generic [ref=e38]: ○
+        - text: Foco
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]: Atalhos fixos
+        - button "＋ Adicionar" [ref=e42] [cursor=pointer]
+      - button "＋ Escolhe até 6 ferramentas para teres sempre à mão" [ref=e43] [cursor=pointer]
+    - link "Continuar a estudar Entra na Arena, treina casos e sobe de liga. Começar" [ref=e44] [cursor=pointer]:
+      - /url: /arena
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: Continuar a estudar
+          - generic [ref=e48]: Entra na Arena, treina casos e sobe de liga.
+        - generic [ref=e49]:
+          - text: Começar
+          - img [ref=e50]
+    - generic [ref=e52]:
+      - generic [ref=e55]: Estudar & treinar
+      - generic [ref=e56]:
+        - link "Competir na Arena Grátis · limitado Ligas Bronze → Diamante" [ref=e57] [cursor=pointer]:
+          - /url: /arena
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e62]: Competir na Arena
+              - generic [ref=e63]: Grátis · limitado
+            - generic [ref=e64]: Ligas Bronze → Diamante
+          - img [ref=e65]
+        - link "Estudar com flashcards 200+ tópicos, repetição espaçada" [ref=e67] [cursor=pointer]:
+          - /url: /study
+          - generic [ref=e70]:
+            - generic [ref=e72]: Estudar com flashcards
+            - generic [ref=e73]: 200+ tópicos, repetição espaçada
+          - img [ref=e74]
+        - link "AI Tutor Grátis · limitado Explica conceitos · mnemónicas · passo a passo" [ref=e76] [cursor=pointer]:
+          - /url: /tutor
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]: AI Tutor
+              - generic [ref=e82]: Grátis · limitado
+            - generic [ref=e83]: Explica conceitos · mnemónicas · passo a passo
+          - img [ref=e84]
+        - link "Explorar em 3D Grátis · limitado Atlas 3D real · pesquisa + AR" [ref=e86] [cursor=pointer]:
+          - /url: /anatomia-3d
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - generic [ref=e91]: Explorar em 3D
+              - generic [ref=e92]: Grátis · limitado
+            - generic [ref=e93]: Atlas 3D real · pesquisa + AR
+          - img [ref=e94]
+        - link "Estudo 360° Plus Revisão espaçada · progresso · Pomodoro" [ref=e96] [cursor=pointer]:
+          - /url: /study360
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - generic [ref=e101]: Estudo 360°
+              - generic [ref=e102]: Plus
+            - generic [ref=e103]: Revisão espaçada · progresso · Pomodoro
+          - img [ref=e104]
+        - link "Hub Aprender Acesso central a todas as ferramentas de estudo" [ref=e106] [cursor=pointer]:
+          - /url: /aprender
+          - generic [ref=e109]:
+            - generic [ref=e111]: Hub Aprender
+            - generic [ref=e112]: Acesso central a todas as ferramentas de estudo
+          - img [ref=e113]
+        - link "Notas que te fazem rever Flashcards automáticos · resumos · foto/voz" [ref=e115] [cursor=pointer]:
+          - /url: /study/notas
+          - generic [ref=e118]:
+            - generic [ref=e120]: Notas que te fazem rever
+            - generic [ref=e121]: Flashcards automáticos · resumos · foto/voz
+          - img [ref=e122]
+        - link "Os meus documentos Plus Carrega sebentas/slides → pergunta e gera estudo" [ref=e124] [cursor=pointer]:
+          - /url: /study/documentos
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - generic [ref=e129]: Os meus documentos
+              - generic [ref=e130]: Plus
+            - generic [ref=e131]: Carrega sebentas/slides → pergunta e gera estudo
+          - img [ref=e132]
+        - link "Biblioteca de ECGs Grátis · limitado 38 ECGs · avaliação IA" [ref=e134] [cursor=pointer]:
+          - /url: /study/ecg
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - generic [ref=e139]: Biblioteca de ECGs
+              - generic [ref=e140]: Grátis · limitado
+            - generic [ref=e141]: 38 ECGs · avaliação IA
+          - img [ref=e142]
+        - link "Lab interpreter 60+ valores ref · interpretação IA" [ref=e144] [cursor=pointer]:
+          - /url: /study/lab
+          - generic [ref=e147]:
+            - generic [ref=e149]: Lab interpreter
+            - generic [ref=e150]: 60+ valores ref · interpretação IA
+          - img [ref=e151]
+        - link "Procedimentos clínicos Guias passo-a-passo com checklist" [ref=e153] [cursor=pointer]:
+          - /url: /study/procedimentos
+          - generic [ref=e156]:
+            - generic [ref=e158]: Procedimentos clínicos
+            - generic [ref=e159]: Guias passo-a-passo com checklist
+          - img [ref=e160]
+        - link "Modo Exame Plus Plano até ao exame + gerar perguntas prováveis" [ref=e162] [cursor=pointer]:
+          - /url: /modo-exame
+          - generic [ref=e165]:
+            - generic [ref=e166]:
+              - generic [ref=e167]: Modo Exame
+              - generic [ref=e168]: Plus
+            - generic [ref=e169]: Plano até ao exame + gerar perguntas prováveis
+          - img [ref=e170]
+        - link "Modo Professor Plus Ensina o Phlox e descobre as tuas lacunas" [ref=e172] [cursor=pointer]:
+          - /url: /study/professor
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e177]: Modo Professor
+              - generic [ref=e178]: Plus
+            - generic [ref=e179]: Ensina o Phlox e descobre as tuas lacunas
+          - img [ref=e180]
+        - link "Estágio (completo) Plus Doentes, diário, casos, IA, relatórios" [ref=e182] [cursor=pointer]:
+          - /url: /estagio
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - generic [ref=e187]: Estágio (completo)
+              - generic [ref=e188]: Plus
+            - generic [ref=e189]: Doentes, diário, casos, IA, relatórios
+          - img [ref=e190]
+    - link "Adicionar mais ferramentas" [ref=e192] [cursor=pointer]:
+      - /url: /settings?tab=ferramentas
+      - img [ref=e193]
+      - text: Adicionar mais ferramentas
+    - link "🤍 A passar por um momento difícil? Alta do hospital, diagnóstico novo, cuidar de alguém — o Phlox ajuda nos primeiros passos." [ref=e194] [cursor=pointer]:
+      - /url: /comecar
+      - generic [ref=e195]: 🤍
+      - generic [ref=e196]:
+        - generic [ref=e197]: A passar por um momento difícil?
+        - generic [ref=e198]: Alta do hospital, diagnóstico novo, cuidar de alguém — o Phlox ajuda nos primeiros passos.
+      - img [ref=e199]
+    - generic [ref=e201]:
+      - generic [ref=e202]: Publicidade
+      - generic [ref=e203]: Espaço de anúncio — removido em qualquer plano pago.
+      - link "Remover anúncios →" [ref=e204] [cursor=pointer]:
+        - /url: /pricing
+  - button "Open Next.js Dev Tools" [ref=e210] [cursor=pointer]:
+    - img [ref=e211]
+  - alert [ref=e214]

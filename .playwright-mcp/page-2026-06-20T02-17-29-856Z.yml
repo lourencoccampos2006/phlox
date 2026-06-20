@@ -1,0 +1,172 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - heading "Aprender" [level=1] [ref=e13]
+      - paragraph [ref=e14]: Ferramentas integradas de estudo, treino clínico e progressão profissional. Tudo num só sítio, suportado por IA.
+    - generic [ref=e15]:
+      - heading "Praticar" [level=2] [ref=e18]
+      - generic [ref=e19]:
+        - link "IA ❓ Quiz Banco de questões IA por domínio" [ref=e20] [cursor=pointer]:
+          - /url: /study?mode=quiz
+          - generic [ref=e21]:
+            - generic [ref=e22]: IA
+            - generic [ref=e23]: ❓
+            - generic [ref=e24]: Quiz
+            - generic [ref=e25]: Banco de questões IA por domínio
+        - link "IA 🃏 Flashcards SRS com geração automática" [ref=e26] [cursor=pointer]:
+          - /url: /study?mode=flashcards
+          - generic [ref=e27]:
+            - generic [ref=e28]: IA
+            - generic [ref=e29]: 🃏
+            - generic [ref=e30]: Flashcards
+            - generic [ref=e31]: SRS com geração automática
+        - link "IA 🩺 Casos clínicos 54 casos dinâmicos com IA" [ref=e32] [cursor=pointer]:
+          - /url: /decisao
+          - generic [ref=e33]:
+            - generic [ref=e34]: IA
+            - generic [ref=e35]: 🩺
+            - generic [ref=e36]: Casos clínicos
+            - generic [ref=e37]: 54 casos dinâmicos com IA
+        - link "novo 💓 ECG library Treina interpretação com IA" [ref=e38] [cursor=pointer]:
+          - /url: /study/ecg
+          - generic [ref=e39]:
+            - generic [ref=e40]: novo
+            - generic [ref=e41]: 💓
+            - generic [ref=e42]: ECG library
+            - generic [ref=e43]: Treina interpretação com IA
+        - link "🏆 Arena Liga competitiva por especialidade" [ref=e44] [cursor=pointer]:
+          - /url: /arena
+          - generic [ref=e45]:
+            - generic [ref=e46]: 🏆
+            - generic [ref=e47]: Arena
+            - generic [ref=e48]: Liga competitiva por especialidade
+    - generic [ref=e49]:
+      - heading "Aprender" [level=2] [ref=e52]
+      - generic [ref=e53]:
+        - link "IA 🧠 Tutor IA Explica conceitos · mnemónicas · passo a passo" [ref=e54] [cursor=pointer]:
+          - /url: /tutor
+          - generic [ref=e55]:
+            - generic [ref=e56]: IA
+            - generic [ref=e57]: 🧠
+            - generic [ref=e58]: Tutor IA
+            - generic [ref=e59]: Explica conceitos · mnemónicas · passo a passo
+        - link "novo 🎓 Modo Professor Ensina o Phlox → descobre as tuas lacunas" [ref=e60] [cursor=pointer]:
+          - /url: /study/professor
+          - generic [ref=e61]:
+            - generic [ref=e62]: novo
+            - generic [ref=e63]: 🎓
+            - generic [ref=e64]: Modo Professor
+            - generic [ref=e65]: Ensina o Phlox → descobre as tuas lacunas
+        - link "📝 Notas que te fazem rever Flashcards + resumos + revisão espaçada · foto/voz" [ref=e66] [cursor=pointer]:
+          - /url: /study/notas
+          - generic [ref=e67]:
+            - generic [ref=e68]: 📝
+            - generic [ref=e69]: Notas que te fazem rever
+            - generic [ref=e70]: Flashcards + resumos + revisão espaçada · foto/voz
+        - link "📚 Os meus documentos Carrega sebentas → pergunta e gera estudo" [ref=e71] [cursor=pointer]:
+          - /url: /study/documentos
+          - generic [ref=e72]:
+            - generic [ref=e73]: 📚
+            - generic [ref=e74]: Os meus documentos
+            - generic [ref=e75]: Carrega sebentas → pergunta e gera estudo
+        - link "🦴 Anatomia 3D Modelos interativos" [ref=e76] [cursor=pointer]:
+          - /url: /anatomia-3d
+          - generic [ref=e77]:
+            - generic [ref=e78]: 🦴
+            - generic [ref=e79]: Anatomia 3D
+            - generic [ref=e80]: Modelos interativos
+    - generic [ref=e81]:
+      - heading "Ferramentas clínicas" [level=2] [ref=e84]
+      - generic [ref=e85]:
+        - link "novo 🧪 Lab interpreter Valores ref. + interpretação IA" [ref=e86] [cursor=pointer]:
+          - /url: /study/lab
+          - generic [ref=e87]:
+            - generic [ref=e88]: novo
+            - generic [ref=e89]: 🧪
+            - generic [ref=e90]: Lab interpreter
+            - generic [ref=e91]: Valores ref. + interpretação IA
+        - link "novo ✅ Procedimentos Guias passo-a-passo com checklist" [ref=e92] [cursor=pointer]:
+          - /url: /study/procedimentos
+          - generic [ref=e93]:
+            - generic [ref=e94]: novo
+            - generic [ref=e95]: ✅
+            - generic [ref=e96]: Procedimentos
+            - generic [ref=e97]: Guias passo-a-passo com checklist
+        - link "💊 Verificar interações Drug-drug + foto OCR" [ref=e98] [cursor=pointer]:
+          - /url: /interactions
+          - generic [ref=e99]:
+            - generic [ref=e100]: 💊
+            - generic [ref=e101]: Verificar interações
+            - generic [ref=e102]: Drug-drug + foto OCR
+        - link "🧮 Calculadoras clínicas Doses, eGFR/CrCl, scores, pediatria" [ref=e103] [cursor=pointer]:
+          - /url: /calculos
+          - generic [ref=e104]:
+            - generic [ref=e105]: 🧮
+            - generic [ref=e106]: Calculadoras clínicas
+            - generic [ref=e107]: Doses, eGFR/CrCl, scores, pediatria
+        - link "💡 O que é este medicamento? Para que serve, receita e cuidados" [ref=e108] [cursor=pointer]:
+          - /url: /medicamento
+          - generic [ref=e109]:
+            - generic [ref=e110]: 💡
+            - generic [ref=e111]: O que é este medicamento?
+            - generic [ref=e112]: Para que serve, receita e cuidados
+    - generic [ref=e113]:
+      - heading "Estágio" [level=2] [ref=e116]
+      - link "novo 🎓 Gestão de estágio Doentes, diário, objectivos, casos, IA" [ref=e118] [cursor=pointer]:
+        - /url: /estagio
+        - generic [ref=e119]:
+          - generic [ref=e120]: novo
+          - generic [ref=e121]: 🎓
+          - generic [ref=e122]: Gestão de estágio
+          - generic [ref=e123]: Doentes, diário, objectivos, casos, IA
+    - generic [ref=e124]:
+      - heading "Planear" [level=2] [ref=e127]
+      - generic [ref=e128]:
+        - link "novo 🎯 Modo Exame Plano até ao exame + prever perguntas prováveis" [ref=e129] [cursor=pointer]:
+          - /url: /modo-exame
+          - generic [ref=e130]:
+            - generic [ref=e131]: novo
+            - generic [ref=e132]: 🎯
+            - generic [ref=e133]: Modo Exame
+            - generic [ref=e134]: Plano até ao exame + prever perguntas prováveis
+        - link "⏱️ Estudo 360° Revisão espaçada · progresso · Pomodoro" [ref=e135] [cursor=pointer]:
+          - /url: /study360
+          - generic [ref=e136]:
+            - generic [ref=e137]: ⏱️
+            - generic [ref=e138]: Estudo 360°
+            - generic [ref=e139]: Revisão espaçada · progresso · Pomodoro
+        - link "🗓️ Calendário Eventos e prazos" [ref=e140] [cursor=pointer]:
+          - /url: /calendario
+          - generic [ref=e141]:
+            - generic [ref=e142]: 🗓️
+            - generic [ref=e143]: Calendário
+            - generic [ref=e144]: Eventos e prazos
+        - link "★ Guardados Os teus favoritos" [ref=e145] [cursor=pointer]:
+          - /url: /guardados
+          - generic [ref=e146]:
+            - generic [ref=e147]: ★
+            - generic [ref=e148]: Guardados
+            - generic [ref=e149]: Os teus favoritos
+    - generic [ref=e150]:
+      - heading "Comunidade" [level=2] [ref=e153]
+      - generic [ref=e154]:
+        - link "🤝 Phlox Connect Rede de profissionais e estudantes" [ref=e155] [cursor=pointer]:
+          - /url: /connect
+          - generic [ref=e156]:
+            - generic [ref=e157]: 🤝
+            - generic [ref=e158]: Phlox Connect
+            - generic [ref=e159]: Rede de profissionais e estudantes
+        - link "👥 Casos partilhados Banco de casos da comunidade" [ref=e160] [cursor=pointer]:
+          - /url: /cases
+          - generic [ref=e161]:
+            - generic [ref=e162]: 👥
+            - generic [ref=e163]: Casos partilhados
+            - generic [ref=e164]: Banco de casos da comunidade
+  - button "Open Next.js Dev Tools" [ref=e170] [cursor=pointer]:
+    - img [ref=e171]
+  - alert [ref=e174]

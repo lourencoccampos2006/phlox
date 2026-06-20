@@ -289,12 +289,12 @@ export function CareLogTool() {
               <span style={{ width: 20, height: 20, background: '#0b1120', borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>1</span>
               Contexto do registo
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Residente *</label>
-                <select value={patientId} onChange={e => setPatientId(e.target.value)} style={inp()}>
-                  <option value="">Selecionar residente...</option>
-                  {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` — Q.${p.room_number}` : ''}</option>)}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12, marginBottom: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cfg.personNoun} *</label>
+                <select value={patientId} onChange={e => setPatientId(e.target.value)} style={{ ...inp(), maxWidth: '100%' }}>
+                  <option value="">{`Selecionar ${personLower}...`}</option>
+                  {patients.map(p => <option key={p.id} value={p.id}>{p.name}{cfg.hasBeds && p.room_number ? ` — ${cfg.roomLabel[0]}.${p.room_number}` : ''}</option>)}
                 </select>
               </div>
               <div>
@@ -308,8 +308,8 @@ export function CareLogTool() {
                 ⤵ Copiar do último registo <span style={{ fontWeight: 400, color: '#6b7280' }}>({lastRecord.date}{lastRecord.shift ? ` · ${SHIFTS[lastRecord.shift as Shift]?.label || lastRecord.shift}` : ''})</span>
               </button>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Turno</label>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {(Object.entries(SHIFTS) as [Shift, typeof SHIFTS.manha][]).map(([k, cfg]) => (
@@ -400,7 +400,7 @@ export function CareLogTool() {
             </div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>% Refeição ingerida</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 8 }}>
                 {([['Pequeno-almoço', breakfast, setBreakfast], ['Almoço', lunch, setLunch], ['Jantar', dinner, setDinner]] as [string, number | null, (v: number | null) => void][]).map(([label, val, setter]) => (
                   <div key={label as string}>
                     <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>{label as string}</div>

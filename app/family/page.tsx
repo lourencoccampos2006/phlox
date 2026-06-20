@@ -242,7 +242,7 @@ export default function FamilyPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1.5px solid #e5e7eb' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1.5px solid #e5e7eb', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {([
           ['conversa', 'Conversa'],
           ['messages', 'Comunicados'],
@@ -252,7 +252,7 @@ export default function FamilyPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            style={{ padding: '10px 18px', border: 'none', borderBottom: `2px solid ${tab === t ? '#2563eb' : 'transparent'}`, background: 'none', color: tab === t ? '#2563eb' : '#6b7280', fontWeight: tab === t ? 600 : 400, fontSize: 14, cursor: 'pointer', marginBottom: -1.5 }}
+            style={{ padding: '10px 16px', border: 'none', borderBottom: `2px solid ${tab === t ? '#2563eb' : 'transparent'}`, background: 'none', color: tab === t ? '#2563eb' : '#6b7280', fontWeight: tab === t ? 600 : 400, fontSize: 14, cursor: 'pointer', marginBottom: -1.5, flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             {l}
             {t === 'conversa' && totalUnread > 0 && (
