@@ -6,6 +6,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { save, getAllSaves, remove, SAVES_EVENT, type NewSave, type SavedKind } from '@/lib/saves'
+import { getActiveProfile } from '@/lib/profileContext'
 import { useToast } from '@/components/Toast'
 
 interface Props<T> extends NewSave<T> {
@@ -13,6 +14,9 @@ interface Props<T> extends NewSave<T> {
   color?: string
   size?: 'sm' | 'md'
   className?: string
+  // Por defeito o botão associa o resultado ao perfil activo (ProfileSelector).
+  // Passar false em ferramentas onde isso não faz sentido (ex.: conteúdo de estudo).
+  attachProfile?: boolean
 }
 
 /**
@@ -35,7 +39,7 @@ function useIsSaved(kind: SavedKind, title: string) {
 }
 
 export default function SaveButton<T = any>(props: Props<T>) {
-  const { color = '#0d6e42', size = 'md', className } = props
+  const { color = '#0d6e42', size = 'md', className, attachProfile = true } = props
   const savedId = useIsSaved(props.kind, props.title)
   const toast = useToast()
 
@@ -44,8 +48,16 @@ export default function SaveButton<T = any>(props: Props<T>) {
       remove(savedId)
       toast.info('Removido dos Guardados')
     } else {
-      save({ kind: props.kind, title: props.title, preview: props.preview, data: props.data, href: props.href, tags: props.tags })
-      toast.success('Guardado', 'Acede em Guardados.')
+      // Captura o perfil activo no momento do save (a não ser que já venha
+      // definido explicitamente, ou que a ferramenta desligue isso).
+      let profileId = props.profileId
+      let profileName = props.profileName
+      if (attachProfile && !profileId) {
+        const ap = getActiveProfile()
+        if (ap) { profileId = ap.id; profileName = ap.type === 'self' ? `Eu (${ap.name.split(' ')[0]})` : ap.name }
+      }
+      save({ kind: props.kind, title: props.title, preview: props.preview, data: props.data, href: props.href, tags: props.tags, profileId, profileName })
+      toast.success('Guardado', profileName ? `Guardado em ${profileName}.` : 'Acede em Guardados.')
     }
   }
 

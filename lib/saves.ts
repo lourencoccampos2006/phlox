@@ -28,6 +28,10 @@ export interface SavedItem<T = any> {
   tags?: string[]
   createdAt: string           // ISO
   pinned?: boolean
+  // ─── Associação a perfil (próprio ou familiar) ───
+  // Permite usar os guardados como histórico por pessoa. 'self' = perfil próprio.
+  profileId?: string          // 'self' | <family_profile.id>
+  profileName?: string        // nome legível, capturado no momento do save
 }
 
 const LS_KEY = 'phlox-saves-v1'
@@ -61,6 +65,11 @@ function broadcast() { try { window.dispatchEvent(new CustomEvent(SAVES_EVENT)) 
 export function getAllSaves(): SavedItem[] { return safeRead() }
 export function getSavesByKind(kind: SavedKind): SavedItem[] { return safeRead().filter(s => s.kind === kind) }
 
+/** Itens guardados associados a um perfil (ex.: histórico de uma pessoa). */
+export function getSavesByProfile(profileId: string): SavedItem[] {
+  return safeRead().filter(s => (s.profileId || 'self') === profileId)
+}
+
 export function findSave(predicate: (s: SavedItem) => boolean): SavedItem | undefined {
   return safeRead().find(predicate)
 }
@@ -72,16 +81,21 @@ export interface NewSave<T> {
   data: T
   href?: string
   tags?: string[]
+  profileId?: string
+  profileName?: string
 }
 
 export function save<T>(input: NewSave<T>): SavedItem<T> {
   const list = safeRead()
-  // Evita duplicar exatamente o mesmo title+kind nos últimos 30 itens
-  const dup = list.slice(0, 30).find(x => x.kind === input.kind && x.title === input.title)
+  const profileId = input.profileId || undefined
+  // Evita duplicar exatamente o mesmo title+kind+perfil nos últimos 30 itens
+  // (a mesma análise para pessoas diferentes NÃO é duplicado).
+  const dup = list.slice(0, 30).find(x => x.kind === input.kind && x.title === input.title && (x.profileId || undefined) === profileId)
   if (dup) {
     dup.createdAt = new Date().toISOString()
     dup.data = input.data
     dup.preview = input.preview ?? dup.preview
+    if (input.profileName) dup.profileName = input.profileName
     safeWrite([dup, ...list.filter(x => x.id !== dup.id)])
     broadcast()
     return dup as SavedItem<T>
@@ -94,6 +108,8 @@ export function save<T>(input: NewSave<T>): SavedItem<T> {
     data: input.data,
     href: input.href,
     tags: input.tags,
+    profileId,
+    profileName: input.profileName,
     createdAt: new Date().toISOString(),
   }
   safeWrite([item, ...list])

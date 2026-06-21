@@ -1,0 +1,30 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e25] [cursor=pointer]:
+    - generic [ref=e28]:
+      - text: Compiling
+      - generic [ref=e29]:
+        - generic [ref=e30]: .
+        - generic [ref=e31]: .
+        - generic [ref=e32]: .
+  - alert [ref=e33]
+  - generic [ref=e34]:
+    - generic [ref=e35]:
+      - generic [ref=e36]: PRIVACIDADE E COOKIES — RGPD
+      - paragraph [ref=e37]:
+        - text: Usamos cookies essenciais para o funcionamento da plataforma e, com o teu consentimento, analytics para melhorar a experiência. Não vendemos dados pessoais.
+        - link "Política de privacidade" [ref=e38] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+    - generic [ref=e39]:
+      - button "Apenas essenciais" [ref=e40] [cursor=pointer]
+      - button "Aceitar todos" [ref=e41] [cursor=pointer]

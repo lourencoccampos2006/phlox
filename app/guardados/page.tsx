@@ -6,12 +6,14 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { getAllSaves, remove, togglePin, clearAll, KIND_META, SAVES_EVENT, type SavedItem, type SavedKind } from '@/lib/saves'
+import SavedResultView from '@/components/SavedResultView'
 import { useToast } from '@/components/Toast'
 
 export default function GuardadosPage() {
   const [items, setItems] = useState<SavedItem[]>([])
   const [q, setQ] = useState('')
   const [kindFilter, setKindFilter] = useState<SavedKind | 'all'>('all')
+  const [profileFilter, setProfileFilter] = useState<string>('all')
   const toast = useToast()
 
   function refresh() { setItems(getAllSaves()) }
@@ -26,17 +28,31 @@ export default function GuardadosPage() {
     const t = q.trim().toLowerCase()
     return items
       .filter(s => kindFilter === 'all' || s.kind === kindFilter)
+      .filter(s => profileFilter === 'all' || (s.profileId || 'self') === profileFilter)
       .filter(s => !t || s.title.toLowerCase().includes(t) || (s.preview || '').toLowerCase().includes(t))
       .sort((a, b) => {
         if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
         return b.createdAt.localeCompare(a.createdAt)
       })
-  }, [items, q, kindFilter])
+  }, [items, q, kindFilter, profileFilter])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length }
     items.forEach(s => { c[s.kind] = (c[s.kind] || 0) + 1 })
     return c
+  }, [items])
+
+  // Perfis presentes nos guardados (para o filtro de histórico por pessoa).
+  const profiles = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; count: number }>()
+    items.forEach(s => {
+      const id = s.profileId || 'self'
+      const name = s.profileName || (id === 'self' ? 'Eu' : 'Perfil')
+      const e = map.get(id)
+      if (e) e.count++
+      else map.set(id, { id, name, count: 1 })
+    })
+    return Array.from(map.values()).sort((a, b) => b.count - a.count)
   }, [items])
 
   const usedKinds = Object.keys(KIND_META).filter(k => counts[k]) as SavedKind[]
@@ -53,7 +69,7 @@ export default function GuardadosPage() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>A minha biblioteca</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Guardados</h1>
-          <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Tudo o que guardaste — mnemónicas, explicações, análises, consultas — num só sítio. Fica no teu dispositivo.</p>
+          <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Tudo o que guardaste — mnemónicas, explicações, análises, consultas — com o resultado completo, organizado por pessoa. Fica no teu dispositivo.</p>
         </div>
 
         {/* Pesquisa + acções */}
@@ -67,7 +83,22 @@ export default function GuardadosPage() {
           )}
         </div>
 
-        {/* Filtros */}
+        {/* Filtro por perfil (histórico por pessoa) — só quando há mais que um */}
+        {profiles.length > 1 && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 6 }}>Histórico por perfil</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <FilterChip active={profileFilter === 'all'} color="#7c3aed" onClick={() => setProfileFilter('all')}>Todos</FilterChip>
+              {profiles.map(p => (
+                <FilterChip key={p.id} active={profileFilter === p.id} color="#7c3aed" onClick={() => setProfileFilter(p.id)}>
+                  {p.id === 'self' ? '👤' : '👥'} {p.name} · {p.count}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filtros por tipo */}
         {items.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             <FilterChip active={kindFilter === 'all'} color="#0b1120" onClick={() => setKindFilter('all')}>Tudo · {counts.all}</FilterChip>
@@ -113,6 +144,9 @@ function FilterChip({ children, active, color, onClick }: { children: React.Reac
 
 function SavedRow({ item }: { item: SavedItem }) {
   const meta = KIND_META[item.kind]
+  const [open, setOpen] = useState(false)
+  const hasContent = item.data != null && (typeof item.data !== 'object' || Object.keys(item.data).length > 0)
+  const profileName = item.profileName || (item.profileId && item.profileId !== 'self' ? 'Perfil' : null)
   return (
     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <div style={{ width: 38, height: 38, borderRadius: 9, background: meta.color + '14', color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{meta.icon}</div>
@@ -120,15 +154,29 @@ function SavedRow({ item }: { item: SavedItem }) {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>{meta.label}</span>
           <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(item.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          {profileName && (
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 999, padding: '1px 8px' }}>
+              {item.profileId === 'self' ? '👤' : '👥'} {profileName}
+            </span>
+          )}
           {item.pinned && <span style={{ fontSize: 11, color: '#b45309', fontWeight: 700 }}>★ Fixo</span>}
         </div>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0b1120', marginBottom: 3, lineHeight: 1.35, wordBreak: 'break-word' }}>{item.title}</div>
-        {item.preview && <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.preview}</div>}
-        {item.href && (
-          <div style={{ marginTop: 7 }}>
-            <Link href={`${item.href}?reopen=${item.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Reabrir conteúdo →</Link>
-          </div>
-        )}
+        {item.preview && !open && <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.preview}</div>}
+
+        {/* Conteúdo guardado, mostrado AQUI mesmo (sem reabrir a ferramenta) */}
+        {open && hasContent && <SavedResultView item={item} />}
+
+        <div style={{ marginTop: 8, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {hasContent && (
+            <button onClick={() => setOpen(o => !o)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: meta.color, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {open ? '▲ Esconder conteúdo' : '▼ Ver conteúdo guardado'}
+            </button>
+          )}
+          {item.href && (
+            <Link href={`${item.href}?reopen=${item.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Abrir na ferramenta →</Link>
+          )}
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
         <button onClick={() => togglePin(item.id)} title={item.pinned ? 'Desafixar' : 'Fixar'} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: item.pinned ? '#b45309' : '#cbd5e1', padding: 3 }}>★</button>

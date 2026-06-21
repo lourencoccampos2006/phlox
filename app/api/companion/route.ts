@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       { data: labs },
       { data: logs },
     ] = await Promise.all([
-      supabase.from('profiles').select('name, birth_date, age').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('name').eq('id', userId).maybeSingle(),
       supabase.from('personal_meds').select('name, dose, frequency, pills_remaining, pills_per_day, reminder_times').eq('user_id', userId),
       supabase.from('vitals').select('bp_sys, bp_dia, spo2, glucose, weight, hr, temp, recorded_at').eq('user_id', userId).gte('recorded_at', days30).order('recorded_at', { ascending: false }).limit(60),
       supabase.from('lab_results').select('test_code, test_label, value, unit, ref_low, ref_high, measured_at').eq('user_id', userId).order('measured_at', { ascending: false }).limit(120),
@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
     const labList = (labs || []) as any[]
     const logList = (logs || []) as any[]
 
-    // Idade
-    let age: number | undefined = profile?.age || undefined
-    if (!age && profile?.birth_date) age = Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 86400000))
+    // Idade — a tabela profiles não guarda idade/data de nascimento, por isso
+    // fica indefinida (o companion degrada com elegância sem ela).
+    const age: number | undefined = (profile as any)?.age || undefined
 
     const concerns: Concern[] = []
 

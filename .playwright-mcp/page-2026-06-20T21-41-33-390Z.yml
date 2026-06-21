@@ -1,0 +1,35 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]: A minha biblioteca
+      - heading "Guardados" [level=1] [ref=e25]
+      - paragraph [ref=e26]: Tudo o que guardaste — mnemónicas, explicações, análises, consultas — com o resultado completo, organizado por pessoa. Fica no teu dispositivo.
+    - textbox "Pesquisar em 0 items…" [ref=e28]
+    - generic [ref=e29]:
+      - generic [ref=e30]: ★
+      - generic [ref=e31]: Ainda nada guardado
+      - paragraph [ref=e32]:
+        - text: Em qualquer ferramenta procura o botão
+        - strong [ref=e33]: ☆ Guardar
+        - text: . Aqui voltas a encontrar tudo, organizado.
+      - generic [ref=e34]:
+        - link "O que é este medicamento? ↗" [ref=e35] [cursor=pointer]:
+          - /url: /medicamento
+        - link "Explica-me ↗" [ref=e36] [cursor=pointer]:
+          - /url: /explica
+        - link "Preparar consulta ↗" [ref=e37] [cursor=pointer]:
+          - /url: /preparar-consulta
+    - generic [ref=e38]: Os guardados ficam só neste dispositivo (browser). Para sincronizar entre dispositivos, em breve.
+  - button "Open Next.js Dev Tools" [ref=e44] [cursor=pointer]:
+    - img [ref=e45]
+  - alert [ref=e48]

@@ -25,6 +25,7 @@ const CAT_META: Record<string, { icon: string; label: string }> = {
 }
 
 const LS_KEY = 'phlox-preventivo-done'
+const LS_PROFILE = 'phlox-preventivo-perfil'   // idade/sexo/condições (a tabela profiles não os guarda)
 
 export default function PreventivoPage() {
   const { user, supabase } = useAuth() as any
@@ -33,36 +34,23 @@ export default function PreventivoPage() {
   const [conditions, setConditions] = useState<string>('')
   const [done, setDone] = useState<Record<string, string>>({})
 
-  // Carrega perfil + "feitos" do localStorage
+  // Carrega "feitos" + perfil (idade/sexo/condições) do localStorage. A tabela
+  // profiles NÃO guarda idade/sexo, por isso lemos do que o utilizador escreveu
+  // aqui antes — sem queries que dão 400.
   useEffect(() => {
     try { const r = localStorage.getItem(LS_KEY); if (r) setDone(JSON.parse(r)) } catch {}
+    try {
+      const p = localStorage.getItem(LS_PROFILE)
+      if (p) { const o = JSON.parse(p); if (o.age) setAge(String(o.age)); if (o.sex === 'M' || o.sex === 'F') setSex(o.sex); if (o.conditions) setConditions(o.conditions) }
+    } catch {}
   }, [])
+  // (As vacinas marcadas como feitas ficam no localStorage — a tabela
+  // vaccine_records ainda não tem colunas de dados, por isso não a consultamos.)
+
+  // Guarda idade/sexo/condições localmente para a próxima visita.
   useEffect(() => {
-    if (!user) return
-    ;(async () => {
-      try {
-        const { data: profile } = await supabase.from('profiles').select('birth_date, age, sex, conditions').eq('id', user.id).maybeSingle()
-        let a: number | undefined
-        if (profile?.age) a = profile.age
-        else if (profile?.birth_date) {
-          const bd = new Date(profile.birth_date)
-          a = Math.floor((Date.now() - bd.getTime()) / (365.25 * 86400000))
-        }
-        if (a) setAge(String(a))
-        if (profile?.sex === 'M' || profile?.sex === 'F') setSex(profile.sex)
-        if (profile?.conditions) setConditions(profile.conditions)
-      } catch {}
-      // Vacinas conhecidas — se já existe tabela vaccine_records, importa
-      try {
-        const { data: vacs } = await supabase.from('vaccine_records').select('vaccine_id, given_at').eq('user_id', user.id)
-        if (vacs && Array.isArray(vacs)) {
-          const map: Record<string, string> = {}
-          for (const v of vacs) { if (v.vaccine_id && v.given_at) map[v.vaccine_id] = v.given_at.slice(0, 10) }
-          setDone(prev => ({ ...prev, ...map }))
-        }
-      } catch { /* tabela pode não existir */ }
-    })()
-  }, [user, supabase])
+    try { localStorage.setItem(LS_PROFILE, JSON.stringify({ age, sex, conditions })) } catch {}
+  }, [age, sex, conditions])
 
   const persistDone = useCallback((next: Record<string, string>) => {
     setDone(next)

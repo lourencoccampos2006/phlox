@@ -1,0 +1,68 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]: A minha saúde
+        - heading "Diário de Sintomas" [level=1] [ref=e26]
+        - paragraph [ref=e27]:
+          - text: Como se sente hoje? Regista em segundos — fica guardado no perfil de
+          - strong [ref=e28]: mim
+          - text: .
+      - button "E Eu (qa1781881827891)" [ref=e31] [cursor=pointer]:
+        - generic [ref=e32]: E
+        - generic [ref=e33]: Eu (qa1781881827891)
+        - img [ref=e34]
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]: Como se sente?
+        - generic [ref=e39]:
+          - button "😣 Muito mal" [ref=e40] [cursor=pointer]:
+            - generic [ref=e41]: 😣
+            - generic [ref=e42]: Muito mal
+          - button "😕 Mal" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]: 😕
+            - generic [ref=e45]: Mal
+          - button "😐 Assim-assim" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: 😐
+            - generic [ref=e48]: Assim-assim
+          - button "🙂 Bem" [ref=e49] [cursor=pointer]:
+            - generic [ref=e50]: 🙂
+            - generic [ref=e51]: Bem
+          - button "😄 Ótimo" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: 😄
+            - generic [ref=e54]: Ótimo
+        - generic [ref=e55]: Sintomas
+        - generic [ref=e56]:
+          - button "Dor de cabeça" [ref=e57] [cursor=pointer]
+          - button "Febre" [ref=e58] [cursor=pointer]
+          - button "Tosse" [ref=e59] [cursor=pointer]
+          - button "Cansaço" [ref=e60] [cursor=pointer]
+          - button "Náuseas" [ref=e61] [cursor=pointer]
+          - button "Tonturas" [ref=e62] [cursor=pointer]
+          - button "Dor" [ref=e63] [cursor=pointer]
+          - button "Falta de ar" [ref=e64] [cursor=pointer]
+          - button "Insónia" [ref=e65] [cursor=pointer]
+          - button "Sem apetite" [ref=e66] [cursor=pointer]
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - generic [ref=e69]: "Dor (0-10): —"
+            - slider [ref=e70]: "0"
+          - generic [ref=e71]:
+            - generic [ref=e72]: Temperatura (°C)
+            - spinbutton [ref=e73]
+        - textbox "Notas (opcional)…" [ref=e74]
+        - button "Registar para mim" [disabled] [ref=e75]
+      - generic [ref=e76]: Histórico de mim
+  - button "Open Next.js Dev Tools" [ref=e86] [cursor=pointer]:
+    - img [ref=e87]
+  - alert [ref=e90]

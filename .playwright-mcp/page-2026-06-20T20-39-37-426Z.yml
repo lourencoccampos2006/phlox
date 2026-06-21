@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e11]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: A minha saúde
+      - heading "Estou em dia com a saúde?" [level=1] [ref=e15]
+      - paragraph [ref=e16]: Rastreios, vacinas e consultas recomendados pela DGS para a tua idade. Marca o que já fizeste — o resto fica em alerta.
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]: Idade
+            - spinbutton [ref=e22]
+          - generic [ref=e23]:
+            - generic [ref=e24]: Sexo
+            - generic [ref=e25]:
+              - button "Feminino" [ref=e26] [cursor=pointer]
+              - button "Masculino" [ref=e27] [cursor=pointer]
+        - generic [ref=e28]: Doenças crónicas (opcional, separa por vírgulas)
+        - textbox "diabetes, hipertensão, asma…" [ref=e29]
+        - generic [ref=e30]: ⓘ Esta lista baseia-se em normas oficiais da DGS e no PNV. Não substitui a avaliação do teu médico de família.
+      - generic [ref=e31]: Indica a tua idade e sexo para ver as recomendações.
+  - button "Open Next.js Dev Tools" [ref=e37] [cursor=pointer]:
+    - img [ref=e38]

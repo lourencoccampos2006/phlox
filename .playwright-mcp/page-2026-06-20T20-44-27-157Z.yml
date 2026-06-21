@@ -1,0 +1,14 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e12]:
+    - heading "Cofre de saúde" [level=1] [ref=e13]
+    - paragraph [ref=e14]: Guarda análises, receitas e relatórios num só sítio. Partilha com o médico através de um código temporário — sem dar login, sem perder controlo.
+    - link "Ver planos →" [ref=e15] [cursor=pointer]:
+      - /url: /pricing
+  - button "Open Next.js Dev Tools" [ref=e21] [cursor=pointer]:
+    - img [ref=e22]
+  - alert [ref=e25]

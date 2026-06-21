@@ -1,0 +1,66 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]: A minha biblioteca
+      - heading "Guardados" [level=1] [ref=e25]
+      - paragraph [ref=e26]: Tudo o que guardaste — mnemónicas, explicações, análises, consultas — com o resultado completo, organizado por pessoa. Fica no teu dispositivo.
+    - generic [ref=e27]:
+      - textbox "Pesquisar em 2 items…" [ref=e28]
+      - button "Limpar tudo" [ref=e29] [cursor=pointer]
+    - generic [ref=e30]:
+      - generic [ref=e31]: Histórico por perfil
+      - generic [ref=e32]:
+        - button "Todos" [ref=e33] [cursor=pointer]
+        - button "👤 Eu (Fernando) · 1" [ref=e34] [cursor=pointer]
+        - button "👥 Maria (Mãe) · 1" [ref=e35] [cursor=pointer]
+    - generic [ref=e36]:
+      - button "Tudo · 2" [ref=e37] [cursor=pointer]
+      - button "⚗ Análise de meds · 1" [ref=e38] [cursor=pointer]
+      - button "🏥 Triagem · 1" [ref=e39] [cursor=pointer]
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]: ⚗
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: Análise de meds
+            - generic [ref=e46]: 20/06/2026
+            - generic [ref=e47]: 👤 Eu (Fernando)
+          - generic [ref=e48]: "Análise: Metformina, Atorvastatina…"
+          - generic [ref=e49]: Combinação geralmente segura, com um ponto a vigiar.
+          - generic [ref=e50]:
+            - button "▼ Ver conteúdo guardado" [ref=e51] [cursor=pointer]
+            - link "Abrir na ferramenta →" [ref=e52] [cursor=pointer]:
+              - /url: /quickcheck?reopen=tA1781991705080
+        - generic [ref=e53]:
+          - button "★" [ref=e54] [cursor=pointer]
+          - button "×" [ref=e55] [cursor=pointer]
+      - generic [ref=e56]:
+        - generic [ref=e57]: 🏥
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: Triagem
+            - generic [ref=e61]: 19/06/2026
+            - generic [ref=e62]: 👥 Maria (Mãe)
+          - generic [ref=e63]: "CENTRO DE SAÚDE: dor de garganta há 2 dias"
+          - generic [ref=e64]: Provável infeção ligeira; vigia febre alta.
+          - generic [ref=e65]:
+            - button "▼ Ver conteúdo guardado" [ref=e66] [cursor=pointer]
+            - link "Abrir na ferramenta →" [ref=e67] [cursor=pointer]:
+              - /url: /saude-agora?reopen=tB1781991705080
+        - generic [ref=e68]:
+          - button "★" [ref=e69] [cursor=pointer]
+          - button "×" [ref=e70] [cursor=pointer]
+    - generic [ref=e71]: Os guardados ficam só neste dispositivo (browser). Para sincronizar entre dispositivos, em breve.
+  - button "Open Next.js Dev Tools" [ref=e77] [cursor=pointer]:
+    - img [ref=e78]
+  - alert [ref=e81]
