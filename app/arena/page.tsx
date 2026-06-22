@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ReportQuizError from '@/components/ReportQuizError'
+import { logStudy } from '@/lib/studyProgress'
 
 interface Challenge {
   id: string; title: string; domain: string; difficulty: 'facil'|'medio'|'dificil'|'especialista'
@@ -349,6 +350,7 @@ export default function ArenaPage() {
 
   const handleComplete = async (xp: number, correct: boolean, time: number) => {
     if (!active || !user) return
+    logStudy({ kind: 'case', area: DOMAINS.find(x => x.id === active.domain)?.label || active.domain, correct, xp: Math.max(xp, 10) })
     try {
       const { error } = await supabase.from('arena_attempts').insert({
         challenge_id: active.id, user_id: user.id, score: xp, time_seconds: time, domain: active.domain, completed_at: new Date().toISOString(),

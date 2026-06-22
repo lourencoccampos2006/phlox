@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { getPhloxContext, subscribePhloxContext, serializeContext } from '@/lib/copilotContext'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 const PUBLIC_PREFIXES = ['/', '/about', '/pricing', '/login', '/terms', '/privacy', '/trust', '/institucional', '/blog', '/onboarding']
 
@@ -83,10 +84,15 @@ export default function PhloxCopilot() {
     try {
       const { data: sd } = await supabase.auth.getSession()
       const pageContext = serializeContext(getPhloxContext())
+      const ap = getActiveProfile()
+      const profileCtx = ap
+        ? (ap.type === 'self' ? 'O utilizador está a trabalhar no SEU próprio perfil.'
+            : `O utilizador tem o perfil "${ap.name}" ativo${ap.type === 'patient' ? ' (um doente/utente que acompanha)' : ' (um familiar)'}.${ap.age ? ` ${ap.age} anos.` : ''}${ap.sex ? ` Sexo ${ap.sex}.` : ''}${ap.conditions ? ` Condições: ${ap.conditions}.` : ''}${ap.allergies ? ` Alergias: ${ap.allergies}.` : ''}`)
+        : ''
       const r = await fetch('/api/copilot-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
-        body: JSON.stringify({ message: q, path: pathname, selection, context: pageContext, history: newMsgs.slice(-6) }),
+        body: JSON.stringify({ message: q, path: pathname, selection, context: pageContext, profile: profileCtx, mode: user?.experience_mode, history: newMsgs.slice(-6) }),
       })
       const j = await r.json()
       setMsgs(m => [...m, { role: 'assistant', content: j.reply || j.error || 'Sem resposta.' }])

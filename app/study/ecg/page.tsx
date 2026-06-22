@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { usePhloxContext } from '@/lib/copilotContext'
+import { logStudy } from '@/lib/studyProgress'
 
 const ACCENT = '#0d6e42'
 
@@ -82,7 +83,10 @@ export default function ECGPage() {
         'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}`,
       }, body: JSON.stringify({ ecg_id: selected.id, interpretation: interp }) })
       const j = await r.json()
-      if (r.ok) setFeedback(j)
+      if (r.ok) {
+        setFeedback(j)
+        logStudy({ kind: 'ecg', area: 'ECG', correct: (j.score ?? 0) >= 70, xp: Math.max(8, Math.round((j.score ?? 0) / 5)) })
+      }
     } finally { setBusy(false) }
   }
 

@@ -8,6 +8,50 @@ import Link from 'next/link'
 import { getAllSaves, remove, togglePin, clearAll, KIND_META, SAVES_EVENT, type SavedItem, type SavedKind } from '@/lib/saves'
 import SavedResultView from '@/components/SavedResultView'
 import { useToast } from '@/components/Toast'
+import { useAuth } from '@/components/AuthContext'
+import { printDoc, type PrintRecord } from '@/lib/print'
+
+// Achata o payload de um item guardado em texto legível para o PDF.
+function flattenData(d: any, depth = 0): string[] {
+  if (d == null) return []
+  if (typeof d !== 'object') return [String(d)]
+  const out: string[] = []
+  const label = (k: string) => k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  for (const [k, v] of Object.entries(d)) {
+    if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') out.push(`${label(k)}: ${v}`)
+    else if (Array.isArray(v)) {
+      v.forEach(item => {
+        if (item && typeof item === 'object') {
+          const t = item.title || item.text || item.summary
+          const e = item.explanation || item.action || ''
+          out.push(`${label(k)}: ${[t, e].filter(Boolean).join(' — ')}`.trim())
+        } else out.push(`${label(k)}: ${item}`)
+      })
+    } else if (depth < 2) out.push(...flattenData(v, depth + 1))
+  }
+  return out
+}
+
+function exportProfileHistory(items: SavedItem[], profileName: string) {
+  const sections = [{
+    heading: `Histórico — ${profileName}`,
+    note: `${items.length} registo${items.length === 1 ? '' : 's'}`,
+    records: items.map<PrintRecord>(s => ({
+      title: s.title,
+      meta: `${KIND_META[s.kind]?.label || s.kind} · ${new Date(s.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+      body: s.preview || undefined,
+      bullets: flattenData(s.data).slice(0, 24),
+    })),
+  }]
+  printDoc({
+    docTitle: 'Histórico de saúde',
+    docSubtitle: profileName,
+    institution: 'Phlox',
+    sections,
+    footerNote: 'Documento gerado pelo Phlox a partir dos registos guardados. Informação educacional — confirma com o teu profissional de saúde.',
+  })
+}
 
 export default function GuardadosPage() {
   const [items, setItems] = useState<SavedItem[]>([])
@@ -15,6 +59,8 @@ export default function GuardadosPage() {
   const [kindFilter, setKindFilter] = useState<SavedKind | 'all'>('all')
   const [profileFilter, setProfileFilter] = useState<string>('all')
   const toast = useToast()
+  const { user } = useAuth() as any
+  const isPro = user?.plan === 'pro' || user?.plan === 'clinic'
 
   function refresh() { setItems(getAllSaves()) }
   useEffect(() => {
@@ -44,13 +90,14 @@ export default function GuardadosPage() {
 
   // Perfis presentes nos guardados (para o filtro de histórico por pessoa).
   const profiles = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; count: number }>()
+    const map = new Map<string, { id: string; name: string; type: string; count: number }>()
     items.forEach(s => {
       const id = s.profileId || 'self'
       const name = s.profileName || (id === 'self' ? 'Eu' : 'Perfil')
+      const type = s.profileType || (id === 'self' ? 'self' : 'family')
       const e = map.get(id)
       if (e) e.count++
-      else map.set(id, { id, name, count: 1 })
+      else map.set(id, { id, name, type, count: 1 })
     })
     return Array.from(map.values()).sort((a, b) => b.count - a.count)
   }, [items])
@@ -88,13 +135,29 @@ export default function GuardadosPage() {
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 6 }}>Histórico por perfil</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <FilterChip active={profileFilter === 'all'} color="#7c3aed" onClick={() => setProfileFilter('all')}>Todos</FilterChip>
-              {profiles.map(p => (
-                <FilterChip key={p.id} active={profileFilter === p.id} color="#7c3aed" onClick={() => setProfileFilter(p.id)}>
-                  {p.id === 'self' ? '👤' : '👥'} {p.name} · {p.count}
-                </FilterChip>
-              ))}
+              <FilterChip active={profileFilter === 'all'} color="#475569" onClick={() => setProfileFilter('all')}>Todos</FilterChip>
+              {profiles.map(p => {
+                const col = p.type === 'patient' ? '#2563eb' : p.type === 'self' ? '#0d6e42' : '#7c3aed'
+                const icon = p.type === 'patient' ? '🧑‍⚕️' : p.type === 'self' ? '👤' : '👥'
+                return (
+                  <FilterChip key={p.id} active={profileFilter === p.id} color={col} onClick={() => setProfileFilter(p.id)}>
+                    {icon} {p.name} · {p.count}
+                  </FilterChip>
+                )
+              })}
             </div>
+            {/* PRO — exportar o histórico desta pessoa em PDF A4 */}
+            {profileFilter !== 'all' && filtered.length > 0 && (
+              <button
+                onClick={() => {
+                  if (!isPro) { toast.info('Exportar histórico em PDF', 'Disponível no plano Pro.'); return }
+                  const p = profiles.find(x => x.id === profileFilter)
+                  exportProfileHistory(filtered, p?.name || 'Perfil')
+                }}
+                style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: 'white', border: '1.5px solid #cbd5e1', borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: '#0f172a', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                🖨 Exportar histórico (PDF){!isPro && <span style={{ fontSize: 10, color: '#0d6e42', fontWeight: 800 }}>PRO</span>}
+              </button>
+            )}
           </div>
         )}
 
@@ -154,11 +217,18 @@ function SavedRow({ item }: { item: SavedItem }) {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>{meta.label}</span>
           <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(item.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-          {profileName && (
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 999, padding: '1px 8px' }}>
-              {item.profileId === 'self' ? '👤' : '👥'} {profileName}
-            </span>
-          )}
+          {profileName && (() => {
+            const isSelf = item.profileId === 'self'
+            const isPat = item.profileType === 'patient'
+            const c = isPat ? { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '🧑‍⚕️' }
+              : isSelf ? { color: '#0d6e42', bg: '#f0fdf4', border: '#bbf7d0', icon: '👤' }
+              : { color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', icon: '👥' }
+            return (
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: c.color, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 999, padding: '1px 8px' }}>
+                {c.icon} {profileName}
+              </span>
+            )
+          })()}
           {item.pinned && <span style={{ fontSize: 11, color: '#b45309', fontWeight: 700 }}>★ Fixo</span>}
         </div>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0b1120', marginBottom: 3, lineHeight: 1.35, wordBreak: 'break-word' }}>{item.title}</div>

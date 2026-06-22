@@ -1,0 +1,46 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - banner [ref=e13]:
+      - button "Menu" [ref=e14] [cursor=pointer]: ☰
+      - link "O seu Lar" [ref=e15] [cursor=pointer]:
+        - /url: /painel
+        - generic [ref=e16]: O seu Lar
+      - generic [ref=e17]: domingo, 21 de junho
+      - generic [ref=e18]:
+        - button [ref=e20] [cursor=pointer]:
+          - img [ref=e21]
+        - link "Q" [ref=e23] [cursor=pointer]:
+          - /url: /settings
+    - main [ref=e25]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - generic [ref=e29]: A minha biblioteca
+          - heading "Guardados" [level=1] [ref=e30]
+          - paragraph [ref=e31]: Tudo o que guardaste — mnemónicas, explicações, análises, consultas — com o resultado completo, organizado por pessoa. Fica no teu dispositivo.
+        - generic [ref=e32]:
+          - textbox "Pesquisar em 1 item…" [ref=e33]
+          - button "Limpar tudo" [ref=e34] [cursor=pointer]
+        - generic [ref=e35]:
+          - button "Tudo · 1" [ref=e36] [cursor=pointer]
+          - button "⚗ Análise de meds · 1" [ref=e37] [cursor=pointer]
+        - generic [ref=e39]:
+          - generic [ref=e40]: ⚗
+          - generic [ref=e41]:
+            - generic [ref=e42]:
+              - generic [ref=e43]: Análise de meds
+              - generic [ref=e44]: 21/06/2026
+              - generic [ref=e45]: 🧑‍⚕️ João Silva (teste)
+            - generic [ref=e46]: "Interação: Metformina + Ibuprofeno"
+            - generic [ref=e47]: Vigiar função renal.
+            - generic [ref=e48]:
+              - button "▼ Ver conteúdo guardado" [ref=e49] [cursor=pointer]
+              - link "Abrir na ferramenta →" [ref=e50] [cursor=pointer]:
+                - /url: /interactions?reopen=t1782045530086
+          - generic [ref=e51]:
+            - button "★" [ref=e52] [cursor=pointer]
+            - button "×" [ref=e53] [cursor=pointer]
+        - generic [ref=e54]: Os guardados ficam só neste dispositivo (browser). Para sincronizar entre dispositivos, em breve.
+  - button "Abrir Phlox Copilot" [ref=e55]: ✦

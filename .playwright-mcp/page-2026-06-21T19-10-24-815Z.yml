@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: A minha biblioteca
+      - heading "Guardados" [level=1] [ref=e15]
+      - paragraph [ref=e16]: Tudo o que guardaste — mnemónicas, explicações, análises, consultas — com o resultado completo, organizado por pessoa. Fica no teu dispositivo.
+    - generic [ref=e17]:
+      - textbox "Pesquisar em 1 item…" [ref=e18]
+      - button "Limpar tudo" [ref=e19] [cursor=pointer]
+    - generic [ref=e20]:
+      - button "Tudo · 1" [ref=e21] [cursor=pointer]
+      - button "📊 Briefing clínico · 1" [ref=e22] [cursor=pointer]
+    - generic [ref=e24]:
+      - generic [ref=e25]: 📊
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: Briefing clínico
+          - generic [ref=e29]: 21/06/2026
+          - generic [ref=e30]: 🧑‍⚕️ João Silva (teste)
+        - generic [ref=e31]: Resumo clínico — João Silva (teste)
+        - generic [ref=e32]: Paciente de 74 anos com histórico de Diabetes tipo 2 e Hipertensão Arterial (HTA), alérgico a Penicilina. Sem medicação atualmente registada. É importante monit
+        - generic [ref=e33]:
+          - button "▼ Ver conteúdo guardado" [ref=e34] [cursor=pointer]
+          - link "Abrir na ferramenta →" [ref=e35] [cursor=pointer]:
+            - /url: /painel?reopen=mqo5vcelsm06q3
+      - generic [ref=e36]:
+        - button "★" [ref=e37] [cursor=pointer]
+        - button "×" [ref=e38] [cursor=pointer]
+    - generic [ref=e39]: Os guardados ficam só neste dispositivo (browser). Para sincronizar entre dispositivos, em breve.
+  - button "Open Next.js Dev Tools" [ref=e45] [cursor=pointer]:
+    - img [ref=e46]
+  - alert [ref=e49]

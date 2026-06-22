@@ -4,7 +4,9 @@
 export interface ActiveProfile {
   id: string | 'self'
   name: string
-  type: 'self' | 'family'
+  // 'self' = o próprio · 'family' = familiar (perfil pessoal) · 'patient' = doente/utente
+  // da instituição (tabela patients; só Pro/Institucional).
+  type: 'self' | 'family' | 'patient'
   // ─── campos opcionais para pré-preenchimento de ferramentas ───
   age?: number | null
   sex?: string | null

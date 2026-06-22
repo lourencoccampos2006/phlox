@@ -52,11 +52,12 @@ export default function SaveButton<T = any>(props: Props<T>) {
       // definido explicitamente, ou que a ferramenta desligue isso).
       let profileId = props.profileId
       let profileName = props.profileName
+      let profileType = props.profileType
       if (attachProfile && !profileId) {
         const ap = getActiveProfile()
-        if (ap) { profileId = ap.id; profileName = ap.type === 'self' ? `Eu (${ap.name.split(' ')[0]})` : ap.name }
+        if (ap) { profileId = ap.id; profileName = ap.type === 'self' ? `Eu (${ap.name.split(' ')[0]})` : ap.name; profileType = ap.type }
       }
-      save({ kind: props.kind, title: props.title, preview: props.preview, data: props.data, href: props.href, tags: props.tags, profileId, profileName })
+      save({ kind: props.kind, title: props.title, preview: props.preview, data: props.data, href: props.href, tags: props.tags, profileId, profileName, profileType })
       toast.success('Guardado', profileName ? `Guardado em ${profileName}.` : 'Acede em Guardados.')
     }
   }

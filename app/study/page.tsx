@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { logStudy } from '@/lib/studyProgress'
+import StudyProgressBar from '@/components/StudyProgressBar'
 
 // ─── Domínios de estudo — TODAS as áreas das ciências da saúde ───────────────
 
@@ -447,6 +449,7 @@ function FlashcardsMode({ topic, domain, cards, onBack, onSession }: {
   const answer = (rating: 'easy'|'medium'|'hard') => {
     const newResults = [...results, rating]
     setResults(newResults)
+    logStudy({ kind: 'flashcard', area: domain.label, correct: rating !== 'hard' })
     setFlipped(false)
     if (index + 1 >= cards.length) {
       const known = newResults.filter(r => r !== 'hard').length
@@ -579,6 +582,7 @@ function QuizMode({ topic, domain, questions, onBack, onSession }: {
   const answer = (i: number) => {
     if (selected !== null) return
     setSelected(i)
+    logStudy({ kind: 'quiz', area: domain.label, correct: i === q.correct })
     if (i === q.correct) setScore(p=>p+1)
   }
   const next = () => {
@@ -729,6 +733,8 @@ export default function StudyPage() {
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
 
       <div className="page-container page-body">
+
+        {mode === 'home' && !selectedDomain && <StudyProgressBar />}
 
         {mode !== 'home' && (
           <button onClick={goBack}

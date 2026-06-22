@@ -28,10 +28,11 @@ export interface SavedItem<T = any> {
   tags?: string[]
   createdAt: string           // ISO
   pinned?: boolean
-  // ─── Associação a perfil (próprio ou familiar) ───
+  // ─── Associação a perfil (próprio, familiar ou doente) ───
   // Permite usar os guardados como histórico por pessoa. 'self' = perfil próprio.
-  profileId?: string          // 'self' | <family_profile.id>
+  profileId?: string          // 'self' | <family_profile.id> | <patient.id>
   profileName?: string        // nome legível, capturado no momento do save
+  profileType?: 'self' | 'family' | 'patient'
 }
 
 const LS_KEY = 'phlox-saves-v1'
@@ -83,6 +84,7 @@ export interface NewSave<T> {
   tags?: string[]
   profileId?: string
   profileName?: string
+  profileType?: 'self' | 'family' | 'patient'
 }
 
 export function save<T>(input: NewSave<T>): SavedItem<T> {
@@ -110,6 +112,7 @@ export function save<T>(input: NewSave<T>): SavedItem<T> {
     tags: input.tags,
     profileId,
     profileName: input.profileName,
+    profileType: input.profileType,
     createdAt: new Date().toISOString(),
   }
   safeWrite([item, ...list])

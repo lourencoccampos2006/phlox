@@ -12,6 +12,8 @@ import PinnedToolsBar from '@/components/PinnedToolsBar'
 import MyTopTools from '@/components/MyTopTools'
 import NextStep from '@/components/NextStep'
 import FocusModeToggle from '@/components/FocusModeToggle'
+import DailyBriefCard from '@/components/DailyBriefCard'
+import HealthAlertsCard from '@/components/HealthAlertsCard'
 
 // ─── Home adaptativa — mobile-first, lista limpa. Só mostra ferramentas ativas. ─
 
@@ -105,6 +107,10 @@ export default function InicioPage() {
           <PersonaSwitcher />
           <FocusModeToggle />
         </div>
+
+        {/* PRO — avisos proativos (determinísticos) + "A tua saúde hoje" (briefing IA). */}
+        {(toolMode === 'personal' || toolMode === 'caregiver') && <HealthAlertsCard />}
+        {(toolMode === 'personal' || toolMode === 'caregiver') && <DailyBriefCard />}
 
         {/* Atalhos fixos do utilizador (até 6 escolhidos por ele) */}
         <PinnedToolsBar />

@@ -7,6 +7,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile, setActiveProfile, ActiveProfile } from '../lib/profileContext'
+import { useActiveOrg } from '@/lib/orgContext'
+import { institutionConfig } from '@/lib/institutionConfig'
+import type { InstitutionType } from '@/lib/useClinicPrefs'
 
 interface FamilyProfile {
   id: string
@@ -19,17 +22,38 @@ interface FamilyProfile {
   allergies?: string | null
 }
 
-interface ProfileSelectorProps {
-  onChange?: (profile: ActiveProfile) => void
+interface PatientProfile {
+  id: string
+  name: string
+  age?: number | null
+  sex?: string | null
+  conditions?: string | null
+  allergies?: string | null
 }
 
-export default function ProfileSelector({ onChange }: ProfileSelectorProps) {
+interface ProfileSelectorProps {
+  onChange?: (profile: ActiveProfile) => void
+  // Mostrar também os doentes/utentes da instituição (Pro/Institucional).
+  // Por defeito sim; algumas ferramentas pessoais podem desligar.
+  includePatients?: boolean
+  // Força o vocabulário (Doente/Residente/Cliente/Utente); por defeito lê da instituição ativa.
+  patientLabel?: string
+}
+
+export default function ProfileSelector({ onChange, includePatients = true, patientLabel }: ProfileSelectorProps) {
   const { user, supabase } = useAuth()
+  const { org } = useActiveOrg()
+  // Vocabulário: o passado explicitamente > o da instituição ativa > "Doentes".
+  const vocab = patientLabel || institutionConfig((org?.kind as InstitutionType) || null).personNounPlural || 'Doentes'
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<ActiveProfile | null>(null)
   const [profiles, setProfiles] = useState<FamilyProfile[]>([])
+  const [patients, setPatients] = useState<PatientProfile[]>([])
   const [loading, setLoading] = useState(true)
   const ref = useRef<HTMLDivElement>(null)
+
+  // Só Pro/Institucional acompanham doentes/utentes.
+  const canPatients = includePatients && (user?.plan === 'pro' || user?.plan === 'clinic')
 
   // Carrega o perfil activo do localStorage e os perfis familiares do Supabase
   useEffect(() => {
@@ -53,7 +77,18 @@ export default function ProfileSelector({ onChange }: ProfileSelectorProps) {
           setActiveProfile(selfProfile)
         }
       })
-  }, [user, supabase])
+
+    // Doentes/utentes (apenas Pro/Institucional)
+    if (canPatients) {
+      supabase
+        .from('patients')
+        .select('id, name, age, sex, conditions, allergies')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(20)
+        .then(({ data }: { data: PatientProfile[] | null }) => setPatients(data || []))
+    }
+  }, [user, supabase, canPatients])
 
   // Fecha o dropdown ao clicar fora
   useEffect(() => {
@@ -100,10 +135,10 @@ export default function ProfileSelector({ onChange }: ProfileSelectorProps) {
         {/* Avatar do perfil */}
         <div style={{
           width: 22, height: 22, borderRadius: '50%',
-          background: active?.type === 'family' ? '#e9d5ff' : 'var(--green-light)',
+          background: active?.type === 'patient' ? '#dbeafe' : active?.type === 'family' ? '#e9d5ff' : 'var(--green-light)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 10, fontWeight: 700,
-          color: active?.type === 'family' ? '#7c3aed' : 'var(--green)',
+          color: active?.type === 'patient' ? '#2563eb' : active?.type === 'family' ? '#7c3aed' : 'var(--green)',
           flexShrink: 0,
         }}>
           {displayName.charAt(0).toUpperCase()}
@@ -223,8 +258,70 @@ export default function ProfileSelector({ onChange }: ProfileSelectorProps) {
             </>
           )}
 
+          {/* Doentes/utentes — só Pro/Institucional */}
+          {canPatients && patients.length > 0 && (
+            <>
+              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+              <div style={{ padding: '6px 14px 4px', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {vocab}
+              </div>
+              <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                {patients.map(p => {
+                  const isActive = active?.id === p.id
+                  const pp: ActiveProfile = {
+                    id: p.id, name: p.name, type: 'patient',
+                    age: p.age ?? null, sex: p.sex ?? null,
+                    conditions: p.conditions ?? null, allergies: p.allergies ?? null,
+                  }
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => select(pp)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', background: isActive ? '#eff6ff' : 'transparent',
+                        border: 'none', cursor: 'pointer', textAlign: 'left',
+                        borderLeft: `3px solid ${isActive ? '#2563eb' : 'transparent'}`,
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-2)' }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', background: '#dbeafe',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12, fontWeight: 700, color: '#2563eb', flexShrink: 0,
+                      }}>
+                        {p.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>
+                          {[p.age ? `${p.age} anos` : null, p.sex, p.conditions].filter(Boolean).join(' · ') || 'Sem dados'}
+                        </div>
+                      </div>
+                      {isActive && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                          <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
           {/* Novo perfil */}
           <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+          {canPatients && (
+            <a href="/patients" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, color: '#2563eb', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#eff6ff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Gerir {vocab.toLowerCase()}
+            </a>
+          )}
           <a
             href="/perfis"
             style={{

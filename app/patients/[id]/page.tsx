@@ -9,8 +9,10 @@ import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import DrugReferenceButton from '@/components/DrugReferenceButton'
+import PatientSummaryButton from '@/components/PatientSummaryButton'
 import { analyzeResident, SEVERITY_STYLE as ECO_SEV } from '@/lib/residentSignals'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { setActiveProfile } from '@/lib/profileContext'
 
 
 interface Patient {
@@ -114,6 +116,8 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
     setPatient(patientData)
     setMeds(medsData || [])
     setEditData(patientData)
+    // Torna este doente o perfil ativo — o Copilot e o "Resumo clínico" sabem de quem se trata.
+    setActiveProfile({ id: patientData.id, name: patientData.name, type: 'patient', age: patientData.age, sex: patientData.sex, conditions: patientData.conditions, allergies: patientData.allergies })
     if (isNH) {
       const [assessRes, incRes, contRes] = await Promise.all([
         supabase.from('assessments').select('*').eq('patient_id', patientId).eq('user_id', user.id).order('date', { ascending: false }),
@@ -511,6 +515,11 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
                 Co-Piloto IA
               </Link>
             </div>
+          </div>
+
+          {/* PRO — Resumo clínico num clique, guardado no histórico deste doente */}
+          <div style={{ marginBottom: 16 }}>
+            <PatientSummaryButton compact />
           </div>
 
           <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
