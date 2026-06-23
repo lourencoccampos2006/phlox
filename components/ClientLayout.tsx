@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic'
 const PhloxCopilot = dynamic(() => import('@/components/PhloxCopilot'), { ssr: false })
 const UniversalSearch = dynamic(() => import('@/components/UniversalSearch'), { ssr: false })
 const ClinicalCommandPalette = dynamic(() => import('@/components/ClinicalCommandPalette'), { ssr: false })
+const BottomNav = dynamic(() => import('@/components/BottomNav'), { ssr: false })
 
 // Rotas que correm DENTRO do shell institucional (sidebar do blueprint).
 // Tem de cobrir TODAS as ferramentas que o blueprint referencia (core + extra),
@@ -50,15 +51,20 @@ function ScrollToTop() {
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       aria-label="Voltar ao topo"
+      className="scroll-top-btn"
       style={{
-        position: 'fixed', bottom: 20, right: 16, zIndex: 70,
+        position: 'fixed', right: 16, zIndex: 70,
         width: 38, height: 38, borderRadius: '50%',
         background: 'var(--ink)', color: 'white',
         border: 'none', cursor: 'pointer', fontSize: 14,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 2px 10px rgba(0,0,0,0.2)', opacity: 0.8,
+        bottom: 20,
       }}
-    >↑</button>
+    >↑
+      {/* Acima da barra inferior no mobile, para não sobrepor */}
+      <style>{`@media (max-width: 768px) { .scroll-top-btn { bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; } }`}</style>
+    </button>
   )
 }
 
@@ -106,11 +112,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <>
       <ToolUseTracker />
       <Header />
-      <div id="app-main">{gated(children)}</div>
+      <div id="app-main" className="has-bottom-nav">{gated(children)}</div>
       {showFooter && <Footer />}
       <PhloxCopilot />
       <UniversalSearch />
+      <BottomNav />
       <ScrollToTop />
+      {/* Espaço em baixo no mobile para o conteúdo nunca ficar tapado pela barra
+          de navegação inferior (inclui a safe-area do telemóvel/browser). */}
+      <style>{`
+        @media (max-width: 768px) {
+          .has-bottom-nav { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+        }
+      `}</style>
     </>
   )
 }

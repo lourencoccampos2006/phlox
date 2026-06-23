@@ -4,28 +4,62 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useEnabledTools } from '@/lib/useEnabledTools'
-import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { planName } from '@/lib/plans'
-import PersonaSwitcher from '@/components/PersonaSwitcher'
-import PinnedToolsBar from '@/components/PinnedToolsBar'
-import MyTopTools from '@/components/MyTopTools'
-import NextStep from '@/components/NextStep'
-import FocusModeToggle from '@/components/FocusModeToggle'
-import DailyBriefCard from '@/components/DailyBriefCard'
 import HealthAlertsCard from '@/components/HealthAlertsCard'
+import WelcomeTour from '@/components/WelcomeTour'
 
-// ─── Home adaptativa — mobile-first, lista limpa. Só mostra ferramentas ativas. ─
+// ─── Home refeita 2026-06-22 — clareza acima de tudo. ──────────────────────────
+// O problema era "e agora?": demasiadas escolhas à entrada. Agora: uma pergunta
+// humana + 4 cartões grandes em linguagem de NECESSIDADE (não nomes de
+// ferramentas), avisos só quando há algo a dizer, e UM botão "Ver tudo".
 
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 19 ? 'Boa tarde' : 'Boa noite' }
-function dateStr() { return new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' }) }
 
-type NonClinicalMode = Exclude<ToolMode, 'clinical'>
-const HERO: Record<NonClinicalMode, { href: string; title: string; sub: string; cta: string; color: string }> = {
-  personal:  { href: '/mymeds',  title: 'A minha medicação', sub: 'Vê a tua lista, ativa lembretes e verifica interações.', cta: 'Abrir', color: '#0d9488' },
-  caregiver: { href: '/familia', title: 'Os perfis da família', sub: 'Gere a medicação e a saúde de quem cuidas, num só sítio.', cta: 'Abrir', color: '#b45309' },
-  student:   { href: '/arena',   title: 'Continuar a estudar', sub: 'Entra na Arena, treina casos e sobe de liga.', cta: 'Começar', color: '#7c3aed' },
+type NonClinicalMode = 'personal' | 'caregiver' | 'student'
+
+// Ícones grandes e claros (line icons) por cartão.
+function NeedIcon({ name, color }: { name: string; color: string }) {
+  const p: Record<string, React.ReactNode> = {
+    pill: <><rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(45 12 12)" /></>,
+    camera: <><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></>,
+    question: <><circle cx="12" cy="12" r="9" /><path d="M9.2 9.5a2.8 2.8 0 0 1 5.4 1c0 1.8-2.6 2-2.6 3.5" /><circle cx="12" cy="17.4" r="0.6" fill={color} /></>,
+    heart: <><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" /></>,
+    family: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.2" /><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" /><path d="M16 15c2.3 0 4 1.6 4 4" /></>,
+    qr: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><path d="M14 14h2v2M18 18h2M16 18v2" /></>,
+    trophy: <><path d="M7 4h10v4a5 5 0 0 1-10 0z" /><path d="M5 4H3v2a3 3 0 0 0 3 3M19 4h2v2a3 3 0 0 1-3 3M9 16h6M10 20h4M12 16v4" /></>,
+    book: <><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M19 17H6a2 2 0 0 0-2 2" /></>,
+    cards: <><rect x="3" y="6" width="14" height="14" rx="2" /><path d="M7 3h12a2 2 0 0 1 2 2v12" /></>,
+  }
+  return (
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      {p[name] || p.pill}
+    </svg>
+  )
 }
+
+// Cartões de NECESSIDADE — o que a pessoa quer fazer, em português do dia-a-dia.
+interface Need { href: string; icon: string; title: string; sub: string }
+const NEEDS: Record<NonClinicalMode, Need[]> = {
+  personal: [
+    { href: '/mymeds',       icon: 'pill',     title: 'Ver os meus comprimidos', sub: 'A lista, os horários e os lembretes' },
+    { href: '/scan',         icon: 'camera',   title: 'Tirar foto a uma receita', sub: 'O Phlox lê e organiza por si' },
+    { href: '/ai',           icon: 'question', title: 'Tenho uma dúvida',         sub: 'Pergunte em português simples' },
+    { href: '/saude-agora',  icon: 'heart',    title: 'Não me sinto bem',         sub: 'Ajuda a decidir o que fazer agora' },
+  ],
+  caregiver: [
+    { href: '/familia',      icon: 'family',   title: 'A minha família',          sub: 'A saúde de cada pessoa num sítio' },
+    { href: '/scan',         icon: 'camera',   title: 'Tirar foto a uma receita', sub: 'O Phlox lê e organiza por si' },
+    { href: '/ai',           icon: 'question', title: 'Tenho uma dúvida',         sub: 'Pergunte em português simples' },
+    { href: '/saude-agora',  icon: 'heart',    title: 'Alguém não se sente bem',  sub: 'Ajuda a decidir o que fazer agora' },
+  ],
+  student: [
+    { href: '/arena',        icon: 'trophy',   title: 'Treinar com casos',        sub: 'Arena: ligas e casos clínicos' },
+    { href: '/study',        icon: 'cards',    title: 'Rever com flashcards',     sub: 'Repetição espaçada por tópico' },
+    { href: '/aprender',     icon: 'book',     title: 'Tudo para estudar',        sub: 'O teu progresso e ferramentas' },
+    { href: '/ai',           icon: 'question', title: 'Tirar uma dúvida',         sub: 'Explicações passo a passo' },
+  ],
+}
+const MODE_COLOR: Record<NonClinicalMode, string> = { personal: '#0d9488', caregiver: '#b45309', student: '#7c3aed' }
 
 export default function InicioPage() {
   const { user, loading } = useAuth() as any
@@ -45,8 +79,7 @@ export default function InicioPage() {
 
   const plan = (user?.plan as string) || 'free'
   const clinicalAllowed = plan === 'pro' || plan === 'clinic'
-  const toolMode: ToolMode = (['personal', 'caregiver', 'student'].includes(expMode) ? expMode : 'personal') as ToolMode
-  const { enabledTools } = useEnabledTools(toolMode)
+  const toolMode: NonClinicalMode = (['personal', 'caregiver', 'student'].includes(expMode) ? expMode : 'personal') as NonClinicalMode
   const isFree = !user?.plan || user.plan === 'free'
 
   if (loading || !user) {
@@ -81,139 +114,89 @@ export default function InicioPage() {
     return <ClinicalHub router={router} name={user?.name?.split(' ')[0] || ''} />
   }
 
-  const cats = Object.keys(TOOL_CATEGORIES).filter(c => enabledTools.some(t => t.category === c))
   const firstName = user?.name?.split(' ')[0] || ''
+  const needs = NEEDS[toolMode]
+  const color = MODE_COLOR[toolMode]
+  const askLabel = toolMode === 'student' ? 'O que queres fazer hoje?' : 'O que precisa hoje?'
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '22px 16px 40px', boxSizing: 'border-box', width: '100%' }}>
+      <WelcomeTour mode={toolMode} />
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 40px', boxSizing: 'border-box', width: '100%' }}>
 
-        {/* Greeting + plan chip */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-          <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.15 }}>
-              {mounted ? greeting() : 'Olá'}{firstName ? `, ${firstName}` : ''}
-            </h1>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 4, textTransform: 'capitalize', minHeight: 18 }}>{mounted ? dateStr() : ''}</div>
-          </div>
-          <Link href="/pricing" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', background: 'white', border: '1px solid var(--border)', borderRadius: 20, textDecoration: 'none' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isFree ? '#94a3b8' : '#0d6e42' }} />
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>Plano {planName(user?.plan)}</span>
-          </Link>
+        {/* Saudação grande e calorosa — uma pergunta humana, não um painel */}
+        <div style={{ marginBottom: 6 }}>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,6vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.12 }}>
+            {mounted ? greeting() : 'Olá'}{firstName ? `, ${firstName}` : ''}.
+          </h1>
+          <p style={{ fontSize: 'clamp(16px,4vw,18px)', color: 'var(--ink-3)', margin: '6px 0 0', fontWeight: 500 }}>{askLabel}</p>
         </div>
 
-        {/* Quick switcher de persona + Focus Mode */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-          <PersonaSwitcher />
-          <FocusModeToggle />
-        </div>
+        {/* Aviso — só aparece quando há MESMO algo a dizer (Pro). Em frase, não cartão técnico. */}
+        {(toolMode === 'personal' || toolMode === 'caregiver') && (
+          <div data-tour="alerts"><HealthAlertsCard /></div>
+        )}
 
-        {/* PRO — avisos proativos (determinísticos) + "A tua saúde hoje" (briefing IA). */}
-        {(toolMode === 'personal' || toolMode === 'caregiver') && <HealthAlertsCard />}
-        {(toolMode === 'personal' || toolMode === 'caregiver') && <DailyBriefCard />}
-
-        {/* Atalhos fixos do utilizador (até 6 escolhidos por ele) */}
-        <PinnedToolsBar />
-
-        {/* O site aprende: atalhos automáticos para o que o utilizador mais usa */}
-        <MyTopTools />
-
-        {/* Hero — ação principal do modo */}
-        {(() => { const h = (HERO as Record<string, typeof HERO.personal | undefined>)[toolMode]; if (!h) return null; return (
-          <Link href={h.href} style={{ textDecoration: 'none' }}>
-            <div style={{ background: h.color, borderRadius: 16, padding: '20px 22px', marginBottom: 22, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: 'white', letterSpacing: '-0.01em' }}>{h.title}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 4, lineHeight: 1.45 }}>{h.sub}</div>
-              </div>
-              <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.18)', color: 'white', padding: '8px 14px', borderRadius: 9, fontSize: 13, fontWeight: 700 }}>
-                {h.cta} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        {/* OS CARTÕES — necessidades reais, grandes, fáceis de tocar */}
+        <div className="need-grid" data-tour="needs" style={{ marginTop: 18 }}>
+          {needs.map((n, i) => (
+            <Link key={n.href} href={n.href} className="need-card" style={{ borderColor: i === 0 ? color + '55' : 'var(--border)' }}>
+              <span className="need-ic" style={{ background: color + '12' }}>
+                <NeedIcon name={n.icon} color={color} />
               </span>
-            </div>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 'clamp(16px,4.2vw,18px)', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>{n.title}</span>
+                <span style={{ display: 'block', fontSize: 13.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.4 }}>{n.sub}</span>
+              </span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6" /></svg>
+            </Link>
+          ))}
+        </div>
+
+        {/* UM botão para tudo o resto — sem decisões prematuras */}
+        <Link href="/tudo" data-tour="all" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+          padding: '15px', marginTop: 14,
+          background: 'white', border: '1.5px solid var(--border)', borderRadius: 14,
+          textDecoration: 'none', color: 'var(--ink-2)', fontSize: 15, fontWeight: 700,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+          Ver tudo o que o Phlox faz
+        </Link>
+
+        {/* Momento difícil — discreto, só para os modos pessoais */}
+        {(toolMode === 'personal' || toolMode === 'caregiver') && (
+          <Link href="/comecar" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', marginTop: 14, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none' }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>🤍</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>A passar por um momento difícil?</span>
+              <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-4)', marginTop: 1 }}>Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo.</span>
+            </span>
           </Link>
-        )})()}
-
-        {/* Fluxo guiado: o próximo passo certo, com base no estado real do utilizador */}
-        <NextStep mode={toolMode} />
-
-        {enabledTools.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '32px 20px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>Sem ferramentas ativas</div>
-            <Link href="/settings" style={{ fontSize: 13, color: '#0d6e42', textDecoration: 'none', fontWeight: 700 }}>Escolher ferramentas →</Link>
-          </div>
-        ) : (
-          cats.map(cat => {
-            const meta = TOOL_CATEGORIES[cat]
-            const items = enabledTools.filter(t => t.category === cat)
-            return (
-              <div key={cat} style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, padding: '0 2px' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{meta.label}</span>
-                </div>
-                {/* Card list — mobile-first single column, becomes 2-col on wide screens */}
-                <div className="home-grid">
-                  {items.map(t => {
-                    const badge = PLAN_BADGE[t.plan]
-                    return (
-                      <Link key={t.id} href={t.id} className="home-card" style={{ textDecoration: 'none' }}>
-                        <span style={{ width: 38, height: 38, borderRadius: 10, background: `${meta.color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <span style={{ width: 9, height: 9, borderRadius: '50%', background: meta.color }} />
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{t.label}</span>
-                            {badge && <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: badge.bg, padding: '1px 6px', borderRadius: 4 }}>{badge.label}</span>}
-                          </span>
-                          <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2 }}>{t.desc}</span>
-                        </span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })
         )}
 
-        {/* Add more */}
-        <Link href="/settings?tab=ferramentas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '13px', background: 'white', border: '1.5px dashed var(--border)', borderRadius: 12, textDecoration: 'none', color: 'var(--ink-4)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Adicionar mais ferramentas
-        </Link>
-
-        {/* Porta de entrada calma para um momento difícil — discreta, opcional. */}
-        <Link href="/comecar" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 12, textDecoration: 'none', marginBottom: 16 }}>
-          <span style={{ fontSize: 20, flexShrink: 0 }}>🤍</span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>A passar por um momento difícil?</span>
-            <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>Alta do hospital, diagnóstico novo, cuidar de alguém — o Phlox ajuda nos primeiros passos.</span>
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
-        </Link>
-
-        {/* Free-plan ad slot — 2026-06-01: escondido em modo foco */}
-        {isFree && (
-          <div className="focus-hide" style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Publicidade</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 10 }}>Espaço de anúncio — removido em qualquer plano pago.</div>
-            <Link href="/pricing" style={{ display: 'inline-block', padding: '8px 14px', background: 'var(--ink)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Remover anúncios →</Link>
-          </div>
-        )}
+        {/* Plano + ajuda, em pé de página discreto */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 22, flexWrap: 'wrap' }}>
+          <Link href="/settings" style={{ fontSize: 13, color: 'var(--ink-4)', textDecoration: 'none', fontWeight: 600 }}>⚙️ Definições</Link>
+          <Link href="/pricing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 20, textDecoration: 'none' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isFree ? '#94a3b8' : '#0d6e42' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)' }}>Plano {planName(user?.plan)}</span>
+          </Link>
+        </div>
       </div>
 
       <style>{`
-        .home-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .home-card {
-          display: flex; align-items: center; gap: 13px;
-          background: white; border: 1px solid var(--border); border-radius: 14px;
-          padding: 14px 15px; transition: border-color 0.15s, box-shadow 0.15s;
+        .need-grid { display: grid; grid-template-columns: 1fr; gap: 11px; }
+        .need-card {
+          display: flex; align-items: center; gap: 15px; text-decoration: none;
+          background: white; border: 1.5px solid var(--border); border-radius: 16px;
+          padding: 18px 17px; transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s;
         }
-        .home-card:active { background: var(--bg-2); }
-        @media (min-width: 700px) {
-          .home-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-          .home-card:hover { border-color: var(--border-2); box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+        .need-card:active { transform: scale(0.985); background: var(--bg-2); }
+        .need-ic { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        @media (min-width: 640px) {
+          .need-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+          .need-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.06); border-color: var(--border-2); }
         }
       `}</style>
     </div>

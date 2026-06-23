@@ -120,10 +120,10 @@ function UpgradeGate() {
           🧠
         </div>
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
-          Phlox AI — Farmacologista Clínico
+          Tire uma dúvida de saúde
         </h2>
         <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 8 }}>
-          O teu farmacologista clínico pessoal. Conhece os teus medicamentos, faz as perguntas certas, e dá respostas clínicas reais — com raciocínio transparente e fontes verificadas.
+          Pergunte em português simples — sobre um medicamento, um sintoma ou uma dúvida do dia-a-dia. O Phlox conhece a sua medicação e responde de forma clara, com cuidado.
         </p>
         <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 28, fontFamily: 'var(--font-mono)' }}>
           Disponível no plano Plus (3,99€/mês).

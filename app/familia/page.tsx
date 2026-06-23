@@ -127,12 +127,14 @@ export default function FamiliaPage() {
             {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 12 }} />)}
           </div>
         ) : profiles.length === 0 ? (
-          <div style={{ background: 'white', border: '2px dashed #fde68a', borderRadius: 14, padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 14 }}>👨‍👩‍👧</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Nenhum familiar adicionado</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>Adiciona perfis familiares para gerir a sua medicação e saúde.</div>
-            <Link href="/perfis" style={{ padding: '11px 24px', background: '#d97706', color: 'white', borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-              Adicionar familiar →
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 22px', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 18, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 30 }}>👨‍👩‍👧</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Quem está a cuidar?</div>
+            <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 24px' }}>
+              Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. Fica com a medicação e a saúde de cada um separadas e organizadas.
+            </div>
+            <Link href="/perfis" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 26px', background: '#d97706', color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, textDecoration: 'none' }}>
+              + Adicionar a primeira pessoa
             </Link>
           </div>
         ) : (

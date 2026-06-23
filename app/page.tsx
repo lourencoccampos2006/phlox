@@ -63,11 +63,11 @@ function Verificador() {
 
 // ── Caminhos: a pessoa escolhe o seu ──────────────────────────────────────────
 const CAMINHOS = [
-  { emoji: '💊', t: 'A minha medicação', d: 'Guardar os comprimidos, lembretes de toma e ver se se dão bem.', href: '/login?mode=personal' },
-  { emoji: '🧓', t: 'Cuidar de alguém', d: 'Organizar a medicação de um familiar e ter tudo num sítio.', href: '/login?mode=caregiver' },
+  { emoji: '💊', t: 'A minha medicação', d: 'Guardar os comprimidos, ter lembretes e ver se se dão bem.', href: '/login?mode=personal' },
+  { emoji: '🧓', t: 'Cuidar de alguém', d: 'Organizar a medicação de um familiar e ter tudo num só sítio.', href: '/login?mode=caregiver' },
   { emoji: '📚', t: 'Estudar saúde', d: 'Casos, quizzes e treino para o curso de medicina, farmácia ou enfermagem.', href: '/login?mode=student' },
   { emoji: '☀️', t: 'Tenho um centro de dia', d: 'O dia dos utentes e as famílias tranquilas — montado de raiz para si.', href: '/centro-de-dia' },
-  { emoji: '🏥', t: 'Trabalho em saúde', d: 'Ferramentas para farmácia, lar, hospital ou clínica.', href: '/login?mode=clinical' },
+  { emoji: '🏥', t: 'Trabalho em saúde', d: 'Ferramentas para farmácia, lar ou clínica.', href: '/login?mode=clinical' },
 ]
 
 export default function HomePage() {
@@ -87,19 +87,45 @@ export default function HomePage() {
           }}>
             <div>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 'clamp(34px,5.6vw,60px)', lineHeight: 1.08, letterSpacing: '-0.02em', margin: '0 0 18px' }}>
-                A tua medicação,<br />sem confusões.
+                A sua medicação,<br />sem confusões.
               </h1>
-              <p style={{ fontSize: 'clamp(16px,2vw,18px)', color: INK_3, lineHeight: 1.6, maxWidth: '42ch', margin: '0 0 28px' }}>
-                Vê se os teus comprimidos se dão bem, percebe a bula, organiza a medicação da família.
-                E, se trabalhas ou estudas na saúde, tens aqui ferramentas a sério. Em português, de graça para começar.
+              <p style={{ fontSize: 'clamp(16px,2vw,18px)', color: INK_3, lineHeight: 1.6, maxWidth: '42ch', margin: '0 0 26px' }}>
+                Tire uma foto à receita e o Phlox organiza tudo: o que é cada comprimido, a que horas tomar,
+                e se se dão bem uns com os outros. Em português, de graça para começar.
               </p>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/login" className="home-btn-primary" style={{ padding: '13px 24px', background: INK, color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Começar de graça</Link>
-                <Link href="/interactions" className="home-btn-ghost" style={{ padding: '13px 22px', background: '#fff', color: INK, border: `1px solid ${BORDER}`, borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>Experimentar já</Link>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Link href="/login" className="home-btn-primary" style={{ padding: '15px 28px', background: GREEN, color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 800, fontSize: 16 }}>Criar conta grátis →</Link>
+                <Link href="/interactions" className="home-btn-ghost" style={{ padding: '14px 22px', background: '#fff', color: INK, border: `1px solid ${BORDER}`, borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>Ver um exemplo primeiro</Link>
               </div>
-              <p style={{ fontSize: 12.5, color: INK_4, marginTop: 14 }}>Sem cartão. Sem instalar nada.</p>
+              <p style={{ fontSize: 13, color: INK_4, marginTop: 14 }}>✓ Sem cartão &nbsp;·&nbsp; ✓ Sem instalar nada &nbsp;·&nbsp; ✓ Pronto em 1 minuto</p>
             </div>
             <Verificador />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Como funciona — em 3 passos (mata o "e agora?") ──────────────────── */}
+      <section style={{ borderTop: `1px solid ${BORDER}`, padding: 'clamp(44px,7vw,72px) 0' }}>
+        <div className="page-container">
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 'clamp(22px,3vw,32px)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Como funciona</h2>
+          <p style={{ fontSize: 15, color: INK_4, margin: '0 0 30px' }}>Três passos. Não precisa de saber nada de tecnologia.</p>
+          <div className="home-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'clamp(20px,3vw,40px)' }}>
+            {[
+              { n: '1', t: 'Crie uma conta', d: 'Demora menos de um minuto. Só precisa de um email — sem cartão, sem instalar nada.' },
+              { n: '2', t: 'Diga-nos o que precisa', d: 'Cuidar de si, de um familiar, ou estudar? O Phlox arruma tudo à sua volta para mostrar só o que lhe interessa.' },
+              { n: '3', t: 'Comece a usar', d: 'Tire foto à receita, faça uma pergunta, veja se os comprimidos se dão bem. A entrada mostra-lhe sempre o que fazer.' },
+            ].map(s => (
+              <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>{s.n}</div>
+                <div>
+                  <h3 style={{ fontSize: 17.5, fontWeight: 700, margin: '4px 0 6px', letterSpacing: '-0.01em' }}>{s.t}</h3>
+                  <p style={{ fontSize: 14.5, color: INK_3, lineHeight: 1.6, margin: 0 }}>{s.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 30 }}>
+            <Link href="/login" className="home-btn-primary" style={{ display: 'inline-block', padding: '14px 26px', background: GREEN, color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 800, fontSize: 15 }}>Criar a minha conta grátis →</Link>
           </div>
         </div>
       </section>
@@ -107,8 +133,8 @@ export default function HomePage() {
       {/* ── Escolhe o teu caminho ───────────────────────────────────────────── */}
       <section style={{ borderTop: `1px solid ${BORDER}`, background: '#fafafa', padding: 'clamp(48px,7vw,80px) 0' }}>
         <div className="page-container">
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 'clamp(22px,3vw,32px)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>O que te traz aqui?</h2>
-          <p style={{ fontSize: 15, color: INK_4, margin: '0 0 28px' }}>Escolhe um — depois mudas quando quiseres.</p>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 'clamp(22px,3vw,32px)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>O que o traz aqui?</h2>
+          <p style={{ fontSize: 15, color: INK_4, margin: '0 0 28px' }}>Escolha um — depois muda quando quiser.</p>
           <div className="home-paths" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
             {CAMINHOS.map(c => (
               <Link key={c.t} href={c.href} className="home-path-card" style={{
@@ -129,9 +155,9 @@ export default function HomePage() {
         <div className="page-container">
           <div className="home-three" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'clamp(28px,4vw,56px)' }}>
             {[
-              { t: 'Tira uma foto, e está feito', d: 'Foto da receita ou da caixa e o Phlox lê tudo: que medicamento é, para que serve, e cria-te a lista.' },
-              { t: 'Pergunta o que quiseres', d: 'Posso tomar com álcool? Esqueci uma dose, e agora? Respostas claras, sem o palavreado das bulas.' },
-              { t: 'Avisa-te antes de haver problema', d: 'O Phlox olha pela tua medicação e diz-te o que merece atenção, mesmo sem tu perguntares.' },
+              { t: 'Tira uma foto, e está feito', d: 'Foto da receita ou da caixa e o Phlox lê tudo: que medicamento é, para que serve, e cria a sua lista.' },
+              { t: 'Pergunte o que quiser', d: 'Posso tomar com álcool? Esqueci-me de uma dose, e agora? Respostas claras, sem o palavreado das bulas.' },
+              { t: 'Avisa antes de haver problema', d: 'O Phlox olha pela sua medicação e diz-lhe o que merece atenção, mesmo sem ter de perguntar.' },
             ].map(x => (
               <div key={x.t}>
                 <div style={{ width: 32, height: 2, background: GREEN, marginBottom: 16 }} />
@@ -208,6 +234,7 @@ export default function HomePage() {
           .home-hero { grid-template-columns:1fr !important; }
           .home-paths { grid-template-columns:repeat(2,1fr) !important; }
           .home-three { grid-template-columns:1fr !important; gap:28px !important; }
+          .home-steps { grid-template-columns:1fr !important; gap:22px !important; }
         }
         @media(max-width:460px) {
           .home-paths { grid-template-columns:1fr !important; }

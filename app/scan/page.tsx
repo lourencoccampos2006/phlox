@@ -181,7 +181,7 @@ function ScanTool() {
     <main style={{ padding: '20px clamp(14px,4vw,32px)', maxWidth: 720, margin: '0 auto' }}>
       <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8b8f99' }}>Phlox Scan</div>
       <h1 style={{ margin: '4px 0 6px', fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Uma foto. O Phlox percebe.</h1>
-      <p style={{ color: '#6b7280', fontSize: 14.5, lineHeight: 1.6, marginBottom: 18 }}>Tira foto a <b>qualquer coisa de saúde</b> — receita, caixa de comprimidos, análise, relatório, bula. O Phlox identifica o que é e explica-te de forma simples. Em segundos.</p>
+      <p style={{ color: '#6b7280', fontSize: 14.5, lineHeight: 1.6, marginBottom: 18 }}>Tire foto a <b>qualquer coisa de saúde</b> — receita, caixa de comprimidos, análise, relatório ou bula. O Phlox percebe o que é e explica de forma simples. Em segundos.</p>
 
       {/* Upload — foto (câmara/galeria) OU documento (PDF/Word) */}
       <div onClick={() => fileRef.current?.click()} style={{ border: `1.5px dashed ${ACCENT}`, borderRadius: 14, padding: 26, textAlign: 'center', cursor: 'pointer', background: '#f0fdf5' }}>

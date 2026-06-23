@@ -241,9 +241,8 @@ export default function InteractionsPage() {
           {/* LEFT PANEL */}
           <div className="sticky-panel">
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>Ferramenta 01</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Verificador de Interações</h1>
-              <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>Medicamentos, suplementos e plantas. RxNorm/NIH + análise farmacológica AI com mecanismo CYP450.</p>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Estes medicamentos dão-se bem?</h1>
+              <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.55 }}>Escreva os medicamentos (também valem suplementos e chás). O Phlox diz-lhe se é seguro tomá-los juntos.</p>
             </div>
 
             {user && (<div style={{ marginBottom: 12 }}><ProfileSelector onChange={handleProfileSelect} /></div>)}

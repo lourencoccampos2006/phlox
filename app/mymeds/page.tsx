@@ -931,7 +931,7 @@ export default function MyMedsPage() {
               <div style={{ background:'var(--green-light)', border:'1px solid var(--green-mid)', borderRadius:10, padding:'14px 16px', marginBottom:14, display:'flex', alignItems:'center', gap:12 }}>
                 <span style={{ fontSize:20, flexShrink:0 }}>⚡</span>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--green-2)', marginBottom:2 }}>Verifica as interações entre os teus {meds.length} medicamentos</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--green-2)', marginBottom:2 }}>Veja se os seus {meds.length} medicamentos se dão bem</div>
                   <div style={{ fontSize:12, color:'var(--green-2)', opacity:0.8 }}>Disponível no plano Plus — 3,99€/mês</div>
                 </div>
                 <Link href="/pricing" style={{ padding:'8px 14px', background:'var(--green)', color:'white', textDecoration:'none', borderRadius:7, fontSize:12, fontWeight:700, flexShrink:0 }}>Desbloquear →</Link>
@@ -943,18 +943,32 @@ export default function MyMedsPage() {
                 {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height:68, borderRadius:8 }} />)}
               </div>
             ) : meds.length === 0 ? (
-              <div style={{ background:'white', border:'2px dashed var(--border)', borderRadius:10, padding:'56px 24px', textAlign:'center' }}>
-                <div style={{ fontSize:36, marginBottom:12 }}>💊</div>
-                <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>
-                  {activeProfile?.type === 'family' && familyProfileData ? `${familyProfileData.name} não tem medicamentos ainda` : 'Nenhum medicamento ainda'}
+              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:16, padding:'32px 22px', textAlign:'center' }}>
+                <div style={{ width:64, height:64, borderRadius:18, background:'var(--green-light)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px', fontSize:30 }}>💊</div>
+                <div style={{ fontFamily:'var(--font-serif)', fontSize:21, fontWeight:400, color:'var(--ink)', marginBottom:8, letterSpacing:'-0.01em' }}>
+                  {activeProfile?.type === 'family' && familyProfileData ? `Vamos juntar a medicação de ${familyProfileData.name}` : 'Vamos juntar a sua medicação'}
                 </div>
-                <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>
-                  {activeProfile?.type === 'family' ? 'Adiciona os medicamentos deste perfil familiar para verificar interações e receber alertas.' : 'Adiciona os teus medicamentos para verificar interações e receber alertas.'}
+                <div style={{ fontSize:14.5, color:'var(--ink-3)', marginBottom:24, lineHeight:1.6, maxWidth:380, margin:'0 auto 24px' }}>
+                  Há duas maneiras fáceis de começar. Escolha a que lhe der mais jeito — leva menos de um minuto.
                 </div>
-                <button onClick={() => setTab('add')}
-                  style={{ background:'var(--green)', color:'white', border:'none', borderRadius:8, padding:'11px 22px', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                  Adicionar primeiro medicamento →
-                </button>
+                <div style={{ display:'flex', flexDirection:'column', gap:10, maxWidth:400, margin:'0 auto' }}>
+                  <Link href="/scan" style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 18px', background:'var(--green)', borderRadius:14, textDecoration:'none', textAlign:'left' }}>
+                    <span style={{ fontSize:26, flexShrink:0 }}>📷</span>
+                    <span style={{ flex:1 }}>
+                      <span style={{ display:'block', fontSize:16, fontWeight:800, color:'white' }}>Tirar foto à receita ou caixa</span>
+                      <span style={{ display:'block', fontSize:13, color:'rgba(255,255,255,0.85)', marginTop:2 }}>O Phlox lê e preenche tudo por si</span>
+                    </span>
+                    <span style={{ color:'white', fontSize:18, flexShrink:0 }}>→</span>
+                  </Link>
+                  <button onClick={() => setTab('add')} style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 18px', background:'white', border:'1.5px solid var(--border)', borderRadius:14, cursor:'pointer', textAlign:'left', fontFamily:'inherit' }}>
+                    <span style={{ fontSize:26, flexShrink:0 }}>✏️</span>
+                    <span style={{ flex:1 }}>
+                      <span style={{ display:'block', fontSize:16, fontWeight:800, color:'var(--ink)' }}>Escrever o nome à mão</span>
+                      <span style={{ display:'block', fontSize:13, color:'var(--ink-4)', marginTop:2 }}>Se preferir, escreva o medicamento</span>
+                    </span>
+                    <span style={{ color:'var(--ink-4)', fontSize:18, flexShrink:0 }}>→</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <>
