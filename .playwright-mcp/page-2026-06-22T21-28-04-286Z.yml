@@ -1,0 +1,14 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - main [ref=e11]:
+    - generic [ref=e12]: Médico de bolso
+    - heading "O Phlox olha por ti." [level=1] [ref=e13]
+    - paragraph [ref=e14]: Não precisas de perguntar nada. O Phlox vê a tua medicação, sinais vitais e análises e diz-te o que merece atenção — e o que fazer a seguir.
+    - button "🔍 Ver o que merece atenção" [ref=e15] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e21] [cursor=pointer]:
+    - img [ref=e22]
+  - alert [ref=e25]

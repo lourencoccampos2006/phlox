@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { logStudy } from '@/lib/studyProgress'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -357,6 +358,7 @@ export default function DecisaoPage() {
           if (r2.ok) {
             const d2 = await r2.json()
             setFinalScore(d2.final_score)
+            logStudy({ kind: 'case', area: selectedCase.specialty, correct: (d2.final_score?.score ?? 0) >= 60, xp: Math.max(15, Math.round((d2.final_score?.score ?? 0) / 3)) })
           }
         } catch { /* fallback: deixa null, página de resultado lida com isso */ }
         setPhase('result')
@@ -389,6 +391,7 @@ export default function DecisaoPage() {
       const data = await res.json()
       if (timerRef.current) clearInterval(timerRef.current)
       setFinalScore(data.final_score)
+      logStudy({ kind: 'case', area: selectedCase.specialty, correct: (data.final_score?.score ?? 0) >= 60, xp: Math.max(15, Math.round((data.final_score?.score ?? 0) / 3)) })
       setPhase('result')
     } catch (e: any) {
       setError(e.message)

@@ -17,6 +17,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { logStudy } from '@/lib/studyProgress'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -205,6 +206,7 @@ export default function OSCEPage() {
       const data = await res.json()
       setFeedback(data)
       setPhase('feedback')
+      logStudy({ kind: 'osce', area: course, correct: (data.percentage ?? 0) >= 60, xp: Math.max(20, Math.round((data.percentage ?? 0) / 2)) })
       // Save to Supabase
       if (user) {
         const { error: studySessionError } = await supabase.from('study_sessions').insert({

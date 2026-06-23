@@ -12,6 +12,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { logStudy } from '@/lib/studyProgress'
 
 interface TutorMessage {
   role: 'tutor' | 'student'
@@ -99,6 +100,7 @@ export default function TutorPage() {
         messages: [{ role: 'tutor', content: data.message, type: 'question' }],
         phase: 'intro', exchangeCount: 0, totalScore: 0, maxScore: 100,
       })
+      logStudy({ kind: 'tutor', area: (selectedDomain as any).label || selectedDomain.id })
     } catch (e: any) { alert(e.message) }
     finally { setLoading(false) }
   }

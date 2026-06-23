@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { usePhloxContext } from '@/lib/copilotContext'
+import { logStudy } from '@/lib/studyProgress'
 
 const ACCENT = '#0d6e42'
 
@@ -58,6 +59,7 @@ export default function LabPage() {
       const j = await r.json()
       if (!r.ok) throw new Error(j.error || 'Erro')
       setAnalysis(j)
+      logStudy({ kind: 'lab', area: 'Análises' })
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
 

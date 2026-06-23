@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - main [ref=e21]:
+    - generic [ref=e22]: Médico de bolso
+    - heading "O Phlox olha por ti." [level=1] [ref=e23]
+    - paragraph [ref=e24]: Não precisas de perguntar nada. O Phlox vê a tua medicação, sinais vitais e análises e diz-te o que merece atenção — e o que fazer a seguir.
+    - button "🔍 Ver o que merece atenção" [ref=e25] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e31] [cursor=pointer]:
+    - img [ref=e32]
+  - alert [ref=e35]
+  - button "Abrir Phlox Copilot" [ref=e36]: ✦
+  - generic [ref=e37]:
+    - generic [ref=e38]:
+      - generic [ref=e39]: PRIVACIDADE E COOKIES — RGPD
+      - paragraph [ref=e40]:
+        - text: Usamos cookies essenciais para o funcionamento da plataforma e, com o teu consentimento, analytics para melhorar a experiência. Não vendemos dados pessoais.
+        - link "Política de privacidade" [ref=e41] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+    - generic [ref=e42]:
+      - button "Apenas essenciais" [ref=e43] [cursor=pointer]
+      - button "Aceitar todos" [ref=e44] [cursor=pointer]

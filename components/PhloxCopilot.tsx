@@ -14,9 +14,14 @@ const PUBLIC_PREFIXES = ['/', '/about', '/pricing', '/login', '/terms', '/privac
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 
-// Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver.
-function proactiveSuggestions(ctxLabel: string, path: string): string[] {
+// Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver e a quem acompanha.
+function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfile | null): string[] {
   const l = (ctxLabel || '').toLowerCase()
+  // Se há um doente/familiar em foco, oferece ações sobre ESSA pessoa primeiro.
+  if (prof && prof.type !== 'self') {
+    const n = prof.name.split(' ')[0]
+    return [`Faz um resumo clínico de ${n}`, `O que devo vigiar em ${n}?`, `Há interações na medicação de ${n}?`]
+  }
   if (l.includes('medicamento') || l.includes('bula')) return ['Dá-se bem com a minha medicação?', 'Quais os efeitos mais comuns?', 'Posso tomar com álcool?']
   if (l.includes('interaç')) return ['Explica o mecanismo desta interação', 'Que alternativa mais segura existe?', 'Qual o grau de gravidade?']
   if (l.includes('ecg')) return ['Que achados devo procurar?', 'Diagnósticos diferenciais deste traçado', 'O que faço a seguir?']
@@ -36,6 +41,7 @@ export default function PhloxCopilot() {
   const [busy, setBusy] = useState(false)
   const [selection, setSelection] = useState('')
   const [ctxLabel, setCtxLabel] = useState('')   // contexto da página (ex: "Medicamento aberto")
+  const [activeProf, setActiveProf] = useState<ActiveProfile | null>(null)  // perfil/doente em foco
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)  // posição do botão (arrastável)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -50,6 +56,9 @@ export default function PhloxCopilot() {
     update()
     return subscribePhloxContext(update)
   }, [])
+
+  // Sincroniza o perfil/doente ativo sempre que o painel abre (e à entrada).
+  useEffect(() => { if (open) setActiveProf(getActiveProfile()) }, [open])
 
   // Posição inicial e persistência do botão
   useEffect(() => {
@@ -168,11 +177,16 @@ export default function PhloxCopilot() {
                 <span>👁</span> Estou a ver: <b>{ctxLabel}</b>
               </div>
             )}
+            {activeProf && activeProf.type !== 'self' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: activeProf.type === 'patient' ? '#1e40af' : '#7c3aed', background: activeProf.type === 'patient' ? '#eff6ff' : '#faf5ff', border: `1px solid ${activeProf.type === 'patient' ? '#bfdbfe' : '#e9d5ff'}`, borderRadius: 8, padding: '6px 10px' }}>
+                <span>{activeProf.type === 'patient' ? '🧑‍⚕️' : '👥'}</span> Em foco: <b>{activeProf.name}</b>
+              </div>
+            )}
             {msgs.length === 0 && (
               <div style={{ color: '#6b7280', fontSize: 13, lineHeight: 1.6 }}>
                 Pergunta-me qualquer coisa sobre o que estás a ver. Sei em que página estás{ctxLabel ? ', o que abriste' : ''}{selection ? ' e o que selecionaste' : ''}.
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {proactiveSuggestions(ctxLabel, pathname).map(s => (
+                  {proactiveSuggestions(ctxLabel, pathname, activeProf).map(s => (
                     <button key={s} onClick={() => send(s)} style={{ textAlign: 'left', padding: '8px 10px', background: '#f6f7f8', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, color: '#374151' }}>{s}</button>
                   ))}
                 </div>
