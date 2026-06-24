@@ -425,8 +425,9 @@ export default function Header() {
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
   const modeColor = modeMeta.color
-  const isDark = user ? mode === 'clinical' : false
-  const headerBg = isDark ? '#0f172a' : 'rgba(255,255,255,0.96)'
+  // Premium (clínico + estudante) = header escuro, coerente com o /inicio dark.
+  const isDark = user ? (mode === 'clinical' || mode === 'student') : false
+  const headerBg = isDark ? (mode === 'student' ? '#0b0b12' : '#0f172a') : 'rgba(255,255,255,0.96)'
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -490,8 +491,8 @@ export default function Header() {
 
             {!loading && user && (
               <>
-                {/* Clinical context bar (dark header only) */}
-                {isDark && (() => {
+                {/* Clinical context bar (turno+data) — só no modo clínico */}
+                {mode === 'clinical' && (() => {
                   const h = new Date().getHours()
                   const shift = h >= 8 && h < 16 ? 'Manhã' : h >= 16 ? 'Tarde' : 'Noite'
                   const shiftColor = h >= 8 && h < 16 ? '#fbbf24' : h >= 16 ? '#818cf8' : '#38bdf8'

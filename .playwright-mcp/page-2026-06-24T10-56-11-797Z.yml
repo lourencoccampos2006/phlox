@@ -1,0 +1,86 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - heading "Bom dia, qa1781881827891." [level=1] [ref=e24]
+      - paragraph [ref=e25]: 2 dias seguidos. Continue assim.
+    - link "Reforce Nefrologia É onde está a falhar mais. 5 minutos chegam. Praticar agora" [ref=e26] [cursor=pointer]:
+      - /url: /study?mode=quiz&area=Nefrologia
+      - generic [ref=e29]:
+        - img [ref=e32]
+        - generic [ref=e36]: Reforce Nefrologia
+        - generic [ref=e37]: É onde está a falhar mais. 5 minutos chegam.
+        - generic [ref=e38]:
+          - text: Praticar agora
+          - img [ref=e39]
+    - generic [ref=e41]:
+      - generic [ref=e42]: Estudar
+      - generic [ref=e43]:
+        - link "Treinar casos Arena" [ref=e44] [cursor=pointer]:
+          - /url: /arena
+          - img [ref=e46]
+          - generic [ref=e49]:
+            - generic [ref=e50]: Treinar casos
+            - generic [ref=e51]: Arena
+          - img [ref=e52]
+        - link "Flashcards Rever" [ref=e54] [cursor=pointer]:
+          - /url: /study
+          - img [ref=e56]
+          - generic [ref=e59]:
+            - generic [ref=e60]: Flashcards
+            - generic [ref=e61]: Rever
+          - img [ref=e62]
+        - link "Tutor Tirar dúvidas" [ref=e64] [cursor=pointer]:
+          - /url: /tutor
+          - img [ref=e66]
+          - generic [ref=e68]:
+            - generic [ref=e69]: Tutor
+            - generic [ref=e70]: Tirar dúvidas
+          - img [ref=e71]
+        - link "Tudo para estudar O meu progresso" [ref=e73] [cursor=pointer]:
+          - /url: /aprender
+          - img [ref=e75]
+          - generic [ref=e78]:
+            - generic [ref=e79]: Tudo para estudar
+            - generic [ref=e80]: O meu progresso
+          - img [ref=e81]
+    - link "Ver tudo o que o Phlox faz" [ref=e83] [cursor=pointer]:
+      - /url: /tudo
+      - img [ref=e84]
+      - text: Ver tudo o que o Phlox faz
+    - generic [ref=e89]:
+      - link "Definições" [ref=e90] [cursor=pointer]:
+        - /url: /settings
+      - link "Plano Pro" [ref=e91] [cursor=pointer]:
+        - /url: /pricing
+        - generic [ref=e93]: Plano Pro
+  - button "Abrir Phlox Copilot" [ref=e94]: ✦
+  - navigation "Navegação principal" [ref=e95]:
+    - link "Início" [ref=e96] [cursor=pointer]:
+      - /url: /inicio
+      - img [ref=e97]
+      - generic [ref=e100]: Início
+    - link "Aprender" [ref=e101] [cursor=pointer]:
+      - /url: /aprender
+      - img [ref=e102]
+      - generic [ref=e105]: Aprender
+    - link "Arena" [ref=e106] [cursor=pointer]:
+      - /url: /arena
+      - img [ref=e107]
+      - generic [ref=e110]: Arena
+    - link "Tudo" [ref=e111] [cursor=pointer]:
+      - /url: /tudo
+      - img [ref=e112]
+      - generic [ref=e117]: Tudo
+  - button "Open Next.js Dev Tools" [ref=e123] [cursor=pointer]:
+    - img [ref=e124]
+  - alert [ref=e127]

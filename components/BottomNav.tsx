@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import type { ExperienceMode } from '@/lib/experienceMode'
+import { modeTheme, isPremiumMode } from '@/lib/modeTheme'
 
 interface NavItem { href: string; label: string; icon: React.ReactNode }
 
@@ -27,8 +28,9 @@ const I = {
 }
 
 function Icon({ children, a }: { children: React.ReactNode; a: boolean }) {
+  // currentColor → herda a cor do link (definida por tema/modo no .bn-item)
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={a ? 'var(--bn-active)' : '#94a3b8'} strokeWidth={a ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={a ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
       {children}
     </svg>
   )
@@ -55,7 +57,6 @@ const NAV: Record<string, NavItem[]> = {
   ],
 }
 
-const ACTIVE_COLOR: Record<string, string> = { personal: '#0d9488', caregiver: '#b45309', student: '#7c3aed' }
 
 export default function BottomNav() {
   const { user, loading } = useAuth() as any
@@ -70,14 +71,21 @@ export default function BottomNav() {
   if (pathname.startsWith('/portal-familia') || pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding')) return null
 
   const items = NAV[mode] || NAV.personal
-  const active = ACTIVE_COLOR[mode] || '#0d9488'
+  const t = modeTheme(mode)
+  const premium = isPremiumMode(mode)
+  const active = t.accent
+  const inactive = t.inkFaint
 
   const isActive = (href: string) =>
     href === '/inicio' ? pathname === '/inicio' : pathname === href || pathname.startsWith(href + '/')
 
   return (
     <nav className="phlox-bottom-nav" aria-label="Navegação principal"
-      style={{ ['--bn-active' as any]: active }}>
+      style={{
+        ['--bn-active' as any]: active,
+        background: premium ? 'rgba(17,17,26,0.94)' : 'rgba(255,255,255,0.97)',
+        borderTop: `1px solid ${premium ? t.border : 'rgba(0,0,0,0.08)'}`,
+      }}>
       {items.map(it => {
         const a = isActive(it.href)
         const iconFn = it.label === 'Início' ? I.home : it.label === 'Medicação' ? I.pill
@@ -85,7 +93,7 @@ export default function BottomNav() {
           : it.label === 'Aprender' ? I.book : it.label === 'Arena' ? I.trophy : I.grid
         return (
           <Link key={it.href} href={it.href} className="bn-item" aria-current={a ? 'page' : undefined}
-            style={{ color: a ? active : '#94a3b8' }}>
+            style={{ color: a ? active : inactive }}>
             {iconFn(a)}
             <span style={{ fontWeight: a ? 800 : 600 }}>{it.label}</span>
           </Link>
@@ -95,11 +103,8 @@ export default function BottomNav() {
         .phlox-bottom-nav {
           position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
           display: none;
-          background: rgba(255,255,255,0.97);
           backdrop-filter: blur(14px) saturate(160%);
           -webkit-backdrop-filter: blur(14px) saturate(160%);
-          border-top: 1px solid rgba(0,0,0,0.08);
-          /* safe-area: respeita a barra do browser/telemóvel para não ficar tapada */
           padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         .phlox-bottom-nav .bn-item {
@@ -107,7 +112,7 @@ export default function BottomNav() {
           gap: 3px; padding: 8px 4px 7px; text-decoration: none;
           font-size: 11px; min-height: 56px; -webkit-tap-highlight-color: transparent;
         }
-        .phlox-bottom-nav .bn-item:active { background: rgba(0,0,0,0.04); }
+        .phlox-bottom-nav .bn-item:active { opacity: 0.6; }
         @media (max-width: 768px) {
           .phlox-bottom-nav { display: flex; }
         }
