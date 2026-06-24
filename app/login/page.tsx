@@ -6,19 +6,26 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
+const INK = '#16181d'
+const INK_3 = '#545862'
+const INK_4 = '#767b86'
+const GREEN = '#0d6e42'
+const BORDER = '#e7e8ea'
+const PAPER = '#fbfaf7'
+
 const FREE_FEATURES = [
-  'A tua lista de medicamentos, com lembretes',
-  'Phlox Scan — foto à receita ou caixa (3/dia)',
-  'Verificar interações (3/dia)',
-  'Perguntar à IA de saúde (3/dia)',
-  'A tua história de saúde guardada',
+  'A sua lista de medicamentos, com lembretes',
+  'Foto à receita ou caixa (3 por dia)',
+  'Ver se os medicamentos se dão bem (3 por dia)',
+  'Tirar dúvidas de saúde (3 por dia)',
+  'A sua história de saúde, guardada',
 ]
 
-const MODE_MESSAGES: Record<string, { heading: string; sub: string; color: string }> = {
-  clinical:  { heading: 'Acesso profissional', sub: 'Painel da instituição, medicação, ronda e portal das famílias.', color: '#1d4ed8' },
-  student:   { heading: 'Acesso estudante', sub: 'Arena, simulador, OSCE e tutor com IA.', color: '#7c3aed' },
-  caregiver: { heading: 'Acesso familiar', sub: 'Perfis da família, lembretes de toma e alertas.', color: '#b45309' },
-  personal:  { heading: 'Acesso pessoal', sub: 'A tua medicação, a tua história de saúde e a IA do Phlox.', color: '#0d6e42' },
+const MODE_MESSAGES: Record<string, { heading: string; sub: string }> = {
+  clinical:  { heading: 'Acesso profissional', sub: 'Painel da instituição, medicação, ronda e portal das famílias.' },
+  student:   { heading: 'Acesso estudante', sub: 'Arena, simulador, OSCE e tutor com IA.' },
+  caregiver: { heading: 'Acesso familiar', sub: 'Perfis da família, lembretes de toma e alertas.' },
+  personal:  { heading: 'Acesso pessoal', sub: 'A sua medicação, a sua história de saúde e a IA do Phlox.' },
 }
 
 function LoginContent() {
@@ -90,48 +97,53 @@ function LoginContent() {
   if (user) return null
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: 'var(--font-sans)', color: INK }}>
+      <div className="lg-split">
 
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 20px 72px' }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
-
-          {/* Card */}
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
-
-            {/* Header do card */}
-            <div style={{ background: modeInfo ? modeInfo.color : '#0f172a', padding: '28px 30px 24px' }}>
-              {/* Logo */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                  <rect width="28" height="28" rx="6" fill="rgba(255,255,255,0.15)"/>
-                  <path d="M14 6v16M7 14h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-                </svg>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 800, color: 'white', letterSpacing: '-0.02em', lineHeight: 1 }}>PHLOX</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 6.5, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', marginTop: 2 }}>CLINICAL</div>
+        {/* ── Painel editorial (desktop) ── */}
+        <aside className="lg-aside">
+          <div className="lg-aside-inner">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 'auto' }}>
+              <span style={{ width: 34, height: 1.5, background: GREEN }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: INK_4, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 700 }}>Phlox · Saúde em português</span>
+            </div>
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,3.4vw,40px)', fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.06, margin: '0 0 18px' }}>
+                A sua saúde,<br /><em style={{ fontStyle: 'italic', color: GREEN }}>sem confusões.</em>
+              </h2>
+              <p style={{ fontSize: 15.5, color: INK_3, lineHeight: 1.62, maxWidth: '40ch', margin: 0 }}>
+                A sua medicação organizada, dúvidas respondidas em português simples, e um aviso
+                quando algo merece atenção. Entre — ou crie conta — e comece.
+              </p>
+            </div>
+            <div style={{ marginTop: 'auto', paddingTop: 26, borderTop: `1px solid ${BORDER}` }}>
+              {FREE_FEATURES.slice(0, 4).map(f => (
+                <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 9 }}>
+                  <span style={{ color: GREEN, flexShrink: 0, fontSize: 14 }}>—</span>
+                  <span style={{ fontSize: 13.5, color: INK_3, lineHeight: 1.5 }}>{f}</span>
                 </div>
-              </div>
+              ))}
+            </div>
+          </div>
+        </aside>
 
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
-                {modeInfo ? 'Acesso à plataforma' : 'Acesso à plataforma'}
+        {/* ── Coluna de autenticação ── */}
+        <main className="lg-main">
+          <div className="lg-form">
+
+            <div style={{ marginBottom: 26 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: INK_4, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+                {modeInfo ? 'Entrar' : 'Bem-vindo'}
               </div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'white', margin: 0, fontWeight: 400, letterSpacing: '-0.015em', lineHeight: 1.1 }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: INK, margin: 0, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.08 }}>
                 {modeInfo ? modeInfo.heading : 'Entrar no Phlox'}
               </h1>
-              {modeInfo && (
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 8, lineHeight: 1.5 }}>{modeInfo.sub}</p>
-              )}
+              <p style={{ fontSize: 14, color: INK_3, lineHeight: 1.6, marginTop: 10 }}>
+                {modeInfo ? modeInfo.sub : 'Guarde as suas pesquisas, faça a gestão da sua medicação e aceda a tudo.'}
+              </p>
             </div>
 
-            {/* Body */}
-            <div style={{ padding: '28px 30px' }}>
-
-              {!modeInfo && (
-                <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.65, marginBottom: 24 }}>
-                  Guarda pesquisas, gere a tua medicação pessoal e acede a ferramentas avançadas.
-                </p>
-              )}
+            <div>
 
               {error && (
                 <div className="alert-strip alert-strip-red" style={{ marginBottom: 18, borderRadius: 'var(--r)' }}>
@@ -220,42 +232,47 @@ function LoginContent() {
               </div>
 
               <Link href="/interactions"
-                style={{ display: 'block', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)', textDecoration: 'none', padding: '10px', borderRadius: 'var(--r)', transition: 'color 0.12s', border: '1px solid transparent' }}
+                style={{ display: 'block', textAlign: 'center', fontSize: 13, color: INK_3, textDecoration: 'none', padding: '11px', borderRadius: 2, border: `1px solid ${BORDER}` }}
                 className="anon-link">
                 Usar sem conta — ferramentas gratuitas
               </Link>
 
-              {/* Free features */}
-              <div style={{ marginTop: 22, padding: '16px 18px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Conta gratuita inclui</div>
+              {/* Conta gratuita inclui — só no mobile (no desktop está no painel) */}
+              <div className="lg-free-mobile" style={{ marginTop: 22, padding: '16px 18px', background: PAPER, borderRadius: 2, border: `1px solid ${BORDER}` }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: INK_4, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Conta gratuita inclui</div>
                 {FREE_FEATURES.map(f => (
-                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 7, lineHeight: 1 }}>
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
-                      <circle cx="8" cy="8" r="7" fill="var(--green-light)" stroke="var(--green)" strokeWidth="1"/>
-                      <path d="M5 8l2 2 4-4" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.45 }}>{f}</span>
+                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+                    <span style={{ color: GREEN, flexShrink: 0, fontSize: 13 }}>—</span>
+                    <span style={{ fontSize: 12.5, color: INK_3, lineHeight: 1.45 }}>{f}</span>
                   </div>
                 ))}
               </div>
+
+              <p style={{ fontSize: 11, color: INK_4, marginTop: 20, lineHeight: 1.7, fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                Ao entrar, aceita os{' '}
+                <Link href="/terms" style={{ color: GREEN, textDecoration: 'none' }}>Termos</Link>{' '}e a{' '}
+                <Link href="/privacy" style={{ color: GREEN, textDecoration: 'none' }}>Privacidade</Link>.
+              </p>
             </div>
           </div>
-
-          {/* Legal */}
-          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-5)', marginTop: 18, lineHeight: 1.7, fontFamily: 'var(--font-mono)' }}>
-            Ao entrares, aceitas os nossos{' '}
-            <Link href="/terms" style={{ color: 'var(--green)', textDecoration: 'none' }}>Termos</Link>
-            {' '}e{' '}
-            <Link href="/privacy" style={{ color: 'var(--green)', textDecoration: 'none' }}>Política de Privacidade</Link>.
-          </p>
-        </div>
+        </main>
       </div>
 
       <style>{`
-        .google-btn:hover:not(:disabled) { border-color: var(--border-2) !important; box-shadow: var(--shadow-xs) !important; }
-        .anon-link:hover { color: var(--green) !important; border-color: var(--border) !important; }
+        .lg-split { min-height: 100vh; display: grid; grid-template-columns: 1fr; }
+        .lg-aside { display: none; }
+        .lg-main { display: flex; align-items: center; justify-content: center; padding: 40px 20px 64px; }
+        .lg-form { width: 100%; max-width: 400px; }
+        .google-btn:hover:not(:disabled) { border-color: ${INK} !important; }
+        .anon-link:hover { border-color: ${INK} !important; color: ${INK} !important; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes phlox-pulse { 0%,100%{opacity:0.4;transform:scale(0.95)} 50%{opacity:1;transform:scale(1)} }
+        @media (min-width: 860px) {
+          .lg-split { grid-template-columns: 1.05fr 0.95fr; }
+          .lg-aside { display: block; background: ${PAPER}; border-right: 1px solid ${BORDER}; }
+          .lg-aside-inner { min-height: 100vh; display: flex; flex-direction: column; padding: clamp(40px,5vw,68px); box-sizing: border-box; }
+          .lg-free-mobile { display: none; }
+        }
       `}</style>
     </div>
   )

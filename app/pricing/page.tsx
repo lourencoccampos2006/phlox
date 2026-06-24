@@ -4,7 +4,17 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { PLANS, formatPrice } from '@/lib/plans'
 
+// /pricing 2026-06-24 — mesma linguagem editorial da homepage: filetes, mono
+// labels, preços em serif, verde muted, cantos retos. Lógica intacta.
+
 type Billing = 'monthly' | 'annual'
+
+const INK = '#16181d'
+const INK_3 = '#545862'
+const INK_4 = '#767b86'
+const GREEN = '#0d6e42'
+const BORDER = '#e7e8ea'
+const PAPER = '#fbfaf7'
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<Billing>('monthly')
@@ -12,61 +22,61 @@ export default function PricingPage() {
   const org = PLANS.find(p => p.audience === 'organization')!
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: '40px 16px 64px', boxSizing: 'border-box', width: '100%' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: 'var(--font-sans)', color: INK }}>
+      <div style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(36px,6vw,72px) clamp(20px,5vw,40px) 72px', boxSizing: 'border-box', width: '100%' }}>
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Planos</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,40px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>Começa grátis. Cresce quando precisares.</h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.6, marginTop: 12, maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
-            O plano Base é grátis (com anúncios). Qualquer upgrade remove os anúncios, aumenta os limites e desbloqueia mais ferramentas.
+        {/* Cabeçalho editorial */}
+        <div style={{ marginBottom: 'clamp(28px,4vw,44px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 18 }}>
+            <span style={{ width: 34, height: 1.5, background: GREEN }} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: INK_4, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 700 }}>Planos</span>
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,5.4vw,52px)', color: INK, fontWeight: 500, letterSpacing: '-0.025em', margin: 0, lineHeight: 1.04, maxWidth: '16ch' }}>
+            Comece grátis.<br />Cresça quando precisar.
+          </h1>
+          <p style={{ fontSize: 'clamp(15px,1.7vw,17px)', color: INK_3, lineHeight: 1.62, marginTop: 18, maxWidth: '52ch' }}>
+            O plano Base é grátis (com anúncios). Qualquer upgrade remove os anúncios, aumenta os
+            limites e desbloqueia mais ferramentas. Sem fidelização.
           </p>
         </div>
 
-        {/* Billing toggle — desconto real calculado, não inventado */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-          <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: 3 }}>
+        {/* Toggle de faturação */}
+        <div style={{ display: 'flex', marginBottom: 'clamp(24px,3vw,36px)' }}>
+          <div style={{ display: 'inline-flex', border: `1px solid ${BORDER}`, borderRadius: 2 }}>
             {(['monthly', 'annual'] as Billing[]).map(b => (
-              <button key={b} onClick={() => setBilling(b)} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, background: billing === b ? 'var(--ink)' : 'transparent', color: billing === b ? 'white' : 'var(--ink-4)' }}>
-                {b === 'monthly' ? 'Mensal' : 'Anual'}{b === 'annual' && <span style={{ fontSize: 10, marginLeft: 6, color: billing === b ? '#9fd3b6' : 'var(--green)' }}>poupa ~20%</span>}
+              <button key={b} onClick={() => setBilling(b)} style={{ padding: '9px 18px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: billing === b ? INK : 'transparent', color: billing === b ? '#fff' : INK_4, transition: 'all .15s' }}>
+                {b === 'monthly' ? 'Mensal' : 'Anual'}{b === 'annual' && <span style={{ marginLeft: 7, color: billing === b ? '#7fc4a0' : GREEN }}>−20%</span>}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Individual plans */}
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14, marginBottom: 16 }}>
-          {individual.map(p => {
+        {/* Planos individuais — colunas editoriais separadas por filete */}
+        <div className="pr-grid">
+          {individual.map((p, i) => {
             const price = billing === 'monthly' ? p.price.monthly : p.price.annual
             return (
-              <div key={p.id} style={{ background: 'white', border: `1px solid ${p.highlight ? p.color : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: 22, position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: p.highlight ? 'var(--shadow-md)' : 'none' }}>
-                {p.badge && <span style={{ position: 'absolute', top: -10, left: 22, fontSize: 10, fontWeight: 800, color: 'white', background: p.color, padding: '3px 10px', borderRadius: 6, letterSpacing: '0.04em' }}>{p.badge.toUpperCase()}</span>}
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2, minHeight: 32 }}>{p.tagline}</div>
-                <div style={{ margin: '14px 0 16px', minHeight: 56 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', lineHeight: 1 }}>{formatPrice(price)}</span>
-                    {price > 0 && <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>/mês</span>}
-                  </div>
-                  {/* Transparência: no plano anual mostramos o valor REAL cobrado por ano */}
-                  {price > 0 && billing === 'annual' && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 5 }}>
-                      {formatPrice(p.price.annualTotal)} cobrados uma vez por ano
-                    </div>
-                  )}
-                  {price > 0 && billing === 'monthly' && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 5 }}>
-                      ou {formatPrice(p.price.annualTotal)}/ano ({formatPrice(p.price.annual)}/mês)
-                    </div>
-                  )}
+              <div key={p.id} className="pr-col" style={{ borderTop: `3px solid ${p.highlight ? GREEN : INK}`, background: p.highlight ? PAPER : '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: INK_4 }}>0{i + 1}</span>
+                  <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{p.name}</span>
+                  {p.badge && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: GREEN, border: `1px solid ${GREEN}55`, padding: '2px 7px', borderRadius: 2, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.badge}</span>}
                 </div>
-                <Link href={p.href} style={{ display: 'block', textAlign: 'center', padding: '11px', borderRadius: 9, textDecoration: 'none', fontSize: 14, fontWeight: 700, marginBottom: 16, background: p.highlight ? p.color : 'white', color: p.highlight ? 'white' : 'var(--ink)', border: p.highlight ? 'none' : '1.5px solid var(--border)' }}>{p.cta}</Link>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                <div style={{ fontSize: 12.5, color: INK_4, minHeight: 34, lineHeight: 1.45 }}>{p.tagline}</div>
+                <div style={{ margin: '16px 0', minHeight: 60 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40, color: INK, lineHeight: 1, letterSpacing: '-0.02em' }}>{formatPrice(price)}</span>
+                    {price > 0 && <span style={{ fontSize: 12, color: INK_4 }}>/mês</span>}
+                  </div>
+                  {price > 0 && billing === 'annual' && <div style={{ fontSize: 11.5, color: INK_4, marginTop: 6, fontFamily: 'var(--font-mono)' }}>{formatPrice(p.price.annualTotal)} uma vez por ano</div>}
+                  {price > 0 && billing === 'monthly' && <div style={{ fontSize: 11.5, color: INK_4, marginTop: 6, fontFamily: 'var(--font-mono)' }}>ou {formatPrice(p.price.annual)}/mês no anual</div>}
+                </div>
+                <Link href={p.href} className="pr-cta" style={{ background: p.highlight ? INK : '#fff', color: p.highlight ? '#fff' : INK, border: `1.5px solid ${INK}` }}>{p.cta}</Link>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 20, paddingTop: 18, borderTop: `1px solid ${BORDER}` }}>
                   {p.features.map(f => (
-                    <div key={f} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={p.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6L9 17l-5-5"/></svg>
-                      <span style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.45 }}>{f}</span>
+                    <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ color: GREEN, fontSize: 13, lineHeight: 1.5, flexShrink: 0 }}>—</span>
+                      <span style={{ fontSize: 13.5, color: INK_3, lineHeight: 1.5 }}>{f}</span>
                     </div>
                   ))}
                 </div>
@@ -75,42 +85,46 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Organization plan — full width banner */}
-        <div style={{ background: '#0b1120', borderRadius: 16, padding: 24, color: 'white', display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Organização — bloco escuro sóbrio */}
+        <div style={{ background: INK, padding: 'clamp(24px,4vw,36px)', color: '#fff', marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between', borderTop: `3px solid ${GREEN}` }}>
           <div style={{ minWidth: 240, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 18, fontWeight: 800 }}>{org.name}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#93c5fd', background: 'rgba(147,197,253,0.15)', padding: '2px 8px', borderRadius: 5 }}>ORGANIZAÇÕES</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: '#7fc4a0', border: '1px solid rgba(127,196,160,0.4)', padding: '2px 8px', borderRadius: 2, letterSpacing: '0.06em' }}>ORGANIZAÇÕES</span>
             </div>
-            <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.7)', marginBottom: 14 }}>{org.tagline}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '6px 18px' }}>
+            <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginBottom: 18, lineHeight: 1.5 }}>{org.tagline}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px 20px' }}>
               {org.features.map(f => (
-                <div key={f} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><path d="M20 6L9 17l-5-5"/></svg>
-                  <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>{f}</span>
+                <div key={f} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                  <span style={{ color: '#7fc4a0', flexShrink: 0 }}>—</span>
+                  <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.45 }}>{f}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ textAlign: 'center', flexShrink: 0 }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 34, lineHeight: 1 }}>{formatPrice(billing === 'monthly' ? org.price.monthly : org.price.annual)}<span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/mês</span></div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>por instituição</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 12 }}>
-              {billing === 'annual'
-                ? `${formatPrice(org.price.annualTotal)} cobrados uma vez por ano`
-                : `ou ${formatPrice(org.price.annualTotal)}/ano`}
+          <div style={{ flexShrink: 0, minWidth: 160 }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em' }}>{formatPrice(billing === 'monthly' ? org.price.monthly : org.price.annual)}<span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>/mês</span></div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.45)', margin: '6px 0 16px' }}>
+              por instituição · {billing === 'annual' ? `${formatPrice(org.price.annualTotal)}/ano` : `ou ${formatPrice(org.price.annualTotal)}/ano`}
             </div>
-            <Link href={org.href} style={{ display: 'block', padding: '11px 28px', background: '#2563eb', color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>{org.cta}</Link>
+            <Link href={org.href} style={{ display: 'inline-block', padding: '12px 28px', background: '#fff', color: INK, textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{org.cta}</Link>
           </div>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-5)', marginTop: 24 }}>
+        <p style={{ fontSize: 12, color: INK_4, marginTop: 28, fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>
           Todos os planos podem mudar a qualquer momento. Sem fidelização.
         </p>
       </div>
 
       <style>{`
-        @media (min-width: 760px) { .pricing-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+        .pr-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+        .pr-col { padding: 22px 20px 24px; border-bottom: 1px solid ${BORDER}; }
+        .pr-cta { display: block; text-align: center; padding: 12px; text-decoration: none; font-size: 14px; font-weight: 700; border-radius: 2px; transition: background .15s, color .15s; }
+        .pr-col:hover .pr-cta { background: ${GREEN} !important; color: #fff !important; border-color: ${GREEN} !important; }
+        @media (min-width: 760px) {
+          .pr-grid { grid-template-columns: repeat(3, 1fr); gap: 0; border-left: 1px solid ${BORDER}; }
+          .pr-col { border-bottom: none; border-right: 1px solid ${BORDER}; }
+        }
       `}</style>
     </div>
   )

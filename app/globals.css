@@ -675,3 +675,30 @@ body.phlox-focus .header-search-trigger { opacity: 0.55; }
   /* Ensure borders print */
   *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ─── Polish global 2026-06-24 — microinterações coerentes ──────────────────── */
+/* Foco visível e elegante (acessibilidade) — anel verde subtil, só no teclado. */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+/* Transições suaves por defeito em elementos interativos (sem afetar layout). */
+a, button { transition: color .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease, transform .12s ease; }
+/* Feedback de toque no telemóvel — leve, não exagerado. */
+@media (hover: none) {
+  a:active, button:active { transform: scale(0.985); }
+}
+/* Tipografia mais nítida em ecrãs retina. */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+/* Imagens nunca estouram o contentor. */
+img, svg, video { max-width: 100%; }
+/* Respeitar quem prefere menos movimento — desliga animações/transições. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

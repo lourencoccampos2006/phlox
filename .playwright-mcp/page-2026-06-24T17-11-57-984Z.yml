@@ -1,0 +1,144 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]: 👋
+      - generic [ref=e24]:
+        - generic [ref=e25]: "Bem-vindo. É simples:"
+        - generic [ref=e26]: No topo mostro-lhe o que precisa agora. Em baixo tem a barra para voltar a este ecrã sempre que quiser.
+      - button "Fechar" [ref=e27] [cursor=pointer]: ×
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - heading "Boa tarde, qa1781881827891." [level=1] [ref=e31]
+          - paragraph [ref=e32]: Está tudo calmo. Veja o que precisa.
+        - button "Mudar de modo" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: 👤
+          - img [ref=e36]
+      - link "A sua medicação 0 medicamentos · horários e lembretes Abrir" [ref=e38] [cursor=pointer]:
+        - /url: /mymeds
+        - generic [ref=e41]:
+          - img [ref=e44]
+          - generic [ref=e47]: A sua medicação
+          - generic [ref=e48]: 0 medicamentos · horários e lembretes
+          - generic [ref=e49]:
+            - text: Abrir
+            - img [ref=e50]
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]: Os meus atalhos
+          - link "Editar" [ref=e55] [cursor=pointer]:
+            - /url: /tudo
+        - generic [ref=e56]:
+          - link "A minha medicação" [ref=e57] [cursor=pointer]:
+            - /url: /mymeds
+            - img [ref=e59]
+            - generic [ref=e62]: A minha medicação
+          - link "Verificar interações" [ref=e63] [cursor=pointer]:
+            - /url: /interactions
+            - img [ref=e65]
+            - generic [ref=e68]: Verificar interações
+          - link "Perceber bula" [ref=e69] [cursor=pointer]:
+            - /url: /scan
+            - img [ref=e71]
+            - generic [ref=e74]: Perceber bula
+      - generic [ref=e75]:
+        - generic [ref=e76]: O que mais usa
+        - generic [ref=e77]:
+          - link "Comprimidos" [ref=e78] [cursor=pointer]:
+            - /url: /mymeds
+            - img [ref=e79]
+            - text: Comprimidos
+          - link "Interações" [ref=e82] [cursor=pointer]:
+            - /url: /interactions
+            - img [ref=e83]
+            - text: Interações
+          - link "Foto à receita" [ref=e86] [cursor=pointer]:
+            - /url: /scan
+            - img [ref=e87]
+            - text: Foto à receita
+          - link "Perguntar" [ref=e90] [cursor=pointer]:
+            - /url: /ai
+            - img [ref=e91]
+            - text: Perguntar
+          - link "Tensão e peso" [ref=e93] [cursor=pointer]:
+            - /url: /vitals
+            - img [ref=e94]
+            - text: Tensão e peso
+      - generic [ref=e96]:
+        - generic [ref=e97]: O que precisa
+        - generic [ref=e98]:
+          - link "Os meus comprimidos Lista e horários" [ref=e99] [cursor=pointer]:
+            - /url: /mymeds
+            - img [ref=e101]
+            - generic [ref=e104]:
+              - generic [ref=e105]: Os meus comprimidos
+              - generic [ref=e106]: Lista e horários
+            - img [ref=e107]
+          - link "Foto à receita Organizar" [ref=e109] [cursor=pointer]:
+            - /url: /scan
+            - img [ref=e111]
+            - generic [ref=e114]:
+              - generic [ref=e115]: Foto à receita
+              - generic [ref=e116]: Organizar
+            - img [ref=e117]
+          - link "Tenho uma dúvida Perguntar" [ref=e119] [cursor=pointer]:
+            - /url: /ai
+            - img [ref=e121]
+            - generic [ref=e123]:
+              - generic [ref=e124]: Tenho uma dúvida
+              - generic [ref=e125]: Perguntar
+            - img [ref=e126]
+          - link "Não me sinto bem O que fazer" [ref=e128] [cursor=pointer]:
+            - /url: /saude-agora
+            - img [ref=e130]
+            - generic [ref=e132]:
+              - generic [ref=e133]: Não me sinto bem
+              - generic [ref=e134]: O que fazer
+            - img [ref=e135]
+      - button "Todas as ferramentas" [ref=e138] [cursor=pointer]:
+        - generic [ref=e139]:
+          - img [ref=e140]
+          - text: Todas as ferramentas
+        - img [ref=e145]
+      - link "🤍 A passar por um momento difícil? Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo." [ref=e147] [cursor=pointer]:
+        - /url: /comecar
+        - generic [ref=e148]: 🤍
+        - generic [ref=e149]:
+          - generic [ref=e150]: A passar por um momento difícil?
+          - generic [ref=e151]: Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo.
+      - generic [ref=e152]:
+        - link "Definições" [ref=e153] [cursor=pointer]:
+          - /url: /settings
+        - link "Plano Base" [ref=e154] [cursor=pointer]:
+          - /url: /pricing
+          - generic [ref=e156]: Plano Base
+  - navigation "Navegação principal" [ref=e157]:
+    - link "Início" [ref=e158] [cursor=pointer]:
+      - /url: /inicio
+      - img [ref=e159]
+      - generic [ref=e162]: Início
+    - link "Medicação" [ref=e163] [cursor=pointer]:
+      - /url: /mymeds
+      - img [ref=e164]
+      - generic [ref=e166]: Medicação
+    - link "Saúde" [ref=e167] [cursor=pointer]:
+      - /url: /sintomas
+      - img [ref=e168]
+      - generic [ref=e170]: Saúde
+    - link "Tudo" [ref=e171] [cursor=pointer]:
+      - /url: /tudo
+      - img [ref=e172]
+      - generic [ref=e177]: Tudo
+  - button "Open Next.js Dev Tools" [ref=e183] [cursor=pointer]:
+    - img [ref=e184]
+  - alert [ref=e187]

@@ -1,0 +1,163 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e20]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]: Saúde, em português claro
+        - heading "Saber o que tomar deixou de ser confuso." [level=1] [ref=e27]:
+          - text: Saber o que
+          - text: tomar deixou
+          - text: de ser
+          - emphasis [ref=e28]: confuso
+          - text: .
+        - paragraph [ref=e29]: Tire uma foto à receita. O Phlox diz-lhe o que é cada comprimido, a que horas tomar, e se se dão bem uns com os outros. Feito para qualquer pessoa.
+        - generic [ref=e30]:
+          - link "Criar conta grátis" [ref=e31] [cursor=pointer]:
+            - /url: /login
+          - link "Experimentar sem conta →" [ref=e32] [cursor=pointer]:
+            - /url: /interactions
+        - generic [ref=e33]: Sem cartão · Sem instalar · Pronto num minuto
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]: Verificação · em tempo real
+          - generic [ref=e38]:
+            - generic [ref=e39]: Varfarina+
+            - generic [ref=e40]: Ibuprofeno
+        - generic [ref=e41]: Não misturar
+        - paragraph [ref=e43]: O ibuprofeno aumenta o risco de hemorragia em quem toma varfarina.
+        - paragraph [ref=e44]: Para as dores, o paracetamol costuma ser mais seguro — confirme com o farmacêutico.
+        - generic [ref=e45]:
+          - button "Varfarina e Ibuprofeno" [ref=e46] [cursor=pointer]: Varf·Ibup
+          - button "Sertralina e Tramadol" [ref=e47] [cursor=pointer]: Sert·Tram
+          - button "Omeprazol e Paracetamol" [ref=e48] [cursor=pointer]: Omep·Para
+    - paragraph [ref=e52]:
+      - text: As apps lá de fora tropeçam nos nomes de marca e no SNS.
+      - strong [ref=e53]: Esta não.
+      - text: Os medicamentos são os das farmácias cá, as regras são as do INFARMED, e a linguagem é a sua.
+    - generic [ref=e55]:
+      - generic [ref=e56]:
+        - generic [ref=e57]: § 01
+        - heading "Como funciona" [level=2] [ref=e58]
+        - paragraph [ref=e59]: Três passos. Não precisa de saber nada de tecnologia.
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e63]: "1"
+          - heading "Crie uma conta" [level=3] [ref=e64]
+          - paragraph [ref=e65]: Menos de um minuto. Só precisa de um email — sem cartão, sem instalar nada.
+        - generic [ref=e66]:
+          - generic [ref=e68]: "2"
+          - heading "Diga o que precisa" [level=3] [ref=e69]
+          - paragraph [ref=e70]: Cuidar de si, de um familiar, ou estudar? O Phlox arruma tudo à sua volta.
+        - generic [ref=e71]:
+          - generic [ref=e73]: "3"
+          - heading "Comece a usar" [level=3] [ref=e74]
+          - paragraph [ref=e75]: Tire foto à receita, faça uma pergunta. A entrada mostra sempre o passo seguinte.
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - generic [ref=e79]: § 02
+        - heading "O que o traz aqui?" [level=2] [ref=e80]
+        - paragraph [ref=e81]: Escolha um. Pode mudar quando quiser.
+      - generic [ref=e82]:
+        - link "01 A minha medicação Guardar os comprimidos, ter lembretes e ver se se dão bem. →" [ref=e83] [cursor=pointer]:
+          - /url: /login?mode=personal
+          - generic [ref=e84]: "01"
+          - generic [ref=e85]:
+            - generic [ref=e86]: A minha medicação
+            - generic [ref=e87]: Guardar os comprimidos, ter lembretes e ver se se dão bem.
+          - generic [ref=e88]: →
+        - link "02 Cuidar de alguém Organizar a medicação de um familiar, tudo num só sítio. →" [ref=e89] [cursor=pointer]:
+          - /url: /login?mode=caregiver
+          - generic [ref=e90]: "02"
+          - generic [ref=e91]:
+            - generic [ref=e92]: Cuidar de alguém
+            - generic [ref=e93]: Organizar a medicação de um familiar, tudo num só sítio.
+          - generic [ref=e94]: →
+        - link "03 Estudar saúde Casos, quizzes e treino para medicina, farmácia ou enfermagem. →" [ref=e95] [cursor=pointer]:
+          - /url: /login?mode=student
+          - generic [ref=e96]: "03"
+          - generic [ref=e97]:
+            - generic [ref=e98]: Estudar saúde
+            - generic [ref=e99]: Casos, quizzes e treino para medicina, farmácia ou enfermagem.
+          - generic [ref=e100]: →
+        - link "04 Um centro de dia O dia dos utentes e as famílias tranquilas, montado de raiz. →" [ref=e101] [cursor=pointer]:
+          - /url: /centro-de-dia
+          - generic [ref=e102]: "04"
+          - generic [ref=e103]:
+            - generic [ref=e104]: Um centro de dia
+            - generic [ref=e105]: O dia dos utentes e as famílias tranquilas, montado de raiz.
+          - generic [ref=e106]: →
+        - link "05 Trabalho em saúde Ferramentas a sério para farmácia, lar ou clínica. →" [ref=e107] [cursor=pointer]:
+          - /url: /login?mode=clinical
+          - generic [ref=e108]: "05"
+          - generic [ref=e109]:
+            - generic [ref=e110]: Trabalho em saúde
+            - generic [ref=e111]: Ferramentas a sério para farmácia, lar ou clínica.
+          - generic [ref=e112]: →
+    - generic [ref=e114]:
+      - generic [ref=e115]:
+        - generic [ref=e116]: § 03
+        - heading "O que ganha" [level=2] [ref=e117]
+      - generic [ref=e118]:
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]: "01"
+            - text: Foto
+          - heading "Tira uma foto, e está feito" [level=3] [ref=e122]
+          - paragraph [ref=e123]: "Foto da receita ou da caixa e o Phlox lê tudo: que medicamento é, para que serve, e cria a sua lista."
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]: "02"
+            - text: Voz
+          - heading "Pergunte o que quiser" [level=3] [ref=e127]
+          - paragraph [ref=e128]: Posso tomar com álcool? Esqueci-me de uma dose, e agora? Respostas claras, sem o palavreado das bulas.
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - generic [ref=e131]: "03"
+            - text: Aviso
+          - heading "Avisa antes do problema" [level=3] [ref=e132]
+          - paragraph [ref=e133]: O Phlox olha pela sua medicação e diz-lhe o que merece atenção, mesmo sem ter de perguntar.
+      - generic [ref=e134]:
+        - generic [ref=e135]: INFARMED
+        - generic [ref=e136]: DGS
+        - generic [ref=e137]: EMA
+        - generic [ref=e138]: ESC 2024
+        - generic [ref=e139]: Beers 2023
+        - generic [ref=e140]: STOPP/START v3
+    - generic [ref=e142]:
+      - generic [ref=e143]: § 04
+      - heading "Comece de graça. Pague só se gostar." [level=2] [ref=e144]:
+        - text: Comece de graça.
+        - text: Pague só se gostar.
+      - paragraph [ref=e145]:
+        - text: O plano
+        - strong [ref=e146]: Base
+        - text: é grátis e tem o essencial. O
+        - strong [ref=e147]: Plus
+        - text: ", a 3,99 € por mês, tira os anúncios e desbloqueia o resto. Cancela quando quiser, sem letras pequeninas."
+      - generic [ref=e148]:
+        - link "Criar conta grátis" [ref=e149] [cursor=pointer]:
+          - /url: /login
+        - link "Ver os planos →" [ref=e150] [cursor=pointer]:
+          - /url: /pricing
+    - contentinfo [ref=e151]:
+      - generic [ref=e152]:
+        - generic [ref=e153]: Phlox — feito em Portugal, 2026
+        - generic [ref=e154]:
+          - link "Termos" [ref=e155] [cursor=pointer]:
+            - /url: /terms
+          - link "Privacidade" [ref=e156] [cursor=pointer]:
+            - /url: /privacy
+          - link "Para instituições" [ref=e157] [cursor=pointer]:
+            - /url: /institucional
+  - button "Open Next.js Dev Tools" [ref=e163] [cursor=pointer]:
+    - img [ref=e164]
+  - alert [ref=e167]

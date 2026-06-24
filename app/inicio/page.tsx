@@ -7,9 +7,14 @@ import Link from 'next/link'
 import { planName } from '@/lib/plans'
 import Icon from '@/components/Icon'
 import WelcomeTour from '@/components/WelcomeTour'
-import { modeTheme, isPremiumMode } from '@/lib/modeTheme'
+import { modeTheme, isPremiumMode, type ModeTheme } from '@/lib/modeTheme'
 import { homeGreeting, homeSubline, pickFocus, quickActions, type HomeData, type FocusCard } from '@/lib/homeIntelligence'
 import { summarize } from '@/lib/studyProgress'
+import { useEnabledTools } from '@/lib/useEnabledTools'
+import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
+import { getPins } from '@/lib/pinnedTools'
+import { getTopTools } from '@/lib/userPersona'
+import { ALL_PERSONAS, personaFor } from '@/lib/userPersona'
 
 // ─── /inicio reescrito 2026-06-24 — VIVO e por modo ────────────────────────────
 // O Phlox antecipa-se: lê a medicação de hoje, a próxima consulta, os vitais e o
@@ -116,18 +121,27 @@ export default function InicioPage() {
   return (
     <div style={{ minHeight: '100vh', background: t.pageBg, fontFamily: 'var(--font-sans)', color: t.ink, transition: 'background 0.3s' }}>
       <WelcomeTour mode={expMode} />
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '26px 16px 40px', boxSizing: 'border-box', width: '100%' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '22px 16px 40px', boxSizing: 'border-box', width: '100%' }}>
 
-        {/* Saudação — viva, com uma linha honesta sobre o estado */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontFamily: t.greetWarm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: 'clamp(27px,7vw,34px)', fontWeight: t.greetWarm ? 400 : 800, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1, color: t.ink }}>
-            {greeting}.
-          </h1>
-          <p style={{ fontSize: 'clamp(15px,4vw,17px)', color: t.inkSoft, margin: '7px 0 0', fontWeight: 500 }}>{subline}</p>
+        {/* Saudação + troca de modo (compacta) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontFamily: t.greetWarm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: 'clamp(26px,6.5vw,32px)', fontWeight: t.greetWarm ? 400 : 800, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.12, color: t.ink }}>
+              {greeting}.
+            </h1>
+            <p style={{ fontSize: 'clamp(15px,4vw,16.5px)', color: t.inkSoft, margin: '7px 0 0', fontWeight: 500 }}>{subline}</p>
+          </div>
+          <ModeChip theme={t} />
         </div>
 
         {/* ── O FOCO — a única coisa que importa agora ── */}
         <FocusHero focus={focus} theme={t} loading={!data} />
+
+        {/* ── Atalhos fixos do utilizador (pins) ── */}
+        <PinnedRow theme={t} />
+
+        {/* ── O que mais usa (aprende sozinho) ── */}
+        <TopToolsRow theme={t} />
 
         {/* ── Ações sempre à mão ── */}
         <div style={{ marginTop: 22 }}>
@@ -150,16 +164,8 @@ export default function InicioPage() {
           </div>
         </div>
 
-        {/* ── Ver tudo ── */}
-        <Link href="/tudo" data-tour="all" style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-          padding: '15px', marginTop: 14, background: 'transparent',
-          border: `1.5px solid ${t.border}`, borderRadius: t.radius,
-          textDecoration: 'none', color: t.inkSoft, fontSize: 14.5, fontWeight: 700,
-        }}>
-          <Icon name="grid" size={18} color={t.inkSoft} />
-          Ver tudo o que o Phlox faz
-        </Link>
+        {/* ── TODAS as ferramentas do modo, por categoria (expansível) ── */}
+        <AllToolsSection mode={expMode as ToolMode} theme={t} />
 
         {/* ── Momento difícil — só modos de cuidado ── */}
         {(expMode === 'personal' || expMode === 'caregiver') && (
@@ -191,17 +197,197 @@ export default function InicioPage() {
         }
         .ini-action:active { transform: scale(0.99); }
         .ini-action-ic { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+        .pin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 13px 6px; border: 1px solid; border-radius: ${t.radius}px; text-decoration: none; transition: transform 0.12s; }
+        .pin-cell:active { transform: scale(0.97); }
         @media (min-width: 620px) {
           .ini-actions { grid-template-columns: 1fr 1fr; gap: 10px; }
           .ini-action:hover { box-shadow: 0 6px 20px rgba(0,0,0,${premium ? '0.4' : '0.06'}); }
+          .pin-row { grid-template-columns: repeat(6, 1fr); }
         }
       `}</style>
     </div>
   )
 }
 
+// ─── Troca de modo (chip compacto, abre menu) ──────────────────────────────────
+function ModeChip({ theme: t }: { theme: ModeTheme }) {
+  const { user, supabase } = useAuth() as any
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  if (!user) return null
+  const current = personaFor(user.experience_mode)
+  async function switchTo(mode: string) {
+    if (mode === user.experience_mode) { setOpen(false); return }
+    setBusy(true)
+    await supabase.from('profiles').update({ experience_mode: mode }).eq('id', user.id)
+    setOpen(false); setTimeout(() => location.reload(), 300)
+  }
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} aria-label="Mudar de modo" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', cursor: 'pointer',
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 999, fontFamily: 'var(--font-sans)',
+        fontSize: 12.5, fontWeight: 700, color: t.inkSoft,
+      }}>
+        <span style={{ fontSize: 14 }}>{current.emoji}</span>
+        <span className="modechip-label">{current.label}</span>
+        <Icon name="chevron" size={12} color={t.inkFaint} style={{ transform: open ? 'rotate(90deg)' : 'rotate(90deg) scaleX(-1)' }} />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
+          <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 80, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: '0 16px 44px -12px rgba(8,12,24,0.35)', minWidth: 260, padding: 6 }}>
+            <div style={{ padding: '6px 10px 8px', fontSize: 10.5, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mudar de modo</div>
+            {ALL_PERSONAS.map(p => {
+              const active = p.mode === current.mode
+              return (
+                <button key={p.mode} onClick={() => switchTo(p.mode)} disabled={busy} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 11, width: '100%', textAlign: 'left',
+                  padding: '10px 11px', border: 'none', borderRadius: 10, cursor: busy ? 'wait' : 'pointer',
+                  background: active ? p.color + '1a' : 'transparent', fontFamily: 'var(--font-sans)',
+                }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: p.color + '22', color: p.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{p.emoji}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: t.ink }}>{p.label}{active && <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 800, color: p.color }}>● ATUAL</span>}</span>
+                    <span style={{ display: 'block', fontSize: 12, color: t.inkFaint, marginTop: 2 }}>{p.hint}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+      <style>{`@media (max-width: 400px) { .modechip-label { display: none; } }`}</style>
+    </div>
+  )
+}
+
+// ─── Atalhos fixos (pins do utilizador) ────────────────────────────────────────
+const PIN_ICON: Record<string, string> = {
+  '/mymeds': 'pill', '/scan': 'camera', '/interactions': 'shield', '/ai': 'spark',
+  '/familia': 'family', '/vitals': 'heart', '/saude-agora': 'heart', '/sintomas': 'heart',
+  '/arena': 'trophy', '/study': 'cards', '/tutor': 'spark', '/labs': 'search',
+  '/medicamento': 'question', '/timeline': 'calendar', '/preparar-consulta': 'calendar',
+}
+function PinnedRow({ theme: t }: { theme: ModeTheme }) {
+  const [pins, setPins] = useState<{ path: string; label: string }[]>([])
+  useEffect(() => {
+    import('@/lib/pinnedTools').then(({ PINNABLE_TOOLS }) => {
+      const ids = getPins()
+      setPins(ids.map(p => PINNABLE_TOOLS.find(x => x.path === p)).filter(Boolean).map((x: any) => ({ path: x.path, label: x.label })))
+    })
+  }, [])
+  if (pins.length === 0) return null
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Os meus atalhos</span>
+        <Link href="/tudo" style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Editar</Link>
+      </div>
+      <div className="pin-row">
+        {pins.map(p => (
+          <Link key={p.path} href={p.path} className="pin-cell" style={{ background: t.surface, borderColor: t.border }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: t.accentSoft, color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={PIN_ICON[p.path] || 'grid'} size={20} /></span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: t.inkSoft, textAlign: 'center', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── O que mais usa (aprende localmente) ───────────────────────────────────────
+const TOP_LABELS: Record<string, { label: string; icon: string }> = {
+  '/mymeds': { label: 'Comprimidos', icon: 'pill' }, '/familia': { label: 'Família', icon: 'family' },
+  '/interactions': { label: 'Interações', icon: 'shield' }, '/sintomas': { label: 'Sintomas', icon: 'heart' },
+  '/scan': { label: 'Foto à receita', icon: 'camera' }, '/medicamento': { label: 'Medicamento', icon: 'question' },
+  '/ai': { label: 'Perguntar', icon: 'spark' }, '/vitals': { label: 'Tensão e peso', icon: 'heart' },
+  '/labs': { label: 'Análises', icon: 'search' }, '/arena': { label: 'Arena', icon: 'trophy' },
+  '/study': { label: 'Estudar', icon: 'cards' }, '/tutor': { label: 'Tutor', icon: 'spark' },
+}
+function TopToolsRow({ theme: t }: { theme: ModeTheme }) {
+  const [paths, setPaths] = useState<string[]>([])
+  useEffect(() => { setPaths(getTopTools(8).filter(p => TOP_LABELS[p])) }, [])
+  if (paths.length < 2) return null
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 11 }}>O que mais usa</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {paths.slice(0, 5).map(p => {
+          const m = TOP_LABELS[p]
+          return (
+            <Link key={p} href={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 14px', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 999, textDecoration: 'none', fontSize: 13, color: t.inkSoft, fontWeight: 600 }}>
+              <Icon name={m.icon} size={16} color={t.accent} />{m.label}
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── TODAS as ferramentas do modo, por categoria — acesso completo, calmo ───────
+function AllToolsSection({ mode, theme: t }: { mode: ToolMode; theme: ModeTheme }) {
+  const { enabledTools } = useEnabledTools(mode)
+  const [expanded, setExpanded] = useState(false)
+  const cats = Object.keys(TOOL_CATEGORIES).filter(c => enabledTools.some(tt => tt.category === c))
+  if (enabledTools.length === 0) return (
+    <Link href="/tudo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '15px', marginTop: 18, border: `1.5px solid ${t.border}`, borderRadius: t.radius, textDecoration: 'none', color: t.inkSoft, fontSize: 14.5, fontWeight: 700 }}>
+      <Icon name="grid" size={18} color={t.inkSoft} />Ver tudo o que o Phlox faz
+    </Link>
+  )
+  return (
+    <div style={{ marginTop: 22 }} data-tour="all">
+      <button onClick={() => setExpanded(e => !e)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 9,
+        padding: '14px 16px', background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: t.radius,
+        cursor: 'pointer', fontFamily: 'var(--font-sans)', color: t.inkSoft, fontSize: 14.5, fontWeight: 700,
+      }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><Icon name="grid" size={18} color={t.accent} />Todas as ferramentas</span>
+        <Icon name="chevron" size={17} color={t.inkFaint} style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+      </button>
+      {expanded && (
+        <div style={{ marginTop: 12 }}>
+          {cats.map(cat => {
+            const meta = TOOL_CATEGORIES[cat]
+            const items = enabledTools.filter(tt => tt.category === cat)
+            return (
+              <div key={cat} style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9, padding: '0 2px' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color }} />
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{meta.label}</span>
+                </div>
+                <div className="ini-actions">
+                  {items.map(tool => {
+                    const badge = PLAN_BADGE[tool.plan]
+                    return (
+                      <Link key={tool.id} href={tool.id} className="ini-action" style={{ background: t.surface, borderColor: t.border }}>
+                        <span className="ini-action-ic" style={{ background: meta.color + '18', color: meta.color }}><Icon name={PIN_ICON[tool.id] || 'grid'} size={20} /></span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 14.5, fontWeight: 700, color: t.ink, letterSpacing: '-0.01em' }}>{tool.label}</span>
+                            {badge && <span style={{ fontSize: 9, fontWeight: 800, color: badge.color, background: badge.bg, padding: '1px 6px', borderRadius: 4 }}>{badge.label}</span>}
+                          </span>
+                          <span style={{ display: 'block', fontSize: 12.5, color: t.inkFaint, marginTop: 1 }}>{tool.desc}</span>
+                        </span>
+                        <Icon name="chevron" size={16} color={t.inkFaint} />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+          <Link href="/tudo" style={{ display: 'block', textAlign: 'center', padding: '12px', fontSize: 13, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Ver catálogo completo →</Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── O FOCO PRINCIPAL — hero vivo, com gradiente do modo ───────────────────────
-function FocusHero({ focus, theme: t, loading }: { focus: FocusCard; theme: ReturnType<typeof modeTheme>; loading: boolean }) {
+function FocusHero({ focus, theme: t, loading }: { focus: FocusCard; theme: ModeTheme; loading: boolean }) {
   const urgent = focus.kind === 'urgent'
   return (
     <Link href={focus.href} data-tour="focus" style={{ textDecoration: 'none', display: 'block' }}>
