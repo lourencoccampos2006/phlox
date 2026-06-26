@@ -75,7 +75,8 @@ const T = {
   incidents: { href: '/incidents', label: 'Ocorrências', hint: 'Regista quedas, recusas e outros eventos', icon: '⚠️' },
   careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: '📝' },
   assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
-  team:    { href: '/schedule', label: 'Equipa', hint: 'Quem está, escalas e tarefas', icon: '👥' },
+  team:    { href: '/schedule', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
+  staff:   { href: '/equipa', label: 'Funcionários', hint: 'Adicionar acessos e ver quem fez o quê', icon: '👥' },
   quality: { href: '/quality', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: '📊' },
   meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: '🔍' },
   calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: '🧮' },
@@ -117,7 +118,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'As pessoas que frequentam o centro'),
       T.meds, T.careLog, T.family, T.reconcile,
     ],
-    extraTools: [ T.incidents, T.assessments, T.team, T.quality, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.assessments, T.staff, T.team, T.quality, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.

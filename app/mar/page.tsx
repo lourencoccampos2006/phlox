@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -146,6 +147,7 @@ function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null;
 export default function MARPage() {
   const { user, supabase } = useAuth()
   const { institution } = useClinicPrefs()
+  const scope = useOrgScope()
   const cfg = institutionConfig(institution)
   const isDayCare = institution === 'day_care'   // ponte casa↔centro só faz sentido aqui
   const isPro = ['pro', 'clinic'].includes(user?.plan || '')
@@ -166,7 +168,7 @@ export default function MARPage() {
   const [liveTick, setLiveTick]               = useState(0)
 
   // Live updates: refresh MAR records when changed elsewhere or on return to app
-  useLiveData({ supabase, table: 'mar_records', userId: user?.id, enabled: !!user && isPro, onChange: () => setLiveTick(t => t + 1) })
+  useLiveData({ supabase, table: 'mar_records', userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, enabled: !!user && isPro, onChange: () => setLiveTick(t => t + 1) })
 
   const selectedPatient = patients.find(p => p.id === selectedId) ?? null
 
@@ -189,10 +191,10 @@ export default function MARPage() {
 
   useEffect(() => {
     if (!user || !isPro) return
-    supabase.from('patients').select('id, name, age, room_number, conditions, allergies')
-      .eq('user_id', user.id).order('name')
-      .then(({ data, error }) => { setLoadErr(error ? 'Não foi possível carregar os doentes. Verifica a ligação e recarrega.' : ''); setPatients(data || []) })
-  }, [user, isPro, supabase])
+    scope.filter(supabase.from('patients').select('id, name, age, room_number, conditions, allergies')).order('name')
+      .then(({ data, error }: any) => { setLoadErr(error ? 'Não foi possível carregar os doentes. Verifica a ligação e recarrega.' : ''); setPatients(data || []) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isPro, supabase, scope.orgId, scope.userId])
 
   useEffect(() => {
     if (!selectedId) { setMeds([]); return }
@@ -283,7 +285,7 @@ export default function MARPage() {
     if (!user || !selectedId) return
     setSaving(medId)
     const existing = getRecord(medId)
-    const base = { patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() }
+    const base = scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() })
     if (!status && existing) {
       await supabase.from('mar_records').delete().eq('id', (existing as any).id)
       setRecords(p => p.filter(r => !(r.med_id === medId && r.shift === shift)))
@@ -437,7 +439,7 @@ export default function MARPage() {
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
               style={{ flex: 1, minWidth: 200, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: selectedId ? '#0f172a' : '#94a3b8', background: 'white' }}>
-              <option value="">Selecionar residente...</option>
+              <option value="">Selecionar {cfg.personNoun.toLowerCase()}...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` — Quarto ${p.room_number}` : ''}{p.age ? ` (${p.age}a)` : ''}</option>
               ))}
@@ -462,14 +464,14 @@ export default function MARPage() {
         {!selectedId ? (
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '56px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 14 }}>💊</div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Seleciona um residente</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Seleciona um {cfg.personNoun.toLowerCase()}</div>
             <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
               O MAR regista cada administração de medicação por turno. Cada registo fica assinado com o teu nome e hora.
             </p>
           </div>
         ) : meds.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>Sem medicamentos ativos para este residente</div>
+            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>Sem medicamentos ativos para este {cfg.personNoun.toLowerCase()}</div>
             <Link href={`/patients/${selectedId}`} style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}>
               Adicionar medicamentos →
             </Link>

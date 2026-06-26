@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
+import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
@@ -75,6 +76,7 @@ function typeFor(id: string) {
 export function AtividadesTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
+  const scope = useOrgScope()
   const cfg = institutionConfig(institution)
   const [view, setView]         = useState<'today' | 'week' | 'all'>('today')
   const [activities, setActivities] = useState<Activity[]>([])
@@ -95,13 +97,14 @@ export function AtividadesTool() {
     if (!user) return
     setLoading(true)
     const [{ data: acts }, { data: pats }] = await Promise.all([
-      supabase.from('activities').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('start_time', { ascending: true }),
-      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
+      scope.filter(supabase.from('activities').select('*')).order('date', { ascending: false }).order('start_time', { ascending: true }),
+      scope.filter(supabase.from('patients').select('*')).order('name'),
     ])
     setActivities(acts || [])
     setPatients(pats || [])
     setLoading(false)
-  }, [user, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 
@@ -119,14 +122,14 @@ export function AtividadesTool() {
   async function saveActivity() {
     if (!form.title.trim() || !user) return
     setSaving(true)
-    await supabase.from('activities').insert({
+    await supabase.from('activities').insert(scope.stamp({
       user_id: user.id, title: form.title.trim(), type: form.type,
       date: form.date, start_time: form.start_time,
       end_time: form.end_time || null, location: form.location || null,
       responsible: form.responsible || null, description: form.description || null,
       max_participants: form.max_participants ? parseInt(form.max_participants) : null,
       status: 'planned',
-    })
+    }))
     setSaving(false)
     setShowModal(false)
     setForm({ title: '', type: 'gym', date: todayStr(), start_time: '10:00', end_time: '', location: 'Sala de convívio', responsible: '', description: '', max_participants: '' })
@@ -146,10 +149,10 @@ export function AtividadesTool() {
       await supabase.from('activity_participations').update({ attended }).eq('id', existing.id)
       setParticipations(prev => prev.map(p => p.patient_id === patientId ? { ...p, attended } : p))
     } else {
-      const { data } = await supabase.from('activity_participations').insert({
+      const { data } = await supabase.from('activity_participations').insert(scope.stamp({
         activity_id: selected.id, patient_id: patientId, attended,
         user_id: user.id,
-      }).select().single()
+      })).select().single()
       if (data) setParticipations(prev => [...prev, data])
     }
   }
@@ -157,7 +160,7 @@ export function AtividadesTool() {
   async function markAllPresent() {
     if (!selected) return
     const existingIds = new Set(participations.map(p => p.patient_id))
-    const toInsert = patients.filter(p => !existingIds.has(p.id)).map(p => ({ activity_id: selected.id, patient_id: p.id, attended: true, user_id: user.id }))
+    const toInsert = patients.filter(p => !existingIds.has(p.id)).map(p => scope.stamp({ activity_id: selected.id, patient_id: p.id, attended: true, user_id: user.id }))
     const toUpdate = participations.filter(p => !p.attended)
     if (toUpdate.length) await supabase.from('activity_participations').update({ attended: true }).in('id', toUpdate.map(p => p.id))
     let inserted: Participation[] = []
@@ -265,7 +268,7 @@ export function AtividadesTool() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Atividades</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Planeamento e registo de participação dos residentes</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Planeamento e registo de participação dos {cfg.personNounPlural.toLowerCase()}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
@@ -425,7 +428,7 @@ export function AtividadesTool() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {patients.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 12 }}>Sem residentes registados</div>
+                    <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 12 }}>Sem {cfg.personNounPlural.toLowerCase()} registados</div>
                   ) : patients.map(p => {
                     const part = participations.find(pp => pp.patient_id === p.id)
                     const attended = part?.attended ?? false

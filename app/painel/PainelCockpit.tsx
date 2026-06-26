@@ -13,6 +13,8 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { blueprintFor, type BlockId, type CockpitBlock } from '@/lib/institutionBlueprint'
 import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
+import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const HIDE_KEY = 'phlox-cockpit-hidden'
@@ -22,6 +24,7 @@ interface PatientRow { id: string; name: string; room_number?: string; age?: num
 export default function PainelCockpit() {
   const { user, supabase } = useAuth() as any
   const { institution, role } = useClinicPrefs()
+  const scope = useOrgScope()
   const bp = blueprintFor(institution)
   const cfg = institutionConfig(institution)
 
@@ -58,14 +61,16 @@ export default function PainelCockpit() {
     if (!user) return
     setLoading(true); setErr('')
     const d = today()
+    // Leitura por ORGANIZAÇÃO quando há equipa (scope.filter), senão por user_id.
+    // É isto que faz o dono e os funcionários verem os MESMOS utentes e registos.
     const [p, cr, mar, ac, inc, fam, meds] = await Promise.all([
-      supabase.from('patients').select('id,name,room_number,age,conditions,allergies').eq('user_id', user.id).eq('active', true).order('name'),
-      supabase.from('care_records').select('patient_id,date,shift,nutrition,mood').eq('user_id', user.id).eq('date', d),
-      supabase.from('mar_records').select('patient_id,status,date').eq('user_id', user.id).eq('date', d),
-      supabase.from('activities').select('id,title,type,date,start_time').eq('user_id', user.id).eq('date', d).order('start_time'),
-      supabase.from('incidents').select('id,type,severity,status,date,patient_id').eq('user_id', user.id).eq('status', 'open'),
-      supabase.from('family_thread_messages').select('id,patient_id,author_side,content,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(8),
-      supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
+      scope.filter(supabase.from('patients').select('id,name,room_number,age,conditions,allergies')).eq('active', true).order('name'),
+      scope.filter(supabase.from('care_records').select('patient_id,date,shift,nutrition,mood')).eq('date', d),
+      scope.filter(supabase.from('mar_records').select('patient_id,status,date')).eq('date', d),
+      scope.filter(supabase.from('activities').select('id,title,type,date,start_time')).eq('date', d).order('start_time'),
+      scope.filter(supabase.from('incidents').select('id,type,severity,status,date,patient_id')).eq('status', 'open'),
+      scope.filter(supabase.from('family_thread_messages').select('id,patient_id,author_side,content,created_at')).order('created_at', { ascending: false }).limit(8),
+      scope.filter(supabase.from('patient_meds').select('patient_id,name')),
     ])
     if (p.error) { setErr('Não foi possível carregar os dados. Verifica a ligação e tenta novamente.'); setLoading(false); return }
     setPatients(p.data || [])
@@ -73,7 +78,6 @@ export default function PainelCockpit() {
     setMarToday(mar.data || [])
     setActs(ac.data || [])
     setIncidents(inc.data || [])
-    setFamily(fam.data || [])
     const m: Record<string, string[]> = {}
     ;(meds.data || []).forEach((x: any) => { (m[x.patient_id] ||= []).push(x.name) })
     setMedsByPt(m)
@@ -82,6 +86,20 @@ export default function PainelCockpit() {
     // que ESTE tipo de instituição mostra — e cada query é tolerante a tabelas
     // que ainda não existam (devolve vazio sem partir o cockpit).
     const safe = async (q: any, fallback: any) => { try { const r = await q; return r.error ? fallback : r } catch { return { data: fallback } } }
+
+    // Feed das famílias UNIFICADO: junta as conversas (family_thread_messages) com
+    // os avisos enviados pela equipa (family_messages). Antes o cockpit só via as
+    // conversas → um aviso enviado pelo /family parecia sumir. Agora aparece tudo,
+    // ordenado por data, e o /family e o cockpit contam a MESMA história.
+    if (blockIds.has('family_feed')) {
+      const ann = await safe(scope.filter(supabase.from('family_messages').select('id,patient_id,subject,body,created_at')).eq('direction', 'sent').order('created_at', { ascending: false }).limit(6), [])
+      const threadItems = (fam.data || []).map((m: any) => ({ id: 't_' + m.id, kind: 'thread', side: m.author_side, content: m.content, created_at: m.created_at }))
+      const annItems = (ann.data || []).map((a: any) => ({ id: 'a_' + a.id, kind: 'announce', side: 'staff', content: a.subject ? `${a.subject} — ${a.body || ''}` : (a.body || ''), created_at: a.created_at }))
+      const merged = [...threadItems, ...annItems].sort((x, y) => (y.created_at || '').localeCompare(x.created_at || '')).slice(0, 6)
+      setFamily(merged)
+    } else {
+      setFamily(fam.data || [])
+    }
 
     if (blockIds.has('sales_today')) {
       const start = new Date(); start.setHours(0, 0, 0, 0)
@@ -107,9 +125,24 @@ export default function PainelCockpit() {
       setTasks(r.data || [])
     }
     setLoading(false)
-  }, [user, supabase, blockIds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, blockIds, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
+
+  // Atualização AO VIVO: assim que QUALQUER ferramenta regista algo (uma toma no
+  // /mar, um registo no /care-log, uma ocorrência, uma atividade, uma mensagem à
+  // família…), o cockpit reflete-o sem ser preciso recarregar. É isto que faz a
+  // plataforma sentir-se "uma só" — o dado entra num sítio, aparece em todos.
+  useLiveData({
+    supabase, userId: user?.id, onChange: load,
+    filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue,
+    table: [
+      'patients', 'care_records', 'mar_records', 'activities', 'incidents',
+      'family_thread_messages', 'family_messages', 'patient_meds',
+      'sales', 'stock_items', 'prescription_queue', 'appointments', 'team_tasks',
+    ],
+  })
 
   // ── derivados ──
   const withCareToday = useMemo(() => new Set(careToday.map(r => r.patient_id)), [careToday])
@@ -276,9 +309,10 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           {ctx.patients.length === 0 ? <Empty msg={`Sem ${noun.toLowerCase()} ainda.`} href="/patients" cta={`Adicionar ${noun.toLowerCase()}`} />
           : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {present.slice(0, 24).map(p => <Chip key={p.id} label={p.name.split(' ')[0]} tone="ok" />)}
-              {pending.slice(0, 16).map(p => <Chip key={p.id} label={p.name.split(' ')[0]} tone="pending" />)}
+              {/* Quem ainda não tem registo → toca para registar já o dia dessa pessoa */}
+              {pending.slice(0, 16).map(p => <Link key={p.id} href={`/care-log?patient=${p.id}`} style={{ textDecoration: 'none' }}><Chip label={p.name.split(' ')[0]} tone="pending" /></Link>)}
             </div>}
-          {pending.length > 0 && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10 }}>{pending.length} ainda sem registo hoje</div>}
+          {pending.length > 0 && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10 }}>{pending.length} ainda sem registo hoje · toca num nome para registar</div>}
         </div>
       )
     }
@@ -335,7 +369,9 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ctx.family.slice(0, 4).map(m => (
                 <div key={m.id} style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.45 }}>
-                  <span style={{ fontWeight: 700, color: m.author_side === 'family' ? '#b45309' : bp.accent }}>{m.author_side === 'family' ? 'Família' : 'Equipa'}:</span> {(m.content || '').slice(0, 90)}
+                  <span style={{ fontWeight: 700, color: m.side === 'family' ? '#b45309' : bp.accent }}>
+                    {m.side === 'family' ? 'Família' : (m.kind === 'announce' ? 'Aviso enviado' : 'Equipa')}:
+                  </span> {(m.content || '').slice(0, 90)}
                 </div>
               ))}
             </div>}

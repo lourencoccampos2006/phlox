@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
+import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
   title: 'Antibióticos na gravidez — guia por categoria | Phlox',
@@ -17,6 +18,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostAntibioticosGravidez() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <ArticleSchema slug="antibioticos-em-gravidez" headline="Antibióticos na gravidez — guia por categoria" description="Que antibióticos são seguros na gravidez e quais evitar, por trimestre: penicilinas, cefalosporinas, macrólidos vs. tetraciclinas e quinolonas." datePublished="2026-02-15" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>

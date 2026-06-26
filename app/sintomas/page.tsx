@@ -82,7 +82,7 @@ export default function SintomasPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', paddingTop: 56 }}>
-      <div style={{ background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)', padding: '24px 24px 20px' }}>
+      <div style={{ background: '#b45309', padding: '24px 24px 20px' }}>
         <div className="page-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>A minha saúde</div>

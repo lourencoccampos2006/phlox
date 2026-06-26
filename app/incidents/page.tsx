@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 import { printDoc } from '@/lib/print'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -87,6 +88,7 @@ const EMPTY_FORM = {
 export default function IncidentsPage() {
   const { user, supabase } = useAuth()
   const { institution } = useClinicPrefs()
+  const scope = useOrgScope()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun                 // "Residente" | "Utente" | "Doente"
   const personLower = person.toLowerCase()
@@ -109,19 +111,20 @@ export default function IncidentsPage() {
     if (!user) return
     setLoading(true)
     const [{ data: inc }, { data: pat }] = await Promise.all([
-      supabase.from('incidents').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false }),
-      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
+      scope.filter(supabase.from('incidents').select('*')).order('date', { ascending: false }).order('created_at', { ascending: false }),
+      scope.filter(supabase.from('patients').select('*')).order('name'),
     ])
     setPatients(pat || [])
     const patMap: Record<string, string> = {}
     ;(pat || []).forEach((p: Patient) => { patMap[p.id] = p.name })
     setIncidents((inc || []).map((i: any) => ({ ...i, patient_name: patMap[i.patient_id] || '—' })))
     setLoading(false)
-  }, [user, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 
-  useLiveData({ supabase, table: ['incidents', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['incidents', 'patients'], userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   // Cria (após confirmação) uma mensagem de alerta no Portal Família para uma ocorrência grave
   const maybeNotifyFamily = async (patientId: string, type: string, severity: string) => {
@@ -176,7 +179,7 @@ export default function IncidentsPage() {
         if (dbErr) throw new Error(dbErr.message)
         setSelected(prev => prev && prev.id === editingId ? { ...prev, ...payload } as Incident : prev)
       } else {
-        const { error: dbErr } = await supabase.from('incidents').insert({ ...payload, status: 'open' })
+        const { error: dbErr } = await supabase.from('incidents').insert(scope.stamp({ ...payload, status: 'open' }))
         if (dbErr) throw new Error(dbErr.message)
         // Ocorrência grave/crítica → propor comunicar à família (exigência legal de comunicação)
         if (form.severity === 'major' || form.severity === 'critical') {
@@ -344,7 +347,7 @@ export default function IncidentsPage() {
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>Lar · Ocorrências</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Registo de Ocorrências</h1>
           </div>
-          <button onClick={() => { setShowForm(true); setSaveError('') }}
+          <button onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM, created_by: (user as any)?.name || '' }); setShowForm(true); setSaveError('') }}
             style={{ padding: '10px 20px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 7 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Nova Ocorrência

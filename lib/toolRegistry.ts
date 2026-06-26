@@ -8,7 +8,7 @@
 // hospital, e vice-versa).
 
 export type ToolMode = 'personal' | 'caregiver' | 'student' | 'clinical'
-export type InstType = 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center'
+export type InstType = 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center' | 'day_care'
 export type ToolPlan = 'free' | 'free_limited' | 'student' | 'pro'
 
 export interface Tool {
@@ -46,7 +46,8 @@ const NH:  InstType[] = ['nursing_home']
 const PHC: InstType[] = ['pharmacy_community']
 const CLN: InstType[] = ['clinic']
 const HC:  InstType[] = ['health_center']
-const ALL_INST: InstType[] = ['pharmacy_community', 'nursing_home', 'clinic', 'health_center']
+const DC:  InstType[] = ['day_care']
+const ALL_INST: InstType[] = ['pharmacy_community', 'nursing_home', 'clinic', 'health_center', 'day_care']
 
 export const TOOLS: Tool[] = [
   // ══ PESSOAL / CUIDADOR / ESTUDANTE ════════════════════════════════════════
@@ -107,11 +108,11 @@ export const TOOLS: Tool[] = [
   { id: '/turno',        label: 'Turno',                         desc: 'Visão do turno actual',            category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/reconciliacao', label: 'Reconciliação de alta',         desc: 'Foto da nota de alta → o que mudou, omissões e conflitos', category: 'clinical_daily', modes: ['clinical'], default_inst: ['clinic', 'nursing_home'], plan: 'pro' },
 
-  // NH específicas
-  { id: '/care-log',     label: 'Registos diários (lar)',        desc: 'Sinais vitais, alimentação, humor', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
-  { id: '/assessments',  label: 'Avaliações (Braden, MNA, ...)', desc: 'Escalas clínicas',                 category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
-  { id: '/incidents',    label: 'Ocorrências',                   desc: 'Quedas, erros med, comportamento', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
-  { id: '/family',       label: 'Famílias (lar)',                desc: 'Mensagens, visitas, contactos',    category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
+  // Cuidado diário (lar + centro de dia) — sem vocabulário fixo de "lar".
+  { id: '/care-log',     label: 'Registo do dia',                desc: 'Sinais vitais, alimentação, humor', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/assessments',  label: 'Avaliações (Braden, MNA, ...)', desc: 'Escalas clínicas',                 category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/incidents',    label: 'Ocorrências',                   desc: 'Quedas, erros med, comportamento', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/family',       label: 'Famílias',                      desc: 'Mensagens, visitas, contactos',    category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
 
   // Decisão clínica
   { id: '/oracle',       label: 'Oracle — AI consulta',          desc: 'SOAP · nota clínica · PCNE v9.1 · plano', category: 'clinical_decision', modes: ['clinical'], default_inst: ALL_INST, plan: 'pro' },

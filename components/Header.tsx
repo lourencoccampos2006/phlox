@@ -479,7 +479,7 @@ export default function Header() {
           {!loading && !user && (
             <nav className="hdr-lo-nav" style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
               <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
-              <Link href="/trust"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Trust</Link>
+              <Link href="/blog"        style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Blog</Link>
               <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>
             </nav>
           )}

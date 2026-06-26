@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button "Ferramentas e páginas... ⌘K" [ref=e10] [cursor=pointer]:
+          - img [ref=e11]
+          - generic [ref=e14]: Ferramentas e páginas...
+          - generic [ref=e15]: ⌘K
+        - button [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+        - button "Q qa1781881827891" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: Q
+          - generic [ref=e24]: qa1781881827891
+          - img [ref=e25]
+  - generic [ref=e31]:
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: O seu Centro de Dia
+        - heading "Vamos a mais um dia, qa1781881827891." [level=1] [ref=e35]
+        - paragraph [ref=e36]: O dia dos utentes, as famílias tranquilas, tudo num sítio.
+      - button "⚙ Personalizar" [ref=e37] [cursor=pointer]
+    - generic [ref=e38]:
+      - generic [ref=e40]: A carregar…
+      - generic [ref=e42]: A carregar…
+      - generic [ref=e44]: A carregar…
+      - generic [ref=e46]: A carregar…
+      - generic [ref=e48]: A carregar…
+      - generic [ref=e50]: A carregar…
+      - generic [ref=e52]: A carregar…
+      - generic [ref=e54]: A carregar…
+  - button "Open Next.js Dev Tools" [ref=e60] [cursor=pointer]:
+    - img [ref=e61]
+  - alert [ref=e64]

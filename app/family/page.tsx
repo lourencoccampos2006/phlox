@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 
 interface FamilyContact {
   id: string
@@ -76,6 +78,7 @@ const TEMPLATES = [
 export default function FamilyPage() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
+  const scope = useOrgScope()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
   const personLower = person.toLowerCase()
@@ -105,17 +108,18 @@ export default function FamilyPage() {
     if (!user) return
     setLoading(true)
     const [{ data: pats }, { data: ctcs }, { data: msgs }, { data: vsts }] = await Promise.all([
-      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('resident_contacts').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('family_messages').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('visit_requests').select('*').eq('user_id', user.id).order('requested_date', { ascending: false }),
+      scope.filter(supabase.from('patients').select('*')).order('name'),
+      scope.filter(supabase.from('resident_contacts').select('*')).order('name'),
+      scope.filter(supabase.from('family_messages').select('*')).order('created_at', { ascending: false }),
+      scope.filter(supabase.from('visit_requests').select('*')).order('requested_date', { ascending: false }),
     ])
     setPatients(pats || [])
     setContacts(ctcs || [])
     setMessages(msgs || [])
     setVisits(vsts || [])
     setLoading(false)
-  }, [user, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 
@@ -131,6 +135,14 @@ export default function FamilyPage() {
   }, [user, supabase])
   useEffect(() => { loadUnread() }, [loadUnread])
   const totalUnread = Object.values(unreadByPt).reduce((s, n) => s + n, 0)
+
+  // Atualiza ao vivo: mensagens novas das famílias (thread), avisos, pedidos de
+  // visita e alterações aos utentes/contactos refletem-se sem recarregar.
+  useLiveData({
+    supabase, userId: user?.id,
+    table: ['family_messages', 'family_thread_messages', 'visit_requests', 'resident_contacts', 'patients'],
+    onChange: () => { load(); loadUnread() },
+  })
 
   // Enrich contacts with patient names
   const enrichedContacts: FamilyContact[] = contacts.map(c => ({
@@ -167,7 +179,7 @@ export default function FamilyPage() {
   async function sendMessage() {
     if (!compose.patient_id || !compose.subject.trim() || !compose.body.trim() || !user) return
     setSaving(true)
-    await supabase.from('family_messages').insert({
+    await supabase.from('family_messages').insert(scope.stamp({
       user_id: user.id,
       patient_id: compose.patient_id,
       contact_id: compose.contact_id || null,
@@ -176,7 +188,7 @@ export default function FamilyPage() {
       type: compose.type,
       direction: 'sent',
       read: true,
-    })
+    }))
     setSaving(false)
     setShowCompose(false)
     setCompose({ patient_id: '', contact_id: '', subject: '', body: '', type: 'update' })
@@ -192,7 +204,7 @@ export default function FamilyPage() {
   async function saveVisit() {
     if (!visitForm.patient_id || !user) return
     setSavingVisit(true)
-    await supabase.from('visit_requests').insert({
+    await supabase.from('visit_requests').insert(scope.stamp({
       user_id: user.id,
       patient_id: visitForm.patient_id,
       contact_id: visitForm.contact_id || null,
@@ -200,7 +212,7 @@ export default function FamilyPage() {
       requested_time: visitForm.requested_time || '00:00',
       notes: visitForm.notes || null,
       status: visitForm.status,
-    })
+    }))
     setSavingVisit(false)
     setShowVisit(false)
     setVisitForm({ patient_id: '', contact_id: '', requested_date: new Date().toISOString().slice(0, 10), requested_time: new Date().toTimeString().slice(0, 5), notes: '', status: 'completed' })
@@ -274,7 +286,7 @@ export default function FamilyPage() {
         <>
           {/* Conversa tab — fio em tempo real lar↔família por residente */}
           {tab === 'conversa' && (
-            <FamilyThread patients={patients} contacts={enrichedContacts} user={user} supabase={supabase} cfg={cfg}
+            <FamilyThread patients={patients} contacts={enrichedContacts} user={user} supabase={supabase} cfg={cfg} orgId={scope.orgId}
               unreadByPt={unreadByPt} onRead={(pid: string) => setUnreadByPt(prev => { const n = { ...prev }; delete n[pid]; return n })} />
           )}
 
@@ -640,7 +652,7 @@ const ACTIVITY_OPTS = [
 ]
 const optLabel = (arr: { v: string; label: string; emoji: string }[], v?: string) => arr.find(o => o.v === v)
 
-function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, cfg }: any) {
+function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, cfg, orgId }: any) {
   const [patientId, setPatientId] = useState('')
   const [msgs, setMsgs] = useState<ThreadMsg[]>([])
   const [loading, setLoading] = useState(false)
@@ -747,6 +759,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
         mood: wb.mood || null, meals: wb.meals || null, activity: wb.activity || null,
         read_by_family: false,
       }
+      if (orgId) { row.org_id = orgId; row.recorded_by_id = user.id }  // partilha + auditoria na equipa
       const { data } = await supabase.from('family_thread_messages').insert(row).select().single()
       if (data) setMsgs(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
       setText(''); setPhoto(null); setWb({}); setMode('message')

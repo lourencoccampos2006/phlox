@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
+import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
   title: 'Medicamentos a evitar em idosos — critérios Beers | Phlox',
@@ -17,6 +18,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostBeers() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <ArticleSchema slug="medicamentos-idosos-lista-beers" headline="Medicamentos a evitar em idosos — critérios Beers" description="A lista dos medicamentos potencialmente inapropriados depois dos 65 anos (Beers/STOPP): benzodiazepinas, anticolinérgicos, AINEs e alternativas." datePublished="2026-03-01" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>

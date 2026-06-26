@@ -1,0 +1,148 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - article [ref=e13]:
+    - generic [ref=e14]:
+      - link "Blog" [ref=e15] [cursor=pointer]:
+        - /url: /blog
+      - generic [ref=e16]: ·
+      - generic [ref=e17]: Guia prático
+    - generic [ref=e18]:
+      - generic [ref=e19]: GUIA PRÁTICO
+      - heading "Como ler uma receita médica em Portugal" [level=1] [ref=e20]
+      - paragraph [ref=e21]: A receita eletrónica do SNS tem várias informações que muita gente não percebe — e isso leva a tomar mal os medicamentos. Este guia explica, parte a parte, o que cada coisa quer dizer.
+      - generic [ref=e22]:
+        - generic [ref=e23]: Atualizado em Junho de 2026
+        - generic [ref=e24]: ·
+        - generic [ref=e25]: 7 min de leitura
+    - generic [ref=e26]:
+      - heading "A receita já não é em papel — é uma SMS ou um papel com códigos" [level=2] [ref=e27]
+      - paragraph [ref=e28]:
+        - text: Desde 2016 que quase todas as receitas em Portugal são
+        - strong [ref=e29]: eletrónicas (a chamada receita sem papel)
+        - text: ". O médico passa a receita no computador e você recebe a informação de três formas possíveis: por"
+        - strong [ref=e30]: SMS
+        - text: ", por"
+        - strong [ref=e31]: email
+        - text: ", ou num papel chamado"
+        - emphasis [ref=e32]: guia de tratamento
+        - text: . Em qualquer dos casos, o que interessa para levantar os medicamentos são três códigos.
+      - heading "Os três códigos que a farmácia precisa" [level=2] [ref=e33]
+      - list [ref=e34]:
+        - listitem [ref=e35]:
+          - strong [ref=e36]: Número da receita
+          - text: — uma sequência longa (19 dígitos) que identifica a receita.
+        - listitem [ref=e37]:
+          - strong [ref=e38]: Código de dispensa (ou de acesso)
+          - text: — 6 dígitos. É o que "abre" a receita na farmácia.
+        - listitem [ref=e39]:
+          - strong [ref=e40]: Código de direito de opção
+          - text: — 4 dígitos. Só é usado se quiser escolher uma marca específica em vez do genérico.
+      - paragraph [ref=e41]:
+        - text: Se recebeu a receita por SMS, estes números estão todos lá. Não precisa de levar papel nenhum — basta mostrar a SMS ou dizer os códigos. Guarde a mensagem até levantar tudo, porque uma receita pode dar para
+        - strong [ref=e42]: várias dispensas
+        - text: (por exemplo, medicação crónica para 3 meses, levantada mês a mês).
+      - paragraph [ref=e44]:
+        - strong [ref=e45]: "Dica:"
+        - text: se perder a SMS, a farmácia consegue, com o seu cartão de cidadão e número de utente, aceder à receita na maioria dos casos. Não fica sem a medicação por ter apagado a mensagem.
+      - 'heading "DCI: porque é que o nome na receita não é o da caixa" [level=2] [ref=e46]'
+      - paragraph [ref=e47]:
+        - text: Quase de certeza já reparou que o nome na receita não bate certo com o nome da caixa que trouxe da farmácia. Isto é normal e é por uma boa razão. A receita é passada pela
+        - strong [ref=e48]: DCI — Denominação Comum Internacional
+        - text: ", que é o nome da"
+        - emphasis [ref=e49]: substância ativa
+        - text: ", não da marca."
+      - paragraph [ref=e50]:
+        - text: "Por exemplo: a receita diz"
+        - strong [ref=e51]: "\"paracetamol 1000 mg\""
+        - text: . Na farmácia, isso pode ser dispensado como
+        - emphasis [ref=e52]: Ben-u-ron
+        - text: ","
+        - emphasis [ref=e53]: Panasorbe
+        - text: ", ou um genérico — todos têm a mesma substância. O médico receita a substância; você (ou o farmacêutico) escolhe a marca, normalmente a mais barata. Por lei, a farmácia tem de lhe oferecer um dos genéricos mais baratos disponíveis."
+      - 'heading "A posologia: o que significa \"1 + 0 + 1\"" [level=2] [ref=e54]'
+      - paragraph [ref=e55]:
+        - text: A parte mais importante — e a que mais se percebe mal — é a
+        - strong [ref=e56]: posologia
+        - text: ": quantos comprimidos tomar e quando. Em Portugal vê muitas vezes um formato de três (ou quatro) números separados:"
+      - generic [ref=e57]:
+        - generic [ref=e58]: 1 + 0 + 1
+        - paragraph [ref=e59]:
+          - text: "Lê-se da esquerda para a direita ao longo do dia:"
+          - strong [ref=e60]: 1 ao pequeno-almoço
+          - text: ","
+          - strong [ref=e61]: 0 ao almoço
+          - text: ","
+          - strong [ref=e62]: 1 ao jantar
+          - text: . Ou seja, dois comprimidos por dia, um de manhã e um à noite.
+      - paragraph [ref=e63]:
+        - text: "Se vir quatro números (ex.:"
+        - strong [ref=e64]: 1+1+1+1
+        - text: ), o quarto costuma ser o
+        - strong [ref=e65]: deitar
+        - text: ". \"Em SOS\" ou \"se necessário\" significa tomar só quando tem o sintoma (por exemplo, dor), não de forma fixa. Se a receita diz \"de 8 em 8 horas\", divida o dia em três: por exemplo 8h, 16h, 24h."
+      - 'heading "Comparticipação: porque é que o preço muda" [level=2] [ref=e66]'
+      - paragraph [ref=e67]:
+        - text: O Estado paga uma parte de muitos medicamentos — é a
+        - strong [ref=e68]: comparticipação
+        - text: . A percentagem depende do escalão do medicamento e do seu caso (há um regime especial para pensionistas com baixos rendimentos). Por isso o mesmo medicamento pode custar-lhe valores diferentes de outra pessoa. Na receita, se houver a sigla
+        - strong [ref=e69]: "\"R\""
+        - text: ou
+        - strong [ref=e70]: "\"O\""
+        - text: junto ao medicamento, indica regimes especiais de comparticipação — não é erro.
+      - 'heading "Validade: a receita não dura para sempre" [level=2] [ref=e71]'
+      - paragraph [ref=e72]:
+        - text: Uma receita normal é válida por
+        - strong [ref=e73]: 30 dias
+        - text: . As receitas de medicação crónica (renováveis) podem valer até
+        - strong [ref=e74]: 6 meses
+        - text: ", com várias vias para levantar ao longo desse tempo. Se passar da validade, tem de pedir nova receita — não é preciso consulta em muitos casos, basta contactar o centro de saúde."
+      - heading "Erros comuns a evitar" [level=2] [ref=e75]
+      - list [ref=e76]:
+        - listitem [ref=e77]: Parar um antibiótico quando se sente melhor — deve completar sempre o ciclo indicado.
+        - listitem [ref=e78]: Assumir que "comprimido" e "cápsula" são iguais em dose — confirme sempre os mg.
+        - listitem [ref=e79]: "Tomar dois medicamentos com a mesma substância sem saber (ex.: paracetamol num analgésico e noutro para a constipação) — pode levar a uma sobredosagem sem dar conta."
+    - generic [ref=e80]:
+      - generic [ref=e81]: Não percebe a sua receita ou a caixa?
+      - paragraph [ref=e82]: Fotografe a receita ou a caixa no Phlox e ele explica, em palavras simples, para que serve cada medicamento e como o tomar.
+      - link "Experimentar grátis →" [ref=e83] [cursor=pointer]:
+        - /url: /login
+    - paragraph [ref=e85]: "Artigo informativo. Não substitui o aconselhamento do seu médico ou farmacêutico. Em caso de dúvida sobre uma receita, fale com a farmácia onde a levanta. Base: SNS, INFARMED, SPMS."
+  - contentinfo [ref=e86]:
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - link "Phlox" [ref=e90] [cursor=pointer]:
+            - /url: /
+            - img [ref=e92]
+            - generic [ref=e94]: Phlox
+          - paragraph [ref=e95]: A sua saúde, e a de quem cuida, num só sítio. Feito em português, para Portugal.
+        - navigation [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]: Phlox
+            - link "Planos" [ref=e99] [cursor=pointer]:
+              - /url: /pricing
+            - link "Centro de Dia" [ref=e100] [cursor=pointer]:
+              - /url: /centro-de-dia
+            - link "Blog" [ref=e101] [cursor=pointer]:
+              - /url: /blog
+          - generic [ref=e102]:
+            - generic [ref=e103]: Ajuda
+            - link "Suporte" [ref=e104] [cursor=pointer]:
+              - /url: mailto:suporte@phloxclinical.com
+            - link "Contacto" [ref=e105] [cursor=pointer]:
+              - /url: mailto:info@phloxclinical.com
+          - generic [ref=e106]:
+            - generic [ref=e107]: Legal
+            - link "Termos" [ref=e108] [cursor=pointer]:
+              - /url: /terms
+            - link "Privacidade" [ref=e109] [cursor=pointer]:
+              - /url: /privacy
+      - generic [ref=e110]:
+        - generic [ref=e111]: © 2026 Phlox · Dados alojados na União Europeia
+        - generic [ref=e112]: Informação educativa. Não substitui o seu médico ou farmacêutico.
+  - button "Open Next.js Dev Tools" [ref=e118] [cursor=pointer]:
+    - img [ref=e119]

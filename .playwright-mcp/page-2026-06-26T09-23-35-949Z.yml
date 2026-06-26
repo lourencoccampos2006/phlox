@@ -1,0 +1,95 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: Guias práticos
+      - heading "Saúde e medicação, explicadas em português." [level=1] [ref=e15]
+      - paragraph [ref=e16]: A maior parte da informação sobre medicamentos online é confusa, em inglês, ou escrita para profissionais. Aqui não. Estes guias explicam o que precisa de saber sobre a sua medicação — e a de quem cuida — em linguagem simples, sem alarmismo e sem rodeios.
+      - paragraph [ref=e17]: Cada guia é baseado em fontes oficiais (INFARMED, EMA, FDA) e revisto para o contexto português — os nomes de marca que se vendem cá, as regras do SNS, o que faz sentido na nossa realidade. Não substituem o seu médico ou farmacêutico; ajudam a ir ter com eles a saber o que perguntar.
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - heading "Interações e segurança" [level=2] [ref=e20]
+        - paragraph [ref=e21]: A maior parte dos problemas com medicamentos em casa não vem de um medicamento isolado, mas da combinação de vários — sobretudo em quem toma medicação crónica. Estes guias explicam as combinações que mais importam, porquê, e o que fazer.
+      - generic [ref=e22]:
+        - link "As 10 interações mais comuns em Portugal As combinações que causam mais internamentos. Mecanismo, risco e alternativas. Ler →" [ref=e23] [cursor=pointer]:
+          - /url: /blog/interacoes-comuns-a-evitar
+          - generic [ref=e24]:
+            - generic [ref=e25]: As 10 interações mais comuns em Portugal
+            - generic [ref=e26]: As combinações que causam mais internamentos. Mecanismo, risco e alternativas.
+            - generic [ref=e27]: Ler →
+        - link "Posso tomar ibuprofeno com varfarina? A combinação mais perigosa dos domicílios portugueses. Ler →" [ref=e28] [cursor=pointer]:
+          - /url: /blog/ibuprofeno-varfarina
+          - generic [ref=e29]:
+            - generic [ref=e30]: Posso tomar ibuprofeno com varfarina?
+            - generic [ref=e31]: A combinação mais perigosa dos domicílios portugueses.
+            - generic [ref=e32]: Ler →
+        - link "Hipericão — as interações que ninguém conta \"Natural\" não quer dizer inofensivo. O caso da erva de São João. Ler →" [ref=e33] [cursor=pointer]:
+          - /url: /blog/hipericao-medicamentos
+          - generic [ref=e34]:
+            - generic [ref=e35]: Hipericão — as interações que ninguém conta
+            - generic [ref=e36]: "\"Natural\" não quer dizer inofensivo. O caso da erva de São João."
+            - generic [ref=e37]: Ler →
+        - link "Metformina e álcool — o que acontece Risco de acidose láctica e o que dizer a quem é diabético. Ler →" [ref=e38] [cursor=pointer]:
+          - /url: /blog/metformina-alcool
+          - generic [ref=e39]:
+            - generic [ref=e40]: Metformina e álcool — o que acontece
+            - generic [ref=e41]: Risco de acidose láctica e o que dizer a quem é diabético.
+            - generic [ref=e42]: Ler →
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - heading "Cuidar de quem precisa" [level=2] [ref=e45]
+        - paragraph [ref=e46]: Quem cuida de um pai, mãe ou avó muitas vezes herda uma caixa de medicamentos sem manual. Estes guias dão sistemas simples e seguros para não falhar, trocar nem repetir tomas — e para saber quando vale a pena preocupar-se.
+      - generic [ref=e47]:
+        - link "Como organizar a medicação de um idoso em casa Um sistema simples para nunca falhar uma toma. Caixa semanal, gatilhos e lembretes. Ler →" [ref=e48] [cursor=pointer]:
+          - /url: /blog/organizar-medicacao-idoso
+          - generic [ref=e49]:
+            - generic [ref=e50]: Como organizar a medicação de um idoso em casa
+            - generic [ref=e51]: Um sistema simples para nunca falhar uma toma. Caixa semanal, gatilhos e lembretes.
+            - generic [ref=e52]: Ler →
+        - link "Sinais de desidratação em idosos O que vigiar, quanto deve beber e quando é urgente. Ler →" [ref=e53] [cursor=pointer]:
+          - /url: /blog/sinais-desidratacao-idosos
+          - generic [ref=e54]:
+            - generic [ref=e55]: Sinais de desidratação em idosos
+            - generic [ref=e56]: O que vigiar, quanto deve beber e quando é urgente.
+            - generic [ref=e57]: Ler →
+        - link "Medicamentos a evitar em idosos (Critérios Beers) A lista dos medicamentos potencialmente inapropriados depois dos 65, com alternativas. Ler →" [ref=e58] [cursor=pointer]:
+          - /url: /blog/medicamentos-idosos-lista-beers
+          - generic [ref=e59]:
+            - generic [ref=e60]: Medicamentos a evitar em idosos (Critérios Beers)
+            - generic [ref=e61]: A lista dos medicamentos potencialmente inapropriados depois dos 65, com alternativas.
+            - generic [ref=e62]: Ler →
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - heading "Doses e situações especiais" [level=2] [ref=e65]
+        - paragraph [ref=e66]: "A dose certa depende da pessoa: o peso de uma criança, a função do rim, a gravidez. Estes guias mostram como pensar a dose com segurança e quando não há margem para tentativa e erro."
+      - generic [ref=e67]:
+        - link "Dose de paracetamol para crianças (por peso) Tabela por peso e idade, e quando ir ao médico com urgência. Ler →" [ref=e68] [cursor=pointer]:
+          - /url: /blog/dose-paracetamol-crianca
+          - generic [ref=e69]:
+            - generic [ref=e70]: Dose de paracetamol para crianças (por peso)
+            - generic [ref=e71]: Tabela por peso e idade, e quando ir ao médico com urgência.
+            - generic [ref=e72]: Ler →
+        - link "Antibióticos na gravidez — guia por categoria Quais são seguros, quais são proibidos, e quando o benefício supera o risco. Ler →" [ref=e73] [cursor=pointer]:
+          - /url: /blog/antibioticos-em-gravidez
+          - generic [ref=e74]:
+            - generic [ref=e75]: Antibióticos na gravidez — guia por categoria
+            - generic [ref=e76]: Quais são seguros, quais são proibidos, e quando o benefício supera o risco.
+            - generic [ref=e77]: Ler →
+        - link "Ajustar a dose na insuficiência renal Fórmulas, os fármacos que mais requerem ajuste, e como calcular. Ler →" [ref=e78] [cursor=pointer]:
+          - /url: /blog/ajuste-dose-insuficiencia-renal
+          - generic [ref=e79]:
+            - generic [ref=e80]: Ajustar a dose na insuficiência renal
+            - generic [ref=e81]: Fórmulas, os fármacos que mais requerem ajuste, e como calcular.
+            - generic [ref=e82]: Ler →
+    - generic [ref=e83]:
+      - generic [ref=e84]: Tem uma dúvida sobre a sua medicação?
+      - paragraph [ref=e85]: O Phlox verifica interações, explica bulas e análises e organiza a medicação de toda a família. Comece grátis, sem instalar nada.
+      - link "Criar conta grátis →" [ref=e86] [cursor=pointer]:
+        - /url: /login
+  - button "Open Next.js Dev Tools" [ref=e92] [cursor=pointer]:
+    - img [ref=e93]
+  - alert [ref=e96]

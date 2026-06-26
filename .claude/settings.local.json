@@ -161,7 +161,21 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/)",
       "Bash(tail -4 /tmp/phlox-dev.log 2>/dev/null)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/ 2>/dev/null || echo \"dev down\"; tail -3 /tmp/phlox-dev.log 2>/dev/null)",
-      "WebFetch(domain:css-tricks.com)"
+      "WebFetch(domain:css-tricks.com)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 40; \"TSC_EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 40; \"TSC_EXIT=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 15; \"VOCAB_EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 30; \"TSC_EXIT=$LASTEXITCODE\")",
+      "mcp__plugin_playwright_playwright__browser_select_option",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC_EXIT=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 20; \"VOCAB_EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC_EXIT=$LASTEXITCODE\")",
+      "PowerShell(node scripts/check-vocab.mjs 2>&1 | Select-Object -First 40; \"VOCAB_EXIT=$LASTEXITCODE\")",
+      "PowerShell(node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 25; \"VOCAB_EXIT=$LASTEXITCODE\")",
+      "Bash(cd /c/Users/Fernando/phlox/supabase && grep -l \"org_id\" sprint*.sql SETUP_CLINICO.sql 2>/dev/null | head; echo \"---- patients table def ----\"; grep -rn \"create table.*patients\\\\|alter table.*patients\\\\|patients.*org_id\\\\|org_id\" SETUP_CLINICO.sql sprint68_patients_org.sql 2>/dev/null | head -20)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 25; \"TSC_EXIT=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 6; \"VOCAB=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 15; \"TSC=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 25; \"TSC=$LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC=$LASTEXITCODE\")"
     ]
   }
 }

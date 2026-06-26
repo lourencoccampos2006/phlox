@@ -15,6 +15,12 @@ import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { getPins } from '@/lib/pinnedTools'
 import { getTopTools } from '@/lib/userPersona'
 import { ALL_PERSONAS, personaFor } from '@/lib/userPersona'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { blueprintFor } from '@/lib/institutionBlueprint'
+import { institutionConfig } from '@/lib/institutionConfig'
+import { useOrgScope } from '@/lib/orgScope'
+import { useLiveData } from '@/lib/useLiveData'
+import { useCallback } from 'react'
 
 // ─── /inicio reescrito 2026-06-24 — VIVO e por modo ────────────────────────────
 // O Phlox antecipa-se: lê a medicação de hoje, a próxima consulta, os vitais e o
@@ -438,24 +444,79 @@ function ClinicalPaywall({ plan }: { plan: string }) {
 }
 
 // ─── Modo clínico: hub premium escuro ───────────────────────────────────────────
+// Hub clínico VIVO e por instituição. Lê do blueprint (vocabulário e ferramentas
+// certas para o tipo) e mostra um resumo do dia em tempo real (org-scoped), em vez
+// de uma lista estática genérica. O cockpit completo fica a um toque.
 function ClinicalHub({ name }: { name: string }) {
+  const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
+  const scope = useOrgScope()
   const t = modeTheme('clinical')
-  const TOOLS = [
-    { href: '/painel', icon: 'grid', title: 'Painel', desc: 'O dia da instituição, ao vivo' },
-    { href: '/turno', icon: 'calendar', title: 'Turno', desc: 'Utentes, doses e alertas' },
-    { href: '/patients', icon: 'family', title: 'Doentes', desc: 'Fichas, medicação, alertas' },
-    { href: '/rounds', icon: 'check', title: 'Ronda', desc: 'PCNE · intervenções' },
-    { href: '/mar', icon: 'pill', title: 'Administração (MAR)', desc: 'Registo por turno' },
-    { href: '/oracle', icon: 'spark', title: 'Oracle', desc: 'SOAP · PCNE · plano' },
+  const bp = blueprintFor(institution)
+  const cfg = institutionConfig(institution)
+  const today = new Date().toISOString().slice(0, 10)
+
+  const [snap, setSnap] = useState<{ people: number; logged: number; doses: number; alerts: number } | null>(null)
+
+  const load = useCallback(async () => {
+    if (!user) return
+    const [p, care, mar, inc] = await Promise.all([
+      scope.filter(supabase.from('patients').select('id', { count: 'exact', head: true }).eq('active', true)),
+      scope.filter(supabase.from('care_records').select('patient_id')).eq('date', today),
+      scope.filter(supabase.from('mar_records').select('status')).eq('date', today),
+      scope.filter(supabase.from('incidents').select('id', { count: 'exact', head: true }).eq('status', 'open')),
+    ])
+    const logged = new Set((care.data || []).map((r: any) => r.patient_id)).size
+    const doses = (mar.data || []).filter((m: any) => m.status === 'administered' || m.status === 'taken' || m.status === 'given').length
+    setSnap({ people: p.count || 0, logged, doses, alerts: inc.count || 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
+
+  useEffect(() => { load() }, [load])
+  useLiveData({ supabase, userId: user?.id, table: ['patients', 'care_records', 'mar_records', 'incidents'], filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
+
+  const firstName = name
+  const greetLead = bp.greetingLead(firstName)
+  // ações = núcleo do blueprint (já com vocabulário certo) + atalhos transversais
+  const actions = [
+    { href: '/painel', icon: 'grid', title: 'Abrir o painel', desc: `${bp.productName} ao vivo` },
+    ...bp.coreTools.map(tool => ({ href: tool.href, icon: iconForTool(tool.icon), title: tool.label, desc: tool.hint })),
   ]
+
+  const stats = snap ? [
+    { n: snap.people, l: cfg.personNounPlural },
+    { n: snap.logged, l: 'com registo hoje' },
+    { n: snap.doses, l: 'tomas dadas' },
+    { n: snap.alerts, l: 'a vigiar', alert: snap.alerts > 0 },
+  ] : []
+
   return (
     <div style={{ minHeight: '100vh', background: t.pageBg, fontFamily: 'var(--font-sans)', color: t.ink }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '26px 16px 40px' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.inkFaint, marginBottom: 6 }}>Espaço clínico</div>
-        <h1 style={{ fontSize: 'clamp(24px,4vw,30px)', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em', color: t.ink }}>Bom trabalho{name ? `, ${name}` : ''}.</h1>
-        <p style={{ color: t.inkSoft, fontSize: 14, marginBottom: 22 }}>Por onde quer começar hoje?</p>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '26px 16px 44px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: bp.accent, fontWeight: 700, marginBottom: 6 }}>{bp.productName}</div>
+        <h1 style={{ fontSize: 'clamp(24px,4vw,30px)', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em', color: t.ink }}>{greetLead}</h1>
+        <p style={{ color: t.inkSoft, fontSize: 14, marginBottom: 20 }}>{bp.tagline}</p>
+
+        {/* Resumo do dia — ao vivo */}
+        <Link href="/painel" style={{ display: 'block', textDecoration: 'none', background: t.surface, border: `1px solid ${t.border}`, borderRadius: t.radius, padding: '16px 18px', marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>O dia de hoje</div>
+          {!snap ? (
+            <div style={{ color: t.inkFaint, fontSize: 13 }}>A carregar…</div>
+          ) : (
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              {stats.map(s => (
+                <div key={s.l}>
+                  <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1, color: (s as any).alert ? '#f87171' : t.ink }}>{s.n}</div>
+                  <div style={{ fontSize: 11.5, color: t.inkFaint, marginTop: 4, fontWeight: 600 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Link>
+
+        <div style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 11, paddingLeft: 2 }}>Por onde começar</div>
         <div className="clin-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-          {TOOLS.map(tool => (
+          {actions.map(tool => (
             <Link key={tool.href} href={tool.href} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 13, background: t.surface, border: `1px solid ${t.border}`, borderRadius: t.radius, padding: 15 }}>
               <span style={{ width: 42, height: 42, borderRadius: 12, background: t.accentSoft, color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={tool.icon} size={22} /></span>
               <span style={{ minWidth: 0 }}>
@@ -469,4 +530,13 @@ function ClinicalHub({ name }: { name: string }) {
       </div>
     </div>
   )
+}
+
+// Mapeia o emoji do blueprint para um ícone do nosso set (fallback p/ grid).
+function iconForTool(emoji: string): string {
+  const map: Record<string, string> = {
+    '🧑‍🤝‍🧑': 'family', '💊': 'pill', '📝': 'book', '👨‍👩‍👧': 'family', '🔄': 'spark',
+    '⚠️': 'shield', '📐': 'check', '🩺': 'check', '🏪': 'grid', '📦': 'grid', '🔍': 'search', '📅': 'calendar',
+  }
+  return map[emoji] || 'grid'
 }

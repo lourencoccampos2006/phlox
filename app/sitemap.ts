@@ -16,11 +16,19 @@ const BLOG_SLUGS = [
   'ajuste-dose-insuficiencia-renal',
   'organizar-medicacao-idoso',
   'sinais-desidratacao-idosos',
+  'como-ler-receita-medica',
+  'medicamentos-sem-receita-cuidados',
+  'como-guardar-medicamentos-casa',
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
 
+  // IMPORTANTE p/ AdSense: só pomos no sitemap páginas que ao Googlebot têm
+  // CONTEÚDO REAL em HTML (renderizadas no servidor, com texto). As ferramentas
+  // (/interactions, /ai, /calculators...) são apps 'use client' — ao crawler
+  // aparecem quase vazias, e isso conta como "thin content". Por isso ficam de
+  // fora do sitemap (continuam acessíveis, só não as anunciamos como conteúdo).
   const corePages: Array<{
     url: string
     priority: number
@@ -28,18 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }> = [
     { url: '/',              priority: 1.0, changeFrequency: 'weekly' },
     { url: '/blog',          priority: 0.9, changeFrequency: 'weekly' },
-    { url: '/interactions',  priority: 0.9, changeFrequency: 'monthly' },
-    { url: '/ai',            priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/calculators',   priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/centro-de-dia', priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/aprender',      priority: 0.6, changeFrequency: 'monthly' },
+    { url: '/guias',         priority: 0.8, changeFrequency: 'monthly' },
+    { url: '/centro-de-dia', priority: 0.7, changeFrequency: 'monthly' },
     { url: '/about',         priority: 0.5, changeFrequency: 'yearly' },
     { url: '/pricing',       priority: 0.5, changeFrequency: 'monthly' },
-    { url: '/trust',         priority: 0.4, changeFrequency: 'yearly' },
-    { url: '/seguranca',     priority: 0.4, changeFrequency: 'yearly' },
     { url: '/privacy',       priority: 0.3, changeFrequency: 'yearly' },
     { url: '/terms',         priority: 0.3, changeFrequency: 'yearly' },
-    { url: '/login',         priority: 0.3, changeFrequency: 'yearly' },
   ]
 
   const blogPages = BLOG_SLUGS.map(slug => ({

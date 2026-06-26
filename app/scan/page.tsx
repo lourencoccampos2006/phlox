@@ -188,18 +188,53 @@ function ScanTool() {
   const hasValues = (res?.values?.length || 0) > 0
 
   return (
-    <main style={{ padding: '20px clamp(14px,4vw,32px)', maxWidth: 720, margin: '0 auto' }}>
-      <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8b8f99' }}>Phlox Scan</div>
-      <h1 style={{ margin: '4px 0 6px', fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Uma foto. O Phlox percebe.</h1>
-      <p style={{ color: '#6b7280', fontSize: 14.5, lineHeight: 1.6, marginBottom: 18 }}>Tire foto a <b>qualquer coisa de saúde</b> — receita, caixa de comprimidos, análise, relatório ou bula. O Phlox percebe o que é e explica de forma simples. Em segundos.</p>
+    <main style={{ padding: '24px clamp(14px,4vw,32px) 60px', maxWidth: 680, margin: '0 auto' }}>
+      {/* Cabeçalho editorial */}
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-5)' }}>Phlox Scan</div>
+      <h1 style={{ margin: '6px 0 8px', fontSize: 'clamp(24px,5vw,34px)', fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Uma foto. E o Phlox percebe.</h1>
+      <p style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.65, marginBottom: 22, maxWidth: 540 }}>
+        Tire uma foto a qualquer coisa de saúde. O Phlox percebe o que é e explica em palavras simples — em segundos, sem escrever nada.
+      </p>
+
+      {/* O que pode fotografar — orienta antes da 1ª foto */}
+      {!res && !busy && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          {[
+            { i: '📋', t: 'Receita' },
+            { i: '💊', t: 'Caixa de comprimidos' },
+            { i: '🩸', t: 'Análise' },
+            { i: '📄', t: 'Relatório' },
+            { i: '📑', t: 'Bula' },
+          ].map(c => (
+            <span key={c.t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 12px' }}>
+              <span style={{ fontSize: 14 }}>{c.i}</span>{c.t}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Upload — foto (câmara/galeria) OU documento (PDF/Word) */}
-      <div onClick={() => fileRef.current?.click()} style={{ border: `1.5px dashed ${ACCENT}`, borderRadius: 14, padding: 26, textAlign: 'center', cursor: 'pointer', background: '#f0fdf5' }}>
-        <div style={{ fontSize: 34, marginBottom: 6 }}>📷</div>
-        <div style={{ fontWeight: 700, color: ACCENT }}>{busy || 'Tirar foto ou escolher ficheiro'}</div>
-        <div style={{ fontSize: 12, color: '#8b8f99', marginTop: 2 }}>Receita · caixa · análise · relatório · bula — câmara, galeria, PDF ou Word</div>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={!!busy}
+        className="scan-drop"
+        style={{
+          width: '100%', display: 'block', textAlign: 'center', cursor: busy ? 'wait' : 'pointer',
+          border: `1.5px dashed ${busy ? 'var(--ink-5)' : ACCENT}`, borderRadius: 16,
+          padding: '34px 20px', background: busy ? 'var(--bg-2)' : 'rgba(13,110,66,0.05)',
+          transition: 'background 0.15s, border-color 0.15s', fontFamily: 'inherit',
+        }}>
+        <div style={{
+          width: 56, height: 56, margin: '0 auto 12px', borderRadius: 14,
+          background: busy ? 'var(--bg-3, #eceae4)' : ACCENT,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+        }}>{busy ? '⏳' : '📷'}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: busy ? 'var(--ink-3)' : ACCENT }}>{busy || 'Tirar foto ou escolher ficheiro'}</div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 4 }}>Câmara, galeria, PDF ou Word</div>
         <input ref={fileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onFile} style={{ display: 'none' }} />
-      </div>
+      </button>
+      <style>{`.scan-drop:not(:disabled):hover { background: rgba(13,110,66,0.09) !important; }`}</style>
 
       {err === 'limit'
         ? <UpgradeNudge used={scanUsage.used} limit={scanUsage.limit} what="fotos no Phlox Scan" plan="pro" />

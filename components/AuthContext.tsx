@@ -36,6 +36,7 @@ type User = {
   onboarded: boolean
   org_id: string | null
   org_role: 'owner' | 'admin' | 'member' | null
+  active_org_id: string | null
 }
 
 type AuthContextType = {
@@ -134,11 +135,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           onboarded: false,
           org_id: null,
           org_role: null,
+          active_org_id: null,
           created_at: new Date().toISOString(),
         }
         const { error: insertError } = await supabase.from('profiles').insert(newProfile)
         if (insertError) console.error('Profile insert error:', insertError.message)
         setUser(newProfile)
+        // Conta nova → email de boas-vindas (best-effort, idempotente no servidor).
+        // Não bloqueia o login; falha em silêncio se o Resend não estiver pronto.
+        try {
+          const tok = (await supabase.auth.getSession()).data.session?.access_token
+          if (tok) {
+            fetch('/api/email/welcome', { method: 'POST', headers: { Authorization: `Bearer ${tok}` } }).catch(() => {})
+          }
+        } catch {}
       } else {
         setUser({
           id: data.id,
@@ -155,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           onboarded: data.onboarded || false,
           org_id: data.org_id || null,
           org_role: data.org_role || null,
+          active_org_id: data.active_org_id || data.org_id || null,
         })
       }
     } catch (e: any) {

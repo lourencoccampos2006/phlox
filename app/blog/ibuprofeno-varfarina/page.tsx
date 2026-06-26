@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import AdBanner from '@/components/AdBanner'
+import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
   title: 'Posso tomar ibuprofeno com varfarina? — Phlox',
@@ -15,8 +16,7 @@ export const metadata: Metadata = {
 export default function PostIbuprofenWarfarin() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-
+      <ArticleSchema slug="ibuprofeno-varfarina" headline="Posso tomar ibuprofeno com varfarina?" description="Ibuprofeno e varfarina juntos podem causar hemorragia grave. Mecanismo, risco real e alternativas seguras." datePublished="2025-11-22" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
 
         {/* Breadcrumb */}

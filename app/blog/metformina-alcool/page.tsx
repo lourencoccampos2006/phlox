@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
+import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
   title: 'Metformina e álcool — o que realmente acontece | Phlox',
@@ -17,6 +18,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostMetforminaAlcool() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <ArticleSchema slug="metformina-alcool" headline="Metformina e álcool — o que realmente acontece" description="O risco real de juntar metformina e bebida: acidose láctica e hipoglicemia, quanto é demasiado, e o que dizer ao médico." datePublished="2026-02-01" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>

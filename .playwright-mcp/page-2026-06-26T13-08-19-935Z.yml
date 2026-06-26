@@ -1,0 +1,71 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - banner [ref=e13]:
+      - link "O seu Centro de Dia" [ref=e14] [cursor=pointer]:
+        - /url: /painel
+        - generic [ref=e15]: O seu Centro de Dia
+      - generic [ref=e16]: sexta-feira, 26 de junho
+      - generic [ref=e17]:
+        - button [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+        - link "Q" [ref=e22] [cursor=pointer]:
+          - /url: /settings
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - link "Phlox O seu Centro de Dia" [ref=e25] [cursor=pointer]:
+          - /url: /painel
+          - generic [ref=e26]: Phlox
+          - generic [ref=e27]: O seu Centro de Dia
+        - link "🏠 Painel" [ref=e28] [cursor=pointer]:
+          - /url: /painel
+          - generic [ref=e29]: 🏠
+          - text: Painel
+        - navigation [ref=e30]:
+          - link "🧑‍🤝‍🧑 Utentes" [ref=e31] [cursor=pointer]:
+            - /url: /patients
+            - generic [ref=e32]: 🧑‍🤝‍🧑
+            - generic [ref=e33]: Utentes
+          - link "💊 Medicação a dar" [ref=e34] [cursor=pointer]:
+            - /url: /mar
+            - generic [ref=e35]: 💊
+            - generic [ref=e36]: Medicação a dar
+          - link "📝 Registo do dia" [ref=e37] [cursor=pointer]:
+            - /url: /care-log
+            - generic [ref=e38]: 📝
+            - generic [ref=e39]: Registo do dia
+          - link "👨‍👩‍👧 Famílias" [ref=e40] [cursor=pointer]:
+            - /url: /family
+            - generic [ref=e41]: 👨‍👩‍👧
+            - generic [ref=e42]: Famílias
+          - link "🔄 Conferir medicação" [ref=e43] [cursor=pointer]:
+            - /url: /reconciliacao
+            - generic [ref=e44]: 🔄
+            - generic [ref=e45]: Conferir medicação
+        - button "Mais ferramentas ⌄" [ref=e47] [cursor=pointer]:
+          - text: Mais ferramentas
+          - generic [ref=e48]: ⌄
+      - main [ref=e49]:
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - generic [ref=e53]:
+              - generic [ref=e54]: Utentes
+              - heading "1 utente" [level=1] [ref=e76]
+            - generic [ref=e56]:
+              - button "↑ Importar" [ref=e57] [cursor=pointer]
+              - button "+ Novo utente" [ref=e58] [cursor=pointer]
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - img [ref=e61]
+              - textbox "Procurar utente ou diagnóstico…" [ref=e64]
+            - generic [ref=e65]:
+              - button "Todos · 1" [ref=e77] [cursor=pointer]
+              - button "Com alertas" [ref=e67] [cursor=pointer]
+              - button "Polimedicados" [ref=e68] [cursor=pointer]
+              - button "Sem registo hoje" [active] [ref=e69] [cursor=pointer]
+          - generic [ref=e70]:
+            - generic [ref=e91]: Nenhum utente corresponde ao filtro.
+            - button "Limpar" [ref=e92] [cursor=pointer]
+  - button "Abrir Phlox Copilot" [ref=e75]: ✦

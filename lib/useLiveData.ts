@@ -16,16 +16,23 @@ interface Opts {
   userId?: string | null
   onChange: () => void
   enabled?: boolean
+  // Coluna/valor de filtro do realtime. Por defeito user_id=userId (conta
+  // individual). Numa organização, passar filterColumn='org_id' + filterValue=orgId
+  // faz o realtime disparar quando QUALQUER membro da equipa altera dados.
+  filterColumn?: 'user_id' | 'org_id'
+  filterValue?: string | null
 }
 
-export function useLiveData({ supabase, table, userId, onChange, enabled = true }: Opts) {
+export function useLiveData({ supabase, table, userId, onChange, enabled = true, filterColumn, filterValue }: Opts) {
   const cb = useRef(onChange)
   cb.current = onChange
   const tables = Array.isArray(table) ? table : [table]
   const key = tables.join(',')
+  const col = filterColumn || 'user_id'
+  const val = filterValue ?? userId
 
   useEffect(() => {
-    if (!enabled || !userId || !supabase) return
+    if (!enabled || !val || !supabase) return
     let timer: ReturnType<typeof setTimeout>
     let lastRun = 0
     const fire = (immediate = false) => {
@@ -38,9 +45,9 @@ export function useLiveData({ supabase, table, userId, onChange, enabled = true 
     // 1) Realtime channel (no-op gracioso se a replicação não estiver ativa)
     let channel: any = null
     try {
-      channel = supabase.channel(`live:${key}:${userId}`)
+      channel = supabase.channel(`live:${key}:${col}:${val}`)
       tables.forEach(t => {
-        channel.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: `user_id=eq.${userId}` }, () => fire())
+        channel.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: `${col}=eq.${val}` }, () => fire())
       })
       channel.subscribe()
     } catch { /* realtime indisponível — fallback abaixo trata */ }
@@ -57,5 +64,5 @@ export function useLiveData({ supabase, table, userId, onChange, enabled = true 
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [supabase, userId, enabled, key])
+  }, [supabase, val, col, enabled, key])
 }

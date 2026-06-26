@@ -34,6 +34,7 @@ const CLINICAL_PREFIXES = [
   '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
   '/insights', '/copiloto', '/reach', '/brief', '/calc', '/codes',
   '/guardados', '/calendario',
+  '/equipa', '/painel-dono', '/schedule', '/activities',
   '/farmacia',
   '/traduzir',
   '/aprender', '/study', '/estagio',

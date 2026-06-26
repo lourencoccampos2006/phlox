@@ -93,7 +93,7 @@ export default function SaudeAgoraPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       {/* Hero com botão 112 sempre visível */}
-      <div style={{ background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', padding: '20px 18px 18px' }}>
+      <div style={{ background: '#c62a22', padding: '20px 18px 18px' }}>
         <div className="page-container">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0 }}>

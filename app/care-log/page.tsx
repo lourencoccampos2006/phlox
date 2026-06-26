@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 import RegistoDoDia from './RegistoDoDia'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -76,6 +78,7 @@ function bpFlag(sys?: number, dia?: number) {
 export function CareLogTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
+  const scope = useOrgScope()
   const cfg = institutionConfig(institution)
   const personLower = cfg.personNoun.toLowerCase()
 
@@ -87,6 +90,7 @@ export function CareLogTool() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const sp = useSearchParams()
   const [patientId, setPatientId] = useState('')
   const [date, setDate] = useState(today)
   const [shift, setShift] = useState<Shift>(currentShift())
@@ -126,17 +130,26 @@ export function CareLogTool() {
     if (!user) return
     setLoading(true)
     const [{ data: pats }, { data: recs }] = await Promise.all([
-      supabase.from('patients').select('id,name,age,room_number').eq('user_id', user.id).eq('active', true).order('name'),
-      supabase.from('care_records').select('*').eq('user_id', user.id).order('date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
+      scope.filter(supabase.from('patients').select('id,name,age,room_number')).eq('active', true).order('name'),
+      scope.filter(supabase.from('care_records').select('*')).order('date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
     ])
     setPatients(pats || [])
     setRecords(recs || [])
     setLoading(false)
-  }, [user, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 
-  useLiveData({ supabase, table: ['care_records', 'patients'], userId: user?.id, onChange: load })
+  // Pré-seleciona a pessoa quando se chega via ?patient= (ex.: do cockpit, tocar
+  // num nome "sem registo hoje" abre logo o registo dessa pessoa).
+  useEffect(() => {
+    const pid = sp?.get('patient')
+    if (pid && !patientId && patients.some(p => p.id === pid)) setPatientId(pid)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp, patients])
+
+  useLiveData({ supabase, table: ['care_records', 'patients'], userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   function resetForm() {
     setBpSys(''); setBpDia(''); setHr(''); setTemp(''); setSpo2(''); setGlucose(''); setWeight('')
@@ -167,7 +180,7 @@ export function CareLogTool() {
   async function save() {
     if (!user || !patientId) return
     setSaving(true)
-    const { error } = await supabase.from('care_records').upsert({
+    const { error } = await supabase.from('care_records').upsert(scope.stamp({
       user_id: user.id,
       patient_id: patientId,
       date,
@@ -187,7 +200,7 @@ export function CareLogTool() {
       mood: { level: mood ?? null, activities: activities || null, behavior: behavior || null },
       skin: { integrity: skin || null, description: skinNotes || null },
       notes: notes || null,
-    }, { onConflict: 'patient_id,date,shift' })
+    }), { onConflict: 'patient_id,date,shift' })
 
     setSaving(false)
     if (!error) {
@@ -273,7 +286,7 @@ export function CareLogTool() {
           )
         })}
         <div style={{ flex: 1, minWidth: 120, background: '#f9fafb', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 14px' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Total residentes</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Total {cfg.personNounPlural.toLowerCase()}</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#0b1120', marginTop: 2 }}>{patients.length}</div>
           <div style={{ fontSize: 11, color: '#9ca3af' }}>registados</div>
         </div>

@@ -1,0 +1,258 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e18] [cursor=pointer]:
+    - img [ref=e19]
+  - alert [ref=e22]
+  - generic [ref=e23]:
+    - banner [ref=e24]:
+      - link "O seu Centro de Dia" [ref=e25] [cursor=pointer]:
+        - /url: /painel
+        - generic [ref=e26]: O seu Centro de Dia
+      - generic [ref=e27]: sexta-feira, 26 de junho
+      - generic [ref=e28]:
+        - button [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+        - link "Q" [ref=e33] [cursor=pointer]:
+          - /url: /settings
+    - generic [ref=e34]:
+      - complementary [ref=e35]:
+        - link "Phlox O seu Centro de Dia" [ref=e36] [cursor=pointer]:
+          - /url: /painel
+          - generic [ref=e37]: Phlox
+          - generic [ref=e38]: O seu Centro de Dia
+        - link "🏠 Painel" [ref=e39] [cursor=pointer]:
+          - /url: /painel
+          - generic [ref=e40]: 🏠
+          - text: Painel
+        - navigation [ref=e41]:
+          - link "🧑‍🤝‍🧑 Utentes" [ref=e42] [cursor=pointer]:
+            - /url: /patients
+            - generic [ref=e43]: 🧑‍🤝‍🧑
+            - generic [ref=e44]: Utentes
+          - link "💊 Medicação a dar" [ref=e45] [cursor=pointer]:
+            - /url: /mar
+            - generic [ref=e46]: 💊
+            - generic [ref=e47]: Medicação a dar
+          - link "📝 Registo do dia" [ref=e48] [cursor=pointer]:
+            - /url: /care-log
+            - generic [ref=e49]: 📝
+            - generic [ref=e50]: Registo do dia
+          - link "👨‍👩‍👧 Famílias" [ref=e51] [cursor=pointer]:
+            - /url: /family
+            - generic [ref=e52]: 👨‍👩‍👧
+            - generic [ref=e53]: Famílias
+          - link "🔄 Conferir medicação" [ref=e54] [cursor=pointer]:
+            - /url: /reconciliacao
+            - generic [ref=e55]: 🔄
+            - generic [ref=e56]: Conferir medicação
+        - button "Mais ferramentas ⌄" [ref=e58] [cursor=pointer]:
+          - text: Mais ferramentas
+          - generic [ref=e59]: ⌄
+      - main [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]: Cuidado diário
+              - heading "Registo do dia" [level=1] [ref=e65]
+              - paragraph [ref=e66]: Tudo o que se regista sobre cada utente ao longo do dia, num só sítio.
+            - generic [ref=e67]:
+              - button "📝 Registo" [ref=e68] [cursor=pointer]:
+                - generic [ref=e69]: 📝
+                - text: Registo
+              - button "💧 Hidratação" [ref=e70] [cursor=pointer]:
+                - generic [ref=e71]: 💧
+                - text: Hidratação
+              - button "🎯 Atividades" [ref=e72] [cursor=pointer]:
+                - generic [ref=e73]: 🎯
+                - text: Atividades
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - heading "Registos Diários" [level=1] [ref=e77]
+              - paragraph [ref=e78]: Sinais vitais · Nutrição · Continência · Bem-estar · Pele · Notas
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - generic [ref=e81]: Manhã
+                - generic [ref=e82]: "0"
+                - generic [ref=e83]: registos hoje
+              - generic [ref=e84]:
+                - generic [ref=e85]: Tarde
+                - generic [ref=e86]: "0"
+                - generic [ref=e87]: registos hoje
+              - generic [ref=e88]:
+                - generic [ref=e89]: Noite
+                - generic [ref=e90]: "0"
+                - generic [ref=e91]: registos hoje
+              - generic [ref=e92]:
+                - generic [ref=e93]: Total utentes
+                - generic [ref=e94]: "1"
+                - generic [ref=e95]: registados
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - generic [ref=e98]:
+                  - generic [ref=e99]:
+                    - generic [ref=e100]: "1"
+                    - text: Contexto do registo
+                  - generic [ref=e101]:
+                    - generic [ref=e102]:
+                      - generic [ref=e103]: Utente *
+                      - combobox [ref=e104]:
+                        - option "Selecionar utente..."
+                        - option "João Silva (teste)" [selected]
+                    - generic [ref=e105]:
+                      - generic [ref=e106]: Data
+                      - textbox [ref=e107]: 2026-06-26
+                  - generic [ref=e108]:
+                    - generic [ref=e109]:
+                      - generic [ref=e110]: Turno
+                      - generic [ref=e111]:
+                        - button "Manhã" [ref=e112] [cursor=pointer]
+                        - button "Tarde" [ref=e113] [cursor=pointer]
+                        - button "Noite" [ref=e114] [cursor=pointer]
+                    - generic [ref=e115]:
+                      - generic [ref=e116]: Registado por
+                      - textbox "Nome do profissional" [ref=e117]
+                - generic [ref=e118]:
+                  - generic [ref=e119]:
+                    - generic [ref=e120]: "2"
+                    - text: Sinais Vitais
+                  - generic [ref=e121]:
+                    - generic [ref=e122]:
+                      - generic [ref=e123]: T.A. sistólica
+                      - generic [ref=e124]:
+                        - spinbutton [ref=e125]
+                        - generic [ref=e126]: mmHg
+                    - generic [ref=e127]:
+                      - generic [ref=e128]: T.A. diastólica
+                      - generic [ref=e129]:
+                        - spinbutton [ref=e130]
+                        - generic [ref=e131]: mmHg
+                    - generic [ref=e132]:
+                      - generic [ref=e133]: Freq. Cardíaca
+                      - generic [ref=e134]:
+                        - spinbutton [ref=e135]
+                        - generic [ref=e136]: bpm
+                    - generic [ref=e137]:
+                      - generic [ref=e138]: Temperatura
+                      - generic [ref=e139]:
+                        - spinbutton [ref=e140]
+                        - generic [ref=e141]: °C
+                    - generic [ref=e142]:
+                      - generic [ref=e143]: SpO₂
+                      - generic [ref=e144]:
+                        - spinbutton [ref=e145]
+                        - generic [ref=e146]: "%"
+                    - generic [ref=e147]:
+                      - generic [ref=e148]: Glicemia
+                      - generic [ref=e149]:
+                        - spinbutton [ref=e150]
+                        - generic [ref=e151]: mg/dL
+                    - generic [ref=e152]:
+                      - generic [ref=e153]: Peso
+                      - generic [ref=e154]:
+                        - spinbutton [ref=e155]
+                        - generic [ref=e156]: kg
+                - generic [ref=e157]:
+                  - generic [ref=e158]:
+                    - generic [ref=e159]: "3"
+                    - text: Alimentação & Hidratação
+                  - generic [ref=e160]:
+                    - generic [ref=e161]: "% Refeição ingerida"
+                    - generic [ref=e162]:
+                      - generic [ref=e163]:
+                        - generic [ref=e164]: Pequeno-almoço
+                        - generic [ref=e165]:
+                          - button "0%" [ref=e166] [cursor=pointer]
+                          - button "25%" [ref=e167] [cursor=pointer]
+                          - button "50%" [ref=e168] [cursor=pointer]
+                          - button "75%" [ref=e169] [cursor=pointer]
+                          - button "100%" [ref=e170] [cursor=pointer]
+                      - generic [ref=e171]:
+                        - generic [ref=e172]: Almoço
+                        - generic [ref=e173]:
+                          - button "0%" [ref=e174] [cursor=pointer]
+                          - button "25%" [ref=e175] [cursor=pointer]
+                          - button "50%" [ref=e176] [cursor=pointer]
+                          - button "75%" [ref=e177] [cursor=pointer]
+                          - button "100%" [ref=e178] [cursor=pointer]
+                      - generic [ref=e179]:
+                        - generic [ref=e180]: Jantar
+                        - generic [ref=e181]:
+                          - button "0%" [ref=e182] [cursor=pointer]
+                          - button "25%" [ref=e183] [cursor=pointer]
+                          - button "50%" [ref=e184] [cursor=pointer]
+                          - button "75%" [ref=e185] [cursor=pointer]
+                          - button "100%" [ref=e186] [cursor=pointer]
+                  - generic [ref=e187]:
+                    - generic [ref=e188]:
+                      - generic [ref=e189]: Líquidos (mL)
+                      - spinbutton [ref=e190]
+                    - generic [ref=e191]:
+                      - generic [ref=e192]: Apetite
+                      - generic [ref=e193]:
+                        - button "Bom" [ref=e194] [cursor=pointer]
+                        - button "Razoável" [ref=e195] [cursor=pointer]
+                        - button "Fraco" [ref=e196] [cursor=pointer]
+                        - button "Recusou" [ref=e197] [cursor=pointer]
+                - generic [ref=e198]:
+                  - generic [ref=e199]:
+                    - generic [ref=e200]: "4"
+                    - text: Eliminação
+                  - generic [ref=e201]:
+                    - generic [ref=e202]:
+                      - generic [ref=e203]: Urinária
+                      - generic [ref=e204]:
+                        - button "Continente" [ref=e205] [cursor=pointer]
+                        - button "Incontinente" [ref=e206] [cursor=pointer]
+                        - button "Algaliado" [ref=e207] [cursor=pointer]
+                        - button "Retenção" [ref=e208] [cursor=pointer]
+                    - generic [ref=e209]:
+                      - generic [ref=e210]: Intestinal
+                      - generic [ref=e211]:
+                        - button "Normal" [ref=e212] [cursor=pointer]
+                        - button "Obstipação" [ref=e213] [cursor=pointer]
+                        - button "Diarreia" [ref=e214] [cursor=pointer]
+                        - button "Sem registo" [ref=e215] [cursor=pointer]
+                - generic [ref=e216]:
+                  - generic [ref=e217]:
+                    - generic [ref=e218]:
+                      - generic [ref=e219]: "5"
+                      - text: Bem-estar
+                    - generic [ref=e220]:
+                      - button "😣 Agitado" [ref=e221] [cursor=pointer]:
+                        - generic [ref=e222]: 😣
+                        - generic [ref=e223]: Agitado
+                      - button "😟 Ansioso" [ref=e224] [cursor=pointer]:
+                        - generic [ref=e225]: 😟
+                        - generic [ref=e226]: Ansioso
+                      - button "😐 Neutro" [ref=e227] [cursor=pointer]:
+                        - generic [ref=e228]: 😐
+                        - generic [ref=e229]: Neutro
+                      - button "🙂 Bem-disposto" [ref=e230] [cursor=pointer]:
+                        - generic [ref=e231]: 🙂
+                        - generic [ref=e232]: Bem-disposto
+                      - button "😊 Muito bem" [ref=e233] [cursor=pointer]:
+                        - generic [ref=e234]: 😊
+                        - generic [ref=e235]: Muito bem
+                    - textbox "Atividades realizadas..." [ref=e236]
+                    - textbox "Notas comportamentais..." [ref=e237]
+                  - generic [ref=e238]:
+                    - generic [ref=e239]:
+                      - generic [ref=e240]: "6"
+                      - text: Estado da Pele
+                    - generic [ref=e241]:
+                      - button "Íntegra" [ref=e242] [cursor=pointer]
+                      - button "Rubor" [ref=e243] [cursor=pointer]
+                      - button "Ferida" [ref=e244] [cursor=pointer]
+                      - button "Escara" [ref=e245] [cursor=pointer]
+                    - textbox "Localização, dimensão, aspeto..." [ref=e246]
+                - generic [ref=e247]:
+                  - generic [ref=e248]:
+                    - generic [ref=e249]: "7"
+                    - text: Notas gerais
+                  - textbox "Observações adicionais, ocorrências, avisos para o turno seguinte..." [ref=e250]
+                  - button "Guardar registo — João Silva (teste)" [ref=e258] [cursor=pointer]
+              - generic [ref=e253]:
+                - generic [ref=e254]:
+                  - generic [ref=e255]: Últimos registos — João Silva (teste)
+                  - button "🖨 Imprimir" [ref=e259] [cursor=pointer]
+                - generic [ref=e256]: Sem registos ainda
+  - button "Abrir Phlox Copilot" [ref=e257]: ✦

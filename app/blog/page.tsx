@@ -78,6 +78,27 @@ const ARTICLES = [
     tag: 'Cuidar de idosos', date: '2026-06-15', readTime: '6 min',
     color: '#0e7490',
   },
+  {
+    slug: 'como-ler-receita-medica',
+    title: 'Como Ler uma Receita Médica em Portugal',
+    desc: 'DCI, posologia "1+0+1", a receita eletrónica do SNS, o código de dispensa e a comparticipação — tudo explicado em linguagem simples.',
+    tag: 'Guia prático', date: '2026-06-20', readTime: '7 min',
+    color: '#1d4ed8',
+  },
+  {
+    slug: 'medicamentos-sem-receita-cuidados',
+    title: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar',
+    desc: 'Paracetamol com ibuprofeno, antiácidos, xaropes para a tosse, álcool — o que é seguro em casa e quando a automedicação se torna perigosa.',
+    tag: 'Segurança', date: '2026-06-18', readTime: '8 min',
+    color: '#0d6e42',
+  },
+  {
+    slug: 'como-guardar-medicamentos-casa',
+    title: 'Como Guardar Medicamentos em Casa (e Quando Deitar Fora)',
+    desc: 'O erro de os ter na casa de banho, o que precisa de frigorífico, a validade depois de aberto e como deitar fora com segurança (VALORMED).',
+    tag: 'Em casa', date: '2026-06-16', readTime: '6 min',
+    color: '#0e7490',
+  },
 ]
 
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
@@ -90,6 +111,9 @@ const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   'Renal':       { bg: '#ecfeff', color: '#0891b2' },
   'Cuidadores':  { bg: '#fffbeb', color: '#b45309' },
   'Cuidar de idosos': { bg: '#ecfeff', color: '#0e7490' },
+  'Guia prático': { bg: '#eff6ff', color: '#1d4ed8' },
+  'Segurança':   { bg: '#f0fdf5', color: '#0d6e42' },
+  'Em casa':     { bg: '#ecfeff', color: '#0e7490' },
 }
 
 export default function BlogIndexPage() {

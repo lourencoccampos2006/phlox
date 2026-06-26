@@ -25,11 +25,15 @@ const SHARED_TOOLS = [
 ]
 
 // Padrões de vocabulário hardcoded que NÃO deviam aparecer em JSX/strings.
-// (procuramos as formas em texto visível: aspas/template strings)
+// Apanhamos DUAS formas: (a) dentro de aspas/template strings; (b) como texto
+// de JSX entre tags (>...residentes...<) — esta segunda escapava antes e deixou
+// passar coisas como ">Total residentes</div>".
 const BAD = [
   /['"`][^'"`]*\bresidentes?\b[^'"`]*['"`]/i,
   /['"`][^'"`]*\bevento do lar\b[^'"`]*['"`]/i,
   /['"`][^'"`]*\bdo lar\b[^'"`]*['"`]/i,
+  />[^<>{]*\bresidentes?\b[^<>]*</i,
+  />[^<>{]*\bevento do lar\b[^<>]*</i,
 ]
 
 // Exceções aceitáveis (domínio clínico / comentários) — ignoramos linhas que

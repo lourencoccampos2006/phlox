@@ -12,24 +12,20 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
 // Por isso bloqueamos a app e deixamos rastrear só o conteúdo.
 
 // Conteúdo público que QUEREMOS indexado (espelha o sitemap).
+// SÓ páginas com texto real renderizado no servidor — as ferramentas 'use client'
+// (/interactions, /ai, /calculators, /aprender, /study) aparecem vazias ao crawler
+// e foram retiradas daqui para não diluírem a qualidade média (causa do "low value
+// content" no AdSense). Continuam acessíveis a quem entra; só não as indexamos.
 const ALLOW = [
   '/',
   '/blog',
-  '/interactions',
-  '/ai',
-  '/calculators',
+  '/guias',
   '/centro-de-dia',
   '/about',
   '/sobre',
-  '/aprender',
-  '/study',
   '/pricing',
   '/privacy',
   '/terms',
-  '/trust',
-  '/seguranca',
-  '/changelog',
-  '/login',
 ]
 
 // App / ferramentas / redirects / áreas privadas — NÃO indexar.
@@ -37,6 +33,10 @@ const DISALLOW = [
   '/api/',
   '/auth/',
   '/admin',
+  // ferramentas 'use client' (vazias p/ o crawler) + páginas institucionais
+  // que não são "conteúdo" e antes diluíam a qualidade média
+  '/interactions', '/ai', '/calculators', '/aprender', '/study',
+  '/trust', '/seguranca', '/status', '/changelog', '/login', '/auditoria',
   '/dashboard',
   '/dashboard-institucional',
   '/checkout',
