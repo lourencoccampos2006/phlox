@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
+import { ensureUserScope, clearUserScopeOnSignOut } from '@/lib/userScope'
 
 // Cria o cliente uma vez, fora do componente, ao nível do módulo
 // Isto garante que é o mesmo cliente em toda a app independentemente de renders
@@ -102,6 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   async function loadProfile(authUser: any) {
+    // Isolamento por conta: se a conta mudou neste browser, limpa os dados
+    // locais da conta anterior (guardados, atalhos, etc.) antes de tudo.
+    try { ensureUserScope(authUser?.id) } catch {}
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -200,6 +204,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setLoading(true)
+    // Limpa os dados locais da conta antes de sair (privacidade no dispositivo).
+    try { clearUserScopeOnSignOut() } catch {}
     const { error } = await supabase.auth.signOut()
     if (error) console.error('SignOut error:', error.message)
     setUser(null)

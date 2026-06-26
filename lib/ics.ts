@@ -12,6 +12,11 @@ export interface CalendarEvent {
   durationMin?: number                  // alternativa a end
   alarmMinBefore?: number               // alerta X minutos antes
   url?: string
+  // Recorrência. 'daily' = todos os dias (lembretes de medicação). count = nº de
+  // ocorrências (ex.: 90 dias). until = data final ISO (alternativa a count).
+  repeat?: 'daily' | 'weekly'
+  repeatCount?: number
+  repeatUntil?: string | Date
 }
 
 function pad(n: number): string { return n < 10 ? '0' + n : String(n) }
@@ -78,6 +83,19 @@ export function buildICS(events: CalendarEvent[], calName: string = 'Phlox'): st
     if (ev.description) lines.push(fold(`DESCRIPTION:${escapeText(ev.description)}`))
     if (ev.location) lines.push(fold(`LOCATION:${escapeText(ev.location)}`))
     if (ev.url) lines.push(`URL:${ev.url}`)
+
+    // Recorrência (lembretes de medicação = diários)
+    if (ev.repeat) {
+      const freq = ev.repeat === 'weekly' ? 'WEEKLY' : 'DAILY'
+      let rule = `RRULE:FREQ=${freq}`
+      if (ev.repeatUntil) {
+        const u = typeof ev.repeatUntil === 'string' ? new Date(ev.repeatUntil) : ev.repeatUntil
+        rule += `;UNTIL=${toICSDate(u)}`
+      } else {
+        rule += `;COUNT=${ev.repeatCount && ev.repeatCount > 0 ? ev.repeatCount : 90}`
+      }
+      lines.push(rule)
+    }
 
     if (ev.alarmMinBefore != null && ev.alarmMinBefore > 0) {
       lines.push(

@@ -51,22 +51,24 @@ const ALL_INST: InstType[] = ['pharmacy_community', 'nursing_home', 'clinic', 'h
 export const TOOLS: Tool[] = [
   // ══ PESSOAL / CUIDADOR / ESTUDANTE ════════════════════════════════════════
   // ── Medicação ──
-  { id: '/scan',         label: 'Tirar foto a uma receita ou caixa', desc: 'O Phlox lê e organiza por si — receita, caixa, análise ou relatório', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreva o nome e veja para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free' },
+  // ── 7 ESSENCIAIS (default pessoal/cuidador). O resto fica acessível em /tudo. ──
   { id: '/mymeds',       label: 'Os meus comprimidos',           desc: 'A lista, os horários e os lembretes', category: 'meds',    modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/scan',         label: 'Tirar foto a uma receita ou caixa', desc: 'O Phlox lê e organiza por si — receita, caixa, análise ou relatório', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/interactions', label: 'Os meus medicamentos dão-se bem?', desc: 'Ver se é seguro tomá-los juntos', category: 'meds',     modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free_limited' },
+  { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreva o nome e veja para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], plan: 'free' },
   { id: '/food-drug',    label: 'O que não posso misturar?',     desc: 'Alimentos e bebidas a evitar com os seus medicamentos', category: 'meds', modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── A minha saúde ──
-  { id: '/vitals',       label: 'Tensão, peso e açúcar',         desc: 'Registar e ver como evolui',       category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
-  { id: '/sintomas',     label: 'Como me sinto hoje',            desc: 'Diário de sintomas e bem-estar',   category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/relatorio',    label: 'Resumo da minha semana',        desc: 'Como correu a sua semana de saúde', category: 'health',     modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/saude-agora',  label: 'Não me sinto bem',              desc: 'Ajuda a decidir: médico, urgências ou em casa', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/medico-bolso', label: 'O que merece atenção',          desc: 'O Phlox avisa-o quando algo precisa de cuidado', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/sintomas',     label: 'Como me sinto hoje',            desc: 'Diário de sintomas e recuperação', category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/vitals',       label: 'Tensão, peso e açúcar',         desc: 'Registar e ver como evolui',       category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
+  { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
+  { id: '/medico-bolso', label: 'O que merece atenção',          desc: 'O Phlox avisa-o quando algo precisa de cuidado', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/relatorio',    label: 'Resumo da minha semana',        desc: 'Como correu a sua semana de saúde', category: 'health',     modes: ['personal', 'caregiver'], plan: 'pro' },
+  { id: '/saude360',     label: 'A minha saúde num só ecrã',     desc: 'Medicação, adesão, análises e o que vigiar — junto', category: 'health', modes: ['personal'], plan: 'pro' },
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises e sintomas ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
-  { id: '/saude360',     label: 'A minha saúde num só ecrã',     desc: 'Medicação, análises e agenda juntas', category: 'health',     modes: ['personal'], plan: 'pro' },
+  { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/health-pass',  label: 'Mostrar a minha saúde ao médico', desc: 'Um código QR com tudo, para o médico ou a farmácia', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Perceber ──

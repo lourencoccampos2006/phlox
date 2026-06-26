@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Phlox" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e8]: Phlox
+  - generic [ref=e11]:
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: A minha história de saúde
+        - generic [ref=e17]: A minha linha do tempo
+        - paragraph [ref=e18]: A tua medicação, análises, sintomas e sinais vitais reunidos numa linha do tempo — pronta para mostrares ao teu médico.
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - button "1 mês" [ref=e21] [cursor=pointer]
+          - button "3 meses" [ref=e22] [cursor=pointer]
+          - button "6 meses" [ref=e23] [cursor=pointer]
+          - button "1 ano" [ref=e24] [cursor=pointer]
+          - button "Tudo" [ref=e25] [cursor=pointer]
+        - link "📲 Mostrar ao médico (QR)" [ref=e26] [cursor=pointer]:
+          - /url: /health-pass
+      - generic [ref=e27]:
+        - button "Linha do tempo" [ref=e28] [cursor=pointer]
+        - button "Análises" [ref=e29] [cursor=pointer]
+        - button "Para o médico" [ref=e30] [cursor=pointer]
+    - button "Todos" [ref=e34] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e45] [cursor=pointer]:
+    - img [ref=e46]

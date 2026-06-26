@@ -62,7 +62,9 @@ function LoginContent() {
   }
 
   useEffect(() => {
-    if (user) router.push('/inicio')
+    // Encaminha pelo estado de onboarding — uma conta NOVA (ex.: signup por email)
+    // tem de passar pela configuração inicial, não saltar logo para /inicio.
+    if (user) router.push((user as any).onboarded ? '/inicio' : '/onboarding')
   }, [user, router])
 
   const handleGoogleSignIn = async () => {

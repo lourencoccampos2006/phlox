@@ -256,7 +256,7 @@ export default function CalendarioPage() {
               💊 Medicação {showMeds ? 'on' : 'off'}
             </button>
             <button onClick={() => openNew()} style={primaryBtn}>＋ Novo</button>
-            <button onClick={exportMonthICS} style={secondaryBtn}>↓ .ics</button>
+            <button onClick={exportMonthICS} style={secondaryBtn}>📅 Pôr no calendário</button>
           </div>
         </div>
 

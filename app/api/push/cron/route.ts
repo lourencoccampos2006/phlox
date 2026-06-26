@@ -82,6 +82,41 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ─── 1b. Lembretes de medicação de FAMILIARES (cuidador) ─────────────────────
+  // Os medicamentos de quem o cuidador acompanha vivem em family_profile_meds.
+  // O cuidador (user_id) recebe o push no SEU dispositivo, identificando a pessoa.
+  const { data: famMeds } = await supabase
+    .from('family_profile_meds')
+    .select('id, user_id, profile_id, name, dose, reminder_times')
+    .not('reminder_times', 'is', null)
+
+  const dueFam = (famMeds || []).filter((med: any) =>
+    (med.reminder_times || []).some((t: string) => isWithin10Min(t, nowHHMM)))
+
+  if (dueFam.length > 0) {
+    // nome de cada familiar para a mensagem
+    const profIds = [...new Set(dueFam.map((m: any) => m.profile_id))]
+    const { data: profs } = await supabase.from('family_profiles').select('id, name').in('id', profIds)
+    const nameOf: Record<string, string> = {}
+    ;(profs || []).forEach((p: any) => { nameOf[p.id] = p.name })
+
+    for (const med of dueFam) {
+      const who = (nameOf[med.profile_id] || 'familiar').split(' ')[0]
+      const { data: subs } = await supabase
+        .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', med.user_id)
+      for (const sub of subs || []) {
+        const ok = await sendPushNotification(sub, {
+          title: `Phlox — ${who}: ${med.name}${med.dose ? ' ' + med.dose : ''}`,
+          body: `Hora de dar o ${med.name} a ${who}.`,
+          url: '/familia',
+          tag: `fam-reminder-${med.id}`,
+        })
+        if (ok) sent++
+        else { errors++; await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint) }
+      }
+    }
+  }
+
   // ─── 2. MAR omission alerts (near shift end) ─────────────────────────────────
   // Shift end windows: manhã ends ~13:45-14:15, tarde ~20:45-21:15, noite ~6:45-7:15
   const SHIFT_END_WINDOWS: Record<string, [string, string]> = {

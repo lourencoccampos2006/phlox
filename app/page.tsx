@@ -25,43 +25,76 @@ const PARES = [
 ]
 
 // O herói: uma "ficha" editorial da resposta real, como numa página de revista.
-function VerdictSheet() {
+// Ficha de veredito — editorial, limpa. Profundidade SUBTIL e digna (sombra
+// suave + leve inclinação ao ponteiro), sem objetos a flutuar. O herói é a
+// resposta real, composta como uma página de revista clínica.
+function VerdictScene() {
   const [i, setI] = useState(0)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const p = PARES[i]
   const accent = p.ok ? GREEN : RED
+
+  function onMove(e: React.PointerEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    setTilt({ x: -py * 3.5, y: px * 4.5 })   // subtil, não vertiginoso
+  }
+  function onLeave() { setTilt({ x: 0, y: 0 }) }
+
   return (
-    <div className="vs">
-      <div className="vs-head">
-        <span className="vs-tag">Verificação · em tempo real</span>
+    <div className="vsc" onPointerMove={onMove} onPointerLeave={onLeave}>
+      <div className="vsc-sheet" style={{ transform: `perspective(1100px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` }}>
+        <div className="vs-tag">Verificação · resposta real</div>
         <div className="vs-pair">
           {[p.a, p.b].map((n, k) => (
             <span key={n} className="vs-chip">{n}{k === 0 && <span className="vs-plus">+</span>}</span>
           ))}
         </div>
-      </div>
-      <div className="vs-verdict" style={{ color: accent }}>
-        <span className="vs-dot" style={{ background: accent }} />
-        {p.veredito}
-      </div>
-      <p className="vs-txt">{p.txt}</p>
-      {p.alt && <p className="vs-alt">{p.alt}</p>}
-      <div className="vs-switch">
-        {PARES.map((x, k) => (
-          <button key={k} onClick={() => setI(k)} className={`vs-sw ${i === k ? 'on' : ''}`} aria-label={`${x.a} e ${x.b}`}>
-            {x.a.slice(0, 4)}·{x.b.slice(0, 4)}
-          </button>
-        ))}
+        <div className="vs-verdict" style={{ color: accent }}>
+          <span className="vs-dot" style={{ background: accent }} />{p.veredito}
+        </div>
+        <p className="vs-txt">{p.txt}</p>
+        {p.alt && <p className="vs-alt">{p.alt}</p>}
+        <div className="vsc-switch">
+          {PARES.map((x, k) => (
+            <button key={k} onClick={() => setI(k)} className={`vs-sw ${i === k ? 'on' : ''}`} aria-label={`${x.a} e ${x.b}`}>
+              {x.a.slice(0, 4)}·{x.b.slice(0, 4)}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
-const CAMINHOS = [
-  { n: '01', t: 'A minha medicação', d: 'Guardar os comprimidos, ter lembretes e ver se se dão bem.', href: '/login?mode=personal' },
-  { n: '02', t: 'Cuidar de alguém', d: 'Organizar a medicação de um familiar, tudo num só sítio.', href: '/login?mode=caregiver' },
-  { n: '03', t: 'Estudar saúde', d: 'Casos, quizzes e treino para medicina, farmácia ou enfermagem.', href: '/login?mode=student' },
-  { n: '04', t: 'Um centro de dia', d: 'O dia dos utentes e as famílias tranquilas, montado de raiz.', href: '/centro-de-dia' },
-  { n: '05', t: 'Trabalho em saúde', d: 'Ferramentas a sério para farmácia, lar ou clínica.', href: '/login?mode=clinical' },
+// Os 5 mundos do Phlox — cada um com o MESMO peso. Cada um com o que faz mesmo.
+const MUNDOS = [
+  {
+    n: '01', tag: 'Para si', t: 'A minha saúde', accent: '#0d6e42', href: '/login?mode=personal',
+    lead: 'A sua medicação organizada e a saúde debaixo de olho.',
+    items: ['Foto à receita → lista e horários', 'Lembretes no calendário do telemóvel', 'Vê se os comprimidos se dão bem'],
+  },
+  {
+    n: '02', tag: 'Para a família', t: 'Cuidar de alguém', accent: '#b9690e', href: '/login?mode=caregiver',
+    lead: 'A saúde de cada pessoa de quem cuida, num só sítio.',
+    items: ['Um perfil por familiar', 'Quem tomou o quê, e quando', 'Partilha com o médico por código'],
+  },
+  {
+    n: '03', tag: 'Para estudar', t: 'Estudante de saúde', accent: '#7c3aed', href: '/login?mode=student',
+    lead: 'Treino a sério para medicina, farmácia e enfermagem.',
+    items: ['Arena de casos clínicos com IA', 'OSCE e simulador de decisões', 'Flashcards e o seu progresso'],
+  },
+  {
+    n: '04', tag: 'Para profissionais', t: 'Trabalho na saúde', accent: '#1d4ed8', href: '/login?mode=clinical',
+    lead: 'Decisão clínica com a evidência que se usa cá.',
+    items: ['Interações, STOPP/START e Beers', 'Calculadoras e protocolos (DGS, ESC)', 'Revisão e otimização da medicação'],
+  },
+  {
+    n: '05', tag: 'Para instituições', t: 'Lar, centro de dia, farmácia', accent: '#0f766e', href: '/centro-de-dia',
+    lead: 'Montado de raiz para o seu tipo de instituição.',
+    items: ['Painel, ronda, MAR e ocorrências', 'Portal das famílias e relatórios', 'Equipa, utentes e turnos'],
+  },
 ]
 
 export default function HomePage() {
@@ -76,22 +109,22 @@ export default function HomePage() {
         <div className="lp-wrap">
           <div className={`lp-hero-grid ${mounted ? 'in' : ''}`}>
             <div className="lp-hero-l">
-              <div className="lp-kicker"><span className="lp-kicker-rule" />Saúde, em português claro</div>
+              <div className="lp-kicker"><span className="lp-kicker-rule" />Saúde em português, para todos</div>
               <h1 className="lp-h1">
-                Saber o que<br />tomar deixou<br />de ser <em>confuso</em>.
+                Toda a saúde<br />num <em>só sítio</em>.
               </h1>
               <p className="lp-lead">
-                Tire uma foto à receita. O Phlox diz-lhe o que é cada comprimido, a que horas
-                tomar, e se se dão bem uns com os outros. Feito para qualquer pessoa.
+                Para si, para quem cuida da família, para quem estuda e para quem trabalha na
+                saúde. Cada pessoa tem o Phlox feito à sua medida.
               </p>
               <div className="lp-actions">
                 <Link href="/login" className="lp-go">Criar conta grátis</Link>
-                <Link href="/interactions" className="lp-link">Experimentar sem conta&nbsp;→</Link>
+                <Link href="#mundos" className="lp-link">Ver o que faz&nbsp;↓</Link>
               </div>
-              <div className="lp-meta">Sem cartão · Sem instalar · Pronto num minuto</div>
+              <div className="lp-meta">Grátis · Sem instalar · Um minuto a começar</div>
             </div>
             <div className="lp-hero-r">
-              <VerdictSheet />
+              <VerdictScene />
             </div>
           </div>
         </div>
@@ -102,9 +135,8 @@ export default function HomePage() {
         <div className="lp-wrap">
           <div className="lp-rule" />
           <p className="lp-mani-txt reveal">
-            As apps lá de fora tropeçam nos nomes de marca e no SNS.
-            <strong> Esta não.</strong> Os medicamentos são os das farmácias cá, as regras
-            são as do INFARMED, e a linguagem é a sua.
+            Conhece o Ben-u-ron, o Brufen e o Concor pelo nome.
+            Segue as regras do <strong>INFARMED</strong>. Fala como o seu farmacêutico.
           </p>
         </div>
       </section>
@@ -115,13 +147,13 @@ export default function HomePage() {
           <header className="lp-sec-h reveal">
             <span className="lp-sec-no">§ 01</span>
             <h2 className="lp-h2">Como funciona</h2>
-            <p className="lp-sec-sub">Três passos. Não precisa de saber nada de tecnologia.</p>
+            <p className="lp-sec-sub">Três passos, e está a usar.</p>
           </header>
           <div className="lp-steps">
             {[
-              { n: '1', t: 'Crie uma conta', d: 'Menos de um minuto. Só precisa de um email — sem cartão, sem instalar nada.' },
-              { n: '2', t: 'Diga o que precisa', d: 'Cuidar de si, de um familiar, ou estudar? O Phlox arruma tudo à sua volta.' },
-              { n: '3', t: 'Comece a usar', d: 'Tire foto à receita, faça uma pergunta. A entrada mostra sempre o passo seguinte.' },
+              { n: '1', t: 'Crie a conta', d: 'Um email e está dentro. Não pedimos cartão.' },
+              { n: '2', t: 'Fotografe a receita', d: 'Tiramos de lá os medicamentos, as doses e os horários.' },
+              { n: '3', t: 'Deixe connosco', d: 'Avisamos das tomas e do que não deve misturar.' },
             ].map(s => (
               <div key={s.n} className="lp-step reveal">
                 <div className="lp-step-rule" />
@@ -134,25 +166,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── CAMINHOS — lista editorial com números de índice ────────────────── */}
-      <section className="lp-sec lp-sec-paper">
+      {/* ── OS 5 MUNDOS — o coração da página, igual peso para cada público ──── */}
+      <section className="lp-sec lp-sec-paper" id="mundos">
         <div className="lp-wrap">
           <header className="lp-sec-h reveal">
             <span className="lp-sec-no">§ 02</span>
-            <h2 className="lp-h2">O que o traz aqui?</h2>
-            <p className="lp-sec-sub">Escolha um. Pode mudar quando quiser.</p>
+            <h2 className="lp-h2">Um Phlox para cada pessoa</h2>
+            <p className="lp-sec-sub">O site adapta-se a si. Escolha o seu mundo — pode mudar quando quiser.</p>
           </header>
-          <div className="lp-paths">
-            {CAMINHOS.map(c => (
-              <Link key={c.n} href={c.href} className="lp-path reveal">
-                <span className="lp-path-n">{c.n}</span>
-                <span className="lp-path-body">
-                  <span className="lp-path-t">{c.t}</span>
-                  <span className="lp-path-d">{c.d}</span>
-                </span>
-                <span className="lp-path-arrow">→</span>
+          <div className="lp-mundos">
+            {MUNDOS.map(m => (
+              <Link key={m.n} href={m.href} className="lp-mundo reveal" style={{ ['--a' as string]: m.accent }}>
+                <div className="lp-mundo-top">
+                  <span className="lp-mundo-tag">{m.tag}</span>
+                  <span className="lp-mundo-n">{m.n}</span>
+                </div>
+                <h3 className="lp-mundo-t">{m.t}</h3>
+                <p className="lp-mundo-lead">{m.lead}</p>
+                <ul className="lp-mundo-list">
+                  {m.items.map(it => <li key={it}>{it}</li>)}
+                </ul>
+                <span className="lp-mundo-go">Entrar <span className="lp-mundo-arrow">→</span></span>
               </Link>
             ))}
+            {/* Célula de fecho — convida quem ainda não sabe */}
+            <Link href="/login" className="lp-mundo lp-mundo-cta reveal">
+              <h3 className="lp-mundo-t" style={{ marginBottom: 10 }}>Ainda não sabe?</h3>
+              <p className="lp-mundo-lead" style={{ marginBottom: 18 }}>Crie a conta e escolhemos consigo. Demora um minuto e não custa nada.</p>
+              <span className="lp-go" style={{ alignSelf: 'flex-start', marginTop: 'auto' }}>Criar conta grátis</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -166,9 +208,9 @@ export default function HomePage() {
           </header>
           <div className="lp-three">
             {[
-              { k: 'Foto', t: 'Tira uma foto, e está feito', d: 'Foto da receita ou da caixa e o Phlox lê tudo: que medicamento é, para que serve, e cria a sua lista.' },
-              { k: 'Voz', t: 'Pergunte o que quiser', d: 'Posso tomar com álcool? Esqueci-me de uma dose, e agora? Respostas claras, sem o palavreado das bulas.' },
-              { k: 'Aviso', t: 'Avisa antes do problema', d: 'O Phlox olha pela sua medicação e diz-lhe o que merece atenção, mesmo sem ter de perguntar.' },
+              { k: 'Foto', t: 'A caixa diz tudo', d: 'Fotografe a receita ou a caixa. Dizemos-lhe o que é, para que serve e como tomar.' },
+              { k: 'Pergunta', t: 'Tire a dúvida na hora', d: '«Posso tomar com café?» «Falhei uma dose, e agora?» Respondemos sem rodeios.' },
+              { k: 'Aviso', t: 'Avisamos a tempo', d: 'Dois medicamentos que não combinam, uma toma esquecida — dizemos antes de virar problema.' },
             ].map((x, idx) => (
               <div key={x.t} className="lp-feat reveal">
                 <div className="lp-feat-k"><span>0{idx + 1}</span>{x.k}</div>
@@ -189,10 +231,10 @@ export default function HomePage() {
       <section className="lp-close">
         <div className="lp-wrap">
           <span className="lp-close-no reveal">§ 04</span>
-          <h2 className="lp-close-h reveal">Comece de graça.<br />Pague só se gostar.</h2>
+          <h2 className="lp-close-h reveal">Experimente hoje.<br />Decida depois.</h2>
           <p className="lp-close-p reveal">
-            O plano <strong>Base</strong> é grátis e tem o essencial. O <strong>Plus</strong>, a 3,99 €
-            por mês, tira os anúncios e desbloqueia o resto. Cancela quando quiser, sem letras pequeninas.
+            O <strong>Base</strong> é grátis e faz o essencial. O <strong>Plus</strong> são 3,99 € por
+            mês — tira os anúncios e abre o resto. Cancela quando quiser.
           </p>
           <div className="lp-actions reveal">
             <Link href="/login" className="lp-go lp-go-light">Criar conta grátis</Link>
@@ -235,20 +277,22 @@ export default function HomePage() {
         .lp-link-dark { color:#fff; border-bottom-color:#fff; }
         .lp-meta { font-family:var(--font-mono,monospace); font-size:11.5px; color:${INK_4}; margin-top:22px; letter-spacing:.04em; }
 
-        /* ── Ficha de veredito (herói) ── */
-        .vs { border:1px solid ${BORDER}; border-top:3px solid ${INK}; background:#fff; padding:24px 24px 20px; box-shadow:0 1px 0 ${BORDER}; }
-        .vs-head { display:flex; flex-direction:column; gap:14px; margin-bottom:18px; }
-        .vs-tag { font-family:var(--font-mono,monospace); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:${INK_4}; }
-        .vs-pair { display:flex; flex-wrap:wrap; gap:8px; }
-        .vs-chip { position:relative; font-family:var(--font-serif,Georgia,serif); font-size:21px; color:${INK}; }
+        /* ── Ficha de veredito (herói) — editorial, profundidade subtil ── */
+        .vsc { padding:8px 0; }
+        .vsc-sheet { background:#fff; border:1px solid ${BORDER}; border-top:3px solid ${INK}; padding:26px 26px 20px; box-shadow:0 24px 50px -28px rgba(20,30,24,.35); transition:transform .3s cubic-bezier(.16,1,.3,1); transform-style:preserve-3d; }
+        .vs-tag { font-family:var(--font-mono,monospace); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:${INK_4}; display:block; margin-bottom:16px; }
+        .vs-pair { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+        .vs-chip { position:relative; font-family:var(--font-serif,Georgia,serif); font-size:23px; color:${INK}; }
         .vs-plus { margin:0 6px 0 10px; color:${INK_4}; font-family:var(--font-sans); }
-        .vs-verdict { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; letter-spacing:-.01em; margin-bottom:12px; text-transform:uppercase; font-family:var(--font-mono,monospace); }
+        .vs-verdict { display:flex; align-items:center; gap:9px; font-size:14px; font-weight:800; letter-spacing:-.01em; margin-bottom:12px; text-transform:uppercase; font-family:var(--font-mono,monospace); }
         .vs-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
         .vs-txt { font-size:15.5px; color:${INK}; line-height:1.55; margin:0 0 8px; }
-        .vs-alt { font-size:13.5px; color:${INK_4}; line-height:1.55; margin:0 0 18px; }
-        .vs-switch { display:flex; gap:6px; border-top:1px solid ${BORDER}; padding-top:14px; }
-        .vs-sw { flex:1; padding:7px 4px; background:none; border:1px solid ${BORDER}; border-radius:2px; font-family:var(--font-mono,monospace); font-size:10px; color:${INK_4}; cursor:pointer; letter-spacing:.02em; transition:all .15s; }
+        .vs-alt { font-size:13.5px; color:${INK_4}; line-height:1.55; margin:0; }
+        .vsc-switch { display:flex; gap:6px; border-top:1px solid ${BORDER}; padding-top:16px; margin-top:18px; }
+        .vs-sw { flex:1; padding:8px 4px; background:none; border:1px solid ${BORDER}; border-radius:2px; font-family:var(--font-mono,monospace); font-size:10px; color:${INK_4}; cursor:pointer; letter-spacing:.02em; transition:all .15s; }
+        .vs-sw:hover { border-color:${INK_4}; color:${INK}; }
         .vs-sw.on { border-color:${INK}; color:${INK}; background:${PAPER}; }
+        @media (prefers-reduced-motion:reduce) { .vsc-sheet { transition:none; } }
 
         /* ── Manifesto ── */
         .lp-manifesto { padding:clamp(28px,4vw,44px) 0; }
@@ -270,14 +314,25 @@ export default function HomePage() {
         .lp-step-t { font-size:18px; font-weight:700; margin:0 0 8px; letter-spacing:-.01em; }
         .lp-step-d { font-size:14.5px; color:${INK_3}; line-height:1.62; margin:0; }
 
-        .lp-paths { border-top:1px solid ${BORDER}; }
-        .lp-path { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:clamp(16px,3vw,32px); padding:clamp(20px,3vw,28px) 4px; border-bottom:1px solid ${BORDER}; text-decoration:none; color:${INK}; transition:padding-left .25s ease, background .2s; }
-        .lp-path:hover { padding-left:16px; background:rgba(13,110,66,0.025); }
-        .lp-path-n { font-family:var(--font-mono,monospace); font-size:12px; color:${INK_4}; letter-spacing:.06em; }
-        .lp-path-t { display:block; font-family:var(--font-serif,Georgia,serif); font-size:clamp(19px,2.6vw,26px); letter-spacing:-.01em; margin-bottom:3px; }
-        .lp-path-d { display:block; font-size:13.5px; color:${INK_4}; line-height:1.5; }
-        .lp-path-arrow { font-size:20px; color:${INK_4}; transition:transform .25s, color .2s; }
-        .lp-path:hover .lp-path-arrow { transform:translateX(5px); color:${GREEN}; }
+        /* Os 5 mundos — cartões de igual peso, cada um com o seu acento */
+        .lp-mundos { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:${BORDER}; border:1px solid ${BORDER}; }
+        .lp-mundo { display:flex; flex-direction:column; background:#fff; padding:24px 22px 22px; text-decoration:none; color:${INK}; border-top:3px solid var(--a); transition:background .2s, transform .15s; }
+        .lp-mundo:hover { background:${PAPER}; }
+        .lp-mundo-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+        .lp-mundo-tag { font-family:var(--font-mono,monospace); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--a); font-weight:700; }
+        .lp-mundo-n { font-family:var(--font-mono,monospace); font-size:11px; color:${INK_4}; }
+        .lp-mundo-t { font-family:var(--font-serif,Georgia,serif); font-weight:500; font-size:clamp(20px,2.4vw,25px); letter-spacing:-.015em; line-height:1.12; margin:0 0 8px; }
+        .lp-mundo-lead { font-size:13.5px; color:${INK_3}; line-height:1.5; margin:0 0 16px; }
+        .lp-mundo-list { list-style:none; margin:0 0 18px; padding:0; display:flex; flex-direction:column; gap:7px; }
+        .lp-mundo-list li { position:relative; padding-left:16px; font-size:13px; color:${INK_3}; line-height:1.45; }
+        .lp-mundo-list li::before { content:''; position:absolute; left:0; top:8px; width:7px; height:7px; border-radius:50%; background:var(--a); opacity:.55; }
+        .lp-mundo-go { margin-top:auto; font-family:var(--font-mono,monospace); font-size:12px; font-weight:700; color:var(--a); text-transform:uppercase; letter-spacing:.06em; display:inline-flex; align-items:center; gap:7px; }
+        .lp-mundo-arrow { transition:transform .2s; }
+        .lp-mundo:hover .lp-mundo-arrow { transform:translateX(4px); }
+        .lp-mundo-cta { border-top:3px solid ${INK}; background:${INK}; }
+        .lp-mundo-cta .lp-mundo-t, .lp-mundo-cta .lp-mundo-lead { color:#fff; }
+        .lp-mundo-cta .lp-mundo-lead { color:#a7aeb4; }
+        .lp-mundo-cta:hover { background:#0a0d0b; }
 
         .lp-three { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(26px,4vw,52px); }
         .lp-feat-k { display:flex; align-items:center; gap:9px; font-family:var(--font-mono,monospace); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:${INK_4}; margin-bottom:16px; }
@@ -310,15 +365,20 @@ export default function HomePage() {
         @keyframes lpUp { to { opacity:1; transform:none; } }
 
         /* ── Responsivo ── */
+        @media (max-width:920px) {
+          .lp-mundos { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        }
         @media (max-width:860px) {
           .lp-hero-grid { grid-template-columns:1fr; gap:34px; }
           .lp-steps { grid-template-columns:1fr; gap:28px; }
           .lp-three { grid-template-columns:1fr; gap:30px; }
-          .lp-path { grid-template-columns:auto 1fr auto; }
+        }
+        @media (max-width:560px) {
+          .lp-mundos { grid-template-columns:1fr; }
         }
         @media (prefers-reduced-motion:reduce) {
           .lp-hero-grid { transition:none; opacity:1; transform:none; }
-          .lp-path,.lp-go,.lp-path-arrow { transition:none; }
+          .lp-go,.lp-mundo-arrow { transition:none; }
         }
       `}</style>
     </div>

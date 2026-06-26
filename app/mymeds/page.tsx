@@ -8,6 +8,7 @@ import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { startClientReminderLoop, stopClientReminderLoop } from '@/lib/clientReminder'
+import { downloadICS, type CalendarEvent } from '@/lib/ics'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { useUsageLimit } from '@/lib/useUsageLimit'
@@ -123,6 +124,29 @@ function ReminderModal({ meds, pushMsg, onSave, onClose }: {
     addTime(medId, t)
     setCustom(prev => ({ ...prev, [medId]: '' }))
   }
+
+  // Lembretes que FUNCIONAM mesmo sem app aberta: gera um calendário (.ics)
+  // recorrente que o telemóvel (Google/Apple Calendar) usa para avisar à hora.
+  const totalSlots = Object.values(times).reduce((n, ts) => n + ts.length, 0)
+  function addToPhoneCalendar() {
+    const today = new Date()
+    const events: CalendarEvent[] = []
+    meds.forEach(med => {
+      (times[med.id] || []).forEach(t => {
+        const [h, m] = t.split(':').map(Number)
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m, 0)
+        if (start.getTime() < Date.now()) start.setDate(start.getDate() + 1) // começa na próxima ocorrência
+        events.push({
+          title: `💊 Tomar ${med.name}${med.dose ? ` ${med.dose}` : ''}`,
+          description: 'Lembrete de medicação do Phlox.',
+          start, durationMin: 10, alarmMinBefore: 0,
+          repeat: 'daily', repeatCount: 90,
+        })
+      })
+    })
+    if (events.length === 0) return
+    downloadICS(events, 'lembretes-medicacao.ics', 'Phlox — Medicação')
+  }
   return (
     <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}
       onClick={onClose}>
@@ -130,7 +154,7 @@ function ReminderModal({ meds, pushMsg, onSave, onClose }: {
         onClick={e => e.stopPropagation()}>
         <div style={{ width:36, height:4, background:'var(--border)', borderRadius:2, margin:'0 auto 20px' }} />
         <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Lembretes de toma</div>
-        <div style={{ fontSize:12, color:'var(--ink-4)', marginBottom: pushMsg ? 10 : 20 }}>Escolhe os horários de cada medicamento. Recebes um lembrete a essa hora.</div>
+        <div style={{ fontSize:12.5, color:'var(--ink-4)', marginBottom: pushMsg ? 10 : 18, lineHeight:1.5 }}>Escolha a hora de cada medicamento. Depois guarde e, em baixo, adicione ao calendário do telemóvel — é o calendário que o avisa, mesmo com a app fechada.</div>
         {pushMsg && (
           <div style={{ fontSize:12, color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'9px 12px', marginBottom:16, lineHeight:1.5 }}>{pushMsg}</div>
         )}
@@ -181,6 +205,13 @@ function ReminderModal({ meds, pushMsg, onSave, onClose }: {
           </div>
           )
         })}
+        {/* Lembretes que funcionam com a app fechada — via calendário do telemóvel */}
+        {totalSlots > 0 && (
+          <button onClick={() => { meds.forEach(m => onSave(m.id, times[m.id]||[])); addToPhoneCalendar() }}
+            style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:9, padding:'13px', background:'var(--green-light)', color:'var(--green-2)', border:'1.5px solid var(--green-mid)', borderRadius:10, fontSize:13.5, fontWeight:800, cursor:'pointer', marginBottom:10 }}>
+            📅 Adicionar ao calendário do telemóvel
+          </button>
+        )}
         <div style={{ display:'flex', gap:8, paddingTop:12, borderTop:'1px solid var(--border)' }}>
           <button onClick={() => { meds.forEach(m => onSave(m.id, times[m.id]||[])); onClose() }}
             style={{ flex:1, padding:13, background:'var(--green)', color:'white', border:'none', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>

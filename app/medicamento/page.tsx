@@ -74,7 +74,6 @@ export default function MedicamentoTool() {
   const { user, supabase } = useAuth() as any
   const [name, setName] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
-  const [infomedCode, setInfomedCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
@@ -90,15 +89,12 @@ export default function MedicamentoTool() {
 
   async function explain(override?: string) {
     const nm = (typeof override === 'string' ? override : name).trim()
-    if (!nm && !photo && !infomedCode.trim()) return
+    if (!nm && !photo) return
     if (usage.hit) { setResult(null); setError('limit'); return }
     setLoading(true); setError(''); setResult(null)
     try {
       let payload: any = { name: nm }
       if (photo && !nm) { const { b64, mime } = await downscale(photo); payload = { image: b64, mimeType: mime } }
-      // O código INFARMED/CNPEM, quando fornecido, é a identificação mais fiável.
-      // Incluímos sempre que o utilizador o forneceu — funciona como âncora.
-      if (infomedCode.trim()) payload.infomed_code = infomedCode.trim()
       const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/medicamento', {
         method: 'POST',
@@ -142,7 +138,7 @@ export default function MedicamentoTool() {
           <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Perceber</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, margin: 0, letterSpacing: '-0.02em' }}>O que é este medicamento?</h1>
           <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.55 }}>
-            Escreve o nome (com sugestões à medida que escreves) ou tira foto à caixa. Explicamos em palavras simples para que serve, se precisa de receita e o que ter em atenção.
+            Escreva o nome ou fotografe a caixa. Dizemos, em palavras simples, para que serve, se precisa de receita e o que ter em atenção.
           </p>
         </div>
       </div>
@@ -185,41 +181,18 @@ export default function MedicamentoTool() {
                 inputStyle={{ background: 'white', fontSize: 15, padding: '12px 14px' }}
               />
             </div>
-            <button onClick={() => explain()} disabled={loading || (!name.trim() && !photo && !infomedCode.trim())}
+            <button onClick={() => explain()} disabled={loading || (!name.trim() && !photo)}
               style={{
                 padding: '12px 18px',
-                background: (name.trim() || photo || infomedCode.trim()) && !loading ? '#0d9488' : 'var(--bg-3)',
-                color: (name.trim() || photo || infomedCode.trim()) && !loading ? 'white' : 'var(--ink-4)',
+                background: (name.trim() || photo) && !loading ? '#0d9488' : 'var(--bg-3)',
+                color: (name.trim() || photo) && !loading ? 'white' : 'var(--ink-4)',
                 border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800,
-                cursor: (name.trim() || photo || infomedCode.trim()) && !loading ? 'pointer' : 'default',
+                cursor: (name.trim() || photo) && !loading ? 'pointer' : 'default',
                 fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
               }}>
               {loading ? '…' : 'Ver'}
             </button>
           </div>
-
-          {/* Código INFARMED / CNPEM — identificação inequívoca da embalagem */}
-          <details style={{ marginTop: 14 }}>
-            <summary style={{ cursor: 'pointer', fontSize: 12.5, color: 'var(--ink-4)', fontWeight: 600 }}>
-              + Adicionar nº INFARMED / CNPEM (acerto quase 100%)
-            </summary>
-            <div style={{ marginTop: 10, padding: 10, background: 'var(--bg-2)', borderRadius: 8 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>
-                Encontras este número na caixa do medicamento (geralmente 7 dígitos junto ao código de barras, etiquetado <b>"Reg. nº"</b> ou <b>"CNPEM"</b>). Quando fornecido, é a identificação oficial — minimiza erros do reconhecimento.
-              </p>
-              <input
-                value={infomedCode}
-                onChange={e => setInfomedCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="Ex: 5432532"
-                inputMode="numeric"
-                maxLength={10}
-                style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace' }}
-              />
-              <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--ink-5)' }}>
-                Não tens a caixa? Pesquisa em <a href="https://extranet.infarmed.pt/INFOMED-fo/" target="_blank" rel="noreferrer" style={{ color: '#0d9488' }}>INFOMED</a> pelo nome para encontrar o número exacto.
-              </p>
-            </div>
-          </details>
 
           {error === 'limit'
             ? <UpgradeNudge used={usage.used} limit={usage.limit} what="consultas de medicamento" plan="pro" />

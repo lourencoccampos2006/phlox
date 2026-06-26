@@ -13,6 +13,8 @@ import { extractFromFile } from '@/lib/docExtract'
 import { sendToTool } from '@/lib/toolBridge'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import UpgradeNudge from '@/components/UpgradeNudge'
+import ProfileSelector from '@/components/ProfileSelector'
+import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 
 // /scan — Phlox Scan: SÓ a foto auto-deteta. Voltou a ser uma ferramenta
 // dedicada e simples (a fusão anterior em abas era frágil e rebentava).
@@ -77,6 +79,7 @@ function ScanTool() {
   const [err, setErr] = useState('')
   const [imported, setImported] = useState(false)
   const [interactions, setInteractions] = useState<string | null>(null)
+  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(getActiveProfile())
   const fileRef = useRef<HTMLInputElement>(null)
   const scanUsage = useUsageLimit('scan')
 
@@ -151,12 +154,19 @@ function ScanTool() {
   }
 
   async function importMeds() {
-    if (!user) { setErr('Inicia sessão para guardar.'); return }
+    if (!user) { setErr('Inicie sessão para guardar.'); return }
     const toImport = meds.filter(m => m._import)
     if (!toImport.length) return
     setBusy('A guardar…')
+    // Guarda no perfil ATIVO: o próprio (personal_meds) ou um familiar
+    // (family_profile_meds). Resolve o caso do cuidador a importar para a mãe.
+    const toFamily = activeProfile?.type === 'family' && activeProfile.id !== 'self'
     for (const m of toImport) {
-      await supabase.from('personal_meds').insert({ user_id: user.id, name: m.name, dose: m.dose || null, frequency: m.frequency || null }).then(() => {}, () => {})
+      if (toFamily) {
+        await supabase.from('family_profile_meds').insert({ user_id: user.id, profile_id: activeProfile!.id, name: m.name, dose: m.dose || null, frequency: m.frequency || null }).then(() => {}, () => {})
+      } else {
+        await supabase.from('personal_meds').insert({ user_id: user.id, name: m.name, dose: m.dose || null, frequency: m.frequency || null }).then(() => {}, () => {})
+      }
     }
     setBusy(''); setImported(true)
   }
@@ -257,8 +267,15 @@ function ScanTool() {
                   </label>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                <button onClick={importMeds} disabled={!!busy || imported} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{imported ? '✓ Guardado' : 'Guardar na minha medicação'}</button>
+              {/* Para quem? Permite ao cuidador guardar no perfil de um familiar. */}
+              {user && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, color: '#6b7280', fontWeight: 600 }}>Guardar em:</span>
+                  <ProfileSelector onChange={p => { setActiveProfile(p); setImported(false) }} includePatients={false} />
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <button onClick={importMeds} disabled={!!busy || imported} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{imported ? '✓ Guardado' : (activeProfile?.type === 'family' ? `Guardar em ${activeProfile.name.split(' ')[0]}` : 'Guardar na minha medicação')}</button>
                 {/* Handoff: leva os medicamentos extraídos para "Os meus medicamentos",
                     onde o utilizador os revê, edita doses e ativa lembretes. */}
                 <button onClick={() => sendToTool(router, '/mymeds', {

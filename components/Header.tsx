@@ -553,8 +553,8 @@ export default function Header() {
 
             {!loading && !user && (
               <>
-                <Link href="/login" className="hdr-lo-entrar" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', borderRadius: 7, border: '1px solid #e2e8f0' }}>Entrar</Link>
-                <Link href="/login" style={{ padding: '8px 16px', fontSize: 13, fontWeight: 800, background: '#0f172a', color: 'white', textDecoration: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}>Começar →</Link>
+                <Link href="/login" className="hdr-lo-entrar" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', borderRadius: 2, border: '1px solid #e2e8f0' }}>Entrar</Link>
+                <Link href="/login" style={{ padding: '8px 16px', fontSize: 13, fontWeight: 700, background: '#16181d', color: 'white', textDecoration: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}>Criar conta</Link>
                 {/* Hamburger — só mobile, para aceder a Ferramentas/Preços/Sobre */}
                 <button onClick={() => setDrawerOpen(true)} className="hdr-hamburger" aria-label="Abrir menu"
                   style={{ width: 36, height: 36, display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: '#f1f5f9', border: '1px solid transparent', borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}>

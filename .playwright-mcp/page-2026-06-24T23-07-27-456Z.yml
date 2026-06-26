@@ -1,0 +1,48 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Os Meus Medicamentos
+        - generic [ref=e27]: —
+      - generic [ref=e28]:
+        - button "E Eu (qa1781881827891)" [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: E
+          - generic [ref=e32]: Eu (qa1781881827891)
+          - img [ref=e33]
+        - button "🆘 Cartão" [ref=e35] [cursor=pointer]
+    - generic [ref=e36]:
+      - button "Medicação" [ref=e37] [cursor=pointer]
+      - button "Alertas" [ref=e38] [cursor=pointer]
+      - button "💬 Perguntar" [ref=e39] [cursor=pointer]
+      - button "🩺 Sintomas" [ref=e40] [cursor=pointer]
+      - button "+ Adicionar" [ref=e41] [cursor=pointer]
+  - navigation "Navegação principal" [ref=e48]:
+    - link "Início" [ref=e49] [cursor=pointer]:
+      - /url: /inicio
+      - img [ref=e50]
+      - generic [ref=e53]: Início
+    - link "Medicação" [ref=e54] [cursor=pointer]:
+      - /url: /mymeds
+      - img [ref=e55]
+      - generic [ref=e57]: Medicação
+    - link "Saúde" [ref=e58] [cursor=pointer]:
+      - /url: /sintomas
+      - img [ref=e59]
+      - generic [ref=e61]: Saúde
+    - link "Tudo" [ref=e62] [cursor=pointer]:
+      - /url: /tudo
+      - img [ref=e63]
+      - generic [ref=e68]: Tudo
+  - button "Open Next.js Dev Tools" [ref=e74] [cursor=pointer]:
+    - img [ref=e75]
+  - alert [ref=e78]

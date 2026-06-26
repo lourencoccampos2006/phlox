@@ -49,7 +49,7 @@ function exportProfileHistory(items: SavedItem[], profileName: string) {
     docSubtitle: profileName,
     institution: 'Phlox',
     sections,
-    footerNote: 'Documento gerado pelo Phlox a partir dos registos guardados. Informação educacional — confirma com o teu profissional de saúde.',
+    footerNote: 'Documento gerado pelo Phlox a partir dos registos guardados. Informação educacional — confirme com o seu profissional de saúde.',
   })
 }
 
@@ -116,14 +116,14 @@ export default function GuardadosPage() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>A minha biblioteca</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Guardados</h1>
-          <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Tudo o que guardaste — mnemónicas, explicações, análises, consultas — com o resultado completo, organizado por pessoa. Fica no teu dispositivo.</p>
+          <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Tudo o que guardou — análises, explicações, consultas — com o resultado completo, organizado por pessoa. Fica neste dispositivo.</p>
         </div>
 
         {/* Pesquisa + acções */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
           <input
             value={q} onChange={e => setQ(e.target.value)}
-            placeholder={`Pesquisar em ${items.length} item${items.length === 1 ? '' : 's'}…`}
+            placeholder={`Pesquisar em ${items.length} ${items.length === 1 ? 'item' : 'itens'}…`}
             style={{ flex: 1, minWidth: 220, border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
           {items.length > 0 && (
             <button onClick={onClearAll} style={{ padding: '10px 14px', background: 'white', color: '#94a3b8', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Limpar tudo</button>
@@ -262,7 +262,7 @@ function EmptyState() {
       <div style={{ fontSize: 36, marginBottom: 10 }}>★</div>
       <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: '#0b1120', fontWeight: 400, marginBottom: 6 }}>Ainda nada guardado</div>
       <p style={{ fontSize: 13.5, color: '#64748b', maxWidth: 380, margin: '0 auto 16px', lineHeight: 1.55 }}>
-        Em qualquer ferramenta procura o botão <strong>☆ Guardar</strong>. Aqui voltas a encontrar tudo, organizado.
+        Em qualquer ferramenta procure o botão <strong>☆ Guardar</strong>. Aqui volta a encontrar tudo, organizado.
       </p>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Link href="/medicamento" style={chipLink}>O que é este medicamento? ↗</Link>

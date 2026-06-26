@@ -1,0 +1,61 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Phlox" [ref=e4] [cursor=pointer]:
+        - /url: /inicio
+        - img [ref=e6]
+        - generic [ref=e8]: Phlox
+      - generic [ref=e9]:
+        - button [ref=e11] [cursor=pointer]:
+          - img [ref=e12]
+        - button "Abrir menu" [ref=e14] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Precisa de ajuda agora
+        - heading "O que aconteceu?" [level=1] [ref=e27]
+        - paragraph [ref=e28]:
+          - text: Descrevemos a situação e dizemos-te
+          - strong [ref=e29]: onde ir
+          - text: ","
+          - strong [ref=e30]: o que fazer já
+          - text: e o que NÃO fazer. Mantém a calma.
+      - link "📞 Ligar 112" [ref=e31] [cursor=pointer]:
+        - /url: tel:112
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - 'textbox "Ex: dor no peito desde manhã, queimei a mão a cozinhar, criança caiu da cama…" [ref=e34]'
+        - button "Analisar agora →" [disabled] [ref=e35]
+      - generic [ref=e36]:
+        - generic [ref=e37]: Comuns
+        - generic [ref=e38]:
+          - button "Alguém se engasgou" [ref=e39] [cursor=pointer]
+          - button "Queimadura" [ref=e40] [cursor=pointer]
+          - button "Corte com hemorragia" [ref=e41] [cursor=pointer]
+          - button "Desmaio" [ref=e42] [cursor=pointer]
+          - button "Convulsão" [ref=e43] [cursor=pointer]
+          - button "Reação alérgica grave" [ref=e44] [cursor=pointer]
+          - button "Dor no peito" [ref=e45] [cursor=pointer]
+          - button "Tontura súbita / fraqueza num lado" [ref=e46] [cursor=pointer]
+          - button "Febre alta há 3 dias" [ref=e47] [cursor=pointer]
+          - button "Vómitos persistentes" [ref=e48] [cursor=pointer]
+  - navigation "Navegação principal" [ref=e49]:
+    - link "Início" [ref=e50] [cursor=pointer]:
+      - /url: /inicio
+      - img [ref=e51]
+      - generic [ref=e54]: Início
+    - link "Medicação" [ref=e55] [cursor=pointer]:
+      - /url: /mymeds
+      - img [ref=e56]
+      - generic [ref=e58]: Medicação
+    - link "Saúde" [ref=e59] [cursor=pointer]:
+      - /url: /sintomas
+      - img [ref=e60]
+      - generic [ref=e62]: Saúde
+    - link "Tudo" [ref=e63] [cursor=pointer]:
+      - /url: /tudo
+      - img [ref=e64]
+      - generic [ref=e69]: Tudo
+  - button "Open Next.js Dev Tools" [ref=e75] [cursor=pointer]:
+    - img [ref=e76]
+  - alert [ref=e79]
