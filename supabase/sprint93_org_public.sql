@@ -6,7 +6,10 @@ alter table organizations
   add column if not exists slug text unique,
   add column if not exists public boolean not null default false,
   add column if not exists tagline text,
-  add column if not exists about text;
+  add column if not exists about text,
+  -- gestão de negócio (painel do dono)
+  add column if not exists capacity int,           -- lotação máxima de utentes
+  add column if not exists monthly_fee numeric;    -- mensalidade por utente (estimativa de receita)
 
 create index if not exists organizations_slug_idx on organizations (slug) where slug is not null;
 

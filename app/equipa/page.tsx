@@ -47,6 +47,8 @@ export default function EquipaPage() {
   const [editSlug, setEditSlug] = useState('')
   const [editTagline, setEditTagline] = useState('')
   const [editPublic, setEditPublic] = useState(false)
+  const [editCapacity, setEditCapacity] = useState('')
+  const [editFee, setEditFee] = useState('')
   const [savingOrg, setSavingOrg] = useState(false)
   const [orgSaved, setOrgSaved] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -71,7 +73,7 @@ export default function EquipaPage() {
       const s = await fetch('/api/org/setup', { headers: h }).then(r => r.json())
       setNoKey(!!s.noServiceKey)
       setOrg(s.org || null); setMyRole(s.role || null)
-      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public) }
+      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public); setEditCapacity(s.org.capacity != null ? String(s.org.capacity) : ''); setEditFee(s.org.monthly_fee != null ? String(s.org.monthly_fee) : '') }
       if (s.org) {
         const t = await fetch('/api/org/team', { headers: h }).then(r => r.json())
         if (t.error) setErr(t.error)
@@ -91,6 +93,7 @@ export default function EquipaPage() {
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       try { localStorage.setItem('phlox-clinic-institution', orgKind) } catch {}
+      if (d.kindConstraintOutdated) setErr('Instituição criada. Nota: falta correr o sprint94_fix_org_kind.sql no Supabase para guardar o tipo "centro de dia" corretamente.')
       await loadAll()
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
@@ -101,10 +104,12 @@ export default function EquipaPage() {
     if (!editName.trim()) return
     setSavingOrg(true); setErr('')
     try {
-      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, slug: editSlug, tagline: editTagline, public: editPublic }) })
+      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, slug: editSlug, tagline: editTagline, public: editPublic, capacity: editCapacity, monthlyFee: editFee }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       try { localStorage.setItem('phlox-clinic-institution', editKind) } catch {}
+      if (d.kindConstraintOutdated) setErr('Guardado. Para fixar o tipo "centro de dia", corra o sprint94_fix_org_kind.sql no Supabase.')
+      if (d.publicColumnsMissing) setErr('Guardado (nome/tipo). A página pública precisa do sprint93_org_public.sql no Supabase.')
       setOrgSaved(true); setTimeout(() => setOrgSaved(false), 2500)
       await loadAll()
     } catch (e: any) { setErr(e.message) } finally { setSavingOrg(false) }
@@ -245,6 +250,12 @@ export default function EquipaPage() {
                           </button>
                         ))}
                       </div>
+                      {/* Negócio — lotação e mensalidade (alimentam o painel do dono) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                        <div><label style={lbl}>Lotação (lugares)</label><input value={editCapacity} onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 30" inputMode="numeric" style={inp} /></div>
+                        <div><label style={lbl}>Mensalidade por utente (€)</label><input value={editFee} onChange={e => setEditFee(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Ex: 450" inputMode="decimal" style={inp} /></div>
+                      </div>
+
                       {/* Página pública (prova social + angariação) */}
                       <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, marginBottom: 14 }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: '#0b1120', fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>

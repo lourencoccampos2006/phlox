@@ -208,11 +208,18 @@ export default function MARPage() {
       .then(({ data }: any) => setMeds(data || []))
   }, [selectedId, supabase])
 
+  // Carrega os registos do DIA inteiro (todos os turnos) — assim as tomas dadas
+  // EM CASA (que podem cair noutro turno) também aparecem e contam.
+  const [dayRecords, setDayRecords] = useState<AdminRecord[]>([])
   useEffect(() => {
-    if (!selectedId || !date) return
+    if (!selectedId || !date) { setDayRecords([]); return }
     supabase.from('mar_records').select('*')
-      .eq('patient_id', selectedId).eq('date', date).eq('shift', shift)
-      .then(({ data }) => setRecords(data || []))
+      .eq('patient_id', selectedId).eq('date', date)
+      .then(({ data }) => {
+        const all = (data || []) as AdminRecord[]
+        setDayRecords(all)
+        setRecords(all.filter(r => r.shift === shift))   // a grelha mostra o turno ativo
+      })
   }, [selectedId, date, shift, supabase, liveTick])
 
   // Compute omissions across all patients
@@ -480,6 +487,17 @@ export default function MARPage() {
             </Link>
           </div>
         ) : (
+          <>
+          {/* Tomas dadas EM CASA hoje (pela família) — em qualquer turno */}
+          {(() => {
+            const home = dayRecords.filter(r => (r as any).source === 'home')
+            if (!home.length) return null
+            return (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 15px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
+                🏠 <strong>{home.length}</strong> {home.length === 1 ? 'toma dada em casa' : 'tomas dadas em casa'} hoje pela família{home.some((h: any) => h.home_by) ? ` (${[...new Set(home.map((h: any) => h.home_by).filter(Boolean))].join(', ')})` : ''}.
+              </div>
+            )
+          })()}
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
             {/* Shift header */}
             <div style={{ background: sl.light, borderBottom: `1px solid ${sl.border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -575,6 +593,7 @@ export default function MARPage() {
               </div>
             </div>
           </div>
+          </>
         )}
       </div>
 

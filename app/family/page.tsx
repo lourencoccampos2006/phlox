@@ -665,8 +665,12 @@ export default function FamilyPage() {
         @media (max-width: 768px) {
           .family-msg-grid { grid-template-columns: 1fr !important; }
           .vf-grid { grid-template-columns: 1fr !important; }
-          .ft-grid { grid-template-columns: 1fr !important; height: auto !important; }
-          .ft-list { max-height: 220px; }
+          /* Conversa estilo WhatsApp: ou vejo a LISTA, ou a CONVERSA (uma de cada vez). */
+          .ft-grid { grid-template-columns: 1fr !important; height: calc(100vh - 180px) !important; min-height: 0 !important; }
+          .ft-list[data-open="chat"] { display: none !important; }
+          .ft-chat[data-open="list"] { display: none !important; }
+          .ft-list[data-open="list"], .ft-chat[data-open="chat"] { height: 100%; }
+          .ft-back { display: inline-block !important; }
         }
       `}</style>
     </div>
@@ -709,6 +713,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   const [wb, setWb] = useState<{ mood?: string; meals?: string; activity?: string }>({})
   const [sending, setSending] = useState(false)
   const [prefilling, setPrefilling] = useState(false)
+  const [extrasOpen, setExtrasOpen] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   const patient = patients.find((p: Patient) => p.id === patientId)
@@ -741,8 +746,10 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   const loadThread = useCallback(async (pid: string) => {
     if (!pid) { setMsgs([]); return }
     setLoading(true)
+    // Por patient_id (o utente já é partilhado pela org) — evita o caso de mensagens
+    // ligadas a outro user_id da equipa não aparecerem.
     const { data } = await supabase.from('family_thread_messages').select('*')
-      .eq('user_id', user.id).eq('patient_id', pid).order('created_at', { ascending: true })
+      .eq('patient_id', pid).order('created_at', { ascending: true })
     setMsgs(data || [])
     setLoading(false)
     // marcar respostas da família como lidas pela equipa
@@ -887,9 +894,9 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   }
 
   return (
-    <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 320px)', minHeight: 420 }}>
-      {/* Lista de residentes */}
-      <div className="ft-list" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflowY: 'auto' }}>
+    <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 300px)', minHeight: 460 }}>
+      {/* Lista de residentes — em mobile esconde-se quando há conversa aberta */}
+      <div className="ft-list" data-open={patientId ? 'chat' : 'list'} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflowY: 'auto' }}>
         <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{cfg.personNounPlural}</div>
         {patients.length === 0 ? (
           <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>Sem {cfg.personNounPlural.toLowerCase()}.</div>
@@ -913,7 +920,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
       </div>
 
       {/* Fio */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="ft-chat" data-open={patientId ? 'chat' : 'list'} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {!patientId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: 8, padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 36 }}>💬</div>
@@ -923,10 +930,13 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
         ) : (
           <>
             {/* Cabeçalho */}
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{patient?.name}{patient?.room_number ? ` · Q.${patient.room_number}` : ''}</div>
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>{ptContacts.length ? ptContacts.map((c: FamilyContact) => c.name).join(', ') : 'Sem familiares ligados'}</div>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <button className="ft-back" onClick={() => setPatientId('')} title="Voltar" style={{ display: 'none', background: 'none', border: 'none', fontSize: 20, color: '#0d6e42', cursor: 'pointer', padding: 0, flexShrink: 0 }}>←</button>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patient?.name}{patient?.room_number ? ` · ${cfg.roomLabel?.charAt(0) || 'Q'}.${patient.room_number}` : ''}</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ptContacts.length ? ptContacts.map((c: FamilyContact) => c.name).join(', ') : 'Sem familiares ligados'}</div>
+                </div>
               </div>
               {familyCode ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -947,80 +957,57 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
               <div style={{ padding: '9px 14px', background: '#fef2f2', borderBottom: '1px solid #fecaca', fontSize: 12.5, color: '#991b1b' }}>{codeErr}</div>
             )}
 
-            {/* Mensagens */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', background: '#fafbfc' }}>
+            {/* Mensagens — fundo estilo WhatsApp */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px', background: '#e9e6df' }}>
               {loading ? (
-                <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 20 }}>A carregar…</div>
+                <div style={{ textAlign: 'center', color: '#7d8a99', fontSize: 13, padding: 20 }}>A carregar…</div>
               ) : msgs.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 24, lineHeight: 1.6 }}>
-                  Ainda sem conversa. Partilha a primeira atualização — uma foto do dia, um recado, ou o boletim de bem-estar.
+                <div style={{ textAlign: 'center', color: '#7d8a99', fontSize: 13, padding: 24, lineHeight: 1.6 }}>
+                  Ainda sem conversa. Escreva à família ou partilhe uma foto do dia.
                 </div>
-              ) : msgs.map(m => <ThreadBubble key={m.id} m={m} />)}
+              ) : msgs.map(m => <ThreadBubble key={m.id} m={m} mySide="staff" />)}
               <div ref={endRef} />
             </div>
 
-            {/* Compositor */}
-            <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 14px', background: '#fff' }}>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-                {([['message', '💬 Mensagem'], ['update', '📋 Atualização'], ['wellbeing', '🌤️ Boletim de bem-estar']] as const).map(([k, l]) => (
-                  <button key={k} onClick={() => setMode(k)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${mode === k ? '#2563eb' : '#e5e7eb'}`, background: mode === k ? '#eff6ff' : '#fff', color: mode === k ? '#2563eb' : '#6b7280' }}>{l}</button>
-                ))}
-              </div>
-
-              {mode === 'wellbeing' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                  <button onClick={prefillFromToday} disabled={prefilling}
-                    style={{ alignSelf: 'flex-start', padding: '5px 11px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>
-                    {prefilling ? '…' : '✨ Pré-preencher do registo de hoje'}
-                  </button>
-                  {([['Humor', MOOD_OPTS, 'mood'], ['Refeições', MEALS_OPTS, 'meals'], ['Atividade', ACTIVITY_OPTS, 'activity']] as const).map(([lab, opts, key]) => (
-                    <div key={key}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{lab}</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {opts.map(o => {
-                          const on = (wb as any)[key] === o.v
-                          return <button key={o.v} onClick={() => setWb(p => ({ ...p, [key]: on ? undefined : o.v }))}
-                            style={{ padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer', border: `1.5px solid ${on ? '#2563eb' : '#e5e7eb'}`, background: on ? '#eff6ff' : '#fff', color: on ? '#2563eb' : '#374151', fontWeight: on ? 600 : 400 }}>{o.emoji} {o.label}</button>
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Atalhos de mensagem — gerar do dia + frases rápidas (poupa tempo à equipa) */}
-              {mode === 'message' && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
-                  <button onClick={composeDaySummary} disabled={prefilling}
-                    style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: prefilling ? 'wait' : 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>
-                    {prefilling ? 'A compor…' : '✨ Gerar mensagem do dia'}
-                  </button>
-                  {['Tomou a medicação ✓', 'Almoçou bem 🍽️', 'Dormiu/descansou bem 😴', 'Participou nas atividades 🎯', 'Está tudo tranquilo 🌿'].map(t => (
-                    <button key={t} onClick={() => setText(prev => prev ? prev + ' ' + t : t)}
-                      style={{ padding: '6px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid #e5e7eb', background: 'white', color: '#475569' }}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-                {(mode === 'message' || mode === 'update') && (
-                  <label style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 9, border: `1.5px solid ${photo ? '#2563eb' : '#e5e7eb'}`, background: photo ? '#eff6ff' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18 }} title="Anexar foto">
-                    📷
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+            {/* Painel de extras — só quando se abre o "+" (não tapa as mensagens) */}
+            {extrasOpen && (
+              <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 14px', background: '#f8fafc', maxHeight: '40vh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <label style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #e5e7eb', background: 'white', color: '#0d6e42', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    📷 Foto<input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { setPhoto(e.target.files?.[0] || null); setExtrasOpen(false) }} />
                   </label>
+                  <button onClick={() => { composeDaySummary(); setExtrasOpen(false) }} disabled={prefilling} style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>{prefilling ? 'A compor…' : '✨ Mensagem do dia'}</button>
+                  <button onClick={() => setMode(mode === 'wellbeing' ? 'message' : 'wellbeing')} style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${mode === 'wellbeing' ? '#0d6e42' : '#e5e7eb'}`, background: mode === 'wellbeing' ? '#f0fdf4' : 'white', color: mode === 'wellbeing' ? '#0d6e42' : '#475569' }}>🌤️ Boletim</button>
+                </div>
+                {mode === 'wellbeing' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {([['Humor', MOOD_OPTS, 'mood'], ['Refeições', MEALS_OPTS, 'meals'], ['Atividade', ACTIVITY_OPTS, 'activity']] as const).map(([lab, opts, key]) => (
+                      <div key={key}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{lab}</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {opts.map(o => { const on = (wb as any)[key] === o.v; return <button key={o.v} onClick={() => setWb(p => ({ ...p, [key]: on ? undefined : o.v }))} style={{ padding: '6px 11px', borderRadius: 8, fontSize: 12.5, cursor: 'pointer', border: `1.5px solid ${on ? '#0d6e42' : '#e5e7eb'}`, background: on ? '#f0fdf4' : 'white', color: on ? '#0d6e42' : '#374151', fontWeight: on ? 700 : 400 }}>{o.emoji} {o.label}</button> })}
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={prefillFromToday} disabled={prefilling} style={{ alignSelf: 'flex-start', padding: '6px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>{prefilling ? '…' : '✨ Pré-preencher do registo de hoje'}</button>
+                  </div>
                 )}
-                <textarea value={text} onChange={e => setText(e.target.value)} rows={1}
-                  placeholder={mode === 'wellbeing' ? 'Nota opcional para a família…' : mode === 'update' ? 'Atualização do dia para a família…' : 'Escreve uma mensagem…'}
-                  style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
-                <button onClick={send} disabled={sending}
-                  style={{ flexShrink: 0, padding: '10px 16px', background: sending ? '#e5e7eb' : '#2563eb', color: sending ? '#9ca3af' : '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: sending ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  {sending ? '…' : 'Enviar'}
-                </button>
               </div>
-              {photo && <div style={{ fontSize: 11, color: '#2563eb', marginTop: 6 }}>📎 {photo.name} <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 11 }}>remover</button></div>}
+            )}
+
+            {/* Compositor — barra única estilo WhatsApp */}
+            <div style={{ borderTop: '1px solid #e5e7eb', padding: '8px 10px', background: '#f0f2f5', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <button onClick={() => setExtrasOpen(o => !o)} title="Mais (foto, boletim…)" style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '50%', border: 'none', background: extrasOpen ? '#0d6e42' : '#e2e8f0', color: extrasOpen ? 'white' : '#475569', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{extrasOpen ? '×' : '+'}</button>
+              <textarea value={text} onChange={e => setText(e.target.value)} rows={1}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                placeholder={mode === 'wellbeing' ? 'Nota para a família…' : 'Mensagem…'}
+                style={{ flex: 1, border: '1px solid #e0e0e0', borderRadius: 22, padding: '10px 16px', fontSize: 14.5, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', boxSizing: 'border-box', background: 'white', maxHeight: 110 }} />
+              <button onClick={send} disabled={sending} title="Enviar"
+                style={{ flexShrink: 0, width: 42, height: 42, borderRadius: '50%', background: '#0d6e42', color: 'white', border: 'none', fontSize: 18, cursor: sending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {sending ? '…' : '➤'}
+              </button>
             </div>
+            {photo && <div style={{ fontSize: 12, color: '#0d6e42', padding: '6px 14px', background: '#f0f2f5' }}>📎 {photo.name} — será enviada <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>remover</button></div>}
           </>
         )}
       </div>
@@ -1028,33 +1015,34 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   )
 }
 
-function ThreadBubble({ m }: { m: ThreadMsg }) {
-  const isStaff = m.author_side === 'staff'
-  const time = new Date(m.created_at).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+// mySide = de que lado estou eu (na app da equipa = 'staff'). As MINHAS mensagens
+// vão para a DIREITA (verde, estilo WhatsApp); as do outro lado, à esquerda (branco).
+function ThreadBubble({ m, mySide = 'staff' }: { m: ThreadMsg; mySide?: 'staff' | 'family' }) {
+  const mine = m.author_side === mySide
+  const time = new Date(m.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+  const bubbleBg = mine ? '#dcf8c6' : '#ffffff'   // verde-claro WhatsApp para as minhas
   return (
-    <div style={{ display: 'flex', justifyContent: isStaff ? 'flex-start' : 'flex-end', marginBottom: 12 }}>
-      <div style={{ maxWidth: '78%' }}>
-        <div style={{ background: isStaff ? '#fff' : '#2563eb', color: isStaff ? '#0b1120' : '#fff', border: isStaff ? '1px solid #e5e7eb' : 'none', borderRadius: isStaff ? '4px 14px 14px 14px' : '14px 4px 14px 14px', padding: '10px 13px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+    <div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
+      <div style={{ maxWidth: '82%' }}>
+        <div style={{ background: bubbleBg, color: '#0b1120', border: mine ? 'none' : '1px solid #ececec', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '7px 11px 6px', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
+          {!mine && <div style={{ fontSize: 11, fontWeight: 700, color: '#0d6e42', marginBottom: 2 }}>{m.author_name || (m.author_side === 'staff' ? 'Equipa' : 'Família')}</div>}
           {m.kind === 'wellbeing' ? (
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.7, marginBottom: 6 }}>Boletim de bem-estar</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0d6e42', marginBottom: 5 }}>Como correu o dia</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {[optLabel(MOOD_OPTS, m.mood), optLabel(MEALS_OPTS, m.meals), optLabel(ACTIVITY_OPTS, m.activity)].filter(Boolean).map((o: any, i) => (
-                  <div key={i} style={{ fontSize: 13 }}>{o.emoji} {o.label}</div>
+                  <div key={i} style={{ fontSize: 13.5 }}>{o.emoji} {o.label}</div>
                 ))}
               </div>
-              {m.content && <div style={{ fontSize: 13, marginTop: 7, lineHeight: 1.5 }}>{m.content}</div>}
+              {m.content && <div style={{ fontSize: 13.5, marginTop: 6, lineHeight: 1.45 }}>{m.content}</div>}
             </div>
           ) : (
             <>
-              {m.kind === 'update' && <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.65, marginBottom: 4 }}>📋 Atualização</div>}
-              {m.photo_url && <img src={m.photo_url} alt="foto" style={{ width: '100%', borderRadius: 8, marginBottom: m.content ? 7 : 0, display: 'block' }} />}
-              {m.content && <div style={{ fontSize: 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
+              {m.photo_url && <img src={m.photo_url} alt="foto" style={{ width: '100%', borderRadius: 8, marginBottom: m.content ? 6 : 0, display: 'block' }} />}
+              {m.content && <div style={{ fontSize: 14.5, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
             </>
           )}
-        </div>
-        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3, textAlign: isStaff ? 'left' : 'right' }}>
-          {m.author_name || (isStaff ? 'Equipa' : 'Família')} · {time}
+          <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'right', marginTop: 2 }}>{time}</div>
         </div>
       </div>
     </div>

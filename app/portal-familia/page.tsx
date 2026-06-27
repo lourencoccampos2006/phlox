@@ -369,27 +369,28 @@ export default function FamilyPortalPage() {
                 ) : msgs.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, padding: 40, lineHeight: 1.6 }}>Ainda não há mensagens. A equipa irá partilhar atualizações sobre {active.name} aqui.</div>
                 ) : msgs.map(m => {
+                  // Estilo WhatsApp: as MINHAS mensagens (família) à direita, verde-claro.
                   const isFamily = m.author_side === 'family'
-                  const time = new Date(m.created_at).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                  const time = new Date(m.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
                   return (
-                    <div key={m.id} style={{ display: 'flex', justifyContent: isFamily ? 'flex-end' : 'flex-start', marginBottom: 12 }}>
+                    <div key={m.id} style={{ display: 'flex', justifyContent: isFamily ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
                       <div style={{ maxWidth: '82%' }}>
-                        <div style={{ background: isFamily ? '#2563eb' : '#fff', color: isFamily ? '#fff' : '#0b1120', border: isFamily ? 'none' : '1px solid #e5e7eb', borderRadius: isFamily ? '14px 4px 14px 14px' : '4px 14px 14px 14px', padding: '11px 14px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                        <div style={{ background: isFamily ? '#dcf8c6' : '#fff', color: '#0b1120', border: isFamily ? 'none' : '1px solid #ececec', borderRadius: isFamily ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px 6px', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
+                          {!isFamily && <div style={{ fontSize: 11, fontWeight: 700, color: '#0d6e42', marginBottom: 2 }}>{m.author_name || 'Equipa'}</div>}
                           {m.kind === 'wellbeing' ? (
                             <div>
-                              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7, marginBottom: 6 }}>Como correu o dia</div>
+                              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0d6e42', marginBottom: 5 }}>Como correu o dia</div>
                               {[MOOD[m.mood || ''], MEALS[m.meals || ''], ACT[m.activity || '']].filter(Boolean).map((l, i) => <div key={i} style={{ fontSize: 14, marginBottom: 2 }}>{l}</div>)}
-                              {m.content && <div style={{ fontSize: 14, marginTop: 7, lineHeight: 1.5 }}>{m.content}</div>}
+                              {m.content && <div style={{ fontSize: 14, marginTop: 6, lineHeight: 1.45 }}>{m.content}</div>}
                             </div>
                           ) : (
                             <>
-                              {m.kind === 'update' && <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.65, marginBottom: 4 }}>📋 Atualização</div>}
-                              {m.photo_url && <img src={m.photo_url} alt="" style={{ width: '100%', borderRadius: 9, marginBottom: m.content ? 7 : 0, display: 'block' }} />}
-                              {m.content && <div style={{ fontSize: 14.5, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
+                              {m.photo_url && <img src={m.photo_url} alt="" style={{ width: '100%', borderRadius: 9, marginBottom: m.content ? 6 : 0, display: 'block' }} />}
+                              {m.content && <div style={{ fontSize: 14.5, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
                             </>
                           )}
+                          <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'right', marginTop: 2 }}>{time}</div>
                         </div>
-                        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3, textAlign: isFamily ? 'right' : 'left' }}>{m.author_name || (isFamily ? 'Família' : 'Equipa')} · {time}</div>
                       </div>
                     </div>
                   )

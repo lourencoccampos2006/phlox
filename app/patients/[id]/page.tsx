@@ -288,15 +288,24 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
+      {/* AÇÕES RÁPIDAS — a ficha vira um hub: dar medicação, registar o dia */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+        <Link href={`/mar?patient=${patient.id}`} style={{ ...btnSolid(accent), flex: '1 1 140px', textAlign: 'center', textDecoration: 'none' }}>💊 Dar medicação</Link>
+        <Link href={`/care-log?patient=${patient.id}`} style={{ ...btnGhost(accent), flex: '1 1 140px', textAlign: 'center', textDecoration: 'none' }}>📝 Registar o dia</Link>
+      </div>
+
       {/* RESUMO */}
       <Card>
         <CardTitle>Resumo</CardTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, marginBottom: patient.conditions ? 14 : 0 }}>
-          <Mini label="Medicamentos" value={String(meds.length)} accent={accent} />
-          {crCl != null && <Mini label="Função renal" value={`CrCl ${crCl}`} alert={crCl < 30} warn={crCl < 60} />}
-          {patient.weight && <Mini label="Peso" value={`${patient.weight} kg`} />}
-          {todayMar.length > 0 && <Mini label="Tomas hoje" value={String(todayMar.filter(m => m.status === 'administered' || m.status === 'given' || m.status === 'taken').length)} accent={accent} />}
-        </div>
+        {/* Estado em linha — só o que tem dados (sem "0" vazios) */}
+        {(crCl != null || patient.weight || todayMar.length > 0 || meds.length > 0) && (
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: patient.conditions ? 14 : 0 }}>
+            {meds.length > 0 && <Mini label="Medicamentos" value={String(meds.length)} accent={accent} />}
+            {crCl != null && <Mini label="Função renal" value={`CrCl ${crCl}`} alert={crCl < 30} warn={crCl < 60} />}
+            {patient.weight && <Mini label="Peso" value={`${patient.weight} kg`} />}
+            {todayMar.length > 0 && <Mini label="Tomas hoje" value={String(todayMar.filter(m => m.status === 'administered' || m.status === 'given' || m.status === 'taken').length)} accent={accent} />}
+          </div>
+        )}
         {patient.conditions && (
           <div>
             <Label>Diagnósticos</Label>
@@ -305,10 +314,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         )}
         {patient.notes && <div style={{ marginTop: 12 }}><Label>Notas</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.notes}</div></div>}
 
-        {/* Resumo clínico IA */}
+        {/* Resumo clínico IA — só quando há matéria para analisar */}
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
           {!summary && !sumLoading && (
-            <button onClick={genSummary} style={{ ...btnSolid(accent), width: '100%' }}>✨ Gerar resumo clínico (IA)</button>
+            meds.length > 0 || patient.conditions
+              ? <button onClick={genSummary} style={{ ...btnGhost(accent), width: '100%' }}>✨ Gerar resumo clínico (IA)</button>
+              : <div style={{ fontSize: 12.5, color: '#94a3b8', textAlign: 'center' }}>Adicione medicação ou diagnósticos para gerar um resumo clínico.</div>
           )}
           {sumLoading && <div style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: 8 }}>A analisar a ficha…</div>}
           {sumErr && <div style={{ fontSize: 13, color: '#dc2626' }}>{sumErr}</div>}

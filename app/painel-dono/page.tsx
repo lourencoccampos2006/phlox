@@ -21,16 +21,22 @@ export default function PainelDonoPage() {
   const [totals, setTotals] = useState({ meds: 0, care: 0, incidents: 0 })
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [tab, setTab] = useState<'negocio' | 'registos'>('negocio')
+  const [biz, setBiz] = useState<any | null>(null)
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true); setErr('')
     try {
       const { data: sd } = await supabase.auth.getSession()
-      const r = await fetch(`/api/org/audit?date=${date}`, { headers: { Authorization: `Bearer ${sd?.session?.access_token}` } })
-      const d = await r.json()
-      if (!r.ok) { setErr(d.error || 'Sem acesso.'); setEvents([]); setLoading(false); return }
-      setEvents(d.events || []); setByStaff(d.byStaff || {}); setTotals(d.totals || { meds: 0, care: 0, incidents: 0 })
+      const h = { Authorization: `Bearer ${sd?.session?.access_token}` }
+      const [auditR, bizR] = await Promise.all([
+        fetch(`/api/org/audit?date=${date}`, { headers: h }).then(r => r.json()),
+        fetch(`/api/org/dashboard`, { headers: h }).then(r => r.json()).catch(() => null),
+      ])
+      if (auditR?.error) { setErr(auditR.error); setEvents([]); setLoading(false); return }
+      setEvents(auditR.events || []); setByStaff(auditR.byStaff || {}); setTotals(auditR.totals || { meds: 0, care: 0, incidents: 0 })
+      if (bizR && !bizR.error) setBiz(bizR)
     } catch (e: any) { setErr(e.message) }
     setLoading(false)
   }, [user, supabase, date])
@@ -50,10 +56,8 @@ export default function PainelDonoPage() {
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Painel do dono</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>Registo de tudo</h1>
-            <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>Quem deu a medicação a quem, e todos os registos da equipa — com data e hora. Fica tudo registado.</p>
+            <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>Gira a instituição a partir daqui: ocupação, receita, equipa e tudo o que a equipa regista.</p>
           </div>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
         </div>
 
         {err && (
@@ -64,6 +68,60 @@ export default function PainelDonoPage() {
 
         {!err && (
           <>
+            {/* Separadores: Negócio | Registos */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0' }}>
+              {([['negocio', 'Negócio'], ['registos', 'Registos']] as const).map(([k, l]) => (
+                <button key={k} onClick={() => setTab(k)} style={{ padding: '9px 16px', background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? ACCENT : 'transparent'}`, cursor: 'pointer', fontSize: 14, fontWeight: tab === k ? 800 : 600, color: tab === k ? ACCENT : '#64748b', marginBottom: -1, fontFamily: 'inherit' }}>{l}</button>
+              ))}
+            </div>
+
+            {/* ── NEGÓCIO ── */}
+            {tab === 'negocio' && biz && (() => {
+              const k = biz.kpis
+              const eur = (n: number) => n.toLocaleString('pt-PT', { minimumFractionDigits: 0 }) + ' €'
+              const KCard = ({ big, label, sub, color = '#0b1120' }: any) => (
+                <div style={{ ...card }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color, lineHeight: 1 }}>{big}</div>
+                  <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 5, fontWeight: 600 }}>{label}</div>
+                  {sub && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{sub}</div>}
+                </div>
+              )
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
+                    <KCard big={k.patients} label={biz.org.kind === 'day_care' ? 'utentes ativos' : 'pessoas'} sub={k.capacity ? `de ${k.capacity} lugares` : 'lotação não definida'} color={ACCENT} />
+                    {k.occupancy != null && <KCard big={`${k.occupancy}%`} label="ocupação" sub={k.occupancy >= 90 ? 'quase cheio' : k.occupancy >= 60 ? 'saudável' : 'há lugares'} color={k.occupancy >= 60 ? '#16a34a' : '#b45309'} />}
+                    {k.revenueEstimate != null
+                      ? <KCard big={eur(k.revenueEstimate)} label="receita estimada/mês" sub="utentes × mensalidade" color="#0d6e42" />
+                      : <KCard big="—" label="receita/mês" sub="defina a mensalidade nas Definições" />}
+                    <KCard big={k.presentToday} label="presentes hoje" sub="com registo do dia" />
+                    <KCard big={k.teamSize} label="na equipa" sub={<Link href="/equipa" style={{ color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>gerir →</Link>} />
+                    {k.logAdherence != null && <KCard big={`${k.logAdherence}%`} label="registos feitos (7 dias)" sub="adesão da equipa" color={k.logAdherence >= 80 ? '#16a34a' : '#b45309'} />}
+                    <KCard big={k.marGivenMonth} label="tomas dadas (mês)" sub={k.marHomeMonth ? `${k.marHomeMonth} em casa pela família` : 'no centro'} color="#dc2626" />
+                    <KCard big={k.familiesEngaged} label="famílias ativas (7 dias)" sub={`${k.familyReplies} respostas das famílias`} color="#7c3aed" />
+                  </div>
+                  {k.incidentsOpen > 0 && (
+                    <div style={{ ...card, background: '#fffbeb', border: '1px solid #fde68a' }}>
+                      <span style={{ fontSize: 13.5, color: '#92400e', fontWeight: 700 }}>⚠ {k.incidentsOpen} {k.incidentsOpen === 1 ? 'ocorrência em aberto' : 'ocorrências em aberto'}</span>
+                      <Link href="/incidents" style={{ marginLeft: 8, fontSize: 12.5, color: '#b45309', fontWeight: 700 }}>resolver →</Link>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {[['/painel', '📊 Cockpit do dia'], ['/equipa', '👥 Equipa'], ['/faturacao', '💶 Faturação'], ['/stock', '📦 Stock'], ['/agenda', '📅 Agenda']].map(([href, l]) => (
+                      <Link key={href} href={href} style={{ padding: '9px 14px', background: 'white', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#0b1120', textDecoration: 'none' }}>{l}</Link>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.6 }}>Defina a lotação e a mensalidade em <Link href="/equipa" style={{ color: ACCENT, fontWeight: 700 }}>Equipa → Definições da instituição</Link> para ver ocupação e receita.</p>
+                </div>
+              )
+            })()}
+            {tab === 'negocio' && !biz && <div style={{ ...card, color: '#94a3b8' }}>A carregar indicadores…</div>}
+
+            {/* ── REGISTOS (o que existia: auditoria) ── */}
+            {tab === 'registos' && <>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+            </div>
             {/* Resumo do dia */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12, marginBottom: 16 }}>
               {[
@@ -120,6 +178,7 @@ export default function PainelDonoPage() {
             <p style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 14, lineHeight: 1.6 }}>
               Este registo serve a responsabilidade do serviço e a segurança dos utentes. O acesso é exclusivo do dono e administradores da instituição (RGPD — responsável pelo tratamento).
             </p>
+            </>}
           </>
         )}
       </div>

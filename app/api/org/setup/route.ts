@@ -30,6 +30,20 @@ async function getUser(req: NextRequest) {
 
 const KINDS = ['day_care', 'nursing_home', 'pharmacy_community', 'clinic', 'health_center']
 
+// Adota os dados antigos do dono (org_id null) para a organização — resolve os
+// "utentes fantasma" que apareciam só em algumas ferramentas. Tolerante a tabelas/
+// colunas que não existam nesta BD.
+async function backfillOrg(a: any, userId: string, orgId: string) {
+  const TABLES = [
+    'patients', 'care_records', 'mar_records', 'activities', 'activity_participations',
+    'incidents', 'assessments', 'family_messages', 'family_thread_messages',
+    'visit_requests', 'resident_contacts', 'vitals', 'wounds', 'patient_meds',
+  ]
+  for (const t of TABLES) {
+    try { await a.from(t).update({ org_id: orgId }).eq('user_id', userId).is('org_id', null) } catch { /* tabela/coluna em falta → ignora */ }
+  }
+}
+
 export async function GET(req: NextRequest) {
   if (!hasServiceKey()) return NextResponse.json({ org: null, noServiceKey: true })
   const user = await getUser(req)
@@ -40,7 +54,7 @@ export async function GET(req: NextRequest) {
   if (!orgId) return NextResponse.json({ org: null })
   // tenta trazer os campos da página pública; se as colunas não existirem, recai no básico
   let org: any = null
-  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about').eq('id', orgId).maybeSingle()
+  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about, capacity, monthly_fee').eq('id', orgId).maybeSingle()
   if (full.error) { const basic = await a.from('organizations').select('id, name, kind').eq('id', orgId).maybeSingle(); org = basic.data }
   else org = full.data
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).maybeSingle()
@@ -63,7 +77,19 @@ export async function POST(req: NextRequest) {
   let orgId = existing?.org_id || null
 
   if (!orgId) {
-    const { data: org, error } = await a.from('organizations').insert({ name, kind }).select('id').single()
+    let { data: org, error } = await a.from('organizations').insert({ name, kind }).select('id').single()
+    // Se o check do 'kind' ainda não inclui day_care (falta sprint94), cria com um
+    // tipo aceite e avisa — para o utilizador nunca ficar bloqueado.
+    if (error && /organizations_kind_check/.test(error.message)) {
+      const retry = await a.from('organizations').insert({ name, kind: 'nursing_home' }).select('id').single()
+      org = retry.data; error = retry.error
+      if (org) {
+        await a.from('org_members').upsert({ org_id: org.id, user_id: user.id, role: 'owner', active: true }, { onConflict: 'org_id,user_id' })
+        await a.from('profiles').update({ org_id: org.id, active_org_id: org.id, org_role: 'owner', plan: 'clinic', experience_mode: 'clinical', institution_type: kind }).eq('id', user.id)
+        await backfillOrg(a, user.id, org.id)
+        return NextResponse.json({ ok: true, org_id: org.id, kind, kindConstraintOutdated: true })
+      }
+    }
     if (error || !org) return NextResponse.json({ error: error?.message || 'Falhou a criar a organização.' }, { status: 400 })
     orgId = org.id
     // garante o membro owner (o trigger SQL também o faz, mas o trigger usa
@@ -76,10 +102,23 @@ export async function POST(req: NextRequest) {
     if (typeof body.public === 'boolean') patch.public = body.public
     if (typeof body.tagline === 'string') patch.tagline = body.tagline.trim().slice(0, 160) || null
     if (typeof body.about === 'string') patch.about = body.about.trim().slice(0, 600) || null
+    if (body.capacity !== undefined) patch.capacity = body.capacity ? Math.max(0, parseInt(body.capacity)) : null
+    if (body.monthlyFee !== undefined) patch.monthly_fee = body.monthlyFee ? Math.max(0, parseFloat(body.monthlyFee)) : null
     const { error: upErr } = await a.from('organizations').update(patch).eq('id', orgId)
-    if (upErr && /slug|public|tagline|about/.test(upErr.message)) {
+    if (upErr && /organizations_kind_check/.test(upErr.message)) {
+      // check do kind desatualizado (falta sprint94): guarda tudo MENOS o kind
+      const { kind: _drop, ...rest } = patch
+      await a.from('organizations').update(rest).eq('id', orgId)
+      await a.from('profiles').update({ org_id: orgId, active_org_id: orgId, org_role: 'owner', plan: 'clinic', experience_mode: 'clinical', institution_type: kind }).eq('id', user.id)
+      await backfillOrg(a, user.id, orgId)
+      return NextResponse.json({ ok: true, org_id: orgId, kind, kindConstraintOutdated: true })
+    }
+    if (upErr && /slug|public|tagline|about|capacity|monthly_fee/.test(upErr.message)) {
       // colunas da página pública ainda não existem (sprint93) → atualiza só nome/tipo
-      await a.from('organizations').update({ name, kind }).eq('id', orgId)
+      const safe: any = { name }
+      if (KINDS.includes(kind)) safe.kind = kind
+      const { error: e2 } = await a.from('organizations').update(safe).eq('id', orgId)
+      if (e2 && /organizations_kind_check/.test(e2.message)) await a.from('organizations').update({ name }).eq('id', orgId)
       return NextResponse.json({ ok: true, org_id: orgId, kind, publicColumnsMissing: true })
     }
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 400 })
@@ -89,6 +128,11 @@ export async function POST(req: NextRequest) {
     org_id: orgId, active_org_id: orgId, org_role: 'owner',
     plan: 'clinic', experience_mode: 'clinical', institution_type: kind,
   }).eq('id', user.id)
+
+  // BACKFILL: utentes/registos criados ANTES de existir a organização ficaram com
+  // org_id null → apareciam nuns sítios e noutros não. Ao criar/reclamar a org,
+  // adotamos todos os dados do dono (org_id null → org_id) para ficar coerente.
+  await backfillOrg(a, user.id, orgId)
 
   return NextResponse.json({ ok: true, org_id: orgId, kind })
 }
