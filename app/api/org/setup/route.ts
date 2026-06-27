@@ -38,7 +38,11 @@ export async function GET(req: NextRequest) {
   const { data: prof } = await a.from('profiles').select('active_org_id, org_id, org_role').eq('id', user.id).single()
   const orgId = prof?.active_org_id || prof?.org_id || null
   if (!orgId) return NextResponse.json({ org: null })
-  const { data: org } = await a.from('organizations').select('id, name, kind').eq('id', orgId).maybeSingle()
+  // tenta trazer os campos da página pública; se as colunas não existirem, recai no básico
+  let org: any = null
+  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about').eq('id', orgId).maybeSingle()
+  if (full.error) { const basic = await a.from('organizations').select('id, name, kind').eq('id', orgId).maybeSingle(); org = basic.data }
+  else org = full.data
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).maybeSingle()
   return NextResponse.json({ org: org || null, role: mem?.role || prof?.org_role || null })
 }
@@ -66,7 +70,19 @@ export async function POST(req: NextRequest) {
     // auth.uid() que aqui é o service-role — por isso inserimos explicitamente)
     await a.from('org_members').upsert({ org_id: orgId, user_id: user.id, role: 'owner', active: true }, { onConflict: 'org_id,user_id' })
   } else {
-    await a.from('organizations').update({ name, kind }).eq('id', orgId)
+    const patch: any = { name, kind }
+    // campos opcionais da página pública (só se vierem no body)
+    if (typeof body.slug === 'string') patch.slug = body.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || null
+    if (typeof body.public === 'boolean') patch.public = body.public
+    if (typeof body.tagline === 'string') patch.tagline = body.tagline.trim().slice(0, 160) || null
+    if (typeof body.about === 'string') patch.about = body.about.trim().slice(0, 600) || null
+    const { error: upErr } = await a.from('organizations').update(patch).eq('id', orgId)
+    if (upErr && /slug|public|tagline|about/.test(upErr.message)) {
+      // colunas da página pública ainda não existem (sprint93) → atualiza só nome/tipo
+      await a.from('organizations').update({ name, kind }).eq('id', orgId)
+      return NextResponse.json({ ok: true, org_id: orgId, kind, publicColumnsMissing: true })
+    }
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 400 })
   }
 
   await a.from('profiles').update({

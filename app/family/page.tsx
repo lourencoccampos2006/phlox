@@ -92,6 +92,10 @@ export default function FamilyPage() {
   const [showCompose, setShowCompose] = useState(false)
   const [saving, setSaving] = useState(false)
   const [contactSearch, setContactSearch] = useState('')
+  // "O dia em 1 foto" — partilha 1 foto com TODAS as famílias dos presentes hoje
+  const [dayPhotoBusy, setDayPhotoBusy] = useState(false)
+  const [dayPhotoMsg, setDayPhotoMsg] = useState('')
+  const dayPhotoInput = useRef<HTMLInputElement>(null)
 
   const [compose, setCompose] = useState({
     patient_id: '', contact_id: '', subject: '', body: '', type: 'update' as FamilyMessage['type'],
@@ -195,6 +199,41 @@ export default function FamilyPage() {
     load()
   }
 
+  // "O dia em 1 foto": 1 upload → mensagem com foto para a família de cada utente
+  // com registo de cuidado HOJE (os presentes). Pouco esforço, muito valor.
+  async function broadcastDayPhoto(file: File) {
+    if (!user || !file) return
+    setDayPhotoBusy(true); setDayPhotoMsg('')
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      // presentes = quem tem care_record hoje (org-scoped)
+      const { data: care } = await scope.filter(supabase.from('care_records').select('patient_id')).eq('date', today)
+      const presentIds = [...new Set((care || []).map((c: any) => c.patient_id))]
+      const targetIds = presentIds.length ? presentIds : patients.map(p => p.id)   // se ninguém marcado ainda, manda a todos
+      if (!targetIds.length) { setDayPhotoMsg('Sem utentes para partilhar.'); setDayPhotoBusy(false); return }
+      // downscale + upload UMA vez
+      const dataUrl: string = await new Promise((res, rej) => {
+        const img = new window.Image(); const url = URL.createObjectURL(file)
+        img.onload = () => { URL.revokeObjectURL(url); let w = img.width, h = img.height; const max = 1280; if (w > max || h > max) { if (w >= h) { h = Math.round(h * max / w); w = max } else { w = Math.round(w * max / h); h = max } } const c = document.createElement('canvas'); c.width = w; c.height = h; const ctx = c.getContext('2d'); if (!ctx) return rej(new Error('canvas')); ctx.drawImage(img, 0, 0, w, h); res(c.toDataURL('image/jpeg', 0.82)) }
+        img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('img')) }; img.src = url
+      })
+      const blob = await (await fetch(dataUrl)).blob()
+      const path = `${user.id}/day/${Date.now()}.jpg`
+      const up = await supabase.storage.from('family').upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+      const photo_url = up.error ? null : supabase.storage.from('family').getPublicUrl(path).data.publicUrl
+      if (!photo_url) { setDayPhotoMsg('Falha ao carregar a foto.'); setDayPhotoBusy(false); return }
+      // 1 mensagem por utente presente
+      const rows = targetIds.map(pid => scope.stamp({
+        user_id: user.id, patient_id: pid, author_side: 'staff',
+        author_name: user.name || 'Equipa', kind: 'photo',
+        content: 'Um momento do dia 💛', photo_url, read_by_family: false, read_by_staff: true,
+      }))
+      const { error } = await supabase.from('family_thread_messages').insert(rows)
+      setDayPhotoMsg(error ? 'Erro ao enviar.' : `✓ Foto partilhada com ${targetIds.length} ${targetIds.length === 1 ? 'família' : 'famílias'}.`)
+    } catch { setDayPhotoMsg('Não foi possível partilhar a foto.') }
+    finally { setDayPhotoBusy(false); setTimeout(() => setDayPhotoMsg(''), 4000) }
+  }
+
   async function updateVisitStatus(id: string, status: VisitRequest['status']) {
     await supabase.from('visit_requests').update({ status }).eq('id', id)
     setVisits(prev => prev.map(v => v.id === id ? { ...v, status } : v))
@@ -230,13 +269,21 @@ export default function FamilyPage() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Portal Família</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Comunicação com familiares e tutores legais dos {cfg.personNounPlural.toLowerCase()}</p>
         </div>
-        <button
-          onClick={() => setShowCompose(true)}
-          style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-        >
-          + Nova Mensagem
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {/* O dia em 1 foto — partilha com todas as famílias dos presentes */}
+          <input ref={dayPhotoInput} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) broadcastDayPhoto(f); e.target.value = '' }} />
+          <button onClick={() => dayPhotoInput.current?.click()} disabled={dayPhotoBusy}
+            style={{ padding: '10px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #0d6e42', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            {dayPhotoBusy ? 'A partilhar…' : '📸 Foto do dia'}
+          </button>
+          <button onClick={() => setShowCompose(true)}
+            style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+            + Nova Mensagem
+          </button>
+        </div>
       </div>
+      {dayPhotoMsg && <div style={{ marginBottom: 14, padding: '10px 14px', background: dayPhotoMsg.startsWith('✓') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${dayPhotoMsg.startsWith('✓') ? '#bbf7d0' : '#fecaca'}`, borderRadius: 8, fontSize: 13, color: dayPhotoMsg.startsWith('✓') ? '#15803d' : '#991b1b' }}>{dayPhotoMsg}</div>}
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 24 }}>

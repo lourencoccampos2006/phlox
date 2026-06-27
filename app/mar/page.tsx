@@ -93,7 +93,10 @@ function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null;
         <button onClick={() => setOpen(true)} style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 7, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: isSaving ? 0.5 : 1 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: cfg.color }}>{cfg.short}</span>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, letterSpacing: '0.02em' }}>{cfg.label}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 5 }}>
+              {cfg.label}
+              {(record as any).source === 'home' && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px' }}>🏠 CASA</span>}
+            </div>
             {record.recorded_at && <div style={{ fontSize: 9, color: '#94a3b8' }}>{fmtTime(record.recorded_at)}{record.recorded_by ? ` · ${record.recorded_by.split(' ')[0]}` : ''}</div>}
           </div>
         </button>

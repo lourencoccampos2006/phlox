@@ -61,6 +61,13 @@ export default function FamilyPortalPage() {
   // ── Conversa do residente ativo ──
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [days, setDays] = useState<{ date: string; lines: string[]; mood?: number; attention: boolean }[]>([])
+  const [homeMeds, setHomeMeds] = useState<{ id: string; name: string; dose?: string; frequency?: string }[]>([])
+  const [todayDoses, setTodayDoses] = useState<{ med_id: string; status: string; source: string; home_by?: string; shift?: string }[]>([])
+  const [markingMed, setMarkingMed] = useState('')
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestMed, setSuggestMed] = useState({ name: '', dose: '', frequency: '' })
+  const [suggestBusy, setSuggestBusy] = useState(false)
+  const [suggestMsg, setSuggestMsg] = useState('')
   const [loadingThread, setLoadingThread] = useState(false)
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
@@ -123,6 +130,7 @@ export default function FamilyPortalPage() {
       }
       if (data.needsVerify) return
       setMsgs(data.messages || []); setDays(data.dailySummaries || [])
+      setHomeMeds(data.homeMeds || []); setTodayDoses(data.todayDoses || [])
       // atualiza nome/quarto se mudaram
       if (data.patient && (data.patient.name !== acc.name || data.patient.room_number !== acc.room)) {
         persist(accesses.map(a => a.code === acc.code ? { ...a, name: data.patient.name, room: data.patient.room_number || '' } : a))
@@ -130,6 +138,37 @@ export default function FamilyPortalPage() {
     } catch { /* mantém */ }
     finally { setLoadingThread(false) }
   }, [accesses])
+
+  // Marca (ou desmarca) uma toma dada em casa → escreve no /mar da instituição.
+  async function markDose(medId: string) {
+    if (!active) return
+    setMarkingMed(medId)
+    try {
+      const res = await fetch('/api/family-portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_dose', code: active.code, verify: active.verify || '', name, medId }),
+      })
+      const data = await res.json()
+      if (res.ok) await fetchThread(active)   // recarrega para refletir o estado
+    } catch { /* ignora */ }
+    finally { setMarkingMed('') }
+  }
+
+  // Família sugere um medicamento que dá em casa → vai para a ficha do utente.
+  async function submitSuggestMed() {
+    if (!active || !suggestMed.name.trim()) return
+    setSuggestBusy(true); setSuggestMsg('')
+    try {
+      const res = await fetch('/api/family-portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'suggest_med', code: active.code, verify: active.verify || '', medName: suggestMed.name, dose: suggestMed.dose, frequency: suggestMed.frequency }),
+      })
+      const data = await res.json()
+      if (res.ok) { setSuggestMsg('✓ Enviado. A equipa vai confirmar.'); setSuggestMed({ name: '', dose: '', frequency: '' }); setSuggestOpen(false); await fetchThread(active) }
+      else setSuggestMsg(data.error || 'Erro.')
+    } catch { setSuggestMsg('Erro de ligação.') }
+    finally { setSuggestBusy(false); setTimeout(() => setSuggestMsg(''), 4000) }
+  }
 
   // Ao mudar de residente ativo, carrega e faz poll
   useEffect(() => {
@@ -280,6 +319,51 @@ export default function FamilyPortalPage() {
                     <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Resumo gerado a partir dos registos da equipa de cuidados. Para questões clínicas, contacte a instituição.</div>
                   </div>
                 )}
+
+                {/* Medicação que a família dá em CASA — marca a toma e ela aparece
+                    no painel da instituição (a ponte casa→centro). Mostra-se quando
+                    há medicação de casa OU para a família poder sugerir uma. */}
+                {(homeMeds.length > 0 || suggestOpen || msgs.length > 0) && (
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Medicação em casa</div>
+                    {homeMeds.map(m => {
+                      const dose = todayDoses.find(d => d.med_id === m.id && d.source === 'home')
+                      const givenAtCentre = todayDoses.find(d => d.med_id === m.id && d.source === 'centro' && (d.status === 'administered' || d.status === 'given' || d.status === 'taken'))
+                      const done = !!dose
+                      return (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'white', border: `1px solid ${done ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0b1120' }}>{m.name}{m.dose ? <span style={{ fontWeight: 500, color: '#6b7280' }}> · {m.dose}</span> : ''}</div>
+                            <div style={{ fontSize: 12.5, color: '#9ca3af' }}>{m.frequency || 'Conforme indicado'}{givenAtCentre ? ' · também dado no centro hoje' : ''}</div>
+                          </div>
+                          <button onClick={() => markDose(m.id)} disabled={markingMed === m.id}
+                            style={{ flexShrink: 0, padding: '9px 16px', borderRadius: 10, border: done ? '1px solid #16a34a' : 'none', background: done ? '#f0fdf4' : '#0d6e42', color: done ? '#15803d' : 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minWidth: 96 }}>
+                            {markingMed === m.id ? '…' : done ? '✓ Tomado' : 'Marcar toma'}
+                          </button>
+                        </div>
+                      )
+                    })}
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Ao marcar, a equipa do centro vê que já foi dado em casa.</div>
+                    {/* Família sugere um medicamento de casa que falte na ficha */}
+                    {!suggestOpen ? (
+                      <button onClick={() => setSuggestOpen(true)} style={{ marginTop: 6, background: 'none', border: 'none', color: '#0d6e42', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>+ Falta um medicamento que dá em casa?</button>
+                    ) : (
+                      <div style={{ marginTop: 8, background: '#f6f9f7', border: '1px solid #d1e7db', borderRadius: 10, padding: 12 }}>
+                        <input value={suggestMed.name} onChange={e => setSuggestMed(p => ({ ...p, name: e.target.value }))} placeholder="Nome do medicamento" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', marginBottom: 6 }} />
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input value={suggestMed.dose} onChange={e => setSuggestMed(p => ({ ...p, dose: e.target.value }))} placeholder="Dose" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
+                          <input value={suggestMed.frequency} onChange={e => setSuggestMed(p => ({ ...p, frequency: e.target.value }))} placeholder="Quando" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          <button onClick={submitSuggestMed} disabled={suggestBusy || !suggestMed.name.trim()} style={{ flex: 1, padding: '9px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{suggestBusy ? 'A enviar…' : 'Enviar à equipa'}</button>
+                          <button onClick={() => setSuggestOpen(false)} style={{ padding: '9px 14px', background: 'white', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                        </div>
+                      </div>
+                    )}
+                    {suggestMsg && <div style={{ marginTop: 6, fontSize: 12, color: suggestMsg.startsWith('✓') ? '#15803d' : '#dc2626' }}>{suggestMsg}</div>}
+                  </div>
+                )}
+
                 {loadingThread && msgs.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 30 }}>A carregar…</div>
                 ) : msgs.length === 0 ? (

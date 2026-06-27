@@ -41,6 +41,16 @@ export default function EquipaPage() {
   const [orgName, setOrgName] = useState('')
   const [orgKind, setOrgKind] = useState(institution || 'day_care')
 
+  // editar a instituição existente (renomear / mudar tipo)
+  const [editName, setEditName] = useState('')
+  const [editKind, setEditKind] = useState('day_care')
+  const [editSlug, setEditSlug] = useState('')
+  const [editTagline, setEditTagline] = useState('')
+  const [editPublic, setEditPublic] = useState(false)
+  const [savingOrg, setSavingOrg] = useState(false)
+  const [orgSaved, setOrgSaved] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+
   // adicionar membro
   const [addMode, setAddMode] = useState<'generate' | 'invite'>('generate')
   const [newName, setNewName] = useState('')
@@ -61,6 +71,7 @@ export default function EquipaPage() {
       const s = await fetch('/api/org/setup', { headers: h }).then(r => r.json())
       setNoKey(!!s.noServiceKey)
       setOrg(s.org || null); setMyRole(s.role || null)
+      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public) }
       if (s.org) {
         const t = await fetch('/api/org/team', { headers: h }).then(r => r.json())
         if (t.error) setErr(t.error)
@@ -82,6 +93,21 @@ export default function EquipaPage() {
       try { localStorage.setItem('phlox-clinic-institution', orgKind) } catch {}
       await loadAll()
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+  }
+
+  // Renomear / mudar tipo da instituição EXISTENTE (corrige o caso de uma org
+  // antiga de testes ter ficado com o nome errado).
+  async function saveOrgSettings() {
+    if (!editName.trim()) return
+    setSavingOrg(true); setErr('')
+    try {
+      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, slug: editSlug, tagline: editTagline, public: editPublic }) })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error)
+      try { localStorage.setItem('phlox-clinic-institution', editKind) } catch {}
+      setOrgSaved(true); setTimeout(() => setOrgSaved(false), 2500)
+      await loadAll()
+    } catch (e: any) { setErr(e.message) } finally { setSavingOrg(false) }
   }
 
   async function addMember() {
@@ -200,6 +226,49 @@ export default function EquipaPage() {
                   </span>
                   <span style={{ color: ACCENT, fontWeight: 700 }}>→</span>
                 </Link>
+
+                {/* Definições da instituição — renomear / mudar tipo */}
+                <div style={{ ...card, marginBottom: 16 }}>
+                  <button onClick={() => setShowSettings(s => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Definições da instituição</span>
+                    <span style={{ color: '#94a3b8', fontSize: 13 }}>{showSettings ? '▲' : 'Renomear ▾'}</span>
+                  </button>
+                  {showSettings && (
+                    <div style={{ marginTop: 14 }}>
+                      <label style={lbl}>Nome da instituição</label>
+                      <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da instituição" style={inp} />
+                      <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                        {(['day_care', 'nursing_home', 'pharmacy_community', 'clinic', 'health_center'] as const).map(k => (
+                          <button key={k} onClick={() => setEditKind(k)} style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${editKind === k ? ACCENT : '#e2e8f0'}`, background: editKind === k ? '#f0fdfa' : 'white', color: editKind === k ? ACCENT : '#475569', fontSize: 13, fontWeight: editKind === k ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            {INST_META[k].icon} {INST_META[k].label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Página pública (prova social + angariação) */}
+                      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, marginBottom: 14 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: '#0b1120', fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>
+                          <input type="checkbox" checked={editPublic} onChange={e => setEditPublic(e.target.checked)} /> Página pública da instituição
+                        </label>
+                        <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 10px', lineHeight: 1.5 }}>Cria um endereço que pode partilhar com as famílias e nas redes — bom para angariar.</p>
+                        <label style={lbl}>Endereço (slug)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                          <span style={{ fontSize: 12.5, color: '#94a3b8', whiteSpace: 'nowrap' }}>phloxclinical.com/c/</span>
+                          <input value={editSlug} onChange={e => setEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))} placeholder="centro-sao-jose" style={{ ...inp, flex: 1 }} />
+                        </div>
+                        <label style={lbl}>Frase de apresentação</label>
+                        <input value={editTagline} onChange={e => setEditTagline(e.target.value)} placeholder="Cuidamos de quem mais ama, perto de si." style={inp} maxLength={160} />
+                        {editPublic && editSlug && <a href={`/c/${editSlug}`} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ver a página →</a>}
+                      </div>
+                      <button onClick={saveOrgSettings} disabled={savingOrg || !editName.trim()} style={{ ...btn, opacity: savingOrg || !editName.trim() ? 0.5 : 1 }}>
+                        {savingOrg ? 'A guardar…' : orgSaved ? '✓ Guardado' : 'Guardar alterações'}
+                      </button>
+                      {org && editName.trim() && editName.trim() !== org.name && (
+                        <p style={{ fontSize: 12, color: '#b45309', margin: '10px 0 0' }}>Vai mudar de “{org.name}” para “{editName.trim()}”.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Adicionar membro */}
                 <div style={{ ...card, marginBottom: 16 }}>

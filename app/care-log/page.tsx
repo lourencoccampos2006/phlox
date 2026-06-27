@@ -266,7 +266,7 @@ export function CareLogTool() {
   })
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 960, margin: '0 auto' }}>
+    <div style={{ padding: '4px 0 24px', maxWidth: 960, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Registos Diários</h1>
@@ -532,8 +532,8 @@ export function CareLogTool() {
         </div>
 
         {/* History sidebar */}
-        <div style={{ position: 'sticky', top: 20 }}>
-          <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16, maxHeight: '85vh', overflowY: 'auto' }}>
+        <div style={{ position: 'sticky', top: 20, minWidth: 0 }}>
+          <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 16, maxHeight: '85vh', overflowY: 'auto', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {pat ? `Últimos registos — ${pat.name}` : `Selecionar ${personLower} para ver histórico`}

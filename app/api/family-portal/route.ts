@@ -19,7 +19,7 @@ async function resolveCode(code: string): Promise<{ patient: any } | { errorCode
   const c = (code || '').toUpperCase().trim()
   if (!c || c.length < 4) return { errorCode: 'short' }
   const sb = admin()
-  const { data, error } = await sb.from('patients').select('id, name, room_number, user_id').eq('family_code', c).maybeSingle()
+  const { data, error } = await sb.from('patients').select('id, name, room_number, user_id, org_id').eq('family_code', c).maybeSingle()
   if (error) {
     // coluna family_code ainda não existe → a migração não foi corrida
     if (/column .*family_code.* does not exist/i.test(error.message) || error.code === '42703') return { errorCode: 'no_column' }
@@ -164,11 +164,22 @@ export async function GET(req: NextRequest) {
   }
 
   const sb = admin()
-  const [{ data: msgs }, dailySummaries] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10)
+  const [{ data: msgs }, dailySummaries, homeMeds, todayDoses] = await Promise.all([
     sb.from('family_thread_messages')
       .select('id, patient_id, author_side, author_name, kind, content, photo_url, mood, meals, activity, created_at')
       .eq('patient_id', pat.id).order('created_at', { ascending: true }).limit(200),
     buildDailySummaries(pat.id).catch(() => [] as DaySummary[]),
+    // medicação que a família dá em casa (take_location casa/ambos) — tolerante se a coluna não existir
+    sb.from('patient_meds').select('id, name, dose, frequency, take_location').eq('patient_id', pat.id).eq('active', true).then(
+      (r: any) => r.error ? [] : (r.data || []).filter((m: any) => m.take_location === 'casa' || m.take_location === 'ambos'),
+      () => []
+    ),
+    // tomas de hoje (para mostrar o que já foi dado, em casa e no centro)
+    sb.from('mar_records').select('med_id, status, source, home_by, recorded_at, shift').eq('patient_id', pat.id).eq('date', today).then(
+      (r: any) => r.error ? [] : (r.data || []),
+      () => []
+    ),
   ])
 
   return NextResponse.json({
@@ -176,6 +187,8 @@ export async function GET(req: NextRequest) {
     contactName: v.contact?.name || null,
     messages: msgs || [],
     dailySummaries,
+    homeMeds: homeMeds || [],
+    todayDoses: todayDoses || [],
   })
 }
 
@@ -186,6 +199,64 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null)
   if (!body?.code) return NextResponse.json({ error: 'Código em falta' }, { status: 400 })
+
+  // ── Ação: marcar uma toma DADA EM CASA pela família ──────────────────────────
+  // Escreve um mar_records com source='home'. Aparece no /mar e no painel da
+  // instituição (org-scoped) e na ficha do utente — a ponte casa→centro.
+  if (body.action === 'mark_dose') {
+    const r0 = await resolveCode(body.code)
+    if ('errorCode' in r0) return codeErrorResponse(r0.errorCode)
+    const pat0 = r0.patient
+    const v0 = await verifyFamily(pat0.id, String(body.verify || ''))
+    if (v0.gated && !v0.ok) return NextResponse.json({ error: 'Verificação necessária' }, { status: 403 })
+    const medId = String(body.medId || '')
+    if (!medId) return NextResponse.json({ error: 'Medicamento em falta' }, { status: 400 })
+    const sb0 = admin()
+    // confirma que o medicamento é mesmo deste utente e é de casa
+    const { data: med } = await sb0.from('patient_meds').select('id, name, take_location').eq('id', medId).eq('patient_id', pat0.id).maybeSingle()
+    if (!med) return NextResponse.json({ error: 'Medicamento não encontrado' }, { status: 404 })
+    const date = new Date().toISOString().slice(0, 10)
+    const who = (v0.contact?.name || String(body.name || '').trim() || 'Família').slice(0, 60)
+    const shift = (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+    const row: any = {
+      user_id: pat0.user_id, patient_id: pat0.id, med_id: medId,
+      date, shift, status: 'administered', source: 'home', home_by: who,
+      recorded_by: `${who} (casa)`, recorded_at: new Date().toISOString(),
+    }
+    if (pat0.org_id) row.org_id = pat0.org_id
+    // evita duplicar a mesma toma (mesmo med, mesmo turno, mesmo dia)
+    const { data: existing } = await sb0.from('mar_records').select('id').eq('med_id', medId).eq('date', date).eq('shift', shift).eq('source', 'home').maybeSingle()
+    if (existing) { await sb0.from('mar_records').delete().eq('id', existing.id); return NextResponse.json({ ok: true, toggled: 'off' }) }
+    const { error } = await sb0.from('mar_records').insert(row)
+    if (error) return NextResponse.json({ error: 'Não foi possível marcar a toma.' }, { status: 500 })
+    return NextResponse.json({ ok: true, toggled: 'on', medName: med.name })
+  }
+
+  // ── Ação: família SUGERE um medicamento que dá em casa ───────────────────────
+  // Cria um patient_meds com take_location='casa'. Aparece na ficha do utente e a
+  // equipa confirma. É a ponte família→instituição da medicação de casa.
+  if (body.action === 'suggest_med') {
+    const r1 = await resolveCode(body.code)
+    if ('errorCode' in r1) return codeErrorResponse(r1.errorCode)
+    const pat1 = r1.patient
+    const v1 = await verifyFamily(pat1.id, String(body.verify || ''))
+    if (v1.gated && !v1.ok) return NextResponse.json({ error: 'Verificação necessária' }, { status: 403 })
+    const medName = String(body.medName || '').trim().slice(0, 80)
+    if (!medName) return NextResponse.json({ error: 'Indique o medicamento.' }, { status: 400 })
+    const sb1 = admin()
+    const row: any = {
+      user_id: pat1.user_id, patient_id: pat1.id, name: medName,
+      dose: String(body.dose || '').trim().slice(0, 40) || null,
+      frequency: String(body.frequency || '').trim().slice(0, 40) || null,
+      take_location: 'casa', active: true,
+      indication: 'Sugerido pela família — confirmar',
+    }
+    if (pat1.org_id) row.org_id = pat1.org_id
+    const { error } = await sb1.from('patient_meds').insert(row)
+    if (error) return NextResponse.json({ error: 'Não foi possível guardar.' }, { status: 500 })
+    return NextResponse.json({ ok: true, medName })
+  }
+
   const content = String(body.content || '').trim()
   const imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64 : ''
   if (!content && !imageBase64) return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })

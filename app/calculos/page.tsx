@@ -517,125 +517,124 @@ const CALC_COMPONENTS: Record<CalcId, React.FC> = {
   map: CalcMAP, tdd: CalcTDD, hepatic: CalcChildPugh,
 }
 
-export default function Calculos() {
-  const [active, setActive] = useState<CalcId>('crcl')
-  const [catFilter, setCatFilter] = useState<string | null>(null)
+// Ferramentas especializadas relacionadas (páginas próprias). Cartões claros —
+// só as que importam, sem a fila de pills confusa.
+const RELATED: { href: string; icon: string; label: string; desc: string }[] = [
+  { href: '/iv-calc', icon: '💧', label: 'Cálculo de gotejo IV', desc: 'mL/h, gotas/min, tempo de infusão' },
+  { href: '/dose-crianca', icon: '👶', label: 'Dose pediátrica', desc: 'Por peso, com limites de segurança' },
+  { href: '/iv-compatibility', icon: '🧪', label: 'Compatibilidade IV', desc: 'Misturar fármacos na mesma via' },
+  { href: '/antibiotics', icon: '🦠', label: 'Antibioterapia', desc: 'Escolha e dose por infeção' },
+  { href: '/emergency-doses', icon: '🚨', label: 'Doses de urgência', desc: 'Fármacos de emergência por peso' },
+]
 
-  const filtered = catFilter ? CALCS.filter(c => c.category === catFilter) : CALCS
-  const def = CALCS.find(c => c.id === active)!
-  const ActiveCalc = CALC_COMPONENTS[active]
+const CAT_COLOR: Record<string, string> = {
+  Renal: '#0891b2', Dosagem: '#0d6e42', 'Electrólitos': '#ca8a04', TDM: '#7c3aed', 'Hemodinâmica': '#dc2626', 'Hepático': '#b45309',
+}
+const ACCENT = '#0d6e42'
 
+function CalcStyles() {
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>
+    <style>{`
+      .calc-card:hover { border-color: #0d6e4266 !important; transform: translateY(-2px); }
+      @media(max-width:560px){
+        .calc-panel [style*="grid-template-columns"]{ grid-template-columns:1fr!important; }
+      }
+      @media(min-width:420px) and (max-width:560px){
+        .calc-panel [style*="1fr 1fr 1fr 1fr"]{ grid-template-columns:1fr 1fr!important; }
+      }
+      .calc-panel input:focus{ border-color:#0d6e42!important; box-shadow:0 0 0 3px #0d6e4220; }
+      .calc-panel select:focus{ outline:2px solid #0d6e42; outline-offset:1px; }
+    `}</style>
+  )
+}
 
-      {/* Header */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 24px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-            🧮 Calculadoras Clínicas
-          </h1>
-          <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0', fontWeight: 500 }}>
-            Farmácia clínica · Dosagem · Electrólitos · TDM · Hemodinâmica
-          </p>
-        </div>
-      </div>
+export default function Calculos() {
+  const [active, setActive] = useState<CalcId | null>(null)
+  const [q, setQ] = useState('')
 
-      {/* Calculadoras especializadas (consolidadas aqui) */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 24px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {[
-          ['/iv-calc', '💧 Cálculo IV'],
-          ['/iv-compatibility', '🧪 Compatibilidade IV'],
-          ['/dilutions', '🧫 Diluições e estabilidade'],
-          ['/pk-dosing', '📈 Console PK (TDM)'],
-          ['/electrolytes', '⚡ Eletrólitos'],
-          ['/emergency-doses', '🚨 Doses de urgência'],
-          ['/dose-crianca', '👶 Dose pediátrica'],
-          ['/antibiotics', '🦠 Antibioterapia'],
-          ['/tpn', '🧴 Nutrição parentérica'],
-          ['/protocol', '📋 Protocolos'],
-          ['/calculators', '📊 Mais escalas'],
-        ].map(([href, label]) => (
-          <a key={href} href={href} style={{ padding: '7px 13px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 999, fontSize: 12.5, fontWeight: 600, color: '#334155', textDecoration: 'none' }}>{label}</a>
-        ))}
-      </div>
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const list = q.trim() ? CALCS.filter(c => norm(c.label + ' ' + c.desc + ' ' + c.category).includes(norm(q))) : CALCS
+  const def = active ? CALCS.find(c => c.id === active)! : null
+  const ActiveCalc = active ? CALC_COMPONENTS[active] : null
 
-      <div className="calc-layout" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px clamp(14px,4vw,24px)', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
-
-        {/* Sidebar */}
-        <div>
-          {/* Category filter */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-            <button onClick={() => setCatFilter(null)} style={{
-              padding: '4px 10px', borderRadius: 20, border: `1px solid ${catFilter === null ? '#0d9488' : '#e2e8f0'}`,
-              background: catFilter === null ? '#f0fdfa' : 'white', cursor: 'pointer',
-              fontSize: 11, fontWeight: catFilter === null ? 700 : 500,
-              color: catFilter === null ? '#0d9488' : '#64748b', fontFamily: 'inherit',
-            }}>Todos</button>
-            {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => setCatFilter(cat === catFilter ? null : cat)} style={{
-                padding: '4px 10px', borderRadius: 20, border: `1px solid ${catFilter === cat ? '#0d9488' : '#e2e8f0'}`,
-                background: catFilter === cat ? '#f0fdfa' : 'white', cursor: 'pointer',
-                fontSize: 11, fontWeight: catFilter === cat ? 700 : 500,
-                color: catFilter === cat ? '#0d9488' : '#64748b', fontFamily: 'inherit',
-              }}>{cat}</button>
-            ))}
-          </div>
-
-          {/* Calculator list */}
-          <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            {filtered.map((c, i) => (
-              <button key={c.id} onClick={() => setActive(c.id)} style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 14px', border: 'none', cursor: 'pointer', textAlign: 'left',
-                background: active === c.id ? '#f0fdfa' : 'white',
-                borderLeft: active === c.id ? '3px solid #0d9488' : '3px solid transparent',
-                borderBottom: i < filtered.length - 1 ? '1px solid #f8fafc' : 'none',
-                fontFamily: 'inherit',
-              }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>{c.icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: active === c.id ? 700 : 600, color: active === c.id ? '#0d9488' : '#0f172a' }}>{c.label}</div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>{c.desc}</div>
-                </div>
-                <span style={{ fontSize: 10, color: '#94a3b8', background: '#f1f5f9', padding: '2px 6px', borderRadius: 10, flexShrink: 0 }}>{c.category}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Calculator panel */}
-        <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 28 }}>{def.icon}</span>
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>{def.label}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{def.desc}</div>
-              </div>
-              <span style={{ marginLeft: 'auto', fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: 20, fontWeight: 700 }}>{def.category}</span>
+  // ── Calculadora aberta (foco total, ótima em mobile) ──
+  if (def && ActiveCalc) {
+    const catC = CAT_COLOR[def.category] || ACCENT
+    return (
+      <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ maxWidth: 620, margin: '0 auto', padding: '20px clamp(14px,4vw,24px) 60px' }}>
+          <button onClick={() => setActive(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: ACCENT, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 16 }}>← Calculadoras</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 18 }}>
+            <span style={{ fontSize: 32 }}>{def.icon}</span>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(20px,5vw,26px)', fontWeight: 500, color: '#0b1120', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{def.label}</h1>
+              <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 3 }}>{def.desc}</div>
             </div>
+            <span style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: catC, background: catC + '14', padding: '3px 10px', borderRadius: 20 }}>{def.category}</span>
           </div>
-          <div className="calc-panel" style={{ padding: 'clamp(14px,4vw,20px)' }}>
+          <div className="calc-panel" style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: 'clamp(16px,5vw,22px)' }}>
             <ActiveCalc />
           </div>
         </div>
+        <CalcStyles />
       </div>
+    )
+  }
 
-      <style>{`
-        @media(max-width:768px){
-          .calc-layout{grid-template-columns:1fr!important}
-          /* Os inputs/resultados dos cálculos colapsam para 1 coluna no telemóvel
-             (os grids são estilos inline 1fr 1fr / 1fr 1fr 1fr que não cabiam). */
-          .calc-panel [style*="grid-template-columns"]{grid-template-columns:1fr!important}
-          .calc-panel [style*="140px"]{grid-template-columns:1fr!important}
-        }
-        @media(min-width:480px) and (max-width:768px){
-          /* em ecrãs um pouco maiores, 2 colunas para resultados curtos */
-          .calc-panel [style*="1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
-        }
-        input:focus{border-color:#0d9488!important;box-shadow:0 0 0 3px #0d948820}
-        select:focus{outline:2px solid #0d9488;outline-offset:1px}
-      `}</style>
+  // ── Índice — pesquisa + cartões por categoria ──
+  const byCat = CATEGORIES.map(cat => ({ cat, items: list.filter(c => c.category === cat) })).filter(g => g.items.length > 0)
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ maxWidth: 880, margin: '0 auto', padding: '22px clamp(14px,4vw,24px) 70px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Ferramentas clínicas</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Calculadoras</h1>
+        <p style={{ fontSize: 14.5, color: '#64748b', margin: '0 0 18px', lineHeight: 1.5 }}>Doses, função renal, escalas e fórmulas — rápidas e fiáveis. Toque numa para abrir.</p>
+
+        <div style={{ position: 'relative', marginBottom: 20 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Procurar (ex: renal, peso, vancomicina…)"
+            style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px 12px 40px', fontSize: 15, fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' }} />
+        </div>
+
+        {byCat.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '40px 0', fontSize: 14 }}>Nada encontrado para “{q}”.</div>
+        ) : byCat.map(({ cat, items }) => (
+          <div key={cat} style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: CAT_COLOR[cat] || '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{cat}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
+              {items.map(c => (
+                <button key={c.id} onClick={() => setActive(c.id)} className="calc-card"
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '14px 15px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s, transform 0.12s' }}>
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0b1120', lineHeight: 1.25 }}>{c.label}</span>
+                    <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{c.desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {!q.trim() && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Ferramentas relacionadas</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
+              {RELATED.map(r => (
+                <a key={r.href} href={r.href} className="calc-card" style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '14px 15px', textDecoration: 'none', transition: 'border-color 0.15s, transform 0.12s' }}>
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{r.icon}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0b1120', lineHeight: 1.25 }}>{r.label}</span>
+                    <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{r.desc}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <CalcStyles />
     </div>
   )
 }

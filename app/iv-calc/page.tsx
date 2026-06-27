@@ -303,11 +303,11 @@ export default function IVCalcPage() {
         </div>
       </div>
 
-      <div className="page-container page-body" style={{ maxWidth: 680 }}>
-        {/* Tab bar */}
-        <div style={{ display: 'flex', background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 20 }}>
+      <div className="page-container page-body ivc-body" style={{ maxWidth: 680 }}>
+        {/* Tab bar — scroll horizontal no telemóvel (4 etiquetas longas não cabem) */}
+        <div className="ivc-tabs" style={{ display: 'flex', background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflowX: 'auto', marginBottom: 20 }}>
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setMode(t.id)} style={{ ...tabStyle(t.id), flex: 1, borderRadius: 0 }}>
+            <button key={t.id} onClick={() => setMode(t.id)} style={{ ...tabStyle(t.id), flex: '1 0 auto', borderRadius: 0, whiteSpace: 'nowrap' }}>
               {t.label}
             </button>
           ))}
@@ -325,13 +325,13 @@ export default function IVCalcPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {QUICK_REF.map((r, i) => (
-                  <div key={r.drug} style={{ display: 'grid', gridTemplateColumns: '140px 180px 1fr', gap: 0, padding: '12px 0', borderBottom: i < QUICK_REF.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'flex-start' }}>
+                  <div key={r.drug} className="ivc-ref-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(110px,140px) minmax(140px,180px) 1fr', gap: 8, padding: '12px 0', borderBottom: i < QUICK_REF.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{r.drug}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', minWidth: 0 }}>
                       <div>{r.conc}</div>
                       <div style={{ color: '#1d4ed8', fontWeight: 700, marginTop: 2 }}>→ {r.result}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.5 }}>{r.note}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.5, minWidth: 0 }}>{r.note}</div>
                   </div>
                 ))}
               </div>
@@ -343,6 +343,15 @@ export default function IVCalcPage() {
           ⚠ Verificar sempre com a farmácia e o protocolo institucional antes de preparar. Esta calculadora é um auxiliar — o profissional é sempre responsável pela decisão final.
         </div>
       </div>
+      <style>{`
+        @media (max-width: 560px) {
+          /* Tabela de referência rápida empilha (cabeçalhos fixos não cabiam) */
+          .ivc-ref-row { grid-template-columns: 1fr !important; gap: 2px !important; }
+          /* Grids de inputs (1fr 1fr / 1fr 1fr 1fr) colapsam para 1 coluna — sem
+             isto os campos não encolhiam (min-width:auto do grid) e transbordavam. */
+          .ivc-body [style*="grid-template-columns"]:not(.ivc-ref-row) { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }

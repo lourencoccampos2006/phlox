@@ -175,7 +175,9 @@
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 6; \"VOCAB=$LASTEXITCODE\")",
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 15; \"TSC=$LASTEXITCODE\")",
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 25; \"TSC=$LASTEXITCODE\")",
-      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC=$LASTEXITCODE\")"
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"TSC=$LASTEXITCODE\")",
+      "Bash(grep -nE \"gridTemplateColumns|minWidth|width: [0-9]{3,}|maxWidth|display: 'grid'|'flex'\" app/iv-calc/page.tsx)",
+      "Bash(cat > *)"
     ]
   }
 }

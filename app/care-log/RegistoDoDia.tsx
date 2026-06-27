@@ -46,7 +46,7 @@ export default function RegistoDoDia() {
   const [tab, setTab] = useState<TabId>(requested && tabs.includes(requested) ? requested : tabs[0])
 
   return (
-    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa' }}>
+    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa', overflowX: 'hidden' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto', padding: '22px clamp(14px,3vw,28px) 8px' }}>
         {/* Cabeçalho */}
         <div style={{ marginBottom: 16 }}>
