@@ -82,7 +82,7 @@ export default function FamilyPage() {
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
   const personLower = person.toLowerCase()
-  const [tab, setTab] = useState<'conversa' | 'messages' | 'visits' | 'contacts'>('conversa')
+  const [tab, setTab] = useState<'conversa' | 'visits' | 'contacts'>('conversa')
   const [contacts, setContacts] = useState<FamilyContact[]>([])
   const [messages, setMessages] = useState<FamilyMessage[]>([])
   const [visits, setVisits] = useState<VisitRequest[]>([])
@@ -304,7 +304,6 @@ export default function FamilyPage() {
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1.5px solid #e5e7eb', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {([
           ['conversa', 'Conversa'],
-          ['messages', 'Comunicados'],
           ['visits',   'Visitas'],
           ['contacts', 'Contactos'],
         ] as const).map(([t, l]) => (
@@ -319,9 +318,6 @@ export default function FamilyPage() {
             )}
             {t === 'visits' && pendingVisits > 0 && (
               <span style={{ marginLeft: 6, background: '#d97706', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{pendingVisits}</span>
-            )}
-            {t === 'messages' && unreadCount > 0 && (
-              <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{unreadCount}</span>
             )}
           </button>
         ))}
@@ -338,71 +334,6 @@ export default function FamilyPage() {
           )}
 
           {/* Messages tab */}
-          {tab === 'messages' && (
-            <div className="family-msg-grid" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 16 }}>
-              <div>
-                {enrichedMessages.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-                    <div style={{ fontWeight: 600, color: '#374151' }}>Sem mensagens ainda</div>
-                    <div style={{ fontSize: 13, marginTop: 4 }}>Clica em "+ Nova Mensagem" para comunicar com as famílias</div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {enrichedMessages.map(msg => {
-                      const mt = MSG_TYPES[msg.type]
-                      const isSelected = selected?.id === msg.id
-                      const isUnread = !msg.read && msg.direction === 'received'
-                      return (
-                        <div
-                          key={msg.id}
-                          onClick={() => setSelected(isSelected ? null : msg)}
-                          style={{ background: '#fff', border: `1.5px solid ${isSelected ? '#2563eb' : isUnread ? '#bfdbfe' : '#e5e7eb'}`, borderRadius: 10, padding: '12px 16px', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'flex-start' }}
-                        >
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: mt.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{mt.emoji}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: isUnread ? 700 : 600, fontSize: 14, color: '#0b1120' }}>{msg.subject}</span>
-                              <span style={{ padding: '2px 7px', borderRadius: 20, fontSize: 11, fontWeight: 500, background: mt.bg, color: mt.color, border: `1px solid ${mt.border}` }}>{mt.label}</span>
-                              {msg.direction === 'sent' && <span style={{ fontSize: 11, color: '#9ca3af' }}>Enviada</span>}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-                              {msg.patient_name && <span style={{ fontWeight: 500 }}>{msg.patient_name}</span>}
-                              {msg.contact_name && <span> · {msg.contact_name}</span>}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{msg.body}</div>
-                          </div>
-                          <div style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>
-                            {new Date(msg.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {selected && (() => {
-                const mt = MSG_TYPES[selected.type]
-                return (
-                  <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 20, position: 'sticky', top: 20, alignSelf: 'start' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: mt.bg, color: mt.color, border: `1px solid ${mt.border}` }}>{mt.emoji} {mt.label}</span>
-                      <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 18 }}>×</button>
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: '#0b1120', marginBottom: 8 }}>{selected.subject}</div>
-                    <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
-                      {selected.patient_name && <div><strong>{person}:</strong> {selected.patient_name}</div>}
-                      {selected.contact_name && <div><strong>Familiar:</strong> {selected.contact_name}</div>}
-                      <div><strong>Data:</strong> {new Date(selected.created_at).toLocaleString('pt-PT')}</div>
-                    </div>
-                    <div style={{ background: '#f9fafb', borderRadius: 8, padding: '12px 14px', fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selected.body}</div>
-                  </div>
-                )
-              })()}
-            </div>
-          )}
-
           {/* Visits tab */}
           {tab === 'visits' && (
             <div>

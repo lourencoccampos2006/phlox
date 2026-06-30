@@ -159,5 +159,15 @@ export async function DELETE(req: NextRequest) {
   const { data: m } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', target).maybeSingle()
   if (m?.role === 'owner') return NextResponse.json({ error: 'O dono não pode ser removido.' }, { status: 400 })
   await a.from('org_members').update({ active: false }).eq('org_id', orgId).eq('user_id', target)
+
+  // Tirar MESMO o acesso institucional ao removido: se ainda pertencer a outra org
+  // ativa, aponta o perfil para essa; caso contrário, despromove para o plano grátis
+  // e limpa a org ativa. Sem isto, a conta mantinha plano clínico (bug reportado).
+  const { data: other } = await a.from('org_members').select('org_id').eq('user_id', target).eq('active', true).neq('org_id', orgId).limit(1).maybeSingle()
+  if (other?.org_id) {
+    await a.from('profiles').update({ active_org_id: other.org_id, org_id: other.org_id }).eq('id', target)
+  } else {
+    await a.from('profiles').update({ active_org_id: null, org_id: null, plan: 'free' }).eq('id', target)
+  }
   return NextResponse.json({ ok: true })
 }

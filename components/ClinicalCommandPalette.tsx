@@ -42,7 +42,6 @@ const DESTINATIONS: Dest[] = [
   { label: 'Decision Engine (Pro)',       href: '/motor-clinico', group: 'Clínico',  keywords: 'motor regras stopp beers interacoes anticolinergico carga qtc renal score auditavel deterministic' },
   { label: 'Chaves de API (Institucional)', href: '/api-keys',  group: 'Operações',  keywords: 'api key chaves rest endpoint scope rate limit erp bi sincronizar institutional' },
   { label: 'SSO Empresarial',             href: '/sso-config',  group: 'Operações',  keywords: 'sso saml oidc entra azure okta auth0 google workspace empresarial institucional login' },
-  { label: 'AI Copilot clínico (Pro)',    href: '/copiloto',    group: 'Clínico',    keywords: 'copilot copiloto ai assistente decisao regras stopp beers citacoes raciocinio anchored deterministic' },
   { label: 'Insights & Benchmarks (Pro)', href: '/insights',    group: 'Gestão',     keywords: 'insights benchmarks comparar pool mediana percentil anonymized analytics setor' },
   { label: 'Trust Center',                href: '/trust',       group: 'Legal',      keywords: 'trust center confiabilidade rgpd dpa subprocessadores estado seguranca' },
   { label: 'Exportar os meus dados',      href: '/exportar-dados', group: 'Conta',   keywords: 'rgpd portabilidade export download dados pessoais artigo 20' },

@@ -17,6 +17,7 @@ import { useLiveData } from '@/lib/useLiveData'
 import { SEVERITY_STYLE } from '@/lib/residentSignals'
 import { summariseResident, rankByAttention, CARE_DISCLAIMER, type CareResult } from '@/lib/careSignals'
 import { printDoc } from '@/lib/print'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -97,6 +98,12 @@ export default function RadarPage() {
 
   const needAttention = useMemo(() => results.filter(r => r.outOfPattern.length > 0 || r.openItems.length > 0), [results])
   const calm = results.length - needAttention.length
+
+  // Dá contexto ao Phlox Copilot: o que a equipa registou que pode merecer atenção.
+  usePhloxContext(
+    results.length ? 'Briefing do que pode merecer atenção' : '',
+    results.length ? { com_sinais: needAttention.slice(0, 8).map(r => `${r.name}: ${[...r.outOfPattern, ...r.openItems].map(i => i.title).join(', ')}`) } : null as any
+  )
 
   function toggle(id: string) { setOpen(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }) }
 

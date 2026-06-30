@@ -13,8 +13,10 @@
 // Enquanto NEXT_PUBLIC_ADSENSE_ID não existir, mostra um placeholder discreto
 // (útil para veres onde os anúncios vão aparecer, sem partir o layout).
 
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import AdBanner from '@/components/AdBanner'
+import { useConsent } from '@/lib/consent'
 
 interface PlanAdsProps {
   slot: string
@@ -24,8 +26,24 @@ interface PlanAdsProps {
   placeholder?: boolean
 }
 
+// Cartão próprio do Phlox (zero cookies, zero rede de anúncios) — mostrado a quem é
+// FREE mas não consentiu publicidade. Converte alguns em vez de deixar o espaço vazio.
+function UpgradeNudge({ style }: { style?: React.CSSProperties }) {
+  return (
+    <Link href="/pricing" style={{ textDecoration: 'none', display: 'block', ...style }}>
+      <div style={{ border: '1px solid var(--green-mid, #bbf7d0)', background: 'var(--green-light, #f0fdf4)', borderRadius: 10, padding: '11px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <span style={{ fontSize: 13, color: 'var(--green-2, #0d6e42)', fontWeight: 600, lineHeight: 1.4 }}>
+          Sem anúncios e tudo desbloqueado com o Plus.
+        </span>
+        <span style={{ fontSize: 12.5, color: 'var(--green-2, #0d6e42)', fontWeight: 800, whiteSpace: 'nowrap' }}>Ver planos →</span>
+      </div>
+    </Link>
+  )
+}
+
 export default function PlanAds({ slot, format = 'horizontal', style, placeholder = true }: PlanAdsProps) {
   const { user, loading } = useAuth()
+  const { ads } = useConsent()
 
   // Não decidir nada enquanto carrega — evita flash de anúncio a pagantes
   if (loading) return null
@@ -36,6 +54,9 @@ export default function PlanAds({ slot, format = 'horizontal', style, placeholde
   // no layout + no AdBanner). Slots não-numéricos (placeholders) → caixa neutra.
   const isRealSlot = /^\d{6,}$/.test(slot)
   if (isRealSlot) {
+    // Sem consentimento de publicidade não há anúncio (RGPD) — em vez de espaço
+    // vazio, sugerimos o upgrade com um cartão próprio (sem cookies).
+    if (!ads) return <UpgradeNudge style={style} />
     return <AdBanner slot={slot} format={format} style={style} />
   }
 

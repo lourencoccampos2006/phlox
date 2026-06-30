@@ -35,6 +35,27 @@ export default function FamiliaPage() {
   const [syms, setSyms] = useState<Sym[]>([])
   const [loading, setLoading] = useState(true)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  // Adicionar familiar AQUI (cria logo o perfil — antes mandava para /perfis e não criava).
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState({ name: '', relation: '', age: '' })
+  const [saving, setSaving] = useState(false)
+
+  async function createProfile() {
+    if (!form.name.trim() || !user?.id) return
+    setSaving(true)
+    const { data, error } = await supabase.from('family_profiles').insert({
+      user_id: user.id, name: form.name.trim(),
+      relation: form.relation.trim() || null,
+      age: form.age ? Number(form.age) : null,
+    }).select().single()
+    setSaving(false)
+    if (!error && data) {
+      setProfiles(prev => [...prev, data as Profile])
+      setForm({ name: '', relation: '', age: '' }); setAdding(false)
+    } else if (error) {
+      alert(`Não foi possível criar: ${error.message}`)
+    }
+  }
 
   const load = useCallback(async () => {
     if (!user?.id) return
@@ -108,16 +129,32 @@ export default function FamiliaPage() {
           </div>
         </Link>
 
+        {/* Formulário inline de adicionar familiar — cria logo o perfil aqui. */}
+        {adding && (
+          <div style={{ background: 'white', border: '1px solid #fde68a', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0b1120', marginBottom: 10 }}>Adicionar familiar</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome" autoFocus style={{ flex: '2 1 180px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <input value={form.relation} onChange={e => setForm(f => ({ ...f, relation: e.target.value }))} placeholder="Relação (Mãe, Pai…)" style={{ flex: '1 1 120px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <input value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value.replace(/\D/g, '') }))} placeholder="Idade" inputMode="numeric" style={{ flex: '0 1 90px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={createProfile} disabled={saving || !form.name.trim()} style={{ padding: '10px 18px', background: saving || !form.name.trim() ? '#e2e8f0' : ACCENT, color: saving || !form.name.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, cursor: saving || !form.name.trim() ? 'default' : 'pointer' }}>{saving ? 'A criar…' : 'Criar perfil'}</button>
+              <button onClick={() => { setAdding(false); setForm({ name: '', relation: '', age: '' }) }} style={{ padding: '10px 16px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 14 }} />)}</div>
-        ) : profiles.length === 0 ? (
+        ) : profiles.length === 0 && !adding ? (
           <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
             <div style={{ fontSize: 34, marginBottom: 14 }}>👨‍👩‍👧</div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 8 }}>Quem está a cuidar?</div>
             <div style={{ fontSize: 14.5, color: '#64748b', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. O Phlox passa a velar por cada um.</div>
-            <Link href="/perfis" style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, textDecoration: 'none' }}>+ Adicionar a primeira pessoa</Link>
+            <button onClick={() => setAdding(true)} style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, border: 'none', cursor: 'pointer' }}>+ Adicionar a primeira pessoa</button>
           </div>
-        ) : (
+        ) : profiles.length === 0 ? null : (
           <>
             {/* ── O QUE PRECISA DE ATENÇÃO HOJE ── */}
             {attention.length > 0 && (
@@ -190,12 +227,15 @@ export default function FamiliaPage() {
                       <Link href="/sintomas" onClick={() => activate(p)} style={act(ACCENT)}>Sintomas</Link>
                       <Link href="/consult-prep" onClick={() => activate(p)} style={act(ACCENT)}>Preparar consulta</Link>
                       <Link href="/med-review" onClick={() => activate(p)} style={act(ACCENT)}>Rever medicação</Link>
+                      {/* Ligar ao lar/centro: usa o Portal Família (código + verificação) — daí
+                          mensagens, medicação e visitas ligam-se ao utente da instituição. */}
+                      <Link href="/portal-familia" onClick={() => activate(p)} style={act('#1d4ed8')}>Ligar ao lar / centro</Link>
                     </div>
                   </div>
                 )
               })}
 
-              <Link href="/perfis" style={{ display: 'block', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 14, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: ACCENT, textDecoration: 'none' }}>+ Adicionar familiar</Link>
+              <button onClick={() => setAdding(true)} style={{ display: 'block', width: '100%', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 14, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: ACCENT, cursor: 'pointer' }}>+ Adicionar familiar</button>
               <Link href="/familia360" style={{ display: 'block', padding: '12px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#475569', textDecoration: 'none' }}>Abrir o painel completo (Família 360°) →</Link>
             </div>
           </>

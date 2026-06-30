@@ -32,7 +32,7 @@ const CLINICAL_PREFIXES = [
   // ferramentas do blueprint que faltavam (abriam sem sidebar institucional)
   '/reconciliacao', '/interactions', '/calculos', '/balcao', '/counseling',
   '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
-  '/insights', '/copiloto', '/reach', '/brief', '/calc', '/codes',
+  '/insights', '/reach', '/brief', '/calc', '/codes',
   '/guardados', '/calendario',
   '/equipa', '/painel-dono', '/schedule', '/activities',
   '/farmacia',

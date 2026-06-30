@@ -6,6 +6,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiComplete } from '@/lib/ai'
 import { getUserPlan, planGateResponse, isPlanSufficient } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { TOOLS, type ToolMode } from '@/lib/toolRegistry'
+
+// Diretório CONCISO de todas as ferramentas do Phlox, para o copilot saber o que
+// existe e encaminhar para a ferramenta certa em qualquer página. Filtrado pelo modo
+// do utilizador para não estourar tokens. (Substitui o conhecimento limitado de antes.)
+function toolDirectory(mode?: string): string {
+  const m = (['personal', 'caregiver', 'student', 'clinical'].includes(mode || '') ? mode : null) as ToolMode | null
+  const list = (m ? TOOLS.filter(t => t.modes.includes(m)) : TOOLS)
+  // ex: "/interactions = verificar interações entre medicamentos"
+  return list.map(t => `${t.id} = ${t.desc || t.label}`).join('\n')
+}
 
 // Descrição curta do contexto de cada rota + a ferramenta certa a sugerir.
 function routeContext(path: string): string {
@@ -56,14 +67,18 @@ export async function POST(req: NextRequest) {
     const { text } = await aiComplete([
       {
         role: 'system',
-        content: `És o Phlox Copilot, o assistente clínico contextual do Phlox, em PT-PT. És útil, consciente e prático: sabes QUEM é o utilizador, ONDE está e SOBRE QUEM trabalha.
+        content: `És o Phlox Copilot, o assistente contextual do Phlox, em PT-PT. És útil, consciente e prático: sabes QUEM é o utilizador, ONDE está, SOBRE QUEM trabalha e QUE FERRAMENTAS o Phlox tem.
 ${modeCtx ? `QUEM: ${modeCtx}\n` : ''}ONDE: ${ctx}
-${profileCtx ? `SOBRE QUEM: ${profileCtx}\n` : ''}${pageCtx ? `\nCONTEXTO ATUAL (o que o utilizador está mesmo a ver/fez nesta página — usa-o como base da resposta):\n${pageCtx}\n` : ''}Regras:
+${profileCtx ? `SOBRE QUEM: ${profileCtx}\n` : ''}${pageCtx ? `\nCONTEXTO ATUAL (o que o utilizador está mesmo a ver/fez nesta página — usa-o como base da resposta):\n${pageCtx}\n` : ''}
+FERRAMENTAS DO PHLOX (usa esta lista para encaminhar para a ferramenta certa quando ajudar; nunca inventes rotas que não estejam aqui):
+${toolDirectory(body.mode)}
+
+Regras:
 - Responde curto e prático (máximo ~6 frases ou uma lista breve). Vai direto ao que ajuda.
 - Usa o CONTEXTO ATUAL e o SOBRE QUEM — se há um medicamento/ECG/análise/doente em foco, responde SOBRE ESSE, e tem em conta a idade/condições/alergias da pessoa ativa.
-- Rigor clínico; se não sabes, di-lo. Nunca inventes doses, valores ou interações.
+- Quando o utilizador pergunta "onde faço X" ou precisa de uma funcionalidade, aponta a ferramenta certa da lista acima (com a rota), e explica em 1 frase o que ela faz.
+- Rigor; se não sabes, di-lo. Nunca inventes doses, valores ou interações.
 - Adapta o tom a QUEM (estudante→raciocínio; profissional→técnico; pessoal/cuidador→simples).
-- Quando útil, aponta para a ferramenta certa do Phlox (ex: "confirma em /interactions", "regista em /sintomas").
 - Não diagnosticas nem prescreves: informas, organizas e ajudas a decidir o passo seguinte.
 ${sel ? `\nO utilizador tem isto selecionado/em foco:\n"""${sel}"""` : ''}`,
       },
