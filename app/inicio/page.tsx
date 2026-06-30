@@ -7,9 +7,11 @@ import Link from 'next/link'
 import { planName } from '@/lib/plans'
 import Icon from '@/components/Icon'
 import WelcomeTour from '@/components/WelcomeTour'
+import HealthAlertsCard from '@/components/HealthAlertsCard'
+import { computeHealthAlerts } from '@/lib/healthAlerts'
 import { modeTheme, isPremiumMode, type ModeTheme } from '@/lib/modeTheme'
 import { homeGreeting, homeSubline, pickFocus, quickActions, type HomeData, type FocusCard } from '@/lib/homeIntelligence'
-import { summarize } from '@/lib/studyProgress'
+import { summarize, syncStudyProgress } from '@/lib/studyProgress'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { getPins } from '@/lib/pinnedTools'
@@ -48,12 +50,21 @@ export default function InicioPage() {
     ;(async () => {
       const firstName = user?.name?.split(' ')[0] || ''
       if (expMode === 'student') {
+        // Sincroniza o progresso com a conta (cross-device) — best-effort, não bloqueia.
+        syncStudyProgress()
         const s = summarize()
+        // Cartões de repetição espaçada a rever hoje (sistema SM-2 do servidor).
+        let cardsDue = 0
+        try {
+          const { data: sd } = await supabase.auth.getSession()
+          const r = await fetch('/api/study/cards?limit=1', { headers: { Authorization: `Bearer ${sd.session?.access_token}` } })
+          if (r.ok) { const j = await r.json(); cardsDue = j?.dashboard?.due_today || 0 }
+        } catch { /* degrada a 0 */ }
         if (!cancel) setData({
           firstName, medsCount: 0, dosesDueNow: 0, dosesTakenToday: 0, dosesTotalToday: 0,
           studyStreak: s.streak, studyXpToday: s.xpToday, studyGoal: s.dailyGoal,
-          weakArea: s.weakAreas[0]?.area || null,
-          hasAnyData: s.activeDays.size > 0,
+          weakArea: s.weakAreas[0]?.area || null, cardsDue,
+          hasAnyData: s.activeDays.size > 0 || cardsDue > 0,
         })
         return
       }
@@ -61,13 +72,17 @@ export default function InicioPage() {
       const today = new Date().toISOString().slice(0, 10)
       const hour = new Date().getHours()
       try {
-        const [{ data: meds }, { data: logs }, { data: vitals }, { data: appts }] = await Promise.all([
-          supabase.from('personal_meds').select('name, reminder_times').eq('user_id', user.id),
+        const monthAgo = new Date(Date.now() - 60 * 86400000).toISOString()
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+        const [{ data: meds }, { data: logs }, { data: vitals }, { data: appts }, { data: syms }, { data: prof }] = await Promise.all([
+          supabase.from('personal_meds').select('name, reminder_times, pills_remaining, pills_per_day').eq('user_id', user.id),
           supabase.from('med_logs').select('id, status').eq('user_id', user.id).gte('date', today).eq('status', 'taken'),
-          supabase.from('vitals').select('recorded_at').eq('user_id', user.id).order('recorded_at', { ascending: false }).limit(1),
+          supabase.from('vitals').select('bp_sys,bp_dia,hr,spo2,glucose,weight,temp,recorded_at').eq('user_id', user.id).gte('recorded_at', monthAgo).order('recorded_at', { ascending: false }).limit(40),
           supabase.from('appointments').select('title, date').eq('user_id', user.id).gte('date', today).order('date').limit(1),
+          expMode === 'personal' ? supabase.from('symptom_logs').select('at, pain, temperature, symptoms').eq('user_id', user.id).is('profile_id', null).gte('at', weekAgo).then((r: any) => r, () => ({ data: [] })) : Promise.resolve({ data: [] }),
+          expMode === 'personal' ? supabase.from('profiles').select('age, sex, conditions').eq('id', user.id).maybeSingle().then((r: any) => r, () => ({ data: null })) : Promise.resolve({ data: null }),
         ])
-        const medList = (meds || []) as { name: string; reminder_times?: string[] }[]
+        const medList = (meds || []) as { name: string; reminder_times?: string[]; pills_remaining?: number | null; pills_per_day?: number | null }[]
         // tomas de hoje e quantas já passaram da hora (janela) sem registo
         let totalToday = 0, dueNow = 0, nextLabel: string | undefined
         medList.forEach(m => {
@@ -80,15 +95,57 @@ export default function InicioPage() {
         })
         const taken = (logs || []).length
         dueNow = Math.max(0, dueNow - taken)
-        const lastVital = (vitals || [])[0]?.recorded_at
+        const vitalRows = (vitals || []) as any[]
+        const lastVital = vitalRows[0]?.recorded_at
         const lastVitalDaysAgo = lastVital ? Math.floor((Date.now() - new Date(lastVital).getTime()) / 86400000) : null
         const appt = (appts || [])[0]
         const nextAppt = appt ? { title: appt.title || 'Consulta', inDays: Math.max(0, Math.ceil((new Date(appt.date).getTime() - Date.now()) / 86400000)) } : null
+
+        // PESSOAL: alerta de saúde próprio mais urgente + "a minha semana" (tendências).
+        let healthAlert: HomeData['healthAlert'] = null
+        let week: HomeData['week'] = null
+        if (expMode === 'personal') {
+          const totalSlots = medList.reduce((n, m) => n + (m.reminder_times?.length || 0), 0)
+          const adherencePct = totalSlots > 0 ? Math.round((taken / totalSlots) * 100) : null
+          const out = computeHealthAlerts({
+            meds: medList.map(m => ({ name: m.name, pills_remaining: m.pills_remaining, pills_per_day: m.pills_per_day })),
+            age: (prof as any)?.age ?? null, sex: (prof as any)?.sex ?? null, conditions: (prof as any)?.conditions ?? null,
+            vitalSeries: vitalRows, symptoms: (syms || []) as any[], adherencePct,
+          })
+          const top = out[0]
+          if (top) healthAlert = { level: top.level, title: top.title, detail: top.detail, href: top.href || '/inicio', cta: top.cta }
+          // Tendências para a "história da semana".
+          const weights = vitalRows.filter(v => v.weight != null)
+          const weightDelta = weights.length >= 2 ? Math.round((weights[0].weight - weights[weights.length - 1].weight) * 10) / 10 : null
+          const bps = vitalRows.filter(v => v.bp_sys != null)
+          let bpTrend: 'up' | 'down' | 'flat' | null = null
+          if (bps.length >= 2) { const diff = bps[0].bp_sys - bps[bps.length - 1].bp_sys; bpTrend = diff <= -5 ? 'down' : diff >= 5 ? 'up' : 'flat' }
+          const symWeek = ((syms || []) as any[]).length
+          if (weights.length || bps.length || adherencePct != null || symWeek) {
+            week = { weightDelta, bpTrend, adherencePct, vitalsCount: vitalRows.length, symptomsCount: symWeek }
+          }
+        }
+
+        // CUIDADOR: o alerta de vigilância mais urgente de um familiar (o "Anjo da
+        // Guarda" a antecipar-se). Lê o ledger family_alerts; degrada a null.
+        let caregiverAlert: HomeData['caregiverAlert'] = null
+        if (expMode === 'caregiver') {
+          const rank: Record<string, number> = { critical: 4, major: 3, moderate: 2, minor: 1, info: 0 }
+          const fa = await supabase.from('family_alerts')
+            .select('profile_id, title, detail, severity')
+            .eq('user_id', user.id).is('dismissed_at', null)
+            .order('created_at', { ascending: false }).limit(12)
+            .then((r: any) => (r.data || []).sort((a: any, b: any) => (rank[b.severity] || 0) - (rank[a.severity] || 0))[0], () => null)
+          if (fa) {
+            const { data: pr } = await supabase.from('family_profiles').select('name').eq('id', fa.profile_id).maybeSingle()
+            caregiverAlert = { who: (pr?.name || 'Familiar').split(' ')[0], title: fa.title, detail: fa.detail, href: '/familia' }
+          }
+        }
         if (!cancel) setData({
           firstName, medsCount: medList.length,
           dosesDueNow: dueNow, dosesTakenToday: taken, dosesTotalToday: totalToday, nextDoseLabel: nextLabel,
-          lastVitalDaysAgo, nextAppt,
-          hasAnyData: medList.length > 0 || !!lastVital || !!appt,
+          lastVitalDaysAgo, nextAppt, caregiverAlert, healthAlert, week,
+          hasAnyData: medList.length > 0 || !!lastVital || !!appt || !!caregiverAlert || !!healthAlert,
         })
       } catch {
         if (!cancel) setData({ firstName, medsCount: 0, dosesDueNow: 0, dosesTakenToday: 0, dosesTotalToday: 0, hasAnyData: false })
@@ -142,6 +199,12 @@ export default function InicioPage() {
 
         {/* ── O FOCO — a única coisa que importa agora ── */}
         <FocusHero focus={focus} theme={t} loading={!data} />
+
+        {/* ── Avisos proativos de saúde (determinístico, grátis no pessoal) ── */}
+        {(expMode === 'personal' || expMode === 'caregiver') && <HealthAlertsCard />}
+
+        {/* ── A minha saúde esta semana (tendências reais) ── */}
+        {expMode === 'personal' && <WeekStory data={d} loading={!data} theme={t} />}
 
         {/* ── Atalhos fixos do utilizador (pins) ── */}
         <PinnedRow theme={t} />
@@ -419,6 +482,43 @@ function FocusHero({ focus, theme: t, loading }: { focus: FocusCard; theme: Mode
             {focus.cta}
             <Icon name="chevron" size={16} color={t.heroFrom} />
           </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+// ─── "A minha saúde esta semana" — síntese determinística de tendências ────────
+function WeekStory({ data: d, loading, theme: t }: { data: HomeData; loading: boolean; theme: ModeTheme }) {
+  const w = d.week
+  if (loading || !w) return null
+  // Constrói os "chips" só com o que houver dados.
+  const chips: { label: string; tone: 'good' | 'warn' | 'neutral' }[] = []
+  if (w.weightDelta != null && Math.abs(w.weightDelta) >= 0.3)
+    chips.push({ label: `Peso ${w.weightDelta < 0 ? '↓' : '↑'}${Math.abs(w.weightDelta)} kg`, tone: 'neutral' })
+  if (w.bpTrend === 'down') chips.push({ label: 'Tensão a melhorar', tone: 'good' })
+  else if (w.bpTrend === 'up') chips.push({ label: 'Tensão a subir', tone: 'warn' })
+  if (w.adherencePct != null) chips.push({ label: `Medicação ${w.adherencePct}%`, tone: w.adherencePct >= 80 ? 'good' : w.adherencePct >= 50 ? 'neutral' : 'warn' })
+  if (w.symptomsCount && w.symptomsCount > 0) chips.push({ label: `${w.symptomsCount} registo${w.symptomsCount > 1 ? 's' : ''} de sintomas`, tone: 'neutral' })
+  if (chips.length === 0) return null
+
+  const TONE: Record<string, { c: string; bg: string; b: string }> = {
+    good: { c: '#15803d', bg: '#f0fdf4', b: '#bbf7d0' },
+    warn: { c: '#b45309', bg: '#fffbeb', b: '#fde68a' },
+    neutral: { c: '#475569', bg: '#f8fafc', b: '#e2e8f0' },
+  }
+  return (
+    <Link href="/relatorio" style={{ textDecoration: 'none', display: 'block', marginTop: 14 }}>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: t.radius, padding: '15px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: t.ink }}>A minha saúde esta semana</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: t.accent }}>Ver detalhe →</span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+          {chips.map((c, i) => {
+            const s = TONE[c.tone]
+            return <span key={i} style={{ fontSize: 12.5, fontWeight: 700, color: s.c, background: s.bg, border: `1px solid ${s.b}`, borderRadius: 8, padding: '5px 11px' }}>{c.label}</span>
+          })}
         </div>
       </div>
     </Link>

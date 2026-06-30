@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import FusionTabs from '@/components/FusionTabs'
 import { AuditoriaTool } from '../auditoria/page'
@@ -43,6 +44,7 @@ const daysTo = (d?: string | null) => d ? Math.round((new Date(d).getTime() - Da
 
 function DocumentosTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
@@ -64,8 +66,8 @@ function DocumentosTool() {
     if (!user) return
     setLoading(true)
     const [p, d] = await Promise.all([
-      supabase.from('patients').select('id,name,active').eq('user_id', user.id).order('name'),
-      supabase.from('documents').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      scope.filter(supabase.from('patients').select('id,name,active')).order('name'),
+      scope.filter(supabase.from('documents').select('*')).order('created_at', { ascending: false }),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false))
     if (d.error) { setTableMissing(true); setDocs([]) } else { setTableMissing(false); setDocs(d.data || []) }
@@ -73,7 +75,7 @@ function DocumentosTool() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: ['documents', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['documents', 'patients'], userId: scope.liveFilterValue || user?.id, onChange: load })
 
   const nameOf = (id?: string | null) => id ? (patients.find(p => p.id === id)?.name || person) : cfg.unitNoun
 
@@ -85,7 +87,7 @@ function DocumentosTool() {
       const path = `${user.id}/${form.patient_id || 'instituicao'}/${Date.now()}.${ext}`
       const { error: up } = await supabase.storage.from('documents').upload(path, file, { upsert: false, contentType: file.type || undefined })
       if (up) throw up
-      await supabase.from('documents').insert({ user_id: user.id, patient_id: form.patient_id || null, name: form.name.trim(), category: form.category, file_path: path, expiry_date: form.expiry_date || null, notes: form.notes || null })
+      await supabase.from('documents').insert(scope.stamp({ patient_id: form.patient_id || null, name: form.name.trim(), category: form.category, file_path: path, expiry_date: form.expiry_date || null, notes: form.notes || null }))
       setShowForm(false); setForm(blank); setFile(null); load()
     } catch (e: any) {
       setErr(e.message?.includes('Bucket') || e.message?.includes('bucket') ? 'Cria o bucket "documents" no Supabase (sprint23).' : (e.message || 'Erro ao guardar.'))
@@ -99,7 +101,7 @@ function DocumentosTool() {
   async function remove(d: Doc) {
     if (!confirm(`Eliminar "${d.name}"?`)) return
     await supabase.storage.from('documents').remove([d.file_path]).catch(() => {})
-    await supabase.from('documents').delete().eq('id', d.id).eq('user_id', user.id)
+    await supabase.from('documents').delete().eq('id', d.id)
     load()
   }
 

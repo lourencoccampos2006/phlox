@@ -65,6 +65,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       // ou duplicadas com calculos / oracle). O utilizador pode reativar em
       // /settings/tools.
       { href: '/painel',             icon: '🎛️', label: 'Painel',              desc: 'O painel da instituição, ao vivo' },
+      { href: '/radar',              icon: '📋', label: 'O que merece atenção', desc: 'O que a equipa registou que saiu do padrão' },
       { href: '/turno',              icon: '🏥', label: 'Turno',               desc: 'Gestão de utentes e doses' },
       { href: '/rounds',             icon: '📋', label: 'Ronda Farmacêutica',  desc: 'PCNE e intervenções' },
       { href: '/mar',                icon: '📝', label: 'MAR',                 desc: 'Registo de administração' },
@@ -86,7 +87,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'student', label: 'Estudante', color: '#7c3aed',
     tools: [
-      { href: '/study360',  icon: '🎓', label: 'O meu estudo',     desc: 'Revisão espaçada, plano, Pomodoro e progresso', badge: 'Premium' },
+      { href: '/study360',  icon: '🎓', label: 'Estudar',          desc: 'Sessão diária: revisão espaçada, plano, Pomodoro e progresso', badge: 'Premium' },
       { href: '/biblioteca', icon: '📚', label: 'As minhas sebentas', desc: 'Carregar PDFs e slides → resumo e perguntas', badge: 'Premium' },
       { href: '/arena',     icon: '🏆', label: 'Arena',            desc: 'Ligas Bronze → Diamante' },
       { href: '/simulador', icon: '🎮', label: 'Casos clínicos',   desc: 'Pratique decisões num caso real' },
@@ -185,15 +186,14 @@ export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
   ],
   student: [
     { href: '/estudar-conceito', icon: '🎓', label: 'Estudar um conceito', desc: 'Explica + mnemónica + plano · num só sítio' },
-    { href: '/exam',          icon: '📝', label: 'Modo exame',          desc: 'Simulação real com timer' },
-    { href: '/decisao',       icon: '⚡', label: 'Phlox Decisão',       desc: 'Caso evolutivo com consequências' },
+    { href: '/exam',          icon: '📝', label: 'Simulação de exame',  desc: 'Exame cronometrado, formato real' },
+    { href: '/modo-exame',    icon: '🗂️', label: 'Plano de exame',      desc: 'Plano de estudo até à data do exame' },
     // Mantemos /explica e /mnemonicas como atalhos para quem só quer um
     { href: '/explica',       icon: '✨', label: 'Explica-me (só)',     desc: 'Atalho direto à explicação' },
     { href: '/mnemonicas',    icon: '🧠', label: 'Mnemónicas (só)',     desc: 'Atalho direto à mnemónica' },
   ],
   clinical: [
-    { href: '/calculos',      icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK' },
-    { href: '/calculators',   icon: '🔢', label: 'Outras calculadoras', desc: 'CURB-65, MEWS, VTE' },
+    { href: '/calculos',      icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, eGFR, doses, escalas (CHA₂DS₂, qSOFA…)' },
     { href: '/pk-dosing',     icon: '🔬', label: 'Console PK',          desc: 'Vancomicina AUC, aminoglicosídeos' },
     { href: '/antibiotics',   icon: '💉', label: 'Antibioterapia',      desc: 'Empírica + stewardship' },
     { href: '/stopp-start',   icon: '🛑', label: 'STOPP/START',         desc: 'v3 + Beers' },

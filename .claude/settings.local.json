@@ -181,7 +181,22 @@
       "mcp__plugin_playwright_playwright__browser_type",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 60 http://localhost:3000/painel-dono)",
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 15; \"TSC=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 2)",
-      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 10; \"TSC=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 2)"
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 10; \"TSC=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 2)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 12; \"TSC=$LASTEXITCODE\"; node scripts/check-vocab.mjs 2>&1 | Select-Object -Last 2)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 8; \"TSC=$LASTEXITCODE\")",
+      "Bash(xargs grep -l \"family_profile\")",
+      "Bash(xargs grep -l \"push_subscription\")",
+      "Bash(echo \"=== family_profile_meds \\(create + alters\\) ===\"; grep -rn \"family_profile_meds\" supabase/*.sql | grep -iE \"create table|add column\" | head; echo; echo \"=== vital_signs columns ===\"; grep -rn \"create table if not exists vital_signs\\\\|vital_signs add column\" supabase/*.sql | head; sed -n '/create table if not exists vital_signs/,/\\);/p' supabase/*.sql 2>/dev/null | head -20; echo \"=== symptom_logs ===\"; grep -rn \"create table.*symptom_logs\" supabase/*.sql; sed -n '/create table if not exists symptom_logs/,/\\);/p' supabase/sprint28_symptom_log.sql 2>/dev/null | head -20)",
+      "Bash(grep -rliE \"qa.*account|conta qa|playwright|test.*login\" C:/Users/Fernando/.claude/projects/c--Users-Fernando-phlox/memory/ 2>/dev/null | head; echo \"--- look for qa creds in memory ---\"; grep -rhiE \"qa@|@phlox|password|palavra-passe\" C:/Users/Fernando/.claude/projects/c--Users-Fernando-phlox/memory/*.md 2>/dev/null | head)",
+      "Bash(grep -nE \"logStudy|XP|xp|\\\\\\\\+[0-9]+ XP|ganho|earned|reward|resultado|correct\" app/arena/page.tsx)",
+      "Bash(grep -n \"const { user, supabase }\" app/agenda/page.tsx)",
+      "Bash(grep -n \"import { useAuth }\\\\|const { user, supabase } = useAuth\" app/turno/page.tsx)",
+      "Bash(cd /c/Users/Fernando/phlox; rm -f \"C:/Users/Fernando/AppData/Local/Temp/next-panic-\"*.log 2>/dev/null; du -sh .next 2>/dev/null; df -h . 2>/dev/null | tail -2; echo \"--- clean scratch screenshots ---\"; ls .playwright-mcp/*.png 2>/dev/null | wc -l)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 15 http://localhost:3000/)",
+      "PowerShell(Stop-Process -Id 9488 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(\"stopped\")",
+      "Bash(nohup npm run dev)",
+      "Bash(echo \"dev server starting \\(PID $!\\)\")"
     ]
   }
 }

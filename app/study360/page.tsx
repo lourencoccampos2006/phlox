@@ -11,6 +11,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
+import StudyProgressBar from '@/components/StudyProgressBar'
 
 type Tab = 'focus' | 'review' | 'plan' | 'pomodoro' | 'stats'
 
@@ -45,8 +46,11 @@ export default function Study360() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Plus · Premium</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', margin: 0, fontWeight: 400, letterSpacing: '-0.02em' }}>Estudo 360°</h1>
-          <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Algoritmo de revisão espaçada, plano por exame, Pomodoro e métricas.</p>
+          <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>A tua sessão de estudo: revisão espaçada, plano por exame, Pomodoro e métricas. Todas as ferramentas em <Link href="/aprender" style={{ color: '#7c3aed', fontWeight: 700 }}>Aprender</Link>.</p>
         </div>
+
+        {/* Progresso unificado (streak/XP/meta/cartões a rever) no topo da casa do estudo */}
+        <StudyProgressBar />
 
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 16, overflowX: 'auto' }}>
           {([

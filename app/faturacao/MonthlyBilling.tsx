@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
 
@@ -20,6 +21,7 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 export default function MonthlyBilling() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const [patients, setPatients] = useState<Patient[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,8 +35,8 @@ export default function MonthlyBilling() {
     if (!user) return
     setLoading(true)
     const [p, e] = await Promise.all([
-      supabase.from('patients').select('id,name,room_number,active').eq('user_id', user.id).order('name'),
-      supabase.from('billing_entries').select('*').eq('user_id', user.id),
+      scope.filter(supabase.from('patients').select('id,name,room_number,active')).order('name'),
+      scope.filter(supabase.from('billing_entries').select('*')),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false))
     if (e.error) { setTableMissing(true); setEntries([]) } else { setTableMissing(false); setEntries(e.data || []) }
@@ -42,7 +44,7 @@ export default function MonthlyBilling() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: ['billing_entries', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['billing_entries', 'patients'], userId: scope.liveFilterValue || user?.id, onChange: load })
 
   const nameOf = (id: string) => patients.find(p => p.id === id)?.name || 'Residente'
   const monthEntries = entries.filter(e => e.month === month)
@@ -57,20 +59,20 @@ export default function MonthlyBilling() {
     // copia mensalidade/comparticipação do mês anterior do residente, se existir
     const rows = missing.map(p => {
       const prev = entries.filter(e => e.patient_id === p.id).sort((a, b) => b.month.localeCompare(a.month))[0]
-      return { user_id: user.id, patient_id: p.id, month, fee: prev?.fee || 0, subsidy: prev?.subsidy || 0, extras: 0, discount: 0, paid: false }
+      return scope.stamp({ patient_id: p.id, month, fee: prev?.fee || 0, subsidy: prev?.subsidy || 0, extras: 0, discount: 0, paid: false })
     })
     await supabase.from('billing_entries').insert(rows)
     setGenerating(false); load()
   }
   async function togglePaid(e: Entry) {
     const paid = !e.paid
-    await supabase.from('billing_entries').update({ paid, paid_date: paid ? new Date().toISOString().slice(0, 10) : null }).eq('id', e.id).eq('user_id', user.id)
+    await supabase.from('billing_entries').update({ paid, paid_date: paid ? new Date().toISOString().slice(0, 10) : null }).eq('id', e.id)
     setEntries(prev => prev.map(x => x.id === e.id ? { ...x, paid, paid_date: paid ? new Date().toISOString().slice(0, 10) : null } : x))
   }
   async function saveEdit() {
     if (!user || !edit) return
     setSaving(true)
-    await supabase.from('billing_entries').update({ fee: edit.fee, subsidy: edit.subsidy, extras: edit.extras, discount: edit.discount, method: edit.method || null, notes: edit.notes || null, updated_at: new Date().toISOString() }).eq('id', edit.id).eq('user_id', user.id)
+    await supabase.from('billing_entries').update({ fee: edit.fee, subsidy: edit.subsidy, extras: edit.extras, discount: edit.discount, method: edit.method || null, notes: edit.notes || null, updated_at: new Date().toISOString() }).eq('id', edit.id)
     setSaving(false); setEdit(null); load()
   }
 
@@ -155,8 +157,8 @@ export default function MonthlyBilling() {
 
         {tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação ainda por ativar</div>
+            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>A base de dados de mensalidades ainda não está criada nesta conta. Aplique a migração de faturação (<code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>billing_entries</code>) no Supabase e recarregue. Tudo o resto continua a funcionar normalmente.</div>
           </div>
         ) : (
           <>

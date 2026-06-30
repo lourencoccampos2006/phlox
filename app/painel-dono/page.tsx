@@ -8,6 +8,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { buildLedger } from '@/lib/workLedger'
+import { printDoc } from '@/lib/print'
 
 const ACCENT = '#0d9488'
 
@@ -42,6 +44,30 @@ export default function PainelDonoPage() {
   }, [user, supabase, date])
 
   useEffect(() => { load() }, [load])
+
+  // Dossier para inspeção: junta o resumo do mês (cofre de valor) + a atividade do
+  // dia (auditoria) + por funcionário, num A4 organizado. "Na inspeção, está à mão."
+  function printDossier() {
+    const led = biz?.ledger
+    const ledgerRecords = led ? [
+      { title: `${led.careRecordsMonth} registos de cuidados`, meta: `${led.careDaysMonth} dias documentados` },
+      { title: `${led.marGivenMonth} tomas de medicação registadas`, meta: led.marAdherence != null ? `${led.marAdherence}% das previstas` : undefined },
+      { title: `${led.incidentsFollowed}/${led.incidentsMonth} ocorrências com seguimento` },
+      { title: `${led.assessmentsMonth} avaliações (escalas)` },
+    ] : []
+    const staffRecords = Object.entries(byStaff).sort((a, b) => (b[1] as number) - (a[1] as number)).map(([name, n]) => ({ title: name, meta: `${n} ${n === 1 ? 'registo' : 'registos'} em ${date}` }))
+    const dayRecords = events.slice(0, 60).map(e => ({ title: `${e.who} → ${e.patient}`, meta: `${new Date(e.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} · ${e.detail}` }))
+    printDoc({
+      docTitle: `Dossier de registos — ${biz?.org?.name || 'Instituição'}`,
+      docSubtitle: led?.monthLabel ? `Mês de ${led.monthLabel}` : undefined,
+      sections: [
+        ...(ledgerRecords.length ? [{ heading: 'Resumo do mês', records: ledgerRecords }] : []),
+        ...(staffRecords.length ? [{ heading: `Atividade por funcionário · ${date}`, records: staffRecords }] : []),
+        ...(dayRecords.length ? [{ heading: `Registos do dia · ${date}`, records: dayRecords }] : []),
+      ],
+      footerNote: 'Dossier organizado a partir dos registos da equipa. Documento de gestão.',
+    })
+  }
 
   if (!user) return null
 
@@ -100,6 +126,48 @@ export default function PainelDonoPage() {
                     <KCard big={k.marGivenMonth} label="tomas dadas (mês)" sub={k.marHomeMonth ? `${k.marHomeMonth} em casa pela família` : 'no centro'} color="#dc2626" />
                     <KCard big={k.familiesEngaged} label="famílias ativas (7 dias)" sub={`${k.familyReplies} respostas das famílias`} color="#7c3aed" />
                   </div>
+
+                  {/* ── COFRE DE VALOR: o que ficou registado e organizado este mês ── */}
+                  {biz.ledger && (() => {
+                    const led = buildLedger(biz.ledger)
+                    function exportLedger() {
+                      printDoc({
+                        docTitle: led.title,
+                        docSubtitle: biz.org?.name || undefined,
+                        sections: [{
+                          heading: 'Resumo do trabalho registado',
+                          records: led.lines.map(l => ({ title: `${l.value} — ${l.label}` })),
+                        }],
+                        footerNote: 'Números reais do que a equipa registou e o Phlox organizou. Não constitui avaliação clínica.',
+                      })
+                    }
+                    return (
+                      <div style={{ ...card, background: 'linear-gradient(135deg,#f0fdfa,#ffffff)', border: '1px solid #99f6e4' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>O que o Phlox organizou este mês</div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>{biz.ledger.monthLabel} · números reais, prontos a mostrar</div>
+                          </div>
+                          {led.lines.length > 0 && <button onClick={exportLedger} style={{ padding: '8px 14px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}55`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>🖨 Exportar A4</button>}
+                        </div>
+                        {led.lines.length === 0 ? (
+                          <div style={{ fontSize: 13, color: '#64748b' }}>{led.note}</div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {led.lines.map((l, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                                <span style={{ fontSize: 16 }}>{l.icon}</span>
+                                <span style={{ fontSize: 18, fontWeight: 800, color: l.tone === 'good' ? '#0d6e42' : '#0b1120', fontVariantNumeric: 'tabular-nums', minWidth: 54 }}>{l.value}</span>
+                                <span style={{ fontSize: 13, color: '#475569', lineHeight: 1.4 }}>{l.label}</span>
+                              </div>
+                            ))}
+                            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6, lineHeight: 1.5 }}>{led.note}</div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   {k.incidentsOpen > 0 && (
                     <div style={{ ...card, background: '#fffbeb', border: '1px solid #fde68a' }}>
                       <span style={{ fontSize: 13.5, color: '#92400e', fontWeight: 700 }}>⚠ {k.incidentsOpen} {k.incidentsOpen === 1 ? 'ocorrência em aberto' : 'ocorrências em aberto'}</span>
@@ -107,7 +175,7 @@ export default function PainelDonoPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {[['/painel', '📊 Cockpit do dia'], ['/equipa', '👥 Equipa'], ['/faturacao', '💶 Faturação'], ['/stock', '📦 Stock'], ['/agenda', '📅 Agenda']].map(([href, l]) => (
+                    {[['/comecar-instituicao', '🚀 Pôr a postos'], ['/painel', '📊 Cockpit do dia'], ['/equipa', '👥 Equipa'], ['/faturacao', '💶 Faturação'], ['/stock', '📦 Stock'], ['/agenda', '📅 Agenda']].map(([href, l]) => (
                       <Link key={href} href={href} style={{ padding: '9px 14px', background: 'white', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#0b1120', textDecoration: 'none' }}>{l}</Link>
                     ))}
                   </div>
@@ -119,7 +187,8 @@ export default function PainelDonoPage() {
 
             {/* ── REGISTOS (o que existia: auditoria) ── */}
             {tab === 'registos' && <>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <button onClick={printDossier} style={{ padding: '9px 15px', background: ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>🗂 Gerar dossier para inspeção</button>
               <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
             </div>
             {/* Resumo do dia */}

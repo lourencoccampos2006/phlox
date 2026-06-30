@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import { useHandoff } from '@/lib/toolBridge'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null }
 interface Question { question:string; type:'yesno'|'scale'|'duration'|'text'; options?:string[] }
@@ -61,6 +62,12 @@ export default function OraclePage() {
     setActiveProfileState(p)
     if (p?.type === 'family' && p.age) setAge(String(p.age))
   }, [])
+
+  // Handoff de /labs — chega uma pergunta pré-formada sobre uma análise alterada.
+  const labsHandoff = useHandoff('labs')
+  useEffect(() => {
+    if (labsHandoff?.payload?.question) setProblem(String(labsHandoff.payload.question))
+  }, [labsHandoff])
 
   useEffect(() => {
     if (!user) return
@@ -174,7 +181,7 @@ export default function OraclePage() {
                 Consulta Farmacêutica Estruturada
               </div>
               <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.6, maxWidth:480 }}>
-                Apresenta o teu problema. O Oracle faz as perguntas certas e produz uma avaliação clínica completa com plano de ação.
+                Apresente o seu problema. O Farmacêutico AI faz as perguntas certas e produz uma avaliação completa com plano de ação.
               </div>
             </div>
             <div style={{ marginTop:4 }}>
@@ -256,9 +263,9 @@ export default function OraclePage() {
               )}
 
               {/* Problem input */}
-              <label style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)', letterSpacing:'0.1em', textTransform:'uppercase', display:'block', marginBottom:8 }}>O teu problema ou dúvida</label>
+              <label style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)', letterSpacing:'0.1em', textTransform:'uppercase', display:'block', marginBottom:8 }}>O seu problema ou dúvida</label>
               <textarea value={problem} onChange={e => setProblem(e.target.value)}
-                placeholder="Descreve o teu problema com o máximo de detalhe possível. Ex: Comecei a tomar lisinopril há 2 semanas e tenho uma tosse seca que não passa..."
+                placeholder="Descreva o seu problema com o máximo de detalhe possível. Ex: Comecei a tomar lisinopril há 2 semanas e tenho uma tosse seca que não passa..."
                 rows={4}
                 style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:8, padding:'12px 14px', fontSize:13, outline:'none', fontFamily:'var(--font-sans)', resize:'vertical', boxSizing:'border-box', lineHeight:1.6 }} />
 
@@ -355,7 +362,7 @@ export default function OraclePage() {
                     )}
                     {q.type === 'text' && (
                       <input value={answers[q.question] || ''} onChange={e => setAnswers(p => ({...p,[q.question]:e.target.value}))}
-                        placeholder="A tua resposta..."
+                        placeholder="A sua resposta..."
                         style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:8, padding:'10px 13px', fontSize:13, outline:'none', fontFamily:'var(--font-sans)', boxSizing:'border-box' }} />
                     )}
                   </div>

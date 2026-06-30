@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { TarefasTool } from '../tarefas-equipa/page'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -128,6 +129,7 @@ const sel: React.CSSProperties = { ...inp, cursor: 'pointer' }
 
 export default function EquipaPage() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
   const sp = useSearchParams()
   const initialTab = (['team', 'schedule', 'tarefas', 'config'] as const).includes(sp?.get('tab') as Tab) ? (sp!.get('tab') as Tab) : 'team'
 
@@ -164,8 +166,8 @@ export default function EquipaPage() {
     if (!user) return
     setLoading(true)
     const [{ data: tm }, { data: sh }] = await Promise.all([
-      supabase.from('team_members').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('shift_assignments').select('*').eq('user_id', user.id).gte('date', weekStart).lte('date', weekEnd),
+      scope.filter(supabase.from('team_members').select('*')).order('name'),
+      scope.filter(supabase.from('shift_assignments').select('*')).gte('date', weekStart).lte('date', weekEnd),
     ])
     const mems = (tm || []) as TeamMember[]
     setMembers(mems)
@@ -197,9 +199,9 @@ export default function EquipaPage() {
   async function saveMember() {
     if (!user || !mForm.name.trim()) return
     setSavingMember(true)
-    const payload = { ...mForm, user_id: user.id }
+    const payload = scope.stamp({ ...mForm })
     if (editMemberId) {
-      await supabase.from('team_members').update(payload).eq('id', editMemberId).eq('user_id', user.id)
+      await supabase.from('team_members').update(payload).eq('id', editMemberId)
     } else {
       await supabase.from('team_members').insert(payload)
     }
@@ -210,13 +212,13 @@ export default function EquipaPage() {
 
   async function deleteMember(id: string) {
     if (!confirm('Remover membro da equipa?')) return
-    await supabase.from('team_members').delete().eq('id', id).eq('user_id', user!.id)
+    await supabase.from('team_members').delete().eq('id', id)
     if (selectedId === id) setSelectedId(null)
     setMembers(prev => prev.filter(m => m.id !== id))
   }
 
   async function setMemberStatus(m: TeamMember, status: MemberStatus) {
-    await supabase.from('team_members').update({ status }).eq('id', m.id).eq('user_id', user!.id)
+    await supabase.from('team_members').update({ status }).eq('id', m.id)
     setMembers(prev => prev.map(p => p.id === m.id ? { ...p, status } : p))
   }
 
@@ -236,16 +238,16 @@ export default function EquipaPage() {
   async function saveShift() {
     if (!user || !sForm.team_member_id) return
     setSavingShift(true)
-    const { error } = await supabase.from('shift_assignments').insert({
-      user_id: user.id, team_member_id: sForm.team_member_id,
+    const { error } = await supabase.from('shift_assignments').insert(scope.stamp({
+      team_member_id: sForm.team_member_id,
       date: sForm.date, shift: sForm.shift, notes: sForm.notes || null,
-    })
+    }))
     if (!error) { setShowShiftForm(false); load() }
     setSavingShift(false)
   }
 
   async function removeShift(id: string) {
-    await supabase.from('shift_assignments').delete().eq('id', id).eq('user_id', user!.id)
+    await supabase.from('shift_assignments').delete().eq('id', id)
     setShifts(p => p.filter(s => s.id !== id))
   }
 
@@ -257,14 +259,14 @@ export default function EquipaPage() {
     const prevEnd = new Date(weekDates[6]); prevEnd.setDate(prevEnd.getDate() - 7)
     setCopying(true)
     try {
-      const { data: prev } = await supabase.from('shift_assignments').select('team_member_id,date,shift,notes')
-        .eq('user_id', user.id).gte('date', fmt(prevStart)).lte('date', fmt(prevEnd))
+      const { data: prev } = await scope.filter(supabase.from('shift_assignments').select('team_member_id,date,shift,notes'))
+        .gte('date', fmt(prevStart)).lte('date', fmt(prevEnd))
       if (!prev || prev.length === 0) { alert('A semana anterior não tem escala para copiar.'); return }
       // chaves já existentes nesta semana (evitar duplicar)
       const existing = new Set(shifts.map(s => `${s.team_member_id}|${s.date}|${s.shift}`))
       const rows = prev.map((p: any) => {
         const d = new Date(p.date + 'T12:00:00'); d.setDate(d.getDate() + 7)
-        return { user_id: user.id, team_member_id: p.team_member_id, date: fmt(d), shift: p.shift, notes: p.notes || null }
+        return scope.stamp({ team_member_id: p.team_member_id, date: fmt(d), shift: p.shift, notes: p.notes || null })
       }).filter((r: any) => !existing.has(`${r.team_member_id}|${r.date}|${r.shift}`))
       if (rows.length === 0) { alert('Esta semana já tem a escala da semana anterior.'); return }
       const { error } = await supabase.from('shift_assignments').insert(rows)

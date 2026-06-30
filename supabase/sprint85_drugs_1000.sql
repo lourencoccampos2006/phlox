@@ -9,7 +9,7 @@
 
 -- 1) Limpar duplicados PRÉ-EXISTENTES (sprints anteriores criaram repetidos,
 --    ex: humalog/insulina lispro). Mantém a linha mais antiga (menor ctid),
---    preferindo as 'manual' sobre 'ai_cache'. Necessário antes do índice único.
+--    preferindo as 'manual' sobr--e 'ai_cache'. Necessário antes do índice único.
 delete from infarmed_drugs a
 using infarmed_drugs b
 where lower(coalesce(a.brand_name,'')) = lower(coalesce(b.brand_name,''))

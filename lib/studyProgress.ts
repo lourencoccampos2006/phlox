@@ -50,7 +50,87 @@ function write(p: StudyProgress) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({ ...p, events: p.events.slice(0, MAX_EVENTS) }))
     window.dispatchEvent(new CustomEvent(STUDY_EVENT))
+    schedulePush()   // espelha na conta (best-effort, debounced) — cross-device
   } catch { /* quota */ }
+}
+
+// ─── Sincronização com a conta (Supabase) ──────────────────────────────────────
+// localStorage continua a ser a fonte SÍNCRONA (summarize() instantâneo, zero
+// breaking nos callers). A conta é write-through (debounced) + merge no arranque.
+// Tudo best-effort: sem sessão/rede/tabela → fica local, exatamente como antes.
+
+function authToken(): string | null {
+  try {
+    const raw = localStorage.getItem('phlox-auth')   // storageKey do AuthContext
+    if (!raw) return null
+    return JSON.parse(raw)?.access_token || null
+  } catch { return null }
+}
+
+let pushTimer: ReturnType<typeof setTimeout> | null = null
+function schedulePush() {
+  if (typeof window === 'undefined') return
+  if (pushTimer) clearTimeout(pushTimer)
+  pushTimer = setTimeout(() => { pushTimer = null; pushToAccount() }, 2500)
+}
+
+async function pushToAccount() {
+  const token = authToken()
+  if (!token) return
+  const p = read()
+  try {
+    await fetch('/api/study/progress', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ events: p.events.slice(0, MAX_EVENTS), daily_goal: p.dailyGoal, last_tool: p.lastTool || null }),
+    })
+  } catch { /* offline — fica local, tenta na próxima escrita */ }
+}
+
+// Funde dois conjuntos de eventos por `at` (dedup), mais recente primeiro.
+function mergeEvents(a: StudyEvent[], b: StudyEvent[]): StudyEvent[] {
+  const seen = new Set<string>()
+  const out: StudyEvent[] = []
+  for (const e of [...a, ...b]) {
+    const k = `${e.at}|${e.kind}|${e.area || ''}`
+    if (seen.has(k)) continue
+    seen.add(k); out.push(e)
+  }
+  out.sort((x, y) => (x.at < y.at ? 1 : -1))
+  return out.slice(0, MAX_EVENTS)
+}
+
+let synced = false
+/**
+ * Ao autenticar: lê o progresso da conta e funde-o com o local (sem perder nada),
+ * depois reescreve (o que também faz push do conjunto fundido). Chamar 1x no arranque
+ * autenticado (ex.: no /inicio). Idempotente por sessão.
+ */
+export async function syncStudyProgress(): Promise<void> {
+  if (synced || typeof window === 'undefined') return
+  const token = authToken()
+  if (!token) return
+  synced = true
+  try {
+    const res = await fetch('/api/study/progress', { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return
+    const remote = await res.json()
+    if (remote?.needs_migration) return   // sprint96 não corrido → fica local
+    const local = read()
+    const merged: StudyProgress = {
+      events: mergeEvents(local.events, Array.isArray(remote.events) ? remote.events : []),
+      // mantém a meta/última-ferramenta mais recentes
+      dailyGoal: remote.daily_goal || local.dailyGoal || 50,
+      lastTool: pickNewerTool(local.lastTool, remote.last_tool),
+    }
+    write(merged)   // grava local + agenda push do conjunto fundido
+  } catch { /* fica local */ }
+}
+
+function pickNewerTool(a?: LastTool, b?: LastTool | null): LastTool | undefined {
+  if (!a) return b || undefined
+  if (!b) return a
+  return new Date(a.at) >= new Date(b.at) ? a : b
 }
 
 const dayKey = (d: Date | string) => new Date(d).toISOString().slice(0, 10)

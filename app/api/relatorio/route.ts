@@ -22,11 +22,16 @@ export async function POST(req: NextRequest) {
 
   const supabase = makeSupabase(req)
 
-  // Fetch all relevant data
-  const [{ data: meds }, { data: vitals }, { data: logs }] = await Promise.all([
+  const weekAgoIso = new Date(Date.now() - 7 * 86400000).toISOString()
+  const weekAgoDate = weekAgoIso.split('T')[0]
+
+  // Fetch all relevant data. Sintomas e análises degradam a vazio se a tabela faltar.
+  const [{ data: meds }, { data: vitals }, { data: logs }, { data: syms }, { data: labs }] = await Promise.all([
     supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', userId),
     supabase.from('vitals').select('*').eq('user_id', userId).order('recorded_at', { ascending: false }).limit(30),
-    supabase.from('med_logs').select('*').eq('user_id', userId).gte('date', new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]).order('date', { ascending: false }),
+    supabase.from('med_logs').select('*').eq('user_id', userId).gte('date', weekAgoDate).order('date', { ascending: false }),
+    supabase.from('symptom_logs').select('at, feeling, symptoms, pain, temperature, notes').eq('user_id', userId).is('profile_id', null).gte('at', weekAgoIso).order('at', { ascending: false }).limit(20).then((r: any) => r, () => ({ data: [] })),
+    supabase.from('lab_records').select('date, lab_name, values, flags, ai_summary').eq('user_id', userId).order('date', { ascending: false }).limit(3).then((r: any) => r, () => ({ data: [] })),
   ])
 
   const medList = (meds || []).map(m => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` (${m.frequency})` : ''}`).join(', ') || 'Nenhum medicamento registado'
@@ -47,11 +52,38 @@ export async function POST(req: NextRequest) {
   const takenDoses = (logs || []).filter((l: any) => l.status === 'taken').length
   const adherence = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : null
 
+  // Sintomas da semana (diário) — antes ignorados.
+  const symList = (syms || []) as any[]
+  const symptomsSummary = symList.length
+    ? symList.slice(0, 10).map((s: any) => {
+        const parts: string[] = []
+        if (Array.isArray(s.symptoms) && s.symptoms.length) parts.push(s.symptoms.join(', '))
+        if (s.pain != null) parts.push(`dor ${s.pain}/10`)
+        if (s.temperature != null) parts.push(`${s.temperature}°C`)
+        if (s.feeling != null) parts.push(`bem-estar ${s.feeling}/5`)
+        if (s.notes) parts.push(`"${String(s.notes).slice(0, 80)}"`)
+        return `${new Date(s.at).toLocaleDateString('pt-PT')}: ${parts.join(' · ') || '—'}`
+      }).join('\n')
+    : 'Nenhum registo de sintomas'
+
+  // Análises recentes — antes ignoradas.
+  const labList = (labs || []) as any[]
+  const labsSummary = labList.length
+    ? labList.map((l: any) => {
+        const flags = Array.isArray(l.flags) && l.flags.length ? ` (alterados: ${l.flags.slice(0, 8).join(', ')})` : ''
+        return `${l.date ? new Date(l.date).toLocaleDateString('pt-PT') : '—'}${l.lab_name ? ` · ${l.lab_name}` : ''}${flags}${l.ai_summary ? ` — ${String(l.ai_summary).slice(0, 160)}` : ''}`
+      }).join('\n')
+    : 'Sem análises recentes'
+
   const prompt = `És um farmacêutico clínico a gerar o relatório semanal de saúde de um utente.
 
 MEDICAÇÃO: ${medList}
 SINAIS VITAIS (últimos 7 dias):
 ${vitalsSummary}
+SINTOMAS (diário, últimos 7 dias):
+${symptomsSummary}
+ANÁLISES RECENTES:
+${labsSummary}
 ADESÃO À MEDICAÇÃO: ${adherence != null ? `${adherence}% (${takenDoses}/${totalDoses} doses tomadas)` : 'Sem dados'}
 
 Gera um relatório semanal claro, útil e personalizado em JSON:
@@ -64,6 +96,8 @@ Gera um relatório semanal claro, útil e personalizado em JSON:
     { "type": "positive" | "warning" | "info", "text": "ponto relevante" }
   ],
   "vitals_analysis": "análise dos sinais vitais da semana (2-3 frases, linguagem simples)",
+  "symptoms_analysis": "análise dos sintomas registados na semana, se houver (1-2 frases; '' se não houver)",
+  "labs_note": "nota sobre as análises recentes, se houver — o que está alterado e o que fazer (1-2 frases; '' se não houver)",
   "adherence_comment": "comentário sobre a adesão (1-2 frases)",
   "trends": [
     { "metric": "ex: Tensão arterial", "trend": "subiu" | "desceu" | "estável" | "sem dados", "comment": "detalhe curto" }
@@ -93,6 +127,8 @@ Responde APENAS JSON. Usa linguagem simples e positiva. Se os dados são escasso
         text: String(h.text || '').slice(0, 200),
       })) : [],
       vitals_analysis: String(result?.vitals_analysis || '').slice(0, 500),
+      symptoms_analysis: String(result?.symptoms_analysis || '').slice(0, 400),
+      labs_note: String(result?.labs_note || '').slice(0, 400),
       adherence_comment: String(result?.adherence_comment || '').slice(0, 300),
       trends: Array.isArray(result?.trends) ? result.trends.slice(0, 6).map((t: any) => ({
         metric: String(t.metric || '').slice(0, 50),
@@ -106,7 +142,7 @@ Responde APENAS JSON. Usa linguagem simples e positiva. Se os dados são escasso
       next_steps: String(result?.next_steps || '').slice(0, 400),
       disclaimer: String(result?.disclaimer || 'Este relatório é informativo e não substitui a avaliação de um profissional de saúde.').slice(0, 300),
       generated_at: new Date().toISOString(),
-      raw_data: { adherence, total_meds: meds?.length || 0, vitals_count: vitals?.length || 0 },
+      raw_data: { adherence, total_meds: meds?.length || 0, vitals_count: vitals?.length || 0, symptoms_count: symList.length, labs_count: labList.length },
     })
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Erro ao gerar relatório' }, { status: 500 })

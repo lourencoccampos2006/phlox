@@ -16,13 +16,15 @@ interface Report {
   overall_label: string
   highlights: Highlight[]
   vitals_analysis: string
+  symptoms_analysis?: string
+  labs_note?: string
   adherence_comment: string
   trends: Trend[]
   recommendations: Recommendation[]
   next_steps: string
   disclaimer: string
   generated_at: string
-  raw_data: { adherence: number | null; total_meds: number; vitals_count: number }
+  raw_data: { adherence: number | null; total_meds: number; vitals_count: number; symptoms_count?: number; labs_count?: number }
 }
 
 const TREND_ICON: Record<string, string> = { subiu: '↑', desceu: '↓', estável: '→', 'sem dados': '—' }
@@ -92,7 +94,7 @@ export default function RelatorioPage() {
       <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
         <div style={{ fontSize: 40 }}>📊</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>Relatório Semanal</div>
-        <div style={{ fontSize: 14, color: 'var(--ink-4)', marginTop: 8 }}>Inicia sessão para ver o teu relatório de saúde personalizado.</div>
+        <div style={{ fontSize: 14, color: 'var(--ink-4)', marginTop: 8 }}>Inicie sessão para ver o seu relatório de saúde personalizado.</div>
       </div>
     </div>
   )
@@ -105,7 +107,7 @@ export default function RelatorioPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Relatório Semanal</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O resumo da tua semana de saúde</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O resumo da sua semana de saúde</div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <ProfileSelector onChange={p => setActiveProfileState(p)} />
@@ -125,14 +127,14 @@ export default function RelatorioPage() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Relatório Semanal de Saúde</div>
             <div style={{ fontSize: 14, color: 'var(--ink-4)', marginBottom: 8, maxWidth: 480, margin: '0 auto 8px' }}>
-              A AI analisa os teus medicamentos, sinais vitais e adesão da última semana e gera um relatório personalizado com recomendações.
+              O Phlox analisa a sua medicação, sinais vitais, sintomas e análises da última semana e gera um relatório personalizado com recomendações.
             </div>
             <div style={{ display: 'flex', gap: 20, justifyContent: 'center', margin: '20px 0', flexWrap: 'wrap' }}>
               {[
-                { icon: '💊', label: 'Medicação analisada' },
-                { icon: '📈', label: 'Tendências de vitais' },
-                { icon: '✅', label: 'Score de adesão' },
-                { icon: '💡', label: 'Recomendações IA' },
+                { icon: '💊', label: 'Medicação' },
+                { icon: '📈', label: 'Vitais e sintomas' },
+                { icon: '🧪', label: 'Análises' },
+                { icon: '💡', label: 'Recomendações' },
               ].map(item => (
                 <div key={item.label} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 28, marginBottom: 4 }}>{item.icon}</div>
@@ -149,7 +151,7 @@ export default function RelatorioPage() {
               padding: '14px 32px', background: loading ? '#9ca3af' : '#0f172a', color: 'white',
               border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
             }}>
-              {loading ? '⏳ A analisar a tua semana...' : '✨ Gerar o Meu Relatório'}
+              {loading ? '⏳ A analisar a sua semana...' : '✨ Gerar o meu relatório'}
             </button>
           </div>
         ) : (
@@ -212,6 +214,20 @@ export default function RelatorioPage() {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>✅ Adesão à medicação</div>
                 <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>{report.adherence_comment || 'Sem dados de tomas registados.'}</div>
               </div>
+              {/* Sintomas — só se houver análise */}
+              {report.symptoms_analysis && (
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>🩹 Sintomas da semana</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>{report.symptoms_analysis}</div>
+                </div>
+              )}
+              {/* Análises — só se houver nota */}
+              {report.labs_note && (
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>🧪 Análises recentes</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>{report.labs_note}</div>
+                </div>
+              )}
             </div>
 
             {/* Recommendations */}

@@ -1,223 +1,212 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+// /familia — CENTRO DE CUIDADO (Ronda 2, 2026-06-28). De lista passiva a
+// "Anjo da Guarda": o Phlox vela pelas pessoas de quem cuidamos. Corre o motor de
+// vigilância (lib/caregiverWatch — reúne 26 regras clínicas + tendências reais de
+// vitais/stock/sintomas) por familiar, e mostra no topo "o que precisa de atenção
+// hoje" (acionável), seguido de um cartão vivo por pessoa.
+
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { setActiveProfile } from '@/lib/profileContext'
+import { analyzeFamilyMember, WATCH_LEVEL_META, type WatchResult, type WatchSignal } from '@/lib/caregiverWatch'
 import Link from 'next/link'
-import type { Metadata } from 'next'
 
-interface FamilyProfile {
-  id: string; name: string; relation?: string; age?: number | null
-  conditions?: string | null; allergies?: string | null; sex?: string | null
-}
-interface FamilyMed { id: string; profile_id: string; name: string; dose?: string; frequency?: string; reminder_times?: string[] }
+interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; conditions?: string | null; allergies?: string | null }
+interface Med { id: string; profile_id: string; name: string; dose?: string; pills_remaining?: number | null; pills_per_day?: number | null }
+interface Vital { profile_id: string | null; recorded_at: string; bp_sys?: number | null; bp_dia?: number | null; hr?: number | null; spo2?: number | null; weight?: number | null; glucose?: number | null; temp?: number | null }
+interface Sym { profile_id: string | null; at: string; pain?: number | null; temperature?: number | null; symptoms?: string[] | null }
 
-function getInitials(name: string) {
-  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
-}
-
-function getRisk(p: FamilyProfile, medCount: number) {
-  let score = 0
-  if ((p.age || 0) >= 75) score += 30
-  if (medCount >= 5) score += 25
-  if (p.allergies) score += 10
-  if ((p.conditions || '').toLowerCase().includes('renal')) score += 20
-  if (score >= 50) return { label: 'Alto risco', color: '#dc2626', bg: '#fee2e2' }
-  if (score >= 25) return { label: 'Atenção', color: '#d97706', bg: '#fffbeb' }
-  return { label: 'OK', color: '#059669', bg: '#d1fae5' }
-}
-
-function stoppFlags(p: FamilyProfile, meds: FamilyMed[]): string[] {
-  const flags: string[] = []
-  const medNames = meds.map(m => m.name.toLowerCase())
-  const age = p.age || 0
-  if (age >= 75) {
-    if (medNames.some(m => m.includes('diazepam') || m.includes('lorazepam') || m.includes('alprazolam') || m.includes('benzodiazep')))
-      flags.push('Benzodiazepina em idoso')
-    if (medNames.some(m => m.includes('ibuprofeno') || m.includes('naproxeno') || m.includes('diclofenac')) &&
-        medNames.some(m => m.includes('varfarina') || m.includes('rivaroxaban') || m.includes('apixaban')))
-      flags.push('AINE + anticoagulante')
-    if (meds.length >= 5)
-      flags.push(`Polimedicação (${meds.length} meds)`)
-  }
-  return flags
+const ACCENT = '#b45309'
+const initials = (n: string) => n.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase()
+const SEV: Record<string, { c: string; b: string; bd: string }> = {
+  critical: { c: '#991b1b', b: '#fee2e2', bd: '#fca5a5' },
+  major: { c: '#b91c1c', b: '#fef2f2', bd: '#fca5a5' },
+  moderate: { c: '#b45309', b: '#fffbeb', bd: '#fde68a' },
+  minor: { c: '#1d4ed8', b: '#eff6ff', bd: '#bfdbfe' },
+  info: { c: '#64748b', b: '#f1f5f9', bd: '#e2e8f0' },
 }
 
 export default function FamiliaPage() {
-  const { user, supabase } = useAuth()
-  const [profiles, setProfiles] = useState<FamilyProfile[]>([])
-  const [allMeds, setAllMeds] = useState<FamilyMed[]>([])
+  const { user, supabase } = useAuth() as any
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [meds, setMeds] = useState<Med[]>([])
+  const [vitals, setVitals] = useState<Vital[]>([])
+  const [syms, setSyms] = useState<Sym[]>([])
   const [loading, setLoading] = useState(true)
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user?.id) return
-    ;(async () => {
-      const { data: p } = await supabase.from('family_profiles')
-        .select('id,name,relation,age,sex,conditions,allergies')
-        .eq('user_id', user.id).order('name')
-      const profileList = p ?? []
-      setProfiles(profileList)
-      if (profileList.length > 0) {
-        // 2026-06-01: select('*') é defensivo — se uma coluna pedida não
-        // existir (ex: reminder_times), Supabase devolve erro e data fica
-        // null, dando a falsa impressão de "sem medicamentos".
-        const { data: m, error } = await supabase.from('family_profile_meds')
-          .select('*')
-          .in('profile_id', profileList.map((x: any) => x.id))
-        if (error) console.error('[familia] meds load:', error)
-        setAllMeds(m ?? [])
-      }
-      setLoading(false)
-    })()
-  }, [user?.id])
+    const { data: p } = await supabase.from('family_profiles')
+      .select('id,name,relation,age,sex,weight,conditions,allergies').eq('user_id', user.id).order('name')
+    const list = (p || []) as Profile[]
+    setProfiles(list)
+    if (list.length) {
+      const ids = list.map(x => x.id)
+      const since = new Date(Date.now() - 90 * 86400000).toISOString()
+      const [m, v, s] = await Promise.all([
+        supabase.from('family_profile_meds').select('*').in('profile_id', ids),
+        supabase.from('vitals').select('profile_id,recorded_at,bp_sys,bp_dia,hr,spo2,weight,glucose,temp').in('profile_id', ids).gte('recorded_at', since).then((r: any) => r, () => ({ data: [] })),
+        supabase.from('symptom_logs').select('profile_id,at,pain,temperature,symptoms').in('profile_id', ids).gte('at', since).then((r: any) => r, () => ({ data: [] })),
+      ])
+      setMeds((m.data || []) as Med[])
+      setVitals((v.data || []) as Vital[])
+      setSyms((s.data || []) as Sym[])
+    }
+    setLoading(false)
+  }, [user, supabase])
+
+  useEffect(() => { load() }, [load])
 
   if (!user) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>👨‍👩‍👧</div>
-        <Link href="/login" style={{ color: 'var(--green)', fontWeight: 700 }}>Iniciar sessão →</Link>
-      </div>
+      <div style={{ textAlign: 'center' }}><div style={{ fontSize: 36, marginBottom: 12 }}>👨‍👩‍👧</div><Link href="/login" style={{ color: 'var(--green)', fontWeight: 700 }}>Iniciar sessão →</Link></div>
     </div>
   )
 
-  const totalMeds = allMeds.length
-  const totalProfiles = profiles.length
-  const highRiskCount = profiles.filter(p => {
-    const mc = allMeds.filter(m => m.profile_id === p.id).length
-    return getRisk(p, mc).label === 'Alto risco'
-  }).length
+  // Corre o motor de vigilância por familiar.
+  const watched = profiles.map(p => {
+    const pmeds = meds.filter(m => m.profile_id === p.id)
+    const result = analyzeFamilyMember({
+      age: p.age, sex: p.sex, weight: p.weight, conditions: p.conditions, allergies: p.allergies,
+      meds: pmeds.map(m => ({ name: m.name, pills_remaining: m.pills_remaining, pills_per_day: m.pills_per_day })),
+      vitals: vitals.filter(v => v.profile_id === p.id),
+      symptoms: syms.filter(s => s.profile_id === p.id),
+    })
+    return { p, pmeds, result }
+  })
+
+  // Feed "precisa de atenção hoje" — agrega os sinais críticos/graves de todos.
+  const attention = watched.flatMap(({ p, result }) =>
+    result.signals
+      .filter(s => s.severity === 'critical' || s.severity === 'major')
+      .map(s => ({ p, s, key: `${p.id}:${s.kind}` }))
+  ).filter(x => !dismissed.has(x.key))
+   .sort((a, b) => (a.s.severity === 'critical' ? 0 : 1) - (b.s.severity === 'critical' ? 0 : 1))
+
+  const activate = (p: Profile) => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, sex: p.sex, weight: p.weight, conditions: p.conditions, allergies: p.allergies })
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', paddingTop: 56 }}>
+    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 80px' }}>
 
-      <div style={{ background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)', padding: '28px 24px 24px' }}>
-        <div className="page-container">
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Dashboard</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'white', fontWeight: 400, marginBottom: 14 }}>A minha família</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Perfis', value: totalProfiles },
-              { label: 'Medicamentos', value: totalMeds },
-              { label: 'Alto risco', value: highRiskCount },
-            ].map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: '10px 16px', textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: 'var(--font-mono)' }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+        {/* Cabeçalho warm */}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Centro de cuidado</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>A sua família</h1>
+        <p style={{ fontSize: 14.5, color: '#64748b', margin: '0 0 20px', lineHeight: 1.5 }}>O Phlox acompanha quem mais ama e avisa-o quando algo precisa de atenção.</p>
 
-      <div className="page-container page-body">
-        {/* Atalho: Portal Família (lar) — comunicar com a instituição do ente querido */}
-        <Link href="/portal-familia" style={{ textDecoration: 'none', display: 'block', marginBottom: 16 }}>
-          <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>💬</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e40af' }}>O seu familiar está num lar?</div>
-              <div style={{ fontSize: 12.5, color: '#3b5bdb', lineHeight: 1.45 }}>Entre no Portal Família com o código que a instituição lhe deu — veja atualizações, fotos e fale com a equipa.</div>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e40af" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        {/* Portal Família (lar/centro) */}
+        <Link href="/portal-familia" style={{ textDecoration: 'none', display: 'block', marginBottom: 18 }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 22, flexShrink: 0 }}>💬</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#1e40af' }}>O seu familiar está num lar ou centro de dia?</span>
+              <span style={{ display: 'block', fontSize: 12.5, color: '#3b5bdb', lineHeight: 1.45 }}>Entre no Portal Família com o código da instituição — fotos, recados e medicação.</span>
+            </span>
+            <span style={{ color: '#1e40af', fontWeight: 700, flexShrink: 0 }}>→</span>
           </div>
         </Link>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 12 }} />)}
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 14 }} />)}</div>
         ) : profiles.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 22px', textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 18, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 30 }}>👨‍👩‍👧</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Quem está a cuidar?</div>
-            <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 24px' }}>
-              Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. Fica com a medicação e a saúde de cada um separadas e organizadas.
-            </div>
-            <Link href="/perfis" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '15px 26px', background: '#d97706', color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, textDecoration: 'none' }}>
-              + Adicionar a primeira pessoa
-            </Link>
+          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
+            <div style={{ fontSize: 34, marginBottom: 14 }}>👨‍👩‍👧</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 8 }}>Quem está a cuidar?</div>
+            <div style={{ fontSize: 14.5, color: '#64748b', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. O Phlox passa a velar por cada um.</div>
+            <Link href="/perfis" style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, textDecoration: 'none' }}>+ Adicionar a primeira pessoa</Link>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {profiles.map(p => {
-              const meds = allMeds.filter(m => m.profile_id === p.id)
-              const risk = getRisk(p, meds.length)
-              const flags = stoppFlags(p, meds)
-              return (
-                <div key={p.id} style={{ background: 'white', border: `1px solid ${risk.label === 'Alto risco' ? '#fca5a5' : risk.label === 'Atenção' ? '#fde68a' : 'var(--border)'}`, borderRadius: 14, overflow: 'hidden' }}>
-                  {/* Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderBottom: '1px solid var(--bg-3)' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#d97706', flexShrink: 0 }}>
-                      {getInitials(p.name)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 2 }}>{p.name}</div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        {p.relation && <span style={{ fontSize: 11, color: '#d97706', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{p.relation}</span>}
-                        {p.age && <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>{p.age} anos</span>}
-                        <span style={{ fontSize: 10, fontWeight: 700, color: risk.color, background: risk.bg, border: `1px solid ${risk.color}40`, borderRadius: 6, padding: '2px 7px', fontFamily: 'var(--font-mono)' }}>{risk.label}</span>
+          <>
+            {/* ── O QUE PRECISA DE ATENÇÃO HOJE ── */}
+            {attention.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Precisa de atenção hoje</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {attention.map(({ p, s, key }) => {
+                    const sv = SEV[s.severity]
+                    return (
+                      <div key={key} style={{ background: sv.b, border: `1px solid ${sv.bd}`, borderRadius: 14, padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'white', border: `1px solid ${sv.bd}`, color: sv.c, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{initials(p.name)}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#0b1120' }}>{p.name.split(' ')[0]} · {s.title}</div>
+                            <div style={{ fontSize: 13, color: sv.c, lineHeight: 1.5, marginTop: 2 }}>{s.detail}</div>
+                            {s.action && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 4 }}>→ {s.action}</div>}
+                            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                              {s.cta && <Link href={s.cta.href} onClick={() => activate(p)} style={{ fontSize: 12.5, fontWeight: 700, color: 'white', background: sv.c, borderRadius: 8, padding: '7px 13px', textDecoration: 'none' }}>{s.cta.label} →</Link>}
+                              <button onClick={() => setDismissed(d => new Set(d).add(key))} style={{ fontSize: 12.5, fontWeight: 600, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>Dispensar</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── CARTÃO POR FAMILIAR ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {watched.map(({ p, pmeds, result }) => {
+                const lv = WATCH_LEVEL_META[result.level]
+                const latest = [...vitals.filter(v => v.profile_id === p.id)].sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0]
+                return (
+                  <div key={p.id} style={{ background: 'white', border: `1px solid ${result.level === 'critical' ? '#fca5a5' : result.level === 'warning' ? '#fde68a' : '#e9eaec'}`, borderRadius: 16, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '15px 18px' }}>
+                      <div style={{ width: 46, height: 46, borderRadius: '50%', background: '#fef3c7', color: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>{initials(p.name)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0b1120' }}>{p.name}</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
+                          {p.relation && <span style={{ fontSize: 11, color: ACCENT, fontWeight: 700, textTransform: 'uppercase' }}>{p.relation}</span>}
+                          {p.age && <span style={{ fontSize: 12, color: '#94a3b8' }}>{p.age} anos</span>}
+                          <span style={{ fontSize: 10, fontWeight: 800, color: lv.color, background: lv.bg, border: `1px solid ${lv.border}`, borderRadius: 6, padding: '2px 8px' }}>{lv.label}</span>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Link href="/mymeds" onClick={() => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, conditions: p.conditions, allergies: p.allergies })}
-                        style={{ padding: '8px 14px', background: '#d97706', color: 'white', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-                        Gerir medicação
-                      </Link>
-                    </div>
-                  </div>
 
-                  {/* Body */}
-                  <div style={{ padding: '14px 20px' }}>
-                    {p.conditions && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 8 }}>📋 {p.conditions}</div>}
-                    {p.allergies && <div style={{ fontSize: 12, color: '#dc2626', background: '#fff5f5', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 10px', marginBottom: 10, display: 'inline-block' }}>⚠️ Alergia: {p.allergies}</div>}
-
-                    {flags.length > 0 && (
-                      <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {flags.map(f => (
-                          <span key={f} style={{ fontSize: 10, fontWeight: 700, color: '#7c2d12', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 6, padding: '2px 8px', fontFamily: 'var(--font-mono)' }}>
-                            ⚠️ STOPP: {f}
-                          </span>
+                    {/* Sinais (não-críticos — os críticos já estão no topo) */}
+                    {result.signals.filter(s => s.severity !== 'critical' && s.severity !== 'major').length > 0 && (
+                      <div style={{ padding: '0 18px 4px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {result.signals.filter(s => s.severity !== 'critical' && s.severity !== 'major').slice(0, 4).map((s, i) => (
+                          <span key={i} title={s.detail} style={{ fontSize: 11, fontWeight: 700, color: SEV[s.severity].c, background: SEV[s.severity].b, border: `1px solid ${SEV[s.severity].bd}`, borderRadius: 6, padding: '3px 8px' }}>{s.title}</span>
                         ))}
                       </div>
                     )}
 
-                    {meds.length > 0 ? (
-                      <div>
-                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-                          {meds.length} medicamento{meds.length !== 1 ? 's' : ''}
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {meds.map(m => (
-                            <span key={m.id} style={{ fontSize: 12, color: 'var(--ink)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontWeight: 600 }}>
-                              {m.name}{m.dose ? ` ${m.dose}` : ''}
-                            </span>
-                          ))}
-                        </div>
-                        {meds.length >= 2 && (
-                          <div style={{ marginTop: 12 }}>
-                            <Link href={`/interactions?drugs=${meds.map(m => m.name).join(',')}`}
-                              style={{ fontSize: 12, color: '#1d4ed8', fontWeight: 700, textDecoration: 'none', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '6px 12px', display: 'inline-block' }}>
-                              🔍 Verificar interações entre estes medicamentos →
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 13, color: 'var(--ink-5)', fontStyle: 'italic' }}>Nenhum medicamento registado.</div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                    {/* Linha de estado */}
+                    <div style={{ padding: '10px 18px', display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12.5, color: '#475569', borderTop: '1px solid #f1f5f9', marginTop: 8 }}>
+                      <span>💊 {pmeds.length} med.</span>
+                      {latest?.bp_sys && <span>🩸 TA {latest.bp_sys}/{latest.bp_dia ?? '—'}</span>}
+                      {latest?.weight && <span>⚖️ {latest.weight} kg</span>}
+                      {p.allergies && <span style={{ color: '#dc2626' }}>⚠ {p.allergies}</span>}
+                    </div>
 
-            <Link href="/perfis" style={{ display: 'block', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 12, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#d97706', textDecoration: 'none' }}>
-              + Adicionar familiar
-            </Link>
-          </div>
+                    {/* Ações */}
+                    <div style={{ padding: '12px 18px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #f1f5f9' }}>
+                      <Link href="/mymeds" onClick={() => activate(p)} style={act(ACCENT, true)}>Medicação</Link>
+                      <Link href="/vitals" onClick={() => activate(p)} style={act(ACCENT)}>Vitais</Link>
+                      <Link href="/sintomas" onClick={() => activate(p)} style={act(ACCENT)}>Sintomas</Link>
+                      <Link href="/consult-prep" onClick={() => activate(p)} style={act(ACCENT)}>Preparar consulta</Link>
+                      <Link href="/med-review" onClick={() => activate(p)} style={act(ACCENT)}>Rever medicação</Link>
+                    </div>
+                  </div>
+                )
+              })}
+
+              <Link href="/perfis" style={{ display: 'block', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 14, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: ACCENT, textDecoration: 'none' }}>+ Adicionar familiar</Link>
+              <Link href="/familia360" style={{ display: 'block', padding: '12px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#475569', textDecoration: 'none' }}>Abrir o painel completo (Família 360°) →</Link>
+            </div>
+          </>
         )}
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
+}
+
+function act(accent: string, solid = false): React.CSSProperties {
+  return solid
+    ? { padding: '8px 14px', background: accent, color: 'white', borderRadius: 9, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }
+    : { padding: '8px 14px', background: 'white', color: accent, border: `1.5px solid ${accent}`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }
 }

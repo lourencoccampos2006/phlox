@@ -6,13 +6,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { SUBPROCESSORS as LEGAL_SUBPROCESSORS } from '@/lib/legal'
 
-const SUBPROCESSORS = [
-  { name: 'Vercel Inc.', purpose: 'Hospedagem da aplicação web', location: 'União Europeia (Frankfurt)', country: 'Alemanha' },
-  { name: 'Supabase Inc.', purpose: 'Base de dados Postgres + autenticação', location: 'União Europeia (Frankfurt)', country: 'Alemanha' },
-  { name: 'Stripe Payments Europe Ltd.', purpose: 'Processamento de pagamentos de subscrição', location: 'União Europeia (Dublin)', country: 'Irlanda' },
-  { name: 'Cloudflare, Inc.', purpose: 'Edge / DNS / proteção DDoS', location: 'União Europeia (vários POPs)', country: 'Multi-EU' },
-]
+// Lista viva e canónica (lib/legal). Mapeada para o formato que o DPA já usa.
+const SUBPROCESSORS = LEGAL_SUBPROCESSORS.map(s => ({
+  name: s.name, purpose: s.purpose, location: s.location, country: s.transfer || s.location,
+}))
 
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }

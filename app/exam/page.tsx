@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import ReportQuizError from '@/components/ReportQuizError'
+import { logStudy, setLastTool } from '@/lib/studyProgress'
 
 const EXAM_CONFIGS = [
   { id: 'fc10', label: '10 perguntas — Aquecimento', questions: 10, time: 600,  difficulty: 'Misto', desc: '10 min' },
@@ -30,7 +31,7 @@ function UpgradeGate() {
   return (
     <div style={{ background: 'white', border: '2px solid #7c3aed', borderRadius: 8, padding: '48px 32px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
       <div style={{ fontSize: 40, marginBottom: 16 }}>🏆</div>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 12 }}>Modo Exame</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 12 }}>Simulação de exame</h2>
       <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 12, maxWidth: 380, margin: '0 auto 12px' }}>
         Simulação real de exame de Farmacologia Clínica. Timer, banco de questões cumulativo, análise de pontos fracos por classe.
       </p>
@@ -163,6 +164,22 @@ export default function ExamPage() {
     .filter(([, v]) => v.total > 0 && (v.correct / v.total) < 0.6)
     .sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total))
 
+  // Instrumentação: ao terminar, regista cada pergunta no progresso partilhado
+  // (kind 'exam', área = classe da pergunta) → conta para XP/streak/áreas-fracas.
+  const [logged, setLogged] = useState(false)
+  useEffect(() => {
+    if (examState !== 'done' || logged || questions.length === 0) return
+    setLastTool('/exam', 'Simulação de exame')
+    // Uma entrada por pergunta (área + acerto) p/ as áreas-fracas serem precisas; XP
+    // modesto por pergunta para não inflacionar (o valor está na cobertura, não no XP).
+    questions.forEach((q, i) => {
+      logStudy({ kind: 'exam', area: q.class, correct: answers[i] === q.correct, xp: answers[i] === q.correct ? 5 : 1 })
+    })
+    setLogged(true)
+  }, [examState, logged, questions, answers])
+  // Repõe o flag se começar novo exame.
+  useEffect(() => { if (examState === 'config' && logged) setLogged(false) }, [examState, logged])
+
   if (!isStudent) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
@@ -186,7 +203,7 @@ export default function ExamPage() {
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ede9fe', border: '1px solid #ddd6fe', borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#7c3aed', fontWeight: 700 }}>STUDENT</span>
               </div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Modo Exame</h1>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Simulação de exame</h1>
               <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>Simulação real com timer. Escolhe as classes e o nível de dificuldade.</p>
             </div>
 

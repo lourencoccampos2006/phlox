@@ -3,7 +3,7 @@ import Link from 'next/link'
 const SUGGESTIONS = [
   { href: '/interactions', label: 'Verificar Interações', icon: '⚡' },
   { href: '/ai',           label: 'Phlox AI',             icon: '🤖' },
-  { href: '/calculators',  label: 'Calculadoras',          icon: '🧮' },
+  { href: '/calculos',     label: 'Calculadoras',          icon: '🧮' },
   { href: '/scan',         label: 'Tradutor de Bula',      icon: '📋' },
 ]
 

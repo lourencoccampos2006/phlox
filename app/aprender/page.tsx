@@ -30,7 +30,9 @@ const SECTIONS: Section[] = [
     tools: [
       { href: '/study?mode=quiz',       title: 'Quiz',                 desc: 'Banco de questões IA por domínio', icon: '❓', badge: 'IA' },
       { href: '/study?mode=flashcards', title: 'Flashcards',           desc: 'SRS com geração automática',       icon: '🃏', badge: 'IA' },
-      { href: '/decisao',               title: 'Casos clínicos',       desc: '54 casos dinâmicos com IA',         icon: '🩺', badge: 'IA' },
+      { href: '/simulador',             title: 'Casos clínicos',       desc: 'Caso · turno · evolutivo — 3 modos', icon: '🩺', badge: 'IA' },
+      { href: '/osce',                  title: 'Treinar OSCE',         desc: 'IA como doente, com feedback real',  icon: '🎯' },
+      { href: '/exam',                  title: 'Simulação de exame',   desc: 'Exame cronometrado, formato real',   icon: '📝' },
       { href: '/study/ecg',             title: 'ECG library',          desc: 'Treina interpretação com IA',       icon: '💓', badge: 'novo' },
       { href: '/arena',                 title: 'Arena',                desc: 'Liga competitiva por especialidade', icon: '🏆' },
     ],
@@ -68,7 +70,7 @@ const SECTIONS: Section[] = [
     label: 'Planear',
     color: '#0d6e42',
     tools: [
-      { href: '/modo-exame',      title: 'Modo Exame',          desc: 'Plano até ao exame + prever perguntas prováveis', icon: '🎯', badge: 'novo' },
+      { href: '/modo-exame',      title: 'Plano de exame',      desc: 'Plano de estudo com contagem até ao exame', icon: '🗂️', badge: 'novo' },
       { href: '/study360',        title: 'Estudo 360°',         desc: 'Revisão espaçada · progresso · Pomodoro', icon: '⏱️' },
       { href: '/calendario',      title: 'Calendário',          desc: 'Eventos e prazos',                    icon: '🗓️' },
       { href: '/guardados',       title: 'Guardados',           desc: 'Os teus favoritos',                  icon: '★' },
@@ -78,8 +80,8 @@ const SECTIONS: Section[] = [
     label: 'Comunidade',
     color: '#0891b2',
     tools: [
-      { href: '/connect',  title: 'Phlox Connect', desc: 'Rede de profissionais e estudantes', icon: '🤝' },
-      { href: '/cases',    title: 'Casos partilhados', desc: 'Banco de casos da comunidade',     icon: '👥' },
+      { href: '/connect',     title: 'Phlox Connect', desc: 'Rede de profissionais e estudantes', icon: '🤝' },
+      { href: '/grand-round', title: 'Grand Round',   desc: 'Casos reais em debate com a comunidade', icon: '👥' },
     ],
   },
 ]
@@ -96,12 +98,24 @@ export default function AprenderHub() {
       <header style={{ marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Aprender</h1>
         <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 15 }}>
-          Ferramentas integradas de estudo, treino clínico e progressão profissional. Tudo num só sítio, suportado por IA.
+          Todas as ferramentas de estudo e treino clínico, com o teu progresso. Para a sessão diária de revisão, vai a <Link href="/study360" style={{ color: '#7c3aed', fontWeight: 700 }}>Estudar</Link>.
         </p>
       </header>
 
       {/* Progresso partilhado: streak, XP, meta diária, continuar */}
       <StudyProgressBar />
+
+      {/* Casa do estudo — a sessão de revisão espaçada (study360) */}
+      <Link href="/study360" style={{ textDecoration: 'none', display: 'block', marginBottom: 16 }}>
+        <div style={{ background: 'linear-gradient(135deg,#7c3aed,#5b21b6)', borderRadius: 14, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 26, flexShrink: 0 }}>🧠</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 15.5, fontWeight: 800, color: 'white' }}>Estudar — a tua sessão de hoje</span>
+            <span style={{ display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>Revisão espaçada, plano, foco e estatísticas — tudo num só sítio.</span>
+          </span>
+          <span style={{ color: 'white', fontWeight: 800, flexShrink: 0 }}>→</span>
+        </div>
+      </Link>
 
       {/* Áreas a reforçar (vindas do desempenho real em quiz/casos/flashcards) */}
       {weak.length > 0 && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
@@ -188,12 +189,16 @@ export default function VitalsPage() {
         {analysis && (
           <div style={{ marginBottom:20 }}>
             {criticalAlerts.length > 0 && criticalAlerts.map((a, i) => (
-              <div key={i} style={{ padding:'14px 16px', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:10, marginBottom:8, display:'flex', gap:10, alignItems:'flex-start' }}>
+              <div key={i} style={{ padding:'14px 16px', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:10, marginBottom:8, display:'flex', gap:10, alignItems:'flex-start', flexWrap:'wrap' }}>
                 <span style={{ fontSize:20, flexShrink:0 }}>🚨</span>
-                <div>
+                <div style={{ flex:1, minWidth:160 }}>
                   <div style={{ fontSize:13, fontWeight:700, color:'#991b1b', marginBottom:2 }}>{a.message}</div>
                   <div style={{ fontSize:11, color:'#991b1b', fontFamily:'var(--font-mono)', opacity:0.7 }}>{a.field}</div>
                 </div>
+                {/* Valor crítico → leva à orientação "o que fazer agora". */}
+                <Link href="/saude-agora" style={{ alignSelf:'center', padding:'8px 14px', background:'#991b1b', color:'white', borderRadius:8, fontSize:12.5, fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>
+                  O que fazer agora →
+                </Link>
               </div>
             ))}
             {warnings.length > 0 && warnings.map((a, i) => (

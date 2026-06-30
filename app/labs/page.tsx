@@ -34,8 +34,10 @@ async function extractPdfText(file: File): Promise<string> {
   })
 }
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
+import { sendToTool } from '@/lib/toolBridge'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -186,8 +188,15 @@ function ReportView({ report }: { report: LabReport }) {
   const normal = report.values.filter(v => v.status === 'NORMAL')
   const { user, supabase } = useAuth() as any
   const toast = useToast()
+  const router = useRouter()
   const [savedToVault, setSavedToVault] = useState(false)
   const [savingVault, setSavingVault] = useState(false)
+
+  // Handoff estruturado p/ o Farmacêutico AI (/oracle) com o contexto das análises.
+  function askPharmacist() {
+    const question = `Tenho análises com valores alterados: ${abnormal.map(v => `${v.name} ${v.value}${v.unit ? ' ' + v.unit : ''} (${v.status})`).join('; ')}. O que significam, devo preocupar-me, e a minha medicação pode estar relacionada?`
+    sendToTool(router, '/oracle', { kind: 'labs', payload: { question }, note: 'A partir das suas análises', from: '/labs' })
+  }
 
   // 2026-06-01: o utilizador pediu botão para guardar no cofre — antes só
   // imprimia / salvava em /guardados local. Agora vai para health_vault.
@@ -222,11 +231,10 @@ function ReportView({ report }: { report: LabReport }) {
       {/* Ações: guardar no cofre + perguntar ao Phlox (ferramentas interligadas) */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10, gap: 6, flexWrap: 'wrap' }}>
         {abnormal.length > 0 && (
-          <Link
-            href={`/ai?q=${encodeURIComponent('O que significam estes valores das minhas análises e o que devo fazer? ' + abnormal.map(v => `${v.name}: ${v.value}${v.unit ? ' ' + v.unit : ''} (${v.status})`).join('; '))}`}
-            style={{ padding: '8px 14px', background: 'white', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: 8, fontSize: 12.5, fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
-            💬 Perguntar ao Phlox sobre estes valores
-          </Link>
+          <button onClick={askPharmacist}
+            style={{ padding: '8px 14px', background: 'white', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            💬 Perguntar ao Farmacêutico AI sobre estes valores
+          </button>
         )}
         <button onClick={saveToVault} disabled={savedToVault || savingVault}
           style={{ padding: '8px 14px', background: savedToVault ? '#f0fdf4' : 'white', color: savedToVault ? '#16a34a' : '#0d6e42', border: `1.5px solid ${savedToVault ? '#bbf7d0' : '#bbf7d0'}`, borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: savedToVault || savingVault ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}>

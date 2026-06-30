@@ -15,6 +15,7 @@
 -- 2026-06-26.
 -- ─────────────────────────────────────────────────────────────────────────────
 
+
 -- Tabelas partilháveis do cuidado diário (centro de dia / lar).
 -- Para cada uma: org_id (de quem é a organização dona do registo) e
 -- recorded_by_id (que utilizador fez o registo — base da auditoria).

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useConsent } from '@/lib/consent'
 
 interface AdBannerProps {
   slot: string
@@ -17,9 +18,12 @@ export default function AdBanner({ slot, format = 'auto', style }: AdBannerProps
   const adRef = useRef<HTMLModElement>(null)
   const loaded = useRef(false)
   const publisherId = PUBLISHER_ID
+  // Sem consentimento de publicidade → não renderiza nem empurra anúncios (o script
+  // do AdSense nem sequer está carregado). Respeita o RGPD/ePrivacy.
+  const { ads } = useConsent()
 
   useEffect(() => {
-    if (loaded.current) return
+    if (!ads || loaded.current) return
     // O script global do AdSense é carregado no <head> (app/layout.tsx).
     // Só empurramos a unidade quando o <ins> existe E tem largura > 0 — o
     // AdSense lança "no_div"/"availableWidth=0" se o contentor estiver oculto
@@ -35,7 +39,9 @@ export default function AdBanner({ slot, format = 'auto', style }: AdBannerProps
       } catch { /* AdSense indisponível/bloqueado → ignora silenciosamente */ }
     }, 300)
     return () => clearTimeout(t)
-  }, [])
+  }, [ads])
+
+  if (!ads) return null
 
   return (
     <div style={{ overflow: 'hidden', textAlign: 'center', ...style }}>

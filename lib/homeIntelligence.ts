@@ -36,6 +36,13 @@ export interface HomeData {
   studyXpToday?: number
   studyGoal?: number
   weakArea?: string | null
+  cardsDue?: number             // cartões de repetição espaçada a rever hoje (de /api/study/cards)
+  // cuidador — o alerta de vigilância mais urgente (de family_alerts/caregiverWatch)
+  caregiverAlert?: { who: string; title: string; detail?: string; href: string } | null
+  // pessoal — o alerta de saúde próprio mais urgente (de healthAlerts/healthTrends)
+  healthAlert?: { level: 'high' | 'medium' | 'low'; title: string; detail?: string; href: string; cta?: string } | null
+  // pessoal — "a minha saúde esta semana" (tendências determinísticas)
+  week?: { weightDelta?: number | null; bpTrend?: 'up' | 'down' | 'flat' | null; adherencePct?: number | null; vitalsCount?: number; symptomsCount?: number } | null
   // estado geral
   hasAnyData: boolean           // já fez seja o que for? (senão = boas-vindas)
 }
@@ -74,11 +81,31 @@ export function pickFocus(mode: string, d: HomeData): FocusCard {
     return { id: 'w-meds', kind: 'welcome', title: 'Vamos juntar a sua medicação', sub: 'Tire foto à receita — o Phlox trata do resto.', href: '/scan', cta: 'Tirar foto', icon: 'camera' }
   }
 
-  // ESTUDANTE — foco no progresso e no que falta.
+  // ESTUDANTE — o melhor próximo passo, por evidência: cartões a rever (repetição
+  // espaçada) → reforçar a área fraca → fechar a meta → manter o ritmo.
   if (mode === 'student') {
+    // 1) Cartões de repetição espaçada a rever HOJE = o mais alto valor de estudo.
+    if (d.cardsDue && d.cardsDue > 0) {
+      return { id: 's-due', kind: 'today', title: d.cardsDue === 1 ? '1 cartão para rever hoje' : `${d.cardsDue} cartões para rever hoje`, sub: 'A repetição espaçada fixa o que estudou. Comece por aqui.', href: '/study360?tab=review', cta: 'Rever agora', icon: 'cards' }
+    }
+    // 2) Reforçar a área mais fraca (agora alimentada por TODA a prática).
     if (d.weakArea) return { id: 's-weak', kind: 'today', title: `Reforce ${d.weakArea}`, sub: 'É onde está a falhar mais. 5 minutos chegam.', href: `/study?mode=quiz&area=${encodeURIComponent(d.weakArea)}`, cta: 'Praticar agora', icon: 'target' }
+    // 3) Fechar a meta diária.
     if ((d.studyXpToday || 0) < (d.studyGoal || 50)) return { id: 's-goal', kind: 'today', title: 'Falta pouco para a meta de hoje', sub: 'Um caso na Arena e está feito.', href: '/arena', cta: 'Continuar', icon: 'trophy' }
-    return { id: 's-keep', kind: 'suggest', title: 'Mantenha o ritmo', sub: 'Reveja os flashcards de hoje.', href: '/study', cta: 'Rever', icon: 'cards' }
+    // 4) Manter o ritmo.
+    return { id: 's-keep', kind: 'suggest', title: 'Mantenha o ritmo', sub: 'Reveja os flashcards de hoje.', href: '/study360?tab=review', cta: 'Rever', icon: 'cards' }
+  }
+
+  // CUIDADOR — um familiar a precisar de atenção vem ANTES da própria medicação.
+  // (Vem do motor de vigilância / family_alerts; é o "Anjo da Guarda" a antecipar-se.)
+  if (mode === 'caregiver' && d.caregiverAlert) {
+    return { id: 'c-watch', kind: 'urgent', title: `${d.caregiverAlert.who}: ${d.caregiverAlert.title}`, sub: d.caregiverAlert.detail || 'Toque para ver o que precisa de atenção.', href: d.caregiverAlert.href, cta: 'Ver no Centro de Cuidado', icon: 'family' }
+  }
+
+  // PESSOAL — um alerta de saúde GRAVE da própria pessoa vem antes da toma do dia.
+  // (Vem do motor determinístico healthAlerts/healthTrends — o Phlox vela por mim.)
+  if (mode === 'personal' && d.healthAlert && d.healthAlert.level === 'high') {
+    return { id: 'p-health', kind: 'urgent', title: d.healthAlert.title, sub: d.healthAlert.detail || 'Toque para ver o que fazer.', href: d.healthAlert.href, cta: d.healthAlert.cta || 'Ver', icon: 'heart' }
   }
 
   // PESSOAL / CUIDADOR — saúde e medicação.

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
+import AdScript from '@/components/AdScript'
 import ClientLayout from '@/components/ClientLayout'
 import { ToastProvider } from '@/components/Toast'
 
@@ -56,14 +57,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-PT">
       <head>
-        {/* Google AdSense — verificação do site + carregamento do script.
-            O script só serve anúncios onde existir <PlanAds/> e o utilizador for free. */}
+        {/* Google AdSense — apenas a meta de verificação do site (não define cookies).
+            O SCRIPT de anúncios é carregado por <AdScript/> SÓ depois de o utilizador
+            consentir cookies de publicidade (RGPD/ePrivacy). */}
         <meta name="google-adsense-account" content="ca-pub-3416387560941562" />
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3416387560941562"
-          crossOrigin="anonymous"
-        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -79,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </ClientLayout>
             <CookieBanner />
+            <AdScript />
           </ToastProvider>
         </AuthProvider>
       </body>

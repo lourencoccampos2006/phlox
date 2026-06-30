@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { printDoc } from '@/lib/print'
 import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
@@ -193,6 +194,7 @@ function trendInfo(scale: ScaleType, current: number, prev: number | null) {
 // ── Component ─────────────────────────────────────────────────────────────────
 function AssessmentsTool() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
@@ -213,8 +215,8 @@ function AssessmentsTool() {
     if (!user) return
     setLoading(true)
     const [p, r] = await Promise.all([
-      supabase.from('patients').select('id, name, age').eq('user_id', user.id).order('name'),
-      supabase.from('assessments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
+      scope.filter(supabase.from('patients').select('id, name, age')).order('name'),
+      scope.filter(supabase.from('assessments').select('*')).order('created_at', { ascending: false }).limit(100),
     ])
     if (p.data) setPatients(p.data)
     if (r.data) setRecords(r.data)
@@ -247,8 +249,7 @@ function AssessmentsTool() {
     if (!user || !patientId) return
     setSaving(true)
     const pat = patients.find(p => p.id === patientId)
-    const payload = {
-      user_id: user.id,
+    const payload = scope.stamp({
       patient_id: patientId,
       scale: tab,
       date,
@@ -256,7 +257,7 @@ function AssessmentsTool() {
       answers: scores,
       notes: notes || null,
       evaluated_by: evaluatedBy || null,
-    }
+    })
     await supabase.from('assessments').insert(payload)
     setSaving(false)
     setScores({})

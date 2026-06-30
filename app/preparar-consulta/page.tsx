@@ -12,6 +12,7 @@ import ProfileSelector from '@/components/ProfileSelector'
 import SaveButton from '@/components/SaveButton'
 import { consumeReopen } from '@/lib/saves'
 import { useAuth } from '@/components/AuthContext'
+import { useHandoff } from '@/lib/toolBridge'
 import { useToast } from '@/components/Toast'
 
 interface Result {
@@ -45,6 +46,12 @@ export default function PrepararConsultaPage() {
     const d = consumeReopen<Result & { input?: string }>()
     if (d) { setResult(d); if (d.input) setNotes(d.input) }
   }, [])
+
+  // Handoff de outra ferramenta (ex: otimizador → "falar disto na consulta").
+  const noteHandoff = useHandoff('note')
+  useEffect(() => {
+    if (noteHandoff?.payload?.note) setNotes(prev => prev ? `${prev}\n${noteHandoff.payload.note}` : String(noteHandoff.payload.note))
+  }, [noteHandoff])
 
   // Carrega contexto (medicação + sintomas + vitais) do perfil ativo,
   // a menos que o utilizador escolha modo anónimo.

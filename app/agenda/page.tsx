@@ -16,6 +16,7 @@ export default function AgendaPage() {
     ]} />
 }
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -54,6 +55,7 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 function AgendaTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
@@ -71,8 +73,8 @@ function AgendaTool() {
     if (!user) return
     setLoading(true)
     const [p, a] = await Promise.all([
-      supabase.from('patients').select('id,name,room_number').eq('user_id', user.id).order('name'),
-      supabase.from('appointments').select('*').eq('user_id', user.id).order('date').order('time'),
+      scope.filter(supabase.from('patients').select('id,name,room_number')).order('name'),
+      scope.filter(supabase.from('appointments').select('*')).order('date').order('time'),
     ])
     setPatients(p.data || [])
     if (a.error) { setTableMissing(true); setAppts([]) }
@@ -81,7 +83,7 @@ function AgendaTool() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: ['appointments', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['appointments', 'patients'], userId: scope.liveFilterValue || user?.id, onChange: load })
 
   const nameOf = (id?: string | null) => id ? (patients.find(p => p.id === id)?.name || cfg.personNoun) : cfg.noPersonEventLabel
   // Só mostramos "quarto" onde isso existe (lar). Noutras instituições não há camas.
@@ -92,18 +94,18 @@ function AgendaTool() {
   async function save() {
     if (!user || !form.title.trim() || !form.date) return
     setSaving(true)
-    const payload = { ...form, user_id: user.id, patient_id: form.patient_id || null, updated_at: new Date().toISOString() }
-    if (editId) await supabase.from('appointments').update(payload).eq('id', editId).eq('user_id', user.id)
+    const payload = scope.stamp({ ...form, patient_id: form.patient_id || null, updated_at: new Date().toISOString() })
+    if (editId) await supabase.from('appointments').update(payload).eq('id', editId)
     else await supabase.from('appointments').insert(payload)
     setSaving(false); setShowForm(false); load()
   }
   async function setStatus(a: Appt, status: ApptStatus) {
-    await supabase.from('appointments').update({ status }).eq('id', a.id).eq('user_id', user.id)
+    await supabase.from('appointments').update({ status }).eq('id', a.id)
     setAppts(prev => prev.map(x => x.id === a.id ? { ...x, status } : x))
   }
   async function remove(a: Appt) {
     if (!confirm('Eliminar este agendamento?')) return
-    await supabase.from('appointments').delete().eq('id', a.id).eq('user_id', user.id)
+    await supabase.from('appointments').delete().eq('id', a.id)
     setAppts(prev => prev.filter(x => x.id !== a.id))
   }
 

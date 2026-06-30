@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const { data: org } = await safe(a.from('organizations').select('name, kind, capacity, monthly_fee').eq('id', orgId))
     .then((r: any) => ({ data: r.data?.[0] || r.data || null })).catch(() => ({ data: null }))
 
-  const [patients, members, careToday, marMonth, incOpen, family, careWeek, medsActive] = await Promise.all([
+  const [patients, members, careToday, marMonth, incOpen, family, careWeek, medsActive, incMonth, assessMonth, careMonth, vigil] = await Promise.all([
     safe(a.from('patients').select('id, name, room_number, created_at', { count: 'exact' }).eq('org_id', orgId).eq('active', true)),
     safe(a.from('org_members').select('user_id', { count: 'exact' }).eq('org_id', orgId).eq('active', true)),
     safe(a.from('care_records').select('patient_id').eq('org_id', orgId).eq('date', today)),
@@ -41,6 +41,12 @@ export async function GET(req: NextRequest) {
     safe(a.from('family_thread_messages').select('patient_id, author_side').eq('org_id', orgId).gte('created_at', last7 + 'T00:00:00')),
     safe(a.from('care_records').select('patient_id, date').eq('org_id', orgId).gte('date', last7)),
     safe(a.from('patient_meds').select('patient_id').eq('org_id', orgId).eq('active', true)),
+    // — Cofre de valor (mês corrente): o que ficou registado e organizado —
+    safe(a.from('incidents').select('id, status').eq('org_id', orgId).gte('date', mStart)),
+    safe(a.from('assessments').select('id').eq('org_id', orgId).gte('date', mStart)),
+    safe(a.from('care_records').select('patient_id, date').eq('org_id', orgId).gte('date', mStart)),
+    // achados de vigilância farmacológica sinalizados para revisão (por utente)
+    safe(a.from('patient_vigilance').select('flags, alerts').eq('org_id', orgId)),
   ])
 
   const nPatients = patients.count || (patients.data?.length ?? 0)
@@ -56,6 +62,22 @@ export async function GET(req: NextRequest) {
   const careDays = new Set((careWeek.data || []).map((c: any) => `${c.patient_id}|${c.date}`)).size
   const expected = nPatients * 7
   const logAdherence = expected > 0 ? Math.round((careDays / expected) * 100) : null
+
+  // ── COFRE DE VALOR — "o que ficou registado e organizado este mês" ──
+  // Contagens REAIS e auditáveis (sem inventar). É o retrato do rigor que a casa
+  // passa a ter — não uma promessa clínica.
+  const monthLabel = monthStart.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+  const careRecordsMonth = (careMonth.data || []).length
+  const careDaysMonth = new Set((careMonth.data || []).map((c: any) => `${c.patient_id}|${c.date}`)).size
+  const incidentsMonth = (incMonth.data || []).length
+  const incidentsFollowed = (incMonth.data || []).filter((i: any) => i.status === 'closed' || i.status === 'resolved').length
+  const assessmentsMonth = (assessMonth.data || []).length
+  // achados farmacológicos sinalizados para revisão da equipa (flags + alertas)
+  const vigilFindings = (vigil.data || []).reduce((s: number, v: any) =>
+    s + (Array.isArray(v.flags) ? v.flags.length : 0) + (Array.isArray(v.alerts) ? v.alerts.length : 0), 0)
+  // adesão da medicação do mês (doses registadas como dadas / total registado)
+  const marTotal = (marMonth.data || []).length
+  const marAdherence = marTotal > 0 ? Math.round((marGiven / marTotal) * 100) : null
 
   return NextResponse.json({
     org: { name: (org as any)?.name || 'A sua instituição', kind: (org as any)?.kind || 'day_care', capacity, monthlyFee },
@@ -73,6 +95,17 @@ export async function GET(req: NextRequest) {
       familyReplies,
       logAdherence,
       medsActive: (medsActive.data || []).length,
+    },
+    ledger: {
+      monthLabel,
+      careRecordsMonth,
+      careDaysMonth,
+      marGivenMonth: marGiven,
+      marAdherence,
+      incidentsMonth,
+      incidentsFollowed,
+      assessmentsMonth,
+      vigilFindings,
     },
     incidents: (incOpen.data || []).slice(0, 5),
   })

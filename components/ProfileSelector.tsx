@@ -58,7 +58,13 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
   // Carrega o perfil activo do localStorage e os perfis familiares do Supabase
   useEffect(() => {
     const current = getActiveProfile()
-    if (current) setActive(current)
+    if (current) {
+      setActive(current)
+      // CRÍTICO: propagar o perfil activo INICIAL ao pai. Sem isto, ao chegar de
+      // /familia (que define o familiar activo antes de navegar), a página-alvo
+      // ficava com profile=null e gerava para "Eu" em vez do familiar. — 2026-06-28
+      onChange?.(current)
+    }
 
     if (!user) { setLoading(false); return }
 
@@ -75,6 +81,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
           const selfProfile: ActiveProfile = { id: 'self', name: user.name, type: 'self' }
           setActive(selfProfile)
           setActiveProfile(selfProfile)
+          onChange?.(selfProfile)
         }
       })
 

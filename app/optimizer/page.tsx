@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import { sendToTool } from '@/lib/toolBridge'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null; indication:string|null }
 interface SavingItem { drug:string; brand_cost:string; generic_name:string; generic_cost:string; monthly_saving:string; equivalence_note:string }
@@ -25,6 +27,7 @@ const CONDITION_ICON: Record<string,string> = {
 
 export default function OptimizerPage() {
   const { user, supabase } = useAuth()
+  const router = useRouter()
   const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,7 +95,7 @@ export default function OptimizerPage() {
               <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:6 }}>Otimização de Prescrição</div>
               <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color:'var(--ink)', fontWeight:400, marginBottom:6 }}>Farmacêutico AI</div>
               <div style={{ fontSize:13, color:'var(--ink-4)', lineHeight:1.55, maxWidth:540 }}>
-                Análise completa da tua medicação: poupanças com genéricos, sinalizadores de segurança, monitorização em falta e revisão de doses.
+                Análise completa da sua medicação: poupanças com genéricos, sinalizadores de segurança, monitorização em falta e revisão de doses.
               </div>
             </div>
             <ProfileSelector onChange={p => { setActiveProfileState(p); setMeds([]); setResult(null); setLoading(true); if (p.type === 'family' && p.age) setAge(String(p.age)) }} />
@@ -115,7 +118,7 @@ export default function OptimizerPage() {
                 <div className="skeleton" style={{ height:56, borderRadius:8 }} />
               ) : meds.length === 0 ? (
                 <div style={{ padding:'20px', background:'var(--bg-2)', borderRadius:8, textAlign:'center' }}>
-                  <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:10 }}>Nenhum medicamento na tua lista.</div>
+                  <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:10 }}>Nenhum medicamento na sua lista.</div>
                   <Link href="/mymeds" style={{ fontSize:13, color:'var(--green-2)', textDecoration:'none', fontWeight:700 }}>→ Adicionar medicamentos em "Os Meus Medicamentos"</Link>
                 </div>
               ) : (
@@ -225,6 +228,13 @@ export default function OptimizerPage() {
                     </div>
                   ))}
                 </div>
+                {/* Trocar para genérico é decisão do médico — levamos a sugestão à consulta. */}
+                <button onClick={() => {
+                  const note = 'Quero falar sobre passar a genéricos: ' + result.savings.map(s => `${s.drug} → ${s.generic_name} (poupança ${s.monthly_saving}/mês)`).join('; ') + '.'
+                  sendToTool(router, '/preparar-consulta', { kind: 'note', payload: { note }, note: 'A partir do otimizador', from: '/optimizer' })
+                }} style={{ marginTop:10, padding:'10px 16px', background:'white', color:'#0d6e42', border:'1.5px solid var(--green-mid)', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+                  📋 Levar estas poupanças à próxima consulta →
+                </button>
               </div>
             )}
 
@@ -307,7 +317,7 @@ export default function OptimizerPage() {
             )}
 
             <div style={{ padding:'12px 16px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8, fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', lineHeight:1.5 }}>
-              Este relatório é gerado por IA e destina-se a suporte à decisão. Não substitui a avaliação de um farmacêutico ou médico. Discute qualquer alteração de medicação com o teu profissional de saúde.
+              Este relatório é gerado por IA e destina-se a suporte à decisão. Não substitui a avaliação de um farmacêutico ou médico. Fale de qualquer alteração de medicação com o seu profissional de saúde.
             </div>
           </div>
         )}

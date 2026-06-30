@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { buildProducts, type ImportedProduct } from '@/lib/productImport'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -33,6 +34,7 @@ function expiryDays(d?: string | null) { return d ? Math.floor((new Date(d + 'T1
 
 export default function StockPage() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [items, setItems] = useState<Item[]>([])
@@ -70,13 +72,13 @@ export default function StockPage() {
     const existingByBarcode: Record<string, string> = {}
     items.forEach(it => { if (it.barcode) existingByBarcode[it.barcode] = it.id })
     for (const p of preview.products) {
-      const row: any = {
-        user_id: user.id, name: p.name, category: p.category && CAT_KEYS.includes(p.category) ? p.category : 'medicamento',
+      const row: any = scope.stamp({
+        name: p.name, category: p.category && CAT_KEYS.includes(p.category) ? p.category : 'medicamento',
         barcode: p.barcode || null, ref: p.ref || null,
         price: p.price ?? 0, cost: p.cost ?? 0, tax_rate: p.tax_rate ?? 23,
         quantity: p.quantity ?? 0, min_quantity: p.min_quantity ?? 0, unit: p.unit || null,
         updated_at: new Date().toISOString(),
-      }
+      })
       let res
       if (p.barcode && existingByBarcode[p.barcode]) res = await supabase.from('stock_items').update(row).eq('id', existingByBarcode[p.barcode])
       else res = await supabase.from('stock_items').insert(row)
@@ -90,25 +92,25 @@ export default function StockPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true); setErr('')
-    const { data, error } = await supabase.from('stock_items').select('*').eq('user_id', user.id).order('name')
+    const { data, error } = await scope.filter(supabase.from('stock_items').select('*')).order('name')
     if (error) { if (/relation .*stock_items.* does not exist/i.test(error.message)) setMissing(true); setItems([]) }
     else { setMissing(false); setItems(data || []) }
     setLoading(false)
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: 'stock_items', userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: 'stock_items', userId: scope.liveFilterValue || user?.id, onChange: load })
 
   async function add() {
     if (!form.name.trim()) { setErr('Indica o nome do produto.'); return }
     setSaving(true); setErr('')
-    const { data, error } = await supabase.from('stock_items').insert({
-      user_id: user.id, name: form.name.trim(), category: form.category,
+    const { data, error } = await supabase.from('stock_items').insert(scope.stamp({
+      name: form.name.trim(), category: form.category,
       quantity: Number(form.quantity) || 0, min_quantity: Number(form.min_quantity) || 0,
       unit: form.unit.trim() || null, expiry_date: form.expiry || null, location: form.location.trim() || null,
       barcode: form.barcode.trim() || null, ref: form.ref.trim() || null,
       price: parseFloat(form.price) || 0, tax_rate: parseFloat(form.tax_rate) || 0,
-    }).select().single()
+    })).select().single()
     if (!error && data) { setItems(p => [...p, data].sort((a, b) => a.name.localeCompare(b.name))); setShowForm(false); setForm(blank) }
     else setErr(error?.message || 'Erro')
     setSaving(false)

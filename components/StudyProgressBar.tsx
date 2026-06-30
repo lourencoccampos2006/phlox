@@ -7,15 +7,33 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { summarize, STUDY_EVENT, type StudySummary } from '@/lib/studyProgress'
+import { useAuth } from '@/components/AuthContext'
 
 export default function StudyProgressBar({ compact = false }: { compact?: boolean }) {
+  const { supabase } = useAuth() as any
   const [s, setS] = useState<StudySummary | null>(null)
+  const [cardsDue, setCardsDue] = useState<number | null>(null)
   useEffect(() => {
     const refresh = () => setS(summarize())
     refresh()
     window.addEventListener(STUDY_EVENT, refresh)
     return () => window.removeEventListener(STUDY_EVENT, refresh)
   }, [])
+
+  // Cartões de repetição espaçada a rever hoje (sistema SM-2 do servidor).
+  useEffect(() => {
+    if (!supabase) return
+    let cancel = false
+    ;(async () => {
+      try {
+        const { data: sd } = await supabase.auth.getSession()
+        if (!sd.session) return
+        const r = await fetch('/api/study/cards?limit=1', { headers: { Authorization: `Bearer ${sd.session.access_token}` } })
+        if (r.ok && !cancel) { const j = await r.json(); setCardsDue(j?.dashboard?.due_today || 0) }
+      } catch { /* degrada — não mostra o chip */ }
+    })()
+    return () => { cancel = true }
+  }, [supabase])
 
   if (!s) return null
   const ring = `conic-gradient(#7c3aed ${s.goalPct * 3.6}deg, #ede9fe ${s.goalPct * 3.6}deg)`
@@ -39,9 +57,23 @@ export default function StudyProgressBar({ compact = false }: { compact?: boolea
         <Metric icon="✨" value={`${s.xpToday}`} label={`XP hoje · meta ${s.dailyGoal}`} color="#7c3aed" />
         <Metric icon="🎯" value={`Nv. ${s.level}`} label={`${s.xpTotal} XP total`} color="#1d4ed8" />
         {s.accuracy7d != null && <Metric icon="✅" value={`${s.accuracy7d}%`} label="acerto 7 dias" color="#0d6e42" />}
+        {cardsDue != null && cardsDue > 0 && (
+          <Link href="/study360?tab=review" style={{ textDecoration: 'none' }}>
+            <Metric icon="🃏" value={`${cardsDue}`} label="a rever hoje" color="#b45309" />
+          </Link>
+        )}
       </div>
 
-      {s.lastTool && (
+      {/* Se há cartões a rever, esse é o melhor próximo passo; senão, "continuar". */}
+      {cardsDue != null && cardsDue > 0 ? (
+        <Link href="/study360?tab=review" style={{
+          flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '8px 14px', background: '#b45309', color: 'white', borderRadius: 999,
+          fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
+        }}>
+          🃏 Rever {cardsDue}
+        </Link>
+      ) : s.lastTool && (
         <Link href={s.lastTool.href} style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '8px 14px', background: '#7c3aed', color: 'white', borderRadius: 999,

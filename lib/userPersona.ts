@@ -85,9 +85,9 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
       { label: 'AI Tutor', href: '/tutor', icon: '🧑‍🏫', desc: 'Socrático, força raciocínio' },
     ],
     daily: [
-      { label: 'Casos clínicos', href: '/cases', icon: '📚' },
+      { label: 'Casos clínicos', href: '/simulador', icon: '📚' },
       { label: 'Phlox Hive', href: '/hive', icon: '🐝' },
-      { label: 'Calculadoras', href: '/calc', icon: '∑' },
+      { label: 'Calculadoras', href: '/calculos', icon: '∑' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },
@@ -107,7 +107,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     daily: [
       { label: 'Doentes / utentes', href: '/patients', icon: '👥' },
       { label: 'Decision Engine', href: '/motor-clinico', icon: '🧠' },
-      { label: 'Calculadoras', href: '/calc', icon: '∑' },
+      { label: 'Calculadoras', href: '/calculos', icon: '∑' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },

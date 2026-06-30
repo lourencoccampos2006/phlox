@@ -6,6 +6,7 @@ import ShareButton from '@/components/ShareButton'
 import ShareCard from '@/components/ShareCard'
 import SaveButton from '@/components/SaveButton'
 import { usePhloxContext } from '@/lib/copilotContext'
+import { logStudy, setLastTool } from '@/lib/studyProgress'
 import { suggestDrugs, resolveDrugName } from '@/lib/drugNames'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
@@ -222,6 +223,8 @@ export default function InteractionsPage() {
       usage.increment()
       setResult(data)
       saveHistory(data, drugs)
+      // Estudar uma interação com mecanismo conta como atividade de estudo (kind 'reading').
+      if (data?.mechanism) { logStudy({ kind: 'reading' }); setLastTool('/interactions', 'Interações com Mecanismo') }
     } catch (e: any) {
       setError(e.message || 'Erro ao analisar. Tenta novamente.')
     } finally {

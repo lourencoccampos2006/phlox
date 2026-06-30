@@ -7,7 +7,7 @@
 //   • Avaliação Zarit-12 da sobrecarga do cuidador
 //   • Atalho para o Cofre / share codes
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import Link from 'next/link'
@@ -73,32 +73,43 @@ function InboxTab() {
   const [profiles, setProfiles] = useState<any[]>([])
   const [events, setEvents] = useState<Record<string, any[]>>({})
   const [refills, setRefills] = useState<Record<string, { name: string; daysLeft: number }[]>>({})
+  const [alerts, setAlerts] = useState<Record<string, any[]>>({})
 
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
       // 2026-06-02: a coluna é "relation" (sprint1) e não "relationship".
-      // Antes pedíamos "relationship" → Supabase devolvia erro, data=null,
-      // e a UI dizia "Sem perfis familiares" mesmo quando havia perfis.
-      // Fix: select('*') defensivo + log de erro para nunca silenciar.
       const { data: profs, error } = await supabase.from('family_profiles').select('*').eq('user_id', user.id)
       if (error) console.error('[familia360] family_profiles:', error)
       const list = profs || []
       setProfiles(list)
+      if (!list.length) return
+      const ids = list.map((p: any) => p.id)
       const today = new Date(); today.setHours(0, 0, 0, 0)
+
+      // Alertas da vigilância (cron) — abertos, por familiar. Degrada a vazio.
+      const fa = await supabase.from('family_alerts')
+        .select('id, profile_id, kind, severity, title, detail, created_at')
+        .eq('user_id', user.id).is('dismissed_at', null)
+        .order('created_at', { ascending: false })
+        .then((r: any) => r.data || [], () => [])
+      const al: Record<string, any[]> = {}
+      ;(fa as any[]).forEach((a: any) => (al[a.profile_id] ||= []).push(a))
+      setAlerts(al)
+
       const ev: Record<string, any[]> = {}
       const rf: Record<string, { name: string; daysLeft: number }[]> = {}
       await Promise.all(list.map(async (p: any) => {
-        const [m, v, c, meds] = await Promise.all([
-          supabase.from('med_logs').select('taken_at, med_name, status').eq('user_id', user.id).gte('taken_at', today.toISOString()).limit(20),
-          supabase.from('vital_signs').select('measured_at, systolic, diastolic, pulse, weight').eq('user_id', user.id).gte('measured_at', today.toISOString()).limit(10),
+        // CORREÇÃO 2026-06-28: antes lia med_logs/vital_signs por user_id (todos os
+        // cartões mostravam o mesmo) e a tabela errada (vital_signs). Agora lê os
+        // VITAIS reais (tabela 'vitals', por profile_id) + agenda + refill por familiar.
+        const [v, c, meds] = await Promise.all([
+          supabase.from('vitals').select('recorded_at, bp_sys, bp_dia, hr, weight, glucose, spo2').eq('profile_id', p.id).gte('recorded_at', today.toISOString()).limit(10).then((r: any) => r, () => ({ data: [] })),
           supabase.from('cal_events').select('id, title, starts_at').eq('user_id', user.id).gte('starts_at', new Date().toISOString()).order('starts_at').limit(5),
-          // Refill por familiar — lê family_profile_meds (sprint46 garante colunas)
           supabase.from('family_profile_meds').select('name, pills_remaining, pills_per_day').eq('profile_id', p.id),
         ])
         ev[p.id] = [
-          ...(m.data || []).map((r: any) => ({ kind: 'med', when: r.taken_at, text: `${r.med_name || 'medicamento'} · ${r.status}` })),
-          ...(v.data || []).map((r: any) => ({ kind: 'vital', when: r.measured_at, text: `TA ${r.systolic ?? '—'}/${r.diastolic ?? '—'} · FC ${r.pulse ?? '—'}` })),
+          ...((v.data || []) as any[]).map((r: any) => ({ kind: 'vital', when: r.recorded_at, text: `TA ${r.bp_sys ?? '—'}/${r.bp_dia ?? '—'}${r.hr ? ` · FC ${r.hr}` : ''}${r.glucose ? ` · Glic ${r.glucose}` : ''}${r.weight ? ` · ${r.weight}kg` : ''}` })),
           ...(c.data || []).map((r: any) => ({ kind: 'event', when: r.starts_at, text: `Próximo: ${r.title}` })),
         ].sort((a, b) => b.when.localeCompare(a.when))
         rf[p.id] = (meds.data || [])
@@ -112,6 +123,12 @@ function InboxTab() {
     })()
   }, [user?.id])
 
+  const SEV_C: Record<string, string> = { critical: '#991b1b', major: '#b91c1c', moderate: '#b45309', minor: '#1d4ed8', info: '#64748b' }
+  const dismiss = async (id: string, pid: string) => {
+    setAlerts(prev => ({ ...prev, [pid]: (prev[pid] || []).filter(a => a.id !== id) }))
+    await supabase.from('family_alerts').update({ dismissed_at: new Date().toISOString() }).eq('id', id)
+  }
+
   if (profiles.length === 0) return <Empty msg="Sem perfis familiares ainda. Cria perfis em /perfis ou /familia." />
 
   return (
@@ -119,8 +136,9 @@ function InboxTab() {
       {profiles.map(p => {
         const evs = events[p.id] || []
         const rf = refills[p.id] || []
+        const al = alerts[p.id] || []
         return (
-          <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
+          <div key={p.id} style={{ background: 'white', border: `1px solid ${al.some(a => a.severity === 'critical') ? '#fca5a5' : '#e5e7eb'}`, borderRadius: 12, padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>{p.name}</div>
@@ -128,6 +146,20 @@ function InboxTab() {
               </div>
               <Link href={`/familia?p=${p.id}`} style={{ fontSize: 11, color: '#b45309', textDecoration: 'none', fontWeight: 700 }}>Abrir →</Link>
             </div>
+            {/* Alertas da vigilância — o que o Phlox detetou e precisa de atenção */}
+            {al.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+                {al.slice(0, 3).map((a) => (
+                  <div key={a.id} style={{ background: `${SEV_C[a.severity]}0f`, border: `1px solid ${SEV_C[a.severity]}33`, borderRadius: 7, padding: '7px 9px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: SEV_C[a.severity] }}>⚠ {a.title}</span>
+                      <button onClick={() => dismiss(a.id, p.id)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 11, padding: 0 }}>×</button>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.4, marginTop: 1 }}>{a.detail}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Refill em destaque — o cuidador vê logo o que vai acabar */}
             {rf.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 10 }}>
@@ -225,8 +257,14 @@ function AuditTab() {
     ;(async () => {
       const { data: profs } = await supabase.from('family_profiles').select('id, name').eq('user_id', user.id)
       const list: { profile: string; name: string }[] = []
+      // CORREÇÃO 2026-06-28: o auditor lia personal_meds (do próprio) para TODOS os
+      // familiares → "duplicações" falsas (todos partilhavam a mesma lista). Agora lê
+      // a medicação REAL de cada familiar (family_profile_meds por profile_id) — mais
+      // o próprio (personal_meds), porque uma duplicação cuidador↔familiar também conta.
+      const me = await supabase.from('personal_meds').select('name').eq('user_id', user.id)
+      ;(me.data || []).forEach((m: any) => list.push({ profile: 'Eu', name: m.name }))
       await Promise.all((profs || []).map(async (p: any) => {
-        const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id)
+        const { data } = await supabase.from('family_profile_meds').select('name').eq('profile_id', p.id)
         ;(data || []).forEach((m: any) => list.push({ profile: p.name, name: m.name }))
       }))
       setMeds(list)
@@ -276,12 +314,21 @@ function BurdenTab() {
   const [caringFor, setCaringFor] = useState('')
   const [answers, setAnswers] = useState<number[]>(new Array(12).fill(-1))
   const [history, setHistory] = useState<any[]>([])
+  const [load, setLoad] = useState<{ people: number; meds: number; alerts: number } | null>(null)
 
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
       const { data } = await supabase.from('caregiver_burden').select('*').eq('user_id', user.id).order('measured_at', { ascending: false }).limit(10)
       setHistory(data || [])
+      // Carga REAL de cuidado — dá contexto objetivo à autoavaliação (degrada a 0).
+      const { data: profs } = await supabase.from('family_profiles').select('id').eq('user_id', user.id)
+      const ids = (profs || []).map((p: any) => p.id)
+      const [meds, alerts] = await Promise.all([
+        ids.length ? supabase.from('family_profile_meds').select('id', { count: 'exact', head: true }).in('profile_id', ids).then((r: any) => r.count || 0, () => 0) : Promise.resolve(0),
+        supabase.from('family_alerts').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('dismissed_at', null).then((r: any) => r.count || 0, () => 0),
+      ])
+      setLoad({ people: ids.length, meds: meds as number, alerts: alerts as number })
     })()
   }, [user?.id])
 
@@ -312,6 +359,22 @@ function BurdenTab() {
       <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.55, marginBottom: 14 }}>
         <strong>Zarit-12</strong> é a escala validada internacionalmente para medir a sobrecarga do cuidador familiar (Bedard 2001). Responde a estas 12 perguntas — leva ~3 min.
       </p>
+
+      {/* Carga real — torna a autoavaliação concreta, não abstrata */}
+      {load && load.people > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          {[
+            { n: load.people, l: load.people === 1 ? 'pessoa ao seu cuidado' : 'pessoas ao seu cuidado' },
+            { n: load.meds, l: 'medicamentos a gerir' },
+            { n: load.alerts, l: load.alerts === 1 ? 'alerta por resolver' : 'alertas por resolver', warn: load.alerts > 0 },
+          ].map((s, i) => (
+            <div key={i} style={{ flex: '1 1 110px', background: (s as any).warn ? '#fef2f2' : 'white', border: `1px solid ${(s as any).warn ? '#fca5a5' : '#e5e7eb'}`, borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: (s as any).warn ? '#b91c1c' : '#0b1120', fontFamily: 'var(--font-mono)' }}>{s.n}</div>
+              <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.3, marginTop: 2 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <Label>Cuido principalmente de:</Label>
       <input value={caringFor} onChange={e => setCaringFor(e.target.value)} placeholder="Ex: Mãe, Pai, Avó Maria…" style={input()} />
@@ -359,27 +422,140 @@ function BurdenTab() {
   )
 }
 
-// ─── Vault tab ────────────────────────────────────────────────────────────────
+// ─── Vault tab — cofre de documentos POR FAMILIAR (fotografar, guardar, perguntar) ──
 function VaultTab() {
+  const { user, supabase } = useAuth()
+  const toast = useToast()
+  const [profiles, setProfiles] = useState<any[]>([])
+  const [sel, setSel] = useState<string>('')   // profile_id ativo
+  const [docs, setDocs] = useState<any[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [openDoc, setOpenDoc] = useState<any>(null)
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [asking, setAsking] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const loadDocs = async (pid: string) => {
+    const { data: sd } = await supabase.auth.getSession()
+    const res = await fetch(`/api/family/documents?profile_id=${pid}`, { headers: { Authorization: `Bearer ${sd.session?.access_token}` } })
+    const d = await res.json()
+    setDocs(d.documents || [])
+  }
+
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('family_profiles').select('id, name').eq('user_id', user.id).order('name')
+      .then(({ data }: any) => {
+        setProfiles(data || [])
+        if (data?.length) { setSel(data[0].id); loadDocs(data[0].id) }
+      })
+  }, [user?.id])
+
+  const upload = async (file: File) => {
+    if (!sel) { toast.error('Escolhe primeiro o familiar.'); return }
+    setUploading(true)
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader(); r.onload = () => resolve((r.result as string).split(',')[1]); r.onerror = reject; r.readAsDataURL(file)
+      })
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/family/documents', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ profile_id: sel, image: base64, mimeType: file.type || 'image/jpeg' }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Erro ao guardar')
+      toast.success('Documento guardado no cofre')
+      if (d.warning) toast.error(d.warning)
+      loadDocs(sel)
+    } catch (e: any) { toast.error(e.message) }
+    setUploading(false)
+  }
+
+  const ask = async () => {
+    if (!openDoc || !question.trim()) return
+    setAsking(true); setAnswer('')
+    const { data: sd } = await supabase.auth.getSession()
+    const res = await fetch('/api/family/documents', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd.session?.access_token}` },
+      body: JSON.stringify({ document_id: openDoc.id, question }),
+    })
+    const d = await res.json()
+    setAnswer(d.answer || d.error || 'Não consegui responder.')
+    setAsking(false)
+  }
+
+  const del = async (id: string) => {
+    const { data: sd } = await supabase.auth.getSession()
+    await fetch('/api/family/documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd.session?.access_token}` }, body: JSON.stringify({ id }) })
+    setDocs(p => p.filter(x => x.id !== id))
+    if (openDoc?.id === id) setOpenDoc(null)
+  }
+
+  if (profiles.length === 0) return <Empty msg="Cria primeiro um familiar em /perfis ou /familia para guardar os documentos dele." />
+
+  const KIND_ICON: Record<string, string> = { receita: '💊', analise: '🧪', relatorio: '📄', bula: '📋', outro: '📎' }
+
   return (
     <div>
-      <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, marginBottom: 14 }}>
-        Como cuidador, podes precisar de mostrar documentos clínicos do teu familiar a um médico, farmacêutico ou serviço social — sem dar acesso ao Phlox. O cofre permite gerar um <strong>código temporário</strong> que mostra UM documento de cada vez, expira sozinho e tem limite de visualizações.
+      <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, marginBottom: 14 }}>
+        Fotografe um exame, receita ou relatório do seu familiar. O Phlox lê, resume e guarda — e depois pode <strong>fazer perguntas</strong> sobre o documento. Para partilhar com um médico sem dar acesso, use o <Link href="/vault" style={{ color: '#b45309', fontWeight: 700 }}>cofre com código temporário</Link>.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 10 }}>
-        <Link href="/vault" style={{ display: 'block', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, textDecoration: 'none', color: '#0b1120' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>🔒 Abrir cofre</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Adicionar, ver e partilhar documentos.</div>
-        </Link>
-        <Link href="/preparar-consulta" style={{ display: 'block', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, textDecoration: 'none', color: '#0b1120' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>📋 Preparar consulta</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>O que perguntar ao médico do familiar.</div>
-        </Link>
-        <Link href="/passport" style={{ display: 'block', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, textDecoration: 'none', color: '#0b1120' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>🆘 Passaporte de emergência</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Cartão com QR para emergências.</div>
-        </Link>
+
+      {/* Seletor de familiar */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {profiles.map((p: any) => (
+          <button key={p.id} onClick={() => { setSel(p.id); setOpenDoc(null); loadDocs(p.id) }}
+            style={{ padding: '7px 13px', borderRadius: 20, border: `1.5px solid ${sel === p.id ? '#b45309' : '#e5e7eb'}`, background: sel === p.id ? '#fffbeb' : 'white', color: sel === p.id ? '#b45309' : '#475569', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            {p.name}
+          </button>
+        ))}
       </div>
+
+      {/* Upload */}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }} />
+      <button onClick={() => fileRef.current?.click()} disabled={uploading}
+        style={{ width: '100%', padding: '14px', background: uploading ? '#f1f5f9' : '#b45309', color: uploading ? '#94a3b8' : 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: uploading ? 'default' : 'pointer', marginBottom: 14 }}>
+        {uploading ? 'A ler o documento…' : '📷 Fotografar / carregar documento'}
+      </button>
+
+      {/* Lista de documentos */}
+      {docs.length === 0 ? (
+        <Empty msg="Ainda sem documentos para este familiar. Fotografe o primeiro acima." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {docs.map(d => (
+            <div key={d.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#0b1120' }}>{KIND_ICON[d.kind] || '📎'} {d.title}</div>
+                  <div style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.5, marginTop: 3 }}>{d.summary}</div>
+                  <div style={{ fontSize: 10.5, color: '#94a3b8', fontFamily: 'var(--font-mono)', marginTop: 4 }}>{new Date(d.created_at).toLocaleDateString('pt-PT')}</div>
+                </div>
+                <button onClick={() => del(d.id)} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: 16, padding: 0 }} aria-label="Apagar">×</button>
+              </div>
+              <button onClick={() => { setOpenDoc(openDoc?.id === d.id ? null : d); setQuestion(''); setAnswer('') }}
+                style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                {openDoc?.id === d.id ? 'Fechar' : '💬 Fazer uma pergunta sobre este documento'}
+              </button>
+              {openDoc?.id === d.id && (
+                <div style={{ marginTop: 8, borderTop: '1px solid #f1f5f9', paddingTop: 10 }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask() }}
+                      placeholder="Ex: Algum valor está alterado?" style={{ ...input(), flex: 1 }} />
+                    <button onClick={ask} disabled={asking || !question.trim()} style={{ padding: '9px 14px', background: asking || !question.trim() ? '#f1f5f9' : '#b45309', color: asking || !question.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: asking || !question.trim() ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+                      {asking ? '…' : 'Perguntar'}
+                    </button>
+                  </div>
+                  {answer && <div style={{ marginTop: 8, fontSize: 13, color: '#0b1120', lineHeight: 1.6, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 12px' }}>{answer}</div>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

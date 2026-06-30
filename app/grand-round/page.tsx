@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { logStudy, setLastTool } from '@/lib/studyProgress'
 
 interface GrandRoundCase {
   id: string
@@ -117,6 +118,9 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
     await supabase.from('grand_round_diagnoses').upsert({
       case_id: c.id, user_id: userId, diagnosis: myDiag.trim()
     }, { onConflict: 'case_id,user_id' })
+    // Propor um diagnóstico a um caso conta como estudo (kind 'case', área = especialidade).
+    logStudy({ kind: 'case', area: c.specialty })
+    setLastTool('/grand-round', 'Grand Round')
   }
 
   const submitComment = async () => {

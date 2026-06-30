@@ -42,6 +42,10 @@ export default function Footer() {
             <FooterCol title="Legal" links={[
               ['Termos', '/terms'],
               ['Privacidade', '/privacy'],
+              ['Cookies', '/cookies'],
+              ['Subprocessadores', '/subprocessadores'],
+              ['Dispositivo médico', '/dispositivo-medico'],
+              ['Segurança', '/seguranca'],
             ]} />
           </nav>
         </div>
@@ -49,9 +53,9 @@ export default function Footer() {
         {/* Sub-rodapé minimal */}
         <div style={{ marginTop: 26, paddingTop: 16, borderTop: '1px solid var(--bg-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>© {year} Phlox · Dados alojados na União Europeia</span>
-          <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>
-            Informação educativa. Não substitui o seu médico ou farmacêutico.
-          </span>
+          <Link href="/dispositivo-medico" style={{ fontSize: 11.5, color: 'var(--ink-5)', textDecoration: 'none' }}>
+            Ferramenta de organização e apoio — não é um dispositivo médico.
+          </Link>
         </div>
       </div>
     </footer>

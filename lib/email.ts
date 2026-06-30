@@ -148,6 +148,29 @@ export function planUpgradedEmail(planName: string): { subject: string; html: st
   }
 }
 
+/** Resumo de vigilância do cuidador — só quando há algo novo a precisar de atenção. */
+export function caregiverWatchEmail(items: { who: string; title: string; detail: string }[]): { subject: string; html: string } {
+  const rows = items.slice(0, 8).map(it =>
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #f4f4f5">
+       <div style="font-size:14px;font-weight:700;color:#18181b">${escapeHtml(it.who)} — ${escapeHtml(it.title)}</div>
+       <div style="font-size:13px;color:#52525b;margin-top:2px">${escapeHtml(it.detail)}</div>
+     </td></tr>`).join('')
+  const n = items.length
+  return {
+    subject: n === 1
+      ? `Phlox — ${items[0].who} precisa de atenção`
+      : `Phlox — ${n} coisas a precisar de atenção na sua família`,
+    html: emailLayout({
+      preheader: 'O Phlox detetou algo a precisar da sua atenção.',
+      heading: n === 1 ? `${items[0].who} precisa de atenção.` : 'A sua família precisa de atenção.',
+      body: `<p style="margin:0 0 14px">O Phlox acompanhou os seus familiares e encontrou ${n === 1 ? 'um ponto' : `${n} pontos`} a precisar da sua atenção:</p>
+             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+             <p style="margin:14px 0 0;font-size:13px;color:#71717a">O Phlox organiza e avisa, mas não substitui o médico. Em emergência, ligue 112.</p>`,
+      cta: { label: 'Abrir o Centro de Cuidado', url: 'https://phloxclinical.com/familia' },
+    }),
+  }
+}
+
 /** Aviso de pagamento falhado. */
 export function paymentFailedEmail(): { subject: string; html: string } {
   return {

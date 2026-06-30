@@ -1,8 +1,9 @@
 'use client'
 
-// HealthAlertsCard — PRO. Avisos proativos no /inicio: o Phlox olha para a tua
-// medicação, vitais recentes e adesão e diz-te o que merece atenção HOJE.
-// 100% determinístico (lib/healthAlerts) — sem custo de IA, atualiza sozinho.
+// HealthAlertsCard — avisos proativos no /inicio: o Phlox olha para a sua medicação,
+// vitais (com TENDÊNCIAS), sintomas, stock e adesão e diz-lhe o que merece atenção HOJE.
+// 100% determinístico (lib/healthAlerts + lib/healthTrends) — sem custo de IA, por isso é
+// GRÁTIS no modo pessoal (segurança básica). Atualiza sozinho.
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -19,40 +20,42 @@ export default function HealthAlertsCard() {
   const { user, supabase } = useAuth() as any
   const [alerts, setAlerts] = useState<HealthAlert[] | null>(null)
 
-  const isPro = user?.plan === 'pro' || user?.plan === 'clinic'
-
   useEffect(() => {
-    if (!isPro || !user || !supabase) return
+    if (!user || !supabase) return
     let cancelled = false
     ;(async () => {
       try {
         const today = new Date().toISOString().slice(0, 10)
+        const monthAgo = new Date(Date.now() - 60 * 86400000).toISOString()
         const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-        const [{ data: meds }, { data: vitals }, { data: logs }, { data: slots }] = await Promise.all([
-          supabase.from('personal_meds').select('name').eq('user_id', user.id),
-          supabase.from('vitals').select('bp_sys,bp_dia,hr,spo2,glucose,recorded_at').eq('user_id', user.id).gte('recorded_at', weekAgo).order('recorded_at', { ascending: false }).limit(1),
+        // Lê dados reais do PRÓPRIO. Tudo degrada a vazio se faltar tabela/coluna.
+        const [{ data: meds }, { data: vitals }, { data: logs }, { data: syms }, { data: prof }] = await Promise.all([
+          supabase.from('personal_meds').select('name, reminder_times, pills_remaining, pills_per_day').eq('user_id', user.id),
+          supabase.from('vitals').select('bp_sys,bp_dia,hr,spo2,glucose,weight,temp,recorded_at').eq('user_id', user.id).gte('recorded_at', monthAgo).order('recorded_at', { ascending: false }).limit(40),
           supabase.from('med_logs').select('id').eq('user_id', user.id).gte('date', today).eq('status', 'taken'),
-          supabase.from('personal_meds').select('reminder_times').eq('user_id', user.id).not('reminder_times', 'is', null),
+          supabase.from('symptom_logs').select('at, pain, temperature, symptoms').eq('user_id', user.id).is('profile_id', null).gte('at', weekAgo).then((r: any) => r, () => ({ data: [] })),
+          supabase.from('profiles').select('age, sex, conditions').eq('id', user.id).maybeSingle().then((r: any) => r, () => ({ data: null })),
         ])
-        const totalSlots = (slots || []).reduce((n: number, m: any) => n + (m.reminder_times?.length || 0), 0)
+        const medRows = (meds || []) as any[]
+        const totalSlots = medRows.reduce((n: number, m: any) => n + (m.reminder_times?.length || 0), 0)
         const taken = (logs || []).length
         const adherencePct = totalSlots > 0 ? Math.round((taken / totalSlots) * 100) : null
-        const prof = user
         const out = computeHealthAlerts({
-          meds: meds || [],
-          age: (prof as any)?.age ?? null,
-          sex: (prof as any)?.sex ?? null,
-          conditions: (prof as any)?.conditions ?? null,
-          vitals: (vitals || [])[0] || null,
+          meds: medRows.map(m => ({ name: m.name, pills_remaining: m.pills_remaining, pills_per_day: m.pills_per_day })),
+          age: prof?.age ?? (user as any)?.age ?? null,
+          sex: prof?.sex ?? (user as any)?.sex ?? null,
+          conditions: prof?.conditions ?? (user as any)?.conditions ?? null,
+          vitalSeries: (vitals || []) as any[],
+          symptoms: (syms || []) as any[],
           adherencePct,
         })
         if (!cancelled) setAlerts(out)
       } catch { if (!cancelled) setAlerts([]) }
     })()
     return () => { cancelled = true }
-  }, [isPro, user, supabase])
+  }, [user, supabase])
 
-  if (!isPro || !alerts || alerts.length === 0) return null
+  if (!alerts || alerts.length === 0) return null
 
   return (
     <div style={{ background: 'white', border: '1px solid #fecaca', borderRadius: 14, padding: '14px 16px', marginBottom: 18 }}>

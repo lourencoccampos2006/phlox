@@ -35,8 +35,8 @@ function SuccessContent() {
             { href: '/ai', label: 'Phlox AI', desc: 'Farmacologista clínico virtual' },
           ] : [
             { href: '/labs', label: 'Interpretação de Análises', desc: 'A ferramenta mais popular' },
-            { href: '/cases', label: 'Casos Clínicos', desc: 'Raciocínio clínico guiado' },
-            { href: '/exam', label: 'Modo Exame', desc: 'Prepara-te para os exames' },
+            { href: '/simulador', label: 'Casos Clínicos', desc: 'Raciocínio clínico guiado' },
+            { href: '/exam', label: 'Simulação de exame', desc: 'Prepara-te para os exames' },
           ]).map(({ href, label, desc }) => (
             <Link key={href} href={href}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)', textDecoration: 'none', gap: 12 }}>

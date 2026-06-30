@@ -82,6 +82,20 @@ create table if not exists study_sessions (
   cards_correct int default 0,
   notes        text
 );
+
+-- CORREÇÃO: Garante a criação segura das colunas caso a tabela study_sessions já exista
+do $$ begin
+  alter table study_sessions add column if not exists plan_id uuid references study_plans(id) on delete set null;
+  alter table study_sessions add column if not exists topic text;
+  alter table study_sessions add column if not exists started_at timestamptz not null default now();
+  alter table study_sessions add column if not exists ended_at timestamptz;
+  alter table study_sessions add column if not exists minutes int;
+  alter table study_sessions add column if not exists cards_reviewed int default 0;
+  alter table study_sessions add column if not exists cards_correct int default 0;
+  alter table study_sessions add column if not exists notes text;
+exception when undefined_table then null; end $$;
+
+-- O índice já será criado com sucesso agora
 create index if not exists study_sessions_user_idx on study_sessions(user_id, started_at desc);
 alter table study_sessions enable row level security;
 do $$ begin

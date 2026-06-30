@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { logStudy, setLastTool } from '@/lib/studyProgress'
 
 interface DrugCard {
   drug_name: string
@@ -353,7 +354,12 @@ export default function FichaPage() {
                     })}
                   </div>
                   {!quizSubmitted && quizAnswers.filter(a => a !== null && a !== undefined).length === card.quiz.length && (
-                    <button onClick={() => setQuizSubmitted(true)}
+                    <button onClick={() => {
+                      setQuizSubmitted(true)
+                      // Conta para o progresso: 1 entrada por pergunta (área = classe do fármaco).
+                      card.quiz.forEach((q, i) => logStudy({ kind: 'flashcard', area: card.class, correct: quizAnswers[i] === q.correct }))
+                      setLastTool('/ficha', 'Ficha de Fármaco')
+                    }}
                       style={{ marginTop:16, width:'100%', padding:'13px', background:'#7c3aed', color:'white', border:'none', borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
                       Ver resultados
                     </button>

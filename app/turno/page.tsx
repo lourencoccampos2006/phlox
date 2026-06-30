@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
@@ -43,6 +44,7 @@ function roomKey(r?: string | null) { if (!r) return 999999; const n = parseInt(
 
 export default function TurnoPage() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
@@ -73,15 +75,15 @@ export default function TurnoPage() {
     const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
     const [p, c, m, i, a, meds, w, allCare, hyd] = await Promise.all([
-      supabase.from('patients').select('*').eq('user_id', user.id),
-      supabase.from('care_records').select('patient_id,shift,date,notes,mood').eq('user_id', user.id).eq('date', today),
-      supabase.from('mar_records').select('patient_id,shift,date,status').eq('user_id', user.id).eq('date', today),
-      supabase.from('incidents').select('id,patient_id,type,severity,status,date,description').eq('user_id', user.id).neq('status', 'closed'),
-      supabase.from('assessments').select('patient_id,scale,date').eq('user_id', user.id).gte('date', since),
-      supabase.from('patient_meds').select('patient_id,name').eq('user_id', user.id),
-      supabase.from('wounds').select('patient_id,status,stage').eq('user_id', user.id),
-      supabase.from('care_records').select('patient_id,date,vitals').eq('user_id', user.id).gte('date', since365),
-      supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml').eq('user_id', user.id).gte('at', since14),
+      scope.filter(supabase.from('patients').select('*')),
+      scope.filter(supabase.from('care_records').select('patient_id,shift,date,notes,mood')).eq('date', today),
+      scope.filter(supabase.from('mar_records').select('patient_id,shift,date,status')).eq('date', today),
+      scope.filter(supabase.from('incidents').select('id,patient_id,type,severity,status,date,description')).neq('status', 'closed'),
+      scope.filter(supabase.from('assessments').select('patient_id,scale,date')).gte('date', since),
+      scope.filter(supabase.from('patient_meds').select('patient_id,name')),
+      scope.filter(supabase.from('wounds').select('patient_id,status,stage')),
+      scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since365),
+      scope.filter(supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml')).gte('at', since14),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false).sort((a: Patient, b: Patient) => roomKey(a.room_number) - roomKey(b.room_number) || a.name.localeCompare(b.name)))
     setCare(c.data || []); setMar(m.data || []); setIncidents(i.data || []); setAssessments(a.data || [])
@@ -120,7 +122,7 @@ export default function TurnoPage() {
 
   useEffect(() => { load() }, [load])
 
-  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'wounds', 'hydration_logs', 'patient_meds'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'wounds', 'hydration_logs', 'patient_meds'], userId: scope.liveFilterValue || user?.id, onChange: load })
 
   const nameOf = (id: string) => patients.find(p => p.id === id)?.name || person
   const roomOf = (id: string) => { if (!cfg.hasBeds) return ''; const r = patients.find(p => p.id === id)?.room_number; return r ? `${cfg.roomLabel[0]}${r}` : '' }
@@ -167,7 +169,7 @@ export default function TurnoPage() {
         ) : tab === 'tarefas' ? (
           <TarefasTab patients={patients} care={care} mar={mar} incidents={incidents} assessments={assessments} shift={shift} nameOf={nameOf} roomOf={roomOf} cfg={cfg} />
         ) : tab === 'ronda' ? (
-          <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} riskByPt={riskByPt} cfg={cfg} />
+          <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} scope={scope} riskByPt={riskByPt} cfg={cfg} />
         ) : (
           <PassagemTab patients={patients} care={care} mar={mar} incidents={incidents} shift={shift} nameOf={nameOf} roomOf={roomOf} riskByPt={riskByPt} cfg={cfg} />
         )}
@@ -261,7 +263,7 @@ function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf
 
 // ─── RONDA ──────────────────────────────────────────────────────────────────
 
-function RondaTab({ patients, shift, today, supabase, user, riskByPt, cfg: instCfg }: any) {
+function RondaTab({ patients, shift, today, supabase, user, scope, riskByPt, cfg: instCfg }: any) {
   const [idx, setIdx] = useState(0)
   const [status, setStatus] = useState<StatusTag | null>(null)
   const [note, setNote] = useState('')
@@ -283,7 +285,7 @@ function RondaTab({ patients, shift, today, supabase, user, riskByPt, cfg: instC
   async function saveNext() {
     if (!user || !current) return
     setSaving(true)
-    await supabase.from('care_records').upsert({ user_id: user.id, patient_id: current.id, date: today, shift, mood: { behavior: status ? STATUS_CFG[status].label : null }, notes: note.trim() || null }, { onConflict: 'patient_id,date,shift' })
+    await supabase.from('care_records').upsert(scope.stamp({ patient_id: current.id, date: today, shift, mood: { behavior: status ? STATUS_CFG[status].label : null }, notes: note.trim() || null }), { onConflict: 'patient_id,date,shift' })
     setDone(d => ({ ...d, [current.id]: status || 'estavel' }))
     setSaving(false); advance()
   }
@@ -409,9 +411,9 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, ri
 
   function statusOf(p: Patient): { label: string; color: string } {
     const r = riskByPt[p.id]
-    if (r?.level === 'critical') return { label: 'Alerta', color: '#dc2626' }
-    if (r?.level === 'warning' || refusedByPt.has(p.id)) return { label: 'Vigiar', color: '#d97706' }
-    return { label: 'Estável', color: '#16a34a' }
+    if (r?.level === 'critical') return { label: 'A confirmar', color: '#dc2626' }
+    if (r?.level === 'warning' || refusedByPt.has(p.id)) return { label: 'A acompanhar', color: '#d97706' }
+    return { label: 'Sem nota', color: '#16a34a' }
   }
   const sigBullets = (p: Patient): string[] => {
     const r = riskByPt[p.id]
@@ -462,7 +464,7 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, ri
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Resumo automático por {cfg.personNoun.toLowerCase()}, ordenado por prioridade.</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 520, lineHeight: 1.5 }}>Reúne automaticamente tudo o que foi registado neste turno (cuidados, doses, ocorrências, o que saiu do padrão) — para o turno seguinte não deixar escapar nada. Imprima e assine para a passagem.</div>
         <button onClick={doPrint} style={{ padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 7 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir passagem

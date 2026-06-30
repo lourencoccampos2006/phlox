@@ -103,25 +103,25 @@ export default function PainelCockpit() {
 
     if (blockIds.has('sales_today')) {
       const start = new Date(); start.setHours(0, 0, 0, 0)
-      const r = await safe(supabase.from('sales').select('total,at').eq('user_id', user.id).gte('at', start.toISOString()), [])
+      const r = await safe(scope.filter(supabase.from('sales').select('total,at')).gte('at', start.toISOString()), [])
       const rows = r.data || []
       setSalesToday({ count: rows.length, total: rows.reduce((s: number, x: any) => s + (Number(x.total) || 0), 0) })
     }
     if (blockIds.has('counter')) {
-      const r = await safe(supabase.from('stock_items').select('id,quantity,min_quantity').eq('user_id', user.id), [])
+      const r = await safe(scope.filter(supabase.from('stock_items').select('id,quantity,min_quantity')), [])
       setLowStock((r.data || []).filter((x: any) => x.min_quantity != null && (x.quantity ?? 0) <= x.min_quantity).length)
     }
     if (blockIds.has('validation_queue') || blockIds.has('counter')) {
-      const r = await safe(supabase.from('prescription_queue').select('status').eq('user_id', user.id), [])
+      const r = await safe(scope.filter(supabase.from('prescription_queue').select('status')), [])
       const rows = r.data || []
       setRxQueue({ pending: rows.filter((x: any) => x.status === 'pending' || x.status === 'reviewing').length, total: rows.length })
     }
     if (blockIds.has('appointments')) {
-      const r = await safe(supabase.from('appointments').select('id,title,time,status,patient_id').eq('user_id', user.id).eq('date', d).order('time'), [])
+      const r = await safe(scope.filter(supabase.from('appointments').select('id,title,time,status,patient_id')).eq('date', d).order('time'), [])
       setApptsToday(r.data || [])
     }
     if (blockIds.has('tasks')) {
-      const r = await safe(supabase.from('team_tasks').select('id,title,status,priority').eq('user_id', user.id).neq('status', 'done').limit(20), [])
+      const r = await safe(scope.filter(supabase.from('team_tasks').select('id,title,status,priority')).neq('status', 'done').limit(20), [])
       setTasks(r.data || [])
     }
     setLoading(false)
@@ -328,8 +328,11 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
     case 'people_watch': {
       return (
         <div style={card}>
-          <div style={blkTitle}>👁 A vigiar {ctx.attention.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c', background: '#fef2f2', padding: '2px 7px', borderRadius: 6 }}>{ctx.attention.length}</span>}</div>
-          {ctx.attention.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Tudo tranquilo — ninguém em alerta. ✓</div>
+          <div style={{ ...blkTitle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>📋 Pode merecer atenção hoje {ctx.attention.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{ctx.attention.length}</span>}</span>
+            <Link href="/radar" style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Ver tudo →</Link>
+          </div>
+          {ctx.attention.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Nada fora do padrão com o que foi registado. ✓</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {ctx.attention.slice(0, 6).map(({ p, score, level, summary }: any) => {
                 const st = SEVERITY_STYLE[level as keyof typeof SEVERITY_STYLE]
@@ -342,6 +345,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
                 </Link>
               })}
             </div>}
+          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 8, lineHeight: 1.4 }}>Reúne o que a equipa registou. A avaliação é do profissional.</div>
         </div>
       )
     }

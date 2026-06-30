@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import type { RevenueModel } from '@/lib/institutionConfig'
@@ -43,6 +44,7 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
   revenue: RevenueModel; unitNoun: string; personNoun: string
 }) {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const isPOS = revenue === 'pos_sales'
   const KINDS = isPOS ? KINDS_POS : KINDS_FFS
   const [sales, setSales] = useState<Sale[]>([])
@@ -63,26 +65,26 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
     setLoading(true); setErr('')
     const start = new Date(day + 'T00:00:00').toISOString()
     const end = new Date(day + 'T23:59:59').toISOString()
-    const { data, error } = await supabase.from('sales').select('*').eq('user_id', user.id).gte('at', start).lte('at', end).order('at', { ascending: false })
+    const { data, error } = await scope.filter(supabase.from('sales').select('*')).gte('at', start).lte('at', end).order('at', { ascending: false })
     if (error) { if (/relation .*sales.* does not exist/i.test(error.message)) setMissing(true); setSales([]) }
     else { setMissing(false); setSales(data || []) }
     setLoading(false)
   }, [user, supabase, day])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: 'sales', userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: 'sales', userId: scope.liveFilterValue || user?.id, onChange: load })
 
   async function add() {
     const gross = parseFloat(form.gross) || 0
     if (gross <= 0 && !form.description.trim()) { setErr('Indica o valor ou a descrição.'); return }
     setSaving(true); setErr('')
-    const row = {
-      user_id: user.id, kind: form.kind, description: form.description.trim() || null,
+    const row = scope.stamp({
+      kind: form.kind, description: form.description.trim() || null,
       person_name: form.person_name.trim() || null, qty: Number(form.qty) || 1,
       gross, discount: parseFloat(form.discount) || 0, tax_rate: parseFloat(form.tax_rate) || 0,
       method: form.method, paid: !!form.paid, professional: form.professional.trim() || null,
       at: day === new Date().toISOString().slice(0, 10) ? new Date().toISOString() : new Date(day + 'T12:00:00').toISOString(),
-    }
+    })
     const { data, error } = await supabase.from('sales').insert(row).select().single()
     if (!error && data) { setSales(p => [data, ...p]); setShowForm(false); setForm(blank) }
     else setErr(error?.message || 'Erro')
@@ -100,12 +102,12 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
   async function creditNote(s: Sale) {
     if (!confirm(`Emitir nota de crédito que anula ${s.doc_no}? O documento original mantém-se no histórico (exigência fiscal).`)) return
     const gross = net(s)
-    const { data: nc, error } = await supabase.from('sales').insert({
-      user_id: user.id, kind: s.kind, doc_type: 'NC', description: `Anulação de ${s.doc_no}`,
+    const { data: nc, error } = await supabase.from('sales').insert(scope.stamp({
+      kind: s.kind, doc_type: 'NC', description: `Anulação de ${s.doc_no}`,
       person_name: s.person_name || null, nif: s.nif || null, qty: 1,
       gross, discount: 0, tax_rate: s.tax_rate, method: s.method, paid: true,
       doc_status: 'nota_credito', annuls_id: s.id, professional: user?.name || null,
-    }).select().single()
+    })).select().single()
     if (error || !nc) { alert(error?.message || 'Erro a emitir nota de crédito'); return }
     await supabase.from('sales').update({ doc_status: 'anulado' }).eq('id', s.id)
     const token = (await supabase.auth.getSession()).data.session?.access_token
@@ -190,8 +192,8 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
 
         {missing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Vendas / caixa ainda por ativar</div>
+            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>A base de dados de vendas ainda não está criada nesta conta. Aplique a migração de faturação (<code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sales</code>) no Supabase e recarregue. Tudo o resto continua a funcionar normalmente.</div>
           </div>
         ) : (
           <>
