@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ReportQuizError from '@/components/ReportQuizError'
+import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
 
 interface Challenge {
@@ -277,6 +278,12 @@ export default function ArenaPage() {
   const [active, setActive] = useState<Challenge|null>(null)
   const [tab, setTab] = useState<'play'|'league'|'stats'>('play')
   const [loading, setLoading] = useState(true)
+
+  // Contexto p/ o Copilot: o caso clínico que o estudante tem aberto agora.
+  usePhloxContext(
+    active?.case_data ? `Caso na Arena: ${active.case_data.title || active.title || active.domain}` : '',
+    active?.case_data ? { area: active.domain, dificuldade: active.difficulty, apresentacao: active.case_data.presentation?.slice(0, 400), pergunta: active.case_data.question } : null as any
+  )
   const [generating, setGenerating] = useState(false)
   const [filterDomain, setFilterDomain] = useState('all')
   const [filterDiff, setFilterDiff] = useState('all')

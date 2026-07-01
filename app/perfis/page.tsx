@@ -25,7 +25,8 @@ interface FamilyProfile {
 
 interface MedCount { profile_id: string }
 
-const PLAN_LIMITS: Record<string, number> = { free: 2, student: 3, pro: Infinity, clinic: Infinity }
+// Saúde da família é um valor PRO: Base/Plus acompanham 1 familiar; Pro/Institucional ilimitado.
+const PLAN_LIMITS: Record<string, number> = { free: 1, student: 1, pro: Infinity, clinic: Infinity }
 const RELATION_OPTIONS = ['Pai', 'Mãe', 'Filho', 'Filha', 'Cônjuge', 'Parceiro/a', 'Avô', 'Avó', 'Irmão', 'Irmã', 'Outro']
 
 const emptyForm = { name: '', relation: '', age: '', sex: '', weight: '', height: '', creatinine: '', conditions: '', allergies: '', notes: '' }

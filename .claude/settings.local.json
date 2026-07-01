@@ -196,7 +196,8 @@
       "PowerShell(Stop-Process -Id 9488 -Force -ErrorAction SilentlyContinue)",
       "PowerShell(\"stopped\")",
       "Bash(nohup npm run dev)",
-      "Bash(echo \"dev server starting \\(PID $!\\)\")"
+      "Bash(echo \"dev server starting \\(PID $!\\)\")",
+      "Bash(awk 'NR>=460 && NR<=530 && /<\\\\/Card>/ {print NR\": \"$0}' \"app/patients/[id]/page.tsx\")"
     ]
   }
 }

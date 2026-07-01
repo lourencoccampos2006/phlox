@@ -9,6 +9,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { CALCULATORS, CATEGORY_LABEL, type ClinicalCalc, type CalcResult } from '@/lib/clinicalCalcs'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 const ACCENT = '#0d6e42'
 
@@ -38,6 +39,12 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 6
 export default function Calculos() {
   const [active, setActive] = useState<ClinicalCalc | null>(null)
   const [q, setQ] = useState('')
+
+  // Contexto p/ o Copilot: a calculadora/escala aberta.
+  usePhloxContext(
+    active ? `Calculadora: ${active.name}` : '',
+    active ? { calculadora: active.name, para: active.desc } : null as any
+  )
 
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   const list = useMemo(() => q.trim()

@@ -13,6 +13,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { logStudy } from '@/lib/studyProgress'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 interface TutorMessage {
   role: 'tutor' | 'student'
@@ -77,6 +78,12 @@ export default function TutorPage() {
 
   const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
+
+  // Contexto p/ o Copilot: o tópico em estudo + a última troca do tutor.
+  usePhloxContext(
+    session ? `Tutoria: ${session.topic}` : '',
+    session ? { topico: session.topic, ultima_pergunta: session.messages.filter(m => m.role === 'tutor').slice(-1)[0]?.content?.slice(0, 300) } : null as any
+  )
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

@@ -107,12 +107,15 @@ export default function FamilyPortalPage() {
       const data = await res.json()
       if (!res.ok) { setAddErr(data.error || 'Código inválido.'); return }
       if (data.needsVerify) { setNeedsVerify(true); setVerifyName(data.patientName || ''); if (data.error) setAddErr(data.error); return }
-      // sucesso → guarda acesso
+      // sucesso → guarda acesso. A conversa e o acompanhamento passam a viver no
+      // /familia (cartão do utente, com dados ao vivo, mensagens e visitas). Se o
+      // utilizador tiver sessão iniciada, levamo-lo para lá; senão, fica aqui.
       const acc: Access = { code: nc, verify: vDigits, name: data.patient?.name || 'Familiar', room: data.patient?.room_number || '' }
       const next = [...accesses.filter(a => a.code !== nc), acc]
       persist(next)
       setActiveCode(nc); setMsgs(data.messages || []); setDays(data.dailySummaries || [])
       setAdding(false); setNeedsVerify(false); setCode(''); setVerify(''); setAddErr('')
+      try { if (typeof window !== 'undefined' && localStorage.getItem('phlox-auth')) { window.location.href = '/familia'; return } } catch {}
     } catch { setAddErr('Falha de ligação. Tenta novamente.') }
     finally { setAddBusy(false) }
   }, [accesses])

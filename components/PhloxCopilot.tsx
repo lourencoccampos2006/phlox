@@ -29,6 +29,14 @@ function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfi
   if (l.includes('medicação') || path.includes('/mymeds')) return ['Há interações entre os meus medicamentos?', 'Esqueci uma dose, o que faço?', 'Algum precisa de cuidado especial?']
   if (l.includes('triagem') || l.includes('sintoma')) return ['Devo ir ao médico ou às urgências?', 'Que sinais de alarme vigiar?', 'O que posso fazer em casa?']
   if (l.includes('pergunta clínica') || l.includes('biblioteca')) return ['Resume em 3 pontos', 'Qual a evidência por trás disto?', 'E em doentes idosos?']
+  // Ferramentas instrumentadas nesta ronda (contexto rico):
+  if (l.includes('doente do estágio') || l.includes('doente:') || l.includes('utente:')) return ['Faz um resumo deste doente', 'Que diagnósticos diferenciais considerar?', 'Qual o próximo passo?']
+  if (l.includes('caso na arena') || l.includes('estação osce')) return ['Ajuda-me a raciocinar (sem dar a resposta)', 'Que dados me faltam?', 'Explica o porquê da resposta']
+  if (l.includes('tutoria')) return ['Faz-me uma pergunta sobre isto', 'Explica passo a passo', 'Dá-me uma mnemónica']
+  if (l.includes('ficha de fármaco')) return ['Mecanismo em 1 frase', 'Efeitos adversos mais importantes', 'Interações a ter em conta']
+  if (l.includes('calculadora')) return ['O que significa este resultado?', 'Quando é que isto muda a conduta?', 'Que valores são de alarme?']
+  if (l.includes('familiar no lar')) return ['Como tem corrido nos últimos dias?', 'O que devo perguntar à equipa?', 'A medicação está toda a ser dada?']
+  if (l.includes('atenção')) return ['Quem precisa de mais atenção hoje?', 'O que saiu do padrão?', 'O que devo confirmar primeiro?']
   return ['Explica isto de forma simples', 'Quais os riscos clínicos aqui?', 'Faz-me 3 perguntas sobre isto']
 }
 

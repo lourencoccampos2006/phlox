@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { logStudy, setLastTool } from '@/lib/studyProgress'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 interface DrugCard {
   drug_name: string
@@ -44,6 +45,12 @@ export default function FichaPage() {
   const [quizAnswers, setQuizAnswers] = useState<(number | null)[]>([])
   const [quizSubmitted, setQuizSubmitted] = useState(false)
   const [tab, setTab] = useState<'mechanism' | 'adverse' | 'interactions' | 'pk' | 'quiz'>('mechanism')
+
+  // Contexto p/ o Copilot: o fármaco em estudo na ficha.
+  usePhloxContext(
+    card ? `Ficha de fármaco: ${card.drug_name}` : '',
+    card ? { farmaco: card.drug_name, dci: card.dci, classe: card.class, separador: tab } : null as any
+  )
 
   const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'

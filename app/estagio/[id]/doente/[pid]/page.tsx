@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, use } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { usePhloxContext } from '@/lib/copilotContext'
 
 const ACCENT = '#0d6e42'
 
@@ -28,6 +29,16 @@ export default function DoentePage({ params }: { params: Promise<{ id: string; p
   const [aiResult, setAiResult] = useState<{ title: string; ddx?: any; text?: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [dtab, setDtab] = useState<DTab>('evolucao')
+
+  // Contexto p/ o Copilot: o doente do estágio + a última evolução SOAP.
+  usePhloxContext(
+    patient ? `Doente do estágio: ${patient.name || patient.initials || 'doente'}` : '',
+    patient ? {
+      doente: patient.name || patient.initials, idade: patient.age, sexo: patient.sex,
+      diagnostico: patient.diagnosis || patient.main_problem, condicoes: patient.conditions,
+      ultima_evolucao: followups[0] ? { A: followups[0].assessment, P: followups[0].plan } : null,
+    } : null as any
+  )
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()

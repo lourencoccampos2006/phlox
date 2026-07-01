@@ -257,6 +257,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, medName })
   }
 
+  // ── Ação: família PEDE uma visita ────────────────────────────────────────────
+  // Escreve um visit_requests. Aparece na aba "Visitas" do /family da instituição,
+  // onde a equipa aprova/recusa. É a ponte família→instituição das visitas.
+  if (body.action === 'request_visit') {
+    const r2 = await resolveCode(body.code)
+    if ('errorCode' in r2) return codeErrorResponse(r2.errorCode)
+    const pat2 = r2.patient
+    const v2 = await verifyFamily(pat2.id, String(body.verify || ''))
+    if (v2.gated && !v2.ok) return NextResponse.json({ error: 'Verificação necessária' }, { status: 403 })
+    const date = String(body.date || '').slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ error: 'Indique a data.' }, { status: 400 })
+    const sb2 = admin()
+    const who = (v2.contact?.name || String(body.name || '').trim() || 'Família').slice(0, 60)
+    const row: any = {
+      user_id: pat2.user_id, patient_id: pat2.id,
+      contact_id: v2.contact?.id || null,
+      requested_by: who,
+      requested_date: date,
+      requested_time: String(body.time || '').slice(0, 5) || null,
+      notes: String(body.notes || '').trim().slice(0, 300) || null,
+      status: 'pending',
+    }
+    if (pat2.org_id) row.org_id = pat2.org_id
+    const { error } = await sb2.from('visit_requests').insert(row)
+    if (error) return NextResponse.json({ error: 'Não foi possível pedir a visita.' }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
+
   const content = String(body.content || '').trim()
   const imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64 : ''
   if (!content && !imageBase64) return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })

@@ -17,6 +17,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -140,6 +141,12 @@ export default function OSCEPage() {
   const [plan, setPlan] = useState('')
   const [feedback, setFeedback] = useState<OSCEFeedback | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Contexto p/ o Copilot: a estação OSCE que o estudante está a fazer.
+  usePhloxContext(
+    station ? `Estação OSCE: ${station.title}` : '',
+    station ? { estacao: station.title, tipo: station.station_type, fase: phase } : null as any
+  )
   const [timerExpired, setTimerExpired] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 

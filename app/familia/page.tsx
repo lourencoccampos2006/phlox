@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { setActiveProfile } from '@/lib/profileContext'
 import { analyzeFamilyMember, WATCH_LEVEL_META, type WatchResult, type WatchSignal } from '@/lib/caregiverWatch'
+import LinkedResidents from '@/components/LinkedResidents'
 import Link from 'next/link'
 
 interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; conditions?: string | null; allergies?: string | null }
@@ -40,8 +41,15 @@ export default function FamiliaPage() {
   const [form, setForm] = useState({ name: '', relation: '', age: '' })
   const [saving, setSaving] = useState(false)
 
+  // Saúde da família é valor PRO: Base/Plus = 1 familiar; Pro/Institucional ilimitado.
+  const familyLimit = (user?.plan === 'pro' || user?.plan === 'clinic') ? Infinity : 1
+
   async function createProfile() {
     if (!form.name.trim() || !user?.id) return
+    if (profiles.length >= familyLimit) {
+      alert('No plano gratuito e Plus pode acompanhar 1 familiar. Com o Pro, acompanha os familiares que quiser. Veja em /pricing.')
+      return
+    }
     setSaving(true)
     const { data, error } = await supabase.from('family_profiles').insert({
       user_id: user.id, name: form.name.trim(),
@@ -128,6 +136,9 @@ export default function FamiliaPage() {
             <span style={{ color: '#1e40af', fontWeight: 700, flexShrink: 0 }}>→</span>
           </div>
         </Link>
+
+        {/* Utentes ligados a um lar/centro — aparecem aqui com dados ao vivo, conversa e visitas. */}
+        <LinkedResidents />
 
         {/* Formulário inline de adicionar familiar — cria logo o perfil aqui. */}
         {adding && (

@@ -10,6 +10,8 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import ResidentRequests from '@/components/ResidentRequests'
+import { usePhloxContext } from '@/lib/copilotContext'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
@@ -49,6 +51,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [vitals, setVitals] = useState<any | null>(null)
   const [todayMar, setTodayMar] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Contexto p/ o Copilot: o doente/utente ativo (medicação, condições, alergias).
+  usePhloxContext(
+    patient ? `${cfg.personNoun}: ${patient.name}` : '',
+    patient ? { nome: patient.name, idade: patient.age, sexo: patient.sex, condicoes: patient.conditions, alergias: patient.allergies, medicacao: meds.map((m: any) => m.name) } : null as any
+  )
 
   // Convidar família (gera código + partilha)
   const [familyCode, setFamilyCode] = useState<string | null>(null)
@@ -478,6 +486,15 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             </div>}
         <Link href={`/family`} style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, color: accent, textDecoration: 'none', fontWeight: 700 }}>Abrir portal das famílias →</Link>
       </Card>
+
+      {/* PEDIDOS & OBSERVAÇÕES DO UTENTE (lar / centro de dia) */}
+      {warm && pid && (
+        <Card>
+          <CardTitle>Pedidos &amp; observações</CardTitle>
+          <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>O que {noun} pede ou diz — para toda a equipa saber e poder intervir.</p>
+          <ResidentRequests patientId={pid} supabase={supabase} scope={scope} accent={accent} />
+        </Card>
+      )}
 
       {/* MODAL CONVIDAR FAMÍLIA */}
       {inviteOpen && (
