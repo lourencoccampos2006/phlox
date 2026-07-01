@@ -304,7 +304,7 @@ export function FeridasTool() {
     printDoc({
       docTitle: 'Registo de Ferida',
       docSubtitle: `${nameOf(w.patient_id)} · ${TYPE_LABELS[w.type]} · ${w.location}`,
-      institution: 'Lar / ERPI',
+      institution: cfg.unitNoun,
       sections: [
         { heading: 'Caracterização', records },
         { heading: 'Evolução', note: `${a.length} avaliações`, records: evolution.length ? evolution : [{ title: 'Sem avaliações registadas' }] },

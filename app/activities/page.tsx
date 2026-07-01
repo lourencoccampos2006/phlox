@@ -202,7 +202,7 @@ export function AtividadesTool() {
       printDoc({
         docTitle: 'Relatório Mensal de Animação Sociocultural',
         docSubtitle: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
-        institution: 'Lar / ERPI',
+        institution: cfg.unitNoun,
         meta: [
           { label: 'atividades', value: String(monthActs.length) },
           { label: 'participações', value: String(attendedParts.length) },

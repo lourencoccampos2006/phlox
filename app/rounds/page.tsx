@@ -10,6 +10,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { conditionRisk, calcCrCl, riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
@@ -563,6 +565,8 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
 
 export default function RoundsPage() {
   const { user, supabase } = useAuth()
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<(Patient & { meds_count: number })[]>([])
   const [meds, setMeds] = useState<Record<string, PatientMed[]>>({})
   const [risks, setRisks] = useState<Record<string, RiskScore|'loading'>>({})
@@ -923,7 +927,7 @@ Gerado pelo Phlox Clinical — phlox-clinical.com`
                     printDoc({
                       docTitle: 'Relatório de Ronda Farmacêutica',
                       docSubtitle: monthLabel,
-                      institution: 'Lar / ERPI',
+                      institution: cfg.unitNoun,
                       meta: [
                         { label: 'intervenções', value: String(mi.length) },
                         { label: 'aceites', value: String(accepted) },

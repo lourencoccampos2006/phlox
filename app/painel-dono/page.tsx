@@ -15,6 +15,16 @@ const ACCENT = '#0d9488'
 
 interface Ev { kind: string; icon: string; at: string; who: string; patient: string; detail: string; shift?: string; severity?: string }
 
+// Atalhos do dono ADAPTADOS ao tipo de instituição (antes mostrava faturação/
+// stock/agenda a todos — um centro de dia não vende ao balcão nem tem stock).
+function ownerLinks(kind: string): [string, string][] {
+  const common: [string, string][] = [['/painel', '📊 Cockpit do dia'], ['/equipa', '👥 Equipa']]
+  if (kind === 'pharmacy_community') return [...common, ['/vendas', '🛒 Vendas'], ['/stock', '📦 Stock'], ['/faturacao', '💶 Faturação']]
+  if (kind === 'clinic' || kind === 'health_center') return [...common, ['/agenda', '📅 Agenda'], ['/faturacao', '💶 Faturação']]
+  // day_care / nursing_home
+  return [...common, ['/radar', '📋 A vigiar'], ['/faturacao', '💶 Mensalidades'], ['/comecar-instituicao', '🚀 Pôr a postos']]
+}
+
 export default function PainelDonoPage() {
   const { user, supabase } = useAuth() as any
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -169,13 +179,16 @@ export default function PainelDonoPage() {
                   })()}
 
                   {k.incidentsOpen > 0 && (
-                    <div style={{ ...card, background: '#fffbeb', border: '1px solid #fde68a' }}>
-                      <span style={{ fontSize: 13.5, color: '#92400e', fontWeight: 700 }}>⚠ {k.incidentsOpen} {k.incidentsOpen === 1 ? 'ocorrência em aberto' : 'ocorrências em aberto'}</span>
+                    <div style={{ ...card, background: k.incidentsGrave > 0 ? '#fef2f2' : '#fffbeb', border: `1px solid ${k.incidentsGrave > 0 ? '#fecaca' : '#fde68a'}` }}>
+                      <span style={{ fontSize: 13.5, color: k.incidentsGrave > 0 ? '#991b1b' : '#92400e', fontWeight: 700 }}>
+                        ⚠ {k.incidentsOpen} {k.incidentsOpen === 1 ? 'ocorrência em aberto' : 'ocorrências em aberto'}
+                        {k.incidentsGrave > 0 && ` · ${k.incidentsGrave} grave${k.incidentsGrave === 1 ? '' : 's'}`}
+                      </span>
                       <Link href="/incidents" style={{ marginLeft: 8, fontSize: 12.5, color: '#b45309', fontWeight: 700 }}>resolver →</Link>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {[['/comecar-instituicao', '🚀 Pôr a postos'], ['/painel', '📊 Cockpit do dia'], ['/equipa', '👥 Equipa'], ['/faturacao', '💶 Faturação'], ['/stock', '📦 Stock'], ['/agenda', '📅 Agenda']].map(([href, l]) => (
+                    {ownerLinks(biz.org.kind).map(([href, l]) => (
                       <Link key={href} href={href} style={{ padding: '9px 14px', background: 'white', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#0b1120', textDecoration: 'none' }}>{l}</Link>
                     ))}
                   </div>

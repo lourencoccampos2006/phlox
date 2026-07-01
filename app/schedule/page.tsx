@@ -198,14 +198,14 @@ export default function EquipaPage() {
 
   async function saveMember() {
     if (!user || !mForm.name.trim()) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     setSavingMember(true)
     const payload = scope.stamp({ ...mForm })
-    if (editMemberId) {
-      await supabase.from('team_members').update(payload).eq('id', editMemberId)
-    } else {
-      await supabase.from('team_members').insert(payload)
-    }
+    const { error } = editMemberId
+      ? await supabase.from('team_members').update(payload).eq('id', editMemberId)
+      : await supabase.from('team_members').insert(payload)
     setSavingMember(false)
+    if (error) { alert('Não foi possível guardar: ' + error.message); return }
     setShowMemberForm(false)
     load()
   }
@@ -237,13 +237,15 @@ export default function EquipaPage() {
 
   async function saveShift() {
     if (!user || !sForm.team_member_id) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     setSavingShift(true)
     const { error } = await supabase.from('shift_assignments').insert(scope.stamp({
       team_member_id: sForm.team_member_id,
       date: sForm.date, shift: sForm.shift, notes: sForm.notes || null,
     }))
-    if (!error) { setShowShiftForm(false); load() }
     setSavingShift(false)
+    if (error) { alert('Não foi possível marcar o turno: ' + error.message); return }
+    setShowShiftForm(false); load()
   }
 
   async function removeShift(id: string) {

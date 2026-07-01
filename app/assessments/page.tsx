@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
+import { useToast } from '@/components/Toast'
 import { printDoc } from '@/lib/print'
 import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
@@ -195,6 +196,7 @@ function trendInfo(scale: ScaleType, current: number, prev: number | null) {
 function AssessmentsTool() {
   const { user, supabase } = useAuth()
   const scope = useOrgScope()
+  const toast = useToast()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
@@ -258,8 +260,9 @@ function AssessmentsTool() {
       notes: notes || null,
       evaluated_by: evaluatedBy || null,
     })
-    await supabase.from('assessments').insert(payload)
+    const { error } = await supabase.from('assessments').insert(payload)
     setSaving(false)
+    if (error) { toast.error('Não foi possível guardar a avaliação', error.message); return }
     setScores({})
     setNotes('')
     load()

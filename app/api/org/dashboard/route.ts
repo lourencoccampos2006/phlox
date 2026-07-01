@@ -57,6 +57,12 @@ export async function GET(req: NextRequest) {
   const marHome = (marMonth.data || []).filter((m: any) => m.source === 'home').length
   const familiesEngaged = new Set((family.data || []).map((f: any) => f.patient_id)).size
   const familyReplies = (family.data || []).filter((f: any) => f.author_side === 'family').length
+  // Ocorrências em aberto por gravidade — o dono precisa de saber se são graves.
+  const incBySeverity = (incOpen.data || []).reduce((acc: Record<string, number>, i: any) => {
+    const s = String(i.severity || 'minor')
+    acc[s] = (acc[s] || 0) + 1; return acc
+  }, {})
+  const incidentsGrave = (incBySeverity.major || 0) + (incBySeverity.critical || 0) + (incBySeverity.serious || 0) + (incBySeverity.sentinel || 0)
 
   // adesão ao registo: dos últimos 7 dias, % de utente-dias com registo
   const careDays = new Set((careWeek.data || []).map((c: any) => `${c.patient_id}|${c.date}`)).size
@@ -91,6 +97,7 @@ export async function GET(req: NextRequest) {
       marGivenMonth: marGiven,
       marHomeMonth: marHome,
       incidentsOpen: (incOpen.data || []).length,
+      incidentsGrave,
       familiesEngaged,
       familyReplies,
       logAdherence,

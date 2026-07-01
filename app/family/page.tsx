@@ -6,6 +6,7 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { useToast } from '@/components/Toast'
 
 interface FamilyContact {
   id: string
@@ -79,6 +80,7 @@ export default function FamilyPage() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  const toast = useToast()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
   const personLower = person.toLowerCase()
@@ -183,7 +185,7 @@ export default function FamilyPage() {
   async function sendMessage() {
     if (!compose.patient_id || !compose.subject.trim() || !compose.body.trim() || !user) return
     setSaving(true)
-    await supabase.from('family_messages').insert(scope.stamp({
+    const { error } = await supabase.from('family_messages').insert(scope.stamp({
       user_id: user.id,
       patient_id: compose.patient_id,
       contact_id: compose.contact_id || null,
@@ -194,6 +196,7 @@ export default function FamilyPage() {
       read: true,
     }))
     setSaving(false)
+    if (error) { toast.error('Não foi possível enviar a mensagem', error.message); return }
     setShowCompose(false)
     setCompose({ patient_id: '', contact_id: '', subject: '', body: '', type: 'update' })
     load()
@@ -243,7 +246,7 @@ export default function FamilyPage() {
   async function saveVisit() {
     if (!visitForm.patient_id || !user) return
     setSavingVisit(true)
-    await supabase.from('visit_requests').insert(scope.stamp({
+    const { error } = await supabase.from('visit_requests').insert(scope.stamp({
       user_id: user.id,
       patient_id: visitForm.patient_id,
       contact_id: visitForm.contact_id || null,
@@ -253,6 +256,7 @@ export default function FamilyPage() {
       status: visitForm.status,
     }))
     setSavingVisit(false)
+    if (error) { toast.error('Não foi possível registar a visita', error.message); return }
     setShowVisit(false)
     setVisitForm({ patient_id: '', contact_id: '', requested_date: new Date().toISOString().slice(0, 10), requested_time: new Date().toTimeString().slice(0, 5), notes: '', status: 'completed' })
     load()

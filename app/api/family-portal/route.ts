@@ -270,20 +270,28 @@ export async function POST(req: NextRequest) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return NextResponse.json({ error: 'Indique a data.' }, { status: 400 })
     const sb2 = admin()
     const who = (v2.contact?.name || String(body.name || '').trim() || 'Família').slice(0, 60)
+    // A tabela visit_requests (sprint12) NÃO tem coluna requested_by — o nome de
+    // quem pede vem do contact_id → resident_contacts (é assim que o /family o
+    // mostra). Quando a família não está ligada a um contacto (v2.contact nulo),
+    // metemos o nome na nota para não se perder.
+    const noteBase = String(body.notes || '').trim()
+    const notes = (v2.contact?.id ? noteBase : [`Pedido por: ${who}`, noteBase].filter(Boolean).join(' — ')).slice(0, 300) || null
     const row: any = {
       user_id: pat2.user_id, patient_id: pat2.id,
       contact_id: v2.contact?.id || null,
-      requested_by: who,
       requested_date: date,
       // coluna é NOT NULL na BD original; string vazia satisfaz sem precisar da
       // migração (sprint99) e não parte o pedido quando a família não escolhe hora.
       requested_time: String(body.time || '').slice(0, 5),
-      notes: String(body.notes || '').trim().slice(0, 300) || null,
+      notes,
       status: 'pending',
     }
     if (pat2.org_id) row.org_id = pat2.org_id
     const { error } = await sb2.from('visit_requests').insert(row)
-    if (error) return NextResponse.json({ error: 'Não foi possível pedir a visita.' }, { status: 500 })
+    if (error) {
+      console.error('request_visit insert falhou:', error.message)
+      return NextResponse.json({ error: `Não foi possível pedir a visita: ${error.message}` }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   }
 

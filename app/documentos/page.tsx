@@ -81,13 +81,15 @@ function DocumentosTool() {
 
   async function save() {
     if (!user || !form.name.trim() || !file) { setErr('Nome e ficheiro são obrigatórios.'); return }
+    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
     setSaving(true); setErr('')
     try {
       const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()
       const path = `${user.id}/${form.patient_id || 'instituicao'}/${Date.now()}.${ext}`
       const { error: up } = await supabase.storage.from('documents').upload(path, file, { upsert: false, contentType: file.type || undefined })
       if (up) throw up
-      await supabase.from('documents').insert(scope.stamp({ patient_id: form.patient_id || null, name: form.name.trim(), category: form.category, file_path: path, expiry_date: form.expiry_date || null, notes: form.notes || null }))
+      const { error: insErr } = await supabase.from('documents').insert(scope.stamp({ patient_id: form.patient_id || null, name: form.name.trim(), category: form.category, file_path: path, expiry_date: form.expiry_date || null, notes: form.notes || null }))
+      if (insErr) throw insErr
       setShowForm(false); setForm(blank); setFile(null); load()
     } catch (e: any) {
       setErr(e.message?.includes('Bucket') || e.message?.includes('bucket') ? 'Cria o bucket "documents" no Supabase (sprint23).' : (e.message || 'Erro ao guardar.'))

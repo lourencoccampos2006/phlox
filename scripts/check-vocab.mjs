@@ -29,11 +29,20 @@ const SHARED_TOOLS = [
 // de JSX entre tags (>...residentes...<) — esta segunda escapava antes e deixou
 // passar coisas como ">Total residentes</div>".
 const BAD = [
+  // "residente(s)" — o termo de pessoa só correto no lar
   /['"`][^'"`]*\bresidentes?\b[^'"`]*['"`]/i,
-  /['"`][^'"`]*\bevento do lar\b[^'"`]*['"`]/i,
-  /['"`][^'"`]*\bdo lar\b[^'"`]*['"`]/i,
   />[^<>{]*\bresidentes?\b[^<>]*</i,
-  />[^<>{]*\bevento do lar\b[^<>]*</i,
+  // "evento do lar" / "do lar" / "no lar"
+  /['"`][^'"`]*\b(evento|do|no) lar\b[^'"`]*['"`]/i,
+  />[^<>{]*\b(evento|do|no) lar\b[^<>]*</i,
+  // "Lar" / "ERPI" como rótulo/título hardcoded (ex: "Lar · Ocorrências",
+  // institution: 'Lar / ERPI'). Estas escapavam antes — foi o bug da R10.
+  /['"`][^'"`]*\b(Lar|ERPI)\b[^'"`]*['"`]/,
+  />[^<>{]*\b(Lar|ERPI)\b[^<>]*</,
+  // "quarto" em placeholder de campo onde devia ser cfg.roomLabel (centro de dia = Sala).
+  // (não apanhamos "cama" em geral — colide com escalas clínicas como Barthel
+  //  "transferência cama-cadeira" e o campo hospitalar legítimo "Cama/ward".)
+  /placeholder=['"`][^'"`]*\bquartos?\b[^'"`]*['"`]/i,
 ]
 
 // Exceções aceitáveis (domínio clínico / comentários) — ignoramos linhas que

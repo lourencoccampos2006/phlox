@@ -445,7 +445,7 @@ function PassagemTab({ patients, care, mar, incidents, shift, nameOf, roomOf, ri
         body: cr?.notes || undefined,
       }
     })
-    const inst = (typeof window !== 'undefined' && localStorage.getItem('phlox-clinic-institution')) ? 'Lar / ERPI' : undefined
+    const inst = (typeof window !== 'undefined' && localStorage.getItem('phlox-clinic-institution')) ? cfg.unitNoun : undefined
     printDoc({
       docTitle: `Passagem de Turno · ${SHIFT_LABEL[shift as Shift]}`,
       docSubtitle: `${new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,

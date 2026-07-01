@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useToast } from '@/components/Toast'
+import { useOrgScope } from '@/lib/orgScope'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
 
 type Severity = 'sentinel' | 'serious' | 'moderate' | 'minor' | 'near_miss'
 type EventType = 'medication_error' | 'near_miss' | 'adr' | 'fall' | 'infection' | 'procedure' | 'other'
@@ -63,6 +66,12 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 export default function QualityPage() {
   const { user, supabase } = useAuth()
+  const toast = useToast()
+  const scope = useOrgScope()
+  const { institution } = useClinicPrefs()
+  // "Intervenções farmacêuticas" só fazem sentido em farmácia/clínica/CSP.
+  // Num centro de dia ou lar, a tab só confunde → escondemo-la.
+  const showInterventions = institution === 'pharmacy_community' || institution === 'clinic' || institution === 'health_center'
   const [tab, setTab] = useState<'events' | 'interventions' | 'analytics'>('events')
   const [events, setEvents]               = useState<SafetyEvent[]>([])
   const [interventions, setInterventions] = useState<Intervention[]>([])
@@ -90,14 +99,16 @@ export default function QualityPage() {
     if (!user) return
     setLoading(true)
     const [ev, iv] = await Promise.all([
-      supabase.from('safety_events').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-      supabase.from('pharma_interventions').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+      scope.filter(supabase.from('safety_events').select('*')).order('date', { ascending: false }),
+      scope.filter(supabase.from('pharma_interventions').select('*')).order('date', { ascending: false }),
     ])
     if (ev.data) setEvents(ev.data)
     if (iv.data) setInterventions(iv.data)
     setLoading(false)
   }
-  useEffect(() => { load() }, [user])
+  useEffect(() => { load() }, [user, scope.orgId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Se a tab Intervenções deixar de existir para este tipo, volta a Eventos.
+  useEffect(() => { if (!showInterventions && tab === 'interventions') setTab('events') }, [showInterventions, tab])
 
   // ── Event CRUD ─────────────────────────────────────────────────────────────
   const EVENT_BLANK = { date: new Date().toISOString().slice(0,10), type: 'medication_error' as EventType, severity: 'moderate' as Severity, unit: '', description: '', drug: '', patient_name: '', status: 'open' as EventStatus, harm: false }
@@ -110,15 +121,28 @@ export default function QualityPage() {
   }
   async function saveEvent() {
     if (!user || !eventForm.description.trim()) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar eventos.'); return }
     setSaving(true)
-    const payload = { ...eventForm, user_id: user.id }
-    if (editEvent) await supabase.from('safety_events').update(payload).eq('id', editEvent.id)
-    else await supabase.from('safety_events').insert(payload)
-    setSaving(false); setShowEventModal(false); load()
+    const full = editEvent ? { ...eventForm } : scope.stamp({ ...eventForm })
+    const run = (p: any) => editEvent
+      ? supabase.from('safety_events').update(p).eq('id', editEvent.id)
+      : supabase.from('safety_events').insert(p)
+    let { error } = await run(full)
+    // Tolerante à BD antiga: se faltar patient_name/org_id/recorded_by_id
+    // (sprint101 por correr), tenta de novo sem esses campos. Assim funciona já.
+    if (error && /column .* does not exist|schema cache/i.test(error.message)) {
+      const { patient_name, org_id, recorded_by_id, ...safe } = full as any
+      ;({ error } = await run(safe))
+    }
+    setSaving(false)
+    if (error) { toast.error('Não foi possível guardar o evento', error.message); return }
+    setShowEventModal(false); load()
   }
   async function deleteEvent(id: string) {
+    if (!scope.canEdit) { toast.error('Só leitura'); return }
     if (!confirm('Remover evento?')) return
-    await supabase.from('safety_events').delete().eq('id', id)
+    const { error } = await supabase.from('safety_events').delete().eq('id', id)
+    if (error) { toast.error('Não foi possível remover', error.message); return }
     load()
   }
   async function closeEvent(id: string) {
@@ -137,11 +161,20 @@ export default function QualityPage() {
   }
   async function saveIv() {
     if (!user) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar intervenções.'); return }
     setSaving(true)
-    const payload = { ...ivForm, user_id: user.id }
-    if (editIntervention) await supabase.from('pharma_interventions').update(payload).eq('id', editIntervention.id)
-    else await supabase.from('pharma_interventions').insert(payload)
-    setSaving(false); setShowInterventionModal(false); load()
+    const full = editIntervention ? { ...ivForm } : scope.stamp({ ...ivForm })
+    const run = (p: any) => editIntervention
+      ? supabase.from('pharma_interventions').update(p).eq('id', editIntervention.id)
+      : supabase.from('pharma_interventions').insert(p)
+    let { error } = await run(full)
+    if (error && /column .* does not exist|schema cache/i.test(error.message)) {
+      const { org_id, recorded_by_id, ...safe } = full as any
+      ;({ error } = await run(safe))
+    }
+    setSaving(false)
+    if (error) { toast.error('Não foi possível guardar a intervenção', error.message); return }
+    setShowInterventionModal(false); load()
   }
   async function deleteIv(id: string) {
     if (!confirm('Remover intervenção?')) return
@@ -175,7 +208,7 @@ export default function QualityPage() {
 
           {/* Breadcrumb */}
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
+            <Link href="/painel" style={{ color: '#475569', textDecoration: 'none' }}>Painel</Link>
             <span>›</span>
             <span style={{ color: '#94a3b8' }}>Qualidade</span>
           </div>
@@ -204,7 +237,7 @@ export default function QualityPage() {
           <div className="quality-tabs" style={{ display: 'flex', gap: 4, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'] }}>
             {[
               { key: 'events' as const,        label: 'Eventos', badge: openCount },
-              { key: 'interventions' as const, label: 'Intervenções' },
+              ...(showInterventions ? [{ key: 'interventions' as const, label: 'Intervenções' }] : []),
               { key: 'analytics' as const,     label: 'KPIs' },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key)} style={{

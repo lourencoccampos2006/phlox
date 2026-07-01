@@ -148,6 +148,7 @@ export default function IncidentsPage() {
 
   const save = async () => {
     if (!user) return
+    if (!scope.canEdit) { setSaveError('A sua conta é só de leitura.'); return }
     setSaving(true)
     setSaveError('')
     try {
@@ -175,7 +176,11 @@ export default function IncidentsPage() {
       }
 
       if (editingId) {
-        const { error: dbErr } = await supabase.from('incidents').update(payload).eq('id', editingId).eq('user_id', user.id)
+        // Org-scoped: numa organização, o admin pode editar ocorrências da equipa
+        // (antes filtrava por user_id e bloqueava). RLS garante o limite por org.
+        let q = supabase.from('incidents').update(payload).eq('id', editingId)
+        if (!scope.orgId) q = q.eq('user_id', user.id)
+        const { error: dbErr } = await q
         if (dbErr) throw new Error(dbErr.message)
         setSelected(prev => prev && prev.id === editingId ? { ...prev, ...payload } as Incident : prev)
       } else {
@@ -211,7 +216,11 @@ export default function IncidentsPage() {
   }
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from('incidents').update({ status }).eq('id', id).eq('user_id', user!.id)
+    if (!scope.canEdit) { setSaveError('A sua conta é só de leitura.'); return }
+    let q = supabase.from('incidents').update({ status }).eq('id', id)
+    if (!scope.orgId) q = q.eq('user_id', user!.id)
+    const { error } = await q
+    if (error) { setSaveError('Não foi possível atualizar: ' + error.message); return }
     setIncidents(prev => prev.map(i => i.id === id ? { ...i, status: status as any } : i))
     if (selected?.id === id) setSelected(prev => prev ? { ...prev, status: status as any } : null)
   }
@@ -275,7 +284,7 @@ export default function IncidentsPage() {
               printDoc({
                 docTitle: 'Relatório de Ocorrência',
                 docSubtitle: `${TYPE_LABELS[selected.type] || selected.type} · ${selected.patient_name || ''}`,
-                institution: 'Lar / ERPI',
+                institution: cfg.unitNoun,
                 sections: [
                   { heading: 'Identificação', records: [{ title: TYPE_LABELS[selected.type] || 'Ocorrência', tags: [{ label: ss.label, color: ss.color }], fields }] },
                   { heading: 'Descrição e seguimento', records: [{ title: 'Detalhe da ocorrência', fields: detail }] },
@@ -344,7 +353,7 @@ export default function IncidentsPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>Lar · Ocorrências</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{cfg.unitNoun} · Ocorrências</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Registo de Ocorrências</h1>
           </div>
           <button onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM, created_by: (user as any)?.name || '' }); setShowForm(true); setSaveError('') }}
@@ -492,7 +501,7 @@ export default function IncidentsPage() {
 
                 <div style={{ gridColumn: '1/-1' }}>
                   <Label>Local</Label>
-                  <input value={form.location} onChange={e => f('location', e.target.value)} placeholder="Ex: Quarto, Corredor, Casa de banho..." style={inputStyle} />
+                  <input value={form.location} onChange={e => f('location', e.target.value)} placeholder={`Ex: ${cfg.roomLabel}, Corredor, Casa de banho...`} style={inputStyle} />
                 </div>
 
                 <div style={{ gridColumn: '1/-1' }}>

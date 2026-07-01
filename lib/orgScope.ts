@@ -33,6 +33,9 @@ export interface OrgScope {
   role: string | null
   /** true se for dono ou administrador (vê auditoria, gere equipa) */
   isManager: boolean
+  /** false quando o papel é "viewer" (Só leitura) — NÃO pode criar/editar/apagar.
+   *  Conta individual (sem org) pode sempre editar. */
+  canEdit: boolean
   /** Aplica o filtro de leitura certo a uma query supabase. */
   filter: <T>(query: T) => T
   /** Carimba uma linha a inserir com os campos de partilha + auditoria. */
@@ -48,6 +51,8 @@ export function useOrgScope(): OrgScope {
   const userId: string | null = user?.id || null
   const role: string | null = user?.org_role || null
   const isManager = !!orgId && (role === 'owner' || role === 'admin')
+  // Só leitura: pertence a uma org com papel viewer. Conta individual edita sempre.
+  const canEdit = !orgId || role !== 'viewer'
 
   const filter = <T,>(query: T): T => {
     const q = query as any
@@ -68,7 +73,7 @@ export function useOrgScope(): OrgScope {
   }
 
   return {
-    orgId, userId, role, isManager,
+    orgId, userId, role, isManager, canEdit,
     filter, stamp,
     liveFilterColumn: orgId ? 'org_id' : 'user_id',
     liveFilterValue: orgId || userId,

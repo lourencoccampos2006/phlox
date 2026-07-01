@@ -150,7 +150,7 @@ function AgendaTool() {
     printDoc({
       docTitle: 'Folha de Transportes',
       docSubtitle: new Date(today + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-      institution: 'Lar / ERPI',
+      institution: cfg.unitNoun,
       meta: [{ label: 'transportes', value: String(list.length) }],
       sections: [{ heading: 'Saídas de hoje', records }],
       footerNote: 'Folha de transportes · Phlox',

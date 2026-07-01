@@ -43,6 +43,13 @@ async function requireManager(req: NextRequest) {
   return { a, user, orgId, ownerName: prof?.name || '' }
 }
 
+// Mapeia o papel org_members → o "role" das escalas (team_members), para o
+// funcionário aparecer com a função certa no /schedule.
+const TEAM_ROLE: Record<string, string> = {
+  admin: 'coordinator', nurse: 'nurse', assistant: 'caregiver',
+  clinician: 'doctor', viewer: 'other',
+}
+
 function slugifyName(name: string): string {
   return name.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '').slice(0, 24) || 'membro'
@@ -116,6 +123,16 @@ export async function POST(req: NextRequest) {
       org_id: orgId, active_org_id: orgId, org_role: role === 'admin' ? 'admin' : 'member',
     })
     await a.from('org_members').upsert({ org_id: orgId, user_id: newId, role, invited_by: user.id, active: true }, { onConflict: 'org_id,user_id' })
+
+    // Torna o funcionário AGENDÁVEL logo: cria a linha team_members ligada à conta
+    // (antes /equipa e /schedule eram sistemas separados — adicionar aqui não
+    // aparecia nas escalas). Tolerante: se a tabela/coluna faltar, não parte.
+    try {
+      await a.from('team_members').upsert(
+        { org_id: orgId, user_id: newId, name, role: TEAM_ROLE[role] || 'other', status: 'off' },
+        { onConflict: 'org_id,user_id' }
+      )
+    } catch { /* team_members sem user_id nesta BD → ignora */ }
 
     // devolve as credenciais UMA vez (para imprimir/entregar)
     return NextResponse.json({ ok: true, mode: 'generate', login: { name, username: emailAddr, password, role } })

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { useToast } from '@/components/Toast'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -151,6 +152,7 @@ export default function MARPage() {
   const { user, supabase } = useAuth()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  const toast = useToast()
   const cfg = institutionConfig(institution)
   const isDayCare = institution === 'day_care'   // ponte casa↔centro só faz sentido aqui
   const isPro = ['pro', 'clinic'].includes(user?.plan || '')
@@ -293,17 +295,21 @@ export default function MARPage() {
 
   const doAdmin = async (medId: string, status: AdminStatus, notes: string) => {
     if (!user || !selectedId) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
     setSaving(medId)
     const existing = getRecord(medId)
     const base = scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() })
     if (!status && existing) {
-      await supabase.from('mar_records').delete().eq('id', (existing as any).id)
+      const { error } = await supabase.from('mar_records').delete().eq('id', (existing as any).id)
+      if (error) { setSaving(null); toast.error('Não foi possível remover', error.message); return }
       setRecords(p => p.filter(r => !(r.med_id === medId && r.shift === shift)))
     } else if (existing) {
-      const { data } = await supabase.from('mar_records').update({ status, notes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
+      const { data, error } = await supabase.from('mar_records').update({ status, notes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
+      if (error) { setSaving(null); toast.error('Não foi possível guardar', error.message); return }
       if (data) setRecords(p => p.map(r => r.med_id === medId && r.shift === shift ? data : r))
     } else if (status) {
-      const { data } = await supabase.from('mar_records').insert(base).select().single()
+      const { data, error } = await supabase.from('mar_records').insert(base).select().single()
+      if (error) { setSaving(null); toast.error('Não foi possível registar a toma', error.message); return }
       if (data) setRecords(p => [...p, data])
     }
     setSaving(null)

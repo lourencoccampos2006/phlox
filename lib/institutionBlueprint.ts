@@ -77,6 +77,8 @@ const T = {
   assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
   team:    { href: '/schedule', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
   staff:   { href: '/equipa', label: 'Funcionários', hint: 'Adicionar acessos e ver quem fez o quê', icon: '👥' },
+  radar:   { href: '/radar', label: 'O que merece atenção', hint: 'O que a equipa registou que saiu do padrão + pedidos dos utentes', icon: '📋' },
+  documents: { href: '/documentos', label: 'Documentos', hint: 'Cofre de documentos da instituição', icon: '📄' },
   quality: { href: '/quality', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: '📊' },
   meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: '🔍' },
   calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: '🧮' },
@@ -116,9 +118,9 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Utentes', 'As pessoas que frequentam o centro'),
-      T.meds, T.careLog, T.family, T.reconcile,
+      T.meds, T.careLog, T.family, T.radar, T.reconcile,
     ],
-    extraTools: [ T.incidents, T.activities, T.assessments, T.staff, T.team, T.quality, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.assessments, T.staff, T.team, T.quality, T.documents, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -139,9 +141,9 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Residentes', 'As pessoas que vivem no lar'),
-      T.meds, T.careLog, T.assessments, T.wounds, T.family,
+      T.meds, T.careLog, T.radar, T.assessments, T.wounds, T.family,
     ],
-    extraTools: [ T.incidents, T.team, T.quality, T.handover, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.staff, T.team, T.quality, T.handover, T.documents, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.

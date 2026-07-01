@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { useToast } from '@/components/Toast'
 import RegistoDoDia from './RegistoDoDia'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -79,6 +80,7 @@ export function CareLogTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  const toast = useToast()
   const cfg = institutionConfig(institution)
   const personLower = cfg.personNoun.toLowerCase()
 
@@ -179,6 +181,7 @@ export function CareLogTool() {
 
   async function save() {
     if (!user || !patientId) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
     setSaving(true)
     const { error } = await supabase.from('care_records').upsert(scope.stamp({
       user_id: user.id,
@@ -203,12 +206,11 @@ export function CareLogTool() {
     }), { onConflict: 'patient_id,date,shift' })
 
     setSaving(false)
-    if (!error) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
-      resetForm()
-      load()
-    }
+    if (error) { toast.error('Não foi possível guardar', error.message); return }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+    resetForm()
+    load()
   }
 
   const pat = patients.find(p => p.id === patientId)
