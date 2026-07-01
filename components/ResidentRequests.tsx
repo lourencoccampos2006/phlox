@@ -1,8 +1,12 @@
 'use client'
 
 // ResidentRequests — pedidos & observações do utente (o que pede/diz), visível a
-// toda a equipa. Self-contained: carrega e insere por conta própria, org-scoped
-// (recebe o scope de quem usa). Degrada com elegância se a tabela faltar (sprint98).
+// toda a equipa. Vive na ficha do utente (/patients/[id]), onde faz sentido
+// registar — quem está com o utente é quem ouve o pedido. Self-contained: carrega
+// e insere por conta própria, org-scoped. Degrada com elegância se a tabela
+// faltar (sprint98). Os pedidos EM ABERTO também aparecem no /radar (Ronda 9,
+// lib/careSignals) — o sítio onde a equipa já vê "o que merece atenção hoje",
+// sem ter de abrir perfil a perfil.
 
 import { useEffect, useState, useCallback } from 'react'
 

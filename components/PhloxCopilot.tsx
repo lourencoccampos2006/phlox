@@ -7,12 +7,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { getPhloxContext, subscribePhloxContext, serializeContext } from '@/lib/copilotContext'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import { save } from '@/lib/saves'
 
 const PUBLIC_PREFIXES = ['/', '/about', '/pricing', '/login', '/terms', '/privacy', '/trust', '/institucional', '/blog', '/onboarding']
 
-interface Msg { role: 'user' | 'assistant'; content: string }
+interface ProposedAction { type: 'save_summary' | 'log_resident_request'; label: string; content: string }
+interface Msg { role: 'user' | 'assistant'; content: string; usedTool?: string | null; proposedAction?: ProposedAction | null; actionDone?: boolean; actionError?: string }
+
+const TOOL_BADGE: Record<string, string> = {
+  check_interactions: '🔎 Verificado com interações reais',
+  patient_data: '🧠 Consultado o registo atual',
+  patient_data_interactions: '🧠🔎 Registo atual + interações reais verificadas',
+}
 
 // Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver e a quem acompanha.
 function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfile | null): string[] {
@@ -35,13 +44,14 @@ function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfi
   if (l.includes('tutoria')) return ['Faz-me uma pergunta sobre isto', 'Explica passo a passo', 'Dá-me uma mnemónica']
   if (l.includes('ficha de fármaco')) return ['Mecanismo em 1 frase', 'Efeitos adversos mais importantes', 'Interações a ter em conta']
   if (l.includes('calculadora')) return ['O que significa este resultado?', 'Quando é que isto muda a conduta?', 'Que valores são de alarme?']
-  if (l.includes('familiar no lar')) return ['Como tem corrido nos últimos dias?', 'O que devo perguntar à equipa?', 'A medicação está toda a ser dada?']
-  if (l.includes('atenção')) return ['Quem precisa de mais atenção hoje?', 'O que saiu do padrão?', 'O que devo confirmar primeiro?']
-  return ['Explica isto de forma simples', 'Quais os riscos clínicos aqui?', 'Faz-me 3 perguntas sobre isto']
+  if (l.includes('familiar no lar')) return ['Como tem corrido nos últimos dias?', 'A medicação está toda a ser dada?', 'Guarda um resumo desta semana']
+  if (l.includes('atenção')) return ['Quem precisa de mais atenção hoje?', 'Há pedidos dos utentes por resolver?', 'O que devo confirmar primeiro?']
+  return ['Explica isto de forma simples', 'Quais os riscos clínicos aqui?', 'Guarda um resumo disto']
 }
 
 export default function PhloxCopilot() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<Msg[]>([])
@@ -109,14 +119,43 @@ export default function PhloxCopilot() {
       const r = await fetch('/api/copilot-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
-        body: JSON.stringify({ message: q, path: pathname, selection, context: pageContext, profile: profileCtx, mode: user?.experience_mode, history: newMsgs.slice(-6) }),
+        body: JSON.stringify({
+          message: q, path: pathname, selection, context: pageContext, profile: profileCtx,
+          profileId: ap?.id, profileType: ap?.type,
+          mode: user?.experience_mode, history: newMsgs.slice(-6),
+        }),
       })
       const j = await r.json()
-      setMsgs(m => [...m, { role: 'assistant', content: j.reply || j.error || 'Sem resposta.' }])
+      setMsgs(m => [...m, { role: 'assistant', content: j.reply || j.error || 'Sem resposta.', usedTool: j.usedTool || null, proposedAction: j.proposedAction || null }])
     } catch {
       setMsgs(m => [...m, { role: 'assistant', content: 'Erro de ligação.' }])
     } finally { setBusy(false); setSelection('') }
   }, [input, busy, msgs, pathname, selection, supabase])
+
+  // Executa uma ação PROPOSTA pelo Copilot, só depois de confirmação do utilizador.
+  const confirmAction = useCallback(async (idx: number, action: ProposedAction) => {
+    const ap = getActiveProfile()
+    try {
+      if (action.type === 'save_summary') {
+        const profileName = ap ? (ap.type === 'self' ? `Eu (${ap.name.split(' ')[0]})` : ap.name) : undefined
+        save({
+          kind: 'note',
+          title: action.label.replace(/^💾\s*/, '') || 'Nota do Copilot',
+          preview: action.content.slice(0, 160),
+          data: { content: action.content },
+          href: pathname,
+          profileId: ap?.id, profileName, profileType: ap?.type,
+        })
+      } else if (action.type === 'log_resident_request') {
+        if (!ap || ap.type !== 'patient') throw new Error('Sem utente em foco')
+        const { error } = await supabase.from('resident_requests').insert(scope.stamp({ patient_id: ap.id, kind: 'observacao', content: action.content }))
+        if (error) throw error
+      }
+      setMsgs(m => m.map((msg, i) => i === idx ? { ...msg, actionDone: true } : msg))
+    } catch {
+      setMsgs(m => m.map((msg, i) => i === idx ? { ...msg, actionError: 'Não foi possível concluir.' } : msg))
+    }
+  }, [pathname, supabase, scope])
 
   if (!isPro || isPublic) return null
 
@@ -202,11 +241,24 @@ export default function PhloxCopilot() {
             )}
             {msgs.map((m, i) => (
               <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
+                {m.usedTool && TOOL_BADGE[m.usedTool] && (
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#0d6e42', marginBottom: 3 }}>{TOOL_BADGE[m.usedTool]}</div>
+                )}
                 <div style={{
                   padding: '9px 12px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap',
                   background: m.role === 'user' ? '#16181d' : '#f6f7f8',
                   color: m.role === 'user' ? 'white' : '#16181d',
                 }}>{m.content}</div>
+                {m.proposedAction && (
+                  m.actionDone ? (
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0d6e42', marginTop: 5 }}>✓ Feito</div>
+                  ) : (
+                    <button onClick={() => confirmAction(i, m.proposedAction!)} style={{ marginTop: 5, padding: '6px 12px', background: 'white', border: '1.5px solid #0d6e42', color: '#0d6e42', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      {m.proposedAction.type === 'save_summary' ? '💾 ' : '🙋 '}{m.proposedAction.label}
+                    </button>
+                  )
+                )}
+                {m.actionError && <div style={{ fontSize: 11.5, color: '#b91c1c', marginTop: 5 }}>{m.actionError}</div>}
               </div>
             ))}
             {busy && <div style={{ alignSelf: 'flex-start', color: '#8b8f99', fontSize: 13 }}>A pensar…</div>}

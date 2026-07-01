@@ -275,7 +275,9 @@ export async function POST(req: NextRequest) {
       contact_id: v2.contact?.id || null,
       requested_by: who,
       requested_date: date,
-      requested_time: String(body.time || '').slice(0, 5) || null,
+      // coluna é NOT NULL na BD original; string vazia satisfaz sem precisar da
+      // migração (sprint99) e não parte o pedido quando a família não escolhe hora.
+      requested_time: String(body.time || '').slice(0, 5),
       notes: String(body.notes || '').trim().slice(0, 300) || null,
       status: 'pending',
     }

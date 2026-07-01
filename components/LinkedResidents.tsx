@@ -92,16 +92,17 @@ export default function LinkedResidents() {
     } catch { return false }
   }
 
-  async function requestVisit(code: string, date: string, time: string, notes: string): Promise<boolean> {
+  async function requestVisit(code: string, date: string, time: string, notes: string): Promise<{ ok: boolean; error?: string }> {
     const acc = accesses.find(a => a.code === code)
-    if (!acc) return false
+    if (!acc) return { ok: false, error: 'Ligação não encontrada.' }
     try {
       const res = await fetch('/api/family-portal', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'request_visit', code: acc.code, verify: acc.verify, name: myName || 'Família', date, time, notes }),
       })
-      return res.ok
-    } catch { return false }
+      const d = await res.json().catch(() => ({}))
+      return res.ok ? { ok: true } : { ok: false, error: d.error || 'Não foi possível pedir a visita.' }
+    } catch { return { ok: false, error: 'Erro de ligação. Tente novamente.' } }
   }
 
   if (accesses.length === 0) return null
@@ -171,7 +172,7 @@ export default function LinkedResidents() {
                   {/* Pedir visita */}
                   <div style={{ marginTop: 12 }}>
                     {visitFor === acc.code ? (
-                      <VisitForm onCancel={() => setVisitFor(null)} onSubmit={async (date, time, notes) => { const ok = await requestVisit(acc.code, date, time, notes); if (ok) setVisitFor(null); return ok }} />
+                      <VisitForm onCancel={() => setVisitFor(null)} onSubmit={async (date, time, notes) => { const r = await requestVisit(acc.code, date, time, notes); if (r.ok) setVisitFor(null); return r }} />
                     ) : (
                       <button onClick={() => setVisitFor(acc.code)} style={{ padding: '10px 16px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}`, borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>📅 Pedir uma visita</button>
                     )}
@@ -187,12 +188,13 @@ export default function LinkedResidents() {
   )
 }
 
-function VisitForm({ onSubmit, onCancel }: { onSubmit: (date: string, time: string, notes: string) => Promise<boolean>; onCancel: () => void }) {
+function VisitForm({ onSubmit, onCancel }: { onSubmit: (date: string, time: string, notes: string) => Promise<{ ok: boolean; error?: string }>; onCancel: () => void }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
   if (done) return <div style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ Pedido de visita enviado. A equipa vai confirmar.</div>
   return (
     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 14 }}>
@@ -202,8 +204,9 @@ function VisitForm({ onSubmit, onCancel }: { onSubmit: (date: string, time: stri
         <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ flex: '0 1 120px', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none' }} />
       </div>
       <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Nota (opcional)" style={{ width: '100%', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
+      {error && <div style={{ fontSize: 12.5, color: '#b91c1c', marginBottom: 10 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={async () => { if (!date) return; setBusy(true); const ok = await onSubmit(date, time, notes); setBusy(false); if (ok) setDone(true) }} disabled={busy || !date} style={{ padding: '9px 16px', background: busy || !date ? '#e2e8f0' : ACCENT, color: busy || !date ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: busy || !date ? 'default' : 'pointer' }}>{busy ? 'A enviar…' : 'Pedir visita'}</button>
+        <button onClick={async () => { if (!date) return; setBusy(true); setError(''); const r = await onSubmit(date, time, notes); setBusy(false); if (r.ok) setDone(true); else setError(r.error || 'Não foi possível pedir a visita.') }} disabled={busy || !date} style={{ padding: '9px 16px', background: busy || !date ? '#e2e8f0' : ACCENT, color: busy || !date ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: busy || !date ? 'default' : 'pointer' }}>{busy ? 'A enviar…' : 'Pedir visita'}</button>
         <button onClick={onCancel} style={{ padding: '9px 14px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
       </div>
     </div>

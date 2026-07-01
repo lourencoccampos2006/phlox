@@ -30,6 +30,7 @@ export interface WoundRow { patient_id: string; status: string; stage?: string |
 export interface AssessmentRow { patient_id: string; scale: string; date: string }
 export interface WeightRow { patient_id: string; date: string; weight: number }
 export interface HydrationRow { patient_id: string; at: string; fluid_ml?: number | null }
+export interface ResidentRequestRow { patient_id: string; kind: string; content: string; status: string; created_at: string }
 
 export interface PatientLite { id: string; name: string; age?: number | null; conditions?: string | null; allergies?: string | null; room_number?: string | null }
 
@@ -45,6 +46,8 @@ export interface CareSignalsInput {
   assessments: AssessmentRow[]
   weights: WeightRow[]
   hydrationToday: HydrationRow[]
+  /** pedidos/observações/queixas do utente EM ABERTO (sprint98) — o que a equipa não deve deixar escapar. */
+  residentRequests: ResidentRequestRow[]
 }
 
 export interface CareItem { kind: string; severity: Severity; title: string; detail: string }
@@ -133,9 +136,21 @@ export function summariseResident(input: CareSignalsInput): CareResult {
     extra.push({ kind: 'meal_refused', severity: 'info', title: 'Recusa alimentar registada hoje', detail: 'A equipa registou recusa de refeição. Pode merecer atenção e seguimento.' })
   }
 
+  // Pedidos/observações/queixas do utente em aberto (o que o utente pediu ou disse,
+  // para toda a equipa ficar a saber e poder intervir — sprint98_resident_requests).
+  const RR_LABEL: Record<string, string> = { pedido: 'Pedido do utente', observacao: 'Observação registada', queixa: 'Queixa do utente' }
+  for (const rr of input.residentRequests) {
+    extra.push({
+      kind: 'resident_request',
+      severity: rr.kind === 'queixa' ? 'warning' : 'info',
+      title: RR_LABEL[rr.kind] || 'Pedido/observação do utente',
+      detail: String(rr.content || '').slice(0, 200),
+    })
+  }
+
   // Junta os sinais do motor + os organizacionais; separa "fora do padrão" de "por fazer".
   const all = [...a.signals, ...extra]
-  const openKinds = new Set(['care', 'assess', 'mar_open'])
+  const openKinds = new Set(['care', 'assess', 'mar_open', 'resident_request'])
   const outOfPattern: CareItem[] = []
   const openItems: CareItem[] = []
   for (const s of all) {

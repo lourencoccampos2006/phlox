@@ -156,7 +156,7 @@ export default function BottomTabBar() {
 
       <style>{`
         @media (min-width: 769px) { .phlox-bottom-bar { display: none !important; } }
-        @media (max-width: 768px) { .phlox-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important; } }
+        @media (max-width: 768px) { .phlox-main, .has-bottom-nav { padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important; } }
       `}</style>
     </>
   )

@@ -41,7 +41,7 @@ export default function RadarPage() {
 
     const safe = async (q: any) => { try { const r = await q; return r.error ? { data: [] } : r } catch { return { data: [] } } }
 
-    const [p, careToday, careHist, mar, meds, inc, wounds, assess, hyd] = await Promise.all([
+    const [p, careToday, careHist, mar, meds, inc, wounds, assess, hyd, reqs] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,age,conditions,allergies,room_number')).eq('active', true).order('name'),
       safe(scope.filter(supabase.from('care_records').select('patient_id,date,shift,mood,nutrition,notes')).eq('date', d)),
       safe(scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since365)),
@@ -51,6 +51,7 @@ export default function RadarPage() {
       safe(scope.filter(supabase.from('wounds').select('patient_id,status,stage'))),
       safe(scope.filter(supabase.from('assessments').select('patient_id,scale,date')).gte('date', since30)),
       safe(scope.filter(supabase.from('hydration_logs').select('patient_id,at,fluid_ml')).gte('at', since1.toISOString())),
+      safe(scope.filter(supabase.from('resident_requests').select('patient_id,kind,content,status,created_at')).neq('status', 'resolvido')),
     ])
     if (p.error) { setErr('Não foi possível carregar. Verifica a ligação.'); setLoading(false); return }
 
@@ -67,6 +68,7 @@ export default function RadarPage() {
     const woundsBy = by(wounds.data || [], (r: any) => r.patient_id)
     const assessBy = by(assess.data || [], (r: any) => r.patient_id)
     const hydBy = by(hyd.data || [], (r: any) => r.patient_id)
+    const reqsBy = by(reqs.data || [], (r: any) => r.patient_id)
 
     // Peso a partir do jsonb vitals dos care_records.
     const weightsBy: Record<string, { patient_id: string; date: string; weight: number }[]> = {}
@@ -87,6 +89,7 @@ export default function RadarPage() {
       assessments: assessBy[pt.id] || [],
       weights: weightsBy[pt.id] || [],
       hydrationToday: hydBy[pt.id] || [],
+      residentRequests: reqsBy[pt.id] || [],
     }))
     setResults(rankByAttention(out))
     setLoading(false)
@@ -94,7 +97,7 @@ export default function RadarPage() {
   }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load, table: ['patients', 'care_records', 'mar_records', 'incidents', 'wounds', 'assessments', 'patient_meds', 'hydration_logs'] })
+  useLiveData({ supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load, table: ['patients', 'care_records', 'mar_records', 'incidents', 'wounds', 'assessments', 'patient_meds', 'hydration_logs', 'resident_requests'] })
 
   const needAttention = useMemo(() => results.filter(r => r.outOfPattern.length > 0 || r.openItems.length > 0), [results])
   const calm = results.length - needAttention.length

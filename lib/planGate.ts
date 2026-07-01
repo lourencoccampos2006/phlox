@@ -45,7 +45,7 @@ export function limitReachedResponse(feature: string, limit: number, plan: strin
 }
 
 // ─── extractToken ─────────────────────────────────────────────────────────────
-function extractToken(req: NextRequest): string | null {
+export function extractToken(req: NextRequest): string | null {
   const authHeader = req.headers.get('authorization')
   if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7)
 

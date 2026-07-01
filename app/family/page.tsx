@@ -361,7 +361,7 @@ export default function FamilyPage() {
                             {v.contact_name || 'Familiar'} → {v.patient_name || person}
                           </div>
                           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>
-                            📅 {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })} às {v.requested_time}
+                            📅 {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}{v.requested_time ? ` às ${v.requested_time}` : ' · hora a combinar'}
                           </div>
                           {v.notes && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{v.notes}</div>}
                         </div>

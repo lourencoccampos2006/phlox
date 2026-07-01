@@ -109,7 +109,7 @@ export default function FamilyChat({ messages, mySide, onSend, title, height = 3
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
           placeholder="Escreva uma mensagem…"
-          style={{ flex: 1, border: '1.5px solid #e9eaec', borderRadius: 22, padding: '10px 16px', fontSize: 14, outline: 'none', background: '#f8fafc' }}
+          style={{ flex: 1, minWidth: 0, border: '1.5px solid #e9eaec', borderRadius: 22, padding: '10px 16px', fontSize: 14, outline: 'none', background: '#f8fafc' }}
         />
         <button onClick={send} disabled={sending || (!text.trim() && !photo)} style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: sending || (!text.trim() && !photo) ? '#e2e8f0' : accent, color: 'white', cursor: sending || (!text.trim() && !photo) ? 'default' : 'pointer', fontSize: 17, flexShrink: 0, fontWeight: 700 }}>↑</button>
       </div>
