@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 
 interface Patient { id: string; name: string; room_number?: string | null; age?: number | null; height?: number | null; active?: boolean }
 interface CareRec { patient_id: string; date: string; vitals: { weight?: number | null } | null }
@@ -38,6 +39,7 @@ function Sparkline({ series, color }: { series: WeightPoint[]; color: string }) 
 
 export default function NutricaoPage() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const [loading, setLoading] = useState(true)
   const [patients, setPatients] = useState<Patient[]>([])
   const [care, setCare] = useState<CareRec[]>([])
@@ -48,8 +50,8 @@ export default function NutricaoPage() {
     setLoading(true)
     const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const [p, c] = await Promise.all([
-      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('care_records').select('patient_id,date,vitals').eq('user_id', user.id).gte('date', since),
+      scope.filter(supabase.from('patients').select('*')).order('name'),
+      scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false))
     setCare(c.data || [])
@@ -57,7 +59,7 @@ export default function NutricaoPage() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: ['care_records', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['care_records', 'patients'], userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   function seriesFor(pid: string): WeightPoint[] {
     return care.filter(c => c.patient_id === pid && c.vitals?.weight)

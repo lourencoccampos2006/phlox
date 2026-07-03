@@ -285,17 +285,22 @@ function ValidationQueueTool() {
   const handleAddRx = useCallback(async () => {
     if (!newRx.patient_name || !newRx.drug_name || !newRx.dose) return
     setSaving(true)
+    const orgId = (user as any)?.org_id || null
     const rx: Prescription = {
       id: Math.random().toString(36).slice(2),
       ...newRx,
       patient_weight: newRx.patient_weight ? +newRx.patient_weight : undefined,
       status: 'pending',
       created_at: new Date().toISOString(),
-      org_id: (user as any)?.org_id ?? 'demo',
+      org_id: orgId ?? undefined,
     }
     setPrescriptions(p => [rx, ...p])
     if (user && supabase) {
-      await supabase.from('prescription_queue').insert([{ ...rx, id: undefined }])
+      // org_id só quando existe (era 'demo', string inválida no uuid → insert falhava).
+      const row: any = { ...rx, id: undefined, user_id: user.id }
+      if (!orgId) delete row.org_id
+      const { error } = await supabase.from('prescription_queue').insert([row])
+      if (error) { alert('Não foi possível guardar a prescrição: ' + error.message); setPrescriptions(p => p.filter(x => x.id !== rx.id)) }
     }
     setNewRx(BLANK_FORM)
     setShowNewRx(false)

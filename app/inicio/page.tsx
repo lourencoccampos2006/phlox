@@ -80,7 +80,9 @@ export default function InicioPage() {
           supabase.from('vitals').select('bp_sys,bp_dia,hr,spo2,glucose,weight,temp,recorded_at').eq('user_id', user.id).gte('recorded_at', monthAgo).order('recorded_at', { ascending: false }).limit(40),
           supabase.from('appointments').select('title, date').eq('user_id', user.id).gte('date', today).order('date').limit(1),
           expMode === 'personal' ? supabase.from('symptom_logs').select('at, pain, temperature, symptoms').eq('user_id', user.id).is('profile_id', null).gte('at', weekAgo).then((r: any) => r, () => ({ data: [] })) : Promise.resolve({ data: [] }),
-          expMode === 'personal' ? supabase.from('profiles').select('age, sex, conditions').eq('id', user.id).maybeSingle().then((r: any) => r, () => ({ data: null })) : Promise.resolve({ data: null }),
+          // idade/sexo/condições do próprio: o profiles NÃO tem estas colunas
+          // (dava 400 em toda a home). Fica null; o motor de alertas trata disso. (Ronda 11)
+          Promise.resolve({ data: null }),
         ])
         const medList = (meds || []) as { name: string; reminder_times?: string[]; pills_remaining?: number | null; pills_per_day?: number | null }[]
         // tomas de hoje e quantas já passaram da hora (janela) sem registo

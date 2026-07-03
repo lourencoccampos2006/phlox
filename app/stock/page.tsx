@@ -116,12 +116,17 @@ export default function StockPage() {
     setSaving(false)
   }
   async function adjust(it: Item, delta: number) {
+    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
     const q = Math.max(0, Number(it.quantity) + delta)
-    await supabase.from('stock_items').update({ quantity: q, updated_at: new Date().toISOString() }).eq('id', it.id)
+    const prev = it.quantity
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: q } : x))
+    const { error } = await supabase.from('stock_items').update({ quantity: q, updated_at: new Date().toISOString() }).eq('id', it.id)
+    if (error) { setErr('Não foi possível atualizar: ' + error.message); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)) }
   }
   async function del(id: string) {
-    await supabase.from('stock_items').delete().eq('id', id)
+    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    const { error } = await supabase.from('stock_items').delete().eq('id', id)
+    if (error) { setErr('Não foi possível remover: ' + error.message); return }
     setItems(p => p.filter(x => x.id !== id))
   }
 

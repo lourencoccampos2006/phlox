@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import Link from 'next/link'
 
 interface Patient {
@@ -30,6 +31,7 @@ const STATUS_CFG = {
 
 export default function CensusPage() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'map' | 'list' | 'admissions'>('map')
@@ -67,14 +69,12 @@ export default function CensusPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('user_id', user.id)
+    const { data } = await scope
+      .filter(supabase.from('patients').select('*'))
       .order('name', { ascending: true })
     setPatients(data || [])
     setLoading(false)
-  }, [user, supabase])
+  }, [user, supabase, scope.orgId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load() }, [load])
 

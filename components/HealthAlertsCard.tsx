@@ -29,13 +29,15 @@ export default function HealthAlertsCard() {
         const monthAgo = new Date(Date.now() - 60 * 86400000).toISOString()
         const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
         // Lê dados reais do PRÓPRIO. Tudo degrada a vazio se faltar tabela/coluna.
-        const [{ data: meds }, { data: vitals }, { data: logs }, { data: syms }, { data: prof }] = await Promise.all([
+        const [{ data: meds }, { data: vitals }, { data: logs }, { data: syms }] = await Promise.all([
           supabase.from('personal_meds').select('name, reminder_times, pills_remaining, pills_per_day').eq('user_id', user.id),
           supabase.from('vitals').select('bp_sys,bp_dia,hr,spo2,glucose,weight,temp,recorded_at').eq('user_id', user.id).gte('recorded_at', monthAgo).order('recorded_at', { ascending: false }).limit(40),
           supabase.from('med_logs').select('id').eq('user_id', user.id).gte('date', today).eq('status', 'taken'),
           supabase.from('symptom_logs').select('at, pain, temperature, symptoms').eq('user_id', user.id).is('profile_id', null).gte('at', weekAgo).then((r: any) => r, () => ({ data: [] })),
-          supabase.from('profiles').select('age, sex, conditions').eq('id', user.id).maybeSingle().then((r: any) => r, () => ({ data: null })),
         ])
+        // idade/sexo/condições do próprio vêm do objeto user (o profiles não tem
+        // essas colunas — a query dava 400 e caía sempre a null). (Ronda 11)
+        const prof = null as { age?: number; sex?: string; conditions?: string } | null
         const medRows = (meds || []) as any[]
         const totalSlots = medRows.reduce((n: number, m: any) => n + (m.reminder_times?.length || 0), 0)
         const taken = (logs || []).length

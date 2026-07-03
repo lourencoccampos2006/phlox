@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 
 interface W {
   id: string; name: string; reason?: string | null; priority: 'urgente' | 'prioritario' | 'normal'
@@ -35,6 +36,7 @@ export default function SalaEsperaRedirect() {
 
 export function SalaEsperaTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const [rows, setRows] = useState<W[]>([])
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
@@ -51,7 +53,7 @@ export function SalaEsperaTool() {
     if (!user) return
     setLoading(true); setErr('')
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
-    const { data, error } = await supabase.from('waiting_room').select('*').eq('user_id', user.id)
+    const { data, error } = await scope.filter(supabase.from('waiting_room').select('*'))
       .gte('arrived_at', todayStart.toISOString()).order('arrived_at', { ascending: true })
     if (error) { if (/relation .*waiting_room.* does not exist/i.test(error.message)) setMissing(true); setRows([]) }
     else { setMissing(false); setRows(data || []) }
@@ -59,14 +61,15 @@ export function SalaEsperaTool() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: 'waiting_room', userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: 'waiting_room', userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   async function add() {
     if (!form.name.trim()) { setErr('Indica o nome de quem chegou.'); return }
+    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
     setSaving(true); setErr('')
-    const { data, error } = await supabase.from('waiting_room').insert({
-      user_id: user.id, name: form.name.trim(), reason: form.reason.trim() || null, priority: form.priority, status: 'waiting',
-    }).select().single()
+    const { data, error } = await supabase.from('waiting_room').insert(scope.stamp({
+      name: form.name.trim(), reason: form.reason.trim() || null, priority: form.priority, status: 'waiting',
+    })).select().single()
     if (!error && data) { setRows(p => [...p, data]); setShowForm(false); setForm(blank) }
     else setErr(error?.message || 'Erro')
     setSaving(false)

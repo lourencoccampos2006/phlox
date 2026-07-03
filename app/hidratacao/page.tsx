@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
@@ -24,6 +25,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10)
 
 export function HidratacaoTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
@@ -39,8 +41,8 @@ export function HidratacaoTool() {
     setLoading(true)
     const since = new Date(Date.now() - 14 * 86400000).toISOString()
     const [p, l] = await Promise.all([
-      supabase.from('patients').select('id,name,room_number,active').eq('user_id', user.id).order('name'),
-      supabase.from('hydration_logs').select('*').eq('user_id', user.id).gte('at', since).order('at', { ascending: false }),
+      scope.filter(supabase.from('patients').select('id,name,room_number,active')).order('name'),
+      scope.filter(supabase.from('hydration_logs').select('*')).gte('at', since).order('at', { ascending: false }),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false))
     if (l.error) { setTableMissing(true); setLogs([]) }
@@ -49,7 +51,7 @@ export function HidratacaoTool() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, table: ['hydration_logs', 'patients'], userId: user?.id, onChange: load })
+  useLiveData({ supabase, table: ['hydration_logs', 'patients'], userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   const today = todayStr()
   function fluidToday(pid: string) { return logs.filter(l => l.patient_id === pid && l.kind === 'fluid' && l.at.slice(0, 10) === today).reduce((s, l) => s + (l.fluid_ml || 0), 0) }
@@ -62,14 +64,19 @@ export function HidratacaoTool() {
 
   async function addFluid(pid: string, ml: number) {
     if (!user) return
-    await supabase.from('hydration_logs').insert({ user_id: user.id, patient_id: pid, kind: 'fluid', fluid_ml: ml })
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    const { error } = await supabase.from('hydration_logs').insert(scope.stamp({ patient_id: pid, kind: 'fluid', fluid_ml: ml }))
+    if (error) { alert('Não foi possível registar: ' + error.message); return }
     load()
   }
   async function addBowel(pid: string, bristol: number) {
     if (!user) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     setSaving(true)
-    await supabase.from('hydration_logs').insert({ user_id: user.id, patient_id: pid, kind: 'bowel', bristol })
-    setSaving(false); setBowelFor(null); load()
+    const { error } = await supabase.from('hydration_logs').insert(scope.stamp({ patient_id: pid, kind: 'bowel', bristol }))
+    setSaving(false); setBowelFor(null)
+    if (error) { alert('Não foi possível registar: ' + error.message); return }
+    load()
   }
 
   // Meta proporcional à hora do dia (entre as 8h e as 21h): evita alarme falso de manhã.

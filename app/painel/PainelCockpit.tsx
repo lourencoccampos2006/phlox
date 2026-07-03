@@ -103,9 +103,10 @@ export default function PainelCockpit() {
 
     if (blockIds.has('sales_today')) {
       const start = new Date(); start.setHours(0, 0, 0, 0)
-      const r = await safe(scope.filter(supabase.from('sales').select('total,at')).gte('at', start.toISOString()), [])
+      // A tabela sales tem gross+discount, NÃO total (a query a 'total' dava 400). Net = gross - discount.
+      const r = await safe(scope.filter(supabase.from('sales').select('gross,discount,at')).gte('at', start.toISOString()), [])
       const rows = r.data || []
-      setSalesToday({ count: rows.length, total: rows.reduce((s: number, x: any) => s + (Number(x.total) || 0), 0) })
+      setSalesToday({ count: rows.length, total: rows.reduce((s: number, x: any) => s + Math.max(0, (Number(x.gross) || 0) - (Number(x.discount) || 0)), 0) })
     }
     if (blockIds.has('counter')) {
       const r = await safe(scope.filter(supabase.from('stock_items').select('id,quantity,min_quantity')), [])

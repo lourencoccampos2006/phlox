@@ -57,6 +57,7 @@ export default function TurnoPage() {
   const [mar, setMar] = useState<MarRec[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
+  const [requests, setRequests] = useState<any[]>([])
   // Ecosystem batch → risk engine
   const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
   const [woundsByPt, setWoundsByPt] = useState<Record<string, { status: string; stage?: string | null }[]>>({})
@@ -74,7 +75,7 @@ export default function TurnoPage() {
     const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
     const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
     const since14 = new Date(Date.now() - 14 * 86400000).toISOString()
-    const [p, c, m, i, a, meds, w, allCare, hyd] = await Promise.all([
+    const [p, c, m, i, a, meds, w, allCare, hyd, reqs] = await Promise.all([
       scope.filter(supabase.from('patients').select('*')),
       scope.filter(supabase.from('care_records').select('patient_id,shift,date,notes,mood')).eq('date', today),
       scope.filter(supabase.from('mar_records').select('patient_id,shift,date,status')).eq('date', today),
@@ -84,9 +85,11 @@ export default function TurnoPage() {
       scope.filter(supabase.from('wounds').select('patient_id,status,stage')),
       scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since365),
       scope.filter(supabase.from('hydration_logs').select('patient_id,at,kind,fluid_ml')).gte('at', since14),
+      // pedidos/observações do utente em aberto — o turno tem de os ver (Ronda 12)
+      scope.filter(supabase.from('resident_requests').select('id,patient_id,kind,content,status')).neq('status', 'resolvido').then((r: any) => r, () => ({ data: [] })),
     ])
     setPatients((p.data || []).filter((x: Patient) => x.active !== false).sort((a: Patient, b: Patient) => roomKey(a.room_number) - roomKey(b.room_number) || a.name.localeCompare(b.name)))
-    setCare(c.data || []); setMar(m.data || []); setIncidents(i.data || []); setAssessments(a.data || [])
+    setCare(c.data || []); setMar(m.data || []); setIncidents(i.data || []); setAssessments(a.data || []); setRequests(reqs?.data || [])
 
     const md: Record<string, string[]> = {}
     ;(meds.data || []).forEach((x: any) => { (md[x.patient_id] ||= []).push(x.name) })
@@ -122,7 +125,7 @@ export default function TurnoPage() {
 
   useEffect(() => { load() }, [load])
 
-  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'wounds', 'hydration_logs', 'patient_meds'], userId: scope.liveFilterValue || user?.id, onChange: load })
+  useLiveData({ supabase, table: ['care_records', 'mar_records', 'incidents', 'wounds', 'hydration_logs', 'patient_meds', 'resident_requests'], userId: scope.liveFilterValue || user?.id, onChange: load })
 
   const nameOf = (id: string) => patients.find(p => p.id === id)?.name || person
   const roomOf = (id: string) => { if (!cfg.hasBeds) return ''; const r = patients.find(p => p.id === id)?.room_number; return r ? `${cfg.roomLabel[0]}${r}` : '' }
@@ -167,7 +170,7 @@ export default function TurnoPage() {
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 12 }} />)}</div>
         ) : tab === 'tarefas' ? (
-          <TarefasTab patients={patients} care={care} mar={mar} incidents={incidents} assessments={assessments} shift={shift} nameOf={nameOf} roomOf={roomOf} cfg={cfg} />
+          <TarefasTab patients={patients} care={care} mar={mar} incidents={incidents} assessments={assessments} requests={requests} shift={shift} nameOf={nameOf} roomOf={roomOf} cfg={cfg} />
         ) : tab === 'ronda' ? (
           <RondaTab patients={patients} shift={shift} today={today} supabase={supabase} user={user} scope={scope} riskByPt={riskByPt} cfg={cfg} />
         ) : (
@@ -180,7 +183,7 @@ export default function TurnoPage() {
 
 // ─── TAREFAS ────────────────────────────────────────────────────────────────
 
-function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf, roomOf, cfg }: any) {
+function TarefasTab({ patients, care, mar, incidents, assessments, requests, shift, nameOf, roomOf, cfg }: any) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   interface Task { id: string; prio: Prio; category: string; title: string; sub: string; href: string }
   const tasks: Task[] = []
@@ -188,6 +191,10 @@ function TarefasTab({ patients, care, mar, incidents, assessments, shift, nameOf
   incidents.forEach((inc: Incident) => {
     const sev = inc.severity === 'critical' || inc.severity === 'major'
     tasks.push({ id: `inc-${inc.id}`, prio: sev ? 'high' : 'med', category: 'Ocorrência aberta', title: `${INC_LABELS[inc.type] || 'Ocorrência'} · ${nameOf(inc.patient_id)}`, sub: `${roomOf(inc.patient_id)}`.trim(), href: '/incidents' })
+  })
+  // Pedidos/observações do utente por resolver (Ronda 12) — o turno tem de os tratar.
+  ;(requests || []).forEach((r: any) => {
+    tasks.push({ id: `req-${r.id}`, prio: r.kind === 'queixa' ? 'high' : 'med', category: r.kind === 'queixa' ? 'Queixa do utente' : 'Pedido do utente', title: `${nameOf(r.patient_id)} — ${String(r.content || '').slice(0, 60)}`, sub: `${roomOf(r.patient_id)}`.trim(), href: `/patients/${r.patient_id}` })
   })
   mar.filter((r: MarRec) => r.status === 'refused' || r.status === 'held').forEach((r: MarRec, idx: number) => {
     tasks.push({ id: `mar-${r.patient_id}-${idx}`, prio: r.status === 'refused' ? 'high' : 'med', category: r.status === 'refused' ? 'Medicação recusada' : 'Medicação suspensa', title: nameOf(r.patient_id), sub: `${roomOf(r.patient_id)} · ${SHIFT_LABEL[r.shift] || r.shift}`.trim(), href: '/mar' })

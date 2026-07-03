@@ -121,8 +121,9 @@ export function AtividadesTool() {
 
   async function saveActivity() {
     if (!form.title.trim() || !user) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     setSaving(true)
-    await supabase.from('activities').insert(scope.stamp({
+    const { error } = await supabase.from('activities').insert(scope.stamp({
       user_id: user.id, title: form.title.trim(), type: form.type,
       date: form.date, start_time: form.start_time,
       end_time: form.end_time || null, location: form.location || null,
@@ -131,6 +132,7 @@ export function AtividadesTool() {
       status: 'planned',
     }))
     setSaving(false)
+    if (error) { alert('Não foi possível guardar a atividade: ' + error.message); return }
     setShowModal(false)
     setForm({ title: '', type: 'gym', date: todayStr(), start_time: '10:00', end_time: '', location: 'Sala de convívio', responsible: '', description: '', max_participants: '' })
     load()

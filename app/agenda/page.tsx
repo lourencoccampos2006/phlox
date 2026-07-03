@@ -93,11 +93,15 @@ function AgendaTool() {
   function openEdit(a: Appt) { setForm({ patient_id: a.patient_id || '', title: a.title, type: a.type, date: a.date, time: a.time || '', location: a.location || '', speciality: a.speciality || '', transport: !!a.transport, transport_notes: a.transport_notes || '', responsible: a.responsible || '', notes: a.notes || '' }); setEditId(a.id); setShowForm(true) }
   async function save() {
     if (!user || !form.title.trim() || !form.date) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     setSaving(true)
     const payload = scope.stamp({ ...form, patient_id: form.patient_id || null, updated_at: new Date().toISOString() })
-    if (editId) await supabase.from('appointments').update(payload).eq('id', editId)
-    else await supabase.from('appointments').insert(payload)
-    setSaving(false); setShowForm(false); load()
+    const { error } = editId
+      ? await supabase.from('appointments').update(payload).eq('id', editId)
+      : await supabase.from('appointments').insert(payload)
+    setSaving(false)
+    if (error) { alert('Não foi possível guardar: ' + error.message); return }
+    setShowForm(false); load()
   }
   async function setStatus(a: Appt, status: ApptStatus) {
     await supabase.from('appointments').update({ status }).eq('id', a.id)

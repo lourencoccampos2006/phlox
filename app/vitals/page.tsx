@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
 
 interface Vital {
   id: string; recorded_at: string
@@ -238,6 +239,30 @@ export default function VitalsPage() {
                 </div>
               ))}
             </div>
+            {/* Aviso inteligente na hora — avalia os valores contra o intervalo seguro
+                da pessoa (idade/condições). Só aparece o que sai do habitual. (Ronda 12) */}
+            {(() => {
+              const vals = { bp_sys: form.bp_sys, bp_dia: form.bp_dia, hr: form.hr, spo2: form.spo2, temp: form.temp, glucose: form.glucose }
+              const num: any = {}; Object.entries(vals).forEach(([k, v]) => { if (v && v.trim() && !isNaN(Number(v))) num[k] = Number(v) })
+              const flags = flagReading(num, { age: activeProfile?.age, conditions: activeProfile?.conditions })
+              if (flags.length === 0) return null
+              return (
+                <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {flags.map(({ field, reading }) => {
+                    const c = VITAL_LEVEL_COLOR[reading.level]
+                    return (
+                      <div key={field} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 9, padding: '8px 11px' }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: c.color }}>
+                          {reading.level === 'critical' ? '🔴' : '🟠'} {VITAL_LABEL[field]}: {reading.label} <span style={{ fontWeight: 400, color: '#94a3b8' }}>(ref. {reading.range})</span>
+                        </div>
+                        {reading.watch && <div style={{ fontSize: 12, color: '#475569', marginTop: 2, lineHeight: 1.45 }}>{reading.watch}</div>}
+                      </div>
+                    )
+                  })}
+                  <div style={{ fontSize: 10.5, color: '#94a3b8', lineHeight: 1.4 }}>Sinal a partir de intervalos de referência — não é diagnóstico. A avaliação é do profissional.</div>
+                </div>
+              )
+            })()}
             <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas (opcional)"
               style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:7, padding:'9px 12px', fontSize:13, outline:'none', fontFamily:'var(--font-sans)', boxSizing:'border-box', marginBottom:10 }} />
             <div style={{ display:'flex', gap:8 }}>

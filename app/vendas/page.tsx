@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useWedgeScanner, cameraScanAvailable, startCameraScan } from '@/lib/barcode'
@@ -36,6 +37,7 @@ export default function VendasRedirect() {
 
 export function VendasTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
 
@@ -63,7 +65,7 @@ export function VendasTool() {
     if (!user) return
     setLoading(true)
     const [st, se] = await Promise.all([
-      supabase.from('stock_items').select('id,name,barcode,ref,price,tax_rate,quantity,unit,category,min_quantity').eq('user_id', user.id),
+      scope.filter(supabase.from('stock_items').select('id,name,barcode,ref,price,tax_rate,quantity,unit,category,min_quantity')),
       supabase.from('invoice_settings').select('*').eq('user_id', user.id).maybeSingle(),
     ])
     if (st.error) { if (/relation .*stock_items.* does not exist/i.test(st.error.message)) setMissing(true); setStock([]) }
@@ -123,23 +125,25 @@ export function VendasTool() {
 
   async function finalize() {
     if (!user || cart.length === 0) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura — não pode registar vendas.'); return }
     setFinishing(true)
     try {
       const grossSum = cart.reduce((a, l) => a + l.qty * l.unit_price, 0)
       const discSum = cart.reduce((a, l) => a + (l.discount || 0), 0)
       const avgTax = cart.length ? Math.round(cart.reduce((a, l) => a + l.tax_rate, 0) / cart.length) : 23
-      const { data: sale, error } = await supabase.from('sales').insert({
-        user_id: user.id, kind: cfg.revenue === 'pos_sales' ? 'venda' : 'ato',
+      const { data: sale, error } = await supabase.from('sales').insert(scope.stamp({
+        kind: cfg.revenue === 'pos_sales' ? 'venda' : 'ato',
         description: cart.length === 1 ? cart[0].name : `${cart.length} artigos`,
         person_name: person.trim() || null, nif: nif.trim() || null,
         qty: totalQty, gross: grossSum, discount: discSum, tax_rate: avgTax, method,
         paid: method !== 'comparticipado', professional: user?.name || null,
-      }).select().single()
+      })).select().single()
       if (error || !sale) throw new Error(error?.message || 'Falha ao registar a venda')
 
       // linhas + baixa de stock
       const items = cart.map(l => ({ user_id: user.id, sale_id: sale.id, stock_id: l.stock_id || null, barcode: l.barcode || null, name: l.name, qty: l.qty, unit_price: l.unit_price, discount: l.discount || 0, tax_rate: l.tax_rate }))
-      await supabase.from('sale_items').insert(items)
+      const { error: itemsErr } = await supabase.from('sale_items').insert(items)
+      if (itemsErr) throw new Error('Venda criada mas as linhas falharam: ' + itemsErr.message)
       for (const l of cart) {
         if (l.stock_id && l.stockLeft != null) {
           await supabase.from('stock_items').update({ quantity: Math.max(0, l.stockLeft - l.qty), updated_at: new Date().toISOString() }).eq('id', l.stock_id)
@@ -259,7 +263,7 @@ export function VendasTool() {
   async function exportToday(kind: 'csv' | 'saft') {
     const start = new Date(); start.setHours(0, 0, 0, 0)
     const today = new Date().toISOString().slice(0, 10)
-    const { data } = await supabase.from('sales').select('*').eq('user_id', user.id).gte('at', start.toISOString()).order('at')
+    const { data } = await scope.filter(supabase.from('sales').select('*')).gte('at', start.toISOString()).order('at')
     const rows = data || []
     if (rows.length === 0) { flash('Sem vendas hoje para exportar.'); return }
     let content = '', ext = 'csv', mime = 'text/csv;charset=utf-8'

@@ -93,6 +93,8 @@ const T = {
   screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: '🧪' },
   wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: '🩹' },
   handover:{ href: '/turno?tab=passagem', label: 'Passagem de turno', hint: 'Resumo do turno para a equipa seguinte', icon: '🔁' },
+  billing: { href: '/faturacao', label: 'Faturação', hint: 'Mensalidades, comparticipações e recibos', icon: '💶' },
+  vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: '🛡️' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -120,7 +122,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'As pessoas que frequentam o centro'),
       T.meds, T.careLog, T.family, T.radar, T.reconcile,
     ],
-    extraTools: [ T.incidents, T.activities, T.assessments, T.staff, T.team, T.quality, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.assessments, T.staff, T.team, T.quality, T.documents, T.billing, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -143,7 +145,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.radar, T.assessments, T.wounds, T.family,
     ],
-    extraTools: [ T.incidents, T.activities, T.staff, T.team, T.quality, T.handover, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.vigia, T.staff, T.team, T.quality, T.handover, T.documents, T.billing, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
@@ -164,7 +166,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'Clientes com ficha e medicação'),
       T.balcao, T.stock, T.meds_check, T.screenings,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.reconcile ],
+    extraTools: [ T.team, T.quality, T.calc, T.reconcile, T.sales, T.billing ],
   },
 
   // ── CLÍNICA — consultas. Tom sóbrio.
@@ -185,7 +187,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Doentes', 'Fichas e medicação dos doentes'),
       T.appts, T.meds_check, T.reconcile, T.rounds,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.screenings, T.incidents ],
+    extraTools: [ T.team, T.quality, T.calc, T.screenings, T.incidents, T.billing ],
   },
 
   // ── CENTRO DE SAÚDE / USF — utentes, CSP. Tom sóbrio.
@@ -205,7 +207,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'Fichas e medicação dos utentes'),
       T.appts, T.screenings, T.meds_check, T.reconcile,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.rounds ],
+    extraTools: [ T.team, T.quality, T.calc, T.rounds, T.billing ],
   },
 
 }

@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import ResidentRequests from '@/components/ResidentRequests'
+import PatientTimeline from '@/components/PatientTimeline'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useOrgScope } from '@/lib/orgScope'
@@ -493,6 +494,15 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <CardTitle>Pedidos &amp; observações</CardTitle>
           <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>O que {noun} pede ou diz — para toda a equipa saber e poder intervir.</p>
           <ResidentRequests patientId={pid} supabase={supabase} scope={scope} accent={accent} />
+        </Card>
+      )}
+
+      {/* LINHA DO TEMPO — funde tudo o que se registou sobre a pessoa (Ronda 12) */}
+      {pid && (
+        <Card>
+          <CardTitle>Linha do tempo</CardTitle>
+          <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>Tudo o que se registou — medicação, cuidados, vitais, ocorrências, consultas — por ordem, num só sítio.</p>
+          <PatientTimeline patientId={pid} supabase={supabase} scope={scope} patientName={patient?.name} accent={accent} />
         </Card>
       )}
 
