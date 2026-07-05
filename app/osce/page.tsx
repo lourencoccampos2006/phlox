@@ -141,6 +141,7 @@ export default function OSCEPage() {
   const [plan, setPlan] = useState('')
   const [feedback, setFeedback] = useState<OSCEFeedback | null>(null)
   const [loading, setLoading] = useState(false)
+  const [genError, setGenError] = useState('')
 
   // Contexto p/ o Copilot: a estação OSCE que o estudante está a fazer.
   usePhloxContext(
@@ -159,6 +160,7 @@ export default function OSCEPage() {
 
   const generateStation = async () => {
     setLoading(true)
+    setGenError('')
     try {
       const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/osce/station', {
@@ -167,10 +169,32 @@ export default function OSCEPage() {
         body: JSON.stringify({ course, station_type: stationType, difficulty }),
       })
       const data = await res.json()
+      // BUG (Ronda 12): antes fazia data.checklist_items.map sem validar — se a API
+      // devolvesse erro ou JSON malformado, rebentava e o catch silenciava tudo → o
+      // botão "não fazia nada". Agora valida e mostra o erro (com 1 retry).
+      if (!res.ok || !Array.isArray(data?.checklist_items) || data.checklist_items.length === 0) {
+        // 1 tentativa extra (a geração por IA falha às vezes de forma transitória)
+        const res2 = await fetch('/api/osce/station', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+          body: JSON.stringify({ course, station_type: stationType, difficulty }),
+        })
+        const data2 = await res2.json()
+        if (!res2.ok || !Array.isArray(data2?.checklist_items) || data2.checklist_items.length === 0) {
+          throw new Error(data2?.error || data?.error || 'A estação não foi gerada. Tenta novamente ou muda o tipo de estação.')
+        }
+        setStation(data2)
+        setChecklistResults(data2.checklist_items.map((item: any) => ({ ...item, done: false })))
+        setPhase('briefing')
+        setLoading(false)
+        return
+      }
       setStation(data)
       setChecklistResults(data.checklist_items.map((item: any) => ({ ...item, done: false })))
       setPhase('briefing')
-    } catch {}
+    } catch (e: any) {
+      setGenError(e?.message || 'Não foi possível gerar a estação. Tenta novamente.')
+    }
     setLoading(false)
   }
 
@@ -309,6 +333,9 @@ export default function OSCEPage() {
             </div>
           </div>
 
+          {genError && (
+            <div style={{ marginBottom: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: 13 }}>{genError}</div>
+          )}
           <button onClick={generateStation} disabled={loading}
             style={{ width: '100%', padding: '14px', background: loading ? 'var(--bg-3)' : selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: loading ? 'wait' : 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {loading ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A gerar estação OSCE...</> : `${selectedCourse.icon} Iniciar estação OSCE →`}

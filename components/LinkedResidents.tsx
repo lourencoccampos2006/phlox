@@ -20,6 +20,13 @@ interface Access { code: string; verify: string; name: string; room?: string }
 interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean }
 interface HomeMed { id: string; name: string; dose?: string; frequency?: string; take_location?: string }
 
+const VISIT_STATUS: Record<string, { label: string; c: string; bg: string; bd: string }> = {
+  pending:   { label: 'Pendente',  c: '#b45309', bg: '#fffbeb', bd: '#fde68a' },
+  approved:  { label: 'Aprovada',  c: '#0d6e42', bg: '#f0fdf4', bd: '#bbf7d0' },
+  declined:  { label: 'Recusada',  c: '#b91c1c', bg: '#fef2f2', bd: '#fecaca' },
+  completed: { label: 'Realizada', c: '#64748b', bg: '#f8fafc', bd: '#e2e8f0' },
+}
+interface VisitReq { id: string; requested_date: string; requested_time?: string | null; status: string; notes?: string | null }
 interface Loaded {
   acc: Access
   patientName: string
@@ -27,6 +34,7 @@ interface Loaded {
   messages: ChatMessage[]
   days: DaySummary[]
   meds: HomeMed[]
+  visits: VisitReq[]
 }
 
 export default function LinkedResidents() {
@@ -53,7 +61,7 @@ export default function LinkedResidents() {
       if (!res.ok || d.needsVerify) return
       setData(prev => ({ ...prev, [acc.code]: {
         acc, patientName: d.patient?.name || acc.name, room: d.patient?.room_number || acc.room,
-        messages: d.messages || [], days: d.dailySummaries || [], meds: d.homeMeds || [],
+        messages: d.messages || [], days: d.dailySummaries || [], meds: d.homeMeds || [], visits: d.visitRequests || [],
       } }))
     } catch { /* offline */ }
   }, [])
@@ -169,10 +177,33 @@ export default function LinkedResidents() {
                     />
                   </div>
 
+                  {/* Visitas marcadas — mostra os pedidos e o estado (a instituição
+                      aprova/recusa na aba Visitas do /family; aqui a família vê). */}
+                  {d.visits.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>As minhas visitas</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {d.visits.map(v => {
+                          const st = VISIT_STATUS[v.status] || VISIT_STATUS.pending
+                          return (
+                            <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: st.bg, border: `1px solid ${st.bd}`, borderRadius: 9, padding: '8px 11px' }}>
+                              <span style={{ fontSize: 13 }}>📅</span>
+                              <span style={{ flex: 1, fontSize: 12.5, color: '#0b1120' }}>
+                                {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'long' })}
+                                {v.requested_time ? ` · ${v.requested_time}` : ''}
+                              </span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: st.c }}>{st.label}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Pedir visita */}
                   <div style={{ marginTop: 12 }}>
                     {visitFor === acc.code ? (
-                      <VisitForm onCancel={() => setVisitFor(null)} onSubmit={async (date, time, notes) => { const r = await requestVisit(acc.code, date, time, notes); if (r.ok) setVisitFor(null); return r }} />
+                      <VisitForm onCancel={() => setVisitFor(null)} onSubmit={async (date, time, notes) => { const r = await requestVisit(acc.code, date, time, notes); if (r.ok) { setVisitFor(null); fetchOne(acc) } return r }} />
                     ) : (
                       <button onClick={() => setVisitFor(acc.code)} style={{ padding: '10px 16px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}`, borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>📅 Pedir uma visita</button>
                     )}

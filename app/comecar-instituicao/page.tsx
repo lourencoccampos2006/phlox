@@ -16,7 +16,6 @@ const INST_TYPES: { id: string; label: string; emoji: string }[] = [
   { id: 'nursing_home', label: 'Lar / ERPI', emoji: '🏡' },
   { id: 'day_care', label: 'Centro de Dia', emoji: '☀️' },
   { id: 'clinic', label: 'Clínica', emoji: '🩺' },
-  { id: 'pharmacy_community', label: 'Farmácia', emoji: '💊' },
   { id: 'health_center', label: 'Centro de Saúde', emoji: '➕' },
 ]
 

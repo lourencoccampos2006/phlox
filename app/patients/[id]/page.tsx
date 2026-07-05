@@ -24,6 +24,7 @@ interface Patient {
   weight: number | null; height: number | null; creatinine: number | null
   conditions: string | null; allergies: string | null; notes: string | null
   room_number?: string | null; admission_date?: string | null; emergency_contact?: string | null
+  address?: string | null
   updated_at?: string
 }
 interface Med { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: string | null }
@@ -102,7 +103,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setMeds(mRes.data || []); setContacts(cRes.data || [])
     setVitals(vRes.data?.[0]?.vitals || null)
     setTodayMar(marRes.data || [])
-    setActiveProfile({ id: pRes.data.id, name: pRes.data.name, type: 'patient', age: pRes.data.age, sex: pRes.data.sex, conditions: pRes.data.conditions, allergies: pRes.data.allergies })
+    setActiveProfile({ id: pRes.data.id, name: pRes.data.name, type: 'patient', age: pRes.data.age, sex: pRes.data.sex, conditions: pRes.data.conditions, allergies: pRes.data.allergies, ownerId: user.id })
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, pid, router])
@@ -124,6 +125,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       creatinine: edit.creatinine ? Number(edit.creatinine) : null,
       conditions: (edit.conditions || '').trim() || null, allergies: (edit.allergies || '').trim() || null,
       room_number: (edit.room_number || '').trim() || null, emergency_contact: (edit.emergency_contact || '').trim() || null,
+      address: (edit.address || '').trim() || null,
       notes: (edit.notes || '').trim() || null,
     }
     await supabase.from('patients').update(patch).eq('id', patient.id)
@@ -321,6 +323,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <div style={{ fontSize: 14, color: '#334155', lineHeight: 1.6 }}>{patient.conditions}</div>
           </div>
         )}
+        {patient.address && <div style={{ marginTop: 12 }}><Label>{isDayCare ? 'Morada (recolha)' : 'Morada'}</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>📍 {patient.address}</div></div>}
         {patient.notes && <div style={{ marginTop: 12 }}><Label>Notas</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.notes}</div></div>}
 
         {/* Resumo clínico IA — só quando há matéria para analisar */}
@@ -558,6 +561,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <input value={edit.conditions || ''} onChange={e => setEdit(p => ({ ...p, conditions: e.target.value }))} placeholder="Diagnósticos" style={inp} />
               <input value={edit.allergies || ''} onChange={e => setEdit(p => ({ ...p, allergies: e.target.value }))} placeholder="Alergias" style={inp} />
+              <input value={edit.address || ''} onChange={e => setEdit(p => ({ ...p, address: e.target.value }))} placeholder={isDayCare ? 'Morada (recolha de transporte)' : 'Morada'} style={inp} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input value={edit.room_number || ''} onChange={e => setEdit(p => ({ ...p, room_number: e.target.value }))} placeholder={cfg.roomLabel} style={inp} />
                 <input value={edit.emergency_contact || ''} onChange={e => setEdit(p => ({ ...p, emergency_contact: e.target.value }))} placeholder="Contacto SOS" style={inp} />

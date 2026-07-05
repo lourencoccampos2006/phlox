@@ -45,6 +45,7 @@ export default function PainelCockpit() {
   const [incidents, setIncidents] = useState<any[]>([])
   const [family, setFamily] = useState<any[]>([])
   const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
+  const [attToday, setAttToday] = useState<any[]>([])   // presenças marcadas à mão hoje
   // farmácia / clínica / transversal
   const [salesToday, setSalesToday] = useState<{ count: number; total: number }>({ count: 0, total: 0 })
   const [lowStock, setLowStock] = useState(0)
@@ -81,6 +82,13 @@ export default function PainelCockpit() {
     const m: Record<string, string[]> = {}
     ;(meds.data || []).forEach((x: any) => { (m[x.patient_id] ||= []).push(x.name) })
     setMedsByPt(m)
+
+    // Presenças marcadas à mão (tabela attendance, sprint104). Tolerante: se a
+    // tabela ainda não existe, a presença continua a inferir-se de care/mar.
+    try {
+      const att = await scope.filter(supabase.from('attendance').select('patient_id,status,arrived_at,left_at,transport').eq('date', d))
+      setAttToday(att.error ? [] : (att.data || []))
+    } catch { setAttToday([]) }
 
     // Blocos específicos (farmácia / clínica / transversais). Só consultamos o
     // que ESTE tipo de instituição mostra — e cada query é tolerante a tabelas
@@ -140,13 +148,24 @@ export default function PainelCockpit() {
     filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue,
     table: [
       'patients', 'care_records', 'mar_records', 'activities', 'incidents',
-      'family_thread_messages', 'family_messages', 'patient_meds',
+      'family_thread_messages', 'family_messages', 'patient_meds', 'attendance',
       'sales', 'stock_items', 'prescription_queue', 'appointments', 'team_tasks',
     ],
   })
 
   // ── derivados ──
   const withCareToday = useMemo(() => new Set(careToday.map(r => r.patient_id)), [careToday])
+  // Presenças: quem foi marcado à mão OU teve QUALQUER registo hoje (cuidado ou
+  // medicação). Assim, dar medicação passa a marcar presença — era o bug. Uma
+  // marcação explícita de "ausente" tem prioridade e retira da lista de presentes.
+  const attByPt = useMemo(() => { const m = new Map<string, any>(); attToday.forEach(a => m.set(a.patient_id, a)); return m }, [attToday])
+  const presentToday = useMemo(() => {
+    const s = new Set<string>()
+    careToday.forEach(r => s.add(r.patient_id))
+    marToday.forEach(r => s.add(r.patient_id))
+    attToday.forEach(a => { if (a.status === 'present' || a.status === 'left') s.add(a.patient_id); if (a.status === 'absent') s.delete(a.patient_id) })
+    return s
+  }, [careToday, marToday, attToday])
   const ranked = useMemo(() => patients.map(p => {
     const a = analyzeResident({
       age: p.age, conditions: p.conditions, allergies: p.allergies,
@@ -167,6 +186,29 @@ export default function PainelCockpit() {
       return next
     })
   }
+
+  // Marcar presença/ausência à mão (upsert por utente/dia). Optimista: reflete já
+  // no set de presenças; o realtime confirma. Se a tabela não existir, avisa.
+  const markAttendance = useCallback(async (patientId: string, status: 'present' | 'absent') => {
+    if (!user) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    const now = new Date().toISOString()
+    const row = scope.stamp({
+      patient_id: patientId, date: today(), status,
+      arrived_at: status === 'present' ? now : null,
+      recorded_by_id: user.id,
+    })
+    // otimista
+    setAttToday(prev => { const rest = prev.filter(a => a.patient_id !== patientId); return [...rest, { patient_id: patientId, status, arrived_at: row.arrived_at }] })
+    const { error } = await supabase.from('attendance').upsert(row, { onConflict: 'patient_id,date' })
+    if (error) {
+      // reverte e informa
+      setAttToday(prev => prev.filter(a => a.patient_id !== patientId))
+      alert(error.message?.includes('attendance') || error.code === '42P01'
+        ? 'Presenças ainda não disponíveis — corre o sprint104_attendance.sql.'
+        : (error.message || 'Não foi possível marcar a presença.'))
+    }
+  }, [user, supabase, scope])
 
   const firstName = user?.name?.split(' ')[0] || ''
   const visibleBlocks = bp.cockpit.filter(b => editing || b.essential || !hidden.has(b.id))
@@ -240,7 +282,7 @@ export default function PainelCockpit() {
             <BlockShell key={block.id} block={block} editing={editing} hidden={hidden.has(block.id)} onToggle={() => toggleHide(block.id)} accent={bp.accent}>
               <BlockBody
                 id={block.id} bp={bp} cfg={cfg} loading={loading}
-                ctx={{ patients, careToday, withCareToday, marToday, marTaken, acts, incidents, family, attention, firstName, salesToday, lowStock, rxQueue, apptsToday, tasks }}
+                ctx={{ patients, careToday, withCareToday, marToday, marTaken, acts, incidents, family, attention, firstName, salesToday, lowStock, rxQueue, apptsToday, tasks, presentToday, attByPt, markAttendance }}
               />
             </BlockShell>
           ))}
@@ -279,6 +321,8 @@ interface Ctx {
   acts: any[]; incidents: any[]; family: any[]; attention: any[]; firstName: string
   salesToday: { count: number; total: number }; lowStock: number
   rxQueue: { pending: number; total: number }; apptsToday: any[]; tasks: any[]
+  presentToday: Set<string>; attByPt: Map<string, any>
+  markAttendance: (patientId: string, status: 'present' | 'absent') => void
 }
 
 function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: any; loading: boolean; ctx: Ctx }) {
@@ -287,13 +331,13 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
 
   switch (id) {
     case 'day_overview': {
-      const present = ctx.withCareToday.size
+      const present = ctx.presentToday.size
       return (
         <div style={{ ...card, background: bp.accent, border: 'none', color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 600, marginBottom: 10 }}>O dia de hoje</div>
           <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap' }}>
             <Stat n={ctx.patients.length} l={noun} light />
-            <Stat n={present} l="com registo hoje" light />
+            <Stat n={present} l="presentes hoje" light />
             <Stat n={ctx.marTaken} l="tomas dadas" light />
             <Stat n={ctx.acts.length} l="atividades" light />
           </div>
@@ -301,19 +345,48 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       )
     }
     case 'attendance': {
-      // Presença = tem registo de cuidado hoje. Quem não tem ainda = "por chegar/registar".
-      const present = ctx.patients.filter(p => ctx.withCareToday.has(p.id))
-      const pending = ctx.patients.filter(p => !ctx.withCareToday.has(p.id))
+      // Presença = marcada à mão OU com qualquer registo (cuidado/medicação) hoje.
+      // Dar medicação passa a contar como presença; e há marcação manual explícita.
+      const present = ctx.patients.filter(p => ctx.presentToday.has(p.id))
+      const absent = ctx.patients.filter(p => ctx.attByPt.get(p.id)?.status === 'absent')
+      const pending = ctx.patients.filter(p => !ctx.presentToday.has(p.id) && ctx.attByPt.get(p.id)?.status !== 'absent')
       return (
         <div style={card}>
           <div style={blkTitle}>🟢 Presenças <span style={{ color: '#94a3b8', fontWeight: 600 }}>{present.length}/{ctx.patients.length}</span></div>
           {ctx.patients.length === 0 ? <Empty msg={`Sem ${noun.toLowerCase()} ainda.`} href="/patients" cta={`Adicionar ${noun.toLowerCase()}`} />
-          : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {present.slice(0, 24).map(p => <Chip key={p.id} label={p.name.split(' ')[0]} tone="ok" />)}
-              {/* Quem ainda não tem registo → toca para registar já o dia dessa pessoa */}
-              {pending.slice(0, 16).map(p => <Link key={p.id} href={`/care-log?patient=${p.id}`} style={{ textDecoration: 'none' }}><Chip label={p.name.split(' ')[0]} tone="pending" /></Link>)}
-            </div>}
-          {pending.length > 0 && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10 }}>{pending.length} ainda sem registo hoje · toca num nome para registar</div>}
+          : <>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {/* Presentes — toca no × para marcar ausente */}
+              {present.slice(0, 30).map(p => (
+                <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 20, padding: '3px 4px 3px 11px', fontSize: 12, fontWeight: 600 }}>
+                  {p.name.split(' ')[0]}
+                  <button onClick={() => ctx.markAttendance(p.id, 'absent')} title="Marcar ausente" style={{ border: 'none', background: 'transparent', color: '#86c9a3', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 3px' }}>×</button>
+                </span>
+              ))}
+              {/* Por chegar — botão marca presença já (não é preciso abrir o registo) */}
+              {pending.slice(0, 24).map(p => (
+                <button key={p.id} onClick={() => ctx.markAttendance(p.id, 'present')} title="Marcar presente"
+                  style={{ background: '#fff', border: '1px dashed #e2e8f0', color: '#64748b', borderRadius: 20, padding: '4px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  + {p.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+            {absent.length > 0 && (
+              <div style={{ marginTop: 9, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>Ausentes:</span>
+                {absent.slice(0, 16).map(p => (
+                  <button key={p.id} onClick={() => ctx.markAttendance(p.id, 'present')} title="Marcar presente"
+                    style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 20, padding: '3px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                    {p.name.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10 }}>
+              {pending.length > 0 ? `${pending.length} por chegar · toca para marcar presente` : 'Todos marcados. ✓'}
+              {' · '}<Link href="/care-log" style={{ color: bp.accent, textDecoration: 'none', fontWeight: 700 }}>registar o dia →</Link>
+            </div>
+          </>}
         </div>
       )
     }

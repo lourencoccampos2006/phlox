@@ -87,6 +87,8 @@ export function AtividadesTool() {
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
   const [filterType, setFilterType] = useState('')
+  const [notifyBusy, setNotifyBusy] = useState(false)
+  const [notifySent, setNotifySent] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: '', type: 'gym', date: todayStr(), start_time: '10:00', end_time: '',
@@ -168,6 +170,33 @@ export function AtividadesTool() {
     let inserted: Participation[] = []
     if (toInsert.length) { const { data } = await supabase.from('activity_participations').insert(toInsert).select(); inserted = data || [] }
     setParticipations(prev => [...prev.map(p => ({ ...p, attended: true })), ...inserted])
+  }
+
+  // Enviar às famílias: um recado para a família de cada presente, a dizer que
+  // participou. Escreve em family_messages (aparece no /family e no cockpit).
+  async function notifyFamilies() {
+    if (!selected || !user) return
+    const present = participations.filter(p => p.attended)
+    if (present.length === 0) { alert('Marca primeiro quem participou.'); return }
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!confirm(`Enviar recado às famílias de ${present.length} ${cfg.personNounPlural.toLowerCase()} que participaram em "${selected.title}"?`)) return
+    setNotifyBusy(true)
+    const nameOf = (pid: string) => (patients.find(p => p.id === pid)?.name || cfg.personNoun).split(' ')[0]
+    const rows = present.map(p => scope.stamp({
+      user_id: user.id,
+      patient_id: p.patient_id,
+      contact_id: null,
+      subject: `Atividade: ${selected.title}`,
+      body: `O/A ${nameOf(p.patient_id)} participou hoje na atividade "${selected.title}". Foi um bom momento! 🌿`,
+      type: 'update',
+      direction: 'sent',
+      read: true,
+    }))
+    const { error } = await supabase.from('family_messages').insert(rows)
+    setNotifyBusy(false)
+    if (error) { alert(error.message || 'Não foi possível enviar.'); return }
+    setNotifySent(selected.id)
+    setTimeout(() => setNotifySent(null), 4000)
   }
 
   async function deleteActivity(act: Activity) {
@@ -424,9 +453,17 @@ export function AtividadesTool() {
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Participação · <span style={{ color: '#16a34a' }}>{attendedCount} presentes</span></span>
-                  {patients.length > 0 && (
-                    <button onClick={markAllPresent} style={{ padding: '3px 9px', borderRadius: 5, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}>✓ Todos</button>
-                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {attendedCount > 0 && (
+                      <button onClick={notifyFamilies} disabled={notifyBusy} title="Avisar as famílias de quem participou"
+                        style={{ padding: '3px 9px', borderRadius: 5, border: '1px solid #bfdbfe', background: notifySent === selected?.id ? '#dbeafe' : '#eff6ff', color: '#2563eb', fontSize: 11, fontWeight: 700, cursor: notifyBusy ? 'wait' : 'pointer', textTransform: 'none', letterSpacing: 0 }}>
+                        {notifyBusy ? 'A enviar…' : notifySent === selected?.id ? '✓ Enviado' : '✉ Avisar famílias'}
+                      </button>
+                    )}
+                    {patients.length > 0 && (
+                      <button onClick={markAllPresent} style={{ padding: '3px 9px', borderRadius: 5, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}>✓ Todos</button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {patients.length === 0 ? (

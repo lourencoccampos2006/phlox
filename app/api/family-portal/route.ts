@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
 
   const sb = admin()
   const today = new Date().toISOString().slice(0, 10)
-  const [{ data: msgs }, dailySummaries, homeMeds, todayDoses] = await Promise.all([
+  const [{ data: msgs }, dailySummaries, homeMeds, todayDoses, visitRequests] = await Promise.all([
     sb.from('family_thread_messages')
       .select('id, patient_id, author_side, author_name, kind, content, photo_url, mood, meals, activity, created_at')
       .eq('patient_id', pat.id).order('created_at', { ascending: true }).limit(200),
@@ -180,6 +180,13 @@ export async function GET(req: NextRequest) {
       (r: any) => r.error ? [] : (r.data || []),
       () => []
     ),
+    // pedidos de visita desta família — para a família VER os que pediu e o estado
+    // (bug reportado: a visita marcada não aparecia de volta). Futuras + recentes.
+    sb.from('visit_requests').select('id, requested_date, requested_time, status, notes, created_at')
+      .eq('patient_id', pat.id).order('requested_date', { ascending: false }).limit(20).then(
+        (r: any) => r.error ? [] : (r.data || []),
+        () => []
+      ),
   ])
 
   return NextResponse.json({
@@ -189,6 +196,7 @@ export async function GET(req: NextRequest) {
     dailySummaries,
     homeMeds: homeMeds || [],
     todayDoses: todayDoses || [],
+    visitRequests: visitRequests || [],
   })
 }
 

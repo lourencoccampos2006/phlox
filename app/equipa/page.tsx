@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
-import { useClinicPrefs, INST_META } from '@/lib/useClinicPrefs'
+import { useClinicPrefs, INST_META, OFFERED_INSTITUTIONS } from '@/lib/useClinicPrefs'
 
 const ACCENT = '#0d9488'
 
@@ -59,6 +59,7 @@ export default function EquipaPage() {
   const [newEmail, setNewEmail] = useState('')
   const [newRole, setNewRole] = useState('assistant')
   const [lastLogin, setLastLogin] = useState<GenLogin | null>(null)
+  const [inviteMsg, setInviteMsg] = useState('')
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -125,6 +126,8 @@ export default function EquipaPage() {
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       if (d.mode === 'generate') setLastLogin(d.login)
+      if (d.mode === 'added') { setInviteMsg(`${d.name || d.email} já tinha conta Phlox — foi adicionado/a à equipa com acesso imediato.`); setTimeout(() => setInviteMsg(''), 6000) }
+      if (d.mode === 'invite') { setInviteMsg(`Convite enviado para ${d.email}. Vai receber um email para criar a conta.`); setTimeout(() => setInviteMsg(''), 6000) }
       setNewName(''); setNewEmail('')
       await loadAll()
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
@@ -199,7 +202,7 @@ export default function EquipaPage() {
             <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Ex: Centro de Dia São José" style={inp} />
             <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-              {(['day_care', 'nursing_home', 'pharmacy_community', 'clinic', 'health_center'] as const).map(k => (
+              {OFFERED_INSTITUTIONS.map(k => (
                 <button key={k} onClick={() => setOrgKind(k)} style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${orgKind === k ? ACCENT : '#e2e8f0'}`, background: orgKind === k ? '#f0fdfa' : 'white', color: orgKind === k ? ACCENT : '#475569', fontSize: 13, fontWeight: orgKind === k ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {INST_META[k].icon} {INST_META[k].label}
                 </button>
@@ -244,7 +247,7 @@ export default function EquipaPage() {
                       <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da instituição" style={inp} />
                       <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                        {(['day_care', 'nursing_home', 'pharmacy_community', 'clinic', 'health_center'] as const).map(k => (
+                        {OFFERED_INSTITUTIONS.map(k => (
                           <button key={k} onClick={() => setEditKind(k)} style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${editKind === k ? ACCENT : '#e2e8f0'}`, background: editKind === k ? '#f0fdfa' : 'white', color: editKind === k ? ACCENT : '#475569', fontSize: 13, fontWeight: editKind === k ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                             {INST_META[k].icon} {INST_META[k].label}
                           </button>
@@ -300,7 +303,7 @@ export default function EquipaPage() {
                     <>
                       <label style={lbl}>Email do funcionário</label>
                       <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="ana@exemplo.pt" style={inp} />
-                      <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>Recebe um convite para criar a própria conta.</p>
+                      <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>Se já tiver conta Phlox, entra já na equipa. Senão, recebe um convite por email para criar a conta.</p>
                     </>
                   )}
 
@@ -315,8 +318,10 @@ export default function EquipaPage() {
                   </div>
 
                   <button onClick={addMember} disabled={busy || (addMode === 'generate' ? !newName.trim() : !newEmail.trim())} style={{ ...btn, opacity: busy || (addMode === 'generate' ? !newName.trim() : !newEmail.trim()) ? 0.5 : 1 }}>
-                    {busy ? 'A processar…' : addMode === 'generate' ? 'Gerar acesso →' : 'Enviar convite →'}
+                    {busy ? 'A processar…' : addMode === 'generate' ? 'Gerar acesso →' : 'Adicionar / convidar →'}
                   </button>
+
+                  {inviteMsg && <div style={{ marginTop: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>{inviteMsg}</div>}
 
                   {/* Credenciais geradas — mostram-se UMA vez */}
                   {lastLogin && (

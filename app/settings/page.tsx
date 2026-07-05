@@ -28,11 +28,13 @@ const MODE_OPTIONS = [
 ]
 
 // Clínica e Centro de Saúde existem mas estão escondidos por agora; Hospital e
-// Farmácia Hospitalar foram removidos. Foco: Lar, Centro de Dia, Farm. Comunitária.
+// Farmácia (comunitária e hospitalar) ARQUIVADA. Foco: cuidado à pessoa —
+// Centro de Dia, Lar, Clínica, Centro de Saúde.
 const INSTITUTION_OPTIONS = [
-  { value: 'nursing_home',       label: 'Lar / ERPI',            sub: 'Residentes · Turnos · MAR' },
   { value: 'day_care',           label: 'Centro de Dia',         sub: 'Utentes · Atividades · Famílias' },
-  { value: 'pharmacy_community', label: 'Farmácia Comunitária',  sub: 'Clientes · Interações' },
+  { value: 'nursing_home',       label: 'Lar / ERPI',            sub: 'Residentes · Turnos · MAR' },
+  { value: 'clinic',             label: 'Clínica',               sub: 'Doentes · Agenda · Consultas' },
+  { value: 'health_center',      label: 'Centro de Saúde',       sub: 'Utentes · Rastreios · CSP' },
 ]
 const INST_KEY = 'phlox-clinic-institution'
 

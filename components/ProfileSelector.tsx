@@ -57,7 +57,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
 
   // Carrega o perfil activo do localStorage e os perfis familiares do Supabase
   useEffect(() => {
-    const current = getActiveProfile()
+    const current = getActiveProfile(user?.id)
     if (current) {
       setActive(current)
       // CRÍTICO: propagar o perfil activo INICIAL ao pai. Sem isto, ao chegar de
@@ -78,24 +78,23 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
         setLoading(false)
         // Se não há perfil activo guardado, usa "self" como default
         if (!current && user) {
-          const selfProfile: ActiveProfile = { id: 'self', name: user.name, type: 'self' }
+          const selfProfile: ActiveProfile = { id: 'self', name: user.name, type: 'self', ownerId: user.id }
           setActive(selfProfile)
           setActiveProfile(selfProfile)
           onChange?.(selfProfile)
         }
       })
 
-    // Doentes/utentes (apenas Pro/Institucional)
+    // Doentes/utentes (apenas Pro/Institucional). Org-scoped: numa instituição
+    // mostra os utentes da ORGANIZAÇÃO, não só os criados pela conta ativa
+    // (bug reportado). Sem org → por user_id.
     if (canPatients) {
-      supabase
-        .from('patients')
-        .select('id, name, age, sex, conditions, allergies')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(20)
+      let q = supabase.from('patients').select('id, name, age, sex, conditions, allergies')
+      q = org?.id ? q.eq('org_id', org.id) : q.eq('user_id', user.id)
+      q.order('updated_at', { ascending: false }).limit(20)
         .then(({ data }: { data: PatientProfile[] | null }) => setPatients(data || []))
     }
-  }, [user, supabase, canPatients])
+  }, [user, supabase, canPatients, org?.id])
 
   // Fecha o dropdown ao clicar fora
   useEffect(() => {
@@ -107,10 +106,11 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
   }, [])
 
   function select(profile: ActiveProfile) {
-    setActive(profile)
-    setActiveProfile(profile)
+    const stamped = { ...profile, ownerId: user?.id }
+    setActive(stamped)
+    setActiveProfile(stamped)
     setOpen(false)
-    onChange?.(profile)
+    onChange?.(stamped)
   }
 
   if (!user) return null

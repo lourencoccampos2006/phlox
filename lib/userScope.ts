@@ -64,3 +64,22 @@ export function clearUserScopeOnSignOut() {
   clearPerUser()
   try { localStorage.removeItem(OWNER_KEY) } catch {}
 }
+
+/**
+ * Coerência perfil-ativo ↔ modo. O perfil ativo é global; um doente da
+ * INSTITUIÇÃO (type='patient') não deve aparecer em modo pessoal/cuidador/
+ * estudante (bug: cuidador viu momentaneamente o doente "Rosa"). Chamar quando
+ * o modo é conhecido; se o perfil ativo não pertence a este modo, limpa-o.
+ */
+export function ensureProfileMatchesMode(mode: string | null | undefined) {
+  if (typeof localStorage === 'undefined' || !mode) return
+  try {
+    const raw = localStorage.getItem('phlox-active-profile')
+    if (!raw) return
+    const p = JSON.parse(raw)
+    // 'patient' só faz sentido em modo clínico. Fora disso, limpa.
+    if (p?.type === 'patient' && mode !== 'clinical') {
+      localStorage.removeItem('phlox-active-profile')
+    }
+  } catch { /* noop */ }
+}

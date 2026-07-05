@@ -49,9 +49,10 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
 // o foco é Lar, Centro de Dia e Farmácia Comunitária. Hospital e Farmácia
 // Hospitalar foram removidos (demasiado ambicioso para já).
 const INSTITUTIONS = [
-  { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },
   { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },
-  { id: 'pharmacy_community', label: 'Farmácia Comunitária', desc: 'Clientes, interações' },
+  { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },
+  { id: 'clinic',             label: 'Clínica',              desc: 'Doentes, agenda, consultas' },
+  { id: 'health_center',      label: 'Centro de Saúde',      desc: 'Utentes, rastreios, CSP' },
 ]
 const ROLES = [
   { id: 'nurse', label: 'Enfermeiro(a)' }, { id: 'pharmacist', label: 'Farmacêutico(a)' },

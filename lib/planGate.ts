@@ -101,7 +101,21 @@ export async function getUserPlan(req: NextRequest): Promise<{ userId: string | 
       .single()
 
     if (error || !data) return { userId, plan: 'free' }
-    return { userId, plan: (data.plan as Plan) || 'free' }
+    let plan = (data.plan as Plan) || 'free'
+
+    // Acesso institucional por PERTENÇA, não por plano: um funcionário convidado
+    // fica com plan='free' (para os limites gratuitos valerem FORA da instituição
+    // — uso pessoal/estudo/cuidador), mas ao ser membro ativo de uma organização
+    // ganha o acesso clínico dessa instituição. Assim o dono não precisa de pagar
+    // um plano a cada funcionário, e o funcionário não recebe Pro pessoal de graça.
+    if (plan !== 'clinic') {
+      try {
+        const { data: mem } = await supabase
+          .from('org_members').select('org_id').eq('user_id', userId).eq('active', true).limit(1).maybeSingle()
+        if (mem?.org_id) plan = 'clinic'
+      } catch { /* sem org_members → mantém o plano do perfil */ }
+    }
+    return { userId, plan }
 
   } catch (err) {
     console.error('getUserPlan error:', err)

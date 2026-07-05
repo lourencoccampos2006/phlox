@@ -238,7 +238,8 @@ export default function FamilyPage() {
   }
 
   async function updateVisitStatus(id: string, status: VisitRequest['status']) {
-    await supabase.from('visit_requests').update({ status }).eq('id', id)
+    const { error } = await supabase.from('visit_requests').update({ status }).eq('id', id)
+    if (error) { toast.error('Não foi possível atualizar a visita', error.message); return }
     setVisits(prev => prev.map(v => v.id === id ? { ...v, status } : v))
   }
 
@@ -262,7 +263,6 @@ export default function FamilyPage() {
     load()
   }
 
-  const unreadCount = messages.filter(m => !m.read && m.direction === 'received').length
   const pendingVisits = visits.filter(v => v.status === 'pending').length
 
   return (
@@ -288,21 +288,6 @@ export default function FamilyPage() {
         </div>
       </div>
       {dayPhotoMsg && <div style={{ marginBottom: 14, padding: '10px 14px', background: dayPhotoMsg.startsWith('✓') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${dayPhotoMsg.startsWith('✓') ? '#bbf7d0' : '#fecaca'}`, borderRadius: 8, fontSize: 13, color: dayPhotoMsg.startsWith('✓') ? '#15803d' : '#991b1b' }}>{dayPhotoMsg}</div>}
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {[
-          { label: 'Contactos ativos',  value: enrichedContacts.length,                         color: '#2563eb' },
-          { label: 'Mensagens enviadas', value: messages.filter(m => m.direction === 'sent').length, color: '#7c3aed' },
-          { label: 'Não lidas',         value: unreadCount,                                     color: unreadCount > 0 ? '#dc2626' : '#16a34a' },
-          { label: 'Visitas pendentes', value: pendingVisits,                                   color: pendingVisits > 0 ? '#d97706' : '#16a34a' },
-        ].map(s => (
-          <div key={s.label} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px' }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1.5px solid #e5e7eb', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -649,6 +634,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   const [sending, setSending] = useState(false)
   const [prefilling, setPrefilling] = useState(false)
   const [extrasOpen, setExtrasOpen] = useState(false)
+  const [ptSearch, setPtSearch] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
   const patient = patients.find((p: Patient) => p.id === patientId)
@@ -832,10 +818,21 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
     <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 300px)', minHeight: 460 }}>
       {/* Lista de residentes — em mobile esconde-se quando há conversa aberta */}
       <div className="ft-list" data-open={patientId ? 'chat' : 'list'} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflowY: 'auto' }}>
-        <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{cfg.personNounPlural}</div>
-        {patients.length === 0 ? (
-          <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>Sem {cfg.personNounPlural.toLowerCase()}.</div>
-        ) : patients.map((p: Patient) => {
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{cfg.personNounPlural}</div>
+          <input value={ptSearch} onChange={e => setPtSearch(e.target.value)}
+            placeholder={`Procurar por nome ou familiar…`}
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '8px 11px', fontSize: 13, outline: 'none', background: '#f9fafb' }} />
+        </div>
+        {(() => {
+          const ql = ptSearch.trim().toLowerCase()
+          const list = !ql ? patients : patients.filter((p: Patient) =>
+            p.name.toLowerCase().includes(ql) ||
+            contacts.some((c: FamilyContact) => c.patient_id === p.id && c.name.toLowerCase().includes(ql))
+          )
+          return list.length === 0 ? (
+          <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>{patients.length === 0 ? `Sem ${cfg.personNounPlural.toLowerCase()}.` : `Nada corresponde a “${ptSearch}”.`}</div>
+        ) : list.map((p: Patient) => {
           const active = p.id === patientId
           const nContacts = contacts.filter((c: FamilyContact) => c.patient_id === p.id).length
           return (
@@ -851,7 +848,8 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
               )}
             </button>
           )
-        })}
+        })
+        })()}
       </div>
 
       {/* Fio */}

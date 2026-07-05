@@ -4,23 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
-import FusionTabs from '@/components/FusionTabs'
-import { AuditoriaTool } from '../auditoria/page'
-import { ADRReportTool } from '../adr-report/page'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
-// /documentos é agora a fusão "Conformidade": Documentos + Auditoria + Notificação
-// RAM. Cada aba é o componente original intacto.
+// /documentos = cofre de documentos da instituição, só isso. (A auditoria vive no
+// /painel-dono "quem fez o quê"; a notificação RAM em /adr-report.)
 export default function DocumentosPage() {
-  return <FusionTabs
-    eyebrow="Conformidade" title="Documentos e conformidade"
-    subtitle="Documentos, auditoria e notificação de reações adversas, num só sítio."
-    tabs={[
-      { id: 'docs', label: 'Documentos', icon: '📁', render: () => <DocumentosTool /> },
-      { id: 'auditoria', label: 'Auditoria', icon: '🔍', render: () => <AuditoriaTool /> },
-      { id: 'ram', label: 'Notificação RAM', icon: '⚠️', render: () => <ADRReportTool /> },
-    ]} />
+  return <DocumentosTool />
 }
 
 type Cat = 'contrato' | 'consentimento' | 'identificacao' | 'medico' | 'seguro' | 'rgpd' | 'financeiro' | 'outro'

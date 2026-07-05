@@ -116,9 +116,11 @@ export async function POST(req: NextRequest) {
     if (cErr || !created?.user) return NextResponse.json({ error: cErr?.message || 'Não consegui criar a conta.' }, { status: 400 })
 
     const newId = created.user.id
-    // perfil clínico ligado à org
+    // Perfil ligado à org. plan='free' de propósito: o acesso clínico vem da
+    // PERTENÇA à org (getUserPlan promove membros a 'clinic' efetivo), por isso
+    // o funcionário tem limites gratuitos FORA da instituição mas trabalha nela.
     await a.from('profiles').upsert({
-      id: newId, email: emailAddr, name, plan: 'clinic',
+      id: newId, email: emailAddr, name, plan: 'free',
       experience_mode: 'clinical', onboarded: true,
       org_id: orgId, active_org_id: orgId, org_role: role === 'admin' ? 'admin' : 'member',
     })
@@ -143,6 +145,29 @@ export async function POST(req: NextRequest) {
     const email = String(body.email || '').trim().toLowerCase()
     if (!/.+@.+\..+/.test(email)) return NextResponse.json({ error: 'Email inválido.' }, { status: 400 })
     const inviteRole = ['admin', 'nurse', 'assistant', 'clinician', 'viewer'].includes(body.role) ? body.role : 'assistant'
+
+    // BUG CORRIGIDO: se o email JÁ tem conta Phlox, o convite por link nunca dava
+    // acesso (a pessoa ficava com o plano dela, ex. student, sem entrar na org).
+    // Agora, se a conta existe, ADICIONAMO-LA já à organização — sem esperar clique.
+    const { data: existing } = await a.from('profiles').select('id, name, active_org_id, org_id').eq('email', email).maybeSingle()
+    if (existing?.id) {
+      await a.from('org_members').upsert(
+        { org_id: orgId, user_id: existing.id, role: inviteRole, invited_by: user.id, active: true },
+        { onConflict: 'org_id,user_id' }
+      )
+      // Aponta a org ativa para esta (se ainda não tiver nenhuma) e mete em modo
+      // clínico. NÃO tocamos no plano: o acesso institucional vem da pertença.
+      const patch: any = { experience_mode: 'clinical', org_id: orgId, active_org_id: existing.active_org_id || orgId, org_role: inviteRole === 'admin' ? 'admin' : 'member' }
+      await a.from('profiles').update(patch).eq('id', existing.id)
+      try {
+        await a.from('team_members').upsert(
+          { org_id: orgId, user_id: existing.id, name: existing.name || email, role: TEAM_ROLE[inviteRole] || 'other', status: 'off' },
+          { onConflict: 'org_id,user_id' }
+        )
+      } catch { /* tolerante */ }
+      return NextResponse.json({ ok: true, mode: 'added', email, name: existing.name || email })
+    }
+
     // Token do convite: 256 bits de aleatoriedade criptográfica (sem fallback fraco).
     const token = randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString()

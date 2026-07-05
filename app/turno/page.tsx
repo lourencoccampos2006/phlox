@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
@@ -278,6 +278,9 @@ function RondaTab({ patients, shift, today, supabase, user, scope, riskByPt, cfg
   const [done, setDone] = useState<Record<string, StatusTag>>({})
   const [finished, setFinished] = useState(false)
   const [byRisk, setByRisk] = useState(true)
+  const [search, setSearch] = useState('')
+  const [swipe, setSwipe] = useState(0)          // deslocamento do cartão (px) durante o gesto
+  const touchStart = useRef<number | null>(null)
 
   // Ronda priorizada: residentes mais críticos primeiro (motor de ecossistema)
   const ordered = byRisk
@@ -288,6 +291,22 @@ function RondaTab({ patients, shift, today, supabase, user, scope, riskByPt, cfg
   const curRisk = current ? riskByPt[current.id] : null
   function reset() { setStatus(null); setNote('') }
   function advance() { reset(); if (idx + 1 >= total) setFinished(true); else setIdx(i => i + 1) }
+  function goPrev() { if (idx > 0) { reset(); setIdx(i => i - 1) } }
+
+  // Pesquisa: salta já para a pessoa (não é preciso passar cartão a cartão).
+  const searchHits = search.trim()
+    ? ordered.map((p: Patient, i: number) => ({ p, i })).filter(({ p }: any) => p.name.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 6)
+    : []
+  function jumpTo(i: number) { reset(); setIdx(i); setFinished(false); setSearch('') }
+
+  // Swipe mobile: arrasta para a direita = guardar+seguinte, esquerda = anterior.
+  function onTouchStart(e: React.TouchEvent) { touchStart.current = e.touches[0].clientX }
+  function onTouchMove(e: React.TouchEvent) { if (touchStart.current != null) setSwipe(e.touches[0].clientX - touchStart.current) }
+  function onTouchEnd() {
+    const dx = swipe; touchStart.current = null; setSwipe(0)
+    if (dx > 80) saveNext()
+    else if (dx < -80) goPrev()
+  }
 
   async function saveNext() {
     if (!user || !current) return
@@ -341,7 +360,25 @@ function RondaTab({ patients, shift, today, supabase, user, scope, riskByPt, cfg
         <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.round((idx / total) * 100)}%`, background: '#0d6e42', borderRadius: 3, transition: 'width 0.3s' }} /></div>
       </div>
 
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+      {/* Pesquisa: salta já para uma pessoa da ronda */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Ir para ${instCfg.personNounIndef || 'alguém'}…`}
+          style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 10, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
+        {searchHits.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4, background: 'white', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
+            {searchHits.map(({ p, i }: any) => (
+              <button key={p.id} onClick={() => jumpTo(i)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 13px', border: 'none', borderBottom: '1px solid var(--bg-3)', background: done[p.id] ? '#f0fdf4' : 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>{p.name}</span>
+                {done[p.id] && <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700 }}>✓ registado</span>}
+                {(riskByPt[p.id]?.score || 0) > 0 && <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{riskByPt[p.id].score}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', transform: swipe ? `translateX(${swipe}px) rotate(${swipe * 0.02}deg)` : undefined, transition: swipe ? 'none' : 'transform 0.25s', touchAction: 'pan-y' }}>
         <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', background: highlight ? lv!.bg : 'var(--bg-2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
             <div>
@@ -386,12 +423,13 @@ function RondaTab({ patients, shift, today, supabase, user, scope, riskByPt, cfg
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-        <button onClick={() => { if (idx > 0) { reset(); setIdx(i => i - 1) } }} disabled={idx === 0} style={{ width: 52, padding: '14px 0', background: 'white', border: '1.5px solid var(--border)', borderRadius: 12, cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)' }}>
+        <button onClick={goPrev} disabled={idx === 0} style={{ width: 52, padding: '14px 0', background: 'white', border: '1.5px solid var(--border)', borderRadius: 12, cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
         <button onClick={advance} style={{ flex: 1, padding: '14px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Saltar</button>
         <button onClick={saveNext} disabled={saving} style={{ flex: 2, padding: '14px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A guardar…' : idx + 1 >= total ? 'Guardar e terminar' : 'Guardar e seguinte →'}</button>
       </div>
+      <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11.5, color: 'var(--ink-5)' }} className="ronda-swipe-hint">Arraste o cartão → para guardar, ← para voltar</div>
     </div>
   )
 }

@@ -137,6 +137,24 @@ export default function PainelDonoPage() {
                     <KCard big={k.familiesEngaged} label="famílias ativas (7 dias)" sub={`${k.familyReplies} respostas das famílias`} color="#7c3aed" />
                   </div>
 
+                  {/* ── RESULTADO DO MÊS: mensalidades recebidas + outras receitas − despesas ── */}
+                  {biz.finance && (biz.finance.feesReceived > 0 || biz.finance.otherIncome > 0 || biz.finance.expenses > 0) && (
+                    <div style={{ ...card }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Resultado do mês</div>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>{biz.finance.monthLabel} · <Link href="/faturacao" style={{ color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>abrir faturação →</Link></div>
+                        </div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: biz.finance.result >= 0 ? '#16a34a' : '#dc2626', lineHeight: 1 }}>{eur(biz.finance.result)}</div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10 }}>
+                        <div><div style={{ fontSize: 17, fontWeight: 700, color: '#16a34a' }}>{eur(biz.finance.feesReceived)}</div><div style={{ fontSize: 11.5, color: '#64748b' }}>mensalidades recebidas</div></div>
+                        <div><div style={{ fontSize: 17, fontWeight: 700, color: '#16a34a' }}>{eur(biz.finance.otherIncome)}</div><div style={{ fontSize: 11.5, color: '#64748b' }}>outras receitas</div></div>
+                        <div><div style={{ fontSize: 17, fontWeight: 700, color: '#dc2626' }}>−{eur(biz.finance.expenses)}</div><div style={{ fontSize: 11.5, color: '#64748b' }}>despesas</div></div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── COFRE DE VALOR: o que ficou registado e organizado este mês ── */}
                   {biz.ledger && (() => {
                     const led = buildLedger(biz.ledger)

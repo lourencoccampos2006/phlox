@@ -76,7 +76,7 @@ const T = {
   careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: '📝' },
   assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
   team:    { href: '/schedule', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
-  staff:   { href: '/equipa', label: 'Funcionários', hint: 'Adicionar acessos e ver quem fez o quê', icon: '👥' },
+  staff:   { href: '/equipa', label: 'Gestão da equipa', hint: 'Só dono/admin: adicionar acessos e ver quem fez o quê', icon: '🔐' },
   radar:   { href: '/radar', label: 'O que merece atenção', hint: 'O que a equipa registou que saiu do padrão + pedidos dos utentes', icon: '📋' },
   documents: { href: '/documentos', label: 'Documentos', hint: 'Cofre de documentos da instituição', icon: '📄' },
   quality: { href: '/quality', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: '📊' },
@@ -120,9 +120,9 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Utentes', 'As pessoas que frequentam o centro'),
-      T.meds, T.careLog, T.family, T.radar, T.reconcile,
+      T.meds, T.careLog, T.family, T.radar,
     ],
-    extraTools: [ T.incidents, T.activities, T.assessments, T.staff, T.team, T.quality, T.documents, T.billing, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.assessments, T.wounds, T.staff, T.team, T.quality, T.documents, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -145,7 +145,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.radar, T.assessments, T.wounds, T.family,
     ],
-    extraTools: [ T.incidents, T.activities, T.vigia, T.staff, T.team, T.quality, T.handover, T.documents, T.billing, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.vigia, T.staff, T.team, T.quality, T.handover, T.documents, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
@@ -187,7 +187,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Doentes', 'Fichas e medicação dos doentes'),
       T.appts, T.meds_check, T.reconcile, T.rounds,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.screenings, T.incidents, T.billing ],
+    extraTools: [ T.team, T.quality, T.calc, T.screenings, T.incidents ],
   },
 
   // ── CENTRO DE SAÚDE / USF — utentes, CSP. Tom sóbrio.
@@ -207,7 +207,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'Fichas e medicação dos utentes'),
       T.appts, T.screenings, T.meds_check, T.reconcile,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.rounds, T.billing ],
+    extraTools: [ T.team, T.quality, T.calc, T.rounds ],
   },
 
 }

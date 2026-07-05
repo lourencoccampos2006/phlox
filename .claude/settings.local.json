@@ -211,7 +211,11 @@
       "Bash(curl -s --max-time 12 \"https://api.fda.gov/drug/shortages.json?limit=1\")",
       "Bash(node scripts/check-nav.mjs)",
       "Bash(grep -rA14 \"table.*mar_records\" supabase/sprint11.sql)",
-      "Bash(awk '/mar_records \\\\\\(/,/\\\\\\);/' supabase/SETUP_CLINICO.sql)"
+      "Bash(awk '/mar_records \\\\\\(/,/\\\\\\);/' supabase/SETUP_CLINICO.sql)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/family)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/painel)",
+      "Bash(sort -t't' -k2 -n)"
     ]
   }
 }

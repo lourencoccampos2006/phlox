@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 
 // Fundido em "Revisão de medicação" (/med-review) como aba STOPP/START
 // (StoppStartTool reutilizado). Redirect p/ não partir links antigos.
@@ -49,6 +50,7 @@ const COMMON_CONDITIONS = [
 
 export function StoppStartTool() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
   const [form, setForm] = useState({
     age: '', sex: '', diagnoses: '', medications: '', labs: '',
   })
@@ -63,9 +65,9 @@ export function StoppStartTool() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('patients').select('id,name,age,conditions').eq('user_id', user.id).order('name')
-      .then(({ data }) => setPatients(data || []))
-  }, [user, supabase])
+    scope.filter(supabase.from('patients').select('id,name,age,conditions')).order('name')
+      .then(({ data }: any) => setPatients(data || []))
+  }, [user, supabase, scope.orgId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPatient = (id: string) => {
     setSelectedPatient(id)

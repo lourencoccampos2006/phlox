@@ -114,7 +114,7 @@ export default function FamiliaPage() {
   ).filter(x => !dismissed.has(x.key))
    .sort((a, b) => (a.s.severity === 'critical' ? 0 : 1) - (b.s.severity === 'critical' ? 0 : 1))
 
-  const activate = (p: Profile) => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, sex: p.sex, weight: p.weight, conditions: p.conditions, allergies: p.allergies })
+  const activate = (p: Profile) => setActiveProfile({ id: p.id, name: p.name, type: 'family', age: p.age, sex: p.sex, weight: p.weight, conditions: p.conditions, allergies: p.allergies, ownerId: user?.id })
 
   return (
     <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>

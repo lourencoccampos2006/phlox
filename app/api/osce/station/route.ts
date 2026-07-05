@@ -43,10 +43,11 @@ export async function POST(req: NextRequest) {
   const seed = pick(bank)
   const sexAge = pick(['homem 24a', 'mulher 31a', 'homem 58a', 'mulher 67a', 'homem 72a', 'mulher 45a', 'adolescente 16a', 'homem 39a', 'mulher 80a'])
 
+  try {
   const result = await aiJSON<any>([
     {
       role: 'system',
-      content: `Crias estações OSCE realistas para estudantes de ${COURSE_CTX[course] || 'Medicina'}. Estação de ${TYPE_CTX[station_type]}. Dificuldade: ${difficulty}.
+      content: `Crias estações OSCE realistas para estudantes de ${COURSE_CTX[course] || 'Medicina'}. Estação de ${TYPE_CTX[station_type] || TYPE_CTX.history_taking}. Dificuldade: ${difficulty}.
 CENÁRIO BASE (usa-o, não inventes outro tema): "${seed}" num(a) ${sexAge}. Cria um caso ESPECÍFICO e único à volta disto — nunca genérico.
 Responde APENAS com JSON válido sem markdown em português PT-PT.
 {
@@ -65,8 +66,15 @@ Responde APENAS com JSON válido sem markdown em português PT-PT.
 }
 Checklist: 10-14 items específicos para o tipo de estação e curso. Adapta ao curso (farmacêutico avalia interações; enfermeiro avalia técnica). Dificuldade ${difficulty}: ${difficulty === 'basic' ? 'caso clássico directo' : difficulty === 'intermediate' ? 'comorbilidades a descobrir' : 'apresentação atípica ou dilema'}.`,
     },
-    { role: 'user', content: `Gera estação OSCE única sobre "${seed}" (${sexAge}): ${TYPE_CTX[station_type]}, ${COURSE_CTX[course]}, dificuldade ${difficulty}` },
+    { role: 'user', content: `Gera estação OSCE única sobre "${seed}" (${sexAge}): ${TYPE_CTX[station_type] || TYPE_CTX.history_taking}, ${COURSE_CTX[course] || COURSE_CTX.medicine}, dificuldade ${difficulty}` },
   ], { maxTokens: 2000, temperature: 0.8 })
 
+  // Validação: a IA às vezes devolve JSON sem checklist. Garante a forma mínima.
+  if (!result || !Array.isArray(result.checklist_items) || result.checklist_items.length === 0) {
+    return NextResponse.json({ error: 'A geração da estação falhou (resposta incompleta). Tenta novamente.' }, { status: 502 })
+  }
   return NextResponse.json(result)
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Não foi possível gerar a estação. Tenta novamente.' }, { status: 500 })
+  }
 }

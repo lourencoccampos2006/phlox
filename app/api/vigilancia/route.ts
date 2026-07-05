@@ -17,6 +17,19 @@ function sb(req: NextRequest) {
     { global: { headers: { Authorization: `Bearer ${token}` } } })
 }
 
+// Resolve o âmbito: se o utilizador pertence a uma organização (equipa), a
+// vigilância vê os residentes da ORG (org_id); senão, os próprios (user_id).
+// Sem isto, os funcionários e as instituições viam "sem residentes". RLS
+// (sprint91) garante que só membros da org lêem esses dados.
+async function resolveScope(db: any, userId: string): Promise<{ col: 'org_id' | 'user_id'; val: string }> {
+  try {
+    const { data: prof } = await db.from('profiles').select('active_org_id, org_id').eq('id', userId).maybeSingle()
+    const orgId = prof?.active_org_id || prof?.org_id || null
+    if (orgId) return { col: 'org_id', val: orgId }
+  } catch { /* profiles pode não ter as colunas → cai para user_id */ }
+  return { col: 'user_id', val: userId }
+}
+
 // STOPP/Beers simplificado — deteção local determinística (sem IA, instantâneo)
 function stoppFlags(p: any, meds: any[]): string[] {
   const flags: string[] = []
@@ -40,10 +53,11 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('clinic', 'Vigia Clínico do Lar')
   const db = sb(req)
-  // Selecionar SÓ colunas garantidas — colunas opcionais (alert_count, last_review)
-  // podiam não existir e faziam a query inteira falhar → "sem residentes" + banner
-  // de migração, mesmo havendo residentes. Os residentes têm de carregar sempre.
-  const pats = await db.from('patients').select('id, name, age, sex, room, risk_level').eq('user_id', userId)
+  const scope = await resolveScope(db, userId)
+  // Selecionar SÓ colunas garantidas — a coluna é room_number (não "room").
+  // Antes selecionava "room" (inexistente) e por user_id (ignorava a equipa),
+  // o que dava "sem residentes" numa instituição. Agora scoped por org.
+  const pats = await db.from('patients').select('id, name, age, sex, room_number, risk_level').eq(scope.col, scope.val).eq('active', true)
   // Se a PRÓPRIA tabela patients não existir, aí sim é migração em falta.
   if (pats.error && /relation .*patients.* does not exist|table .*patients.* does not exist/i.test(pats.error.message))
     return NextResponse.json({ patients: [], needs_migration: true })
@@ -51,10 +65,10 @@ export async function GET(req: NextRequest) {
 
   // A vigilância é OPCIONAL: se a tabela ainda não existe (sem scan), seguimos
   // com os residentes sem dados de risco — não bloqueia a página.
-  const vig = await db.from('patient_vigilance').select('*').eq('user_id', userId)
+  const vig = await db.from('patient_vigilance').select('*').eq(scope.col, scope.val)
   const vigMap: Record<string, any> = {}
   for (const v of (vig.data || [])) vigMap[v.patient_id] = v
-  const rows = (pats.data || []).map((p: any) => ({ ...p, vigilance: vigMap[p.id] || null }))
+  const rows = (pats.data || []).map((p: any) => ({ ...p, room: p.room_number || null, vigilance: vigMap[p.id] || null }))
   rows.sort((a: any, b: any) => (b.vigilance?.risk_score || 0) - (a.vigilance?.risk_score || 0))
   return NextResponse.json({ patients: rows })
 }
@@ -66,10 +80,11 @@ export async function POST(req: NextRequest) {
   if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('clinic', 'Vigia Clínico do Lar')
   const body = await req.json().catch(() => null) as any
   const db = sb(req)
+  const scope = await resolveScope(db, userId)
 
   // ── SCAN: analisa todos os doentes (ou um lote) ──
   if (body?.action === 'scan') {
-    const { data: patients, error } = await db.from('patients').select('*').eq('user_id', userId)
+    const { data: patients, error } = await db.from('patients').select('*').eq(scope.col, scope.val).eq('active', true)
     if (error) return NextResponse.json({ error: error.message, hint: 'Aplica supabase/sprint82_vigilancia.sql se faltar a tabela' }, { status: 500 })
     const limit = Math.min(body.limit || 8, 12)  // lote por chamada (evita timeout)
     const offset = body.offset || 0
@@ -97,6 +112,7 @@ export async function POST(req: NextRequest) {
       await db.from('patient_vigilance').upsert({
         user_id: userId, patient_id: p.id, risk_score: riskScore,
         alerts, flags, summary, analysed_at: new Date().toISOString(),
+        ...(scope.col === 'org_id' ? { org_id: scope.val } : {}),
       }, { onConflict: 'user_id,patient_id' })
       analysed++
     }
@@ -106,13 +122,13 @@ export async function POST(req: NextRequest) {
 
   // ── REPORT: relatório clínico do lar ──
   if (body?.action === 'report') {
-    const { data: vig } = await db.from('patient_vigilance').select('*').eq('user_id', userId).order('risk_score', { ascending: false })
-    const { data: patients } = await db.from('patients').select('id, name, age, room').eq('user_id', userId)
+    const { data: vig } = await db.from('patient_vigilance').select('*').eq(scope.col, scope.val).order('risk_score', { ascending: false })
+    const { data: patients } = await db.from('patients').select('id, name, age, room_number').eq(scope.col, scope.val).eq('active', true)
     const pMap: Record<string, any> = {}
     for (const p of (patients || [])) pMap[p.id] = p
     const lines = (vig || []).map((v: any) => {
       const p = pMap[v.patient_id] || {}
-      return `- ${p.name || 'Residente'} (${p.age || '?'}a${p.room ? ', ' + p.room : ''}): risco ${v.risk_score}/100. ${(v.flags || []).join('; ')}. ${(v.alerts || []).filter((a: any) => a.severity === 'grave').map((a: any) => a.message).join(' | ')}`
+      return `- ${p.name || 'Residente'} (${p.age || '?'}a${p.room_number ? ', ' + p.room_number : ''}): risco ${v.risk_score}/100. ${(v.flags || []).join('; ')}. ${(v.alerts || []).filter((a: any) => a.severity === 'grave').map((a: any) => a.message).join(' | ')}`
     }).join('\n')
     try {
       const { text } = await aiComplete([

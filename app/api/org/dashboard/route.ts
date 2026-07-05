@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const { data: org } = await safe(a.from('organizations').select('name, kind, capacity, monthly_fee').eq('id', orgId))
     .then((r: any) => ({ data: r.data?.[0] || r.data || null })).catch(() => ({ data: null }))
 
-  const [patients, members, careToday, marMonth, incOpen, family, careWeek, medsActive, incMonth, assessMonth, careMonth, vigil] = await Promise.all([
+  const [patients, members, careToday, marMonth, incOpen, family, careWeek, medsActive, incMonth, assessMonth, careMonth, vigil, finance, billing] = await Promise.all([
     safe(a.from('patients').select('id, name, room_number, created_at', { count: 'exact' }).eq('org_id', orgId).eq('active', true)),
     safe(a.from('org_members').select('user_id', { count: 'exact' }).eq('org_id', orgId).eq('active', true)),
     safe(a.from('care_records').select('patient_id').eq('org_id', orgId).eq('date', today)),
@@ -47,6 +47,10 @@ export async function GET(req: NextRequest) {
     safe(a.from('care_records').select('patient_id, date').eq('org_id', orgId).gte('date', mStart)),
     // achados de vigilância farmacológica sinalizados para revisão (por utente)
     safe(a.from('patient_vigilance').select('flags, alerts').eq('org_id', orgId)),
+    // movimentos financeiros do mês (despesas + outras receitas) — sprint104
+    safe(a.from('finance_entries').select('kind, amount').eq('org_id', orgId).gte('date', mStart)),
+    // mensalidades recebidas no mês (billing_entries pagas)
+    safe(a.from('billing_entries').select('fee, subsidy, extras, discount, paid').eq('org_id', orgId).eq('month', mStart.slice(0, 7))),
   ])
 
   const nPatients = patients.count || (patients.data?.length ?? 0)
@@ -85,6 +89,13 @@ export async function GET(req: NextRequest) {
   const marTotal = (marMonth.data || []).length
   const marAdherence = marTotal > 0 ? Math.round((marGiven / marTotal) * 100) : null
 
+  // ── FINANÇAS DO MÊS — resultado real: mensalidades recebidas + outras receitas
+  // − despesas. Tolerante: sem finance_entries/billing_entries fica a zero.
+  const expensesMonth = (finance.data || []).filter((f: any) => f.kind === 'expense').reduce((s: number, f: any) => s + Number(f.amount || 0), 0)
+  const otherIncomeMonth = (finance.data || []).filter((f: any) => f.kind === 'income').reduce((s: number, f: any) => s + Number(f.amount || 0), 0)
+  const feesReceivedMonth = (billing.data || []).filter((b: any) => b.paid).reduce((s: number, b: any) => s + (Number(b.fee || 0) + Number(b.extras || 0) - Number(b.subsidy || 0) - Number(b.discount || 0)), 0)
+  const monthResult = feesReceivedMonth + otherIncomeMonth - expensesMonth
+
   return NextResponse.json({
     org: { name: (org as any)?.name || 'A sua instituição', kind: (org as any)?.kind || 'day_care', capacity, monthlyFee },
     kpis: {
@@ -113,6 +124,13 @@ export async function GET(req: NextRequest) {
       incidentsFollowed,
       assessmentsMonth,
       vigilFindings,
+    },
+    finance: {
+      monthLabel,
+      feesReceived: feesReceivedMonth,
+      otherIncome: otherIncomeMonth,
+      expenses: expensesMonth,
+      result: monthResult,
     },
     incidents: (incOpen.data || []).slice(0, 5),
   })

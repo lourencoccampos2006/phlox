@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import FinanceLedger from './FinanceLedger'
 
 interface Patient { id: string; name: string; room_number?: string | null; active?: boolean }
 interface Entry {
@@ -22,6 +25,10 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 export default function MonthlyBilling() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const personPlural = cfg.personNounPlural.toLowerCase()
+  const [tab, setTab] = useState<'mensalidades' | 'movimentos'>('mensalidades')
   const [patients, setPatients] = useState<Patient[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +53,7 @@ export default function MonthlyBilling() {
   useEffect(() => { load() }, [load])
   useLiveData({ supabase, table: ['billing_entries', 'patients'], userId: scope.liveFilterValue || user?.id, onChange: load })
 
-  const nameOf = (id: string) => patients.find(p => p.id === id)?.name || 'Residente'
+  const nameOf = (id: string) => patients.find(p => p.id === id)?.name || cfg.personNoun
   const monthEntries = entries.filter(e => e.month === month)
   const byPatient: Record<string, Entry> = {}; monthEntries.forEach(e => { byPatient[e.patient_id] = e })
 
@@ -97,14 +104,14 @@ export default function MonthlyBilling() {
     printDoc({
       docTitle: 'Mapa de Faturação',
       docSubtitle: new Date(month + '-01T12:00:00').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }),
-      institution: 'Lar / ERPI',
+      institution: cfg.unitNoun,
       meta: [
         { label: 'faturado', value: euro(totalFee) },
         { label: 'recebido', value: euro(received) },
         { label: 'em dívida', value: euro(owed) },
         { label: 'cobrança', value: `${rate}%` },
       ],
-      sections: [{ heading: 'Residentes', records: records.length ? records : [{ title: 'Sem registos neste mês' }] }],
+      sections: [{ heading: cfg.personNounPlural, records: records.length ? records : [{ title: 'Sem registos neste mês' }] }],
       footerNote: 'Mapa de faturação · Phlox',
     })
   }
@@ -126,7 +133,7 @@ export default function MonthlyBilling() {
     printDoc({
       docTitle: e.paid ? 'Recibo de Mensalidade' : 'Aviso de Pagamento',
       docSubtitle: nameOf(e.patient_id),
-      institution: 'Lar / ERPI',
+      institution: cfg.unitNoun,
       meta: [
         { label: 'estado', value: e.paid ? 'PAGO' : 'PENDENTE' },
         ...(e.paid && e.paid_date ? [{ label: 'pago em', value: e.paid_date }] : []),
@@ -147,15 +154,24 @@ export default function MonthlyBilling() {
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Financeiro</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Faturação & Mensalidades</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Mensalidades, comparticipações, extras e pagamentos — por residente e por mês.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Mensalidades, comparticipações, extras e pagamentos — por {cfg.personNoun.toLowerCase()} e por mês.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={{ ...inp, width: 'auto' }} />
-            <button onClick={printMonth} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: '#374151' }}>Imprimir mapa</button>
+            {tab === 'mensalidades' && <button onClick={printMonth} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: '#374151' }}>Imprimir mapa</button>}
           </div>
         </div>
 
-        {tableMissing ? (
+        {/* Tabs: mensalidades vs movimentos (despesas + outras receitas) */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1.5px solid var(--border)' }}>
+          {([['mensalidades', '💶 Mensalidades'], ['movimentos', '📊 Despesas e receitas']] as const).map(([t, l]) => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '9px 14px', border: 'none', borderBottom: `2px solid ${tab === t ? '#0d6e42' : 'transparent'}`, background: 'none', color: tab === t ? '#0d6e42' : 'var(--ink-4)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', marginBottom: -1.5, fontFamily: 'var(--font-sans)' }}>{l}</button>
+          ))}
+        </div>
+
+        {tab === 'movimentos' ? (
+          <FinanceLedger month={month} monthlyReceived={received} />
+        ) : tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação ainda por ativar</div>
             <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>A base de dados de mensalidades ainda não está criada nesta conta. Aplique a migração de faturação (<code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>billing_entries</code>) no Supabase e recarregue. Tudo o resto continua a funcionar normalmente.</div>
@@ -178,7 +194,7 @@ export default function MonthlyBilling() {
 
             {missing.length > 0 && (
               <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: '#1e40af' }}><strong>{missing.length}</strong> residente(s) sem faturação este mês.</span>
+                <span style={{ fontSize: 13, color: '#1e40af' }}><strong>{missing.length}</strong> {personPlural} sem faturação este mês.</span>
                 <button onClick={generateMonth} disabled={generating} style={{ padding: '8px 16px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{generating ? 'A gerar…' : 'Gerar mês (copiar valores)'}</button>
               </div>
             )}

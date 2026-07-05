@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord, type PrintSection } from '@/lib/print'
 import { analyzeResident, SEVERITY_STYLE, type Severity, type Signal } from '@/lib/residentSignals'
 
@@ -72,6 +75,9 @@ export default function CarePlansRedirect() {
 
 export function CarePlansTool() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
   const [plans, setPlans] = useState<Record<string, CarePlan>>({})
   const [loading, setLoading] = useState(true)
@@ -90,8 +96,8 @@ export function CarePlansTool() {
     if (!user) return
     setLoading(true)
     const [{ data: pat }, { data: cp }] = await Promise.all([
-      supabase.from('patients').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('care_plans').select('*').eq('user_id', user.id),
+      scope.filter(supabase.from('patients').select('*')).order('name'),
+      scope.filter(supabase.from('care_plans').select('*')),
     ])
     setPatients(pat || [])
     const map: Record<string, CarePlan> = {}
@@ -314,7 +320,7 @@ export function CarePlansTool() {
             <button onClick={() => setSelected(null)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-              Todos os residentes
+              Todos os {cfg.personNounPlural.toLowerCase()}
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handlePrint}
@@ -550,8 +556,8 @@ export function CarePlansTool() {
         ) : filteredPatients.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px', textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>Sem residentes</div>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>Adiciona residentes em <strong>Residentes</strong> primeiro.</p>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>Sem {cfg.personNounPlural.toLowerCase()}</div>
+            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>Adiciona {cfg.personNounPlural.toLowerCase()} em <strong>{cfg.personNounPlural}</strong> primeiro.</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,260px),1fr))', gap: 10 }}>

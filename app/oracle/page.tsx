@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
@@ -41,6 +42,7 @@ type Phase = 'input'|'clarifying'|'result'
 
 export default function OraclePage() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
   const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [phase, setPhase] = useState<Phase>('input')
@@ -80,8 +82,8 @@ export default function OraclePage() {
 
   useEffect(() => {
     if (!user || mode !== 'clinical') return
-    supabase.from('patients').select('id,name,age,conditions,weight,creatinine,sex').eq('user_id', user.id).order('name').then(({ data }) => setPatients(data || []))
-  }, [user, supabase, mode])
+    scope.filter(supabase.from('patients').select('id,name,age,conditions,weight,creatinine,sex')).order('name').then(({ data }: any) => setPatients(data || []))
+  }, [user, supabase, mode, scope.orgId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const getClarifyQuestions = async () => {
     if (!problem.trim()) return

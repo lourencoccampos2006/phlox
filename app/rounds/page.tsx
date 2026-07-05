@@ -12,6 +12,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { useOrgScope } from '@/lib/orgScope'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { runSTOPPSTART, type STOPPSTARTResult } from '@/lib/stoppStart'
 import { conditionRisk, calcCrCl, riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
@@ -565,6 +566,7 @@ function PatientPanel({ patient, risk, meds, interventions, pharmacist, supabase
 
 export default function RoundsPage() {
   const { user, supabase } = useAuth()
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<(Patient & { meds_count: number })[]>([])
@@ -585,8 +587,8 @@ export default function RoundsPage() {
   const load = useCallback(async () => {
     if (!user || !isPro) { setLoading(false); return }
     const [{ data: ps }, { data: ivs }] = await Promise.all([
-      supabase.from('patients').select('*, patient_meds(count)').eq('user_id', user.id),
-      supabase.from('pcne_interventions').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+      scope.filter(supabase.from('patients').select('*, patient_meds(count)')),
+      scope.filter(supabase.from('pcne_interventions').select('*')).order('date', { ascending: false }),
     ])
     const patientsWithCount = (ps||[]).map((p: any) => ({
       ...p,

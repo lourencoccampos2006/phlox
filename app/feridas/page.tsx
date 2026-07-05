@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -66,6 +67,7 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 export function FeridasTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
@@ -167,13 +169,13 @@ export function FeridasTool() {
     if (!user) return
     setLoading(true)
     const [p, w] = await Promise.all([
-      supabase.from('patients').select('id,name,room_number').eq('user_id', user.id).order('name'),
-      supabase.from('wounds').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      scope.filter(supabase.from('patients').select('id,name,room_number')).order('name'),
+      scope.filter(supabase.from('wounds').select('*')).order('created_at', { ascending: false }),
     ])
     setPatients(p.data || [])
     if (w.error) { setTableMissing(true); setWounds([]) }
     else { setTableMissing(false); setWounds(w.data || []) }
-    const { data: a } = await supabase.from('wound_assessments').select('*').eq('user_id', user.id).order('date', { ascending: true })
+    const { data: a } = await scope.filter(supabase.from('wound_assessments').select('*')).order('date', { ascending: true })
     setAssessments(a || [])
     setLoading(false)
   }, [user, supabase])
@@ -203,7 +205,7 @@ export function FeridasTool() {
   async function addWound() {
     if (!user || !wForm.patient_id || !wForm.location) return
     setSaving(true)
-    const payload = {
+    const payload = scope.stamp({
       user_id: user.id, patient_id: wForm.patient_id, location: wForm.location, type: wForm.type,
       stage: wForm.stage || null, status: 'active', onset_date: wForm.onset_date || null,
       length_mm: wForm.length_mm ? parseFloat(wForm.length_mm) : null,
@@ -211,7 +213,7 @@ export function FeridasTool() {
       depth_mm: wForm.depth_mm ? parseFloat(wForm.depth_mm) : null,
       exudate: wForm.exudate || null, tissue: wForm.tissue || null,
       dressing: wForm.dressing || null, notes: wForm.notes || null,
-    }
+    })
     const { error } = await supabase.from('wounds').insert(payload)
     setSaving(false)
     if (!error) { setShowAdd(false); setWForm(emptyWound); load() }

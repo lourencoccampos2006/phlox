@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
-import { ensureUserScope, clearUserScopeOnSignOut } from '@/lib/userScope'
+import { ensureUserScope, clearUserScopeOnSignOut, ensureProfileMatchesMode } from '@/lib/userScope'
 
 // Cria o cliente uma vez, fora do componente, ao nível do módulo
 // Isto garante que é o mesmo cliente em toda a app independentemente de renders
@@ -167,6 +167,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           org_role: data.org_role || null,
           active_org_id: data.active_org_id || data.org_id || null,
         })
+        // Coerência perfil-ativo ↔ modo: um doente da instituição não deve
+        // aparecer em modo pessoal/cuidador/estudante (bug do doente "Rosa").
+        try { ensureProfileMatchesMode(data.experience_mode || 'personal') } catch {}
       }
     } catch (e: any) {
       console.error('loadProfile error:', e?.message)
