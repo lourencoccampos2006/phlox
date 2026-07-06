@@ -39,6 +39,8 @@ export default function RondaCoordenadaPage() {
   const [outcome, setOutcome] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [swipe, setSwipe] = useState(0)
+  const [panel, setPanel] = useState<{ meds: any[]; mar: any[] } | null>(null)
+  const [medBusy, setMedBusy] = useState<string>('')
   const touchStart = useRef<number | null>(null)
 
   const auth = useCallback(async () => {
@@ -125,6 +127,33 @@ export default function RondaCoordenadaPage() {
   const current = mine[0]
   const curName = current ? (patients[current.patient_id]?.name || cfg.personNoun) : ''
 
+  // Carrega a medicação do utente atual (para dar medicação na ronda → /mar).
+  const curPatientId = current?.patient_id
+  useEffect(() => {
+    if (!curPatientId) { setPanel(null); return }
+    let cancel = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'panel', patient_id: curPatientId }) }).then(r => r.json())
+        if (!cancel) setPanel(r.error ? { meds: [], mar: [] } : { meds: r.meds || [], mar: r.mar || [] })
+      } catch { if (!cancel) setPanel({ meds: [], mar: [] }) }
+    })()
+    return () => { cancel = true }
+  }, [curPatientId, auth])
+
+  const shiftNow = (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+  const medGiven = (medId: string) => (panel?.mar || []).some(m => m.med_id === medId && (m.status === 'administered' || m.status === 'given' || m.status === 'taken'))
+  async function giveMed(medId: string) {
+    if (!current) return
+    setMedBusy(medId)
+    const given = medGiven(medId)
+    // otimista
+    setPanel(p => p ? { ...p, mar: given ? p.mar.filter(m => m.med_id !== medId) : [...p.mar, { med_id: medId, status: 'administered', shift: shiftNow }] } : p)
+    const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'give_med', patient_id: current.patient_id, med_id: medId }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    if (r.error) setPanel(p => p ? { ...p, mar: given ? [...p.mar, { med_id: medId, status: 'administered' }] : p.mar.filter(m => m.med_id !== medId) } : p)
+    setMedBusy('')
+  }
+
   function onTouchStart(e: React.TouchEvent) { touchStart.current = e.touches[0].clientX }
   function onTouchMove(e: React.TouchEvent) { if (touchStart.current != null) setSwipe(e.touches[0].clientX - touchStart.current) }
   function onTouchEnd() { const dx = swipe; touchStart.current = null; setSwipe(0); if (dx > 90 && current) attend(current) }
@@ -200,9 +229,37 @@ export default function RondaCoordenadaPage() {
           <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
             style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, overflow: 'hidden', transform: swipe ? `translateX(${swipe}px)` : undefined, transition: swipe ? 'none' : 'transform 0.25s', touchAction: 'pan-y' }}>
             <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120' }}>{curName}</div>
-              <Link href={`/patients/${current.patient_id}`} style={{ fontSize: 12, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Abrir ficha →</Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', flex: 1 }}>{curName}</div>
+                <Link href={`/patients/${current.patient_id}`} style={{ fontSize: 12, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ficha →</Link>
+                <Link href={`/care-log?patient=${current.patient_id}`} style={{ fontSize: 12, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Registo do dia →</Link>
+              </div>
             </div>
+
+            {/* Medicação — dar a partir da ronda (escreve no /mar). */}
+            {panel && panel.meds.length > 0 && (
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Medicação deste turno</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {panel.meds.map((m: any) => {
+                    const given = medGiven(m.id); const busyM = medBusy === m.id
+                    return (
+                      <button key={m.id} onClick={() => giveMed(m.id)} disabled={busyM}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 9, cursor: busyM ? 'wait' : 'pointer',
+                          border: `1.5px solid ${given ? '#bbf7d0' : '#e5e7eb'}`, background: given ? '#f0fdf4' : 'white', fontFamily: 'inherit' }}>
+                        <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800,
+                          border: `2px solid ${given ? '#16a34a' : '#cbd5e1'}`, background: given ? '#16a34a' : 'white', color: 'white' }}>{given ? '✓' : ''}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>💊 {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
+                          <span style={{ display: 'block', fontSize: 11, color: given ? '#16a34a' : '#94a3b8' }}>{busyM ? 'A guardar…' : given ? 'Dada — toque para desmarcar' : (m.frequency || 'Toque para dar')}</span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <div style={{ padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Como está</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>

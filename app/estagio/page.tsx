@@ -65,17 +65,62 @@ export default function EstagioHub() {
 
   if (loading) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
 
+  // O estágio ATIVO em foco (o que interessa no dia-a-dia). Se houver um, mostra
+  // logo o progresso + registo rápido do dia — em vez de uma lista administrativa.
+  const active = list.find(it => it.status === 'active') || null
+
   return (
-    <main style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
+    <main style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: 1000, margin: '0 auto' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Estágio</h1>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>O meu estágio</h1>
           <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>
-            Gere todos os teus estágios: doentes, diário, objectivos, procedimentos, casos, relatórios IA.
+            {active ? 'O teu estágio a decorrer, o progresso e o registo de hoje.' : 'Acompanha o teu estágio: horas, doentes, diário e objetivos.'}
           </p>
         </div>
         <button onClick={() => setShowNew(true)} style={btn('primary')}>+ Novo estágio</button>
       </header>
+
+      {/* Foco no estágio ATIVO */}
+      {active && (() => {
+        const am = AREA_META[active.area] || AREA_META.outro
+        const pct = active.hours_required > 0 ? Math.min(100, Math.round(100 * active.hours_done / active.hours_required)) : 0
+        const daysLeft = Math.max(0, Math.ceil((new Date(active.end_date).getTime() - Date.now()) / 86400000))
+        return (
+          <div style={{ background: 'white', border: `1.5px solid ${am.color}33`, borderRadius: 16, padding: 20, marginBottom: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              {/* anel de progresso das horas */}
+              <div style={{ position: 'relative', width: 92, height: 92, flexShrink: 0 }}>
+                <svg width="92" height="92" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="46" cy="46" r="40" fill="none" stroke="#eef2f5" strokeWidth="8" />
+                  <circle cx="46" cy="46" r="40" fill="none" stroke={am.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 40}`} strokeDashoffset={`${2 * Math.PI * 40 * (1 - pct / 100)}`} style={{ transition: 'stroke-dashoffset 0.5s' }} />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: '#0b1120' }}>{pct}%</span>
+                  <span style={{ fontSize: 9, color: '#94a3b8' }}>horas</span>
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 22 }}>{am.icon}</span>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: '#0b1120' }}>{active.name}</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{active.institution || am.label}{active.ward ? ` · ${active.ward}` : ''}</div>
+                <div style={{ display: 'flex', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, color: '#475569' }}><b>{active.hours_done}</b>/{active.hours_required}h</span>
+                  <span style={{ fontSize: 12.5, color: '#475569' }}><b>{active.patients_count}</b> doentes</span>
+                  <span style={{ fontSize: 12.5, color: '#475569' }}><b>{active.procedures_count}</b> procedimentos</span>
+                  <span style={{ fontSize: 12.5, color: daysLeft <= 7 ? '#dc2626' : '#475569' }}>{daysLeft} dias restantes</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+              <Link href={`/estagio/${active.id}`} style={{ ...btn('primary'), textDecoration: 'none', display: 'inline-block' }}>Registar o dia de hoje →</Link>
+              <Link href={`/estagio/${active.id}`} style={{ ...btn('ghost'), textDecoration: 'none', display: 'inline-block' }}>Abrir estágio</Link>
+            </div>
+          </div>
+        )
+      })()}
 
       {list.length === 0 ? (
         <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 14, padding: 40, textAlign: 'center' }}>

@@ -50,6 +50,26 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
     return NextResponse.json({ error: memErr.message }, { status: 500 })
   }
 
+  // Perfil → modo clínico + org ativa (para ter logo o acesso institucional; o
+  // plano de faturação mantém-se — o acesso vem da pertença). onboarded p/ não
+  // cair no wizard.
+  const { data: prof } = await db.from('profiles').select('name').eq('id', userId).maybeSingle()
+  await db.from('profiles').update({
+    experience_mode: 'clinical', org_id: inv.org_id, active_org_id: inv.org_id,
+    org_role: inv.role === 'admin' ? 'admin' : 'member', onboarded: true,
+  }).eq('id', userId)
+
+  // Aparece LOGO nas escalas (/schedule): cria a linha team_members ligada à
+  // conta. Sem isto, o membro que aceitava por link não surgia na equipa. Mapeia
+  // o papel org → papel de escala.
+  const TEAM_ROLE: Record<string, string> = { admin: 'coordinator', nurse: 'nurse', assistant: 'caregiver', clinician: 'doctor', viewer: 'other' }
+  try {
+    await db.from('team_members').upsert(
+      { org_id: inv.org_id, user_id: userId, name: prof?.name || inv.email || 'Membro', role: TEAM_ROLE[inv.role] || 'other', status: 'off' },
+      { onConflict: 'org_id,user_id' }
+    )
+  } catch { /* team_members sem user_id nesta BD → ignora */ }
+
   // Marca aceite
   await db.from('org_invites').update({ accepted_at: new Date().toISOString(), accepted_by: userId }).eq('id', inv.id)
   return NextResponse.json({ ok: true, org_id: inv.org_id })

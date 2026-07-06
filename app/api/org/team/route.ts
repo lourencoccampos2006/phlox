@@ -155,9 +155,10 @@ export async function POST(req: NextRequest) {
         { org_id: orgId, user_id: existing.id, role: inviteRole, invited_by: user.id, active: true },
         { onConflict: 'org_id,user_id' }
       )
-      // Aponta a org ativa para esta (se ainda não tiver nenhuma) e mete em modo
-      // clínico. NÃO tocamos no plano: o acesso institucional vem da pertença.
-      const patch: any = { experience_mode: 'clinical', org_id: orgId, active_org_id: existing.active_org_id || orgId, org_role: inviteRole === 'admin' ? 'admin' : 'member' }
+      // Aponta a org ATIVA para esta (é para cá que a pessoa é convidada) e mete
+      // em modo clínico. NÃO tocamos no plano de faturação: o acesso institucional
+      // vem da pertença (effectivePlan/getUserPlan dão-lhe 'clinic' no modo clínico).
+      const patch: any = { experience_mode: 'clinical', org_id: orgId, active_org_id: orgId, org_role: inviteRole === 'admin' ? 'admin' : 'member', onboarded: true }
       await a.from('profiles').update(patch).eq('id', existing.id)
       try {
         await a.from('team_members').upsert(

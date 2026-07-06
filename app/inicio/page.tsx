@@ -157,7 +157,12 @@ export default function InicioPage() {
   }, [user, supabase, expMode])
 
   const plan = (user?.plan as string) || 'free'
-  const clinicalAllowed = plan === 'pro' || plan === 'clinic'
+  // Acesso ao modo clínico por PLANO (pro/clinic) OU por PERTENÇA a uma
+  // organização. Um funcionário convidado fica no plano free (limites grátis
+  // FORA da instituição) mas, como é membro da org, tem o modo clínico e tudo o
+  // que a instituição tem. Espelha getUserPlan no servidor.
+  const inOrg = !!(user?.active_org_id || user?.org_id || user?.org_role)
+  const clinicalAllowed = plan === 'pro' || plan === 'clinic' || inOrg
 
   if (loading || !user) {
     return (

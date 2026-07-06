@@ -33,7 +33,10 @@ export default function PainelDonoPage() {
   const [totals, setTotals] = useState({ meds: 0, care: 0, incidents: 0 })
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [tab, setTab] = useState<'negocio' | 'registos'>('negocio')
+  const [tab, setTab] = useState<'negocio' | 'qualidade' | 'registos'>(() => {
+    if (typeof window !== 'undefined') { const t = new URLSearchParams(window.location.search).get('tab'); if (t === 'qualidade' || t === 'registos') return t }
+    return 'negocio'
+  })
   const [biz, setBiz] = useState<any | null>(null)
 
   const load = useCallback(async () => {
@@ -124,9 +127,9 @@ export default function PainelDonoPage() {
 
         {!err && (
           <>
-            {/* Separadores: Negócio | Registos */}
+            {/* Separadores: Visão geral | Qualidade | Registos */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0' }}>
-              {([['negocio', 'Visão geral'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
+              {([['negocio', 'Visão geral'], ['qualidade', 'Qualidade'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} style={{ padding: '9px 16px', background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? ACCENT : 'transparent'}`, cursor: 'pointer', fontSize: 14, fontWeight: tab === k ? 800 : 600, color: tab === k ? ACCENT : '#64748b', marginBottom: -1, fontFamily: 'inherit' }}>{l}</button>
               ))}
             </div>
@@ -235,6 +238,36 @@ export default function PainelDonoPage() {
               )
             })()}
             {tab === 'negocio' && !biz && <div style={{ ...card, color: '#94a3b8' }}>A carregar indicadores…</div>}
+
+            {/* ── QUALIDADE (juntou o antigo /quality): indicadores reais do serviço,
+                calculados dos registos, prontos para inspeção. ── */}
+            {tab === 'qualidade' && (biz ? (() => {
+              const k = biz.kpis; const led = biz.ledger || {}
+              const QRow = ({ label, value, good, hint }: any) => (
+                <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: good == null ? '#cbd5e1' : good ? '#16a34a' : '#d97706', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{label}</div>
+                    {hint && <div style={{ fontSize: 12, color: '#94a3b8' }}>{hint}</div>}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: good == null ? '#64748b' : good ? '#16a34a' : '#b45309' }}>{value}</div>
+                </div>
+              )
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 2 }}>Indicadores do mês ({led.monthLabel || '—'}), calculados a partir do que a equipa registou. Prontos a mostrar numa inspeção.</div>
+                  <QRow label="Adesão da medicação" value={led.marAdherence != null ? `${led.marAdherence}%` : '—'} good={led.marAdherence != null ? led.marAdherence >= 90 : null} hint="Tomas dadas / previstas" />
+                  <QRow label="Registos do dia feitos" value={k.logAdherence != null ? `${k.logAdherence}%` : '—'} good={k.logAdherence != null ? k.logAdherence >= 80 : null} hint="Adesão da equipa (7 dias)" />
+                  <QRow label="Ocorrências com seguimento" value={led.incidentsMonth ? `${led.incidentsFollowed}/${led.incidentsMonth}` : '0'} good={led.incidentsMonth ? led.incidentsFollowed >= led.incidentsMonth : null} hint="Fechadas / abertas no mês" />
+                  <QRow label="Avaliações (escalas) feitas" value={String(led.assessmentsMonth || 0)} good={(led.assessmentsMonth || 0) > 0} hint="Barthel, MNA, Braden…" />
+                  <QRow label="Ocorrências graves em aberto" value={String(k.incidentsGrave || 0)} good={(k.incidentsGrave || 0) === 0} hint="A resolver com prioridade" />
+                  <div style={{ marginTop: 6 }}>
+                    <button onClick={printDossier} style={{ padding: '10px 16px', background: ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>🗂 Relatório de qualidade para inspeção (A4)</button>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Números reais e auditáveis. Não constitui avaliação clínica — organiza o que foi registado.</div>
+                </div>
+              )
+            })() : <div style={{ ...card, color: '#94a3b8' }}>A carregar indicadores…</div>)}
 
             {/* ── REGISTOS (o que existia: auditoria) ── */}
             {tab === 'registos' && <>

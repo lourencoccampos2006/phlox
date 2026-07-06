@@ -7,18 +7,21 @@ import { useToast } from '@/components/Toast'
 import { printDoc } from '@/lib/print'
 import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
+import { MedReviewTool } from '../med-review/page'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
-// /assessments é agora "Avaliações e planos": escalas (Barthel, MNA…) + planos
-// de cuidados, em abas. Cada aba é o componente original intacto.
+// /assessments = "Avaliações e planos": escalas (Barthel, MNA…) + planos de
+// cuidados + revisão de medicação (STOPP/START, juntada aqui na limpeza R13b).
+// Cada aba é o componente original intacto.
 export default function AssessmentsPage() {
   return <FusionTabs
     eyebrow="Avaliações" title="Avaliações e planos de cuidados"
-    subtitle="Escalas validadas e os planos de cuidados de cada pessoa, juntos."
+    subtitle="Escalas validadas, planos de cuidados e revisão de medicação, juntos."
     tabs={[
       { id: 'escalas', label: 'Escalas', icon: '📐', render: () => <AssessmentsTool /> },
       { id: 'planos', label: 'Planos de cuidados', icon: '📋', render: () => <CarePlansTool /> },
+      { id: 'revisao', label: 'Revisão de medicação', icon: '💊', render: () => <MedReviewTool /> },
     ]} />
 }
 

@@ -97,7 +97,8 @@ const CASE_DEFINITIONS: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkRateLimit(getIP(req), 6, 60_000).allowed) return rateLimitResponse()
+  // ERA 6/min → um estudante a iniciar vários casos batia no limite ("não inicia").
+  if (!checkRateLimit(getIP(req), 20, 60_000).allowed) return rateLimitResponse()
   const { plan } = await getUserPlan(req)
   if (plan === 'free') return planGateResponse('student', 'Phlox Decisão')
 

@@ -47,11 +47,47 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ round, assignments: assignments || [], me: c.user.id })
 }
 
+// Dados de UM utente para a ronda: medicação ativa + tomas de hoje (para dar
+// medicação a partir da ronda, atualizando o /mar). Endpoint separado (POST).
+async function patientPanel(db: any, patientId: string) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [meds, mar] = await Promise.all([
+    db.from('patient_meds').select('id, name, dose, frequency, shifts').eq('patient_id', patientId).eq('active', true),
+    db.from('mar_records').select('med_id, status, shift').eq('patient_id', patientId).eq('date', today),
+  ])
+  return { meds: meds.data || [], mar: mar.data || [] }
+}
+
 export async function POST(req: NextRequest) {
   const db = sb(req); const c = await ctx(db)
   if ('error' in c) return NextResponse.json({ error: c.error }, { status: c.status })
   const body = await req.json().catch(() => ({}))
   const stamp = (row: any) => (c.orgId ? { ...row, org_id: c.orgId } : row)
+
+  // Painel de um utente (medicação + tomas de hoje) para a ronda.
+  if (body.action === 'panel') {
+    const pid = String(body.patient_id || '')
+    if (!pid) return NextResponse.json({ error: 'utente em falta' }, { status: 400 })
+    return NextResponse.json(await patientPanel(db, pid))
+  }
+
+  // Dar medicação a partir da ronda → escreve em mar_records (igual ao /mar).
+  // É isto que faz "dar medicação na ronda atualizar o /mar" (pedido do Fernando).
+  if (body.action === 'give_med') {
+    const pid = String(body.patient_id || ''); const medId = String(body.med_id || '')
+    if (!pid || !medId) return NextResponse.json({ error: 'dados em falta' }, { status: 400 })
+    const today = new Date().toISOString().slice(0, 10)
+    const shift = body.shift || (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+    // evita duplicar a mesma toma (med+turno+dia)
+    const { data: exist } = await db.from('mar_records').select('id').eq('patient_id', pid).eq('med_id', medId).eq('date', today).eq('shift', shift).maybeSingle()
+    if (exist) { await db.from('mar_records').delete().eq('id', exist.id); return NextResponse.json({ ok: true, toggled: 'off' }) }
+    const { error } = await db.from('mar_records').insert(stamp({
+      user_id: c.user.id, patient_id: pid, med_id: medId, date: today, shift,
+      status: 'administered', recorded_by: c.name, recorded_at: new Date().toISOString(),
+    }))
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ ok: true, toggled: 'on' })
+  }
 
   if (body.action === 'start') {
     const participants: { id: string; name: string }[] = Array.isArray(body.participants) && body.participants.length ? body.participants : [{ id: c.user.id, name: c.name }]

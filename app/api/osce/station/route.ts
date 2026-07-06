@@ -57,7 +57,10 @@ function fallbackStation(course: string, station_type: string, difficulty: strin
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
-  if (!checkRateLimit(ip, 10, 60_000).allowed) return rateLimitResponse()
+  // ERA 10/min → um estudante a treinar várias estações seguidas batia no limite
+  // e via "tente novamente" (era ESTE o bug, não a IA). É autenticado e gated ao
+  // plano, por isso um limite generoso não abre porta a abuso.
+  if (!checkRateLimit(ip, 40, 60_000).allowed) return rateLimitResponse()
   const { plan } = await getUserPlan(req)
   if (plan === 'free') return planGateResponse('student', 'Phlox OSCE')
   const body = await req.json().catch(() => ({}))

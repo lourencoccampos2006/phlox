@@ -771,6 +771,23 @@ export default function StudyPage() {
                   </p>
                 </div>
 
+                {/* Ferramentas de estudo (antes eram entradas soltas no menu — agora
+                    vivem aqui, no centro de estudo). */}
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:24 }}>
+                  {[
+                    { href:'/study/notas', icon:'📝', label:'Notas' },
+                    { href:'/study/documentos', icon:'📄', label:'Documentos' },
+                    { href:'/study/ecg', icon:'💓', label:'ECGs' },
+                    { href:'/study/lab', icon:'🧪', label:'Análises' },
+                    { href:'/study/procedimentos', icon:'🩺', label:'Procedimentos' },
+                    { href:'/study/professor', icon:'🎓', label:'Modo Professor' },
+                  ].map(x => (
+                    <Link key={x.href} href={x.href} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 13px', borderRadius:9, border:'1.5px solid var(--border)', background:'white', color:'var(--ink)', textDecoration:'none', fontSize:13, fontWeight:600 }}>
+                      <span>{x.icon}</span>{x.label}
+                    </Link>
+                  ))}
+                </div>
+
                 {!isStudent && (
                   <div style={{ background:'#faf5ff', border:'2px solid #e9d5ff', borderRadius:12, padding:'24px', marginBottom:24, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
                     <span style={{ fontSize:32, flexShrink:0 }}>🎓</span>

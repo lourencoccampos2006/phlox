@@ -26,7 +26,8 @@ type User = {
   email: string
   name: string
   avatar: string
-  plan: 'free' | 'student' | 'pro' | 'clinic'
+  plan: 'free' | 'student' | 'pro' | 'clinic'   // plano EFETIVO na app (clinic quando em modo clínico + membro de org)
+  billing_plan?: 'free' | 'student' | 'pro' | 'clinic'  // plano real (faturação) — free para funcionários convidados
   searches_today: number
   profile_type: 'personal' | 'student' | 'professional' | null
   profile_sub: string | null
@@ -37,6 +38,18 @@ type User = {
   org_id: string | null
   org_role: 'owner' | 'admin' | 'member' | null
   active_org_id: string | null
+}
+
+// Plano EFETIVO na app. Um funcionário convidado fica no plano free (faturação),
+// mas quando está em MODO CLÍNICO e é membro de uma organização, tem acesso de
+// 'clinic' (a instituição toda + Copilot). Nos outros modos (pessoal/estudo/
+// cuidador) valem os limites do plano free. É isto que o Fernando pediu:
+// "modo clínico bloqueado a free, MAS funcionários têm acesso à sua instituição".
+function effectivePlan(data: any): 'free' | 'student' | 'pro' | 'clinic' {
+  const real = (data?.plan || 'free') as 'free' | 'student' | 'pro' | 'clinic'
+  const inOrg = !!(data?.active_org_id || data?.org_id || data?.org_role)
+  if (data?.experience_mode === 'clinical' && inOrg && real !== 'clinic') return 'clinic'
+  return real
 }
 
 type AuthContextType = {
@@ -155,7 +168,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email,
           name: data.name,
           avatar: data.avatar || '',
-          plan: data.plan || 'free',
+          plan: effectivePlan(data),
+          billing_plan: data.plan || 'free',
           profile_type: data.profile_type || null,
           profile_sub: data.profile_sub || null,
           searches_today: data.searches_today || 0,

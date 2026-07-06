@@ -1,14 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
-import MedReviewHub from './MedReviewHub'
 
-// /med-review é agora a fusão "Revisão de medicação" (abas: revisão + STOPP/START
-// + por pessoa). O MedReviewTool abaixo é a aba "Revisão".
-export default function MedReviewPage() { return <MedReviewHub /> }
+// /med-review — JUNTADO em /assessments (aba "Revisão de medicação"). A rota
+// antiga redireciona; o MedReviewTool abaixo é reutilizado por /assessments.
+// (Ronda 13b, limpeza do catálogo.)
+export default function MedReviewPage() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/assessments?tab=revisao') }, [r])
+  return null
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
