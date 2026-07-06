@@ -653,6 +653,7 @@ export default function StudyPage() {
   const [mode, setMode] = useState<StudyMode>('home')
   const [selectedDomain, setSelectedDomain] = useState<typeof DOMAINS[0] | null>(null)
   const [selectedTopic, setSelectedTopic] = useState('')
+  const [customTopic, setCustomTopic] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [flashcards, setFlashcards] = useState<FlashCard[]>([])
@@ -836,6 +837,19 @@ export default function StudyPage() {
                     <span style={{ fontSize:18 }}>{selectedDomain.icon}</span>
                     <span style={{ fontSize:16, fontWeight:700, color:selectedDomain.color }}>{selectedDomain.label}</span>
                   </div>
+                </div>
+
+                {/* O MEU TEMA — o estudante escreve qualquer matéria e estuda-a
+                    já (flashcards ou quiz). Não fica preso à lista pré-definida. */}
+                <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
+                  <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
+                    onKeyDown={e => { if (e.key==='Enter' && customTopic.trim()) start(customTopic.trim(), intent === 'quiz' ? 'quiz' : 'flashcards') }}
+                    placeholder="Escreve o teu tema (ex: insuficiência cardíaca, ciclo de Krebs…)"
+                    style={{ flex:'1 1 260px', border:`1.5px solid ${selectedDomain.border}`, borderRadius:9, padding:'11px 14px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none', background:'white' }} />
+                  <button onClick={() => customTopic.trim() && start(customTopic.trim(), 'flashcards')} disabled={!customTopic.trim() || loading}
+                    style={{ padding:'11px 16px', background:customTopic.trim()?selectedDomain.color:'var(--bg-3)', color:customTopic.trim()?'white':'var(--ink-5)', border:'none', borderRadius:9, fontSize:13, fontWeight:700, cursor:customTopic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)' }}>Flashcards</button>
+                  <button onClick={() => customTopic.trim() && start(customTopic.trim(), 'quiz')} disabled={!customTopic.trim() || loading}
+                    style={{ padding:'11px 16px', background:'white', color:customTopic.trim()?selectedDomain.color:'var(--ink-5)', border:`1.5px solid ${customTopic.trim()?selectedDomain.border:'var(--border)'}`, borderRadius:9, fontSize:13, fontWeight:700, cursor:customTopic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)' }}>Quiz</button>
                 </div>
 
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>

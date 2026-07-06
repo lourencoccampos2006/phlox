@@ -37,10 +37,11 @@ export const INST_META: Record<InstitutionType, { label: string; icon: string; s
   health_center:      { label: 'Centro de Saúde',           icon: '🌿', shortLabel: 'CSP' },
 }
 
-// Tipos de instituição OFERECIDOS a novos utilizadores. A farmácia está
-// ARQUIVADA (código mantido, mas fora do produto — foco no cuidado à pessoa:
-// centro de dia, lar, clínica, CSP). Todos os seletores de tipo leem daqui.
-export const OFFERED_INSTITUTIONS: InstitutionType[] = ['day_care', 'nursing_home', 'clinic', 'health_center']
+// Tipos de instituição OFERECIDOS a novos utilizadores. Por decisão do Fernando,
+// para já SÓ centro de dia e lar (o foco real). Farmácia, clínica e centro de
+// saúde estão ARQUIVADOS (código mantido no repo, mas fora do produto). Todos os
+// seletores de tipo leem daqui — mudar aqui muda em todo o lado.
+export const OFFERED_INSTITUTIONS: InstitutionType[] = ['day_care', 'nursing_home']
 
 const ROLE_KEY = 'phlox-clinic-role'
 const INST_KEY = 'phlox-clinic-institution'

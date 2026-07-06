@@ -17,6 +17,8 @@ interface Item {
   id: string; name: string; category: string; quantity: number; min_quantity: number
   unit?: string | null; expiry_date?: string | null; location?: string | null; updated_at: string
   barcode?: string | null; ref?: string | null; price?: number | null; tax_rate?: number | null
+  reorder_status?: 'ok' | 'requested' | 'ordered' | null
+  supplier_name?: string | null; supplier_contact?: string | null; buy_url?: string | null; unit_cost?: number | null
 }
 
 const CATS: Record<string, { label: string; icon: string; color: string }> = {
@@ -44,7 +46,7 @@ export default function StockPage() {
   const [filter, setFilter] = useState('all')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const blank = { name: '', category: 'medicamento', quantity: '', min_quantity: '', unit: '', expiry: '', location: '', barcode: '', ref: '', price: '', tax_rate: '23' }
+  const blank = { name: '', category: 'medicamento', quantity: '', min_quantity: '', unit: '', expiry: '', location: '', barcode: '', ref: '', price: '', tax_rate: '23', supplier_name: '', supplier_contact: '', buy_url: '', unit_cost: '' }
   const [form, setForm] = useState<any>(blank)
   // Importação em massa
   const [importing, setImporting] = useState(false)
@@ -104,13 +106,20 @@ export default function StockPage() {
   async function add() {
     if (!form.name.trim()) { setErr('Indica o nome do produto.'); return }
     setSaving(true); setErr('')
-    const { data, error } = await supabase.from('stock_items').insert(scope.stamp({
+    const baseRow: any = {
       name: form.name.trim(), category: form.category,
       quantity: Number(form.quantity) || 0, min_quantity: Number(form.min_quantity) || 0,
       unit: form.unit.trim() || null, expiry_date: form.expiry || null, location: form.location.trim() || null,
       barcode: form.barcode.trim() || null, ref: form.ref.trim() || null,
       price: parseFloat(form.price) || 0, tax_rate: parseFloat(form.tax_rate) || 0,
-    })).select().single()
+    }
+    // Campos de fornecedor/custo são do sprint106. Se a BD ainda não os tem, o
+    // insert falha por coluna desconhecida → repetimos sem eles (degrada limpo).
+    const extra = { supplier_name: form.supplier_name.trim() || null, supplier_contact: form.supplier_contact.trim() || null, buy_url: form.buy_url.trim() || null, unit_cost: parseFloat(form.unit_cost) || null }
+    let { data, error } = await supabase.from('stock_items').insert(scope.stamp({ ...baseRow, ...extra })).select().single()
+    if (error && /column|schema|supplier|buy_url|unit_cost/i.test(error.message)) {
+      ;({ data, error } = await supabase.from('stock_items').insert(scope.stamp(baseRow)).select().single())
+    }
     if (!error && data) { setItems(p => [...p, data].sort((a, b) => a.name.localeCompare(b.name))); setShowForm(false); setForm(blank) }
     else setErr(error?.message || 'Erro')
     setSaving(false)
@@ -128,6 +137,25 @@ export default function StockPage() {
     const { error } = await supabase.from('stock_items').delete().eq('id', id)
     if (error) { setErr('Não foi possível remover: ' + error.message); return }
     setItems(p => p.filter(x => x.id !== id))
+  }
+  // Consumo a 1 toque via API (desconta + regista + avisa a equipa se atingir o mínimo).
+  const authHeaders = useCallback(async () => {
+    const { data } = await supabase.auth.getSession()
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
+  }, [supabase])
+  async function consume(it: Item, qty = 1) {
+    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    const prev = it.quantity
+    setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: Math.max(0, prev - qty) } : x))
+    const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, qty }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    if (r.error) { setErr(r.error.includes('sprint106') ? r.error : 'Não foi possível registar o consumo.'); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)); return }
+    setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: r.quantity, reorder_status: r.alerted ? 'requested' : x.reorder_status } : x))
+  }
+  async function reorder(it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) {
+    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, action, ...extra }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    if (r.error) { setErr(r.error); return }
+    setItems(p => p.map(x => x.id === it.id ? { ...x, reorder_status: r.reorder_status, quantity: r.quantity ?? x.quantity } : x))
   }
 
   const shown = filter === 'all' ? items : items.filter(i => i.category === filter)
@@ -262,12 +290,35 @@ export default function StockPage() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          {/* USAR 1 — o toque frequente (uma luva, uma fralda): grande e rápido. */}
+                          <button onClick={() => consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
                           <button onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
                           <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: isLow ? '#dc2626' : '#0b1120' }}>{it.quantity}{it.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: '#9ca3af' }}> {it.unit}</span> : ''}</span>
                           <button onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
                           <button onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>
                         </div>
                       </div>
+
+                      {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
+                      {(isLow || (it.reorder_status && it.reorder_status !== 'ok')) && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          {it.reorder_status === 'requested' ? (
+                            <>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>📦 Pedido de encomenda enviado à equipa</span>
+                              {scope.canEdit && <button onClick={() => reorder(it, 'ordered')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar encomendado</button>}
+                            </>
+                          ) : it.reorder_status === 'ordered' ? (
+                            <>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>✅ Encomendado — a caminho</span>
+                              {scope.canEdit && <button onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Recebido — repor</button>}
+                            </>
+                          ) : (
+                            scope.canEdit && <button onClick={() => reorder(it, 'request')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Avisar equipa — falta este</button>
+                          )}
+                          {it.buy_url && <a href={it.buy_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Comprar →</a>}
+                          {it.supplier_name && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{it.supplier_name}{it.supplier_contact ? ` · ${it.supplier_contact}` : ''}</span>}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -301,17 +352,18 @@ export default function StockPage() {
                 <div><span style={lbl}>Validade</span><input type="date" value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} style={inp} /></div>
                 <div><span style={lbl}>Localização</span><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Ex: Armário A2" style={inp} /></div>
               </div>
-              {/* Venda / POS — código de barras e preço */}
+              {/* Reposição & fornecedor — alimenta os avisos e as despesas do dono */}
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 2 }}>
-                <span style={{ ...lbl, marginBottom: 8 }}>Venda (Ponto de Venda)</span>
+                <span style={{ ...lbl, marginBottom: 8 }}>Reposição & fornecedor (opcional)</span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                  <div><span style={lbl}>Código de barras (EAN/CNP)</span><input value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} placeholder="560..." data-pos-scan style={inp} /></div>
-                  <div><span style={lbl}>Referência / SKU</span><input value={form.ref} onChange={e => setForm({ ...form, ref: e.target.value })} placeholder="Interna" style={inp} /></div>
+                  <div><span style={lbl}>Fornecedor</span><input value={form.supplier_name} onChange={e => setForm({ ...form, supplier_name: e.target.value })} placeholder="Ex: Distribuidora X" style={inp} /></div>
+                  <div><span style={lbl}>Contacto</span><input value={form.supplier_contact} onChange={e => setForm({ ...form, supplier_contact: e.target.value })} placeholder="Telefone / email" style={inp} /></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div><span style={lbl}>PVP (€)</span><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" style={inp} /></div>
-                  <div><span style={lbl}>IVA %</span><input type="number" value={form.tax_rate} onChange={e => setForm({ ...form, tax_rate: e.target.value })} style={inp} /></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                  <div><span style={lbl}>Link de compra</span><input value={form.buy_url} onChange={e => setForm({ ...form, buy_url: e.target.value })} placeholder="https://…" style={inp} /></div>
+                  <div><span style={lbl}>Custo/unidade (€)</span><input type="number" value={form.unit_cost} onChange={e => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" style={inp} /></div>
                 </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 6 }}>O custo/unidade lança a despesa automaticamente quando marcares "recebido".</div>
               </div>
               <button onClick={add} disabled={saving} style={{ padding: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : 'Adicionar produto'}</button>
             </div>

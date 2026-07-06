@@ -224,6 +224,7 @@ export default function DecisaoPage() {
   const [timeElapsed, setTimeElapsed] = useState(0)
   const [finalScore, setFinalScore] = useState<any>(null)
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all')
+  const [customTopic, setCustomTopic] = useState('')
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const eventsEndRef = useRef<HTMLDivElement>(null)
   const plan = (user as any)?.plan || 'free'
@@ -245,7 +246,7 @@ export default function DecisaoPage() {
     setEvents(prev => [...prev, event])
   }, [])
 
-  const startCase = async (caseConfig: CaseConfig) => {
+  const startCase = async (caseConfig: CaseConfig, customTopicText?: string) => {
     setSelectedCase(caseConfig)
     setLoading(true)
     setError('')
@@ -259,7 +260,7 @@ export default function DecisaoPage() {
       const res = await fetch('/api/decisao/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ case_id: caseConfig.id }),
+        body: JSON.stringify(customTopicText ? { custom_topic: customTopicText } : { case_id: caseConfig.id }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const data = await res.json()
@@ -458,6 +459,24 @@ export default function DecisaoPage() {
               style={{ padding: '12px 24px', background: '#7c3aed', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
               Ver planos →
             </Link>
+          </div>
+        )}
+
+        {/* O MEU TEMA — escreve qualquer matéria e gera um caso evolutivo sobre ela */}
+        {canPlay && (
+          <div style={{ background: 'white', border: '1.5px solid #e9d5ff', borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Treinar um tema à tua escolha</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && customTopic.trim()) startCase({ id: 'custom', title: customTopic.trim(), specialty: 'Tema livre', description: customTopic.trim(), color: '#7c3aed', difficulty: 'resident', difficultyLabel: 'Personalizado', estimated_minutes: 10 } as any, customTopic.trim()) }}
+                placeholder="Ex: choque séptico, cetoacidose diabética, hipertensão na grávida…"
+                style={{ flex: '1 1 300px', border: '1.5px solid #e9d5ff', borderRadius: 9, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
+              <button onClick={() => customTopic.trim() && startCase({ id: 'custom', title: customTopic.trim(), specialty: 'Tema livre', description: customTopic.trim(), color: '#7c3aed', difficulty: 'resident', difficultyLabel: 'Personalizado', estimated_minutes: 10 } as any, customTopic.trim())}
+                disabled={!customTopic.trim() || loading}
+                style={{ padding: '11px 20px', background: customTopic.trim() ? '#7c3aed' : 'var(--bg-3)', color: customTopic.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: customTopic.trim() ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+                {loading ? 'A gerar…' : 'Começar →'}
+              </button>
+            </div>
           </div>
         )}
 

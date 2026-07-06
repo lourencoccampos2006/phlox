@@ -77,8 +77,10 @@ function summariseDay(date: string, recs: any[], marToday: any[], firstName: str
     if (m <= 2) attention = true
   }
   if (activities.size) lines.push(`Participou em: ${Array.from(activities).slice(0, 4).join(', ')}.`)
-  // Medicação do dia
-  const marTaken = marToday.filter(m => m.status === 'taken' || m.status === 'given').length
+  // Medicação do dia. /mar grava 'administered' (também aceitamos given/taken).
+  // Antes só contava taken/given → família via "Tomou 0 de 2" tendo tomado.
+  const GIVEN = new Set(['administered', 'given', 'taken'])
+  const marTaken = marToday.filter(m => GIVEN.has(m.status)).length
   const marTotal = marToday.length
   if (marTotal > 0) {
     if (marTaken === marTotal) lines.push('Tomou toda a medicação prevista.')

@@ -109,6 +109,9 @@ export const TOOLS: Tool[] = [
   { id: '/turno',        label: 'Turno',                         desc: 'Visão do turno actual',            category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/reconciliacao', label: 'Reconciliação de alta',         desc: 'Foto da nota de alta → o que mudou, omissões e conflitos', category: 'clinical_daily', modes: ['clinical'], default_inst: ['clinic', 'nursing_home'], plan: 'pro' },
 
+  { id: '/equipa-mural', label: 'Mural da equipa',               desc: 'Mensagens e avisos entre a equipa (com push)', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/ronda-guiada', label: 'Ronda coordenada',              desc: 'Ronda a vários, sem repetir, com transferência automática', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+
   // Cuidado diário (lar + centro de dia) — sem vocabulário fixo de "lar".
   { id: '/care-log',     label: 'Registo do dia',                desc: 'Sinais vitais, alimentação, humor', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/assessments',  label: 'Avaliações (Braden, MNA, ...)', desc: 'Escalas clínicas',                 category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
@@ -125,7 +128,7 @@ export const TOOLS: Tool[] = [
   //  dose-crianca, escalas → agora dentro do hub /calculos. Páginas mantidas, fora do menu.)
 
   // Operações & equipa
-  { id: '/stock',        label: 'Stock & validades',             desc: 'Existências · ruturas · prazos',   category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'nursing_home', 'clinic'], plan: 'pro' },
+  { id: '/stock',        label: 'Stock & consumíveis',           desc: 'Consumo a 1 toque · ruturas · encomendas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care', 'pharmacy_community', 'clinic'], plan: 'pro' },
   { id: '/schedule',     label: 'Escalas / equipa',              desc: 'Turnos · vagas · competências',    category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community'], plan: 'pro' },
   { id: '/team',         label: 'Equipa & tarefas',              desc: 'Membros, papéis, turnos, tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/agenda',       label: 'Agenda',                        desc: 'Marcações · lembretes',            category: 'clinical_ops', modes: ['clinical'], default_inst: ['clinic', 'health_center', 'pharmacy_community'], plan: 'pro' },

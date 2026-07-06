@@ -30,6 +30,31 @@ const SCENARIO_BANK: Record<string, string[]> = {
 }
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
 
+// Checklist genérica mas ÚTIL por tipo de estação — serve de base à estação de
+// recurso (determinística) quando a IA falha. Assim NENHUM curso/tipo fica sem
+// estação (o bug do Fernando: só medicina+anamnese funcionava).
+const FALLBACK_CHECKLIST: Record<string, string[]> = {
+  history_taking: ['Apresenta-se e identifica o doente', 'Pergunta o motivo da consulta', 'Caracteriza a queixa principal (início, duração, evolução)', 'Explora sintomas associados', 'Antecedentes pessoais e familiares relevantes', 'Medicação habitual e alergias', 'Hábitos (tabaco, álcool, atividade)', 'Impacto na vida do doente', 'Resume e valida com o doente', 'Comunica de forma empática e clara'],
+  physical_exam: ['Higieniza as mãos e prepara o material', 'Explica o exame e obtém consentimento', 'Posiciona o doente adequadamente', 'Inspeção sistemática', 'Palpação dirigida', 'Manobras específicas do sistema em causa', 'Compara com o lado contralateral', 'Respeita o conforto e privacidade', 'Interpreta os achados', 'Comunica os resultados ao doente'],
+  counselling: ['Estabelece relação e avalia o conhecimento prévio', 'Explica a condição em linguagem acessível', 'Explica a terapêutica e como a usar', 'Aborda efeitos adversos e o que vigiar', 'Verifica a compreensão (teach-back)', 'Responde a dúvidas e receios', 'Reforça a adesão e o seguimento', 'Fornece material de apoio', 'Combina plano de reavaliação', 'Comunicação empática'],
+  procedure: ['Confirma indicação e consentimento', 'Reúne e verifica o material', 'Higieniza as mãos e técnica asséptica', 'Prepara e posiciona o doente', 'Executa os passos pela ordem correta', 'Mantém segurança e assepsia', 'Gere desconforto/dor do doente', 'Descarta material em segurança', 'Regista o procedimento', 'Explica os cuidados seguintes'],
+  communication: ['Prepara o ambiente e a privacidade', 'Avalia o que o doente já sabe', 'Avisa que vem informação difícil', 'Comunica com clareza e sem jargão', 'Faz pausas e permite reação', 'Responde às emoções com empatia', 'Evita falsas garantias', 'Resume e verifica a compreensão', 'Combina os próximos passos', 'Disponibiliza-se e agenda seguimento'],
+}
+function fallbackStation(course: string, station_type: string, difficulty: string, seed: string, sexAge: string) {
+  const items = (FALLBACK_CHECKLIST[station_type] || FALLBACK_CHECKLIST.history_taking).map((item, i) => ({ item, marks: 1, mandatory: i < 4 }))
+  const typeLabel = TYPE_CTX[station_type] || TYPE_CTX.history_taking
+  return {
+    title: `${seed.charAt(0).toUpperCase() + seed.slice(1)} — ${sexAge}`,
+    course, station_type, difficulty, duration_minutes: 8,
+    patient_briefing: `Tem à sua frente um(a) ${sexAge} com "${seed}". Faça a ${typeLabel} de forma estruturada. Tem 8 minutos.`,
+    patient_persona: `És um(a) ${sexAge} com "${seed}". Responde de forma realista, revelando detalhes só quando perguntado. Mantém-te no cenário.`,
+    checklist_items: items,
+    model_diagnosis: `Ver abordagem a "${seed}" — conclua com base na avaliação.`,
+    model_plan: 'Plano estruturado: investigação dirigida, terapêutica adequada e seguimento.',
+    _fallback: true,
+  }
+}
+
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
   if (!checkRateLimit(ip, 10, 60_000).allowed) return rateLimitResponse()
@@ -37,10 +62,12 @@ export async function POST(req: NextRequest) {
   if (plan === 'free') return planGateResponse('student', 'Phlox OSCE')
   const body = await req.json().catch(() => ({}))
   const { course = 'medicine', station_type = 'history_taking', difficulty = 'intermediate' } = body
+  const custom = String(body.custom_topic || '').trim()
 
-  // Semente de cenário aleatória → variedade real entre estações
+  // Semente do cenário: tema escrito pelo estudante (se houver) OU aleatório do
+  // banco. Com tema personalizado, a estação é sobre exatamente esse assunto.
   const bank = SCENARIO_BANK[course] || SCENARIO_BANK.medicine
-  const seed = pick(bank)
+  const seed = custom ? custom.slice(0, 120) : pick(bank)
   const sexAge = pick(['homem 24a', 'mulher 31a', 'homem 58a', 'mulher 67a', 'homem 72a', 'mulher 45a', 'adolescente 16a', 'homem 39a', 'mulher 80a'])
 
   try {
@@ -69,12 +96,17 @@ Checklist: 10-14 items específicos para o tipo de estação e curso. Adapta ao 
     { role: 'user', content: `Gera estação OSCE única sobre "${seed}" (${sexAge}): ${TYPE_CTX[station_type] || TYPE_CTX.history_taking}, ${COURSE_CTX[course] || COURSE_CTX.medicine}, dificuldade ${difficulty}` },
   ], { maxTokens: 2000, temperature: 0.8 })
 
-  // Validação: a IA às vezes devolve JSON sem checklist. Garante a forma mínima.
+  // Validação: a IA às vezes devolve JSON sem checklist (mais comum em cursos/
+  // tipos menos frequentes — era o bug do "tente novamente"). Em vez de falhar,
+  // servimos uma estação de RECURSO determinística, sempre válida e útil.
   if (!result || !Array.isArray(result.checklist_items) || result.checklist_items.length === 0) {
-    return NextResponse.json({ error: 'A geração da estação falhou (resposta incompleta). Tenta novamente.' }, { status: 502 })
+    return NextResponse.json(fallbackStation(course, station_type, difficulty, seed, sexAge))
   }
-  return NextResponse.json(result)
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Não foi possível gerar a estação. Tenta novamente.' }, { status: 500 })
+  // Garante campos mínimos mesmo quando a IA devolve parte do JSON.
+  const merged = { ...fallbackStation(course, station_type, difficulty, seed, sexAge), ...result, _fallback: undefined }
+  return NextResponse.json(merged)
+  } catch {
+    // Rede caiu ou IA indisponível → estação de recurso, nunca um beco sem saída.
+    return NextResponse.json(fallbackStation(course, station_type, difficulty, seed, sexAge))
   }
 }

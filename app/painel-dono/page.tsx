@@ -96,6 +96,26 @@ export default function PainelDonoPage() {
           </div>
         </div>
 
+        {/* HUB de gestão — os destinos que o dono precisa, a um toque. É daqui que
+            se gere a instituição; /equipa é agora uma destas secções. Aparece
+            SEMPRE (mesmo que os dados de negócio falhem), para poder navegar. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 22 }}>
+          {[
+            { href: '/equipa', icon: '👥', title: 'Equipa & acessos', desc: 'Convidar e gerir funcionários' },
+            { href: '/faturacao', icon: '💶', title: 'Faturação', desc: 'Mensalidades, despesas, receitas' },
+            { href: '/stock', icon: '📦', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
+            { href: '/equipa-mural', icon: '📣', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
+            { href: '/radar', icon: '📋', title: 'A vigiar', desc: 'O que merece atenção hoje' },
+            { href: '/comecar-instituicao', icon: '⚙️', title: 'Definições', desc: 'Dados da instituição' },
+          ].map(h => (
+            <Link key={h.href} href={h.href} style={{ ...card, padding: '14px 16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 3, borderColor: '#e2e8f0' }}>
+              <span style={{ fontSize: 20 }}>{h.icon}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1120' }}>{h.title}</span>
+              <span style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.4 }}>{h.desc}</span>
+            </Link>
+          ))}
+        </div>
+
         {err && (
           <div style={{ ...card, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' }}>
             {err} {err.includes('dono') && <Link href="/equipa" style={{ color: '#991b1b', fontWeight: 700 }}>· Voltar à equipa</Link>}
@@ -106,7 +126,7 @@ export default function PainelDonoPage() {
           <>
             {/* Separadores: Negócio | Registos */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0' }}>
-              {([['negocio', 'Negócio'], ['registos', 'Registos']] as const).map(([k, l]) => (
+              {([['negocio', 'Visão geral'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} style={{ padding: '9px 16px', background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? ACCENT : 'transparent'}`, cursor: 'pointer', fontSize: 14, fontWeight: tab === k ? 800 : 600, color: tab === k ? ACCENT : '#64748b', marginBottom: -1, fontFamily: 'inherit' }}>{l}</button>
               ))}
             </div>

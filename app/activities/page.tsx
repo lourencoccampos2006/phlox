@@ -89,6 +89,7 @@ export function AtividadesTool() {
   const [filterType, setFilterType] = useState('')
   const [notifyBusy, setNotifyBusy] = useState(false)
   const [notifySent, setNotifySent] = useState<string | null>(null)
+  const [notifyMsg, setNotifyMsg] = useState('')
 
   const [form, setForm] = useState({
     title: '', type: 'gym', date: todayStr(), start_time: '10:00', end_time: '',
@@ -125,14 +126,23 @@ export function AtividadesTool() {
     if (!form.title.trim() || !user) return
     if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     setSaving(true)
+    const title = form.title.trim()
     const { error } = await supabase.from('activities').insert(scope.stamp({
-      user_id: user.id, title: form.title.trim(), type: form.type,
+      user_id: user.id, title, type: form.type,
       date: form.date, start_time: form.start_time,
       end_time: form.end_time || null, location: form.location || null,
       responsible: form.responsible || null, description: form.description || null,
       max_participants: form.max_participants ? parseInt(form.max_participants) : null,
       status: 'planned',
     }))
+    if (!error) {
+      // Avisa AUTOMATICAMENTE as famílias de todos os utentes ativos, no momento
+      // em que a atividade é registada (era o que o Fernando pediu). Vai para o
+      // fio family_thread_messages → aparece em /family e /familia.
+      const ids = patients.map(p => p.id)
+      const n = await sendActivityMessages(title, ids, 'planned')
+      if (n > 0) { setNotifyMsg(`Atividade criada — ${n} ${n === 1 ? 'família avisada' : 'famílias avisadas'}.`); setTimeout(() => setNotifyMsg(''), 5000) }
+    }
     setSaving(false)
     if (error) { alert('Não foi possível guardar a atividade: ' + error.message); return }
     setShowModal(false)
@@ -172,29 +182,35 @@ export function AtividadesTool() {
     setParticipations(prev => [...prev.map(p => ({ ...p, attended: true })), ...inserted])
   }
 
-  // Enviar às famílias: um recado para a família de cada presente, a dizer que
-  // participou. Escreve em family_messages (aparece no /family e no cockpit).
+  // Envia um recado às famílias dos utentes indicados, no FIO que as famílias
+  // realmente veem (family_thread_messages — /family e /familia). Antes escrevia
+  // em family_messages e a família não via nada. Devolve quantas foram enviadas.
+  const firstName = (pid: string) => (patients.find(p => p.id === pid)?.name || cfg.personNoun).split(' ')[0]
+  async function sendActivityMessages(title: string, patientIds: string[], verb: 'planned' | 'participated'): Promise<number> {
+    if (!user || patientIds.length === 0) return 0
+    const rows = patientIds.map(pid => scope.stamp({
+      user_id: user.id, patient_id: pid, author_side: 'staff',
+      author_name: user.name || 'Equipa', kind: 'update',
+      content: verb === 'participated'
+        ? `O/A ${firstName(pid)} participou hoje na atividade "${title}". Foi um bom momento! 🌿`
+        : `Hoje temos a atividade "${title}" com o/a ${firstName(pid)}. Depois contamos como correu! 🌿`,
+      read_by_family: false, read_by_staff: true,
+    }))
+    const { error } = await supabase.from('family_thread_messages').insert(rows)
+    return error ? 0 : rows.length
+  }
+
+  // Botão manual: avisar as famílias de quem participou (fio /family + /familia).
   async function notifyFamilies() {
     if (!selected || !user) return
-    const present = participations.filter(p => p.attended)
+    const present = participations.filter(p => p.attended).map(p => p.patient_id)
     if (present.length === 0) { alert('Marca primeiro quem participou.'); return }
     if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
     if (!confirm(`Enviar recado às famílias de ${present.length} ${cfg.personNounPlural.toLowerCase()} que participaram em "${selected.title}"?`)) return
     setNotifyBusy(true)
-    const nameOf = (pid: string) => (patients.find(p => p.id === pid)?.name || cfg.personNoun).split(' ')[0]
-    const rows = present.map(p => scope.stamp({
-      user_id: user.id,
-      patient_id: p.patient_id,
-      contact_id: null,
-      subject: `Atividade: ${selected.title}`,
-      body: `O/A ${nameOf(p.patient_id)} participou hoje na atividade "${selected.title}". Foi um bom momento! 🌿`,
-      type: 'update',
-      direction: 'sent',
-      read: true,
-    }))
-    const { error } = await supabase.from('family_messages').insert(rows)
+    const n = await sendActivityMessages(selected.title, present, 'participated')
     setNotifyBusy(false)
-    if (error) { alert(error.message || 'Não foi possível enviar.'); return }
+    if (n === 0) { alert('Não foi possível enviar.'); return }
     setNotifySent(selected.id)
     setTimeout(() => setNotifySent(null), 4000)
   }
@@ -317,6 +333,8 @@ export function AtividadesTool() {
           </button>
         </div>
       </div>
+
+      {notifyMsg && <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 600 }}>✉ {notifyMsg}</div>}
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>

@@ -27,6 +27,7 @@ const VISIT_STATUS: Record<string, { label: string; c: string; bg: string; bd: s
   completed: { label: 'Realizada', c: '#64748b', bg: '#f8fafc', bd: '#e2e8f0' },
 }
 interface VisitReq { id: string; requested_date: string; requested_time?: string | null; status: string; notes?: string | null }
+interface TodayDose { med_id: string; status: string; source?: string; shift?: string }
 interface Loaded {
   acc: Access
   patientName: string
@@ -35,6 +36,7 @@ interface Loaded {
   days: DaySummary[]
   meds: HomeMed[]
   visits: VisitReq[]
+  todayDoses: TodayDose[]
 }
 
 export default function LinkedResidents() {
@@ -62,6 +64,7 @@ export default function LinkedResidents() {
       setData(prev => ({ ...prev, [acc.code]: {
         acc, patientName: d.patient?.name || acc.name, room: d.patient?.room_number || acc.room,
         messages: d.messages || [], days: d.dailySummaries || [], meds: d.homeMeds || [], visits: d.visitRequests || [],
+        todayDoses: d.todayDoses || [],
       } }))
     } catch { /* offline */ }
   }, [])
@@ -98,6 +101,33 @@ export default function LinkedResidents() {
       setData(prev => ({ ...prev, [code]: { ...prev[code], messages: [...(prev[code]?.messages || []), d.message] } }))
       return true
     } catch { return false }
+  }
+
+  // Marca (ou desmarca) uma toma de medicação DADA EM CASA pela família. A
+  // equipa do lar vê logo no /mar e no painel. Atualiza a lista otimista.
+  const [dosing, setDosing] = useState<string>('')
+  async function markDose(code: string, medId: string) {
+    const acc = accesses.find(a => a.code === code)
+    if (!acc) return
+    setDosing(medId)
+    try {
+      const res = await fetch('/api/family-portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_dose', code: acc.code, verify: acc.verify, name: myName || 'Família', medId }),
+      })
+      const d = await res.json()
+      if (res.ok && (d.toggled === 'on' || d.toggled === 'off')) {
+        setData(prev => {
+          const cur = prev[code]; if (!cur) return prev
+          const shift = (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+          const doses = d.toggled === 'on'
+            ? [...cur.todayDoses, { med_id: medId, status: 'administered', source: 'home', shift }]
+            : cur.todayDoses.filter(x => !(x.med_id === medId && x.source === 'home'))
+          return { ...prev, [code]: { ...cur, todayDoses: doses } }
+        })
+      }
+    } catch { /* offline */ }
+    finally { setDosing('') }
   }
 
   async function requestVisit(code: string, date: string, time: string, notes: string): Promise<{ ok: boolean; error?: string }> {
@@ -151,12 +181,28 @@ export default function LinkedResidents() {
                     </div>
                   )}
 
-                  {/* Medicação no lar */}
+                  {/* Medicação para dar em casa — a família marca a toma aqui.
+                      Aparece logo no /mar e no painel do lar (ponte casa↔centro). */}
                   {d.meds.length > 0 && (
                     <div style={{ marginTop: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Medicação</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {d.meds.map(m => <span key={m.id} style={{ fontSize: 12.5, fontWeight: 600, color: '#0d6e42', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '4px 10px' }}>💊 {m.name}{m.dose ? ` ${m.dose}` : ''}</span>)}
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Medicação para dar em casa</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {d.meds.map(m => {
+                          const taken = d.todayDoses.some(x => x.med_id === m.id)
+                          const busy = dosing === m.id
+                          return (
+                            <button key={m.id} onClick={() => markDose(acc.code, m.id)} disabled={busy}
+                              style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '10px 12px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer',
+                                border: `1.5px solid ${taken ? '#bbf7d0' : '#e5e7eb'}`, background: taken ? '#f0fdf4' : 'white', fontFamily: 'inherit' }}>
+                              <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800,
+                                border: `2px solid ${taken ? '#16a34a' : '#cbd5e1'}`, background: taken ? '#16a34a' : 'white', color: 'white' }}>{taken ? '✓' : ''}</span>
+                              <span style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>💊 {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
+                                <span style={{ display: 'block', fontSize: 11.5, color: taken ? '#16a34a' : '#94a3b8' }}>{busy ? 'A guardar…' : taken ? 'Tomado hoje — toque para desmarcar' : (m.frequency || 'Toque quando der esta medicação')}</span>
+                              </span>
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )}

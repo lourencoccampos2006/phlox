@@ -102,9 +102,14 @@ export async function POST(req: NextRequest) {
   if (plan === 'free') return planGateResponse('student', 'Phlox Decisão')
 
   const body = await req.json().catch(() => null)
-  if (!body?.case_id) return NextResponse.json({ error: 'case_id obrigatório' }, { status: 400 })
+  const custom = String(body?.custom_topic || '').trim()
+  if (!body?.case_id && !custom) return NextResponse.json({ error: 'case_id ou custom_topic obrigatório' }, { status: 400 })
 
-  const caseDef = CASE_DEFINITIONS[body.case_id]
+  // Tema personalizado: o estudante escreve a matéria e geramos um caso evolutivo
+  // realista sobre ela (mesmo formato/regras). Antes só dava para os casos fixos.
+  const caseDef = custom
+    ? `Cria um caso clínico evolutivo realista sobre o tema/matéria: "${custom.slice(0, 200)}". Inventa um doente português coerente com esse tema, com apresentação, sinais vitais, antecedentes e evolução plausíveis. Segue TODAS as regras do formato.`
+    : CASE_DEFINITIONS[body.case_id]
   if (!caseDef) return NextResponse.json({ error: 'Caso não encontrado' }, { status: 404 })
 
   try {

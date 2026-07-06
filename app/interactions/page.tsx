@@ -186,13 +186,20 @@ export default function InteractionsPage() {
     setResult(null)
     let names: string[] = []
     if (profile.type === 'self') {
-      const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id).limit(10)
+      const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id)
+      names = (data || []).map((m: any) => m.name)
+    } else if (profile.type === 'patient') {
+      // Utente institucional → medicação está em patient_meds (ativa). Antes este
+      // caso caía no ramo family_profile_meds e não carregava nada.
+      const { data } = await supabase.from('patient_meds').select('name').eq('patient_id', profile.id).eq('active', true)
       names = (data || []).map((m: any) => m.name)
     } else {
-      const { data } = await supabase.from('family_profile_meds').select('name').eq('profile_id', profile.id).limit(10)
+      const { data } = await supabase.from('family_profile_meds').select('name').eq('profile_id', profile.id)
       names = (data || []).map((m: any) => m.name)
     }
-    if (names.length > 0) setDrugs(names)
+    // Carrega TODOS os medicamentos do perfil (sem repetidos), pronto a verificar.
+    const uniq = Array.from(new Set(names.filter(Boolean)))
+    if (uniq.length > 0) setDrugs(uniq)
   }
 
   const saveHistory = async (data: any, drugList: string[]) => {

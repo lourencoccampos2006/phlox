@@ -41,6 +41,7 @@ const KNOWN = new Set([
   '/cockpit',  // redirect → /painel (mantido p/ links antigos)
   '/migrar',   // alcançável no onboarding /comecar-instituicao (import único)
   '/connect',  // alcançável via /settings (comunicação inter-profissional)
+  '/equipa',   // alcançável a partir do /painel-dono (sub-secção de gestão da equipa)
 ])
 
 // getNavForMode filtra por categoria×modo; para o guard basta saber se o href

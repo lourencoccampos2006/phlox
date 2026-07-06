@@ -45,6 +45,7 @@ export default function PainelCockpit() {
   const [incidents, setIncidents] = useState<any[]>([])
   const [family, setFamily] = useState<any[]>([])
   const [medsByPt, setMedsByPt] = useState<Record<string, string[]>>({})
+  const [medsFull, setMedsFull] = useState<any[]>([])   // patient_meds ativos (com shifts)
   const [attToday, setAttToday] = useState<any[]>([])   // presenças marcadas à mão hoje
   // farmácia / clínica / transversal
   const [salesToday, setSalesToday] = useState<{ count: number; total: number }>({ count: 0, total: 0 })
@@ -67,11 +68,11 @@ export default function PainelCockpit() {
     const [p, cr, mar, ac, inc, fam, meds] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,room_number,age,conditions,allergies')).eq('active', true).order('name'),
       scope.filter(supabase.from('care_records').select('patient_id,date,shift,nutrition,mood')).eq('date', d),
-      scope.filter(supabase.from('mar_records').select('patient_id,status,date')).eq('date', d),
+      scope.filter(supabase.from('mar_records').select('patient_id,status,date,med_id,shift')).eq('date', d),
       scope.filter(supabase.from('activities').select('id,title,type,date,start_time')).eq('date', d).order('start_time'),
       scope.filter(supabase.from('incidents').select('id,type,severity,status,date,patient_id')).eq('status', 'open'),
       scope.filter(supabase.from('family_thread_messages').select('id,patient_id,author_side,content,created_at')).order('created_at', { ascending: false }).limit(8),
-      scope.filter(supabase.from('patient_meds').select('patient_id,name')),
+      scope.filter(supabase.from('patient_meds').select('id,patient_id,name,shifts,active')),
     ])
     if (p.error) { setErr('Não foi possível carregar os dados. Verifica a ligação e tenta novamente.'); setLoading(false); return }
     setPatients(p.data || [])
@@ -80,8 +81,10 @@ export default function PainelCockpit() {
     setActs(ac.data || [])
     setIncidents(inc.data || [])
     const m: Record<string, string[]> = {}
-    ;(meds.data || []).forEach((x: any) => { (m[x.patient_id] ||= []).push(x.name) })
+    const medRows = (meds.data || []).filter((x: any) => x.active !== false)
+    medRows.forEach((x: any) => { (m[x.patient_id] ||= []).push(x.name) })
     setMedsByPt(m)
+    setMedsFull(medRows)
 
     // Presenças marcadas à mão (tabela attendance, sprint104). Tolerante: se a
     // tabela ainda não existe, a presença continua a inferir-se de care/mar.
@@ -177,7 +180,26 @@ export default function PainelCockpit() {
     return { p, ...a }
   }).sort((a, b) => b.score - a.score), [patients, medsByPt, incidents, withCareToday])
   const attention = ranked.filter(r => r.level === 'critical' || r.level === 'warning')
-  const marTaken = marToday.filter(m => m.status === 'taken' || m.status === 'given').length
+  // /mar grava status 'administered' (também aceitamos given/taken). Antes só
+  // contávamos taken/given → o cockpit mostrava "0 tomas" mesmo tendo dado medicação.
+  const GIVEN = new Set(['administered', 'given', 'taken'])
+  const marTaken = marToday.filter(m => GIVEN.has(m.status)).length
+  // Doses ESPERADAS hoje = medicação ativa × turnos. As que FALTAM = esperadas
+  // sem registo dado (por med+turno). Dá o "por dar" real no cockpit.
+  const expectedDoses = useMemo(() => {
+    let n = 0
+    medsFull.forEach(md => { const sh = Array.isArray(md.shifts) ? md.shifts.length : 0; n += sh > 0 ? sh : 1 })
+    return n
+  }, [medsFull])
+  const givenKeys = useMemo(() => new Set(marToday.filter(m => GIVEN.has(m.status)).map(m => `${m.med_id}|${m.shift}`)), [marToday])
+  const medsPending = useMemo(() => {
+    let n = 0
+    medsFull.forEach(md => {
+      const shifts = Array.isArray(md.shifts) && md.shifts.length ? md.shifts : ['dia']
+      shifts.forEach((s: string) => { if (!givenKeys.has(`${md.id}|${s}`)) n++ })
+    })
+    return n
+  }, [medsFull, givenKeys])
 
   const toggleHide = (id: string) => {
     setHidden(prev => {
@@ -282,7 +304,7 @@ export default function PainelCockpit() {
             <BlockShell key={block.id} block={block} editing={editing} hidden={hidden.has(block.id)} onToggle={() => toggleHide(block.id)} accent={bp.accent}>
               <BlockBody
                 id={block.id} bp={bp} cfg={cfg} loading={loading}
-                ctx={{ patients, careToday, withCareToday, marToday, marTaken, acts, incidents, family, attention, firstName, salesToday, lowStock, rxQueue, apptsToday, tasks, presentToday, attByPt, markAttendance }}
+                ctx={{ patients, careToday, withCareToday, marToday, marTaken, medsPending, expectedDoses, acts, incidents, family, attention, firstName, salesToday, lowStock, rxQueue, apptsToday, tasks, presentToday, attByPt, markAttendance }}
               />
             </BlockShell>
           ))}
@@ -317,7 +339,7 @@ const card: React.CSSProperties = { background: 'white', border: '1px solid #e9e
 const blkTitle: React.CSSProperties = { fontSize: 13, fontWeight: 800, color: '#0b1120', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7 }
 
 interface Ctx {
-  patients: PatientRow[]; careToday: any[]; withCareToday: Set<string>; marToday: any[]; marTaken: number
+  patients: PatientRow[]; careToday: any[]; withCareToday: Set<string>; marToday: any[]; marTaken: number; medsPending: number; expectedDoses: number
   acts: any[]; incidents: any[]; family: any[]; attention: any[]; firstName: string
   salesToday: { count: number; total: number }; lowStock: number
   rxQueue: { pending: number; total: number }; apptsToday: any[]; tasks: any[]
@@ -391,24 +413,51 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       )
     }
     case 'med_round': {
+      const pend = ctx.medsPending
       return (
         <div style={card}>
           <div style={blkTitle}>💊 Medicação a dar</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>{ctx.marTaken}<span style={{ fontSize: 14, color: '#94a3b8', fontWeight: 600 }}> tomas registadas hoje</span></div>
-          <Link href="/mar" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>Abrir medicação →</Link>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+            <div><span style={{ fontSize: 28, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>{ctx.marTaken}</span><span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}> dadas hoje</span></div>
+            {ctx.expectedDoses > 0 && (
+              <div><span style={{ fontSize: 28, fontWeight: 800, color: pend > 0 ? '#d97706' : '#16a34a', lineHeight: 1 }}>{pend}</span><span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}> por dar</span></div>
+            )}
+          </div>
+          <Link href="/mar" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>{pend > 0 ? `Dar as ${pend} que faltam →` : 'Abrir medicação →'}</Link>
         </div>
       )
     }
     case 'people_watch': {
+      // Além dos sinais clínicos, mostra o TRABALHO por fazer hoje (o que o
+      // Fernando pediu): medicação por dar e registos do dia em falta. Assim o
+      // bloco nunca diz "nada" quando há coisas a fazer — mas sem duplicar o
+      // detalhe do bloco da medicação (aqui é só o atalho/contagem).
+      const semRegisto = ctx.patients.filter((p: any) => !ctx.withCareToday.has(p.id))
+      const nAttention = ctx.attention.length
+      const nada = nAttention === 0 && ctx.medsPending === 0 && semRegisto.length === 0
       return (
         <div style={card}>
           <div style={{ ...blkTitle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>📋 Pode merecer atenção hoje {ctx.attention.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{ctx.attention.length}</span>}</span>
+            <span>📋 O que há a fazer hoje {(nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)) > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)}</span>}</span>
             <Link href="/radar" style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Ver tudo →</Link>
           </div>
-          {ctx.attention.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Nada fora do padrão com o que foi registado. ✓</div>
+          {nada ? <div style={{ fontSize: 13, color: '#16a34a' }}>Tudo em dia. Nada fora do padrão. ✓</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {ctx.attention.slice(0, 6).map(({ p, score, level, summary }: any) => {
+              {/* Tarefas operacionais primeiro (acionáveis já) */}
+              {ctx.medsPending > 0 && (
+                <Link href="/mar" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#fff7ed', border: '1.5px solid #fed7aa', color: '#c2410c', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>💊</span>
+                  <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{ctx.medsPending} {ctx.medsPending === 1 ? 'toma por dar' : 'tomas por dar'}</span><span style={{ display: 'block', fontSize: 11, color: '#c2410c' }}>Abrir a folha de medicação</span></span>
+                </Link>
+              )}
+              {semRegisto.length > 0 && (
+                <Link href={`/care-log?patient=${semRegisto[0].id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1d4ed8', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📝</span>
+                  <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{semRegisto.length} {semRegisto.length === 1 ? 'registo do dia por fazer' : 'registos do dia por fazer'}</span><span style={{ display: 'block', fontSize: 11, color: '#1d4ed8' }}>{semRegisto.slice(0, 3).map((p: any) => p.name.split(' ')[0]).join(', ')}{semRegisto.length > 3 ? '…' : ''}</span></span>
+                </Link>
+              )}
+              {/* Depois os sinais clínicos */}
+              {ctx.attention.slice(0, 5).map(({ p, score, level, summary }: any) => {
                 const st = SEVERITY_STYLE[level as keyof typeof SEVERITY_STYLE]
                 return <Link key={p.id} href={`/patients/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                   <span style={{ width: 30, height: 30, borderRadius: 8, background: st.bg, border: `1.5px solid ${st.border}`, color: st.color, fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{score}</span>
@@ -419,7 +468,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
                 </Link>
               })}
             </div>}
-          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 8, lineHeight: 1.4 }}>Reúne o que a equipa registou. A avaliação é do profissional.</div>
+          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 8, lineHeight: 1.4 }}>Reúne o trabalho por fazer e o que a equipa registou. A avaliação é do profissional.</div>
         </div>
       )
     }

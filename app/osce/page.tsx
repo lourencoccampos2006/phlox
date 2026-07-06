@@ -132,6 +132,7 @@ export default function OSCEPage() {
   const [phase, setPhase] = useState<OSCEPhase>('setup')
   const [course, setCourse] = useState<Course>('medicine')
   const [stationType, setStationType] = useState<OSCEStation['station_type']>('history_taking')
+  const [customTopic, setCustomTopic] = useState('')
   const [difficulty, setDifficulty] = useState<OSCEStation['difficulty']>('intermediate')
   const [station, setStation] = useState<OSCEStation | null>(null)
   const [anamnesisMessages, setAnamnesisMessages] = useState<AnamnesisMessage[]>([])
@@ -166,7 +167,7 @@ export default function OSCEPage() {
       const res = await fetch('/api/osce/station', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-        body: JSON.stringify({ course, station_type: stationType, difficulty }),
+        body: JSON.stringify({ course, station_type: stationType, difficulty, custom_topic: customTopic.trim() || undefined }),
       })
       const data = await res.json()
       // BUG (Ronda 12): antes fazia data.checklist_items.map sem validar — se a API
@@ -177,7 +178,7 @@ export default function OSCEPage() {
         const res2 = await fetch('/api/osce/station', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-          body: JSON.stringify({ course, station_type: stationType, difficulty }),
+          body: JSON.stringify({ course, station_type: stationType, difficulty, custom_topic: customTopic.trim() || undefined }),
         })
         const data2 = await res2.json()
         if (!res2.ok || !Array.isArray(data2?.checklist_items) || data2.checklist_items.length === 0) {
@@ -331,6 +332,14 @@ export default function OSCEPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Tema à escolha (opcional) — se escrito, a estação é sobre este assunto */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tema (opcional)</div>
+            <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
+              placeholder="Deixa em branco para tema aleatório, ou escreve (ex: cetoacidose, DPOC…)"
+              style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
           </div>
 
           {genError && (

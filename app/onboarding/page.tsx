@@ -51,8 +51,6 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
 const INSTITUTIONS = [
   { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },
   { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },
-  { id: 'clinic',             label: 'Clínica',              desc: 'Doentes, agenda, consultas' },
-  { id: 'health_center',      label: 'Centro de Saúde',      desc: 'Utentes, rastreios, CSP' },
 ]
 const ROLES = [
   { id: 'nurse', label: 'Enfermeiro(a)' }, { id: 'pharmacist', label: 'Farmacêutico(a)' },

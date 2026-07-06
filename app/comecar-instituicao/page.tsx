@@ -13,10 +13,8 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
 const INST_TYPES: { id: string; label: string; emoji: string }[] = [
-  { id: 'nursing_home', label: 'Lar / ERPI', emoji: '🏡' },
   { id: 'day_care', label: 'Centro de Dia', emoji: '☀️' },
-  { id: 'clinic', label: 'Clínica', emoji: '🩺' },
-  { id: 'health_center', label: 'Centro de Saúde', emoji: '➕' },
+  { id: 'nursing_home', label: 'Lar / ERPI', emoji: '🏡' },
 ]
 
 export default function ComecarInstituicaoPage() {
