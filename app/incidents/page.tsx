@@ -106,6 +106,9 @@ export default function IncidentsPage() {
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [saveError, setSaveError] = useState('')
+  // Comunicação à família de uma ocorrência grave: em vez de um confirm() cru,
+  // um modal com a mensagem PRÉ-ESCRITA e EDITÁVEL, que se envia deliberadamente.
+  const [notify, setNotify] = useState<{ patientId: string; patientName: string; body: string; sending: boolean; done: boolean } | null>(null)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -126,24 +129,27 @@ export default function IncidentsPage() {
 
   useLiveData({ supabase, table: ['incidents', 'patients'], userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
-  // Cria (após confirmação) uma mensagem de alerta no Portal Família para uma ocorrência grave
-  const maybeNotifyFamily = async (patientId: string, type: string, severity: string) => {
+  // Ocorrência grave → abre o modal de comunicação à família com a mensagem já
+  // escrita (o profissional revê, ajusta e envia — nada sai sem ele confirmar).
+  const openNotifyFamily = (patientId: string, type: string, severity: string) => {
     const patName = patients.find(p => p.id === patientId)?.name || `o/a ${personLower}`
     const sevLabel = SEV_STYLE[severity]?.label || severity
-    if (!confirm(`Ocorrência ${sevLabel.toLowerCase()} registada para ${patName}.\n\nComunicar à família agora (cria mensagem no Portal Família)?`)) return
-    // contacto de urgência (se existir) deste residente
-    const { data: contacts } = await supabase.from('resident_contacts').select('id,is_emergency').eq('user_id', user!.id).eq('patient_id', patientId)
-    const emergency = (contacts || []).find((c: any) => c.is_emergency) || (contacts || [])[0]
-    await supabase.from('family_messages').insert({
-      user_id: user!.id,
-      patient_id: patientId,
-      contact_id: emergency?.id || null,
-      subject: `Comunicação — ${TYPE_LABELS[type] || 'ocorrência'} (${patName})`,
-      body: `Informamos que ocorreu um incidente (${TYPE_LABELS[type] || type}, gravidade ${sevLabel.toLowerCase()}) com ${patName}. A equipa prestou de imediato a assistência necessária e ${patName} está a ser acompanhado(a). Estamos disponíveis para esclarecer qualquer questão.`,
-      type: 'alert',
-      direction: 'sent',
-      read: true,
-    })
+    const body = `Informamos que ocorreu ${TYPE_LABELS[type] ? `um(a) ${TYPE_LABELS[type].toLowerCase()}` : 'uma ocorrência'} (gravidade ${sevLabel.toLowerCase()}) com ${patName}. A equipa prestou de imediato a assistência necessária e ${patName.split(' ')[0]} está a ser acompanhado(a). Estamos disponíveis para esclarecer qualquer questão.`
+    setNotify({ patientId, patientName: patName, body, sending: false, done: false })
+  }
+  // Envia a mensagem para o FIO da família (family_thread_messages — o que /family
+  // e /familia mostram). Antes escrevia em family_messages e a família não via.
+  const sendNotify = async () => {
+    if (!notify || !user) return
+    setNotify(n => n ? { ...n, sending: true } : n)
+    const { error } = await supabase.from('family_thread_messages').insert(scope.stamp({
+      user_id: user.id, patient_id: notify.patientId, author_side: 'staff',
+      author_name: (user as any).name || 'Equipa', kind: 'update',
+      content: notify.body, read_by_family: false, read_by_staff: true,
+    }))
+    if (error) { setNotify(n => n ? { ...n, sending: false } : n); setSaveError('Não foi possível comunicar à família: ' + error.message); return }
+    setNotify(n => n ? { ...n, sending: false, done: true } : n)
+    setTimeout(() => setNotify(null), 1800)
   }
 
   const save = async () => {
@@ -186,9 +192,10 @@ export default function IncidentsPage() {
       } else {
         const { error: dbErr } = await supabase.from('incidents').insert(scope.stamp({ ...payload, status: 'open' }))
         if (dbErr) throw new Error(dbErr.message)
-        // Ocorrência grave/crítica → propor comunicar à família (exigência legal de comunicação)
+        // Ocorrência grave/crítica → abre o modal para comunicar à família (o
+        // profissional revê e envia). Guardamos os dados antes de limpar o form.
         if (form.severity === 'major' || form.severity === 'critical') {
-          await maybeNotifyFamily(payload.patient_id, form.type, form.severity)
+          openNotifyFamily(payload.patient_id, form.type, form.severity)
         }
       }
       setShowForm(false)
@@ -451,6 +458,32 @@ export default function IncidentsPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Comunicar à família (ocorrência grave) — mensagem editável, envio deliberado */}
+        {notify && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}
+            onClick={e => { if (e.target === e.currentTarget && !notify.sending) setNotify(null) }}>
+            <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 440, padding: '22px 22px 24px' }}>
+              {notify.done ? (
+                <div style={{ textAlign: 'center', padding: '18px 0' }}>
+                  <div style={{ fontSize: 34, marginBottom: 8 }}>✓</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120' }}>Família avisada</div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Comunicar à família</div>
+                  <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>Ocorrência grave com <b>{notify.patientName}</b>. Reveja a mensagem antes de enviar.</div>
+                  <textarea value={notify.body} onChange={e => setNotify(n => n ? { ...n, body: e.target.value } : n)} rows={5}
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 13px', fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                    <button onClick={() => setNotify(null)} disabled={notify.sending} style={{ flex: 1, padding: '11px', background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 9, fontSize: 13.5, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}>Não enviar</button>
+                    <button onClick={sendNotify} disabled={notify.sending || !notify.body.trim()} style={{ flex: 2, padding: '11px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: notify.sending ? 'wait' : 'pointer' }}>{notify.sending ? 'A enviar…' : 'Enviar à família'}</button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
 

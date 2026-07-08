@@ -63,6 +63,7 @@ export default function PainelCockpit() {
     if (!user) return
     setLoading(true); setErr('')
     const d = today()
+    try {
     // Leitura por ORGANIZAÇÃO quando há equipa (scope.filter), senão por user_id.
     // É isto que faz o dono e os funcionários verem os MESMOS utentes e registos.
     const [p, cr, mar, ac, inc, fam, meds] = await Promise.all([
@@ -136,7 +137,13 @@ export default function PainelCockpit() {
       const r = await safe(scope.filter(supabase.from('team_tasks').select('id,title,status,priority')).neq('status', 'done').limit(20), [])
       setTasks(r.data || [])
     }
-    setLoading(false)
+    } catch {
+      // Falha de rede real (não erro de query) — não deixar o cockpit preso nos
+      // skeletons. Mostra um aviso recuperável.
+      setErr('Não foi possível carregar os dados. Verifica a ligação e tenta novamente.')
+    } finally {
+      setLoading(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, blockIds, scope.orgId, scope.userId])
 
@@ -346,7 +353,14 @@ interface Ctx {
 
 function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: any; loading: boolean; ctx: Ctx }) {
   const noun = cfg.personNounPlural
-  if (loading) return <div style={{ ...card, color: '#94a3b8', fontSize: 13 }}>A carregar…</div>
+  // Skeleton (não "A carregar…" em texto): parece intencional, não avariado.
+  if (loading) return (
+    <div style={{ ...card }}>
+      <div className="skeleton" style={{ height: 12, width: '45%', borderRadius: 6, marginBottom: 12 }} />
+      <div className="skeleton" style={{ height: 28, width: '65%', borderRadius: 8, marginBottom: 10 }} />
+      <div className="skeleton" style={{ height: 12, width: '85%', borderRadius: 6 }} />
+    </div>
+  )
 
   switch (id) {
     case 'day_overview': {

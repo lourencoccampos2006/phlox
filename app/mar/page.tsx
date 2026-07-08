@@ -168,6 +168,17 @@ export default function MARPage() {
   const [showOmitDetail, setShowOmitDetail]   = useState(false)
   const [liveTick, setLiveTick]               = useState(0)
 
+  // O useClinicPrefs arranca em 'nursing_home' e só lê o tipo real do localStorage
+  // depois do 1º render — por isso o `shift` inicial podia ser 'noite' (lar) e ficar
+  // preso mesmo depois de se saber que é um centro de dia. Re-sincroniza o turno
+  // com a instituição, mas só enquanto o utilizador não escolheu um à mão.
+  const [shiftTouched, setShiftTouched] = useState(false)
+  const pickShift = (s: Shift) => { setShiftTouched(true); setShift(s) }
+  useEffect(() => {
+    if (!shiftTouched) setShift(currentShiftFor(institution))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [institution])
+
   // Live updates: refresh MAR records when changed elsewhere or on return to app
   useLiveData({ supabase, table: 'mar_records', userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, enabled: !!user && isPro, onChange: () => setLiveTick(t => t + 1) })
 
@@ -182,9 +193,9 @@ export default function MARPage() {
     const fn = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       // Atalhos de turno só onde há turnos (o centro de dia não tem "noite").
-      if (cfg.hasShifts && e.key === '1') setShift('manha')
-      else if (cfg.hasShifts && e.key === '2') setShift('tarde')
-      else if (cfg.hasShifts && e.key === '3') setShift('noite')
+      if (cfg.hasShifts && e.key === '1') pickShift('manha')
+      else if (cfg.hasShifts && e.key === '2') pickShift('tarde')
+      else if (cfg.hasShifts && e.key === '3') pickShift('noite')
       else if (e.key === 'p' || e.key === 'P') printRef.current()
     }
     window.addEventListener('keydown', fn)
@@ -375,7 +386,7 @@ export default function MARPage() {
           {cfg.hasShifts ? (
             <div className="mar-shifts" style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2, marginTop: 8 }}>
               {shiftsFor(institution).map(s => (
-                <button key={s} onClick={() => setShift(s)}
+                <button key={s} onClick={() => pickShift(s)}
                   style={{ flex: 1, padding: '7px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, transition: 'all 0.1s' }}>
                   {SHIFTS[s].label}
                 </button>
@@ -396,7 +407,7 @@ export default function MARPage() {
           <div className="page-container" style={{ paddingTop: 8, paddingBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: omissions.length >= 3 ? '#991b1b' : '#92400e' }}>
-                {omissions.reduce((s, o) => s + o.missing, 0)} doses em falta — {sl.label}
+                {(() => { const t = omissions.reduce((s, o) => s + o.missing, 0); return `${t} ${t === 1 ? 'dose' : 'doses'} em falta` })()} — {sl.label}
               </span>
               {omissions.slice(0, 5).map(o => (
                 <button key={o.id} onClick={() => setSelectedId(o.id)}

@@ -90,6 +90,10 @@ export function AtividadesTool() {
   const [notifyBusy, setNotifyBusy] = useState(false)
   const [notifySent, setNotifySent] = useState<string | null>(null)
   const [notifyMsg, setNotifyMsg] = useState('')
+  // Avisar as famílias ao criar a atividade: ligado por defeito (é o que se quer
+  // no dia-a-dia), mas VISÍVEL e desligável — para planear o mês que vem, ou
+  // corrigir uma atividade, sem mandar mensagem a toda a gente.
+  const [notifyOnCreate, setNotifyOnCreate] = useState(true)
 
   const [form, setForm] = useState({
     title: '', type: 'gym', date: todayStr(), start_time: '10:00', end_time: '',
@@ -135,13 +139,15 @@ export function AtividadesTool() {
       max_participants: form.max_participants ? parseInt(form.max_participants) : null,
       status: 'planned',
     }))
-    if (!error) {
-      // Avisa AUTOMATICAMENTE as famílias de todos os utentes ativos, no momento
-      // em que a atividade é registada (era o que o Fernando pediu). Vai para o
-      // fio family_thread_messages → aparece em /family e /familia.
+    if (!error && notifyOnCreate) {
+      // Avisa as famílias de todos os utentes ativos assim que a atividade é
+      // registada. Vai para o fio family_thread_messages → /family e /familia.
       const ids = patients.map(p => p.id)
       const n = await sendActivityMessages(title, ids, 'planned')
       if (n > 0) { setNotifyMsg(`Atividade criada — ${n} ${n === 1 ? 'família avisada' : 'famílias avisadas'}.`); setTimeout(() => setNotifyMsg(''), 5000) }
+    } else if (!error) {
+      setNotifyMsg('Atividade criada. As famílias não foram avisadas.')
+      setTimeout(() => setNotifyMsg(''), 5000)
     }
     setSaving(false)
     if (error) { alert('Não foi possível guardar a atividade: ' + error.message); return }
@@ -578,6 +584,15 @@ export function AtividadesTool() {
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Descrição</label>
                 <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} placeholder="Notas adicionais..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
               </div>
+
+              {/* Avisar as famílias — ligado por defeito, mas visível e desligável. */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', padding: '10px 12px', background: notifyOnCreate ? '#f0fdf4' : '#f9fafb', border: `1.5px solid ${notifyOnCreate ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 9, marginTop: 4 }}>
+                <input type="checkbox" checked={notifyOnCreate} onChange={e => setNotifyOnCreate(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, accentColor: '#16a34a', flexShrink: 0 }} />
+                <span>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0b1120' }}>Avisar as famílias</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: '#64748b' }}>Manda um recado às famílias dos {cfg.personNounPlural.toLowerCase()}. Desligue para planear sem avisar.</span>
+                </span>
+              </label>
 
               <button
                 onClick={saveActivity}

@@ -91,7 +91,12 @@ export function CareLogTool() {
   const sp = useSearchParams()
   const [patientId, setPatientId] = useState('')
   const [date, setDate] = useState(today)
+  // useClinicPrefs arranca em 'nursing_home' e só lê o tipo real depois do 1º
+  // render — re-sincronizamos o turno com a instituição enquanto não for tocado.
   const [shift, setShift] = useState<Shift>(currentShiftFor(institution))
+  const [shiftTouched, setShiftTouched] = useState(false)
+  const pickShift = (s: Shift) => { setShiftTouched(true); setShift(s) }
+  useEffect(() => { if (!shiftTouched) setShift(currentShiftFor(institution)) /* eslint-disable-next-line */ }, [institution])
   const [recordedBy, setRecordedBy] = useState('')
 
   // Vitals
@@ -328,7 +333,7 @@ export function CareLogTool() {
                   {shiftsFor(institution).map(k => {
                     const sm = SHIFTS[k]
                     return (
-                      <button key={k} onClick={() => setShift(k)} style={{ flex: 1, padding: '9px 6px', border: `1.5px solid ${shift === k ? sm.color : '#e5e7eb'}`, borderRadius: 8, background: shift === k ? sm.bg : '#fff', color: shift === k ? sm.color : '#6b7280', fontSize: 12, fontWeight: shift === k ? 700 : 400, cursor: 'pointer' }}>
+                      <button key={k} onClick={() => pickShift(k)} style={{ flex: 1, padding: '9px 6px', border: `1.5px solid ${shift === k ? sm.color : '#e5e7eb'}`, borderRadius: 8, background: shift === k ? sm.bg : '#fff', color: shift === k ? sm.color : '#6b7280', fontSize: 12, fontWeight: shift === k ? 700 : 400, cursor: 'pointer' }}>
                         {sm.label}
                       </button>
                     )

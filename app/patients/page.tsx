@@ -86,6 +86,9 @@ export default function PatientsPage() {
   const blankP = { name: '', age: '', sex: '', weight: '', height: '', creatinine: '', conditions: '', allergies: '', notes: '', room_number: '', admission_date: '', emergency_contact: '' }
   const [newP, setNewP] = useState(blankP)
 
+  const [archived, setArchived] = useState<{ id: string; name: string }[]>([])
+  const [showArchived, setShowArchived] = useState(false)
+
   const [showImport, setShowImport] = useState(false)
   const [importPreview, setImportPreview] = useState<{ headers: string[]; rows: string[][]; mapping: Record<string, number> } | null>(null)
   const [importLoading, setImportLoading] = useState(false)
@@ -121,7 +124,15 @@ export default function PatientsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
 
+  const loadArchived = useCallback(async () => {
+    if (!user) return
+    const { data } = await scope.filter(supabase.from('patients').select('id,name').eq('active', false)).order('name')
+    setArchived((data || []) as { id: string; name: string }[])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadArchived() }, [loadArchived])
   useLiveData({ supabase, userId: user?.id, table: ['patients', 'patient_meds', 'incidents', 'care_records'], filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   useEffect(() => {
@@ -150,11 +161,18 @@ export default function PatientsPage() {
     if (data) router.push(`/patients/${data.id}`)
   }
 
-  async function deletePatient(id: string, name: string) {
+  // ARQUIVAR (soft-delete): não apaga nada — põe active:false. Sai da lista mas o
+  // histórico fica, e pode ser reposto. Apagar de vez um utente e todos os seus
+  // registos por um clique era perigoso (e irreversível).
+  async function archivePatient(id: string, name: string) {
     if (!user) return
-    if (!confirm(`Remover ${name}? Esta ação é permanente e apaga todos os dados associados.`)) return
-    await supabase.from('patients').delete().eq('id', id)
-    load()
+    if (!confirm(`Arquivar ${name}? Sai da lista, mas os registos ficam guardados e pode repô-lo em "Arquivados".`)) return
+    await supabase.from('patients').update({ active: false }).eq('id', id)
+    load(); loadArchived()
+  }
+  async function restorePatient(id: string) {
+    await supabase.from('patients').update({ active: true }).eq('id', id)
+    load(); loadArchived()
   }
 
   function handleCSVFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -338,13 +356,33 @@ export default function PatientsPage() {
                     <span style={{ fontSize: 11.5, fontWeight: 600, color: logged ? '#15803d' : '#94a3b8' }}>
                       {logged ? '✓ Com registo hoje' : '○ Sem registo hoje'}
                     </span>
-                    <button onClick={() => deletePatient(p.id, p.name)} title={`Remover ${noun}`}
+                    <button onClick={() => archivePatient(p.id, p.name)} title={`Arquivar ${noun}`}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 12, fontWeight: 700 }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')} onMouseLeave={e => (e.currentTarget.style.color = '#cbd5e1')}>Remover</button>
+                      onMouseEnter={e => (e.currentTarget.style.color = '#b45309')} onMouseLeave={e => (e.currentTarget.style.color = '#cbd5e1')}>Arquivar</button>
                   </div>
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Arquivados — repor um utente arquivado. Só aparece se houver algum. */}
+        {archived.length > 0 && (
+          <div style={{ marginTop: 22 }}>
+            <button onClick={() => setShowArchived(s => !s)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-4)', display: 'flex', alignItems: 'center', gap: 6, padding: 0, fontFamily: 'var(--font-sans)' }}>
+              {showArchived ? '▾' : '▸'} Arquivados ({archived.length})
+            </button>
+            {showArchived && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {archived.map(a => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: '#f9fafb', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 13px' }}>
+                    <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>{a.name}</span>
+                    <button onClick={() => restorePatient(a.id)} style={{ background: 'white', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Repor</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
