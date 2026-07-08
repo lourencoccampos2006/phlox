@@ -384,8 +384,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               <input value={newMed.frequency} onChange={e => setNewMed(p => ({ ...p, frequency: e.target.value }))} placeholder="Frequência (1+0+1)" style={inp} />
             </div>
             <input value={newMed.indication} onChange={e => setNewMed(p => ({ ...p, indication: e.target.value }))} placeholder="Para que serve (opcional)" style={{ ...inp, marginTop: 8 }} />
+            {/* Turnos: num centro de dia não existe turno da noite (o centro está
+                fechado) — oferecer "Noite" faria a toma nunca aparecer no /mar. */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-              {SHIFTS.map(s => { const on = newMed.shifts.includes(s.v); return <button key={s.v} onClick={() => setNewMed(p => ({ ...p, shifts: on ? p.shifts.filter(x => x !== s.v) : [...p.shifts, s.v] }))} style={chip(on, accent)}>{on ? '✓ ' : ''}{s.l}</button> })}
+              {SHIFTS.filter(s => !isDayCare || s.v !== 'noite').map(s => { const on = newMed.shifts.includes(s.v); return <button key={s.v} onClick={() => setNewMed(p => ({ ...p, shifts: on ? p.shifts.filter(x => x !== s.v) : [...p.shifts, s.v] }))} style={chip(on, accent)}>{on ? '✓ ' : ''}{s.l}</button> })}
             </div>
             {isDayCare && (
               <div style={{ marginTop: 10 }}>

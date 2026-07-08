@@ -6,8 +6,9 @@ import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
-import { institutionConfig } from '@/lib/institutionConfig'
+import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import ClinicalGate from '@/components/ClinicalGate'
 import Link from 'next/link'
 
 // Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
@@ -73,12 +74,6 @@ function dueInShift(med: { shifts?: string[] | null }, shift: Shift): boolean {
 }
 
 function getToday() { return new Date().toISOString().split('T')[0] }
-function getCurrentShift(): Shift {
-  const h = new Date().getHours()
-  if (h >= 7 && h < 14) return 'manha'
-  if (h >= 14 && h < 21) return 'tarde'
-  return 'noite'
-}
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
 }
@@ -162,7 +157,8 @@ export default function MARPage() {
   const [selectedId, setSelectedId]           = useState('')
   const [meds, setMeds]                       = useState<PatientMed[]>([])
   const [date, setDate]                       = useState(getToday())
-  const [shift, setShift]                     = useState<Shift>(getCurrentShift())
+  // Sem turnos (centro de dia): o período vem do relógio e não há seletor.
+  const [shift, setShift]                     = useState<Shift>(currentShiftFor(institution))
   const [records, setRecords]                 = useState<AdminRecord[]>([])
   const [saving, setSaving]                   = useState<string | null>(null)
   const [pendingWarn, setPendingWarn]         = useState<{ medId: string; status: AdminStatus; notes: string; messages: string[] } | null>(null)
@@ -185,19 +181,20 @@ export default function MARPage() {
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (e.key === '1') setShift('manha')
-      else if (e.key === '2') setShift('tarde')
-      else if (e.key === '3') setShift('noite')
+      // Atalhos de turno só onde há turnos (o centro de dia não tem "noite").
+      if (cfg.hasShifts && e.key === '1') setShift('manha')
+      else if (cfg.hasShifts && e.key === '2') setShift('tarde')
+      else if (cfg.hasShifts && e.key === '3') setShift('noite')
       else if (e.key === 'p' || e.key === 'P') printRef.current()
     }
     window.addEventListener('keydown', fn)
     return () => window.removeEventListener('keydown', fn)
-  }, [])
+  }, [cfg.hasShifts])
 
   useEffect(() => {
     if (!user || !isPro) return
     scope.filter(supabase.from('patients').select('id, name, age, room_number, conditions, allergies')).order('name')
-      .then(({ data, error }: any) => { setLoadErr(error ? 'Não foi possível carregar os doentes. Verifica a ligação e recarrega.' : ''); setPatients(data || []) })
+      .then(({ data, error }: any) => { setLoadErr(error ? `Não foi possível carregar os ${cfg.personNounPlural.toLowerCase()}. Verifica a ligação e recarrega.` : ''); setPatients(data || []) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isPro, supabase, scope.orgId, scope.userId])
 
@@ -346,16 +343,9 @@ export default function MARPage() {
   const sl           = SHIFTS[shift]
 
   if (!isPro) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)' }}>
-        <div style={{ maxWidth: 480, padding: '0 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 16 }}>MAR</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: '#0f172a', marginBottom: 14 }}>Registo de Administração de Medicação</div>
-          <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 24 }}>Regista cada administração por turno. Sinaliza omissões, recusas e alertas de segurança automaticamente.</p>
-          <Link href="/pricing" style={{ display: 'inline-block', background: '#2563eb', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Ver planos →</Link>
-        </div>
-      </div>
-    )
+    return <ClinicalGate emoji="💊" accent="#2563eb"
+      title="Registo de Administração de Medicação"
+      description="Regista cada administração e sinaliza omissões, recusas e alertas de segurança automaticamente." />
   }
 
   return (
@@ -380,15 +370,23 @@ export default function MARPage() {
               Passagem →
             </Link>
           </div>
-          {/* Row 2: shift segmented control (full-width on mobile) */}
-          <div className="mar-shifts" style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2, marginTop: 8 }}>
-            {(['manha', 'tarde', 'noite'] as Shift[]).map(s => (
-              <button key={s} onClick={() => setShift(s)}
-                style={{ flex: 1, padding: '7px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, transition: 'all 0.1s' }}>
-                {SHIFTS[s].label}
-              </button>
-            ))}
-          </div>
+          {/* Row 2: seletor de turno — só em instituições COM turnos. Num centro de
+              dia não há "noite", por isso mostramos apenas o período atual. */}
+          {cfg.hasShifts ? (
+            <div className="mar-shifts" style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2, marginTop: 8 }}>
+              {shiftsFor(institution).map(s => (
+                <button key={s} onClick={() => setShift(s)}
+                  style={{ flex: 1, padding: '7px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, transition: 'all 0.1s' }}>
+                  {SHIFTS[s].label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="mar-shifts" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: '#64748b' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: SHIFTS[shift].color, flexShrink: 0 }} />
+              <span>Medicação {shift === 'manha' ? 'da manhã' : 'da tarde'}</span>
+            </div>
+          )}
         </div>
       </div>
 

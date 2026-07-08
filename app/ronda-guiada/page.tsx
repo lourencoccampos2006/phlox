@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
-import { institutionConfig } from '@/lib/institutionConfig'
+import { institutionConfig, currentShiftFor } from '@/lib/institutionConfig'
 
 const ACCENT = '#0d6e42'
 interface Assignment { id: string; patient_id: string; assigned_to: string; assigned_name: string; status: 'pending' | 'done' | 'skipped'; attended_by?: string | null; attended_name?: string | null; outcome?: string | null }
@@ -141,7 +141,9 @@ export default function RondaCoordenadaPage() {
     return () => { cancel = true }
   }, [curPatientId, auth])
 
-  const shiftNow = (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+  // Turno atual segundo a instituição (o centro de dia nunca tem "noite").
+  // Enviamos SEMPRE o turno ao servidor para não haver duas verdades.
+  const shiftNow = currentShiftFor(institution)
   const medGiven = (medId: string) => (panel?.mar || []).some(m => m.med_id === medId && (m.status === 'administered' || m.status === 'given' || m.status === 'taken'))
   async function giveMed(medId: string) {
     if (!current) return
@@ -149,7 +151,7 @@ export default function RondaCoordenadaPage() {
     const given = medGiven(medId)
     // otimista
     setPanel(p => p ? { ...p, mar: given ? p.mar.filter(m => m.med_id !== medId) : [...p.mar, { med_id: medId, status: 'administered', shift: shiftNow }] } : p)
-    const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'give_med', patient_id: current.patient_id, med_id: medId }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'give_med', patient_id: current.patient_id, med_id: medId, shift: shiftNow }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     if (r.error) setPanel(p => p ? { ...p, mar: given ? [...p.mar, { med_id: medId, status: 'administered' }] : p.mar.filter(m => m.med_id !== medId) } : p)
     setMedBusy('')
   }

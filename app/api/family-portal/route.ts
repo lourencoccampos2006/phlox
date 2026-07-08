@@ -227,7 +227,16 @@ export async function POST(req: NextRequest) {
     if (!med) return NextResponse.json({ error: 'Medicamento não encontrado' }, { status: 404 })
     const date = new Date().toISOString().slice(0, 10)
     const who = (v0.contact?.name || String(body.name || '').trim() || 'Família').slice(0, 60)
-    const shift = (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+    // O turno tem de ser um que a INSTITUIÇÃO use: um centro de dia só mostra
+    // manhã/tarde no /mar, por isso uma toma gravada como "noite" ficaria
+    // invisível à equipa (e a ponte casa→centro perdia-se). Sem turnos → tarde.
+    const shift = await (async () => {
+      const h = new Date().getHours()
+      const raw = h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite'
+      if (raw !== 'noite' || !pat0.org_id) return raw
+      const { data: org } = await sb0.from('organizations').select('kind').eq('id', pat0.org_id).maybeSingle()
+      return org?.kind === 'day_care' ? 'tarde' : 'noite'
+    })()
     const row: any = {
       user_id: pat0.user_id, patient_id: pat0.id, med_id: medId,
       date, shift, status: 'administered', source: 'home', home_by: who,

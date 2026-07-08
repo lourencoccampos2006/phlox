@@ -8,7 +8,7 @@ import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import RegistoDoDia from './RegistoDoDia'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
-import { institutionConfig } from '@/lib/institutionConfig'
+import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
 
 // O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
@@ -42,12 +42,8 @@ const SHIFTS: Record<Shift, { label: string; hours: string; color: string; bg: s
   noite: { label: 'Noite',  hours: '21:00–07:00', color: '#4f46e5', bg: '#f5f3ff' },
 }
 
-function currentShift(): Shift {
-  const h = new Date().getHours()
-  if (h >= 7 && h < 14) return 'manha'
-  if (h >= 14 && h < 21) return 'tarde'
-  return 'noite'
-}
+// Turnos: fonte única em lib/institutionConfig (shiftsFor / currentShiftFor).
+// Um centro de dia não tem turno da noite — não o mostramos nem o derivamos.
 
 const MOOD_OPTS = [
   { v: 1, label: 'Agitado',      color: '#dc2626' },
@@ -95,7 +91,7 @@ export function CareLogTool() {
   const sp = useSearchParams()
   const [patientId, setPatientId] = useState('')
   const [date, setDate] = useState(today)
-  const [shift, setShift] = useState<Shift>(currentShift())
+  const [shift, setShift] = useState<Shift>(currentShiftFor(institution))
   const [recordedBy, setRecordedBy] = useState('')
 
   // Vitals
@@ -275,14 +271,15 @@ export function CareLogTool() {
         <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Sinais vitais · Nutrição · Continência · Bem-estar · Pele · Notas</p>
       </div>
 
-      {/* Today summary strip */}
+      {/* Today summary strip — só os turnos que ESTA instituição tem. */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
-        {Object.entries(SHIFTS).map(([s, cfg]) => {
+        {shiftsFor(institution).map(s => {
+          const sm = SHIFTS[s]
           const count = todayRecords.filter(r => r.shift === s).length
           return (
-            <div key={s} style={{ flex: 1, minWidth: 120, background: cfg.bg, border: `1.5px solid ${cfg.color}30`, borderRadius: 10, padding: '10px 14px' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: cfg.color }}>{cfg.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: cfg.color, marginTop: 2 }}>{count}</div>
+            <div key={s} style={{ flex: 1, minWidth: 120, background: sm.bg, border: `1.5px solid ${sm.color}30`, borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: sm.color }}>{sm.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: sm.color, marginTop: 2 }}>{count}</div>
               <div style={{ fontSize: 11, color: '#9ca3af' }}>registos hoje</div>
             </div>
           )
@@ -324,14 +321,18 @@ export function CareLogTool() {
               </button>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12 }}>
+              {/* Só os turnos desta instituição (o centro de dia não tem noite). */}
               <div style={{ minWidth: 0 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Turno</label>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cfg.hasShifts ? 'Turno' : 'Período'}</label>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {(Object.entries(SHIFTS) as [Shift, typeof SHIFTS.manha][]).map(([k, cfg]) => (
-                    <button key={k} onClick={() => setShift(k)} style={{ flex: 1, padding: '9px 6px', border: `1.5px solid ${shift === k ? cfg.color : '#e5e7eb'}`, borderRadius: 8, background: shift === k ? cfg.bg : '#fff', color: shift === k ? cfg.color : '#6b7280', fontSize: 12, fontWeight: shift === k ? 700 : 400, cursor: 'pointer' }}>
-                      {cfg.label}
-                    </button>
-                  ))}
+                  {shiftsFor(institution).map(k => {
+                    const sm = SHIFTS[k]
+                    return (
+                      <button key={k} onClick={() => setShift(k)} style={{ flex: 1, padding: '9px 6px', border: `1.5px solid ${shift === k ? sm.color : '#e5e7eb'}`, borderRadius: 8, background: shift === k ? sm.bg : '#fff', color: shift === k ? sm.color : '#6b7280', fontSize: 12, fontWeight: shift === k ? 700 : 400, cursor: 'pointer' }}>
+                        {sm.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
               <div>

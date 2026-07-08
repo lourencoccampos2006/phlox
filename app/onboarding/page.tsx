@@ -38,9 +38,12 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
     { icon: '🎯', label: 'Estudar', sub: 'Flashcards e quiz onde estás mais fraco', href: '/study' },
     { icon: '🧑‍🏫', label: 'AI Tutor', sub: 'Explica conceitos passo a passo', href: '/tutor' },
   ],
+  // Uma instituição NOVA ainda não tem organização criada — sem ela, /painel e
+  // /patients ficam vazios ou atrás de paywall. O primeiro passo é sempre criar
+  // a instituição (o /comecar-instituicao trata disso e depois leva ao resto).
   professional: [
+    { icon: '🏛️', label: 'Criar a minha instituição', sub: 'Dois minutos, e o painel fica montado', href: '/comecar-instituicao' },
     { icon: '☀️', label: 'Abrir o meu painel', sub: 'O dia da tua instituição, montado de raiz', href: '/painel' },
-    { icon: '🧑‍🤝‍🧑', label: 'Adicionar utentes', sub: 'As pessoas que vais acompanhar', href: '/patients' },
     { icon: '👥', label: 'Convidar a equipa', sub: 'Dá acesso aos funcionários', href: '/equipa' },
   ],
 }

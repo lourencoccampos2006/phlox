@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import ClinicalGate from '@/components/ClinicalGate'
 import { riskScore as calcRiskScore } from '@/lib/riskScore'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
@@ -228,21 +229,12 @@ export default function PatientsPage() {
 
   if (!user) return null
 
-  // ── paywall ──
-  if (!isPro) return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body">
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-          <div style={{ fontSize: 40, marginBottom: 14 }}>🧑‍🤝‍🧑</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 12 }}>Gestão de {nounPlural}</div>
-          <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 24 }}>
-            Fichas com medicação, diagnósticos e função renal — partilhadas por toda a equipa. Faz parte do plano Pro e Institucional.
-          </p>
-          <Link href="/pricing" style={{ display: 'inline-block', background: accent, color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 9, fontSize: 14, fontWeight: 700 }}>Ver planos →</Link>
-        </div>
-      </div>
-    </div>
-  )
+  // ── sem acesso ── (ClinicalGate distingue "instituição por criar" de "sem plano")
+  if (!isPro) {
+    return <ClinicalGate emoji="🧑‍🤝‍🧑" accent={accent}
+      title={`Gestão de ${nounPlural}`}
+      description="Fichas com medicação, diagnósticos e função renal — partilhadas por toda a equipa. Faz parte do plano Pro e Institucional." />
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f8fafc', fontFamily: 'var(--font-sans)' }}>

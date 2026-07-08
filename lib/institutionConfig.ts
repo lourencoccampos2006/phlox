@@ -91,6 +91,29 @@ export function institutionConfig(institution: InstitutionType): InstitutionConf
   return CFG[institution] || CFG.clinic
 }
 
+// ─── Turnos ──────────────────────────────────────────────────────────────────
+// Fonte ÚNICA da lógica de turnos. Um centro de dia (hasShifts:false) está
+// fechado à noite: nunca deve ver o turno "noite", nem no seletor, nem derivado
+// do relógio (senão uma toma da tarde ficava invisível às 21h).
+// A BD tem CHECK shift in ('manha','tarde','noite') — gravamos sempre um destes.
+export type Shift = 'manha' | 'tarde' | 'noite'
+
+/** Turnos que esta instituição usa. Centro de dia: só manhã e tarde. */
+export function shiftsFor(institution: InstitutionType): Shift[] {
+  return institutionConfig(institution).hasShifts
+    ? ['manha', 'tarde', 'noite']
+    : ['manha', 'tarde']
+}
+
+/** Turno atual, respeitando os turnos que a instituição tem. */
+export function currentShiftFor(institution: InstitutionType): Shift {
+  const h = new Date().getHours()
+  if (!institutionConfig(institution).hasShifts) return h < 14 ? 'manha' : 'tarde'
+  if (h >= 7 && h < 14) return 'manha'
+  if (h >= 14 && h < 21) return 'tarde'
+  return 'noite'
+}
+
 export const REVENUE_LABEL: Record<RevenueModel, string> = {
   monthly_fee: 'Mensalidades',
   pos_sales: 'Vendas & Caixa',

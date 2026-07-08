@@ -77,7 +77,15 @@ export async function POST(req: NextRequest) {
     const pid = String(body.patient_id || ''); const medId = String(body.med_id || '')
     if (!pid || !medId) return NextResponse.json({ error: 'dados em falta' }, { status: 400 })
     const today = new Date().toISOString().slice(0, 10)
-    const shift = body.shift || (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+    // O cliente envia o turno segundo a instituição. Rede de segurança: nunca
+    // gravar "noite" num centro de dia (o /mar só mostra manhã/tarde e a toma
+    // ficaria invisível). Ver lib/institutionConfig (shiftsFor/currentShiftFor).
+    const shift = await (async () => {
+      const raw = body.shift || (() => { const h = new Date().getHours(); return h < 12 ? 'manha' : h < 18 ? 'tarde' : 'noite' })()
+      if (raw !== 'noite' || !c.orgId) return raw
+      const { data: org } = await db.from('organizations').select('kind').eq('id', c.orgId).maybeSingle()
+      return org?.kind === 'day_care' ? 'tarde' : 'noite'
+    })()
     // evita duplicar a mesma toma (med+turno+dia)
     const { data: exist } = await db.from('mar_records').select('id').eq('patient_id', pid).eq('med_id', medId).eq('date', today).eq('shift', shift).maybeSingle()
     if (exist) { await db.from('mar_records').delete().eq('id', exist.id); return NextResponse.json({ ok: true, toggled: 'off' }) }
