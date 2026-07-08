@@ -8,13 +8,16 @@
 // placeholders honestos até a entidade estar constituída.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const LEGAL_UPDATED = '30 de junho de 2026'
+export const LEGAL_UPDATED = '8 de julho de 2026'
 
-// Responsável pelo tratamento (Controller). Placeholders enquanto pré-empresa.
+// Responsável pelo tratamento (Controller).
+// NOTA (Fernando): preenche legalEntity + nif + address com os dados reais assim
+// que a sociedade estiver registada. Até lá, o texto abaixo é honesto e credível
+// (entidade em constituição), evitando placeholders que pareçam "por acabar".
 export const CONTROLLER = {
   name: 'Phlox Clinical',
-  legalEntity: '(entidade a constituir — a indicar quando a sociedade estiver registada)',
-  nif: '(a indicar)',
+  legalEntity: 'Phlox Clinical (entidade em constituição em Portugal)',
+  nif: 'a atribuir com o registo da sociedade',
   address: 'Portugal',
   privacyEmail: 'info@phloxclinical.com',
   supportEmail: 'suporte@phloxclinical.com',

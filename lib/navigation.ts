@@ -73,7 +73,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/tpn',                icon: '🧪', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
       { href: '/adr-report',         icon: '⚠️', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
       { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',   desc: 'Formulário · DDD · Ruturas · Custos' },
-      { href: '/team',               icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
+      { href: '/schedule',               icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
     ],
   },
   {
@@ -87,7 +87,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/study',     icon: '🃏', label: 'Flashcards',       desc: '200+ tópicos com repetição espaçada' },
       { href: '/anatomia-3d', icon: '🫀', label: 'Explorar em 3D', desc: 'Atlas 3D real · pesquisa + AR', badge: 'Premium' },
       { href: '/tutor',     icon: '🤖', label: 'Tutor passo a passo', desc: 'Explica e faz-te pensar' },
-      { href: '/progresso', icon: '📈', label: 'O meu progresso',  desc: 'XP e dias seguidos' },
+      { href: '/arena', icon: '📈', label: 'O meu progresso',  desc: 'XP e dias seguidos' },
     ],
   },
 ]
@@ -113,7 +113,7 @@ export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>>
     { href: '/arena',     label: 'Arena' },
     { href: '/study',     label: 'Estudar' },
     { href: '/simulador', label: 'Simular' },
-    { href: '/progresso', label: 'Progresso' },
+    { href: '/arena', label: 'Progresso' },
   ],
 }
 
@@ -221,7 +221,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/painel',             icon: '🎛️', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
     { href: '/mar',                icon: '📝', label: 'MAR',           desc: 'Registo de administração' },
     { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intel',    desc: 'Formulário · DDD · Ruturas · Custos' },
-    { href: '/team',               icon: '👥', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
+    { href: '/schedule',               icon: '👥', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
     { href: '/calculos',           icon: '🧮', label: 'Calculadoras',  desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
     { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',    desc: 'Vancomicina AUC · Aminoglicosídeos' },
     { href: '/tpn',                icon: '🧪', label: 'NP',            desc: 'Nutrição parentérica ASPEN 2022' },
@@ -234,6 +234,6 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/study',     icon: '🃏', label: 'Estudar',   desc: 'Flashcards e quizzes' },
     { href: '/tutor',     icon: '🤖', label: 'Tutor AI',  desc: 'Explicações passo a passo' },
     { href: '/osce',      icon: '🎯', label: 'OSCE',      desc: 'Simulação de exame' },
-    { href: '/progresso', icon: '📈', label: 'Progresso', desc: 'XP e streak' },
+    { href: '/arena', icon: '📈', label: 'Progresso', desc: 'XP e streak' },
   ],
 }

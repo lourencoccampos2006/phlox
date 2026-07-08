@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { CardItem, SecuritySection } from './_parts'
 
 export const metadata = {
-  title: 'Segurança — Phlox',
+  title: 'Segurança',
   description: 'Modelo técnico de segurança do Phlox: encriptação, isolamento por linha (RLS), hospedagem na UE, backups e retenção.',
 }
 

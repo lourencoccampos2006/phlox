@@ -11,15 +11,15 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Phlox Clinical — Farmacologia Clínica em Português',
-    template: '%s | Phlox Clinical',
+    default: 'Phlox — o dia do seu centro de dia, as famílias tranquilas',
+    template: '%s | Phlox',
   },
-  description: 'A plataforma de farmacologia clínica feita para Portugal. Verificador de interações, rondas farmacêuticas, Arena de ligas, OSCE simulado, tutoria IA socrática. Para profissionais, estudantes e famílias.',
+  description: 'O software para centros de dia e lares: o dia de cada utente, a medicação casa↔centro e as famílias a acompanhar. Também para quem cuida da sua saúde, da família, ou estuda saúde.',
   keywords: [
-    'farmacologia clínica', 'interações medicamentosas', 'farmácia clínica',
-    'INFARMED', 'DGS', 'PCNE', 'ronda farmacêutica', 'reconciliação medicamentosa',
-    'OSCE farmácia', 'casos clínicos', 'Portugal', 'SNS', 'medicamentos',
-    'profissionais de saúde', 'estudantes de medicina', 'farmacêutico',
+    'software centro de dia', 'software lar de idosos', 'ERPI', 'registo de cuidados',
+    'portal das famílias', 'medicação de idosos', 'apoio ao cuidador',
+    'a minha medicação', 'interações medicamentosas', 'Portugal', 'SNS',
+    'estudar saúde', 'flashcards medicina', 'OSCE',
   ],
   authors: [{ name: 'Phlox Clinical', url: BASE_URL }],
   creator: 'Phlox Clinical',
@@ -27,15 +27,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_PT',
-    siteName: 'Phlox Clinical',
-    title: 'Phlox Clinical — Farmacologia Clínica em Português',
-    description: 'Verificador de interações, rondas farmacêuticas, Arena de ligas e OSCE simulado. A plataforma clínica para Portugal.',
+    siteName: 'Phlox',
+    title: 'Phlox — o dia do seu centro de dia, as famílias tranquilas',
+    description: 'Presenças, medicação, atividades e o dia de cada utente num só sítio. As famílias veem como correu, sem ter de ligar.',
     url: BASE_URL,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Phlox Clinical',
-    description: 'A plataforma de farmacologia clínica feita para Portugal. Para profissionais, estudantes e famílias.',
+    title: 'Phlox',
+    description: 'O software para centros de dia e lares — e para quem cuida da sua saúde, da família, ou estuda saúde.',
   },
   robots: {
     index: true,

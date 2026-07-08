@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'API Phlox Clinical — Documentação',
+  title: 'API — documentação',
   description: 'Documentação da API REST do Phlox Clinical para integração com sistemas de saúde.',
 }
 

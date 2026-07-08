@@ -12,7 +12,17 @@ import { getPhloxContext, subscribePhloxContext, serializeContext } from '@/lib/
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { save } from '@/lib/saves'
 
-const PUBLIC_PREFIXES = ['/', '/about', '/pricing', '/login', '/terms', '/privacy', '/trust', '/institucional', '/blog', '/onboarding']
+// Páginas PÚBLICAS/marketing onde o Copilot nunca deve aparecer — nem sequer a
+// um utilizador com sessão iniciada (senão o ✦ fica por cima da landing page
+// durante uma apresentação). Comparação por PREFIXO: '/blog' cobre '/blog/x'.
+const PUBLIC_PREFIXES = [
+  '/about', '/pricing', '/login', '/signup', '/terms', '/privacy', '/trust',
+  '/centro-de-dia', '/institucional', '/blog', '/guias', '/onboarding',
+  '/seguranca', '/dispositivo-medico', '/subprocessadores', '/cookies',
+  '/portal-familia', '/checkout', '/api-docs', '/changelog',
+]
+const isPublicPath = (pathname: string) =>
+  pathname === '/' || PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
 
 interface ProposedAction { type: 'save_summary' | 'log_resident_request'; label: string; content: string }
 interface Msg { role: 'user' | 'assistant'; content: string; usedTool?: string | null; proposedAction?: ProposedAction | null; actionDone?: boolean; actionError?: string }
@@ -66,7 +76,7 @@ export default function PhloxCopilot() {
   const dragRef = useRef<{ ox: number; oy: number; moved: boolean } | null>(null)
 
   const isPro = user?.plan === 'pro' || user?.plan === 'clinic'
-  const isPublic = !user || PUBLIC_PREFIXES.some(p => p === pathname)
+  const isPublic = !user || isPublicPath(pathname)
 
   // Acompanha o contexto publicado pelas ferramentas
   useEffect(() => {

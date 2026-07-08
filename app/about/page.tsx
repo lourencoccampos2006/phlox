@@ -2,12 +2,12 @@ import Link from 'next/link'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Sobre o Phlox Clinical — Plataforma de Farmacologia Clínica',
-  description: 'O Phlox Clinical é a plataforma de farmacologia clínica mais completa em Portugal — para profissionais de saúde, estudantes e famílias.',
+  title: 'Sobre o Phlox',
+  description: 'O Phlox organiza o dia de centros de dia e lares, mostra às famílias como correu, e ajuda quem cuida da sua saúde, da família, ou estuda saúde.',
 }
 
 const STATS = [
-  { value: '35+', label: 'Ferramentas clínicas' },
+  { value: '4', label: 'Modos: centro, família, pessoal, estudo' },
   { value: '10.000+', label: 'Medicamentos indexados' },
   { value: '4', label: 'Bases de dados oficiais' },
   { value: '100%', label: 'Gratuito para começar' },
@@ -23,16 +23,16 @@ const SOURCES = [
 ]
 
 const MODES = [
-  { icon: '⚕️', title: 'Profissional Clínico', desc: 'Centro de operações para farmacêuticos, médicos e enfermeiros. Gestão de doentes, MAR digital, protocolos, co-piloto IA. Licença institucional para toda a equipa.', color: '#1d4ed8' },
+  { icon: '☀️', title: 'Centro de Dia e Lar', desc: 'O dia de cada utente num só sítio: presenças, medicação, refeições, humor e atividades. As famílias acompanham pelo telemóvel. Toda a equipa, sem limite de utilizadores.', color: '#1d4ed8' },
   { icon: '👨‍👩‍👧', title: 'Cuidador Familiar', desc: 'Para quem gere a medicação dos pais idosos, filhos ou cônjuge. Perfis por familiar, alertas de interações, tradutor de bula, nota de entrega.', color: '#b45309' },
   { icon: '👤', title: 'Uso Pessoal', desc: 'Gere a tua própria medicação. Verifica interações, percebe receitas e análises, acompanha vacinas e tem resposta a qualquer dúvida.', color: '#0d6e42' },
-  { icon: '🎓', title: 'Estudante', desc: 'Farmácia, medicina, enfermagem, nutrição. Flashcards, casos clínicos, turno virtual, ficha com mnemónica, modo exame. O companheiro de estudo que passa os exames contigo.', color: '#7c3aed' },
+  { icon: '🎓', title: 'Estudante', desc: 'Medicina, farmácia, enfermagem, nutrição e mais. Flashcards e quiz sobre qualquer tema, Arena de casos, OSCE, tutor IA e caso clínico evolutivo. O companheiro de estudo que passa os exames contigo.', color: '#7c3aed' },
 ]
 
 const ROADMAP = [
-  { q: 'Q2 2026', items: ['Lançamento público', 'Plano Institucional', 'Monitor de Adherência SMS', 'Calendário de Toma PDF'] },
-  { q: 'Q3 2026', items: ['Importação SNS24 QR', 'Phlox Watcher automático', 'Integração Sifarma', 'App mobile (PWA)'] },
-  { q: 'Q4 2026', items: ['Protocolos Institucionais com IA', 'Rounds Farmacêuticos PCNE', 'API pública', 'Gestão de stock (lares)'] },
+  { q: 'Q2 2026', items: ['Lançamento público', 'Centros de dia e lares', 'Portal das famílias', 'Calendário de toma em PDF'] },
+  { q: 'Q3 2026', items: ['Importação SNS24 QR', 'Avisos automáticos', 'Rondas coordenadas', 'App mobile (PWA)'] },
+  { q: 'Q4 2026', items: ['Relatórios de qualidade para inspeção', 'Diário do utente para a família', 'Modelos de atividades', 'Stock com encomendas'] },
 ]
 
 export default function AboutPage() {
@@ -47,10 +47,10 @@ export default function AboutPage() {
             Feito em Portugal · Para o Mundo
           </div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 5vw, 48px)', color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 20, lineHeight: 1.2 }}>
-            A farmacologia clínica<br />que se adapta a ti
+            O cuidado que já existe,<br />finalmente organizado
           </h1>
           <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.8, maxWidth: 560, margin: '0 auto 40px' }}>
-            O Phlox nasceu da frustração de não existir uma plataforma farmacológica séria, em português, que servisse ao mesmo tempo estudantes, profissionais e famílias. Então construímos uma.
+            O Phlox nasceu de uma frustração: os centros de dia e os lares cuidam bem, mas em cadernos soltos — e as famílias ficam de fora. Construímos a ferramenta que junta o dia num sítio, mostra às famílias como correu, e serve também quem cuida da sua saúde em casa ou estuda para cuidar dos outros.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: '#1e293b', borderRadius: 10, overflow: 'hidden', maxWidth: 600, margin: '0 auto' }}>
             {STATS.map(s => (

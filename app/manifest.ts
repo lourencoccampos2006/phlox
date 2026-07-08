@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Phlox Clinical',
+    name: 'Phlox',
     short_name: 'Phlox',
-    description: 'A plataforma de farmacologia clínica feita para Portugal',
+    description: 'O dia do seu centro de dia, as famílias tranquilas. E a sua saúde, num só sítio.',
     start_url: '/inicio',
     display: 'standalone',
     background_color: '#f8fafc',
@@ -18,9 +18,9 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     screenshots: [],
     shortcuts: [
-      { name: 'Verificar Interações', url: '/interactions', description: 'Verifica interações medicamentosas' },
-      { name: 'Phlox AI', url: '/ai', description: 'Farmacêutico virtual 24h' },
-      { name: 'Os meus medicamentos', url: '/mymeds', description: 'Gestão de medicação' },
+      { name: 'Os meus comprimidos', url: '/mymeds', description: 'A lista, os horários e os lembretes' },
+      { name: 'Dão-se bem?', url: '/interactions', description: 'Ver se é seguro tomá-los juntos' },
+      { name: 'Tirar uma dúvida', url: '/ai', description: 'Pergunte em português simples' },
     ],
   }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "Phlox Clinical",
+  "name": "Phlox",
   "short_name": "Phlox",
-  "description": "Farmacologia clínica em português. Para profissionais, estudantes e famílias.",
+  "description": "O dia do seu centro de dia, as famílias tranquilas. E a sua saúde, num só sítio.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -13,8 +13,8 @@
   "categories": ["health", "medical", "education"],
   "lang": "pt-PT",
   "shortcuts": [
-    { "name": "Verificar Interações", "url": "/interactions", "description": "Verificar interações medicamentosas" },
-    { "name": "Phlox AI", "url": "/ai", "description": "Assistente farmacológico IA" },
-    { "name": "Casos Clínicos", "url": "/cases", "description": "Casos clínicos interactivos" }
+    { "name": "Os meus comprimidos", "url": "/mymeds", "description": "A lista, os horários e os lembretes" },
+    { "name": "Dão-se bem?", "url": "/interactions", "description": "Ver se é seguro tomá-los juntos" },
+    { "name": "Tirar uma dúvida", "url": "/ai", "description": "Pergunte em português simples" }
   ]
 }

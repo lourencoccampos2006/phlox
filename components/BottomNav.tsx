@@ -51,7 +51,7 @@ const NAV: Record<string, NavItem[]> = {
   ],
   student: [
     { href: '/inicio', label: 'Início', icon: I.home(false) },
-    { href: '/aprender', label: 'Aprender', icon: I.book(false) },
+    { href: '/study', label: 'Estudar', icon: I.book(false) },
     { href: '/arena', label: 'Arena', icon: I.trophy(false) },
     { href: '/tudo', label: 'Tudo', icon: I.grid(false) },
   ],

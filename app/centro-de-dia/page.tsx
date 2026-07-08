@@ -2,8 +2,9 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Software para Centro de Dia — Phlox',
-  description: 'O software feito de raiz para centros de dia: o dia de cada utente, a medicação casa↔centro, e as famílias a verem como correu o dia. Sem configurar nada. Experimente grátis.',
+  // Nota: o layout raiz aplica o template '%s | Phlox' — não repetir "Phlox" aqui.
+  title: 'Software para Centro de Dia e Lar',
+  description: 'O software feito de raiz para centros de dia e lares: o dia de cada utente, a medicação casa↔centro, e as famílias a verem como correu o dia. Sem configurar nada. Experimente grátis.',
   openGraph: {
     title: 'Phlox — o software do seu Centro de Dia',
     description: 'O dia dos utentes, as famílias tranquilas, tudo num sítio.',
@@ -44,8 +45,8 @@ export default function CentroDeDiaLanding() {
             O Phlox organiza o dia no centro — presenças, atividades, refeições, medicação — e mostra às famílias como correu, sem ninguém ter de ligar. Tudo montado para si. Sem configurar nada.
           </p>
           <div style={{ display: 'flex', gap: 11, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/demo" style={{ padding: '13px 26px', background: TEAL, color: '#fff', borderRadius: 9, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Ver a demonstração</Link>
-            <Link href="/onboarding" style={{ padding: '13px 24px', background: '#fff', color: INK, border: `1px solid ${BORDER}`, borderRadius: 9, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>Experimentar grátis</Link>
+            <Link href="/onboarding" style={{ padding: '13px 26px', background: TEAL, color: '#fff', borderRadius: 9, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Criar o meu centro — grátis</Link>
+            <Link href="/login" style={{ padding: '13px 24px', background: '#fff', color: INK, border: `1px solid ${BORDER}`, borderRadius: 9, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>Entrar</Link>
           </div>
         </div>
       </section>
@@ -74,7 +75,7 @@ export default function CentroDeDiaLanding() {
           <p style={{ fontSize: 16, color: '#374151', lineHeight: 1.7, margin: '0 auto 24px', maxWidth: 600 }}>
             Quando a família vem buscar o pai ou a mãe ao fim do dia, já viu no telemóvel como correu. É a diferença entre uma família que confia e uma que tira o utente do centro. O Phlox transforma o cuidado que já fazem em <strong>confiança visível</strong> — o seu melhor argumento de venda às famílias.
           </p>
-          <Link href="/demo" style={{ display: 'inline-block', padding: '12px 24px', background: TEAL, color: '#fff', borderRadius: 9, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Ver o que a família vê →</Link>
+          <Link href="/onboarding" style={{ display: 'inline-block', padding: '12px 24px', background: TEAL, color: '#fff', borderRadius: 9, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Começar com o meu centro →</Link>
         </div>
       </section>
 
@@ -102,11 +103,11 @@ export default function CentroDeDiaLanding() {
         <div style={{ maxWidth: 620, margin: '0 auto', padding: '0 clamp(16px,4vw,24px)' }}>
           <h2 style={{ ...serif, fontSize: 'clamp(24px,3.6vw,38px)', margin: '0 0 14px' }}>Quer ver no seu centro?</h2>
           <p style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.6, margin: '0 0 26px' }}>
-            Veja a demonstração em 1 minuto, ou comece já — é grátis para experimentar.
+            Crie o seu centro em minutos — é grátis para experimentar, sem configurar nada.
           </p>
           <div style={{ display: 'flex', gap: 11, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/demo" style={{ padding: '13px 26px', background: TEAL, color: '#fff', borderRadius: 9, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Ver demonstração</Link>
-            <Link href="/onboarding" style={{ padding: '13px 24px', background: 'transparent', color: '#fff', border: '1px solid #334155', borderRadius: 9, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>Experimentar grátis</Link>
+            <Link href="/onboarding" style={{ padding: '13px 26px', background: TEAL, color: '#fff', borderRadius: 9, textDecoration: 'none', fontWeight: 700, fontSize: 15 }}>Criar o meu centro — grátis</Link>
+            <Link href="/login" style={{ padding: '13px 24px', background: 'transparent', color: '#fff', border: '1px solid #334155', borderRadius: 9, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>Entrar</Link>
           </div>
         </div>
       </section>

@@ -35,18 +35,17 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
   ],
   student: [
     { icon: '🏆', label: 'Entrar na Arena', sub: 'Treina casos e sobe de liga', href: '/arena' },
-    { icon: '🎯', label: 'Onde focar', sub: 'O Phlox diz-te onde estás mais fraco', href: '/study360' },
+    { icon: '🎯', label: 'Estudar', sub: 'Flashcards e quiz onde estás mais fraco', href: '/study' },
     { icon: '🧑‍🏫', label: 'AI Tutor', sub: 'Explica conceitos passo a passo', href: '/tutor' },
   ],
   professional: [
     { icon: '☀️', label: 'Abrir o meu painel', sub: 'O dia da tua instituição, montado de raiz', href: '/painel' },
     { icon: '🧑‍🤝‍🧑', label: 'Adicionar utentes', sub: 'As pessoas que vais acompanhar', href: '/patients' },
-    { icon: '👀', label: 'Ver a demonstração', sub: '1 minuto, com dados de exemplo', href: '/demo' },
+    { icon: '👥', label: 'Convidar a equipa', sub: 'Dá acesso aos funcionários', href: '/equipa' },
   ],
 }
 
-// Clínica e Centro de Saúde existem no código mas estão escondidos por agora —
-// o foco é Lar, Centro de Dia e Farmácia Comunitária. Hospital e Farmácia
+// Foco: Lar e Centro de Dia. (Farmácia/Clínica/Centro de Saúde existem no código
 // Hospitalar foram removidos (demasiado ambicioso para já).
 const INSTITUTIONS = [
   { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },

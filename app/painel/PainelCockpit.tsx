@@ -292,9 +292,6 @@ export default function PainelCockpit() {
                 </Link>
               ))}
             </div>
-            <div style={{ marginTop: 12, fontSize: 12 }}>
-              <Link href="/demo" style={{ color: bp.accent, fontWeight: 700, textDecoration: 'none' }}>Ou vê primeiro a demonstração (1 min) →</Link>
-            </div>
           </div>
         )}
 

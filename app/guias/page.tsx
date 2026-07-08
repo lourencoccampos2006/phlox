@@ -6,7 +6,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Guias de Saúde e Medicação em Português — Phlox',
+  title: 'Guias de saúde e medicação',
   description: 'Guias práticos sobre medicação, interações, cuidar de idosos e segurança dos medicamentos. Escritos em português europeu, baseados em INFARMED, EMA e fontes oficiais.',
   alternates: { canonical: 'https://phloxclinical.com/guias' },
 }

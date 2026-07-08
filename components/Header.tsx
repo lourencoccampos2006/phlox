@@ -174,7 +174,8 @@ function UserMenu({ user, signOut, supabase, isDark }: {
     window.location.reload()
   }
 
-  const planLabels: Record<string, string> = { free: 'Grátis', student: 'Estudante', pro: 'Pro', clinic: 'Clínica' }
+  // Nomes de plano coerentes com lib/plans.ts (Base/Plus/Pro/Institucional).
+  const planLabels: Record<string, string> = { free: 'Base', student: 'Plus', pro: 'Pro', clinic: 'Institucional' }
 
   const MODES_LIST = [
     { id: 'personal'  as ExperienceMode, icon: '👤', labelShort: 'Pessoal',   color: MODE_META.personal.color },
@@ -261,7 +262,7 @@ function UserMenu({ user, signOut, supabase, isDark }: {
             {[
               { href: '/inicio',       label: 'Início',          icon: '🏠' },
               // Aprender só faz sentido para estudantes — não polui o menu dos outros.
-              ...(mode === 'student' ? [{ href: '/aprender', label: 'Aprender', icon: '📚' }] : []),
+              ...(mode === 'student' ? [{ href: '/study', label: 'Estudar', icon: '📚' }] : []),
               { href: '/guardados',    label: 'Guardados',       icon: '★' },
               { href: '/calendario',   label: 'Calendário',      icon: '📅' },
               { href: '/settings',     label: 'Definições',      icon: '⚙️' },
@@ -370,7 +371,7 @@ function MobileDrawer({ open, onClose, user, signOut }: {
           {(user
             ? [
                 { href: '/inicio', label: '🏠 Início' },
-                ...(mode === 'student' ? [{ href: '/aprender', label: '📚 Aprender' }] : []),
+                ...(mode === 'student' ? [{ href: '/study', label: '📚 Estudar' }] : []),
                 { href: '/guardados', label: '★ Guardados' },
                 { href: '/calendario', label: '📅 Calendário' },
                 { href: '/settings', label: '⚙️ Definições' },

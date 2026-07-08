@@ -3,8 +3,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Blog de Farmacologia Clínica — Phlox Clinical',
-  description: 'Artigos sobre interações medicamentosas, doses pediátricas, segurança na medicação e saúde em Portugal. Baseados em fontes INFARMED, FDA e EMA.',
+  title: 'Blog — saúde e medicação, em português',
+  description: 'Artigos sobre medicação, interações, cuidar de idosos e segurança dos medicamentos. Baseados em fontes INFARMED, FDA e EMA.',
 }
 
 const ARTICLES = [

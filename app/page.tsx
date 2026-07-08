@@ -91,9 +91,9 @@ const MUNDOS = [
     items: ['Interações, STOPP/START e Beers', 'Calculadoras e protocolos (DGS, ESC)', 'Revisão e otimização da medicação'],
   },
   {
-    n: '05', tag: 'Para instituições', t: 'Lar, centro de dia, farmácia', accent: '#0f766e', href: '/centro-de-dia',
-    lead: 'Montado de raiz para o seu tipo de instituição.',
-    items: ['Painel, ronda, MAR e ocorrências', 'Portal das famílias e relatórios', 'Equipa, utentes e turnos'],
+    n: '05', tag: 'Para instituições', t: 'Centro de dia e lar', accent: '#0f766e', href: '/centro-de-dia',
+    lead: 'Montado de raiz para o dia do seu centro.',
+    items: ['Presenças, medicação, o dia de cada utente', 'Portal das famílias e relatórios', 'Equipa, rondas e stock'],
   },
 ]
 
@@ -247,7 +247,7 @@ export default function HomePage() {
         <div className="lp-wrap lp-foot-row">
           <span>Phlox — feito em Portugal, 2026</span>
           <div className="lp-foot-links">
-            {[['Termos', '/terms'], ['Privacidade', '/privacy'], ['Para instituições', '/institucional']].map(([l, h]) => (
+            {[['Termos', '/terms'], ['Privacidade', '/privacy'], ['Para instituições', '/centro-de-dia']].map(([l, h]) => (
               <Link key={h} href={h}>{l}</Link>
             ))}
           </div>
