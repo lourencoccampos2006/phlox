@@ -121,7 +121,7 @@ export default function FamiliaPage() {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 80px' }}>
 
         {/* Cabeçalho warm */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Centro de cuidado</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Cuidar</div>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>A sua família</h1>
         <p style={{ fontSize: 14.5, color: '#64748b', margin: '0 0 20px', lineHeight: 1.5 }}>O Phlox acompanha quem mais ama e avisa-o quando algo precisa de atenção.</p>
 
@@ -161,9 +161,10 @@ export default function FamiliaPage() {
         ) : profiles.length === 0 && !adding ? (
           <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
             <div style={{ fontSize: 34, marginBottom: 14 }}>👨‍👩‍👧</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 8 }}>Quem está a cuidar?</div>
-            <div style={{ fontSize: 14.5, color: '#64748b', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. O Phlox passa a velar por cada um.</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 8 }}>De quem está a cuidar?</div>
+            <div style={{ fontSize: 14.5, color: '#64748b', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. O Phlox guarda a medicação, os sinais vitais e os sintomas de cada um, e avisa-o quando algo precisa de atenção.</div>
             <button onClick={() => setAdding(true)} style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, border: 'none', cursor: 'pointer' }}>+ Adicionar a primeira pessoa</button>
+            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 16, lineHeight: 1.5 }}>Está num lar ou centro de dia? Use o <Link href="/portal-familia" style={{ color: '#1d4ed8', fontWeight: 700, textDecoration: 'none' }}>Portal Família</Link> com o código da instituição.</div>
           </div>
         ) : profiles.length === 0 ? null : (
           <>

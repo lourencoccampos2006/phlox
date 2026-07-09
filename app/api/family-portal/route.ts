@@ -48,7 +48,7 @@ interface DaySummary { date: string; lines: string[]; mood?: number; attention: 
 const MEAL_WORD = (pct: number) => pct >= 75 ? 'comeu bem' : pct >= 40 ? 'comeu razoavelmente' : pct > 0 ? 'comeu pouco' : 'quase não comeu'
 const MOOD_WORD = ['', 'esteve em baixo', 'esteve menos bem-disposta', 'esteve calma', 'esteve bem-disposta', 'esteve muito animada']
 
-function summariseDay(date: string, recs: any[], marToday: any[], firstName: string): DaySummary {
+function summariseDay(date: string, recs: any[], marToday: any[], firstName: string, isToday: boolean): DaySummary {
   const lines: string[] = []
   let attention = false
   // Refeições (média do dia a partir dos turnos)
@@ -84,7 +84,14 @@ function summariseDay(date: string, recs: any[], marToday: any[], firstName: str
   const marTotal = marToday.length
   if (marTotal > 0) {
     if (marTaken === marTotal) lines.push('Tomou toda a medicação prevista.')
-    else { lines.push(`Tomou ${marTaken} de ${marTotal} medicamentos previstos.`); if (marTaken < marTotal) attention = true }
+    else if (isToday) {
+      // O dia ainda decorre — mostramos progresso, sem alarme (a medicação da
+      // tarde/noite pode simplesmente ainda não ter sido dada).
+      lines.push(`Já tomou ${marTaken} de ${marTotal} medicamentos até agora.`)
+    } else {
+      lines.push(`Tomou ${marTaken} de ${marTotal} medicamentos previstos.`)
+      attention = true
+    }
   }
   // Notas da equipa (uma, curta, se houver)
   const note = recs.map(r => r.notes).find((x: string) => x && x.trim())
@@ -102,13 +109,14 @@ async function buildDailySummaries(patientId: string): Promise<DaySummary[]> {
     sb.from('patients').select('name').eq('id', patientId).maybeSingle(),
   ])
   const firstName = (pat?.name || 'O residente').split(' ')[0]
+  const todayStr = new Date().toISOString().slice(0, 10)
   const out: DaySummary[] = []
   for (let i = 0; i < days; i++) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
     const recs = (cr || []).filter((r: any) => r.date === d)
     const marDay = (mar || []).filter((m: any) => m.date === d)
     if (!recs.length && !marDay.length) continue // sem registos nesse dia → não mostra
-    out.push(summariseDay(d, recs, marDay, firstName))
+    out.push(summariseDay(d, recs, marDay, firstName, d === todayStr))
   }
   return out
 }

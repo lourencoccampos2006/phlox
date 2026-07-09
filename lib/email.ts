@@ -166,7 +166,7 @@ export function caregiverWatchEmail(items: { who: string; title: string; detail:
       body: `<p style="margin:0 0 14px">O Phlox acompanhou os seus familiares e encontrou ${n === 1 ? 'um ponto' : `${n} pontos`} a precisar da sua atenção:</p>
              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
              <p style="margin:14px 0 0;font-size:13px;color:#71717a">O Phlox organiza e avisa, mas não substitui o médico. Em emergência, ligue 112.</p>`,
-      cta: { label: 'Abrir o Centro de Cuidado', url: 'https://phloxclinical.com/familia' },
+      cta: { label: 'Ver a minha família', url: 'https://phloxclinical.com/familia' },
     }),
   }
 }

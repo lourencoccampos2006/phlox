@@ -188,17 +188,26 @@ export default function LinkedResidents() {
                       <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Medicação para dar em casa</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {d.meds.map(m => {
-                          const taken = d.todayDoses.some(x => x.med_id === m.id)
+                          // Só as tomas DADAS EM CASA são desmarcáveis pela família. Uma toma
+                          // administrada pela equipa (source ≠ 'home') aparece como informação,
+                          // não como botão — senão tocar "desmarcava" e o servidor, que só apaga
+                          // tomas de casa, acabava por INSERIR uma toma-fantasma (dose a dobrar).
+                          const taken = d.todayDoses.some(x => x.med_id === m.id && x.source === 'home')
+                          const givenByTeam = d.todayDoses.some(x => x.med_id === m.id && x.source !== 'home' && (x.status === 'administered' || x.status === 'given' || x.status === 'taken'))
                           const busy = dosing === m.id
+                          const subtitle = busy ? 'A guardar…'
+                            : taken ? 'Dado em casa hoje — toque para desmarcar'
+                            : givenByTeam ? 'Já dado pela equipa hoje'
+                            : (m.frequency || 'Toque quando der esta medicação em casa')
                           return (
                             <button key={m.id} onClick={() => markDose(acc.code, m.id)} disabled={busy}
                               style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '10px 12px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer',
-                                border: `1.5px solid ${taken ? '#bbf7d0' : '#e5e7eb'}`, background: taken ? '#f0fdf4' : 'white', fontFamily: 'inherit' }}>
+                                border: `1.5px solid ${taken ? '#bbf7d0' : givenByTeam ? '#bfdbfe' : '#e5e7eb'}`, background: taken ? '#f0fdf4' : givenByTeam ? '#eff6ff' : 'white', fontFamily: 'inherit' }}>
                               <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800,
-                                border: `2px solid ${taken ? '#16a34a' : '#cbd5e1'}`, background: taken ? '#16a34a' : 'white', color: 'white' }}>{taken ? '✓' : ''}</span>
+                                border: `2px solid ${taken ? '#16a34a' : givenByTeam ? '#3b82f6' : '#cbd5e1'}`, background: taken ? '#16a34a' : givenByTeam ? '#3b82f6' : 'white', color: 'white' }}>{taken || givenByTeam ? '✓' : ''}</span>
                               <span style={{ flex: 1, minWidth: 0 }}>
                                 <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>💊 {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
-                                <span style={{ display: 'block', fontSize: 11.5, color: taken ? '#16a34a' : '#94a3b8' }}>{busy ? 'A guardar…' : taken ? 'Tomado hoje — toque para desmarcar' : (m.frequency || 'Toque quando der esta medicação')}</span>
+                                <span style={{ display: 'block', fontSize: 11.5, color: taken ? '#16a34a' : givenByTeam ? '#2563eb' : '#94a3b8' }}>{subtitle}</span>
                               </span>
                             </button>
                           )

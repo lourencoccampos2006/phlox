@@ -99,7 +99,7 @@ export function pickFocus(mode: string, d: HomeData): FocusCard {
   // CUIDADOR — um familiar a precisar de atenção vem ANTES da própria medicação.
   // (Vem do motor de vigilância / family_alerts; é o "Anjo da Guarda" a antecipar-se.)
   if (mode === 'caregiver' && d.caregiverAlert) {
-    return { id: 'c-watch', kind: 'urgent', title: `${d.caregiverAlert.who}: ${d.caregiverAlert.title}`, sub: d.caregiverAlert.detail || 'Toque para ver o que precisa de atenção.', href: d.caregiverAlert.href, cta: 'Ver no Centro de Cuidado', icon: 'family' }
+    return { id: 'c-watch', kind: 'urgent', title: `${d.caregiverAlert.who}: ${d.caregiverAlert.title}`, sub: d.caregiverAlert.detail || 'Toque para ver o que precisa de atenção.', href: d.caregiverAlert.href, cta: 'Ver a minha família', icon: 'family' }
   }
 
   // PESSOAL — um alerta de saúde GRAVE da própria pessoa vem antes da toma do dia.

@@ -23,6 +23,13 @@ const MOOD = { bom: '😊 Bem-disposto(a)', razoavel: '😐 Razoável', mau: '�
 const MEALS = { tudo: '🍽️ Comeu tudo', parte: '🥄 Comeu parte', pouco: '⚠️ Comeu pouco' } as Record<string, string>
 const ACT = { ativo: '🚶 Ativo(a)', calmo: '🛋️ Tranquilo(a)', na_cama: '🛏️ Mais na cama' } as Record<string, string>
 
+const VISIT_STATUS: Record<string, { label: string; c: string; bg: string; bd: string }> = {
+  pending:   { label: 'Pendente',  c: '#b45309', bg: '#fffbeb', bd: '#fde68a' },
+  approved:  { label: 'Aprovada',  c: '#0d6e42', bg: '#f0fdf4', bd: '#bbf7d0' },
+  declined:  { label: 'Recusada',  c: '#b91c1c', bg: '#fef2f2', bd: '#fecaca' },
+  completed: { label: 'Realizada', c: '#64748b', bg: '#f8fafc', bd: '#e2e8f0' },
+}
+
 const ACCESSES_KEY = 'phlox-familia-accesses'
 const NAME_KEY = 'phlox-familia-name'
 
@@ -68,6 +75,11 @@ export default function FamilyPortalPage() {
   const [suggestMed, setSuggestMed] = useState({ name: '', dose: '', frequency: '' })
   const [suggestBusy, setSuggestBusy] = useState(false)
   const [suggestMsg, setSuggestMsg] = useState('')
+  const [visits, setVisits] = useState<{ id: string; requested_date: string; requested_time?: string | null; status: string }[]>([])
+  const [visitOpen, setVisitOpen] = useState(false)
+  const [visit, setVisit] = useState({ date: '', time: '', notes: '' })
+  const [visitBusy, setVisitBusy] = useState(false)
+  const [visitMsg, setVisitMsg] = useState('')
   const [loadingThread, setLoadingThread] = useState(false)
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
@@ -134,6 +146,7 @@ export default function FamilyPortalPage() {
       if (data.needsVerify) return
       setMsgs(data.messages || []); setDays(data.dailySummaries || [])
       setHomeMeds(data.homeMeds || []); setTodayDoses(data.todayDoses || [])
+      setVisits(data.visitRequests || [])
       // atualiza nome/quarto se mudaram
       if (data.patient && (data.patient.name !== acc.name || data.patient.room_number !== acc.room)) {
         persist(accesses.map(a => a.code === acc.code ? { ...a, name: data.patient.name, room: data.patient.room_number || '' } : a))
@@ -171,6 +184,22 @@ export default function FamilyPortalPage() {
       else setSuggestMsg(data.error || 'Erro.')
     } catch { setSuggestMsg('Erro de ligação.') }
     finally { setSuggestBusy(false); setTimeout(() => setSuggestMsg(''), 4000) }
+  }
+
+  // Família pede uma visita → a equipa aprova/recusa na aba Visitas do /family.
+  async function submitVisit() {
+    if (!active || !visit.date) return
+    setVisitBusy(true); setVisitMsg('')
+    try {
+      const res = await fetch('/api/family-portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request_visit', code: active.code, verify: active.verify || '', name, date: visit.date, time: visit.time, notes: visit.notes }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) { setVisitMsg('✓ Pedido enviado. A equipa vai confirmar.'); setVisit({ date: '', time: '', notes: '' }); setVisitOpen(false); await fetchThread(active) }
+      else setVisitMsg(data.error || 'Não foi possível pedir a visita.')
+    } catch { setVisitMsg('Erro de ligação.') }
+    finally { setVisitBusy(false); setTimeout(() => setVisitMsg(''), 4000) }
   }
 
   // Ao mudar de residente ativo, carrega e faz poll
@@ -324,11 +353,14 @@ export default function FamilyPortalPage() {
                 )}
 
                 {/* Medicação que a família dá em CASA — marca a toma e ela aparece
-                    no painel da instituição (a ponte casa→centro). Mostra-se quando
-                    há medicação de casa OU para a família poder sugerir uma. */}
-                {(homeMeds.length > 0 || suggestOpen || msgs.length > 0) && (
-                  <div style={{ marginBottom: 18 }}>
+                    no painel da instituição (a ponte casa→centro). Mostra-se sempre:
+                    quando há medicação de casa lista-a; quando não há, deixa a família
+                    sugerir uma logo (era o ponto que ficava escondido a quem chegava). */}
+                <div style={{ marginBottom: 18 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Medicação em casa</div>
+                    {homeMeds.length === 0 && !suggestOpen && (
+                      <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5, marginBottom: 8 }}>Sem medicação para dar em casa registada. Se dá algum medicamento em casa, adicione-o aqui — a equipa confirma.</div>
+                    )}
                     {homeMeds.map(m => {
                       const dose = todayDoses.find(d => d.med_id === m.id && d.source === 'home')
                       const givenAtCentre = todayDoses.find(d => d.med_id === m.id && d.source === 'centro' && (d.status === 'administered' || d.status === 'given' || d.status === 'taken'))
@@ -346,7 +378,7 @@ export default function FamilyPortalPage() {
                         </div>
                       )
                     })}
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Ao marcar, a equipa do centro vê que já foi dado em casa.</div>
+                    {homeMeds.length > 0 && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Ao marcar, a equipa do centro vê que já foi dado em casa.</div>}
                     {/* Família sugere um medicamento de casa que falte na ficha */}
                     {!suggestOpen ? (
                       <button onClick={() => setSuggestOpen(true)} style={{ marginTop: 6, background: 'none', border: 'none', color: '#0d6e42', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>+ Falta um medicamento que dá em casa?</button>
@@ -364,8 +396,46 @@ export default function FamilyPortalPage() {
                       </div>
                     )}
                     {suggestMsg && <div style={{ marginTop: 6, fontSize: 12, color: suggestMsg.startsWith('✓') ? '#15803d' : '#dc2626' }}>{suggestMsg}</div>}
-                  </div>
-                )}
+                </div>
+
+                {/* Pedir uma visita — a família marca aqui e a equipa aprova na aba
+                    Visitas do /family (ponte família→instituição das visitas). */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Visitas</div>
+                  {visits.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                      {visits.map(v => {
+                        const st = VISIT_STATUS[v.status] || VISIT_STATUS.pending
+                        return (
+                          <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: st.bg, border: `1px solid ${st.bd}`, borderRadius: 9, padding: '8px 11px' }}>
+                            <span style={{ fontSize: 13 }}>📅</span>
+                            <span style={{ flex: 1, fontSize: 12.5, color: '#0b1120' }}>
+                              {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'long' })}
+                              {v.requested_time ? ` · ${v.requested_time}` : ''}
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: st.c }}>{st.label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {!visitOpen ? (
+                    <button onClick={() => setVisitOpen(true)} style={{ padding: '10px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #0d6e42', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>📅 Pedir uma visita</button>
+                  ) : (
+                    <div style={{ background: '#f6f9f7', border: '1px solid #d1e7db', borderRadius: 10, padding: 12 }}>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                        <input type="date" value={visit.date} min={new Date().toISOString().slice(0, 10)} onChange={e => setVisit(p => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        <input type="time" value={visit.time} onChange={e => setVisit(p => ({ ...p, time: e.target.value }))} style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                      </div>
+                      <input value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} placeholder="Nota (opcional)" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                        <button onClick={submitVisit} disabled={visitBusy || !visit.date} style={{ flex: 1, padding: '9px', background: visit.date ? '#0d6e42' : '#cbd5e1', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: visit.date ? 'pointer' : 'default' }}>{visitBusy ? 'A enviar…' : 'Pedir visita'}</button>
+                        <button onClick={() => setVisitOpen(false)} style={{ padding: '9px 14px', background: 'white', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                      </div>
+                    </div>
+                  )}
+                  {visitMsg && <div style={{ marginTop: 6, fontSize: 12, color: visitMsg.startsWith('✓') ? '#15803d' : '#dc2626' }}>{visitMsg}</div>}
+                </div>
 
                 {loadingThread && msgs.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: 30 }}>A carregar…</div>
