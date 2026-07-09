@@ -58,6 +58,10 @@ const SUGGESTED_TOPICS: Record<string, string[]> = {
   nutricao: ['Nutrição entérica vs parentérica', 'Dieta na DRC'],
 }
 
+// Sessão em curso sobrevive a sair da página — antes, sair a meio de uma
+// tutoria perdia todo o diálogo (só gravava em study_sessions no fim).
+const TUTOR_SESSION_KEY = 'phlox-tutor-session'
+
 const MSG_STYLE: Record<NonNullable<TutorMessage['type']>, { bg: string; border: string; icon: string }> = {
   question:         { bg: '#eff6ff', border: '#bfdbfe', icon: '❓' },
   feedback_good:    { bg: '#d1fae5', border: '#6ee7b7', icon: '✅' },
@@ -74,7 +78,30 @@ export default function TutorPage() {
   const [loading, setLoading] = useState(false)
   const [selectedDomain, setSelectedDomain] = useState(DOMAINS_SIMPLE[0])
   const [topic, setTopic] = useState('')
+  const [resumable, setResumable] = useState<TutorSession | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Ao chegar, há uma tutoria por acabar? Convida a retomar em vez de aplicar
+  // em silêncio (pode já não fazer sentido continuar de onde ficou).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TUTOR_SESSION_KEY)
+      if (!raw) return
+      const s: TutorSession = JSON.parse(raw)
+      if (s.phase !== 'complete' && s.messages?.length) setResumable(s)
+      else localStorage.removeItem(TUTOR_SESSION_KEY)
+    } catch { localStorage.removeItem(TUTOR_SESSION_KEY) }
+  }, [])
+
+  // Guarda a sessão em curso a cada troca (não quando completa: já foi gravada
+  // em study_sessions e não há nada por retomar).
+  useEffect(() => {
+    if (!session || session.phase === 'complete') return
+    try { localStorage.setItem(TUTOR_SESSION_KEY, JSON.stringify(session)) } catch {}
+  }, [session])
+
+  function resumeSession() { if (resumable) { setSession(resumable); setResumable(null) } }
+  function discardResumable() { try { localStorage.removeItem(TUTOR_SESSION_KEY) } catch {}; setResumable(null) }
 
   const plan = (user?.plan || 'free') as string
   const isStudent = plan === 'student' || plan === 'pro' || plan === 'clinic'
@@ -166,6 +193,7 @@ export default function TutorPage() {
             metadata: { topic: session.topic, domain: session.domain, exchanges: newSession.exchangeCount },
           })
         } catch {}
+        try { localStorage.removeItem(TUTOR_SESSION_KEY) } catch {}
       }
     } catch (e: any) {
       setSession(prev => prev ? { ...prev, messages: [...prev.messages, { role: 'tutor', content: 'Erro de ligação. Tenta novamente.', type: 'explanation' }] } : null)
@@ -199,6 +227,18 @@ export default function TutorPage() {
       {!session ? (
         /* ── Setup ── */
         <div className="page-container page-body" style={{ maxWidth:680, margin:'0 auto', flex:1 }}>
+          {/* Tutoria por acabar — sair a meio já não perde o diálogo. */}
+          {resumable && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 16px', marginBottom: 20, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 20 }}>⏳</span>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>Tem uma tutoria por acabar</div>
+                <div style={{ fontSize: 12.5, color: '#6b7280' }}>{resumable.topic}</div>
+              </div>
+              <button onClick={resumeSession} style={{ padding: '8px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Continuar →</button>
+              <button onClick={discardResumable} style={{ padding: '8px 14px', background: 'white', color: '#6b7280', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, cursor: 'pointer' }}>Começar de novo</button>
+            </div>
+          )}
           <div style={{ marginBottom:28 }}>
             <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#7c3aed', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
               <div style={{ width:10, height:2, background:'#7c3aed', borderRadius:1 }} />Phlox AI Tutor · Plus
@@ -282,7 +322,7 @@ export default function TutorPage() {
           {/* Session header */}
           <div style={{ background:'white', borderBottom:'1px solid var(--border)', padding:'12px 0', flexShrink:0 }}>
             <div className="page-container" style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-              <button onClick={() => setSession(null)}
+              <button onClick={() => { setSession(null); try { localStorage.removeItem(TUTOR_SESSION_KEY) } catch {} }}
                 style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:'var(--ink-4)', fontFamily:'var(--font-sans)', padding:0, display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
                 ← Nova sessão
               </button>

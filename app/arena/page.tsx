@@ -285,6 +285,7 @@ export default function ArenaPage() {
     active?.case_data ? { area: active.domain, dificuldade: active.difficulty, apresentacao: active.case_data.presentation?.slice(0, 400), pergunta: active.case_data.question } : null as any
   )
   const [generating, setGenerating] = useState(false)
+  const [genError, setGenError] = useState('')
   const [filterDomain, setFilterDomain] = useState('all')
   const [filterDiff, setFilterDiff] = useState('all')
   const [attemptedIds, setAttemptedIds] = useState<Set<string>>(new Set())
@@ -337,21 +338,29 @@ export default function ArenaPage() {
   const generateChallenge = async () => {
     if (!user) return
     setGenerating(true)
-    try {
+    setGenError('')
+    const domain = filterDomain === 'all' ? DOMAINS[Math.floor(Math.random() * (DOMAINS.length - 1)) + 1].id : filterDomain
+    const diff = filterDiff === 'all' ? ['facil','medio','dificil'][Math.floor(Math.random()*3)] : filterDiff
+    const attempt = async () => {
       const { data: sd } = await supabase.auth.getSession()
-      const domain = filterDomain === 'all' ? DOMAINS[Math.floor(Math.random() * (DOMAINS.length - 1)) + 1].id : filterDomain
-      const diff = filterDiff === 'all' ? ['facil','medio','dificil'][Math.floor(Math.random()*3)] : filterDiff
       const res = await fetch('/api/arena/challenge', {
         method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${sd.session?.access_token}` },
         body: JSON.stringify({ domain, difficulty: diff }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
+      return data
+    }
+    try {
+      // A geração por IA falha às vezes de forma transitória — 1 tentativa extra
+      // antes de mostrar erro (mesmo padrão do /osce), em vez de alert() cru.
+      let data
+      try { data = await attempt() } catch { data = await attempt() }
       const caseData = data.case_data ? (typeof data.case_data === 'string' ? JSON.parse(data.case_data) : data.case_data) : data
       const newCh: Challenge = { id: data.id || crypto.randomUUID(), title: caseData.title || data.title || 'Caso clínico', domain, difficulty: diff as any, case_data: caseData }
       setChallenges(prev => [newCh, ...prev])
       setActive(newCh)
-    } catch (e: any) { alert(e.message || 'Erro ao gerar caso') }
+    } catch (e: any) { setGenError(e?.message || 'Não foi possível gerar o caso. Tenta novamente.') }
     setGenerating(false)
   }
 
@@ -466,6 +475,9 @@ export default function ArenaPage() {
                 </button>
               ))}
             </div>
+            {genError && (
+              <div style={{ marginBottom: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: 13 }}>{genError}</div>
+            )}
             <button onClick={generateChallenge} disabled={generating}
               style={{ width:'100%', padding:'13px', background:generating?'var(--bg-3)':'#7c3aed', color:generating?'var(--ink-4)':'white', border:'none', borderRadius:10, cursor:generating?'wait':'pointer', fontSize:14, fontWeight:700, fontFamily:'var(--font-sans)', marginBottom:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
               {generating ? <><div style={{ width:14, height:14, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A gerar...</> : `Gerar novo caso${filterDomain!=='all'?' de '+DOMAINS.find(d=>d.id===filterDomain)?.label:''}`}

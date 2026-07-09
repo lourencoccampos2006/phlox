@@ -344,6 +344,9 @@ export default function MyMedsPage() {
     if (handoff?.payload?.meds?.length) {
       setScannedMeds(handoff.payload.meds.map((m: any) => ({ name: m.name, dose: m.dose ?? null, frequency: m.frequency ?? null, indication: m.indication ?? null, selected: true })))
       setHandoffNote(handoff.note || 'Importado')
+      // A lista importada só se vê na aba "Adicionar" — sem isto, o utilizador
+      // ficava no Resumo sem qualquer sinal de que o /scan tinha enviado algo.
+      setTab('add')
     }
   }, [handoff])
   const [scanning, setScanning] = useState(false)

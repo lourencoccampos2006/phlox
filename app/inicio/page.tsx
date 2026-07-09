@@ -464,6 +464,17 @@ function AllToolsSection({ mode, theme: t }: { mode: ToolMode; theme: ModeTheme 
 
 // ─── O FOCO PRINCIPAL — hero vivo, com gradiente do modo ───────────────────────
 function FocusHero({ focus, theme: t, loading }: { focus: FocusCard; theme: ModeTheme; loading: boolean }) {
+  // Enquanto os dados reais carregam, "focus" vem de um fallback que assume
+  // hasAnyData:true — mostrar o cartão já montado piscava "A sua medicação · 0
+  // medicamentos" a um utilizador novo antes do cartão de boas-vindas correto
+  // aparecer. Um skeleton evita mostrar conteúdo que pode estar errado.
+  if (loading) return (
+    <div style={{ borderRadius: t.radiusLg, padding: '22px 22px 20px', background: t.surface, border: `1px solid ${t.border}` }}>
+      <div className="skeleton" style={{ height: 38, width: 38, borderRadius: 11, marginBottom: 14 }} />
+      <div className="skeleton" style={{ height: 22, width: '70%', borderRadius: 8, marginBottom: 8 }} />
+      <div className="skeleton" style={{ height: 14, width: '50%', borderRadius: 6 }} />
+    </div>
+  )
   const urgent = focus.kind === 'urgent'
   return (
     <Link href={focus.href} data-tour="focus" style={{ textDecoration: 'none', display: 'block' }}>

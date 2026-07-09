@@ -23,6 +23,15 @@ import { logStudy } from '@/lib/studyProgress'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OSCEPhase = 'setup' | 'briefing' | 'anamnesis' | 'checklist' | 'diagnosis' | 'feedback'
+
+// Sessão em curso (fora de 'setup'/'feedback') sobrevive a sair da página —
+// antes, sair a meio de uma anamnese perdia tudo (mensagens, checklist, plano).
+const OSCE_SESSION_KEY = 'phlox-osce-session'
+interface OSCESession {
+  phase: OSCEPhase; course: Course; stationType: OSCEStation['station_type']; customTopic: string
+  difficulty: OSCEStation['difficulty']; station: OSCEStation | null; anamnesisMessages: AnamnesisMessage[]
+  checklistResults: ChecklistResult[]; diagnosis: string; plan: string; savedAt: number
+}
 type Course = 'medicine' | 'pharmacy' | 'nursing' | 'nutrition' | 'physiotherapy' | 'dentistry'
 
 interface OSCEStation {
@@ -143,6 +152,7 @@ export default function OSCEPage() {
   const [feedback, setFeedback] = useState<OSCEFeedback | null>(null)
   const [loading, setLoading] = useState(false)
   const [genError, setGenError] = useState('')
+  const [resumable, setResumable] = useState<OSCESession | null>(null)
 
   // Contexto p/ o Copilot: a estação OSCE que o estudante está a fazer.
   usePhloxContext(
@@ -151,6 +161,38 @@ export default function OSCEPage() {
   )
   const [timerExpired, setTimerExpired] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Ao chegar, há uma estação por acabar (guardada antes de sair)? Mostra um
+  // convite a retomar em vez de aplicar em silêncio (pode já não fazer sentido).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(OSCE_SESSION_KEY)
+      if (!raw) return
+      const s: OSCESession = JSON.parse(raw)
+      if (s.phase !== 'setup' && s.phase !== 'feedback' && s.station && Date.now() - s.savedAt < 24 * 3600_000) setResumable(s)
+      else localStorage.removeItem(OSCE_SESSION_KEY)
+    } catch { localStorage.removeItem(OSCE_SESSION_KEY) }
+  }, [])
+
+  // Guarda a sessão em curso a cada alteração relevante (não em setup/feedback:
+  // nada a retomar aí).
+  useEffect(() => {
+    if (phase === 'setup' || phase === 'feedback') return
+    const s: OSCESession = { phase, course, stationType, customTopic, difficulty, station, anamnesisMessages, checklistResults, diagnosis, plan, savedAt: Date.now() }
+    try { localStorage.setItem(OSCE_SESSION_KEY, JSON.stringify(s)) } catch {}
+  }, [phase, course, stationType, customTopic, difficulty, station, anamnesisMessages, checklistResults, diagnosis, plan])
+
+  function resumeSession() {
+    if (!resumable) return
+    setCourse(resumable.course); setStationType(resumable.stationType); setCustomTopic(resumable.customTopic)
+    setDifficulty(resumable.difficulty); setStation(resumable.station); setAnamnesisMessages(resumable.anamnesisMessages)
+    setChecklistResults(resumable.checklistResults); setDiagnosis(resumable.diagnosis); setPlan(resumable.plan)
+    setPhase(resumable.phase); setResumable(null)
+  }
+  function discardResumable() {
+    try { localStorage.removeItem(OSCE_SESSION_KEY) } catch {}
+    setResumable(null)
+  }
 
   const plan_user = (user?.plan || 'free') as string
   const isStudent = plan_user === 'student' || plan_user === 'pro' || plan_user === 'clinic'
@@ -282,6 +324,19 @@ export default function OSCEPage() {
       {/* Setup */}
       {phase === 'setup' && (
         <div className="page-container page-body" style={{ maxWidth: 700 }}>
+          {/* Estação por acabar — sair a meio (anamnese, checklist…) já não perde
+              tudo; convida a retomar em vez de aplicar em silêncio. */}
+          {resumable && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 16px', marginBottom: 20, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 20 }}>⏳</span>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>Tem uma estação por acabar</div>
+                <div style={{ fontSize: 12.5, color: '#6b7280' }}>{resumable.station?.title || 'Estação OSCE'}</div>
+              </div>
+              <button onClick={resumeSession} style={{ padding: '8px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Continuar →</button>
+              <button onClick={discardResumable} style={{ padding: '8px 14px', background: 'white', color: '#6b7280', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, cursor: 'pointer' }}>Começar de novo</button>
+            </div>
+          )}
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#7c3aed', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 10, height: 2, background: '#7c3aed', borderRadius: 1 }} />Phlox OSCE · Plus
@@ -616,7 +671,7 @@ export default function OSCEPage() {
             </div>
           )}
 
-          <button onClick={() => { setPhase('setup'); setStation(null); setAnamnesisMessages([]); setChecklistResults([]); setDiagnosis(''); setPlan(''); setFeedback(null); setTimerExpired(false) }}
+          <button onClick={() => { setPhase('setup'); setStation(null); setAnamnesisMessages([]); setChecklistResults([]); setDiagnosis(''); setPlan(''); setFeedback(null); setTimerExpired(false); try { localStorage.removeItem(OSCE_SESSION_KEY) } catch {} }}
             style={{ width: '100%', padding: '13px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
             Nova estação OSCE →
           </button>
