@@ -286,7 +286,7 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
             </div>
           </div>
           <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Editar</button>
-          <button onClick={onClose} style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 0, display: 'flex', flexDirection: 'column' }}>

@@ -389,7 +389,7 @@ function Modal({ children, onClose, title, wide }: { children: React.ReactNode; 
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, width: wide ? 600 : 440, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400 }}>{title}</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
         </div>
         {children}
       </div>

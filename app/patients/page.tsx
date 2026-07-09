@@ -475,7 +475,7 @@ function Modal({ children, onClose, title, accent, wide }: { children: React.Rea
       <div style={{ background: 'white', borderRadius: 16, padding: 26, width: '100%', maxWidth: wide ? 620 : 520, maxHeight: '88vh', overflow: 'auto', boxShadow: '0 24px 64px rgba(8,12,24,0.22)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{title}</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 20, lineHeight: 1 }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 20, lineHeight: 1 }}>×</button>
         </div>
         {children}
       </div>

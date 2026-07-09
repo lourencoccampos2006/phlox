@@ -264,6 +264,7 @@ export default function OSCEPage() {
   const submitForFeedback = async () => {
     if (!station) return
     setLoading(true)
+    setGenError('')
     try {
       const { data: sd } = await supabase.auth.getSession()
       const res = await fetch('/api/osce/feedback', {
@@ -278,6 +279,14 @@ export default function OSCEPage() {
         }),
       })
       const data = await res.json()
+      // A avaliação vem de uma IA — se o pedido falhar (rate limit, plano) ou vier
+      // sem forma válida, avançar para 'feedback' na mesma mostrava um ecrã com
+      // notas em branco/NaN em vez de dizer claramente que algo correu mal.
+      if (!res.ok || typeof data?.total_score !== 'number') {
+        setGenError(data?.error || 'Não foi possível avaliar a estação agora. Tenta submeter de novo.')
+        setLoading(false)
+        return
+      }
       setFeedback(data)
       setPhase('feedback')
       logStudy({ kind: 'osce', area: course, correct: (data.percentage ?? 0) >= 60, xp: Math.max(20, Math.round((data.percentage ?? 0) / 2)) })
@@ -293,7 +302,7 @@ export default function OSCEPage() {
           // ignore save errors for optional analytics write
         }
       }
-    } catch {}
+    } catch { setGenError('Erro de ligação. Tenta submeter de novo.') }
     setLoading(false)
   }
 
@@ -524,7 +533,9 @@ export default function OSCEPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
             {checklistResults.map((item, i) => (
-              <div key={i} onClick={() => setChecklistResults(p => p.map((x, j) => j === i ? { ...x, done: !x.done } : x))}
+              <div key={i} role="checkbox" aria-checked={item.done} tabIndex={0}
+                onClick={() => setChecklistResults(p => p.map((x, j) => j === i ? { ...x, done: !x.done } : x))}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChecklistResults(p => p.map((x, j) => j === i ? { ...x, done: !x.done } : x)) } }}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: 'white', border: `1.5px solid ${item.done ? '#6ee7b7' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}>
                 <div style={{ width: 22, height: 22, borderRadius: 5, border: `2px solid ${item.done ? '#0d6e42' : 'var(--border)'}`, background: item.done ? '#d1fae5' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                   {item.done && <span style={{ fontSize: 12, color: '#0d6e42' }}>✓</span>}
@@ -579,6 +590,9 @@ export default function OSCEPage() {
             </div>
           </div>
 
+          {genError && (
+            <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: 13 }}>{genError}</div>
+          )}
           <button onClick={submitForFeedback} disabled={loading || !diagnosis.trim()}
             style={{ marginTop: 16, width: '100%', padding: '13px', background: diagnosis.trim() && !loading ? selectedCourse.color : 'var(--bg-3)', color: diagnosis.trim() && !loading ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {loading ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A avaliar...</> : 'Submeter e ver avaliação →'}
@@ -633,11 +647,11 @@ export default function OSCEPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             <div style={{ background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 16px' }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>✓ Pontos fortes</div>
-              {feedback.strengths.map((s, i) => <div key={i} style={{ fontSize: 12, color: '#14532d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+              {(feedback.strengths || []).map((s, i) => <div key={i} style={{ fontSize: 12, color: '#14532d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
             </div>
             <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 16px' }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>→ A melhorar</div>
-              {feedback.improvements.map((s, i) => <div key={i} style={{ fontSize: 12, color: '#78350f', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+              {(feedback.improvements || []).map((s, i) => <div key={i} style={{ fontSize: 12, color: '#78350f', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
             </div>
           </div>
 

@@ -251,6 +251,7 @@ export default function FamilyPortalPage() {
               <h1 style={{ fontSize: 21, fontWeight: 800, color: '#0b1120', margin: '0 0 6px' }}>Confirme que é da família{verifyName ? ` de ${verifyName}` : ''}</h1>
               <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: '0 0 22px' }}>Introduza os <strong>últimos 4 dígitos</strong> do telemóvel que deu à instituição.</p>
               <input value={verify} onChange={e => setVerify(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="••••" inputMode="numeric" maxLength={4}
+                aria-label="Últimos 4 dígitos do telemóvel"
                 onKeyDown={e => e.key === 'Enter' && verify.length === 4 && tryAdd(code, verify)}
                 style={{ width: '100%', padding: '13px 14px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 22, fontWeight: 700, letterSpacing: '0.3em', textAlign: 'center', boxSizing: 'border-box', outline: 'none' }} />
               {addErr && <div style={{ marginTop: 12, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{addErr}</div>}
@@ -265,6 +266,7 @@ export default function FamilyPortalPage() {
               <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0b1120', margin: '0 0 6px' }}>{accesses.length ? 'Adicionar familiar' : 'Acompanhe o seu familiar'}</h1>
               <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: '0 0 22px' }}>Introduza o código que a instituição lhe forneceu. Pode adicionar vários — um por cada familiar.</p>
               <input value={code} onChange={e => setCode(normalizeCode(e.target.value))} placeholder="Ex: AB12CD" inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false}
+                aria-label="Código da instituição"
                 onKeyDown={e => e.key === 'Enter' && code.trim() && tryAdd(code, '')}
                 style={{ width: '100%', padding: '13px 14px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 18, fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center', boxSizing: 'border-box', outline: 'none', textTransform: 'uppercase' }} />
               {addErr && <div style={{ marginTop: 12, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{addErr}</div>}
@@ -299,14 +301,15 @@ export default function FamilyPortalPage() {
           {accesses.map(a => {
             const on = a.code === activeCode
             return (
-              <div key={a.code} onClick={() => setActiveCode(a.code)}
+              <div key={a.code} role="button" tabIndex={0} aria-label={`Ver ${a.name}`} aria-current={on} onClick={() => setActiveCode(a.code)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCode(a.code) } }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: on ? '#eff6ff' : '#fff' }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: on ? '#2563eb' : '#f1f5f9', color: on ? '#fff' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{a.name.charAt(0).toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
                   <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.room ? `Quarto ${a.room}` : 'Código ' + a.code}</div>
                 </div>
-                <button onClick={e => { e.stopPropagation(); removeAccess(a.code) }} title="Remover" style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>×</button>
+                <button onClick={e => { e.stopPropagation(); removeAccess(a.code) }} title="Remover" aria-label={`Remover ${a.name}`} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>×</button>
               </div>
             )
           })}
@@ -384,10 +387,10 @@ export default function FamilyPortalPage() {
                       <button onClick={() => setSuggestOpen(true)} style={{ marginTop: 6, background: 'none', border: 'none', color: '#0d6e42', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>+ Falta um medicamento que dá em casa?</button>
                     ) : (
                       <div style={{ marginTop: 8, background: '#f6f9f7', border: '1px solid #d1e7db', borderRadius: 10, padding: 12 }}>
-                        <input value={suggestMed.name} onChange={e => setSuggestMed(p => ({ ...p, name: e.target.value }))} placeholder="Nome do medicamento" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', marginBottom: 6 }} />
+                        <input value={suggestMed.name} onChange={e => setSuggestMed(p => ({ ...p, name: e.target.value }))} placeholder="Nome do medicamento" aria-label="Nome do medicamento" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', marginBottom: 6 }} />
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <input value={suggestMed.dose} onChange={e => setSuggestMed(p => ({ ...p, dose: e.target.value }))} placeholder="Dose" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
-                          <input value={suggestMed.frequency} onChange={e => setSuggestMed(p => ({ ...p, frequency: e.target.value }))} placeholder="Quando" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
+                          <input value={suggestMed.dose} onChange={e => setSuggestMed(p => ({ ...p, dose: e.target.value }))} placeholder="Dose" aria-label="Dose do medicamento" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
+                          <input value={suggestMed.frequency} onChange={e => setSuggestMed(p => ({ ...p, frequency: e.target.value }))} placeholder="Quando" aria-label="Frequência do medicamento" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
                         </div>
                         <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                           <button onClick={submitSuggestMed} disabled={suggestBusy || !suggestMed.name.trim()} style={{ flex: 1, padding: '9px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{suggestBusy ? 'A enviar…' : 'Enviar à equipa'}</button>
@@ -424,10 +427,10 @@ export default function FamilyPortalPage() {
                   ) : (
                     <div style={{ background: '#f6f9f7', border: '1px solid #d1e7db', borderRadius: 10, padding: 12 }}>
                       <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                        <input type="date" value={visit.date} min={new Date().toISOString().slice(0, 10)} onChange={e => setVisit(p => ({ ...p, date: e.target.value }))} style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
-                        <input type="time" value={visit.time} onChange={e => setVisit(p => ({ ...p, time: e.target.value }))} style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        <input type="date" value={visit.date} min={new Date().toISOString().slice(0, 10)} onChange={e => setVisit(p => ({ ...p, date: e.target.value }))} aria-label="Data da visita" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        <input type="time" value={visit.time} onChange={e => setVisit(p => ({ ...p, time: e.target.value }))} aria-label="Hora da visita" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                       </div>
-                      <input value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} placeholder="Nota (opcional)" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
+                      <input value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} placeholder="Nota (opcional)" aria-label="Nota sobre a visita" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
                       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                         <button onClick={submitVisit} disabled={visitBusy || !visit.date} style={{ flex: 1, padding: '9px', background: visit.date ? '#0d6e42' : '#cbd5e1', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: visit.date ? 'pointer' : 'default' }}>{visitBusy ? 'A enviar…' : 'Pedir visita'}</button>
                         <button onClick={() => setVisitOpen(false)} style={{ padding: '9px 14px', background: 'white', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
@@ -474,15 +477,16 @@ export default function FamilyPortalPage() {
               <div style={{ borderTop: '1px solid #e5e7eb', background: '#fff', padding: '10px 14px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {!name && (
-                    <input value={name} onChange={e => setName(e.target.value)} placeholder="O seu nome (ex: Maria, filha)"
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="O seu nome (ex: Maria, filha)" aria-label="O seu nome"
                       style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 9, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
                   )}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                     <label style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 10, border: `1.5px solid ${photo ? '#2563eb' : '#e5e7eb'}`, background: photo ? '#eff6ff' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 20 }} title="Anexar foto">
                       📷
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                      <input type="file" accept="image/*" aria-label="Anexar foto" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
                     </label>
                     <textarea value={text} onChange={e => setText(e.target.value)} rows={1} placeholder={`Mensagem à equipa de ${active.name.split(' ')[0]}…`}
+                      aria-label="Mensagem à equipa"
                       style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <button onClick={send} disabled={(!text.trim() && !photo) || sending}
                       style={{ flexShrink: 0, padding: '11px 18px', background: (text.trim() || photo) ? '#2563eb' : '#e5e7eb', color: (text.trim() || photo) ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: (text.trim() || photo) ? 'pointer' : 'default' }}>

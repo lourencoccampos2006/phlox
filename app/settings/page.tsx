@@ -60,6 +60,12 @@ function SettingsPage() {
     : 'profile')) as SettingsTab
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [pushPerm, setPushPerm] = useState<NotificationPermission | 'unsupported'>('default')
+  // permissão do browser ('granted') não significa que exista uma subscrição real
+  // guardada no servidor — antes o botão só pedia a permissão e mostrava sucesso,
+  // sem nunca subscrever nem registar em /api/push/subscribe.
+  const [pushSubscribed, setPushSubscribed] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushErr, setPushErr] = useState('')
   const [cancelBusy, setCancelBusy] = useState(false)
   const [cancelMsg, setCancelMsg] = useState('')
 
@@ -79,7 +85,48 @@ function SettingsPage() {
   useEffect(() => {
     if (!('Notification' in window)) { setPushPerm('unsupported'); return }
     setPushPerm(Notification.permission)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration('/sw.js')
+        .then(reg => reg?.pushManager?.getSubscription())
+        .then(sub => setPushSubscribed(!!sub))
+        .catch(() => {})
+    }
   }, [])
+
+  // Pede permissão (se necessário), regista o service worker, subscreve, e só ENTÃO
+  // guarda a subscrição em /api/push/subscribe. Mesmo fluxo do /mymeds — antes este
+  // botão só chamava Notification.requestPermission() e assumia sucesso.
+  function urlBase64ToUint8Array(base64: string): ArrayBuffer {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const raw = atob(b64)
+    const buf = new ArrayBuffer(raw.length)
+    const view = new Uint8Array(buf)
+    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i)
+    return buf
+  }
+  async function activatePush() {
+    setPushBusy(true); setPushErr('')
+    try {
+      if (Notification.permission !== 'granted') {
+        const perm = await Notification.requestPermission()
+        setPushPerm(perm)
+        if (perm !== 'granted') { setPushErr('Sem permissão para notificações. Ativa-a nas definições do browser.'); return }
+      }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidKey) { setPushErr('As notificações push ainda não estão ativadas no servidor.'); return }
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidKey) })
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      })
+      if (!res.ok) { setPushErr('Não foi possível registar as notificações no servidor.'); return }
+      setPushSubscribed(true)
+    } catch { setPushErr('Não foi possível ativar o push neste dispositivo.') }
+    finally { setPushBusy(false) }
+  }
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -482,7 +529,7 @@ function SettingsPage() {
                 </div>
               )}
 
-              {pushPerm === 'granted' && (
+              {pushPerm === 'granted' && pushSubscribed && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 7 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>Notificações push activas</div>
@@ -495,18 +542,22 @@ function SettingsPage() {
                 </div>
               )}
 
-              {pushPerm === 'default' && (
-                <button
-                  onClick={() => {
-                    Notification.requestPermission().then(p => setPushPerm(p))
-                  }}
-                  style={{
-                    padding: '11px 20px', background: 'var(--ink)', color: 'white',
-                    border: 'none', borderRadius: 7, cursor: 'pointer',
-                    fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
-                  }}>
-                  Activar notificações push →
-                </button>
+              {(pushPerm === 'default' || (pushPerm === 'granted' && !pushSubscribed)) && (
+                <>
+                  <button
+                    onClick={activatePush}
+                    disabled={pushBusy}
+                    style={{
+                      padding: '11px 20px', background: pushBusy ? 'var(--bg-3)' : 'var(--ink)', color: pushBusy ? 'var(--ink-4)' : 'white',
+                      border: 'none', borderRadius: 7, cursor: pushBusy ? 'wait' : 'pointer',
+                      fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                    }}>
+                    {pushBusy ? 'A ativar…' : 'Activar notificações push →'}
+                  </button>
+                  {pushErr && (
+                    <div style={{ marginTop: 10, padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12, color: '#c53030', lineHeight: 1.6 }}>{pushErr}</div>
+                  )}
+                </>
               )}
             </div>
 
@@ -516,9 +567,9 @@ function SettingsPage() {
                 O que vais receber
               </div>
               {[
-                { icon: '💊', title: 'Lembretes de toma', desc: 'Aviso quando está na hora de tomar cada medicamento. Configura os horários em Os meus medicamentos.', active: pushPerm === 'granted' },
-                { icon: '⚠️', title: 'Alertas de interações', desc: 'Aviso imediato quando adicionas um medicamento com interação grave.', active: pushPerm === 'granted' },
-                { icon: '🏥', title: 'Alertas de MAR', desc: 'Para coordenadores: aviso de doses não registadas antes do fim do turno.', active: pushPerm === 'granted' },
+                { icon: '💊', title: 'Lembretes de toma', desc: 'Aviso quando está na hora de tomar cada medicamento. Configura os horários em Os meus medicamentos.', active: pushSubscribed },
+                { icon: '⚠️', title: 'Alertas de interações', desc: 'Aviso imediato quando adicionas um medicamento com interação grave.', active: pushSubscribed },
+                { icon: '🏥', title: 'Alertas de MAR', desc: 'Para coordenadores: aviso de doses não registadas antes do fim do turno.', active: pushSubscribed },
                 { icon: '📊', title: 'Resumo semanal', desc: 'Taxa de adesão da semana todos os domingos às 18h.', active: false },
               ].map(item => (
                 <div key={item.title} style={{

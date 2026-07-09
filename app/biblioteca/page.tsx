@@ -349,7 +349,7 @@ function DocViewer({ doc, onClose }: { doc: DocFull; onClose: () => void }) {
               {meta.label}{doc.page_count ? ` · ${doc.page_count} ${doc.kind === 'pptx' ? 'slides' : 'pp'}` : ''}{doc.chars ? ` · ${Math.round(doc.chars / 1000)} k chars` : ''}{doc.subject ? ` · ${doc.subject}` : ''}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
         </div>
 
         {/* Tabs */}

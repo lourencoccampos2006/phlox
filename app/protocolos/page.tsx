@@ -332,7 +332,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
       <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: wide ? 620 : 520, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 36px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
         </div>
         {children}
       </div>
