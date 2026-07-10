@@ -54,3 +54,8 @@ next-env.d.ts
 
 # Playwright MCP — logs/artefactos de teste (não pertencem ao repo)
 .playwright-mcp/
+
+# Claude Code — estado local de sessão (lock de tarefas agendadas, definições
+# pessoais). Muda a cada sessão e não deve ser partilhado nem gerar commits.
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
