@@ -268,6 +268,13 @@ export default function LinkedResidents() {
                       <button onClick={() => setVisitFor(acc.code)} style={{ padding: '10px 16px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}`, borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>📅 Pedir uma visita</button>
                     )}
                   </div>
+
+                  {/* Convite discreto — só depois de haver dias com registo (um
+                      momento de satisfação genuína), nunca a primeira coisa que se
+                      vê. Fecha o hop "pessoal → mostra a mais gente" do ciclo. */}
+                  {d.days.length > 0 && (
+                    <Link href="/reach" style={{ display: 'block', marginTop: 14, fontSize: 12, color: '#94a3b8', textDecoration: 'none' }}>🎁 Conhece mais alguém a cuidar de um familiar? Convide-o.</Link>
+                  )}
                 </div>
               )}
             </div>

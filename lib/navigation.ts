@@ -45,6 +45,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/preventivo', icon: '🛡️', label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)' },
       { href: '/objetivos', icon: '🎯', label: 'Os meus objetivos',     desc: 'Metas e acompanhamento' },
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
+      { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
     ],
   },
   {
@@ -194,7 +195,7 @@ export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
     { href: '/electrolytes',  icon: '⚡', label: 'Eletrólitos',         desc: 'Protocolos K, Na, Mg, Ca' },
     { href: '/emergency-doses', icon: '🚨', label: 'Doses de urgência', desc: 'Por peso e tempo' },
     { href: '/nota-clinica',  icon: '🗒', label: 'Nota clínica SOAP',   desc: 'Estruturada com IA' },
-    { href: '/handover',      icon: '🔁', label: 'Passa-turno',         desc: 'Relatório IA' },
+    { href: '/ronda-guiada',  icon: '🔁', label: 'Passa-turno',         desc: 'Ronda coordenada' },
     { href: '/drug-info',     icon: '💊', label: 'Info de fármaco',     desc: 'Monografia' },
     { href: '/protocol',      icon: '📑', label: 'Protocolos',          desc: 'ESC, ADA, NICE, DGS' },
   ],

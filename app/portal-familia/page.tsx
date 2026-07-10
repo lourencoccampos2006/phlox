@@ -520,13 +520,13 @@ export default function FamilyPortalPage() {
         </div>
       </div>
 
-      {/* Loop viral: cada familiar que vê o portal é um cuidador — convida-o a
-          usar o Phlox para a sua própria saúde / de quem cuida. */}
+      {/* Loop viral: cada familiar que vê o portal é um cuidador — convida-o a criar
+          A SUA PRÓPRIA conta (não só "conhecer" o Phlox numa homepage genérica). */}
       <div style={{ borderTop: '1px solid #e5e7eb', background: '#f8fafc', padding: '18px 16px', textAlign: 'center' }}>
         <div style={{ fontSize: 13.5, color: '#475569', marginBottom: 10, lineHeight: 1.6 }}>
           Este acompanhamento é feito com o <strong>Phlox</strong> — também pode usá-lo para a sua própria medicação e saúde, ou para cuidar de um familiar.
         </div>
-        <a href="/" style={{ display: 'inline-block', padding: '9px 18px', background: '#0d6e42', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Conhecer o Phlox →</a>
+        <a href="/login?mode=family" style={{ display: 'inline-block', padding: '9px 18px', background: '#0d6e42', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Criar a minha conta grátis →</a>
       </div>
 
       <style>{`

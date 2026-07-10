@@ -26,6 +26,9 @@ const MODE_MESSAGES: Record<string, { heading: string; sub: string }> = {
   student:   { heading: 'Acesso estudante', sub: 'Arena, simulador, OSCE e tutor com IA.' },
   caregiver: { heading: 'Acesso familiar', sub: 'Perfis da família, lembretes de toma e alertas.' },
   personal:  { heading: 'Acesso pessoal', sub: 'A sua medicação, a sua história de saúde e a IA do Phlox.' },
+  // Vem do Portal Família (código do lar/centro) — já conhece o Phlox através do
+  // familiar; esta conta é a SUA, para a própria saúde ou para cuidar de mais gente.
+  family:    { heading: 'A sua própria conta Phlox', sub: 'Continue a acompanhar o seu familiar e comece também a organizar a sua própria saúde e medicação.' },
 }
 
 function LoginContent() {
@@ -35,8 +38,10 @@ function LoginContent() {
   const mode = searchParams.get('mode') || ''
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
-  // Email/password
-  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin')
+  // Email/password. Quem chega com um `mode` (via os "5 mundos" da homepage ou o
+  // Portal Família) está a conhecer o Phlox pela primeira vez — a conta a criar é
+  // nova, por isso o formulário começa já em "criar conta", não "entrar".
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>(() => mode ? 'signup' : 'signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [emailBusy, setEmailBusy] = useState(false)

@@ -67,6 +67,10 @@ export const TOOLS: Tool[] = [
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/health-pass',  label: 'Mostrar a minha saúde ao médico', desc: 'Um código QR com tudo, para o médico ou a farmácia', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
+  // Existia (Phlox Reach) mas só aparecia na command palette clínica — invisível
+  // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em
+  // /tudo, não empurrado para a Hub (convidar não deve ser a 1ª coisa que se vê).
+  { id: '/reach',        label: 'Convidar amigos',               desc: 'Ambos ganham quando alguém se junta com o seu código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Perceber ──
   { id: '/ai',           label: 'Tirar uma dúvida de saúde',     desc: 'Pergunte em português simples',    category: 'understand', modes: ['personal', 'caregiver', 'student'], default: ['personal'], plan: 'free_limited' },

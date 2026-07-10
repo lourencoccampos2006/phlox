@@ -92,7 +92,6 @@ const T = {
   appts:   { href: '/agenda', label: 'Agenda', hint: 'Marcações e consultas', icon: '📅' },
   screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: '🧪' },
   wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: '🩹' },
-  handover:{ href: '/handover', label: 'Passagem de turno', hint: 'Resumo do turno para a equipa seguinte', icon: '🔁' },
   billing: { href: '/faturacao', label: 'Faturação', hint: 'Mensalidades, comparticipações e recibos', icon: '💶' },
   vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: '🛡️' },
   mural:   { href: '/equipa-mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: '📣' },
@@ -147,7 +146,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.ronda, T.radar, T.assessments, T.wounds, T.family, T.mural,
     ],
-    extraTools: [ T.incidents, T.activities, T.vigia, T.stock, T.staff, T.team, T.quality, T.handover, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.vigia, T.stock, T.staff, T.team, T.quality, T.documents, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
