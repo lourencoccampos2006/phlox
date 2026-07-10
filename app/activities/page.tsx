@@ -28,8 +28,48 @@ interface Activity {
   description?: string
   max_participants?: number
   status: 'planned' | 'ongoing' | 'done' | 'cancelled'
+  recurring_id?: string | null
   created_at: string
 }
+
+// Atividade recorrente ("todas as quartas às 10h ginástica") — gera ocorrências
+// reais em `activities` (ver ensureRecurringOccurrences), em vez da equipa ter
+// de recriar a atividade à mão todas as semanas.
+interface RecurringActivity {
+  id: string
+  title: string
+  type: string
+  weekday: number   // 0=domingo … 6=sábado (Date.getDay())
+  start_time: string
+  end_time?: string
+  location?: string
+  responsible?: string
+  description?: string
+  max_participants?: number
+  active: boolean
+}
+
+const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+const WEEKDAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+// Modelos rápidos — biblioteca de atividades típicas de centro de dia/lar, para
+// não escrever o mesmo título à mão todos os dias. Toque preenche o formulário.
+const ACTIVITY_TEMPLATES: { title: string; type: string; location: string }[] = [
+  { title: 'Ginástica da manhã',        type: 'gym',       location: 'Sala de convívio' },
+  { title: 'Fisioterapia de grupo',     type: 'therapy',   location: 'Sala de fisioterapia' },
+  { title: 'Jogos de mesa',             type: 'games',     location: 'Sala de convívio' },
+  { title: 'Bingo',                     type: 'games',     location: 'Sala de convívio' },
+  { title: 'Exercícios de memória',     type: 'games',     location: 'Sala de convívio' },
+  { title: 'Musicoterapia',             type: 'music',     location: 'Sala de convívio' },
+  { title: 'Karaoke',                   type: 'music',     location: 'Sala de convívio' },
+  { title: 'Pintura e desenho',         type: 'art',       location: 'Sala de atividades' },
+  { title: 'Trabalhos manuais',         type: 'art',       location: 'Sala de atividades' },
+  { title: 'Leitura de jornal',         type: 'reading',   location: 'Sala de convívio' },
+  { title: 'Hora do chá',               type: 'social',    location: 'Sala de convívio' },
+  { title: 'Passeio no jardim',         type: 'outing',    location: 'Jardim' },
+  { title: 'Missa / momento religioso', type: 'religious', location: 'Capela' },
+  { title: 'Visita de familiares',      type: 'visit',     location: 'Sala de visitas' },
+]
 
 interface Participation {
   id: string
@@ -100,20 +140,99 @@ export function AtividadesTool() {
     location: 'Sala de convívio', responsible: '', description: '', max_participants: '',
   })
 
-  const load = useCallback(async () => {
-    if (!user) return
-    setLoading(true)
-    const [{ data: acts }, { data: pats }] = await Promise.all([
-      scope.filter(supabase.from('activities').select('*')).order('date', { ascending: false }).order('start_time', { ascending: true }),
-      scope.filter(supabase.from('patients').select('*')).order('name'),
-    ])
-    setActivities(acts || [])
-    setPatients(pats || [])
-    setLoading(false)
+  // Atividades recorrentes — modelos + as ocorrências já garantidas.
+  const [recurring, setRecurring] = useState<RecurringActivity[]>([])
+  const [showRecurringModal, setShowRecurringModal] = useState(false)
+  const [savingRecurring, setSavingRecurring] = useState(false)
+  const [recurringForm, setRecurringForm] = useState({
+    title: '', type: 'gym', weekday: 3, start_time: '10:00', end_time: '',
+    location: 'Sala de convívio', responsible: '', description: '', max_participants: '',
+  })
+
+  // Garante que as próximas ocorrências de cada modelo ATIVO existem como
+  // atividades reais (próximos 21 dias — ~3 semanas sempre visíveis à frente).
+  // Idempotente: liga-se por recurring_id+date, nunca duplica.
+  const ensureRecurringOccurrences = useCallback(async (tpls: RecurringActivity[]) => {
+    const active = tpls.filter(t => t.active)
+    if (!user || active.length === 0) return false
+    const horizon = 21
+    const base = new Date(); base.setHours(0, 0, 0, 0)
+    const wanted: { tpl: RecurringActivity; date: string }[] = []
+    for (const tpl of active) {
+      for (let i = 0; i < horizon; i++) {
+        const d = new Date(base); d.setDate(d.getDate() + i)
+        if (d.getDay() === tpl.weekday) wanted.push({ tpl, date: d.toISOString().slice(0, 10) })
+      }
+    }
+    if (wanted.length === 0) return false
+    const { data: existing } = await supabase.from('activities').select('recurring_id,date').in('recurring_id', active.map(t => t.id))
+    const existingSet = new Set((existing || []).map((e: any) => `${e.recurring_id}:${e.date}`))
+    const toInsert = wanted.filter(w => !existingSet.has(`${w.tpl.id}:${w.date}`)).map(w => scope.stamp({
+      user_id: user.id, title: w.tpl.title, type: w.tpl.type, date: w.date,
+      start_time: w.tpl.start_time, end_time: w.tpl.end_time || null,
+      location: w.tpl.location || null, responsible: w.tpl.responsible || null,
+      description: w.tpl.description || null, max_participants: w.tpl.max_participants || null,
+      status: 'planned', recurring_id: w.tpl.id,
+    }))
+    if (toInsert.length === 0) return false
+    const { error } = await supabase.from('activities').insert(toInsert)
+    return !error
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
 
+  const load = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    const [{ data: acts }, { data: pats }, recRes] = await Promise.all([
+      scope.filter(supabase.from('activities').select('*')).order('date', { ascending: false }).order('start_time', { ascending: true }),
+      scope.filter(supabase.from('patients').select('*')).order('name'),
+      // Degrada em silêncio se a migração (sprint108) ainda não tiver corrido.
+      scope.filter(supabase.from('recurring_activities').select('*')).order('weekday').then((r: any) => r, () => ({ data: [] })),
+    ])
+    const recs: RecurringActivity[] = recRes.data || []
+    setRecurring(recs)
+    const generated = await ensureRecurringOccurrences(recs)
+    if (generated) {
+      const { data: acts2 } = await scope.filter(supabase.from('activities').select('*')).order('date', { ascending: false }).order('start_time', { ascending: true })
+      setActivities(acts2 || [])
+    } else {
+      setActivities(acts || [])
+    }
+    setPatients(pats || [])
+    setLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId, ensureRecurringOccurrences])
+
   useEffect(() => { load() }, [load])
+
+  async function saveRecurring() {
+    if (!recurringForm.title.trim() || !user) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    setSavingRecurring(true)
+    const { error } = await supabase.from('recurring_activities').insert(scope.stamp({
+      user_id: user.id, title: recurringForm.title.trim(), type: recurringForm.type, weekday: recurringForm.weekday,
+      start_time: recurringForm.start_time, end_time: recurringForm.end_time || null,
+      location: recurringForm.location || null, responsible: recurringForm.responsible || null,
+      description: recurringForm.description || null,
+      max_participants: recurringForm.max_participants ? parseInt(recurringForm.max_participants) : null,
+      active: true,
+    }))
+    setSavingRecurring(false)
+    if (error) { alert('Não foi possível guardar. Confirma que a migração sprint108 já foi aplicada.'); return }
+    setRecurringForm({ title: '', type: 'gym', weekday: 3, start_time: '10:00', end_time: '', location: 'Sala de convívio', responsible: '', description: '', max_participants: '' })
+    load()
+  }
+
+  async function toggleRecurringActive(r: RecurringActivity) {
+    await supabase.from('recurring_activities').update({ active: !r.active }).eq('id', r.id)
+    setRecurring(prev => prev.map(x => x.id === r.id ? { ...x, active: !x.active } : x))
+  }
+
+  async function deleteRecurring(r: RecurringActivity) {
+    if (!confirm(`Apagar o modelo recorrente "${r.title}"? As atividades já agendadas mantêm-se; deixam só de se repetir.`)) return
+    await supabase.from('recurring_activities').delete().eq('id', r.id)
+    setRecurring(prev => prev.filter(x => x.id !== r.id))
+  }
 
   async function loadParticipation(actId: string) {
     const { data } = await supabase
@@ -332,6 +451,13 @@ export function AtividadesTool() {
             {printingReport ? 'A gerar…' : '🖨 Relatório mensal'}
           </button>
           <button
+            onClick={() => setShowRecurringModal(true)}
+            title="Atividades que se repetem todas as semanas, sem recriar à mão"
+            style={{ padding: '10px 16px', background: '#fff', color: '#7c3aed', border: '1.5px solid #ddd6fe', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+          >
+            🔁 Recorrentes{recurring.filter(r => r.active).length > 0 ? ` (${recurring.filter(r => r.active).length})` : ''}
+          </button>
+          <button
             onClick={() => setShowModal(true)}
             style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
@@ -413,6 +539,7 @@ export function AtividadesTool() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 600, color: '#0b1120', fontSize: 14 }}>{act.title}</span>
                         <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 500, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>{s.label}</span>
+                        {act.recurring_id && <span title="Atividade recorrente" style={{ fontSize: 11, color: '#7c3aed' }}>🔁</span>}
                       </div>
                       <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                         <span>🕐 {act.start_time}{act.end_time ? `–${act.end_time}` : ''}</span>
@@ -527,10 +654,24 @@ export function AtividadesTool() {
           <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Nova Atividade</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+              <button onClick={() => setShowModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Modelos rápidos — toque preenche título/tipo/local, evita escrever
+                  "Ginástica das 10h" à mão todos os dias. */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Modelos rápidos</label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {ACTIVITY_TEMPLATES.map(tpl => (
+                    <button key={tpl.title} type="button"
+                      onClick={() => setForm(p => ({ ...p, title: tpl.title, type: tpl.type, location: tpl.location }))}
+                      style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${form.title === tpl.title ? typeFor(tpl.type).color : '#e5e7eb'}`, background: form.title === tpl.title ? typeFor(tpl.type).color + '15' : '#fff', color: form.title === tpl.title ? typeFor(tpl.type).color : '#6b7280', fontSize: 11.5, cursor: 'pointer', fontWeight: 500 }}
+                    >{typeFor(tpl.type).emoji} {tpl.title}</button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Título *</label>
                 <input
@@ -599,6 +740,108 @@ export function AtividadesTool() {
                 disabled={!form.title.trim() || saving}
                 style={{ padding: '12px 20px', background: form.title.trim() ? '#2563eb' : '#e5e7eb', color: form.title.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: form.title.trim() ? 'pointer' : 'default', marginTop: 4 }}
               >{saving ? 'A guardar...' : 'Criar Atividade'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Atividades recorrentes — modelos que geram ocorrências semana a semana
+          (ver ensureRecurringOccurrences), sem recriar a atividade à mão. */}
+      {showRecurringModal && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowRecurringModal(false) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🔁 Atividades recorrentes</h2>
+              <button onClick={() => setShowRecurringModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+            </div>
+            <p style={{ margin: '0 0 18px', fontSize: 12.5, color: '#6b7280', lineHeight: 1.5 }}>Fica sempre agendada no mesmo dia da semana — as próximas 3 semanas aparecem automaticamente na lista, marcadas com 🔁.</p>
+
+            {recurring.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                {recurring.map(r => {
+                  const t = typeFor(r.type)
+                  return (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: r.active ? '#fff' : '#f9fafb', border: `1.5px solid ${r.active ? '#e5e7eb' : '#f1f5f9'}`, borderRadius: 9 }}>
+                      <span style={{ fontSize: 18, flexShrink: 0, opacity: r.active ? 1 : 0.4 }}>{t.emoji}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: r.active ? '#0b1120' : '#9ca3af' }}>{r.title}</div>
+                        <div style={{ fontSize: 11.5, color: '#9ca3af' }}>{WEEKDAYS[r.weekday]} · {r.start_time}{r.end_time ? `–${r.end_time}` : ''}{r.location ? ` · ${r.location}` : ''}</div>
+                      </div>
+                      <button onClick={() => toggleRecurringActive(r)} title={r.active ? 'Pausar' : 'Reativar'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{r.active ? 'Pausar' : 'Reativar'}</button>
+                      <button onClick={() => deleteRecurring(r)} aria-label={`Apagar ${r.title}`} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 14 }}>🗑</button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 10 }}>+ Novo modelo recorrente</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Modelos rápidos</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {ACTIVITY_TEMPLATES.map(tpl => (
+                      <button key={tpl.title} type="button"
+                        onClick={() => setRecurringForm(p => ({ ...p, title: tpl.title, type: tpl.type, location: tpl.location }))}
+                        style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${recurringForm.title === tpl.title ? typeFor(tpl.type).color : '#e5e7eb'}`, background: recurringForm.title === tpl.title ? typeFor(tpl.type).color + '15' : '#fff', color: recurringForm.title === tpl.title ? typeFor(tpl.type).color : '#6b7280', fontSize: 11.5, cursor: 'pointer', fontWeight: 500 }}
+                      >{typeFor(tpl.type).emoji} {tpl.title}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Título *</label>
+                  <input value={recurringForm.title} onChange={e => setRecurringForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Ginástica de manhã" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Tipo</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {TYPES.map(t => (
+                      <button key={t.id} onClick={() => setRecurringForm(p => ({ ...p, type: t.id }))}
+                        style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${recurringForm.type === t.id ? t.color : '#e5e7eb'}`, background: recurringForm.type === t.id ? t.color + '15' : '#fff', color: recurringForm.type === t.id ? t.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                      >{t.emoji} {t.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Dia da semana</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {WEEKDAYS_SHORT.map((w, i) => (
+                      <button key={w} onClick={() => setRecurringForm(p => ({ ...p, weekday: i }))}
+                        style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${recurringForm.weekday === i ? '#7c3aed' : '#e5e7eb'}`, background: recurringForm.weekday === i ? '#f5f3ff' : '#fff', color: recurringForm.weekday === i ? '#7c3aed' : '#6b7280', fontSize: 12.5, cursor: 'pointer', fontWeight: recurringForm.weekday === i ? 700 : 500 }}
+                      >{w}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Início *</label>
+                    <input type="time" value={recurringForm.start_time} onChange={e => setRecurringForm(p => ({ ...p, start_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Fim</label>
+                    <input type="time" value={recurringForm.end_time} onChange={e => setRecurringForm(p => ({ ...p, end_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Local</label>
+                    <input value={recurringForm.location} onChange={e => setRecurringForm(p => ({ ...p, location: e.target.value }))} placeholder="Sala de convívio" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Responsável</label>
+                    <input value={recurringForm.responsible} onChange={e => setRecurringForm(p => ({ ...p, responsible: e.target.value }))} placeholder="Nome do colaborador" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <button
+                  onClick={saveRecurring}
+                  disabled={!recurringForm.title.trim() || savingRecurring}
+                  style={{ padding: '12px 20px', background: recurringForm.title.trim() ? '#7c3aed' : '#e5e7eb', color: recurringForm.title.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: recurringForm.title.trim() ? 'pointer' : 'default', marginTop: 4 }}
+                >{savingRecurring ? 'A guardar...' : `Criar recorrente — todas as ${WEEKDAYS[recurringForm.weekday].toLowerCase()}s`}</button>
+              </div>
             </div>
           </div>
         </div>

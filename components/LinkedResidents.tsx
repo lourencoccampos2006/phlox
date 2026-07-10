@@ -17,7 +17,7 @@ const NAME_KEY = 'phlox-familia-name'
 const ACCENT = '#1d4ed8'
 
 interface Access { code: string; verify: string; name: string; room?: string }
-interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean }
+interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean; photoUrl?: string | null }
 interface HomeMed { id: string; name: string; dose?: string; frequency?: string; take_location?: string }
 
 const VISIT_STATUS: Record<string, { label: string; c: string; bg: string; bd: string }> = {
@@ -168,16 +168,21 @@ export default function LinkedResidents() {
 
               {isOpen && d && (
                 <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f1f5f9' }}>
-                  {/* Resumo dos últimos dias */}
+                  {/* Resumo dos últimos dias — visão rápida aqui; o diário completo
+                      (navegável dia a dia, com foto) está no Portal Família. */}
                   {d.days.length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Como tem corrido</div>
                       {d.days.slice(0, 3).map((day, i) => (
-                        <div key={i} style={{ background: day.attention ? '#fffbeb' : '#f8fafc', border: `1px solid ${day.attention ? '#fde68a' : '#e2e8f0'}`, borderRadius: 10, padding: '9px 12px', marginBottom: 6 }}>
-                          <div style={{ fontSize: 11.5, fontWeight: 700, color: '#475569' }}>{new Date(day.date).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                          {day.lines.map((l, j) => <div key={j} style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>{l}</div>)}
+                        <div key={i} style={{ background: day.attention ? '#fffbeb' : '#f8fafc', border: `1px solid ${day.attention ? '#fde68a' : '#e2e8f0'}`, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
+                          {day.photoUrl && <img src={day.photoUrl} alt="" style={{ width: '100%', maxHeight: 140, objectFit: 'cover', display: 'block' }} />}
+                          <div style={{ padding: '9px 12px' }}>
+                            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#475569' }}>{new Date(day.date).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                            {day.lines.map((l, j) => <div key={j} style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>{l}</div>)}
+                          </div>
                         </div>
                       ))}
+                      <Link href="/portal-familia" style={{ display: 'inline-block', fontSize: 12, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ver o diário completo →</Link>
                     </div>
                   )}
 

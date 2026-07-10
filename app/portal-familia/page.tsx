@@ -67,7 +67,9 @@ export default function FamilyPortalPage() {
 
   // ── Conversa do residente ativo ──
   const [msgs, setMsgs] = useState<Msg[]>([])
-  const [days, setDays] = useState<{ date: string; lines: string[]; mood?: number; attention: boolean }[]>([])
+  const [days, setDays] = useState<{ date: string; lines: string[]; mood?: number; attention: boolean; photoUrl?: string | null }[]>([])
+  // Diário navegável — 0 = dia mais recente com registos; sobe para dias mais antigos.
+  const [diaryIndex, setDiaryIndex] = useState(0)
   const [homeMeds, setHomeMeds] = useState<{ id: string; name: string; dose?: string; frequency?: string }[]>([])
   const [todayDoses, setTodayDoses] = useState<{ med_id: string; status: string; source: string; home_by?: string; shift?: string }[]>([])
   const [markingMed, setMarkingMed] = useState('')
@@ -202,9 +204,12 @@ export default function FamilyPortalPage() {
     finally { setVisitBusy(false); setTimeout(() => setVisitMsg(''), 4000) }
   }
 
-  // Ao mudar de residente ativo, carrega e faz poll
+  // Ao mudar de residente ativo, carrega e faz poll. O diário volta ao dia mais
+  // recente ao trocar de pessoa (mas NÃO a cada poll — senão puxava a família de
+  // volta a "hoje" enquanto navegava para trás nos dias).
   useEffect(() => {
     if (!active) { setMsgs([]); return }
+    setDiaryIndex(0)
     fetchThread(active)
     const t = setInterval(() => fetchThread(active), 20000)
     return () => clearInterval(t)
@@ -328,18 +333,30 @@ export default function FamilyPortalPage() {
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', minHeight: 0 }}>
-                {/* "O dia de X" — resumo automático dos registos da equipa, em
-                    linguagem simples. É o que torna o cuidado visível à família. */}
-                {days.length > 0 && (
-                  <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Como tem corrido</div>
-                    {days.map(d => {
-                      const dl = new Date(d.date + 'T12:00:00')
-                      const today = new Date().toISOString().slice(0, 10)
-                      const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-                      const label = d.date === today ? 'Hoje' : d.date === yest ? 'Ontem' : dl.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
-                      return (
-                        <div key={d.date} style={{ background: d.attention ? '#fffbeb' : '#f0fdf5', border: `1px solid ${d.attention ? '#fde68a' : '#bbf7d0'}`, borderRadius: 12, padding: '13px 15px', marginBottom: 8 }}>
+                {/* Diário do utente — um dia de cada vez, navegável para trás (até
+                    30 dias), com a foto do dia quando a equipa partilhou uma. Era um
+                    empilhado só dos últimos 3 dias; agora é um diário que se percorre. */}
+                {days.length > 0 && (() => {
+                  const idx = Math.min(diaryIndex, days.length - 1)
+                  const d = days[idx]
+                  const dl = new Date(d.date + 'T12:00:00')
+                  const today = new Date().toISOString().slice(0, 10)
+                  const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                  const label = d.date === today ? 'Hoje' : d.date === yest ? 'Ontem' : dl.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
+                  return (
+                    <div style={{ marginBottom: 18 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Diário</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <button onClick={() => setDiaryIndex(i => Math.min(i + 1, days.length - 1))} disabled={idx >= days.length - 1}
+                            aria-label="Dia anterior" style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #e5e7eb', background: idx >= days.length - 1 ? '#f9fafb' : '#fff', color: idx >= days.length - 1 ? '#d1d5db' : '#374151', cursor: idx >= days.length - 1 ? 'default' : 'pointer', fontSize: 13 }}>‹</button>
+                          <button onClick={() => setDiaryIndex(i => Math.max(i - 1, 0))} disabled={idx <= 0}
+                            aria-label="Dia seguinte" style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #e5e7eb', background: idx <= 0 ? '#f9fafb' : '#fff', color: idx <= 0 ? '#d1d5db' : '#374151', cursor: idx <= 0 ? 'default' : 'pointer', fontSize: 13 }}>›</button>
+                        </div>
+                      </div>
+                      <div style={{ background: d.attention ? '#fffbeb' : '#f0fdf5', border: `1px solid ${d.attention ? '#fde68a' : '#bbf7d0'}`, borderRadius: 12, overflow: 'hidden' }}>
+                        {d.photoUrl && <img src={d.photoUrl} alt={`Foto de ${label.toLowerCase()}`} style={{ width: '100%', maxHeight: 220, objectFit: 'cover', display: 'block' }} />}
+                        <div style={{ padding: '13px 15px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                             <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1120', textTransform: 'capitalize' }}>{label}</span>
                             {d.mood && <span style={{ fontSize: 16 }}>{['', '😟', '😐', '🙂', '😊', '😄'][d.mood]}</span>}
@@ -349,10 +366,12 @@ export default function FamilyPortalPage() {
                             <div key={i} style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.55, marginBottom: 2 }}>{l}</div>
                           )) : <div style={{ fontSize: 13, color: '#6b7280' }}>Sem registos detalhados neste dia.</div>}
                         </div>
-                      )
-                    })}
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Resumo gerado a partir dos registos da equipa de cuidados. Para questões clínicas, contacte a instituição.</div>
-                  </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+                {days.length > 0 && (
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: -12, marginBottom: 18, lineHeight: 1.5 }}>Resumo gerado a partir dos registos da equipa de cuidados. Para questões clínicas, contacte a instituição.</div>
                 )}
 
                 {/* Medicação que a família dá em CASA — marca a toma e ela aparece

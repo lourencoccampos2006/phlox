@@ -18,6 +18,8 @@ import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { setActiveProfile } from '@/lib/profileContext'
+import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
+import { printDoc, type PrintRecord } from '@/lib/print'
 
 interface Patient {
   id: string; name: string; age: number | null; sex: string | null
@@ -262,6 +264,92 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     finally { setReportBusy(false) }
   }
 
+  // Dossier mensal — formal, para a direção mostrar a uma família ou numa
+  // inspeção: presenças, atividades, adesão à medicação, ocorrências. Diferente
+  // do "Relatório mensal" acima (narrativa calorosa) e do dossier institucional
+  // do /painel-dono (esse é da instituição toda; este é DESTA pessoa).
+  const [dossierBusy, setDossierBusy] = useState(false)
+  async function printPatientDossier() {
+    if (!patient || !pid) return
+    setDossierBusy(true)
+    try {
+      const now = new Date()
+      const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+      const monthLabel = now.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+      const [attRes, partsRes, dosesRes, incRes] = await Promise.all([
+        supabase.from('attendance').select('date,status').eq('patient_id', pid).gte('date', first).order('date').then((r: any) => r, () => ({ data: [] })),
+        supabase.from('activity_participations').select('attended,activities(title,date,type)').eq('patient_id', pid).eq('attended', true).then((r: any) => r, () => ({ data: [] })),
+        supabase.from('mar_records').select('status,date').eq('patient_id', pid).gte('date', first).then((r: any) => r, () => ({ data: [] })),
+        supabase.from('incidents').select('date,type,severity,description,action_taken,follow_up_required').eq('patient_id', pid).gte('date', first).order('date').then((r: any) => r, () => ({ data: [] })),
+      ])
+      const att = (attRes.data || []) as { date: string; status: string }[]
+      const parts = ((partsRes.data || []) as any[]).filter(p => p.activities && p.activities.date >= first)
+      const doses = (dosesRes.data || []) as { status: string; date: string }[]
+      const incs = (incRes.data || []) as { date: string; type: string; severity: string; description: string; action_taken?: string; follow_up_required?: boolean }[]
+
+      const presentDays = att.filter(a => a.status === 'present').length
+      const attendanceRate = att.length ? Math.round((presentDays / att.length) * 100) : null
+      const dosesGiven = doses.filter(d => d.status === 'administered' || d.status === 'given' || d.status === 'taken').length
+      const adherence = doses.length ? Math.round((dosesGiven / doses.length) * 100) : null
+      const TYPE_LABELS: Record<string, string> = { fall: 'Queda', medication_error: 'Erro de Medicação', pressure_ulcer: 'Úlcera de Pressão', behavioral: 'Incidente Comportamental', choking: 'Engasgamento', infection: 'Infeção', other: 'Outro' }
+      const SEV_LABELS: Record<string, string> = { minor: 'Ligeiro', moderate: 'Moderado', major: 'Grave', critical: 'Crítico' }
+
+      const attendanceRecords: PrintRecord[] = att.length ? [{
+        title: `${presentDays} de ${att.length} dias marcados`,
+        fields: [
+          { label: 'Presente', value: String(presentDays) },
+          { label: 'Ausente', value: String(att.filter(a => a.status === 'absent').length) },
+          { label: 'Saiu antes', value: String(att.filter(a => a.status === 'left').length) },
+        ],
+      }] : [{ title: 'Sem presenças marcadas este mês', fields: [] }]
+
+      const activityRecords: PrintRecord[] = parts.length
+        ? parts.sort((a, b) => a.activities.date.localeCompare(b.activities.date)).map(p => ({
+            title: p.activities.title,
+            meta: new Date(p.activities.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }),
+          }))
+        : [{ title: 'Sem participação em atividades registada este mês' }]
+
+      const medRecords: PrintRecord[] = doses.length ? [{
+        title: `${dosesGiven} de ${doses.length} tomas dadas`,
+        fields: [{ label: 'Adesão', value: adherence != null ? `${adherence}%` : '—' }],
+      }] : [{ title: 'Sem tomas registadas este mês', fields: [] }]
+
+      const incidentRecords: PrintRecord[] = incs.length
+        ? incs.map(i => ({
+            title: TYPE_LABELS[i.type] || i.type,
+            meta: `${new Date(i.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })} · ${SEV_LABELS[i.severity] || i.severity}`,
+            fields: [
+              { label: 'Descrição', value: i.description },
+              ...(i.action_taken ? [{ label: 'Ação tomada', value: i.action_taken }] : []),
+              { label: 'Seguimento', value: i.follow_up_required ? 'Necessário' : 'Não necessário' },
+            ],
+          }))
+        : [{ title: 'Sem ocorrências este mês' }]
+
+      printDoc({
+        docTitle: `Dossier mensal — ${patient.name}`,
+        docSubtitle: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+        institution: cfg.unitNoun,
+        meta: [
+          { label: 'presença', value: attendanceRate != null ? `${attendanceRate}%` : '—' },
+          { label: 'atividades', value: String(parts.length) },
+          { label: 'adesão à medicação', value: adherence != null ? `${adherence}%` : '—' },
+          { label: 'ocorrências', value: String(incs.length) },
+        ],
+        sections: [
+          { heading: 'Presenças', records: attendanceRecords },
+          { heading: 'Atividades', records: activityRecords },
+          { heading: 'Medicação', records: medRecords },
+          { heading: 'Ocorrências', records: incidentRecords },
+          { heading: 'Validação', records: [{ title: 'Responsável', fields: [{ label: 'Nome', value: '' }, { label: 'Assinatura', value: '' }, { label: 'Data', value: '' }] }] },
+        ],
+        footerNote: 'Dossier organizado a partir dos registos da equipa. Documento de gestão — não constitui avaliação clínica.',
+      })
+    } catch { /* ignora */ }
+    finally { setDossierBusy(false) }
+  }
+
   if (!user) return null
   if (loading) return <Shell warm={warm}><div style={{ color: '#94a3b8', padding: 40, textAlign: 'center' }}>A carregar…</div></Shell>
   if (!patient) return null
@@ -288,6 +376,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <button onClick={() => setEditing(true)} style={btnGhost(accent)}>Editar</button>
           <button onClick={printChart} style={btnGhost(accent)} title="Imprimir ficha clínica">🖨 Ficha</button>
           <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '…' : '📄 Relatório'}</button>
+          <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal: presenças, atividades, medicação, ocorrências">{dossierBusy ? '…' : '🗂 Dossier mensal'}</button>
         </div>
       </div>
 
@@ -435,23 +524,44 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         )}
       </Card>
 
-      {/* SINAIS VITAIS (últimos) */}
-      {vitals && Object.values(vitals).some(v => v != null) && (
+      {/* SINAIS VITAIS (últimos) — avaliados contra o intervalo seguro para esta
+          pessoa (idade/condições), não só números soltos. */}
+      {vitals && Object.values(vitals).some(v => v != null) && (() => {
+        const flags = flagReading(
+          { bp_sys: vitals.bp_sys, bp_dia: vitals.bp_dia, hr: vitals.hr, temp: vitals.temp, spo2: vitals.spo2, glucose: vitals.glucose },
+          { age: patient.age, conditions: patient.conditions }
+        )
+        const flagFor = (field: string) => flags.find(f => f.field === field)?.reading
+        return (
         <Card>
           <CardTitle>Sinais vitais <span style={{ fontWeight: 500, color: '#94a3b8', fontSize: 12 }}>· último registo</span></CardTitle>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
             {[
-              vitals.bp_sys ? { l: 'T.A.', v: `${vitals.bp_sys}/${vitals.bp_dia ?? '—'}` } : null,
-              vitals.hr ? { l: 'F.C.', v: `${vitals.hr}` } : null,
-              vitals.temp ? { l: 'Temp.', v: `${vitals.temp}°` } : null,
-              vitals.spo2 ? { l: 'SpO₂', v: `${vitals.spo2}%` } : null,
-              vitals.glucose ? { l: 'Glicemia', v: `${vitals.glucose}` } : null,
+              vitals.bp_sys ? { l: 'T.A.', v: `${vitals.bp_sys}/${vitals.bp_dia ?? '—'}`, f: flagFor('bp_sys') || flagFor('bp_dia') } : null,
+              vitals.hr ? { l: 'F.C.', v: `${vitals.hr}`, f: flagFor('hr') } : null,
+              vitals.temp ? { l: 'Temp.', v: `${vitals.temp}°`, f: flagFor('temp') } : null,
+              vitals.spo2 ? { l: 'SpO₂', v: `${vitals.spo2}%`, f: flagFor('spo2') } : null,
+              vitals.glucose ? { l: 'Glicemia', v: `${vitals.glucose}`, f: flagFor('glucose') } : null,
               vitals.weight ? { l: 'Peso', v: `${vitals.weight} kg` } : null,
-            ].filter(Boolean).map((x: any) => <Mini key={x.l} label={x.l} value={x.v} />)}
+            ].filter(Boolean).map((x: any) => <Mini key={x.l} label={x.l} value={x.v} alert={x.f?.level === 'critical'} warn={x.f?.level === 'warning'} />)}
           </div>
+          {flags.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {flags.map(({ field, reading }) => {
+                const c = VITAL_LEVEL_COLOR[reading.level]
+                return (
+                  <div key={field} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '7px 11px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{reading.level === 'critical' ? '🔴' : '🟠'} {VITAL_LABEL[field]}: {reading.label}</div>
+                    {reading.watch && <div style={{ fontSize: 11, color: '#475569', marginTop: 2, lineHeight: 1.4 }}>{reading.watch}</div>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
           <Link href={`/care-log?patient=${patient.id}`} style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, color: accent, textDecoration: 'none', fontWeight: 700 }}>Registar o dia →</Link>
         </Card>
-      )}
+        )
+      })()}
 
       {/* CONTACTOS */}
       <Card>

@@ -43,7 +43,7 @@ const last4 = (phone?: string | null) => (phone || '').replace(/\D/g, '').slice(
 // (care_records por turno + mar_records). NÃO inventa nada, NÃO usa IA, NÃO
 // diagnostica: só conta, em linguagem simples, o que ficou registado. Isto é o
 // que torna o cuidado visível à família — e o argumento de venda do lar.
-interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean }
+interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean; photoUrl?: string | null }
 
 const MEAL_WORD = (pct: number) => pct >= 75 ? 'comeu bem' : pct >= 40 ? 'comeu razoavelmente' : pct > 0 ? 'comeu pouco' : 'quase não comeu'
 const MOOD_WORD = ['', 'esteve em baixo', 'esteve menos bem-disposta', 'esteve calma', 'esteve bem-disposta', 'esteve muito animada']
@@ -99,9 +99,10 @@ function summariseDay(date: string, recs: any[], marToday: any[], firstName: str
   return { date, lines, mood: moodCount ? Math.round(moodLevel / moodCount) : undefined, attention }
 }
 
-async function buildDailySummaries(patientId: string): Promise<DaySummary[]> {
+// 30 dias em vez de 3 — dá o "diário do utente" navegável dia a dia (a família
+// abre e percorre para trás, em vez de só ver os últimos 3 dias empilhados).
+async function buildDailySummaries(patientId: string, days = 30): Promise<DaySummary[]> {
   const sb = admin()
-  const days = 3
   const since = new Date(Date.now() - (days - 1) * 86400000).toISOString().slice(0, 10)
   const [{ data: cr }, { data: mar }, { data: pat }] = await Promise.all([
     sb.from('care_records').select('date, nutrition, mood, notes').eq('patient_id', patientId).gte('date', since),
@@ -199,11 +200,22 @@ export async function GET(req: NextRequest) {
       ),
   ])
 
+  // "Foto do dia": a primeira foto que a equipa partilhou nesse dia, para o
+  // diário do utente mostrar algo visual, não só texto (quando existir).
+  const photoByDate = new Map<string, string>()
+  for (const m of (msgs || [])) {
+    if (m.photo_url) {
+      const d = String(m.created_at).slice(0, 10)
+      if (!photoByDate.has(d)) photoByDate.set(d, m.photo_url)
+    }
+  }
+  const dailySummariesWithPhoto = dailySummaries.map(d => ({ ...d, photoUrl: photoByDate.get(d.date) || null }))
+
   return NextResponse.json({
     patient: { name: pat.name, room_number: pat.room_number },
     contactName: v.contact?.name || null,
     messages: msgs || [],
-    dailySummaries,
+    dailySummaries: dailySummariesWithPhoto,
     homeMeds: homeMeds || [],
     todayDoses: todayDoses || [],
     visitRequests: visitRequests || [],

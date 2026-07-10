@@ -10,6 +10,7 @@ import RegistoDoDia from './RegistoDoDia'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
 
 // O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
 // feridas + atividades, adaptadas por instituição). O formulário de registo em si
@@ -18,7 +19,7 @@ export default function CareLogPage() { return <RegistoDoDia /> }
 
 type Shift = 'manha' | 'tarde' | 'noite'
 
-interface Patient { id: string; name: string; age?: number; room_number?: string }
+interface Patient { id: string; name: string; age?: number; room_number?: string; conditions?: string | null }
 
 interface CareRecord {
   id: string
@@ -62,14 +63,6 @@ function pctColor(v: number) {
   if (v >= 75) return '#16a34a'
   if (v >= 40) return '#d97706'
   return '#dc2626'
-}
-
-function bpFlag(sys?: number, dia?: number) {
-  if (!sys) return null
-  if (sys >= 180 || (dia && dia >= 120)) return { label: 'Crise hipertensiva', color: '#7f1d1d' }
-  if (sys >= 140 || (dia && dia >= 90)) return { label: 'Hipertensão', color: '#dc2626' }
-  if (sys < 90) return { label: 'Hipotensão', color: '#d97706' }
-  return null
 }
 
 export function CareLogTool() {
@@ -133,7 +126,7 @@ export function CareLogTool() {
     if (!user) return
     setLoading(true)
     const [{ data: pats }, { data: recs }] = await Promise.all([
-      scope.filter(supabase.from('patients').select('id,name,age,room_number')).eq('active', true).order('name'),
+      scope.filter(supabase.from('patients').select('id,name,age,room_number,conditions')).eq('active', true).order('name'),
       scope.filter(supabase.from('care_records').select('*')).order('date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
     ])
     setPatients(pats || [])
@@ -217,7 +210,14 @@ export function CareLogTool() {
   const pat = patients.find(p => p.id === patientId)
   const patientRecords = records.filter(r => r.patient_id === patientId)
   const todayRecords = records.filter(r => r.date === today)
-  const bpFlagResult = bpFlag(bpSys ? parseInt(bpSys) : undefined, bpDia ? parseInt(bpDia) : undefined)
+  // Sinais vitais inteligentes (lib/vitalRanges, já usado em /vitals pessoal):
+  // avalia cada valor contra o intervalo seguro PARA ESTA pessoa (idade/condições)
+  // em vez dos limiares fixos e parciais que existiam aqui (só T.A./febre/SpO₂,
+  // sem F.C. nem glicemia, sem ajustar ao idoso/diabético/DPOC).
+  const vitalFlags = flagReading(
+    { bp_sys: bpSys ? Number(bpSys) : undefined, bp_dia: bpDia ? Number(bpDia) : undefined, hr: hr ? Number(hr) : undefined, temp: temp ? Number(temp) : undefined, spo2: spo2 ? Number(spo2) : undefined, glucose: glucose ? Number(glucose) : undefined },
+    { age: pat?.age, conditions: pat?.conditions }
+  )
 
   // ── Registo de cuidados profissional (A4) — documento do processo ────────────
   // Imprime os registos do dia selecionado para o utente escolhido, por turno.
@@ -404,13 +404,22 @@ export function CareLogTool() {
                 </div>
               </div>
             </div>
-            {bpFlagResult && (
-              <div style={{ marginTop: 10, padding: '8px 12px', background: '#fee2e2', borderRadius: 8, fontSize: 12, fontWeight: 600, color: bpFlagResult.color }}>
-                ⚠ {bpFlagResult.label} — {bpSys}/{bpDia} mmHg
+            {vitalFlags.length > 0 && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {vitalFlags.map(({ field, reading }) => {
+                  const c = VITAL_LEVEL_COLOR[reading.level]
+                  return (
+                    <div key={field} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '8px 12px' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: c.color }}>
+                        {reading.level === 'critical' ? '🔴' : '🟠'} {VITAL_LABEL[field]}: {reading.label} <span style={{ fontWeight: 400, color: '#94a3b8' }}>(ref. {reading.range})</span>
+                      </div>
+                      {reading.watch && <div style={{ fontSize: 11.5, color: '#475569', marginTop: 2, lineHeight: 1.45 }}>{reading.watch}</div>}
+                    </div>
+                  )
+                })}
+                <div style={{ fontSize: 10.5, color: '#94a3b8', lineHeight: 1.4 }}>Sinal a partir de intervalos de referência — não é diagnóstico. A avaliação é do profissional.</div>
               </div>
             )}
-            {temp && parseFloat(temp) >= 37.8 && <div style={{ marginTop: 6, padding: '8px 12px', background: '#fef3c7', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#92400e' }}>⚠ Febre — {temp}°C</div>}
-            {spo2 && parseInt(spo2) < 94 && <div style={{ marginTop: 6, padding: '8px 12px', background: '#fee2e2', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#991b1b' }}>⚠ SpO₂ abaixo de 94% — {spo2}%</div>}
           </div>
 
           {/* Nutrition */}
