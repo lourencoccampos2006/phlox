@@ -102,8 +102,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // O rodapé só aparece em páginas públicas / institucionais — nunca em ferramentas.
   // Em ferramentas (dashboard, mymeds, ai, family, etc.) é distrativo e desformata.
+  // '/' (homepage) usa este MESMO rodapé partilhado (Ronda 2) — antes tinha um
+  // rodapé próprio de 3 links, e era assim que a lista legal completa
+  // (Cookies/Subprocessadores/Dispositivo médico/Segurança) ficava esquecida.
   const SHOW_FOOTER_ON = [
-    '/about', '/pricing', '/trust', '/seguranca', '/status', '/changelog',
+    '/', '/about', '/pricing', '/trust', '/seguranca', '/status', '/changelog',
     '/terms', '/privacy', '/api-docs', '/institucional', '/organizacao',
     '/blog', '/contato',
   ]
