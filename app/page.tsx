@@ -2,59 +2,43 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import WorldsJourney, { type WorldNode } from '@/components/home/WorldsJourney'
+import PhloxHero from '@/components/home/PhloxHero'
+import ThreadJourney, { type ModeStop } from '@/components/home/ThreadJourney'
 
-// ── Homepage v5 — adaptação da referência vectrfl.com (2026-07-11) ──────────
-// Fernando mandou uma gravação de vectrfl.com como referência direta ("o
-// pináculo do que é uma homepage") e pediu adaptação total ao Phlox, com o
-// mesmo sistema de animações reativas ao scroll e texto que se adapta à
-// imagem 3D. Analisei a gravação frame a frame (não existe suporte de WebGL
-// por hardware no ambiente de automação, por isso nunca vi o site correr —
-// só o HTML/JS carregou; a gravação do telemóvel do Fernando é que revelou o
-// design real). O mecanismo central: UM diorama 3D isométrico contínuo fica
-// fixo no ecrã enquanto se desce a página — herói (título) sobre o diorama
-// nos primeiros ~16%, depois esbate-se e entra uma lista numerada 01-05; a
-// câmara percorre o diorama e um caminho desenha-se a ligar cada "edifício"
-// (aqui, os 5 mundos do Phlox — a metáfora "rede" já era o conceito central
-// da homepage, encaixa melhor aqui do que no original). Paleta: fora o
-// escuro+néon (era o clichê rejeitado); aqui, verde-sálvia pálido + acento
-// quente terracota — o mesmo espírito do azul pálido + coral do site de
-// referência, mas com as cores do Phlox. Ver components/home/WorldsJourney.tsx
-// + DioramaScene.tsx.
+// ── Homepage v6 — flor + fio (2026-07-11) ────────────────────────────────────
+// Depois da adaptação do vectrfl.com (diorama de edifícios) ter sido
+// rejeitada — "não uses buildings, inventa a história do Phlox" — Fernando
+// desenhou o conceito ao detalhe: o herói mostra "Phlox Clinical" em 3D à
+// frente de uma flor Phlox só de contorno, a rodar devagar; ao começar o
+// scroll a flor fecha-se e "engole" o texto; do centro nasce um fio que desce
+// a página num caminho curvo (nunca reto, nunca anguloso), com flores
+// decorativas raras a brotar; ao longo dele, 4 paragens em vez da antiga
+// grelha de 5 mundos — institucional → familiar → pessoal → estudante (a
+// mesma ordem do ciclo de crescimento, mas sem nunca mencionar isso ao
+// utilizador — é estratégia interna, não copy). Última instrução: sem nenhum
+// modelo/ícone 3D a representar cada modo — só o cartão com texto. Nada
+// pinado, nada fixo — o scroll normal nunca é intercetado; tudo reage por
+// função contínua da posição de scroll (para e reverte com o scroll,
+// exatamente como pedido). Ver components/home/PhloxHero.tsx +
+// PhloxFlowerScene.tsx + ThreadJourney.tsx + DecorativeBloom(Scene).tsx.
 
-const MUNDOS: WorldNode[] = [
+const MODES: ModeStop[] = [
   {
-    n: '01', tag: 'Para si', t: 'A minha saúde', accent: '#0d6e42', href: '/login?mode=personal', tier: 1,
-    lead: 'A sua medicação organizada, a sua saúde debaixo de olho.',
-    items: ['Foto à receita → lista e horários automáticos', 'Lembretes que chegam a tempo', 'Vê se os comprimidos se dão bem entre si'],
+    n: '01', tag: 'Instituições', t: 'Centro de dia e lar', href: '/centro-de-dia', side: 'right', topPct: 18,
+    lead: 'O dia de cada utente — presenças, medicação, cuidados — e o portal que as famílias abrem sozinhas.',
   },
   {
-    n: '02', tag: 'Para a família', t: 'Cuidar de alguém', accent: '#b5502e', href: '/login?mode=caregiver', tier: 2,
-    lead: 'A saúde de cada pessoa de quem cuida, num só lugar.',
-    items: ['Um perfil por cada familiar', 'Quem tomou o quê, e quando', 'Partilha tudo com o médico por um código'],
+    n: '02', tag: 'Família', t: 'Cuidar de alguém', href: '/login?mode=caregiver', side: 'left', topPct: 42,
+    lead: 'A saúde de cada pessoa de quem cuida, num só lugar. Um perfil por familiar, sempre atualizado.',
   },
   {
-    n: '03', tag: 'Para estudar', t: 'Estudante de saúde', accent: '#6b4a8a', href: '/login?mode=student', tier: 2,
-    lead: 'Treino a sério para medicina, farmácia e enfermagem.',
-    items: ['Arena de casos clínicos com IA', 'OSCE e simulador de decisões', 'O seu progresso, sempre à vista'],
+    n: '03', tag: 'Pessoal', t: 'A minha saúde', href: '/login?mode=personal', side: 'right', topPct: 66,
+    lead: 'A sua medicação organizada, a sua saúde debaixo de olho — foto à receita, lembretes, interações.',
   },
   {
-    n: '04', tag: 'Para profissionais', t: 'Trabalho na saúde', accent: '#35618a', href: '/login?mode=clinical', tier: 3,
-    lead: 'Decisão clínica com a evidência que se usa em Portugal.',
-    items: ['Interações, STOPP/START e critérios de Beers', 'Calculadoras e protocolos (DGS, ESC)', 'Revisão e otimização da medicação'],
+    n: '04', tag: 'Estudante', t: 'Estudante de saúde', href: '/login?mode=student', side: 'left', topPct: 89,
+    lead: 'Treino a sério para medicina, farmácia e enfermagem — casos clínicos, OSCE, progresso real.',
   },
-  {
-    n: '05', tag: 'Para instituições', t: 'Centro de dia e lar', accent: '#2d7268', href: '/centro-de-dia', tier: 3,
-    lead: 'Montado de raiz para o dia inteiro do seu centro.',
-    items: ['O dia de cada utente: presenças, medicação, cuidados', 'O portal que as famílias abrem sozinhas', 'Equipa, rondas e stock, tudo num painel'],
-  },
-]
-
-const CICLO = [
-  { n: '01', t: 'O centro regista.', d: 'Presenças, medicação dada, o dia de cada utente — à medida que acontece.' },
-  { n: '02', t: 'A família vê.', d: 'Sem telefonar, sem perguntar. O diário do dia, a foto, o que foi feito.' },
-  { n: '03', t: 'Torna-se sua.', d: 'A mesma conta abre a porta à própria saúde — e à de quem mais cuida.' },
-  { n: '04', t: 'Espalha-se.', d: 'Quem sente o cuidado a sério, mostra-o a mais alguém que precisa.' },
 ]
 
 const PARES = [
@@ -93,39 +77,14 @@ export default function HomePage() {
     <div className="lp">
       <noscript><style>{`.reveal{opacity:1!important;transform:none!important;}`}</style></noscript>
 
-      <WorldsJourney
-        worlds={MUNDOS}
-        heroKicker="Saúde em português, para todos"
-        heroTitle={<>Toda a saúde,<br />numa só <em>rede</em>.</>}
-        heroLead="Para si, para quem cuida da família, para quem estuda, para quem trabalha na saúde — e para o centro de dia ou lar que os liga a todos. Cada um com o Phlox à sua medida."
-      />
-
-      {/* ── COMO SE PROPAGA ── */}
-      <section className="lp-sec lp-sec-paper">
-        <div className="lp-wrap">
-          <header className="lp-sec-h reveal">
-            <span className="lp-sec-no">§ 01</span>
-            <h2 className="lp-h2">Um cuidado a sério puxa outro</h2>
-            <p className="lp-sec-sub">Não construímos cinco produtos separados — construímos uma rede. Veja como um dia no centro chega a quem mais precisa.</p>
-          </header>
-          <div className="lp-ciclo">
-            {CICLO.map((c, idx) => (
-              <div key={c.n} className="lp-ciclo-beat reveal">
-                <div className="lp-ciclo-n">{c.n}</div>
-                <h3 className="lp-ciclo-t">{c.t}</h3>
-                <p className="lp-ciclo-d">{c.d}</p>
-                {idx < CICLO.length - 1 && <span className="lp-ciclo-arrow" aria-hidden="true">→</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PhloxHero />
+      <ThreadJourney modes={MODES} />
 
       {/* ── COMO FUNCIONA ── */}
       <section className="lp-sec">
         <div className="lp-wrap">
           <header className="lp-sec-h reveal">
-            <span className="lp-sec-no">§ 02</span>
+            <span className="lp-sec-no">§ 01</span>
             <h2 className="lp-h2">Como funciona</h2>
             <p className="lp-sec-sub">Três passos, e está a usar.</p>
           </header>
@@ -161,7 +120,7 @@ export default function HomePage() {
       <section className="lp-sec lp-sec-paper">
         <div className="lp-wrap">
           <header className="lp-sec-h reveal">
-            <span className="lp-sec-no">§ 03</span>
+            <span className="lp-sec-no">§ 02</span>
             <h2 className="lp-h2">O que ganha</h2>
           </header>
           <div className="lp-proof">
@@ -191,7 +150,7 @@ export default function HomePage() {
       {/* ── FECHO — bloco escuro sóbrio, sem gradientes ─────────────────────── */}
       <section className="lp-close">
         <div className="lp-wrap">
-          <span className="lp-close-no reveal">§ 04</span>
+          <span className="lp-close-no reveal">§ 03</span>
           <h2 className="lp-close-h reveal">Experimente hoje.<br />Decida depois.</h2>
           <p className="lp-close-p reveal">
             O <strong>Base</strong> é grátis e faz o essencial. O <strong>Plus</strong> são 3,99 € por
@@ -229,13 +188,6 @@ export default function HomePage() {
         .lp-sec-no { font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--green); display:block; margin-bottom:14px; }
         .lp-h2 { font-family:var(--font-serif); font-weight:500; font-size:clamp(26px,4vw,42px); letter-spacing:-.02em; margin:0 0 8px; line-height:1.1; color:var(--ink); }
         .lp-sec-sub { font-size:clamp(14.5px,1.6vw,16.5px); color:var(--ink-4); margin:0; line-height:1.6; max-width:60ch; }
-
-        .lp-ciclo { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
-        .lp-ciclo-beat { position:relative; padding-right:clamp(12px,2vw,28px); }
-        .lp-ciclo-n { font-family:var(--font-mono); font-size:12px; color:var(--green); letter-spacing:.08em; margin-bottom:14px; }
-        .lp-ciclo-t { font-family:var(--font-serif); font-weight:500; font-size:clamp(18px,2vw,21px); letter-spacing:-.01em; margin:0 0 8px; line-height:1.2; color:var(--ink); }
-        .lp-ciclo-d { font-size:13.5px; color:var(--ink-3); line-height:1.55; margin:0; }
-        .lp-ciclo-arrow { position:absolute; top:1px; right:-2px; font-family:var(--font-mono); color:var(--border-2); font-size:16px; }
 
         .lp-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(24px,3vw,44px); }
         .lp-step-rule { height:2px; background:var(--ink); width:100%; margin-bottom:18px; }
@@ -285,13 +237,7 @@ export default function HomePage() {
         /* ── Responsivo ── */
         @media (max-width:860px) {
           .lp-steps { grid-template-columns:1fr; gap:28px; }
-          .lp-ciclo { grid-template-columns:1fr 1fr; gap:28px 20px; }
-          .lp-ciclo-beat { padding-right:0; }
-          .lp-ciclo-arrow { display:none; }
           .lp-proof { grid-template-columns:1fr; }
-        }
-        @media (max-width:560px) {
-          .lp-ciclo { grid-template-columns:1fr; }
         }
         @media (prefers-reduced-motion:reduce) {
           .reveal { opacity:1; transform:none; transition:none; }
