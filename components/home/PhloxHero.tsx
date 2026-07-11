@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic'
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react'
 
 const PhloxFlowerScene = dynamic(() => import('./PhloxFlowerScene'), { ssr: false })
+const PhloxRootScene = dynamic(() => import('./PhloxFlowerScene').then(m => ({ default: m.PhloxRootScene })), { ssr: false })
 
 class SceneErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -116,6 +117,15 @@ export default function PhloxHero() {
         )}
       </div>
       <div className="ph-vignette" aria-hidden="true" />
+      {can3d && (
+        // caule nítido, à parte da camada desfocada da flor — um caule fino
+        // dissolvido em blur deixa de parecer caule, vira mancha.
+        <div className="ph-root-layer" aria-hidden="true">
+          <SceneErrorBoundary fallback={null}>
+            <PhloxRootScene scrollRef={scrollRef} />
+          </SceneErrorBoundary>
+        </div>
+      )}
 
       <div className="ph-word-wrap" ref={wordWrapRef}>
         <h1 className="ph-word" ref={wordRef}>Phlox Clinical</h1>
@@ -128,9 +138,10 @@ export default function PhloxHero() {
 
       <style>{`
         .ph-hero { position:relative; height:100vh; min-height:640px; background:var(--green-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
-        .ph-canvas-layer { position:absolute; inset:0; filter:blur(4px) saturate(1.02); opacity:0.8; transform-origin:center; animation:ph-canvas-in 1.8s ease both; }
+        .ph-canvas-layer { position:absolute; inset:0; z-index:0; filter:blur(4px) saturate(1.02); opacity:0.85; transform-origin:center; animation:ph-canvas-in 1.8s ease both; }
         .ph-static-flower { position:absolute; inset:0; width:100%; height:100%; }
-        .ph-vignette { position:absolute; inset:0; background:radial-gradient(ellipse 58% 52% at 50% 46%, var(--green-light) 0%, var(--green-light) 38%, rgba(241,246,243,0.55) 62%, transparent 82%); pointer-events:none; }
+        .ph-vignette { position:absolute; inset:0; z-index:1; background:radial-gradient(ellipse 44% 38% at 50% 46%, var(--green-light) 0%, var(--green-light) 18%, rgba(241,246,243,0.48) 40%, transparent 64%); pointer-events:none; }
+        .ph-root-layer { position:absolute; inset:0; z-index:1; }
 
         .ph-word-wrap { position:relative; z-index:2; padding:0 5vw; }
         .ph-word {
@@ -138,7 +149,7 @@ export default function PhloxHero() {
           font-family:var(--font-sans); font-weight:800; text-transform:uppercase;
           font-size:clamp(34px, 11.5vw, 158px); letter-spacing:-0.01em; line-height:1;
           -webkit-text-fill-color:var(--green-light); color:var(--green-light);
-          -webkit-text-stroke:1.6px var(--green-3);
+          -webkit-text-stroke:2.1px var(--green-3);
           paint-order:stroke fill;
           transform:scale(calc(1 - var(--ph-p, 0) * 0.8)) translateY(calc(var(--ph-p, 0) * -14px));
           opacity:calc(1 - var(--ph-p, 0) * 1.35);
@@ -155,7 +166,7 @@ export default function PhloxHero() {
 
         @media (max-width:640px) {
           .ph-hero { height:92vh; min-height:520px; }
-          .ph-word { -webkit-text-stroke:1.1px var(--green-3); }
+          .ph-word { -webkit-text-stroke:1.5px var(--green-3); }
         }
         @media (prefers-reduced-motion:reduce) {
           .ph-canvas-layer, .ph-word, .ph-cue { animation:none; opacity:1; }

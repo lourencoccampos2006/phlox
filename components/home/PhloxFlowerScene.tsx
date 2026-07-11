@@ -29,8 +29,8 @@ const PETAL_SHAPE = (() => {
 const CLOSED_TILT = -1.22
 const OPEN_TILT = -0.18
 
-function petalTexture(inner: string, outer: string) {
-  const size = 128
+function petalTexture(inner: string, outer: string, withDetail = false) {
+  const size = 192
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
@@ -40,6 +40,26 @@ function petalTexture(inner: string, outer: string) {
   grad.addColorStop(1, outer)
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, size, size)
+
+  if (withDetail) {
+    // "olho"/garganta — mancha mais saturada perto da base, como uma Phlox real
+    const eye = ctx.createRadialGradient(size * 0.5, size * 0.94, size * 0.02, size * 0.5, size * 0.94, size * 0.55)
+    eye.addColorStop(0, 'rgba(60,20,50,0.4)')
+    eye.addColorStop(1, 'rgba(60,20,50,0)')
+    ctx.fillStyle = eye
+    ctx.fillRect(0, 0, size, size)
+
+    // veios finos da base à ponta — dá textura orgânica, não plástico liso
+    ctx.strokeStyle = 'rgba(50,20,40,0.16)'
+    ctx.lineWidth = 1.4
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath()
+      ctx.moveTo(size * 0.5 + i * 7, size * 0.96)
+      ctx.quadraticCurveTo(size * 0.5 + i * 14, size * 0.55, size * 0.5 + i * 5, size * 0.06)
+      ctx.stroke()
+    }
+  }
+
   const tex = new THREE.CanvasTexture(canvas)
   tex.colorSpace = THREE.SRGBColorSpace
   return tex
@@ -53,8 +73,21 @@ function Petal({
 }) {
   const mesh = useRef<THREE.Mesh>(null)
   const angle = (index / total) * Math.PI * 2
-  const geometry = useMemo(() => new THREE.ShapeGeometry(PETAL_SHAPE, 24), [])
-  const map = useMemo(() => petalTexture(inner, outer), [inner, outer])
+  const geometry = useMemo(() => {
+    const geo = new THREE.ShapeGeometry(PETAL_SHAPE, 24)
+    const pos = geo.attributes.position
+    // curva a pétala ligeiramente para a frente perto da ponta — uma pétala
+    // real nunca é um plano perfeito, e é essa curvatura que apanha luz
+    // e dá volume mesmo num objeto tão fino.
+    for (let i = 0; i < pos.count; i++) {
+      const y = Math.max(0, pos.getY(i))
+      pos.setZ(i, pos.getZ(i) + Math.pow(y / 0.88, 1.7) * 0.1)
+    }
+    pos.needsUpdate = true
+    geo.computeVertexNormals()
+    return geo
+  }, [])
+  const map = useMemo(() => petalTexture(inner, outer, true), [inner, outer])
   useFrame(() => {
     const m = mesh.current
     if (!m) return
@@ -67,11 +100,11 @@ function Petal({
         <meshPhysicalMaterial
           map={map}
           side={THREE.DoubleSide}
-          roughness={0.45}
-          clearcoat={0.35}
-          clearcoatRoughness={0.3}
+          roughness={0.55}
+          clearcoat={0.2}
+          clearcoatRoughness={0.4}
           emissive={outer}
-          emissiveIntensity={0.06}
+          emissiveIntensity={0.04}
         />
       </mesh>
     </group>
@@ -153,10 +186,12 @@ const ROOT_CURVE = new THREE.CatmullRomCurve3([
 ], false, 'catmullrom', 0.45)
 const ROOT_POINTS = ROOT_CURVE.getSpacedPoints(ROOT_SEGMENTS)
 
+const ROOT_RADIUS = 0.05
+
 function RootStem({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) {
   const mesh = useRef<THREE.Mesh>(null)
   const lastSeg = useRef(-1)
-  const map = useMemo(() => petalTexture('#75a988', '#3f6b52'), [])
+  const map = useMemo(() => petalTexture('#82b696', '#3f6b52'), [])
   useFrame(() => {
     const m = mesh.current
     if (!m) return
@@ -167,15 +202,41 @@ function RootStem({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) 
     lastSeg.current = seg
     if (seg < 2) { m.visible = false; return }
     m.visible = true
+    const tubularSegs = Math.max(6, seg)
     const sub = new THREE.CatmullRomCurve3(ROOT_POINTS.slice(0, seg + 1))
     const old = m.geometry
-    m.geometry = new THREE.TubeGeometry(sub, Math.max(6, seg), 0.032, 8, false)
+    // ligeiro afunilamento: mais grosso junto à flor, mais fino ao crescer —
+    // TubeGeometry não suporta raio variável nativamente, por isso desloca-se
+    // cada anel de vértices para dentro/fora do centro da curva por um fator
+    // que diminui com a distância percorrida.
+    const geo = new THREE.TubeGeometry(sub, tubularSegs, ROOT_RADIUS, 10, false)
+    const posAttr = geo.attributes.position
+    const radialCount = 11
+    const ringCount = tubularSegs + 1
+    for (let ring = 0; ring < ringCount; ring++) {
+      const t = ring / (ringCount - 1)
+      const center = sub.getPointAt(Math.min(1, t))
+      const f = THREE.MathUtils.lerp(1, 0.55, t)
+      for (let r = 0; r < radialCount; r++) {
+        const idx = ring * radialCount + r
+        if (idx >= posAttr.count) continue
+        const vx = posAttr.getX(idx) - center.x
+        const vy = posAttr.getY(idx) - center.y
+        const vz = posAttr.getZ(idx) - center.z
+        posAttr.setX(idx, center.x + vx * f)
+        posAttr.setY(idx, center.y + vy * f)
+        posAttr.setZ(idx, center.z + vz * f)
+      }
+    }
+    posAttr.needsUpdate = true
+    geo.computeVertexNormals()
+    m.geometry = geo
     old.dispose()
   })
   return (
     <mesh ref={mesh} visible={false}>
-      <tubeGeometry args={[ROOT_CURVE, 4, 0.032, 8, false]} />
-      <meshStandardMaterial map={map} roughness={0.8} metalness={0} />
+      <tubeGeometry args={[ROOT_CURVE, 4, ROOT_RADIUS, 10, false]} />
+      <meshStandardMaterial map={map} roughness={0.65} metalness={0} />
     </mesh>
   )
 }
@@ -188,11 +249,29 @@ export default function PhloxFlowerScene({ scrollRef }: { scrollRef: React.Mutab
       gl={{ alpha: true, antialias: true }}
       style={{ width: '100%', height: '100%' }}
     >
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[3, 4, 4]} intensity={1.3} color="#fff6ef" />
-      <directionalLight position={[-3, 1, 2]} intensity={0.5} color="#d8c8ff" />
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[3, 4, 4]} intensity={1.5} color="#fff6ef" />
+      <directionalLight position={[-3, 1, 2]} intensity={0.55} color="#d8c8ff" />
       <pointLight position={[0, 0.5, 2.6]} intensity={0.6} color="#f6dcee" distance={6} />
       <FlowerBloom scrollRef={scrollRef} />
+    </Canvas>
+  )
+}
+
+// Cena separada, à parte, SEM o blur CSS que a flor tem — um caule fino
+// desfocado deixa de parecer caule (vira uma mancha). Aqui fica nítido, com
+// a mesma câmara/posição da cena da flor para o ponto de nascença coincidir.
+export function PhloxRootScene({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) {
+  return (
+    <Canvas
+      camera={{ position: [0, 0.15, 4.2], fov: 34 }}
+      dpr={[1, 1.75]}
+      gl={{ alpha: true, antialias: true }}
+      style={{ width: '100%', height: '100%' }}
+    >
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[3, 4, 4]} intensity={1.4} color="#fff6ef" />
+      <directionalLight position={[-3, 1, 2]} intensity={0.5} color="#cfe6d6" />
       <RootStem scrollRef={scrollRef} />
     </Canvas>
   )
