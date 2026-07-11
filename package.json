@@ -11,17 +11,21 @@
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.1",
     "@react-pdf/renderer": "^4.5.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",
     "next": "^16.2.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.1",
     "eslint": "^9",
     "eslint-config-next": "^16.2.7",
     "playwright": "^1.60.0",
