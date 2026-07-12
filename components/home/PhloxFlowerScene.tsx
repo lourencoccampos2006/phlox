@@ -58,6 +58,20 @@ function petalTexture(inner: string, outer: string, withDetail = false) {
       ctx.quadraticCurveTo(size * 0.5 + i * 14, size * 0.55, size * 0.5 + i * 5, size * 0.06)
       ctx.stroke()
     }
+
+    // manchas suaves e irregulares — nenhuma pétala real tem cor 100%
+    // uniforme; isto quebra o aspeto "plástico" de um gradiente perfeito.
+    for (let i = 0; i < 26; i++) {
+      const mx = Math.random() * size
+      const my = size * 0.15 + Math.random() * size * 0.8
+      const mr = size * (0.05 + Math.random() * 0.09)
+      const blot = ctx.createRadialGradient(mx, my, 0, mx, my, mr)
+      const dark = Math.random() > 0.5
+      blot.addColorStop(0, dark ? 'rgba(40,20,35,0.07)' : 'rgba(255,240,250,0.08)')
+      blot.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = blot
+      ctx.fillRect(0, 0, size, size)
+    }
   }
 
   const tex = new THREE.CanvasTexture(canvas)
@@ -100,11 +114,11 @@ function Petal({
         <meshPhysicalMaterial
           map={map}
           side={THREE.DoubleSide}
-          roughness={0.55}
+          roughness={0.5}
           clearcoat={0.2}
-          clearcoatRoughness={0.4}
+          clearcoatRoughness={0.45}
           emissive={outer}
-          emissiveIntensity={0.04}
+          emissiveIntensity={0.03}
         />
       </mesh>
     </group>
@@ -163,6 +177,13 @@ function FlowerBloom({ scrollRef }: { scrollRef: React.MutableRefObject<number> 
         <Petal
           key={`f${i}`} index={i + 0.5} total={5} scrollRef={scrollRef}
           inner="#a85f9e" outer="#f2c3dd" radius={[0.02, 0.01]} tilt={[OPEN_TILT, CLOSED_TILT]} scale={0.92}
+        />
+      ))}
+      {/* camada interior — pequena, mais saturada, preenche o centro para a flor não ficar rala junto ao olho */}
+      {[0, 1, 2, 3, 4].map(i => (
+        <Petal
+          key={`i${i}`} index={i + 0.25} total={5} scrollRef={scrollRef}
+          inner="#5c3868" outer="#c471ae" radius={[0.02, 0.05]} tilt={[OPEN_TILT + 0.1, CLOSED_TILT]} scale={0.46}
         />
       ))}
       <Stamens />
@@ -236,7 +257,7 @@ function RootStem({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) 
   return (
     <mesh ref={mesh} visible={false}>
       <tubeGeometry args={[ROOT_CURVE, 4, ROOT_RADIUS, 10, false]} />
-      <meshStandardMaterial map={map} roughness={0.65} metalness={0} />
+      <meshPhysicalMaterial map={map} roughness={0.55} clearcoat={0.25} clearcoatRoughness={0.5} metalness={0} />
     </mesh>
   )
 }
@@ -249,10 +270,10 @@ export default function PhloxFlowerScene({ scrollRef }: { scrollRef: React.Mutab
       gl={{ alpha: true, antialias: true }}
       style={{ width: '100%', height: '100%' }}
     >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 4, 4]} intensity={1.5} color="#fff6ef" />
-      <directionalLight position={[-3, 1, 2]} intensity={0.55} color="#d8c8ff" />
-      <pointLight position={[0, 0.5, 2.6]} intensity={0.6} color="#f6dcee" distance={6} />
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[3, 4, 4]} intensity={1.3} color="#fff6ef" />
+      <directionalLight position={[-3, 1, 2]} intensity={0.5} color="#d8c8ff" />
+      <pointLight position={[0, 0.5, 2.6]} intensity={0.45} color="#f6dcee" distance={6} />
       <FlowerBloom scrollRef={scrollRef} />
     </Canvas>
   )
@@ -269,9 +290,9 @@ export function PhloxRootScene({ scrollRef }: { scrollRef: React.MutableRefObjec
       gl={{ alpha: true, antialias: true }}
       style={{ width: '100%', height: '100%' }}
     >
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[3, 4, 4]} intensity={1.4} color="#fff6ef" />
-      <directionalLight position={[-3, 1, 2]} intensity={0.5} color="#cfe6d6" />
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[3, 4, 4]} intensity={1.2} color="#fff6ef" />
+      <directionalLight position={[-3, 1, 2]} intensity={0.45} color="#cfe6d6" />
       <RootStem scrollRef={scrollRef} />
     </Canvas>
   )

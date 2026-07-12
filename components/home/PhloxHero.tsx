@@ -140,7 +140,7 @@ export default function PhloxHero() {
         .ph-hero { position:relative; height:100vh; min-height:640px; background:var(--green-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
         .ph-canvas-layer { position:absolute; inset:0; z-index:0; filter:blur(4px) saturate(1.02); opacity:0.85; transform-origin:center; animation:ph-canvas-in 1.8s ease both; }
         .ph-static-flower { position:absolute; inset:0; width:100%; height:100%; }
-        .ph-vignette { position:absolute; inset:0; z-index:1; background:radial-gradient(ellipse 44% 38% at 50% 46%, var(--green-light) 0%, var(--green-light) 18%, rgba(241,246,243,0.48) 40%, transparent 64%); pointer-events:none; }
+        .ph-vignette { position:absolute; inset:0; z-index:1; background:radial-gradient(ellipse 30% 22% at 50% 46%, var(--green-light) 0%, var(--green-light) 8%, rgba(241,246,243,0.4) 30%, transparent 55%); pointer-events:none; }
         .ph-root-layer { position:absolute; inset:0; z-index:1; }
 
         .ph-word-wrap { position:relative; z-index:2; padding:0 5vw; }
