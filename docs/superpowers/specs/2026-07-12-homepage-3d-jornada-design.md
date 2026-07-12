@@ -131,8 +131,13 @@ da flor), para que os focos reais (flor, edifícios, livro) continuem a dominar 
 ## 4 — Edifícios e livro
 
 Construídos por mim, geometria própria (não descarregados) — precisão exata do buraco de passagem da raiz
-e das mini-animações vale mais do que realismo fotográfico aqui, e o Fernando só pediu "bem executados e
-pensados", não fotorrealismo, para estes elementos.
+e das mini-animações vale mais do que realismo fotográfico aqui. **Confirmado pelo Fernando**: estilo
+próximo do vectrfl.com — linhas suaves, detalhe real (janelas, telhado com forma própria, molduras),
+claramente legível como edifício. Explicitamente REJEITADO: blocos sólidos de primitivas cruas (caixa +
+telhado triangular sem mais nada). Isto implica `ExtrudeGeometry` com bevel em vez de `BoxGeometry` nua,
+janelas como recortes/insets com moldura própria (não texturas pintadas), telhado como forma extrudida
+separada com a sua própria silhueta, e sombreado com contraste suficiente para ler o volume — não apenas
+uma cor lisa por face.
 
 Posição: nem os edifícios nem o livro ficam centrados no ecrã — ligeiramente acima do centro, deixando
 espaço por baixo para os cartões de texto de cada modo aparecerem em animação simples, timed para
