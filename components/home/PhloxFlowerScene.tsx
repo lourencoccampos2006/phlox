@@ -11,10 +11,34 @@
 // herói — nunca pinado, o scroll normal nunca é intercetado).
 
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import gsap from 'gsap'
 import * as THREE from 'three'
+
+// Remapeia p (progresso 0→1 do herói) para uma janela [inMin,inMax] → [0,1],
+// com clamp — usado para desenhar as fases da coreografia (texto nasce,
+// flor fecha, raiz cresce) sem elas se atropelarem umas às outras.
+function remap(p: number, inMin: number, inMax: number) {
+  return THREE.MathUtils.clamp((p - inMin) / (inMax - inMin), 0, 1)
+}
+
+// Câmara partilhada pelas duas cenas (flor + raiz) — têm de se mover em
+// uníssono, senão a ilusão de um mundo contínuo quebra-se. Recua e inclina-
+// se para revelar o caule de lado exatamente quando a flor está a fechar
+// (fase 3). A inclinação final para o ângulo de diorama fica para quando o
+// mundo de fundo (edifícios, árvores) existir — por agora só o suficiente
+// para revelar o caule.
+function CameraRig({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) {
+  const { camera } = useThree()
+  useFrame(() => {
+    const reveal = remap(scrollRef.current, 0.58, 0.86)
+    camera.position.y = THREE.MathUtils.lerp(0.15, 1.05, reveal)
+    camera.position.z = THREE.MathUtils.lerp(4.2, 4.6, reveal)
+    camera.rotation.x = THREE.MathUtils.lerp(0, -0.5, reveal)
+  })
+  return null
+}
 
 // Pétala salverforme com recorte na ponta (referência real de Phlox: 5 lóbulos
 // planos a abrir de um tubo central, ponta muitas vezes recortada/entalhada).
@@ -82,9 +106,9 @@ function petalTexture(inner: string, outer: string, withDetail = false) {
 }
 
 function Petal({
-  index, total, scrollRef, inner, outer, radius, tilt, scale,
+  index, total, closedRef, inner, outer, radius, tilt, scale,
 }: {
-  index: number; total: number; scrollRef: React.MutableRefObject<number>
+  index: number; total: number; closedRef: React.MutableRefObject<number>
   inner: string; outer: string; radius: [number, number]; tilt: [number, number]; scale: number
 }) {
   const mesh = useRef<THREE.Mesh>(null)
@@ -107,7 +131,7 @@ function Petal({
   useFrame(() => {
     const m = mesh.current
     if (!m) return
-    const target = THREE.MathUtils.lerp(tilt[0], tilt[1], scrollRef.current)
+    const target = THREE.MathUtils.lerp(tilt[0], tilt[1], closedRef.current)
     m.rotation.x = THREE.MathUtils.lerp(m.rotation.x, target, 0.09)
   })
   return (
@@ -159,7 +183,10 @@ const REST_TILT = -0.32
 
 function FlowerBloom({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) {
   const group = useRef<THREE.Group>(null)
+  const spinGroup = useRef<THREE.Group>(null)
   const entranceDone = useRef(false)
+  const closedRef = useRef(0)
+  const spun = useRef(false)
 
   // Entrada: a flor emerge de baixo do enquadramento e vira-se para o
   // utilizador — não um "subir" reto, uma curva de posição + rotação com
@@ -180,39 +207,57 @@ function FlowerBloom({ scrollRef }: { scrollRef: React.MutableRefObject<number> 
 
   useFrame((state) => {
     const g = group.current
-    if (!g) return
+    const sg = spinGroup.current
+    if (!g || !sg) return
     const p = scrollRef.current
     // roda no próprio plano (eixo Z, como um pião) — nunca fica de perfil,
     // ao contrário de rodar no eixo Y, que "desaparece" a meio da volta.
+    // Só em repouso (antes do texto nascer) — durante a coreografia de
+    // fecho é a volta rápida (abaixo) que assume a rotação.
     if (entranceDone.current && p < 0.02) g.rotation.z = state.clock.elapsedTime * 0.32
-    g.scale.setScalar(THREE.MathUtils.lerp(1, 0.72, p))
+
+    // fase 3: a flor recolhe ligeiramente ao fechar (nunca antes — fica a
+    // tamanho de repouso durante o nascimento/pausa/recolha do texto).
+    closedRef.current = remap(p, 0.6, 0.85)
+    g.scale.setScalar(THREE.MathUtils.lerp(1, 0.78, closedRef.current))
+
+    // volta completa e rápida, uma vez só, disparada assim que o texto
+    // começa a recolher-se — como um time-lapse de floração ao contrário
+    // que arranca com um giro.
+    if (!spun.current && p > 0.56) {
+      spun.current = true
+      gsap.fromTo(sg.rotation, { y: 0 }, { y: Math.PI * 2, duration: 0.55, ease: 'power2.inOut' })
+    }
+    if (p < 0.5 && spun.current) { spun.current = false; gsap.killTweensOf(sg.rotation); sg.rotation.y = 0 }
   })
   return (
     <group ref={group} position={[0, REST_Y, -0.3]} rotation={[REST_TILT, 0, 0]}>
       {/* pólen — poucas partículas minúsculas, quase impercetíveis, à volta da flor */}
       <Sparkles count={22} scale={[1.3, 1.1, 1.3]} size={1.4} speed={0.15} opacity={0.35} color="#e4c67a" noise={0.6} />
+      <group ref={spinGroup}>
       {/* camada de trás — maior, mais escura, ligeiramente mais aberta: dá profundidade real de flor dupla */}
       {[0, 1, 2, 3, 4].map(i => (
         <Petal
-          key={`b${i}`} index={i} total={5} scrollRef={scrollRef}
+          key={`b${i}`} index={i} total={5} closedRef={closedRef}
           inner="#7c4f7a" outer="#c98bb0" radius={[0.02, -0.03]} tilt={[OPEN_TILT - 0.12, CLOSED_TILT]} scale={1.06}
         />
       ))}
       {/* camada da frente — mais clara, mais luminosa, define a silhueta principal */}
       {[0, 1, 2, 3, 4].map(i => (
         <Petal
-          key={`f${i}`} index={i + 0.5} total={5} scrollRef={scrollRef}
+          key={`f${i}`} index={i + 0.5} total={5} closedRef={closedRef}
           inner="#a85f9e" outer="#f2c3dd" radius={[0.02, 0.01]} tilt={[OPEN_TILT, CLOSED_TILT]} scale={0.92}
         />
       ))}
       {/* camada interior — pequena, mais saturada, preenche o centro para a flor não ficar rala junto ao olho */}
       {[0, 1, 2, 3, 4].map(i => (
         <Petal
-          key={`i${i}`} index={i + 0.25} total={5} scrollRef={scrollRef}
+          key={`i${i}`} index={i + 0.25} total={5} closedRef={closedRef}
           inner="#5c3868" outer="#c471ae" radius={[0.02, 0.05]} tilt={[OPEN_TILT + 0.1, CLOSED_TILT]} scale={0.46}
         />
       ))}
       <Stamens />
+      </group>
     </group>
   )
 }
@@ -243,7 +288,9 @@ function RootStem({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) 
     const m = mesh.current
     if (!m) return
     const p = scrollRef.current
-    const grow = THREE.MathUtils.clamp((p - 0.1) / 0.85, 0, 1)
+    // só cresce depois da flor estar praticamente fechada (fase 3) — nunca
+    // em simultâneo com o nascimento/pausa do texto.
+    const grow = remap(p, 0.82, 1)
     const seg = Math.round(grow * ROOT_SEGMENTS)
     if (seg === lastSeg.current) return
     lastSeg.current = seg
@@ -300,6 +347,7 @@ export default function PhloxFlowerScene({ scrollRef }: { scrollRef: React.Mutab
       <directionalLight position={[3, 4, 4]} intensity={1.3} color="#fff6ef" />
       <directionalLight position={[-3, 1, 2]} intensity={0.5} color="#d8c8ff" />
       <pointLight position={[0, 0.5, 2.6]} intensity={0.45} color="#f6dcee" distance={6} />
+      <CameraRig scrollRef={scrollRef} />
       <FlowerBloom scrollRef={scrollRef} />
     </Canvas>
   )
@@ -319,6 +367,7 @@ export function PhloxRootScene({ scrollRef }: { scrollRef: React.MutableRefObjec
       <ambientLight intensity={0.75} />
       <directionalLight position={[3, 4, 4]} intensity={1.2} color="#fff6ef" />
       <directionalLight position={[-3, 1, 2]} intensity={0.45} color="#cfe6d6" />
+      <CameraRig scrollRef={scrollRef} />
       <RootStem scrollRef={scrollRef} />
     </Canvas>
   )

@@ -42,6 +42,19 @@ function StaticFlower() {
   )
 }
 
+// O texto não existe em repouso — nasce do centro da flor no primeiro
+// scroll (0→0.35, a crescer), fica legível uma pausa (0.35→0.55), e
+// recolhe-se de volta ao centro (0.55→1) exatamente quando a flor volta
+// à frente e se fecha (fase 3, PhloxFlowerScene.tsx).
+function textProgress(p: number) {
+  if (p < 0.35) {
+    const t = p / 0.35
+    return 1 - Math.pow(1 - t, 3) // ease-out cubic
+  }
+  if (p < 0.55) return 1
+  return Math.max(0, 1 - (p - 0.55) / 0.45)
+}
+
 export default function PhloxHero() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const wordWrapRef = useRef<HTMLDivElement>(null)
@@ -57,13 +70,13 @@ export default function PhloxHero() {
     const wrap = wordWrapRef.current
     if (!word || !wrap) return
     function fit() {
-      const cs = getComputedStyle(wrap!)
-      const available = wrap!.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      // ~75% da largura do ecrã, não a preencher quase por completo
+      const available = wrap!.clientWidth * 0.75
       word!.style.fontSize = '10vw'
       const natural = word!.scrollWidth
       if (natural > 0 && available > 0) {
         const baseline = parseFloat(getComputedStyle(word!).fontSize)
-        const next = Math.min(200, Math.max(18, baseline * (available / natural) * 0.96))
+        const next = Math.min(200, Math.max(18, baseline * (available / natural) * 0.98))
         word!.style.fontSize = `${next}px`
       }
     }
@@ -97,6 +110,7 @@ export default function PhloxHero() {
       const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height * 0.55)))
       scrollRef.current = p
       el.style.setProperty('--ph-p', String(p))
+      el.style.setProperty('--ph-text', String(textProgress(p)))
     }
     function onScroll() { if (!raf) raf = requestAnimationFrame(update) }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -151,17 +165,14 @@ export default function PhloxHero() {
           -webkit-text-fill-color:var(--green-light); color:var(--green-light);
           -webkit-text-stroke:2.1px var(--green-3);
           paint-order:stroke fill;
-          transform:scale(calc(1 - var(--ph-p, 0) * 0.8)) translateY(calc(var(--ph-p, 0) * -14px));
-          opacity:calc(1 - var(--ph-p, 0) * 1.35);
-          animation:ph-word-in 1.15s cubic-bezier(.16,1,.3,1) both;
-          animation-delay:0.15s;
+          transform:scale(var(--ph-text, 0));
+          opacity:var(--ph-text, 0);
         }
 
         .ph-cue { position:absolute; z-index:2; left:50%; bottom:5vh; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-4); opacity:calc(1 - var(--ph-p, 0) * 2.2); animation:ph-cue-in 1s ease both; animation-delay:0.9s; }
         .ph-cue-line { width:1px; height:26px; background:linear-gradient(var(--green-3), transparent); }
 
         @keyframes ph-canvas-fade-in { from { opacity:0; } to { opacity:0.85; } }
-        @keyframes ph-word-in { from { opacity:0; transform:translateY(22px) scale(0.94); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes ph-cue-in { from { opacity:0; } to { opacity:1; } }
 
         @media (max-width:640px) {
