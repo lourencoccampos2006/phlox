@@ -138,7 +138,7 @@ export default function PhloxHero() {
 
       <style>{`
         .ph-hero { position:relative; height:100vh; min-height:640px; background:var(--green-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
-        .ph-canvas-layer { position:absolute; inset:0; z-index:0; filter:blur(4px) saturate(1.02); opacity:0.85; transform-origin:center; animation:ph-canvas-in 1.8s ease both; }
+        .ph-canvas-layer { position:absolute; inset:0; z-index:0; filter:blur(4px) saturate(1.02); opacity:0.85; transform:scale(1.14); transform-origin:center; animation:ph-canvas-fade-in 1s ease both; }
         .ph-static-flower { position:absolute; inset:0; width:100%; height:100%; }
         .ph-vignette { position:absolute; inset:0; z-index:1; background:radial-gradient(ellipse 30% 22% at 50% 46%, var(--green-light) 0%, var(--green-light) 8%, rgba(241,246,243,0.4) 30%, transparent 55%); pointer-events:none; }
         .ph-root-layer { position:absolute; inset:0; z-index:1; }
@@ -160,7 +160,7 @@ export default function PhloxHero() {
         .ph-cue { position:absolute; z-index:2; left:50%; bottom:5vh; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-4); opacity:calc(1 - var(--ph-p, 0) * 2.2); animation:ph-cue-in 1s ease both; animation-delay:0.9s; }
         .ph-cue-line { width:1px; height:26px; background:linear-gradient(var(--green-3), transparent); }
 
-        @keyframes ph-canvas-in { from { opacity:0; transform:scale(1.3); } to { opacity:0.8; transform:scale(1.14); } }
+        @keyframes ph-canvas-fade-in { from { opacity:0; } to { opacity:0.85; } }
         @keyframes ph-word-in { from { opacity:0; transform:translateY(22px) scale(0.94); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes ph-cue-in { from { opacity:0; } to { opacity:1; } }
 

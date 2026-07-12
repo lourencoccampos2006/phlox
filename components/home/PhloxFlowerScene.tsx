@@ -10,8 +10,10 @@
 // Progresso vem de fora (scrollRef, calculado localmente pela posição do
 // herói — nunca pinado, o scroll normal nunca é intercetado).
 
-import { useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { Sparkles } from '@react-three/drei'
+import gsap from 'gsap'
 import * as THREE from 'three'
 
 // Pétala salverforme com recorte na ponta (referência real de Phlox: 5 lóbulos
@@ -152,19 +154,43 @@ function Stamens() {
   )
 }
 
+const REST_Y = 0.55
+const REST_TILT = -0.32
+
 function FlowerBloom({ scrollRef }: { scrollRef: React.MutableRefObject<number> }) {
   const group = useRef<THREE.Group>(null)
+  const entranceDone = useRef(false)
+
+  // Entrada: a flor emerge de baixo do enquadramento e vira-se para o
+  // utilizador — não um "subir" reto, uma curva de posição + rotação com
+  // chegada elegante (expo.out). Corre uma vez ao montar, não depende de
+  // scroll. Só depois de terminar é que a rotação lenta de repouso começa
+  // (ver useFrame abaixo) — a rodar enquanto ainda está a chegar ficaria
+  // caótico.
+  useLayoutEffect(() => {
+    const g = group.current
+    if (!g) return
+    g.position.set(0, REST_Y - 1.15, -0.3)
+    g.rotation.set(-1.55, 0, 0)
+    const tl = gsap.timeline({ onComplete: () => { entranceDone.current = true } })
+    tl.to(g.position, { y: REST_Y, duration: 2.1, ease: 'expo.out' }, 0)
+    tl.to(g.rotation, { x: REST_TILT, duration: 1.7, ease: 'power3.out' }, 0.05)
+    return () => { tl.kill() }
+  }, [])
+
   useFrame((state) => {
     const g = group.current
     if (!g) return
     const p = scrollRef.current
     // roda no próprio plano (eixo Z, como um pião) — nunca fica de perfil,
     // ao contrário de rodar no eixo Y, que "desaparece" a meio da volta.
-    if (p < 0.02) g.rotation.z = state.clock.elapsedTime * 0.32
+    if (entranceDone.current && p < 0.02) g.rotation.z = state.clock.elapsedTime * 0.32
     g.scale.setScalar(THREE.MathUtils.lerp(1, 0.72, p))
   })
   return (
-    <group ref={group} position={[0, 0.55, -0.3]} rotation={[-0.32, 0, 0]}>
+    <group ref={group} position={[0, REST_Y, -0.3]} rotation={[REST_TILT, 0, 0]}>
+      {/* pólen — poucas partículas minúsculas, quase impercetíveis, à volta da flor */}
+      <Sparkles count={22} scale={[1.3, 1.1, 1.3]} size={1.4} speed={0.15} opacity={0.35} color="#e4c67a" noise={0.6} />
       {/* camada de trás — maior, mais escura, ligeiramente mais aberta: dá profundidade real de flor dupla */}
       {[0, 1, 2, 3, 4].map(i => (
         <Petal
