@@ -10,6 +10,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
+import gsap from 'gsap'
 import * as THREE from 'three'
 
 // a prop `camera={{position:...}}` do Canvas NÃO aponta a câmara para a
@@ -60,12 +61,29 @@ function HeroFlowerModel() {
     if (!action) return
     action.reset()
     action.setLoop(THREE.LoopPingPong, Infinity)
-    // um pouco mais lenta que a gravação original — "quase impercetível",
-    // não uma folha a tremer ao vento.
-    action.timeScale = 0.35
+    // mais lenta que a gravação original (que é um vídeo-lapso de 9s), mas
+    // rápida o suficiente para se ver mesmo a mexer nos primeiros segundos —
+    // 0.35 lia como quase estático.
+    action.timeScale = 0.55
     action.play()
     return () => { action.stop() }
   }, [actions])
+
+  // Entrada: a flor chega de baixo e roda até à orientação final (a mesma
+  // que a câmara já está calibrada para ver de frente) — nunca um corte,
+  // uma curva de posição+rotação com chegada elegante. Corre uma vez ao
+  // montar; a oscilação da "Anim Blye" continua a decorrer ao mesmo tempo
+  // (são eixos/ossos diferentes, não há conflito).
+  useLayoutEffect(() => {
+    const g = group.current
+    if (!g) return
+    g.position.set(0.1, -0.9, 0)
+    g.rotation.set(0, -1.1, 0)
+    const tl = gsap.timeline({ delay: 0.15 })
+    tl.to(g.position, { y: 0, duration: 2.2, ease: 'expo.out' }, 0)
+    tl.to(g.rotation, { y: 0, duration: 1.9, ease: 'power3.out' }, 0.1)
+    return () => { tl.kill() }
+  }, [])
 
   return (
     <group ref={group} position={[0.1, 0, 0]}>
