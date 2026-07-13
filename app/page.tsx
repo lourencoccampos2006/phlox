@@ -1,7 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
+import { useState } from 'react'
+
+const PhloxFlowerScene = dynamic(() => import('@/components/home/PhloxFlowerScene'), { ssr: false })
 
 // ── Homepage — reconstruída do zero (2026-07-10, Ronda 2) ──────────────────────
 // Mantém o instinto certo da versão anterior (editorial, tipografia a mandar,
@@ -107,37 +110,13 @@ const CICLO = [
 ]
 
 export default function HomePage() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
-
   return (
     <div className="lp">
 
-      {/* ── HERO editorial — a tipografia e a resposta real mandam ──────────── */}
-      <section className="lp-hero">
-        <div className="lp-wrap">
-          <div className={`lp-hero-grid ${mounted ? 'in' : ''}`}>
-            <div className="lp-hero-l">
-              <div className="lp-kicker"><span className="lp-kicker-rule" />Saúde em português, para todos</div>
-              <h1 className="lp-h1">
-                Toda a saúde,<br />numa só <em>rede</em>.
-              </h1>
-              <p className="lp-lead">
-                Para si, para quem cuida da família, para quem estuda, para quem trabalha na saúde —
-                e para o centro de dia ou lar que cuida de todos eles. Cada um com o Phlox à sua
-                medida, todos ligados.
-              </p>
-              <div className="lp-actions">
-                <Link href="/login" className="lp-go">Criar conta grátis</Link>
-                <Link href="#mundos" className="lp-link">Ver o que faz&nbsp;↓</Link>
-              </div>
-              <div className="lp-meta">Grátis · Sem instalar · Um minuto a começar</div>
-            </div>
-            <div className="lp-hero-r">
-              <VerdictScene />
-            </div>
-          </div>
-        </div>
+      {/* ── HERO 3D — modelo real, em construção por fases (fundação: cena +
+          luz + sway; entrada/texto/CTA vêm a seguir, depois de aprovado) ─── */}
+      <section className="lp-hero-3d">
+        <PhloxFlowerScene />
       </section>
 
       {/* ── Filete + frase-manifesto ────────────────────────────────────────── */}
@@ -279,8 +258,11 @@ export default function HomePage() {
         .lp-wrap { max-width:1080px; margin:0 auto; padding:0 clamp(20px,5vw,40px); }
         .lp em { font-style:italic; color:var(--green); }
 
-        /* ── HERO ── */
-        .lp-hero { padding:clamp(40px,8vh,92px) 0 clamp(40px,6vw,72px); }
+        /* ── HERO 3D ── */
+        .lp-hero-3d { position:relative; height:100vh; min-height:640px; background:var(--green-light); overflow:hidden; }
+
+        /* ── HERO editorial antigo — CSS por ora inalterado, reaproveitado
+           quando o texto/CTA voltarem a entrar sobre a cena 3D ── */
         .lp-hero-grid { display:grid; grid-template-columns:1.15fr 0.85fr; gap:clamp(28px,5vw,64px); align-items:start; opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s cubic-bezier(.16,1,.3,1); }
         .lp-hero-grid.in { opacity:1; transform:none; }
         .lp-kicker { display:flex; align-items:center; gap:11px; font-family:var(--font-mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-4); font-weight:700; margin-bottom:26px; }
