@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { aiComplete } from '@/lib/ai'
+import { findTemporalCorrelations } from '@/lib/healthDetective'
 
 function makeSupabase(token: string) {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -69,12 +70,16 @@ export async function POST(req: NextRequest) {
       { data: vitals },
       { data: labs },
       { data: logs },
+      { data: symptomHistory },
     ] = await Promise.all([
       supabase.from('profiles').select('name').eq('id', userId).maybeSingle(),
-      supabase.from('personal_meds').select('name, dose, frequency, pills_remaining, pills_per_day, reminder_times').eq('user_id', userId),
+      supabase.from('personal_meds').select('name, dose, frequency, pills_remaining, pills_per_day, reminder_times, started_at').eq('user_id', userId),
       supabase.from('vitals').select('bp_sys, bp_dia, spo2, glucose, weight, hr, temp, recorded_at').eq('user_id', userId).gte('recorded_at', days30).order('recorded_at', { ascending: false }).limit(60),
       supabase.from('lab_results').select('test_code, test_label, value, unit, ref_low, ref_high, measured_at').eq('user_id', userId).order('measured_at', { ascending: false }).limit(120),
       supabase.from('med_logs').select('status, date, taken_at').eq('user_id', userId).gte('date', days14.slice(0, 10)),
+      // Histórico mais alargado (não só 14/30 dias) — o Detetive de Saúde precisa
+      // de ver desde ANTES de cada medicamento começar até à janela de suspeita.
+      supabase.from('symptom_logs').select('at, symptoms').eq('user_id', userId).is('profile_id', null).order('at', { ascending: false }).limit(400).then((r: any) => r, () => ({ data: [] })),
     ])
 
     const medsList = (meds || []) as any[]
@@ -210,6 +215,23 @@ export async function POST(req: NextRequest) {
         action: { label: 'Verificar a minha medicação', route: '/interactions' },
       })
     }
+
+    // ── 9) Detetive de Saúde: correlações temporais medicamento → sintoma ──
+    // Determinístico (sem custo de IA) — cruza a data de início de cada
+    // medicamento com sintomas NOVOS e recorrentes logo a seguir. Diferente
+    // das secções acima (que olham ao AGORA): isto olha à LINHA DO TEMPO.
+    const correlations = findTemporalCorrelations(
+      medsList.map(m => ({ name: m.name, started_at: m.started_at || null })),
+      (symptomHistory || []) as any[],
+    )
+    correlations.forEach(c => {
+      concerns.push({
+        id: `correl-${norm(c.medication)}-${norm(c.symptom)}`, severity: 'info', icon: '🔗',
+        title: `${c.symptom} desde que começaste ${c.medication}?`,
+        detail: `Registaste "${c.symptom}" ${c.occurrences}x, começando ${c.days_after_start} dia${c.days_after_start === 1 ? '' : 's'} depois de iniciares ${c.medication}. Pode ser coincidência, mas vale a pena mencionar ao médico ou farmacêutico.`,
+        action: { label: 'Ver o meu histórico', route: '/timeline' },
+      })
+    })
 
     // Limitar análises alteradas a 3 para não inundar
     const labConcerns = concerns.filter(c => c.id.startsWith('lab-'))

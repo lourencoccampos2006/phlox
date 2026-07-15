@@ -12,6 +12,7 @@ import { setActiveProfile } from '@/lib/profileContext'
 import { analyzeFamilyMember, WATCH_LEVEL_META, type WatchResult, type WatchSignal } from '@/lib/caregiverWatch'
 import LinkedResidents from '@/components/LinkedResidents'
 import RiskIndexCard from '@/components/RiskIndexCard'
+import CrisisPlaybookCard from '@/components/CrisisPlaybookCard'
 import Link from 'next/link'
 
 interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; height?: number | null; creatinine?: number | null; conditions?: string | null; allergies?: string | null; notes?: string | null }
@@ -297,6 +298,13 @@ export default function FamiliaPage() {
                       {latest?.weight && <span>⚖️ {latest.weight} kg</span>}
                       {p.allergies && <span style={{ color: '#dc2626' }}>⚠ {p.allergies}</span>}
                     </div>
+
+                    {/* Playbook de crise (Pro) — "o que fazer se..." específico a esta pessoa. */}
+                    {(user?.plan === 'pro' || user?.plan === 'clinic') && (
+                      <div style={{ padding: '0 18px 12px' }}>
+                        <CrisisPlaybookCard profileId={p.id} name={p.name} />
+                      </div>
+                    )}
 
                     {/* Ações */}
                     <div style={{ padding: '12px 18px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #f1f5f9' }}>

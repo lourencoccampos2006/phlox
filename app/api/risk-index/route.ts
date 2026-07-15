@@ -53,8 +53,11 @@ export async function GET(req: NextRequest) {
       })
       result = { score: r.score, level: r.level, topFactors: r.signals.slice(0, 4).map(s => ({ title: s.title, severity: s.severity })) }
     } else {
-      const [{ data: profile }, { data: meds }, { data: vitals }, { data: syms }, { data: logs }] = await Promise.all([
-        supabase.from('profiles').select('age,sex,conditions').eq('id', userId).maybeSingle(),
+      // NOTA: `profiles` não guarda idade/sexo/condições da própria pessoa (só
+      // family_profiles/patients têm isso) — degradamos com elegância como o
+      // /api/companion já faz: as regras que dependem de idade simplesmente não
+      // disparam, o resto do motor funciona na mesma.
+      const [{ data: meds }, { data: vitals }, { data: syms }, { data: logs }] = await Promise.all([
         supabase.from('personal_meds').select('name,pills_remaining,pills_per_day').eq('user_id', userId),
         supabase.from('vitals').select('recorded_at,bp_sys,bp_dia,hr,spo2,weight,glucose,temp').eq('user_id', userId).is('profile_id', null).gte('recorded_at', since90),
         supabase.from('symptom_logs').select('at,pain,temperature,symptoms').eq('user_id', userId).is('profile_id', null).gte('at', since90),
@@ -65,7 +68,6 @@ export async function GET(req: NextRequest) {
 
       result = computeSelfRiskScore({
         meds: (meds || []).map((m: any) => ({ name: m.name, pills_remaining: m.pills_remaining, pills_per_day: m.pills_per_day })),
-        age: (profile as any)?.age, sex: (profile as any)?.sex, conditions: (profile as any)?.conditions,
         vitalSeries: vitals || [], symptoms: syms || [], adherencePct,
       })
     }

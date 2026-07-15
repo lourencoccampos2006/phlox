@@ -66,6 +66,8 @@ export const TOOLS: Tool[] = [
   // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/plano-peso',   label: 'Plano de perda de peso',        desc: 'Dieta e exercício contextualizados à tua medicação', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
+  { id: '/rastreio-visual', label: 'Rastreio visual',            desc: 'Risco dermatológico ABCDE por IA, com evolução ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
   // Existia (Phlox Reach) mas só aparecia na command palette clínica — invisível
   // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em
   // /tudo, não empurrado para a Hub (convidar não deve ser a 1ª coisa que se vê).

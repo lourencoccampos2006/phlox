@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserPlan, planGateResponse } from '@/lib/planGate'
 
-type VisionMode = 'prescription' | 'drug_id' | 'symptom' | 'lab_results' | 'drug_list'
+type VisionMode = 'prescription' | 'drug_id' | 'symptom' | 'lab_results' | 'drug_list' | 'skin_lesion'
 
 const PROMPTS: Record<VisionMode, string> = {
   prescription: `Analyze this medical prescription or medication packaging image.
@@ -52,7 +53,22 @@ Return ONLY valid JSON with no markdown:
 {
   "drugs": ["drug1 generic name in English", "drug2"],
   "confidence": "high"
-}`
+}`,
+
+  skin_lesion: `You are a dermatology-informed image assessment tool (NOT a diagnostic device — this is informational triage support only). Assess the skin lesion/mole visible in this image using the ABCDE criteria used for melanoma risk screening. Be conservative: when uncertain, lean toward flagging for professional review rather than reassurance.
+Return ONLY valid JSON with no markdown, values in European Portuguese where they are text:
+{
+  "asymmetry": "descrição curta — simétrico ou assimétrico, e porquê",
+  "border": "descrição curta — bordo regular ou irregular/mal definido",
+  "color": "descrição curta — cor uniforme ou várias tonalidades (castanho, preto, vermelho, azulado)",
+  "diameter_estimate_mm": número ou null se não for possível estimar,
+  "evolution_note": "se houver contexto de fotos anteriores fornecido, descreve o que mudou; caso contrário null",
+  "risk_score": número de 0 a 100 (mais alto = mais preocupante),
+  "risk_level": "baixo" | "moderado" | "alto",
+  "recommendation": "frase curta e clara sobre o que fazer a seguir",
+  "confidence": "high" | "medium" | "low"
+}
+Se a imagem não mostrar claramente uma lesão de pele: {"asymmetry": null, "border": null, "color": null, "diameter_estimate_mm": null, "evolution_note": null, "risk_score": 0, "risk_level": "baixo", "recommendation": "Não foi possível identificar uma lesão de pele nesta imagem — tenta uma foto mais próxima e bem iluminada.", "confidence": "low"}`,
 }
 
 // ─── OpenAI GPT-4o Vision fallback ───────────────────────────────────────────
@@ -128,9 +144,18 @@ export async function POST(req: NextRequest) {
     const mode: VisionMode = body.mode || 'drug_id'
     const mimeType: string = body.mimeType || 'image/jpeg'
 
+    // skin_lesion é a única modalidade Pro deste endpoint (as restantes servem
+    // /scan e afins, gratuitas/limitadas noutro sítio) — gate aqui, específico ao modo.
+    if (mode === 'skin_lesion') {
+      const { plan } = await getUserPlan(req)
+      if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('pro', 'Rastreio Visual')
+    }
+
     if (!PROMPTS[mode]) {
       return NextResponse.json({ error: `Modo "${mode}" inválido` }, { status: 400 })
     }
+    // Contexto opcional (ex: skin_lesion usa isto para comparar com a foto anterior da mesma track).
+    const prompt = body.context ? `${PROMPTS[mode]}\n\nContexto adicional: ${String(body.context).slice(0, 800)}` : PROMPTS[mode]
 
     const imageSizeKB = Math.round((body.image.length * 3) / 4 / 1024)
 
@@ -146,7 +171,7 @@ export async function POST(req: NextRequest) {
       contents: [{
         role: 'user',
         parts: [
-          { text: PROMPTS[mode] },
+          { text: prompt },
           { inline_data: { mime_type: mimeType, data: body.image } }
         ]
       }],
@@ -186,7 +211,7 @@ export async function POST(req: NextRequest) {
 
       if (geminiRes.status === 429) {
         // Try OpenAI GPT-4o as fallback
-        const openaiResult = await tryOpenAIVision(body.image, mimeType, PROMPTS[mode])
+        const openaiResult = await tryOpenAIVision(body.image, mimeType, prompt)
         if (openaiResult) return NextResponse.json({ ...openaiResult, mode, success: true, provider: 'openai' })
         return NextResponse.json(
           { error: 'Quota de visão esgotada (Gemini e OpenAI). Usa a opção de texto manual enquanto regularizas.' },

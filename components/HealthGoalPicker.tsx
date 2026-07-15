@@ -7,6 +7,7 @@
 // /settings. Só aparece para planos Pro/Institucional.
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { HEALTH_GOALS, type HealthGoal } from '@/lib/healthGoals'
 
@@ -64,6 +65,9 @@ export default function HealthGoalPicker() {
       )}
       {saving && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>A guardar…</div>}
       {saved && <div style={{ fontSize: 11, color: '#0d6e42', marginTop: 8, fontWeight: 700 }}>✓ Guardado</div>}
+      {goal === 'lose_weight' && !saving && (
+        <Link href="/plano-peso" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0d9488', textDecoration: 'none' }}>Abrir o teu plano de perda de peso →</Link>
+      )}
     </div>
   )
 }

@@ -303,11 +303,95 @@ uma espinha de personalização por objetivo:
 - Verificado: `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`, `check-nav.mjs`, `npm run build` —
   0 erros.
 
-### 🔲 Por fazer (não iniciado)
+### ✅ Plano de Perda de Peso (objetivo=lose_weight)
 
-Cada um destes merece o mesmo cuidado que o Índice de Risco — não foram apressados nesta sessão para
-não arriscar qualidade. Ordem sugerida: planos por objetivo (reutiliza o `/api/plano` já existente,
-scope moderado) → funcionalidades de cuidador avançadas → Detetive de Saúde integrado (a base de
-correlação já existe em `/timeline`, "só" falta tornar proativo/automático e mover para o Médico de
-Bolso) → Vigia de Preços (o mais arriscado — depende de fonte de dados externa) → Rastreio Visual
-ABCDE (o mais caro — chamadas de visão por IA).
+- **`/api/weight-plan`** (POST, Pro) — gera plano de dieta+exercício por IA, CONTEXTUALIZADO à
+  medicação/condições reais (efeitos na FC de beta-bloqueadores, risco de hipoglicemia com
+  insulina/sulfonilureias no exercício, retenção de líquidos de diuréticos/corticoides — não um
+  template genérico).
+- **`app/plano-peso/page.tsx`** (nova) — auto-carrega medicação (`personal_meds`) e tendência de peso
+  (`vitals`); idade/condições introduzidas ali (tal como o `/relatorio?tab=plano` já fazia — `profiles`
+  não guarda idade/condições da própria pessoa, ver bug abaixo). Gate de plano via `PLAN_ROUTES` +
+  gate de objetivo próprio (só mostra o formulário se `health_goal==='lose_weight'`, senão convida a
+  mudar o objetivo em `/settings`).
+- Link direto a partir do `HealthGoalPicker` quando se escolhe "Perder peso".
+
+### ✅ Playbook de Crise (objetivo=caregiving)
+
+- **`supabase/sprint101_crisis_playbook.sql`** — tabela `family_crisis_playbooks` (1 por familiar,
+  cacheado por `source_hash` de condições+alergias+medicação — só regenera quando algo muda de facto).
+  **Fernando: falta correr este SQL.**
+- **`/api/crisis-playbook`** (POST, Pro) — gera 3-5 protocolos "o que fazer se..." REALMENTE ligados
+  às condições/medicação do familiar (ex: protocolo de hipoglicemia só se houver insulina/antidiabéticos
+  na lista) — não conselhos genéricos.
+- **`components/CrisisPlaybookCard.tsx`** — botão explícito em cada cartão de `/familia` (não dispara IA
+  sozinho ao abrir a página — mesmo padrão de custo-consciente do `/medico-bolso`), imprimível.
+- Coordenação multi-cuidador e deteção proativa de burnout **NÃO construídas** — a primeira é migração
+  de esquema (partilhar `family_profiles` entre contas, projeto próprio); a segunda precisaria de
+  telemetria de engagement que ainda não existe — sinalizadas para decisão futura, não escondidas.
+
+### ✅ Detetive de Saúde (correlação temporal) — integrado no Médico de Bolso
+
+- **`lib/healthDetective.ts`** (novo) — determinístico (zero custo de IA): cruza a data de início de
+  cada medicamento (`personal_meds.started_at`, já existia) com sintomas NOVOS e recorrentes (≥2x) que
+  aparecem numa janela de 21 dias a seguir — nunca sintomas já existentes antes do fármaco começar.
+  Não afirma causalidade, só assinala coincidência temporal que vale a pena mencionar ao médico.
+- **`/api/companion`** (motor do `/medico-bolso`) ganhou esta 3ª lente — passou a pedir
+  `started_at` na medicação e o histórico de `symptom_logs`, e junta os resultados aos alertas
+  existentes com ícone próprio (🔗) para se distinguir de um alerta normal.
+- **Descoberta**: `/timeline` já tinha uma versão manual disto (`/api/timeline/correlations`, aba "Para
+  o médico", por IA, sob pedido) — mantida como está (mais rica, mas exige um clique); a nova lente do
+  Médico de Bolso é o automatismo que faltava, mais leve e sempre ativo.
+
+### ✅ Rastreio Visual com risco ABCDE
+
+- **`supabase/sprint102_skin_lesion_tracking.sql`** — `skin_lesion_tracks` (uma lesão/mancha vigiada)
+  + `skin_lesion_photos` (cada foto, com pontuação ABCDE e risco 0-100). **Fernando: falta correr este
+  SQL, e falta criar o bucket `skin-lesions` no Supabase Storage** (público, como o `wounds` que já
+  existe para `/feridas` — mesmo padrão de upload).
+  - **`/api/vision`** (endpoint de visão partilhado, já usado por `/scan`) ganhou um modo novo
+  `skin_lesion` — pontua Assimetria/Bordo/Cor/Diâmetro pelos critérios ABCDE reais de rastreio de
+  melanoma, e recebe contexto da foto anterior da MESMA lesão para avaliar Evolução de verdade (não só
+  uma foto isolada). Gate de plano específico deste modo (as outras modalidades do endpoint continuam
+  livres, usadas por `/scan`).
+- **`/api/lesion-track`** (novo) — cria/atualiza a track, faz upload da foto (Storage), chama
+  `/api/vision` com o contexto da foto anterior, guarda o resultado.
+- **`app/rastreio-visual/page.tsx`** (nova) — lista de lesões vigiadas, pontuação e nota de evolução
+  por foto, aviso claro de que é apoio informativo, não diagnóstico.
+
+### 🔲 Vigia de Preços & Ruturas — BLOQUEADO, precisa de decisão do Fernando
+
+Antes de construir, investiguei as fontes reais do INFARMED (`WebSearch`/`WebFetch` + inspeção com
+Playwright do site Infomed) em vez de assumir que seria um scraper simples, como tinha avisado que
+faria. O que encontrei muda a arquitetura possível:
+
+- **Não há API pública nem download em bulk** (CSV/Excel) de preços nem de ruturas — só pesquisa
+  individual por medicamento, no site público (`extranet.infarmed.pt/INFOMED-fo`), sem login, "para
+  todos os cidadãos".
+- **Acesso à base de dados completa exige um "protocolo de cedência de bases de dados" com o INFARMED**
+  — isto é uma negociação/acordo formal (possivelmente com custos), não algo que se resolva a programar.
+  Não posso iniciar isto por ti — é uma decisão de negócio tua.
+- **A pesquisa individual é uma aplicação JSF com sessão e "ViewState"** (confirmado inspecionando o
+  tráfego de rede com Playwright ao pesquisar "paracetamol") — não é uma API JSON simples de um pedido
+  HTTP; cada consulta exigiria automatizar um browser completo (sessão + estado), não um `fetch()` leve.
+  Isso tem custo real de infraestrutura (um serviço de browser headless por consulta) e é frágil
+  (a sessão expira, qualquer mudança no site pode partir tudo).
+
+**Recomendação**: dado que a pesquisa é pública e gratuita ("qualquer pessoa pode consultar"), a via
+mais segura e barata é um **lookup individual sob pedido** (não um scraper em bulk automático) — quando
+vês um medicamento teu, o Phlox consulta ao vivo SÓ esse medicamento (rutura + preço), em vez de copiar
+a base de dados toda do INFARMED para os nossos servidores (isso é que parece cair no âmbito da
+"cedência de bases de dados"). Mesmo assim, implica automatizar um browser real (custo por consulta),
+não é grátis nem instantâneo de construir. Preciso que decidas: (a) avançamos com o lookup individual
+sob pedido, aceitando o custo de infraestrutura de browser automatizado por consulta; (b) tentas
+formalizar um protocolo de cedência com o INFARMED para acesso a bulk de verdade (mais lento, mais
+robusto a prazo); ou (c) cortamos esta ideia do Ronda 3 e ficamos só com Detetive+Vigia-de-Recalls
+integrados, o Playbook, o Plano de Peso e o Rastreio Visual.
+
+### Pendente do lado do Fernando (para tudo o que já está construído funcionar)
+1. Correr `supabase/sprint101_crisis_playbook.sql` e `supabase/sprint102_skin_lesion_tracking.sql`.
+2. Criar o bucket `skin-lesions` no Supabase Storage (público, igual ao `wounds`).
+3. Decidir o caminho do Vigia de Preços (ver secção acima).
+
+Verificado no fim (tudo o que está ✅): `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`,
+`check-nav.mjs`, `npm run build` — 0 erros em cada passo.

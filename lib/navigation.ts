@@ -46,6 +46,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/preventivo', icon: '🛡️', label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)' },
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
       { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
+      { href: '/plano-peso', icon: '⚖️', label: 'Plano de perda de peso', desc: 'Dieta e exercício contextualizados à tua medicação', badge: 'Pro' },
+      { href: '/rastreio-visual', icon: '🔬', label: 'Rastreio visual', desc: 'Risco dermatológico ABCDE por IA de visão', badge: 'Pro' },
     ],
   },
   {
