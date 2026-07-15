@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getUserPlan } from '@/lib/planGate'
+import { getUserPlan, planGateResponse } from '@/lib/planGate'
 
 // Benchmarks anonimizados: compara métricas da instituição contra um POOL
 // de instituições do mesmo tipo. Devolve apenas AGREGADOS (n, mediana,
@@ -26,8 +26,12 @@ const myPercentile = (xs: number[], v: number) => {
 }
 
 export async function GET(req: NextRequest) {
-  const { userId } = await getUserPlan(req)
+  const { userId, plan } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  // Insights deixou de ser uma página própria bloqueada por PLAN_ROUTES (agora é
+  // um separador em /painel-dono) — o gate de plano tem de estar aqui, não só no
+  // cliente (components/owner/OwnerInsights.tsx faz o mesmo check para UX).
+  if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('pro', 'Phlox Insights')
 
   const sb = admin()
   // tipo de instituição do utilizador — tenta primeiro profile.institution_type,

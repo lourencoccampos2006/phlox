@@ -32,8 +32,8 @@ const ROUTES: Record<string, (p: any) => string> = {
   labs: p => `/study/lab${p.text ? `?q=${encodeURIComponent(p.text)}` : ''}`,
   ecg: () => `/study/ecg`,
   'saude-agora': p => `/saude-agora${p.complaint ? `?q=${encodeURIComponent(p.complaint)}` : ''}`,
-  calculadoras: () => `/calculators/renal-dose`,
-  escalas: () => `/escalas`,
+  calculadoras: () => `/calculos`,
+  escalas: () => `/calculos`,
   mymeds: () => `/mymeds`,
   estudo: p => `/study${p.topic ? `?topic=${encodeURIComponent(p.topic)}` : ''}`,
 }

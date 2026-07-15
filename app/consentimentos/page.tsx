@@ -153,8 +153,7 @@ export default function ConsentimentosPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       <button onClick={() => toggleSigned(c)} style={{ fontSize: 11.5, fontWeight: 700, padding: '5px 10px', borderRadius: 6, cursor: 'pointer', border: `1.5px solid ${c.signed ? '#16a34a' : 'var(--border)'}`, background: c.signed ? '#f0fdf4' : 'white', color: c.signed ? '#16a34a' : 'var(--ink-5)', fontFamily: 'var(--font-sans)' }}>{c.signed ? '✓ Assinado' : 'Marcar assinado'}</button>
-                      <button onClick={() => del(c.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-                    </div>
+                      <button aria-label="Eliminar" onClick={() => del(c.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                    </div>
                   </div>
                 ))}
               </div>

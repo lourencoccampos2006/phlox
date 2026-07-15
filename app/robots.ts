@@ -49,11 +49,11 @@ const DISALLOW = [
   '/share',
   '/shared',
   // áreas de aplicação / clínicas (atrás de login, vazias p/ o crawler)
-  '/mymeds', '/vitals', '/perfil', '/perfis', '/patients', '/rounds',
+  '/mymeds', '/vitals', '/perfil', '/patients', '/rounds',
   '/turno', '/mar', '/arena', '/painel', '/cockpit', '/cockpit-legacy',
   '/portal-familia', '/familia', '/familia360', '/saude360', '/clinico360',
   '/study360', '/care-log', '/care-plans', '/residentes', '/census',
-  '/scan', '/labs', '/health-import', '/health-pass', '/passport',
+  '/scan', '/labs', '/health-import', '/passport',
   '/prescription', '/prescription-queue', '/receita', '/reconciliacao',
   '/handover', '/nota-clinica', '/soap', '/triagem', '/telemed',
   '/telemedicina', '/agenda', '/calendario', '/calendario-meds',

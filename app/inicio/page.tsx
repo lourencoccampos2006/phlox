@@ -344,7 +344,7 @@ const PIN_ICON: Record<string, string> = {
   '/mymeds': 'pill', '/scan': 'camera', '/interactions': 'shield', '/ai': 'spark',
   '/familia': 'family', '/vitals': 'heart', '/saude-agora': 'heart', '/sintomas': 'heart',
   '/arena': 'trophy', '/study': 'cards', '/tutor': 'spark', '/labs': 'search',
-  '/medicamento': 'question', '/timeline': 'calendar', '/preparar-consulta': 'calendar',
+  '/medicamento': 'question', '/timeline': 'calendar',
 }
 function PinnedRow({ theme: t }: { theme: ModeTheme }) {
   const [pins, setPins] = useState<{ path: string; label: string }[]>([])

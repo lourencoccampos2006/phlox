@@ -477,8 +477,7 @@ export function FeridasTool() {
                     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                       <div style={{ position: 'relative', flexShrink: 0 }}>
                         <img src={photoPreview} alt="" style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
-                        <button onClick={() => { setPhoto(null); setPhotoPreview(''); setAiResult(null); setAiErr('') }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: 12, lineHeight: 1 }}>×</button>
-                      </div>
+                        <button aria-label="Fechar" onClick={() => { setPhoto(null); setPhotoPreview(''); setAiResult(null); setAiErr('') }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#dc2626', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: 12, lineHeight: 1 }}>×</button>                      </div>
                       <button onClick={analyzePhoto} disabled={aiAnalyzing} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1.5px solid #7c3aed', background: aiAnalyzing ? 'var(--bg-3)' : '#faf5ff', color: '#7c3aed', fontSize: 13, fontWeight: 700, cursor: aiAnalyzing ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 0-4 4c0 1.5.5 2 1 3M12 2a4 4 0 0 1 4 4c0 1.5-.5 2-1 3M8 13h8M9 17h6"/></svg>
                         {aiAnalyzing ? 'A analisar foto…' : 'Analisar foto com IA'}

@@ -51,14 +51,14 @@ const T = {
   vendas:     { href: '/vendas', label: 'Ponto de venda', desc: 'POS com código de barras e recibo', icon: '🧾', isNew: true },
   tarefas:    { href: '/tarefas-equipa', label: 'Tarefas da equipa', desc: 'Quadro de tarefas — todas as funções', icon: '✅', isNew: true },
   stock:      { href: '/stock', label: 'Stock & validades', desc: 'Existências, prazos e ruturas', icon: '📦', isNew: true },
-  schedule:   { href: '/schedule', label: 'Escalas & turnos', desc: 'Quem está de serviço', icon: '🗓️' },
+  schedule:   { href: '/equipa?tab=escalas', label: 'Escalas & turnos', desc: 'Quem está de serviço', icon: '🗓️' },
   team:       { href: '/team', label: 'Equipa', desc: 'Membros, funções e contactos', icon: '👥' },
-  roi:        { href: '/roi', label: 'Indicadores & desempenho', desc: 'Receita, atividade e tendências reais', icon: '📊', roles: ['administrator', 'coordinator', 'pharmacist_director'] as ClinicalRole[] },
+  roi:        { href: '/painel-dono?tab=desempenho', label: 'Indicadores & desempenho', desc: 'Receita, atividade e tendências reais', icon: '📊', roles: ['administrator', 'coordinator', 'pharmacist_director'] as ClinicalRole[] },
 
   // Secretaria & doentes (NOVAS)
   salaEspera: { href: '/sala-espera', label: 'Sala de espera', desc: 'Check-in e fila — mesmo sem conta Phlox', icon: '🪑', isNew: true },
   agenda:     { href: '/agenda', label: 'Agenda & marcações', desc: 'Consultas e tempos de espera', icon: '📅' },
-  healthpass: { href: '/health-pass', label: 'Health Pass (QR)', desc: 'Ler o resumo de saúde de quem chega', icon: '🔖' },
+  healthpass: { href: '/atendimentos', label: 'Health Pass (QR)', desc: 'Ler o resumo de saúde de quem chega — digitaliza o QR da pessoa', icon: '🔖' },
 
   // Legal & conformidade (NOVAS)
   consentimentos: { href: '/consentimentos', label: 'Consentimentos & RGPD', desc: 'Gerar e arquivar consentimentos', icon: '📋', isNew: true },

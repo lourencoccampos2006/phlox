@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
       const seq = (sale.seq || Math.floor(Math.random() * 9_000_000) + 1)
       const ref = makeMBReference(cfg.entity, seq, amount)
       patch = { ...patch, pay_provider: 'mb_referencia', pay_entity: ref.entity, pay_ref: ref.reference, pay_status: 'pendente' }
-      await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+      const { error } = await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+      if (error) return NextResponse.json({ error: 'Não foi possível guardar a referência de pagamento.' }, { status: 500 })
       return NextResponse.json({ ok: true, provider: 'mb_referencia', entity: ref.entity, reference: ref.reference, amount: ref.amount, demo: !cfg.api_key })
     }
 
@@ -51,7 +52,8 @@ export async function POST(req: NextRequest) {
       if (!cfg?.api_key) {
         // Sem gateway: regista a intenção (pagamento confirmado manualmente no app MB WAY)
         patch = { ...patch, mbway_phone: phone, pay_status: 'pendente', pay_ref: `MBWAY-${Date.now().toString().slice(-8)}` }
-        await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+        const { error } = await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+        if (error) return NextResponse.json({ error: 'Não foi possível registar o pedido MB WAY.' }, { status: 500 })
         return NextResponse.json({ ok: true, provider: 'mbway', phone, pending: true, manual: true, ref: patch.pay_ref })
       }
       // Com gateway Easypay (exemplo de conector real)
@@ -63,7 +65,8 @@ export async function POST(req: NextRequest) {
         const j = await r.json().catch(() => ({}))
         if (!r.ok) throw new Error(j?.message || `Easypay ${r.status}`)
         patch = { ...patch, mbway_phone: phone, pay_status: 'pendente', pay_ref: String(j?.id || '') }
-        await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+        const { error } = await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+        if (error) return NextResponse.json({ error: 'Pagamento iniciado no Easypay mas falhou ao guardar — contacte o suporte.' }, { status: 500 })
         return NextResponse.json({ ok: true, provider: 'easypay', phone, ref: patch.pay_ref })
       }
       return NextResponse.json({ error: 'Gateway MB WAY não suportado para este provedor.' }, { status: 400 })
@@ -71,7 +74,8 @@ export async function POST(req: NextRequest) {
 
     // manual / outros → só regista o método
     patch.pay_status = 'pago'
-    await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+    const { error } = await sb.from('sales').update(patch).eq('id', saleId).eq('user_id', userId)
+    if (error) return NextResponse.json({ error: 'Não foi possível registar o pagamento.' }, { status: 500 })
     return NextResponse.json({ ok: true, provider, manual: true })
   } catch (e: any) {
     return NextResponse.json({ error: `Falha no pagamento: ${String(e?.message || e).slice(0, 200)}` }, { status: 502 })

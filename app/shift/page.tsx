@@ -386,8 +386,7 @@ export default function ShiftSimulatorPage() {
                       {((currentDecision.treatment as string[]) || []).map((drug, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 6 }}>
                           <span style={{ fontSize: 13, color: '#7c3aed', fontWeight: 600 }}>{drug}</span>
-                          <button onClick={() => removeTreatment(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16 }}>×</button>
-                        </div>
+                          <button aria-label="Eliminar" onClick={() => removeTreatment(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16 }}>×</button>                        </div>
                       ))}
                     </div>
                   </div>

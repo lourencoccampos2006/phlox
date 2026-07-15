@@ -3,17 +3,8 @@
 // (Envio de email a cargo de integração futura — Resend/Postmark.)
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
-import { createClient } from '@supabase/supabase-js'
+import { authedClient as sb, requireOrgRole } from '@/lib/orgAuth'
 import crypto from 'node:crypto'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
 
 const ROLES = ['admin','clinician','pharmacist','nurse','assistant','accountant','viewer']
 
@@ -34,6 +25,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const expiresAt = new Date(Date.now() + 14 * 86400 * 1000).toISOString()
 
   const db = sb(req)
+  const denied = await requireOrgRole(db, userId, orgId, ['owner', 'admin'])
+  if (denied) return denied
   const { data, error } = await db.from('org_invites').insert({
     org_id: orgId, email, role, department, token,
     expires_at: expiresAt, invited_by: userId,

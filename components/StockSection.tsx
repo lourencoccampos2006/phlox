@@ -173,8 +173,7 @@ export default function StockSection() {
                 <button onClick={() => openEdit(it)} style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'white', cursor: 'pointer', color: 'var(--ink-4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
                 </button>
-                <button onClick={() => remove(it)} style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16 }}>×</button>
-              </div>
+                <button aria-label="Eliminar" onClick={() => remove(it)} style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16 }}>×</button>              </div>
             </div>
           ))}
         </div>
@@ -185,8 +184,7 @@ export default function StockSection() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '20px 22px 36px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editId ? 'Editar artigo' : 'Novo artigo'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div><span style={lbl}>Nome *</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Paracetamol 1g" style={inp} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

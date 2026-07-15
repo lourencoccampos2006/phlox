@@ -75,7 +75,7 @@ const T = {
   incidents: { href: '/incidents', label: 'Ocorrências', hint: 'Regista quedas, recusas e outros eventos', icon: '⚠️' },
   careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: '📝' },
   assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
-  team:    { href: '/schedule', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
+  team:    { href: '/equipa?tab=escalas', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
   staff:   { href: '/painel-dono', label: 'Gerir instituição', hint: 'Só dono/admin: negócio, equipa, stock e registos', icon: '🏛️' },
   radar:   { href: '/radar', label: 'O que merece atenção', hint: 'O que a equipa registou que saiu do padrão + pedidos dos utentes', icon: '📋' },
   documents: { href: '/documentos', label: 'Documentos', hint: 'Cofre de documentos da instituição', icon: '📄' },
@@ -94,7 +94,7 @@ const T = {
   wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: '🩹' },
   billing: { href: '/faturacao', label: 'Faturação', hint: 'Mensalidades, comparticipações e recibos', icon: '💶' },
   vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: '🛡️' },
-  mural:   { href: '/equipa-mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: '📣' },
+  mural:   { href: '/equipa?tab=mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: '📣' },
   ronda:   { href: '/ronda-guiada', label: 'Ronda coordenada', hint: 'Ronda a vários, sem repetir utentes, tudo registado', icon: '🚶' },
 }
 

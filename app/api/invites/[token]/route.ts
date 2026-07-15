@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
     org_role: inv.role === 'admin' ? 'admin' : 'member', onboarded: true,
   }).eq('id', userId)
 
-  // Aparece LOGO nas escalas (/schedule): cria a linha team_members ligada à
+  // Aparece LOGO nas escalas (/equipa?tab=escalas): cria a linha team_members ligada à
   // conta. Sem isto, o membro que aceitava por link não surgia na equipa. Mapeia
   // o papel org → papel de escala.
   const TEAM_ROLE: Record<string, string> = { admin: 'coordinator', nurse: 'nurse', assistant: 'caregiver', clinician: 'doctor', viewer: 'other' }

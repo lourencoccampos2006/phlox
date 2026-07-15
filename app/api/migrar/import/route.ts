@@ -81,9 +81,8 @@ export async function POST(req: NextRequest) {
             frequency: m.frequency || null,
             source: `importado:${source_system}`,
           }))
-          try {
-            await supabase.from('patient_meds').insert(meds)
-          } catch (_e: any) {}
+          const { error: medsErr } = await supabase.from('patient_meds').insert(meds)
+          if (medsErr) errors.push(`${item.name}: medicação não importada (${medsErr.message})`)
         }
         inserted++
       }

@@ -8,20 +8,25 @@ import { printDoc } from '@/lib/print'
 import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
 import { MedReviewTool } from '../med-review/page'
+import { MotorClinicoTool } from '../motor-clinico/page'
+import { PolypharmacyTool } from '../polypharmacy/page'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
 // /assessments = "Avaliações e planos": escalas (Barthel, MNA…) + planos de
-// cuidados + revisão de medicação (STOPP/START, juntada aqui na limpeza R13b).
+// cuidados + revisão de medicação (STOPP/START, juntada aqui na limpeza R13b) +
+// Decision Engine + auditoria de polimedicação (juntadas na limpeza de catálogo).
 // Cada aba é o componente original intacto.
 export default function AssessmentsPage() {
   return <FusionTabs
     eyebrow="Avaliações" title="Avaliações e planos de cuidados"
-    subtitle="Escalas validadas, planos de cuidados e revisão de medicação, juntos."
+    subtitle="Escalas validadas, planos de cuidados, revisão de medicação e decisão clínica, juntos."
     tabs={[
       { id: 'escalas', label: 'Escalas', icon: '📐', render: () => <AssessmentsTool /> },
       { id: 'planos', label: 'Planos de cuidados', icon: '📋', render: () => <CarePlansTool /> },
       { id: 'revisao', label: 'Revisão de medicação', icon: '💊', render: () => <MedReviewTool /> },
+      { id: 'motor-clinico', label: 'Decision Engine', icon: '🧠', render: () => <MotorClinicoTool /> },
+      { id: 'polypharmacy', label: 'Polimedicação', icon: '🔬', render: () => <PolypharmacyTool /> },
     ]} />
 }
 

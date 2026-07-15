@@ -502,8 +502,7 @@ export function CarePlansTool() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 7, padding: '8px 12px' }}>
                       <span style={{ color: '#16a34a', fontSize: 14 }}>✓</span>
                       <span style={{ flex: 1, fontSize: 13, color: 'var(--ink-2)' }}>{g}</span>
-                      <button onClick={() => removeGoal(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#dc2626', padding: '0 2px', lineHeight: 1 }}>×</button>
-                    </div>
+                      <button aria-label="Eliminar" onClick={() => removeGoal(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#dc2626', padding: '0 2px', lineHeight: 1 }}>×</button>                    </div>
                   ))}
                 </div>
               )}

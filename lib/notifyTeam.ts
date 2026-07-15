@@ -26,7 +26,7 @@ export async function notifyOrgMembers(orgId: string, exceptUserId: string | nul
   await Promise.all((subs || []).map(async (s: any) => {
     const ok = await sendPushNotification(
       { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } } as any,
-      { title: payload.title, body: payload.body, url: payload.url || '/equipa-mural', tag: payload.tag } as any,
+      { title: payload.title, body: payload.body, url: payload.url || '/equipa?tab=mural', tag: payload.tag } as any,
     )
     if (ok) sent++
   }))

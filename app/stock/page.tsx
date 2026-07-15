@@ -295,11 +295,10 @@ export default function StockPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                           {/* USAR 1 — o toque frequente (uma luva, uma fralda): grande e rápido. */}
                           <button onClick={() => consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
-                          <button onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
+                          <button aria-label="Diminuir" className="stock-adjust-btn" onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
                           <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: isLow ? '#dc2626' : '#0b1120' }}>{it.quantity}{it.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: '#9ca3af' }}> {it.unit}</span> : ''}</span>
-                          <button onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
-                          <button onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>
-                        </div>
+                          <button aria-label="Aumentar" className="stock-adjust-btn" onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
+                          <button aria-label="Eliminar" onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>                        </div>
                       </div>
 
                       {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
@@ -336,35 +335,34 @@ export default function StockPage() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Novo produto</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <div><span style={lbl}>Nome</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Luvas nitrilo M, Paracetamol 1g…" style={inp} autoFocus /></div>
+              <div><label htmlFor="stock-name" style={lbl}>Nome</label><input id="stock-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Luvas nitrilo M, Paracetamol 1g…" style={inp} autoFocus /></div>
               <div>
-                <span style={lbl}>Categoria</span>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <span id="stock-category-label" style={lbl}>Categoria</span>
+                <div role="group" aria-labelledby="stock-category-label" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {CAT_KEYS.map(k => <button key={k} onClick={() => setForm({ ...form, category: k })} style={{ padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.category === k ? CATS[k].color : 'var(--border)'}`, background: form.category === k ? CATS[k].color + '12' : 'white', color: form.category === k ? CATS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{CATS[k].icon} {CATS[k].label}</button>)}
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                <div><span style={lbl}>Quantidade</span><input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} style={inp} /></div>
-                <div><span style={lbl}>Mínimo</span><input type="number" value={form.min_quantity} onChange={e => setForm({ ...form, min_quantity: e.target.value })} style={inp} /></div>
-                <div><span style={lbl}>Unidade</span><input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="cx, un…" style={inp} /></div>
+                <div><label htmlFor="stock-qty" style={lbl}>Quantidade</label><input id="stock-qty" type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} style={inp} /></div>
+                <div><label htmlFor="stock-min" style={lbl}>Mínimo</label><input id="stock-min" type="number" value={form.min_quantity} onChange={e => setForm({ ...form, min_quantity: e.target.value })} style={inp} /></div>
+                <div><label htmlFor="stock-unit" style={lbl}>Unidade</label><input id="stock-unit" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="cx, un…" style={inp} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><span style={lbl}>Validade</span><input type="date" value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} style={inp} /></div>
-                <div><span style={lbl}>Localização</span><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Ex: Armário A2" style={inp} /></div>
+                <div><label htmlFor="stock-expiry" style={lbl}>Validade</label><input id="stock-expiry" type="date" value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} style={inp} /></div>
+                <div><label htmlFor="stock-location" style={lbl}>Localização</label><input id="stock-location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Ex: Armário A2" style={inp} /></div>
               </div>
               {/* Reposição & fornecedor — alimenta os avisos e as despesas do dono */}
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 2 }}>
                 <span style={{ ...lbl, marginBottom: 8 }}>Reposição & fornecedor (opcional)</span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                  <div><span style={lbl}>Fornecedor</span><input value={form.supplier_name} onChange={e => setForm({ ...form, supplier_name: e.target.value })} placeholder="Ex: Distribuidora X" style={inp} /></div>
-                  <div><span style={lbl}>Contacto</span><input value={form.supplier_contact} onChange={e => setForm({ ...form, supplier_contact: e.target.value })} placeholder="Telefone / email" style={inp} /></div>
+                  <div><label htmlFor="stock-supplier-name" style={lbl}>Fornecedor</label><input id="stock-supplier-name" value={form.supplier_name} onChange={e => setForm({ ...form, supplier_name: e.target.value })} placeholder="Ex: Distribuidora X" style={inp} /></div>
+                  <div><label htmlFor="stock-supplier-contact" style={lbl}>Contacto</label><input id="stock-supplier-contact" value={form.supplier_contact} onChange={e => setForm({ ...form, supplier_contact: e.target.value })} placeholder="Telefone / email" style={inp} /></div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
-                  <div><span style={lbl}>Link de compra</span><input value={form.buy_url} onChange={e => setForm({ ...form, buy_url: e.target.value })} placeholder="https://…" style={inp} /></div>
-                  <div><span style={lbl}>Custo/unidade (€)</span><input type="number" value={form.unit_cost} onChange={e => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" style={inp} /></div>
+                  <div><label htmlFor="stock-buy-url" style={lbl}>Link de compra</label><input id="stock-buy-url" value={form.buy_url} onChange={e => setForm({ ...form, buy_url: e.target.value })} placeholder="https://…" style={inp} /></div>
+                  <div><label htmlFor="stock-unit-cost" style={lbl}>Custo/unidade (€)</label><input id="stock-unit-cost" type="number" value={form.unit_cost} onChange={e => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" style={inp} /></div>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 6 }}>O custo/unidade lança a despesa automaticamente quando marcares "recebido".</div>
               </div>
@@ -379,8 +377,7 @@ export default function StockPage() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Importar produtos (CSV)</h2>
-              <button onClick={() => !importBusy && setImporting(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => !importBusy && setImporting(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <p style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5, margin: '0 0 14px' }}>Aceita exports de <strong>Sifarma</strong>, ERP genéricos ou Excel guardado como CSV. Deteta automaticamente as colunas (CNP/EAN, designação, PVP, IVA, stock). Atualiza por código de barras; novos são criados.</p>
 
             <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={onFile} style={{ display: 'none' }} />
@@ -410,6 +407,11 @@ export default function StockPage() {
           </div>
         </div>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .stock-adjust-btn { width: 44px !important; height: 44px !important; }
+        }
+      `}</style>
     </div>
   )
 }

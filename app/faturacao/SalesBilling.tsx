@@ -260,8 +260,7 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
                         {finalized && !annulled && !isNC && (
                           <button onClick={() => creditNote(s)} title="Emitir nota de crédito (anula o documento)" style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>NC</button>
                         )}
-                        {!finalized && <button onClick={() => del(s.id)} title="Eliminar (rascunho não finalizado)" style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 17 }}>×</button>}
-                      </div>
+                        {!finalized && <button aria-label="Eliminar" onClick={() => del(s.id)} title="Eliminar (rascunho não finalizado)" style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 17 }}>×</button>}                      </div>
                     </div>
                   )
                 })}
@@ -276,8 +275,7 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{isPOS ? 'Nova venda' : 'Novo ato'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div>
                 <span style={lbl}>Tipo</span>

@@ -152,8 +152,7 @@ export function AtendimentosTool() {
                             {!e.patient_id ? (
                               <button onClick={() => promote(e)} title="Criar ficha de doente a partir deste atendimento" style={{ fontSize: 11.5, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '3px 9px', cursor: 'pointer' }}>+ Ficha</button>
                             ) : <span style={{ fontSize: 11, color: '#16a34a' }}>ficha criada</span>}
-                            <button onClick={() => del(e.id)} style={{ fontSize: 14, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-                          </div>
+                            <button aria-label="Eliminar" onClick={() => del(e.id)} style={{ fontSize: 14, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                          </div>
                         </div>
                       </div>
                     </div>
@@ -170,8 +169,7 @@ export function AtendimentosTool() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 500, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Novo atendimento</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div>
                 <span style={lbl}>Tipo</span>

@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
-import { sendToTool } from '@/lib/toolBridge'
 
 interface Med { id:string; name:string; dose:string|null; frequency:string|null; indication:string|null }
 interface SavingItem { drug:string; brand_cost:string; generic_name:string; generic_cost:string; monthly_saving:string; equivalence_note:string }
@@ -27,7 +25,6 @@ const CONDITION_ICON: Record<string,string> = {
 
 export default function OptimizerPage() {
   const { user, supabase } = useAuth()
-  const router = useRouter()
   const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [loading, setLoading] = useState(true)
@@ -228,13 +225,6 @@ export default function OptimizerPage() {
                     </div>
                   ))}
                 </div>
-                {/* Trocar para genérico é decisão do médico — levamos a sugestão à consulta. */}
-                <button onClick={() => {
-                  const note = 'Quero falar sobre passar a genéricos: ' + result.savings.map(s => `${s.drug} → ${s.generic_name} (poupança ${s.monthly_saving}/mês)`).join('; ') + '.'
-                  sendToTool(router, '/preparar-consulta', { kind: 'note', payload: { note }, note: 'A partir do otimizador', from: '/optimizer' })
-                }} style={{ marginTop:10, padding:'10px 16px', background:'white', color:'#0d6e42', border:'1.5px solid var(--green-mid)', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
-                  📋 Levar estas poupanças à próxima consulta →
-                </button>
               </div>
             )}
 

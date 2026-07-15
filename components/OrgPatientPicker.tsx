@@ -120,8 +120,7 @@ export default function OrgPatientPicker({
               {[value.age ? `${value.age} anos` : null, value.sex, value.conditions].filter(Boolean).join(' · ') || 'Sem dados adicionais'}
             </div>
           </div>
-          <button onClick={() => onSelect(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#93c5fd', fontSize: 18, lineHeight: 1 }}>×</button>
-        </div>
+          <button aria-label="Fechar" onClick={() => onSelect(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#93c5fd', fontSize: 18, lineHeight: 1 }}>×</button>        </div>
       ) : creating ? (
         <div style={{ background: '#f0fdf5', border: '1.5px solid #bbf7d0', borderRadius: 8, padding: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', marginBottom: 6 }}>Criar novo doente</div>

@@ -8,16 +8,17 @@ import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 const HAS_SERVICE_KEY = !!process.env.SUPABASE_SERVICE_ROLE_KEY
 
 function admin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
 // Devolve o residente OU um objeto de erro com causa, para a API dar mensagens claras.
-async function resolveCode(code: string): Promise<{ patient: any } | { errorCode: 'short' | 'no_column' | 'not_found' | 'db' }> {
+async function resolveCode(code: string): Promise<{ patient: any } | { errorCode: 'short' | 'no_column' | 'not_found' | 'db' | 'no_key' }> {
   const c = (code || '').toUpperCase().trim()
   if (!c || c.length < 4) return { errorCode: 'short' }
+  // Sem a service-role key, cair para a chave anon devolveria "não
+  // encontrado" para TODOS os códigos (RLS anon não expõe patients) — em vez
+  // de mascarar um servidor mal configurado como "código errado", falha claro.
+  if (!HAS_SERVICE_KEY) return { errorCode: 'no_key' }
   const sb = admin()
   const { data, error } = await sb.from('patients').select('id, name, room_number, user_id, org_id').eq('family_code', c).maybeSingle()
   if (error) {
@@ -30,6 +31,7 @@ async function resolveCode(code: string): Promise<{ patient: any } | { errorCode
 }
 
 function codeErrorResponse(errorCode: string) {
+  if (errorCode === 'no_key') return NextResponse.json({ error: 'O portal família está temporariamente indisponível (configuração do servidor). Tente mais tarde.' }, { status: 503 })
   if (errorCode === 'no_column') return NextResponse.json({ error: 'O portal família ainda não está ativo nesta conta. A instituição precisa de aplicar a configuração da base de dados (SETUP_CLINICO.sql).' }, { status: 503 })
   if (errorCode === 'db') return NextResponse.json({ error: 'Erro de ligação à base de dados. Tente novamente.' }, { status: 500 })
   if (errorCode === 'short') return NextResponse.json({ error: 'Código demasiado curto.' }, { status: 400 })

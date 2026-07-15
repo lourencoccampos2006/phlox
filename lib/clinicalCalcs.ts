@@ -16,7 +16,7 @@ export interface CalcResult { value: string; label: string; interpretation: stri
 export interface ClinicalCalc {
   id: string
   name: string
-  category: 'renal' | 'cardio' | 'metabolic' | 'icu' | 'hema' | 'hepatic' | 'general'
+  category: 'renal' | 'cardio' | 'metabolic' | 'icu' | 'hema' | 'hepatic' | 'general' | 'scales'
   desc: string
   fields: CalcInputField[]
   run: (v: Record<string, any>) => CalcResult | null
@@ -516,11 +516,280 @@ const bishop: ClinicalCalc = {
   }, refs: 'Bishop EH. Obstet Gynecol 1964',
 }
 
+// ── Escalas clínicas validadas (eram /escalas — página própria) ────────────────
+const FREQ4 = [{ label: 'Nunca', value: 0 }, { label: 'Vários dias', value: 1 }, { label: 'Mais de metade dos dias', value: 2 }, { label: 'Quase todos os dias', value: 3 }]
+
+const phq9: ClinicalCalc = {
+  id: 'phq9', name: 'PHQ-9 (Depressão — Triagem)', category: 'scales',
+  desc: 'Patient Health Questionnaire. Triagem e monitorização da depressão. 9 itens, score 0–27.',
+  fields: [
+    { key: 'q1', label: '1. Pouco interesse ou prazer em fazer coisas', type: 'select', options: FREQ4 },
+    { key: 'q2', label: '2. Sentir-se em baixo, deprimido(a) ou sem esperança', type: 'select', options: FREQ4 },
+    { key: 'q3', label: '3. Dificuldade em adormecer, manter o sono, ou dormir demasiado', type: 'select', options: FREQ4 },
+    { key: 'q4', label: '4. Sentir-se cansado(a) ou com pouca energia', type: 'select', options: FREQ4 },
+    { key: 'q5', label: '5. Pouco apetite ou comer em excesso', type: 'select', options: FREQ4 },
+    { key: 'q6', label: '6. Sentir-se mal consigo próprio(a) — ou um fardo para os outros', type: 'select', options: FREQ4 },
+    { key: 'q7', label: '7. Dificuldade de concentração (leitura, TV, trabalho)', type: 'select', options: FREQ4 },
+    { key: 'q8', label: '8. Mover-se/falar mais devagar; ou estar irrequieto(a)/agitado(a)', type: 'select', options: FREQ4 },
+    { key: 'q9', label: '9. Pensamentos de que seria melhor estar morto(a) ou de se magoar', type: 'select', options: FREQ4, hint: 'Se positivo, avaliar ideação suicida diretamente.' },
+  ],
+  run: v => {
+    const keys = ['q1','q2','q3','q4','q5','q6','q7','q8','q9']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score <= 4 ? 'ok' : score <= 14 ? 'warn' : 'alert'
+    const interp = score <= 4 ? 'Sem depressão / mínima. Sem tratamento indicado.'
+      : score <= 9 ? 'Depressão leve. Vigilância, psicoeducação e apoio.'
+      : score <= 14 ? 'Depressão moderada. Iniciar tratamento (psicoterapia e/ou ISRS).'
+      : score <= 19 ? 'Depressão moderada a grave. Tratamento activo, referenciação a psiquiatria.'
+      : 'Depressão grave. Tratamento urgente, referenciação imediata a psiquiatria.'
+    const suicide = Number(v.q9) > 0 ? ' ⚠ Item 9 positivo: avaliar ideação suicida directamente.' : ''
+    return { value: `${score}/27`, label: 'PHQ-9', tone, interpretation: interp + suicide }
+  }, refs: 'Kroenke K, Spitzer RL, Williams JB. JAMA Intern Med. 2001',
+}
+
+const gad7: ClinicalCalc = {
+  id: 'gad7', name: 'GAD-7 (Ansiedade — Triagem)', category: 'scales',
+  desc: 'Generalized Anxiety Disorder Scale. Triagem de ansiedade generalizada. 7 itens, score 0–21.',
+  fields: [
+    { key: 'q1', label: '1. Sentir-se nervoso(a), ansioso(a) ou no limite', type: 'select', options: FREQ4 },
+    { key: 'q2', label: '2. Não conseguir parar de se preocupar', type: 'select', options: FREQ4 },
+    { key: 'q3', label: '3. Preocupar-se demasiado com as mais diversas coisas', type: 'select', options: FREQ4 },
+    { key: 'q4', label: '4. Ter dificuldade em relaxar', type: 'select', options: FREQ4 },
+    { key: 'q5', label: '5. Estar tão irrequieto(a) que é difícil ficar sentado(a)', type: 'select', options: FREQ4 },
+    { key: 'q6', label: '6. Ficar facilmente irritado(a) ou implicante', type: 'select', options: FREQ4 },
+    { key: 'q7', label: '7. Sentir medo de que algo terrível possa acontecer', type: 'select', options: FREQ4 },
+  ],
+  run: v => {
+    const keys = ['q1','q2','q3','q4','q5','q6','q7']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score <= 4 ? 'ok' : score <= 9 ? 'warn' : 'alert'
+    const interp = score <= 4 ? 'Ansiedade mínima. Sem tratamento indicado.'
+      : score <= 9 ? 'Ansiedade leve. Vigilância, técnicas de relaxamento.'
+      : score <= 14 ? 'Ansiedade moderada. Tratar (ISRS, TCC).'
+      : 'Ansiedade grave. Tratamento activo urgente, referenciação.'
+    return { value: `${score}/21`, label: 'GAD-7', tone, interpretation: interp }
+  }, refs: 'Spitzer RL et al. Arch Intern Med. 2006',
+}
+
+const morseFall: ClinicalCalc = {
+  id: 'morse_fall', name: 'Morse Fall (Risco de queda)', category: 'scales',
+  desc: 'Escala de Morse para avaliação do risco de queda. 6 itens. Obrigatória na admissão hospitalar.',
+  fields: [
+    { key: 'falls', label: 'Historial de quedas (últimos 3 meses ou internamento actual)', type: 'select', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 25 }] },
+    { key: 'diagnosis', label: 'Diagnóstico secundário (2+ diagnósticos)', type: 'select', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 15 }] },
+    { key: 'ambulatory', label: 'Ajuda para deambular', type: 'select', options: [{ label: 'Nenhuma / repouso / cadeira de rodas', value: 0 }, { label: 'Muletas / bengala / andarilho', value: 15 }, { label: 'Apoia-se nos móveis', value: 30 }] },
+    { key: 'iv', label: 'Terapia intravenosa / heparina', type: 'select', options: [{ label: 'Não', value: 0 }, { label: 'Sim', value: 20 }] },
+    { key: 'gait', label: 'Marcha', type: 'select', options: [{ label: 'Normal / cadeira de rodas / acamado', value: 0 }, { label: 'Fraca (curvado, passos arrastados)', value: 10 }, { label: 'Comprometida (dificuldade a levantar, desequilíbrio)', value: 20 }] },
+    { key: 'cognition', label: 'Estado mental', type: 'select', options: [{ label: 'Orientado segundo as suas capacidades', value: 0 }, { label: 'Sobrestima capacidades / esquece limitações', value: 15 }] },
+  ],
+  run: v => {
+    const keys = ['falls','diagnosis','ambulatory','iv','gait','cognition']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score < 25 ? 'ok' : score < 51 ? 'warn' : 'alert'
+    const interp = score < 25 ? 'Baixo risco de queda. Precauções standard.'
+      : score < 51 ? 'Médio risco de queda. Programa de prevenção de quedas.'
+      : 'Alto risco de queda. Intervenções intensivas, supervisão aumentada.'
+    return { value: `${score}`, label: 'Morse Fall Score', tone, interpretation: interp }
+  }, refs: 'Morse JM. Preventing Patient Falls. 1996',
+}
+
+const braden: ClinicalCalc = {
+  id: 'braden', name: 'Braden (Úlceras por pressão)', category: 'scales',
+  desc: 'Escala de Braden — risco de úlceras por pressão. 6 subescalas, score 6–23. Menor score = maior risco.',
+  fields: [
+    { key: 'sensory', label: 'Percepção sensorial', type: 'select', options: [{ label: '1 — Completamente limitado', value: 1 }, { label: '2 — Muito limitado', value: 2 }, { label: '3 — Ligeiramente limitado', value: 3 }, { label: '4 — Sem limitação', value: 4 }] },
+    { key: 'moisture', label: 'Humidade', type: 'select', options: [{ label: '1 — Constantemente húmido', value: 1 }, { label: '2 — Muito húmido', value: 2 }, { label: '3 — Ocasionalmente húmido', value: 3 }, { label: '4 — Raramente húmido', value: 4 }] },
+    { key: 'activity', label: 'Actividade', type: 'select', options: [{ label: '1 — Acamado', value: 1 }, { label: '2 — Confinado a cadeira', value: 2 }, { label: '3 — Anda ocasionalmente', value: 3 }, { label: '4 — Anda frequentemente', value: 4 }] },
+    { key: 'mobility', label: 'Mobilidade', type: 'select', options: [{ label: '1 — Completamente imóvel', value: 1 }, { label: '2 — Muito limitado', value: 2 }, { label: '3 — Ligeiramente limitado', value: 3 }, { label: '4 — Sem limitações', value: 4 }] },
+    { key: 'nutrition', label: 'Nutrição', type: 'select', options: [{ label: '1 — Muito pobre', value: 1 }, { label: '2 — Provavelmente inadequada', value: 2 }, { label: '3 — Adequada', value: 3 }, { label: '4 — Excelente', value: 4 }] },
+    { key: 'friction', label: 'Fricção e forças de deslizamento', type: 'select', options: [{ label: '1 — Problema', value: 1 }, { label: '2 — Problema potencial', value: 2 }, { label: '3 — Sem problema aparente', value: 3 }] },
+  ],
+  run: v => {
+    const keys = ['sensory','moisture','activity','mobility','nutrition','friction']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score <= 12 ? 'alert' : score <= 14 ? 'warn' : 'ok'
+    const interp = score <= 9 ? 'Risco muito elevado. Mudanças de posição cada 1h, superfície de alívio de pressão especial.'
+      : score <= 12 ? 'Risco elevado. Mudanças de posição cada 2h, superfície de alívio de pressão.'
+      : score <= 14 ? 'Risco moderado. Mudanças de posição cada 2–3h, proteger proeminências ósseas.'
+      : score <= 18 ? 'Risco leve. Medidas preventivas básicas.'
+      : 'Sem risco significativo. Reavaliar periodicamente.'
+    return { value: `${score}/23`, label: 'Braden', tone, interpretation: interp }
+  }, refs: 'Braden BJ, Bergstrom N. Nurs Res. 1987',
+}
+
+const nihss: ClinicalCalc = {
+  id: 'nihss', name: 'NIHSS (AVC — Gravidade neurológica)', category: 'scales',
+  desc: 'NIH Stroke Scale. Avaliação neurológica padronizada no AVC agudo. 11 itens, score 0–31 (versão simplificada).',
+  fields: [
+    { key: 'consciousness', label: '1a. Nível de consciência', type: 'select', options: [{ label: '0 — Alerta', value: 0 }, { label: '1 — Não alerta, estimulável', value: 1 }, { label: '2 — Não alerta, estimulação repetida', value: 2 }, { label: '3 — Reflexos ou sem resposta', value: 3 }] },
+    { key: 'questions', label: '1b. Perguntas (mês e idade)', type: 'select', options: [{ label: '0 — Ambas correctas', value: 0 }, { label: '1 — Uma correcta', value: 1 }, { label: '2 — Nenhuma correcta', value: 2 }] },
+    { key: 'commands', label: '1c. Ordens (fechar/abrir olhos, mão)', type: 'select', options: [{ label: '0 — Ambas obedecidas', value: 0 }, { label: '1 — Uma obedecida', value: 1 }, { label: '2 — Nenhuma obedecida', value: 2 }] },
+    { key: 'gaze', label: '2. Olhar conjugado', type: 'select', options: [{ label: '0 — Normal', value: 0 }, { label: '1 — Paresia parcial do olhar', value: 1 }, { label: '2 — Desvio forçado', value: 2 }] },
+    { key: 'visual', label: '3. Campo visual', type: 'select', options: [{ label: '0 — Sem perda', value: 0 }, { label: '1 — Hemianopsia parcial', value: 1 }, { label: '2 — Hemianopsia completa', value: 2 }, { label: '3 — Cegueira bilateral', value: 3 }] },
+    { key: 'facial', label: '4. Paralisia facial', type: 'select', options: [{ label: '0 — Normal', value: 0 }, { label: '1 — Paresia ligeira', value: 1 }, { label: '2 — Paresia parcial', value: 2 }, { label: '3 — Paralisia completa', value: 3 }] },
+    { key: 'motor_left', label: '5. Motor MS esquerdo', type: 'select', options: [{ label: '0 — Sem queda', value: 0 }, { label: '1 — Queda antes de 10s', value: 1 }, { label: '2 — Alguma força', value: 2 }, { label: '3 — Sem força', value: 3 }, { label: '4 — Sem movimento', value: 4 }] },
+    { key: 'motor_right', label: '6. Motor MS direito', type: 'select', options: [{ label: '0 — Sem queda', value: 0 }, { label: '1 — Queda antes de 10s', value: 1 }, { label: '2 — Alguma força', value: 2 }, { label: '3 — Sem força', value: 3 }, { label: '4 — Sem movimento', value: 4 }] },
+    { key: 'sensory', label: '8. Sensibilidade', type: 'select', options: [{ label: '0 — Normal', value: 0 }, { label: '1 — Perda ligeira a moderada', value: 1 }, { label: '2 — Perda grave ou ausente', value: 2 }] },
+    { key: 'language', label: '9. Linguagem', type: 'select', options: [{ label: '0 — Normal', value: 0 }, { label: '1 — Afasia leve-moderada', value: 1 }, { label: '2 — Afasia grave', value: 2 }, { label: '3 — Mudo/global', value: 3 }] },
+    { key: 'dysarthria', label: '10. Disartria', type: 'select', options: [{ label: '0 — Normal', value: 0 }, { label: '1 — Leve a moderada', value: 1 }, { label: '2 — Grave/anártrico', value: 2 }] },
+  ],
+  run: v => {
+    const keys = ['consciousness','questions','commands','gaze','visual','facial','motor_left','motor_right','sensory','language','dysarthria']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score === 0 ? 'ok' : score <= 4 ? 'ok' : score <= 15 ? 'warn' : 'alert'
+    const interp = score === 0 ? 'Sem défice neurológico.'
+      : score <= 4 ? 'AVC minor.'
+      : score <= 15 ? 'AVC moderado.'
+      : score <= 20 ? 'AVC moderado-grave.'
+      : 'AVC grave.'
+    return { value: `${score}`, label: 'NIHSS (parcial)', tone, interpretation: interp + ' Activar Via Verde AVC se score ≥1 e <4h de evolução.' }
+  }, refs: 'Brott T et al. Stroke. 1989',
+}
+
+const mnaSf: ClinicalCalc = {
+  id: 'mna_sf', name: 'MNA-SF (Triagem nutricional)', category: 'scales',
+  desc: 'Mini Nutritional Assessment — Short Form. Triagem nutricional validada em idosos ≥65 anos. Score 0–14.',
+  fields: [
+    { key: 'food_decline', label: 'A. Diminuição da ingestão alimentar nas últimas 3 semanas', type: 'select', options: [{ label: '0 — Redução grave', value: 0 }, { label: '1 — Redução moderada', value: 1 }, { label: '2 — Sem redução', value: 2 }] },
+    { key: 'weight_loss', label: 'B. Perda de peso nos últimos 3 meses', type: 'select', options: [{ label: '0 — Superior a 3 kg', value: 0 }, { label: '1 — Não sabe', value: 1 }, { label: '2 — Entre 1–3 kg', value: 2 }, { label: '3 — Sem perda', value: 3 }] },
+    { key: 'mobility', label: 'C. Mobilidade', type: 'select', options: [{ label: '0 — Acamado ou cadeira de rodas', value: 0 }, { label: '1 — Sai da cama/cadeira mas não sai de casa', value: 1 }, { label: '2 — Sai de casa', value: 2 }] },
+    { key: 'stress', label: 'D. Doença aguda ou stress psicológico nos últimos 3 meses', type: 'select', options: [{ label: '0 — Sim', value: 0 }, { label: '2 — Não', value: 2 }] },
+    { key: 'neuro', label: 'E. Problemas neuropsicológicos', type: 'select', options: [{ label: '0 — Demência grave ou depressão', value: 0 }, { label: '1 — Demência leve', value: 1 }, { label: '2 — Sem problemas', value: 2 }] },
+    { key: 'bmi', label: 'F. IMC (kg/m²)', type: 'select', options: [{ label: '0 — IMC < 19', value: 0 }, { label: '1 — IMC 19–20', value: 1 }, { label: '2 — IMC 21–22', value: 2 }, { label: '3 — IMC ≥ 23', value: 3 }] },
+  ],
+  run: v => {
+    const keys = ['food_decline','weight_loss','mobility','stress','neuro','bmi']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score >= 12 ? 'ok' : score >= 8 ? 'warn' : 'alert'
+    const interp = score >= 12 ? 'Estado nutricional normal. Sem necessidade de intervenção.'
+      : score >= 8 ? 'Risco de malnutrição. Avaliar com MNA completo, intervenção preventiva.'
+      : 'Malnutrição. Intervenção nutricional urgente, referenciação a nutricionista.'
+    return { value: `${score}/14`, label: 'MNA-SF', tone, interpretation: interp }
+  }, refs: 'Guigoz Y. J Nutr Health Aging. 2006',
+}
+
+const painNrs: ClinicalCalc = {
+  id: 'pain_nrs', name: 'Dor NRS / EVA (0–10)', category: 'scales',
+  desc: 'Numeric Rating Scale — intensidade da dor com orientação terapêutica pela escada analgésica OMS.',
+  fields: [
+    { key: 'score', label: 'Intensidade da dor (0 = sem dor, 10 = insuportável)', type: 'select', options: Array.from({ length: 11 }, (_, i) => ({ label: String(i), value: i })) },
+  ],
+  run: v => {
+    const s = num(v.score); if (s == null) return null
+    const tone = s === 0 ? 'ok' : s <= 3 ? 'ok' : s <= 6 ? 'warn' : 'alert'
+    const interp = s === 0 ? 'Sem dor. Continuar avaliação regular.'
+      : s <= 3 ? 'Dor leve. Analgesia de 1ª escada (paracetamol, AINEs).'
+      : s <= 6 ? 'Dor moderada. Analgesia de 2ª escada, considerar opióide fraco.'
+      : s <= 9 ? 'Dor intensa. Analgesia de 3ª escada, opióide forte.'
+      : 'Dor insuportável. Analgesia urgente, opióide IV, considerar sedação.'
+    return { value: `${s}/10`, label: 'Dor (NRS)', tone, interpretation: interp + ' Reavaliação 30–60 min após analgesia.' }
+  }, refs: 'OMS — Escada Analgésica',
+}
+
+const apgar: ClinicalCalc = {
+  id: 'apgar', name: 'APGAR (Avaliação neonatal)', category: 'scales',
+  desc: 'Escala de Apgar para avaliação do recém-nascido ao 1º, 5º e 10º minuto. Score 0–10.',
+  fields: [
+    { key: 'appearance', label: 'A — Aparência (cor): 0 Cianose total · 1 Cianose extremidades · 2 Rosado', type: 'select', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }] },
+    { key: 'pulse', label: 'P — Pulso (FC): 0 Ausente · 1 <100 bpm · 2 ≥100 bpm', type: 'select', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }] },
+    { key: 'grimace', label: 'G — Resposta a estímulos: 0 Sem resposta · 1 Careta · 2 Tosse/espirro/choro', type: 'select', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }] },
+    { key: 'activity', label: 'A — Actividade (tónus): 0 Sem tónus · 1 Ligeira flexão · 2 Movimentos activos', type: 'select', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }] },
+    { key: 'respiration', label: 'R — Respiração: 0 Ausente · 1 Irregular/fraco · 2 Choro forte', type: 'select', options: [{ label: '0', value: 0 }, { label: '1', value: 1 }, { label: '2', value: 2 }] },
+  ],
+  run: v => {
+    const keys = ['appearance','pulse','grimace','activity','respiration']
+    if (keys.some(k => v[k] === undefined || v[k] === '')) return null
+    const score = keys.reduce((s, k) => s + Number(v[k]), 0)
+    const tone = score >= 7 ? 'ok' : score >= 4 ? 'warn' : 'alert'
+    const interp = score >= 7 ? 'Normal. Sem necessidade de reanimação activa.'
+      : score >= 4 ? 'Depressão moderada. Estimulação e O₂ suplementar, reavaliar.'
+      : 'Depressão grave. Reanimação neonatal imediata, chamar equipa.'
+    return { value: `${score}/10`, label: 'APGAR', tone, interpretation: interp }
+  }, refs: 'Virginia Apgar. JAMA. 1958',
+}
+
+// ── Calculadoras de preparações IV (eram /iv-calc) ──────────────────────────────
+const DOSE_UNITS = [{ label: 'mg', value: 'mg' }, { label: 'mcg', value: 'mcg' }, { label: 'g', value: 'g' }, { label: 'UI', value: 'UI' }]
+const CONC_UNITS = [{ label: 'mg/mL', value: 'mg/mL' }, { label: 'mcg/mL', value: 'mcg/mL' }, { label: 'g/L', value: 'g/L' }, { label: 'UI/mL', value: 'UI/mL' }]
+
+const ivVolume: ClinicalCalc = {
+  id: 'iv_volume', name: 'Volume IV a administrar', category: 'icu',
+  desc: 'Volume (mL) a administrar a partir da dose prescrita e da concentração disponível.',
+  fields: [
+    { key: 'dose', label: 'Dose prescrita', type: 'number', step: 0.01 },
+    { key: 'doseUnit', label: 'Unidade da dose', type: 'select', options: DOSE_UNITS },
+    { key: 'perKg', label: 'Dose é por kg de peso', type: 'checkbox' },
+    { key: 'weight', label: 'Peso (só se dose por kg)', unit: 'kg', type: 'number', step: 0.1 },
+    { key: 'conc', label: 'Concentração disponível', type: 'number', step: 0.01 },
+    { key: 'concUnit', label: 'Unidade da concentração', type: 'select', options: CONC_UNITS },
+  ],
+  run: v => {
+    const dose = num(v.dose), conc = num(v.conc); if (dose == null || conc == null || conc === 0) return null
+    const convFactor: Record<string, number> = { mg: 1, mcg: 0.001, g: 1000, UI: 1 }
+    const concFactor: Record<string, number> = { 'mg/mL': 1, 'mcg/mL': 0.001, 'g/L': 1, 'UI/mL': 1 }
+    const doseInMg = dose * (v.perKg ? (num(v.weight) || 1) : 1) * (convFactor[v.doseUnit] ?? 1)
+    const concInMgMl = conc * (concFactor[v.concUnit] ?? 1)
+    if (concInMgMl <= 0) return null
+    const volume = doseInMg / concInMgMl
+    return { value: `${volume.toFixed(2)} mL`, label: 'Volume a administrar', tone: 'info', interpretation: 'Volume = Dose ÷ Concentração' }
+  }, refs: 'Farmacotecnia — fórmula padrão',
+}
+
+const ivInfusion: ClinicalCalc = {
+  id: 'iv_infusion', name: 'Taxa de infusão IV (mL/h)', category: 'icu',
+  desc: 'Taxa de infusão em mL/h e gotas/min a partir da dose, peso e concentração.',
+  fields: [
+    { key: 'dose', label: 'Dose', type: 'number', step: 0.01 },
+    { key: 'doseUnit', label: 'Unidade da dose', type: 'select', options: [{ label: 'mcg/kg/min', value: 'mcg/kg/min' }, { label: 'mg/kg/h', value: 'mg/kg/h' }, { label: 'mg/h', value: 'mg/h' }, { label: 'UI/h', value: 'UI/h' }] },
+    { key: 'weight', label: 'Peso (necessário para mcg/kg/min e mg/kg/h)', unit: 'kg', type: 'number', step: 0.1 },
+    { key: 'conc', label: 'Concentração da solução', type: 'number', step: 0.01 },
+    { key: 'concUnit', label: 'Unidade da concentração', type: 'select', options: [{ label: 'mg/mL', value: 'mg/mL' }, { label: 'mcg/mL', value: 'mcg/mL' }, { label: 'UI/mL', value: 'UI/mL' }] },
+  ],
+  run: v => {
+    const d = num(v.dose), w = num(v.weight) || 1, c = num(v.conc)
+    if (d == null || c == null || c === 0) return null
+    const concMgMl = v.concUnit === 'mcg/mL' ? c / 1000 : c
+    let rateMLH: number | null = null
+    if (v.doseUnit === 'mcg/kg/min') rateMLH = (d * w * 60) / (1000 * concMgMl)
+    else if (v.doseUnit === 'mg/kg/h') rateMLH = (d * w) / concMgMl
+    else if (v.doseUnit === 'UI/h') rateMLH = d / (v.concUnit === 'UI/mL' ? c : 1)
+    else rateMLH = d / concMgMl
+    if (rateMLH == null || isNaN(rateMLH) || rateMLH <= 0) return null
+    return { value: `${rateMLH.toFixed(2)} mL/h`, label: 'Taxa de infusão', tone: 'info', interpretation: `≈ ${(rateMLH / 3).toFixed(1)} gotas/min (macrogotas)` }
+  }, refs: 'Farmacotecnia — fórmula padrão',
+}
+
+const ivReconstitution: ClinicalCalc = {
+  id: 'iv_reconstitution', name: 'Reconstituição — diluente necessário', category: 'icu',
+  desc: 'Volume de diluente necessário para atingir a concentração desejada.',
+  fields: [
+    { key: 'powder', label: 'Pó para reconstituir', type: 'number', step: 0.01 },
+    { key: 'powderUnit', label: 'Unidade', type: 'select', options: [{ label: 'mg', value: 'mg' }, { label: 'g', value: 'g' }, { label: 'UI', value: 'UI' }] },
+    { key: 'targetConc', label: 'Concentração desejada', type: 'number', step: 0.01 },
+    { key: 'targetUnit', label: 'Unidade da concentração', type: 'select', options: [{ label: 'mg/mL', value: 'mg/mL' }, { label: 'g/L', value: 'g/L' }, { label: 'UI/mL', value: 'UI/mL' }] },
+  ],
+  run: v => {
+    const powder = num(v.powder), target = num(v.targetConc); if (powder == null || target == null || target === 0) return null
+    const convFactor: Record<string, number> = { mg: 1, g: 1000, UI: 1 }
+    const massInMg = powder * (convFactor[v.powderUnit] ?? 1)
+    const volume = massInMg / target
+    return { value: `${volume.toFixed(2)} mL`, label: 'Diluente a adicionar', tone: 'info', interpretation: `Concentração final: ${target} ${v.targetUnit}` }
+  }, refs: 'Farmacotecnia — fórmula padrão',
+}
+
 export const CALCULATORS: ClinicalCalc[] = [
   crcl, egfr_ckdepi, bmi, bsa, ca_corr, anion_gap, cha2ds2, hasbled, qsofa, news2,
   wells_dvt, wells_pe, meld_na, centor, abcd2, padua, gcs, osm, fena, maddrey, light, bishop,
+  phq9, gad7, morseFall, braden, nihss, mnaSf, painNrs, apgar,
+  ivVolume, ivInfusion, ivReconstitution,
 ]
 
 export const CATEGORY_LABEL: Record<ClinicalCalc['category'], string> = {
-  renal: 'Renal', cardio: 'Cardio', metabolic: 'Metabólico', icu: 'UCI / Agudo', hema: 'Hematológico', hepatic: 'Hepático', general: 'Geral',
+  renal: 'Renal', cardio: 'Cardio', metabolic: 'Metabólico', icu: 'UCI / Agudo', hema: 'Hematológico', hepatic: 'Hepático', general: 'Geral', scales: 'Escalas',
 }

@@ -44,7 +44,7 @@ async function requireManager(req: NextRequest) {
 }
 
 // Mapeia o papel org_members → o "role" das escalas (team_members), para o
-// funcionário aparecer com a função certa no /schedule.
+// funcionário aparecer com a função certa em /equipa?tab=escalas.
 const TEAM_ROLE: Record<string, string> = {
   admin: 'coordinator', nurse: 'nurse', assistant: 'caregiver',
   clinician: 'doctor', viewer: 'other',
@@ -127,8 +127,8 @@ export async function POST(req: NextRequest) {
     await a.from('org_members').upsert({ org_id: orgId, user_id: newId, role, invited_by: user.id, active: true }, { onConflict: 'org_id,user_id' })
 
     // Torna o funcionário AGENDÁVEL logo: cria a linha team_members ligada à conta
-    // (antes /equipa e /schedule eram sistemas separados — adicionar aqui não
-    // aparecia nas escalas). Tolerante: se a tabela/coluna faltar, não parte.
+    // (a conta e as escalas partilham a mesma página /equipa, mas são tabelas
+    // diferentes). Tolerante: se a tabela/coluna faltar, não parte.
     try {
       await a.from('team_members').upsert(
         { org_id: orgId, user_id: newId, name, role: TEAM_ROLE[role] || 'other', status: 'off' },

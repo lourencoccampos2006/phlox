@@ -3,10 +3,20 @@
 // Phlox Decision Engine — motor de regras clínicas determinístico (Pro).
 // Avalia um caso clínico contra 25+ regras (STOPP/Beers/renal/QTc/anticolinérgico/duplicações)
 // e devolve achados com severidade, evidência e ação recomendada.
+//
+// JUNTADO em /assessments (aba "Decision Engine"). A rota antiga redireciona;
+// o MotorClinicoTool abaixo é reutilizado por /assessments.
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { runRules, riskScore, SEVERITY_META, type ClinicalCase, type Finding } from '@/lib/decisionEngine'
+
+export default function MotorClinicoPage() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/assessments?tab=motor-clinico') }, [r])
+  return null
+}
 
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
@@ -14,7 +24,7 @@ const card: React.CSSProperties = { background: 'white', border: '1px solid var(
 
 function splitLines(s: string): string[] { return s.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean) }
 
-export default function MotorClinicoPage() {
+export function MotorClinicoTool() {
   const [age, setAge] = useState('')
   const [sex, setSex] = useState<'M' | 'F' | ''>('')
   const [egfr, setEgfr] = useState('')

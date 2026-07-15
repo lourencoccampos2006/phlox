@@ -11,14 +11,17 @@ import { useAuth } from '@/components/AuthContext'
 import { setActiveProfile } from '@/lib/profileContext'
 import { analyzeFamilyMember, WATCH_LEVEL_META, type WatchResult, type WatchSignal } from '@/lib/caregiverWatch'
 import LinkedResidents from '@/components/LinkedResidents'
+import RiskIndexCard from '@/components/RiskIndexCard'
 import Link from 'next/link'
 
-interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; conditions?: string | null; allergies?: string | null }
+interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; height?: number | null; creatinine?: number | null; conditions?: string | null; allergies?: string | null; notes?: string | null }
 interface Med { id: string; profile_id: string; name: string; dose?: string; pills_remaining?: number | null; pills_per_day?: number | null }
 interface Vital { profile_id: string | null; recorded_at: string; bp_sys?: number | null; bp_dia?: number | null; hr?: number | null; spo2?: number | null; weight?: number | null; glucose?: number | null; temp?: number | null }
 interface Sym { profile_id: string | null; at: string; pain?: number | null; temperature?: number | null; symptoms?: string[] | null }
 
 const ACCENT = '#b45309'
+const RELATION_OPTIONS = ['Pai', 'Mãe', 'Filho', 'Filha', 'Cônjuge', 'Parceiro/a', 'Avô', 'Avó', 'Irmão', 'Irmã', 'Outro']
+const emptyForm = { name: '', relation: '', age: '', sex: '', weight: '', height: '', creatinine: '', conditions: '', allergies: '', notes: '' }
 const initials = (n: string) => n.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase()
 const SEV: Record<string, { c: string; b: string; bd: string }> = {
   critical: { c: '#991b1b', b: '#fee2e2', bd: '#fca5a5' },
@@ -36,39 +39,72 @@ export default function FamiliaPage() {
   const [syms, setSyms] = useState<Sym[]>([])
   const [loading, setLoading] = useState(true)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
-  // Adicionar familiar AQUI (cria logo o perfil — antes mandava para /perfis e não criava).
+  // Adicionar/editar familiar AQUI (cria e edita logo o perfil — era /perfis, fundido nesta página).
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ name: '', relation: '', age: '' })
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Saúde da família é valor PRO: Base/Plus = 1 familiar; Pro/Institucional ilimitado.
   const familyLimit = (user?.plan === 'pro' || user?.plan === 'clinic') ? Infinity : 1
 
-  async function createProfile() {
+  function openAdd() { setEditId(null); setForm(emptyForm); setAdding(true) }
+  function openEdit(p: Profile) {
+    setEditId(p.id)
+    setForm({
+      name: p.name, relation: p.relation || '', age: p.age?.toString() || '',
+      sex: p.sex || '', weight: p.weight?.toString() || '', height: p.height?.toString() || '',
+      creatinine: p.creatinine?.toString() || '', conditions: p.conditions || '',
+      allergies: p.allergies || '', notes: p.notes || '',
+    })
+    setAdding(true)
+  }
+
+  async function saveProfile() {
     if (!form.name.trim() || !user?.id) return
-    if (profiles.length >= familyLimit) {
+    if (!editId && profiles.length >= familyLimit) {
       alert('No plano gratuito e Plus pode acompanhar 1 familiar. Com o Pro, acompanha os familiares que quiser. Veja em /pricing.')
       return
     }
     setSaving(true)
-    const { data, error } = await supabase.from('family_profiles').insert({
-      user_id: user.id, name: form.name.trim(),
-      relation: form.relation.trim() || null,
-      age: form.age ? Number(form.age) : null,
-    }).select().single()
-    setSaving(false)
-    if (!error && data) {
-      setProfiles(prev => [...prev, data as Profile])
-      setForm({ name: '', relation: '', age: '' }); setAdding(false)
-    } else if (error) {
-      alert(`Não foi possível criar: ${error.message}`)
+    const payload = {
+      name: form.name.trim(),
+      relation: form.relation || null,
+      age: form.age ? parseInt(form.age) : null,
+      sex: form.sex || null,
+      weight: form.weight ? parseFloat(form.weight) : null,
+      height: form.height ? parseFloat(form.height) : null,
+      creatinine: form.creatinine ? parseFloat(form.creatinine) : null,
+      conditions: form.conditions || null,
+      allergies: form.allergies || null,
+      notes: form.notes || null,
     }
+    if (editId) {
+      const { data, error } = await supabase.from('family_profiles').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editId).eq('user_id', user.id).select().single()
+      setSaving(false)
+      if (!error && data) { setProfiles(ps => ps.map(p => p.id === editId ? data : p)); setAdding(false); setEditId(null); setForm(emptyForm) }
+      else if (error) alert(`Não foi possível guardar: ${error.message}`)
+    } else {
+      const { data, error } = await supabase.from('family_profiles').insert({ user_id: user.id, ...payload }).select().single()
+      setSaving(false)
+      if (!error && data) { setProfiles(prev => [...prev, data as Profile]); setAdding(false); setForm(emptyForm) }
+      else if (error) alert(`Não foi possível criar: ${error.message}`)
+    }
+  }
+
+  async function deleteProfile(id: string) {
+    if (!confirm('Apagar este perfil e toda a medicação associada?')) return
+    setDeletingId(id)
+    await supabase.from('family_profiles').delete().eq('id', id).eq('user_id', user!.id)
+    setProfiles(ps => ps.filter(p => p.id !== id))
+    setDeletingId(null)
   }
 
   const load = useCallback(async () => {
     if (!user?.id) return
     const { data: p } = await supabase.from('family_profiles')
-      .select('id,name,relation,age,sex,weight,conditions,allergies').eq('user_id', user.id).order('name')
+      .select('id,name,relation,age,sex,weight,height,creatinine,conditions,allergies,notes').eq('user_id', user.id).order('name')
     const list = (p || []) as Profile[]
     setProfiles(list)
     if (list.length) {
@@ -140,18 +176,37 @@ export default function FamiliaPage() {
         {/* Utentes ligados a um lar/centro — aparecem aqui com dados ao vivo, conversa e visitas. */}
         <LinkedResidents />
 
-        {/* Formulário inline de adicionar familiar — cria logo o perfil aqui. */}
+        {/* Formulário inline de adicionar/editar familiar — cria/edita logo o perfil aqui. */}
         {adding && (
           <div style={{ background: 'white', border: '1px solid #fde68a', borderRadius: 14, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#0b1120', marginBottom: 10 }}>Adicionar familiar</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0b1120', marginBottom: 10 }}>{editId ? 'Editar familiar' : 'Adicionar familiar'}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome" autoFocus style={{ flex: '2 1 180px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
-              <input value={form.relation} onChange={e => setForm(f => ({ ...f, relation: e.target.value }))} placeholder="Relação (Mãe, Pai…)" style={{ flex: '1 1 120px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <select value={form.relation} onChange={e => setForm(f => ({ ...f, relation: e.target.value }))} style={{ flex: '1 1 120px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none', background: 'white' }}>
+                <option value="">Relação…</option>
+                {RELATION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
               <input value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value.replace(/\D/g, '') }))} placeholder="Idade" inputMode="numeric" style={{ flex: '0 1 90px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
             </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              <select value={form.sex} onChange={e => setForm(f => ({ ...f, sex: e.target.value }))} style={{ flex: '1 1 110px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none', background: 'white' }}>
+                <option value="">Sexo…</option>
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+                <option value="outro">Outro</option>
+              </select>
+              <input value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} placeholder="Peso (kg)" type="number" step="0.1" style={{ flex: '1 1 100px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <input value={form.height} onChange={e => setForm(f => ({ ...f, height: e.target.value }))} placeholder="Altura (cm)" type="number" style={{ flex: '1 1 100px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <input value={form.creatinine} onChange={e => setForm(f => ({ ...f, creatinine: e.target.value }))} placeholder="Creatinina (mg/dL)" type="number" step="0.01" style={{ flex: '1 1 130px', padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+              <input value={form.conditions} onChange={e => setForm(f => ({ ...f, conditions: e.target.value }))} placeholder="Diagnósticos / condições (ex: HTA, DM2)" style={{ padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <input value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} placeholder="Alergias (ex: Penicilina, AINEs)" style={{ padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none' }} />
+              <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas / observações clínicas" rows={2} style={{ padding: '10px 12px', border: '1.5px solid #e9eaec', borderRadius: 9, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'var(--font-sans)' }} />
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={createProfile} disabled={saving || !form.name.trim()} style={{ padding: '10px 18px', background: saving || !form.name.trim() ? '#e2e8f0' : ACCENT, color: saving || !form.name.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, cursor: saving || !form.name.trim() ? 'default' : 'pointer' }}>{saving ? 'A criar…' : 'Criar perfil'}</button>
-              <button onClick={() => { setAdding(false); setForm({ name: '', relation: '', age: '' }) }} style={{ padding: '10px 16px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={saveProfile} disabled={saving || !form.name.trim()} style={{ padding: '10px 18px', background: saving || !form.name.trim() ? '#e2e8f0' : ACCENT, color: saving || !form.name.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, cursor: saving || !form.name.trim() ? 'default' : 'pointer' }}>{saving ? 'A guardar…' : editId ? 'Guardar alterações' : 'Criar perfil'}</button>
+              <button onClick={() => { setAdding(false); setEditId(null); setForm(emptyForm) }} style={{ padding: '10px 16px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
             </div>
           </div>
         )}
@@ -163,7 +218,7 @@ export default function FamiliaPage() {
             <div style={{ fontSize: 34, marginBottom: 14 }}>👨‍👩‍👧</div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 8 }}>De quem está a cuidar?</div>
             <div style={{ fontSize: 14.5, color: '#64748b', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para cada pessoa de quem cuida — o pai, a mãe, um filho. O Phlox guarda a medicação, os sinais vitais e os sintomas de cada um, e avisa-o quando algo precisa de atenção.</div>
-            <button onClick={() => setAdding(true)} style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, border: 'none', cursor: 'pointer' }}>+ Adicionar a primeira pessoa</button>
+            <button onClick={openAdd} style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, border: 'none', cursor: 'pointer' }}>+ Adicionar a primeira pessoa</button>
             <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 16, lineHeight: 1.5 }}>Está num lar ou centro de dia? Use o <Link href="/portal-familia" style={{ color: '#1d4ed8', fontWeight: 700, textDecoration: 'none' }}>Portal Família</Link> com o código da instituição.</div>
           </div>
         ) : profiles.length === 0 ? null : (
@@ -213,7 +268,18 @@ export default function FamiliaPage() {
                           <span style={{ fontSize: 10, fontWeight: 800, color: lv.color, background: lv.bg, border: `1px solid ${lv.border}`, borderRadius: 6, padding: '2px 8px' }}>{lv.label}</span>
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => openEdit(p)} title="Editar" style={{ padding: '6px 10px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 7, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Editar</button>
+                        <button onClick={() => deleteProfile(p.id)} disabled={deletingId === p.id} title="Apagar" style={{ padding: '6px 10px', background: 'white', color: deletingId === p.id ? '#94a3b8' : '#dc2626', border: `1px solid ${deletingId === p.id ? '#e9eaec' : '#fecaca'}`, borderRadius: 7, fontSize: 11, cursor: deletingId === p.id ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>{deletingId === p.id ? '…' : 'Apagar'}</button>
+                      </div>
                     </div>
+
+                    {/* Índice de Risco Contínuo (Pro) — histórico persistido, mesma fórmula do /timeline. */}
+                    {(user?.plan === 'pro' || user?.plan === 'clinic') && (
+                      <div style={{ padding: '0 18px 10px' }}>
+                        <RiskIndexCard profileId={p.id} title={`Risco de ${p.name.split(' ')[0]}`} />
+                      </div>
+                    )}
 
                     {/* Sinais (não-críticos — os críticos já estão no topo) */}
                     {result.signals.filter(s => s.severity !== 'critical' && s.severity !== 'major').length > 0 && (
@@ -237,7 +303,7 @@ export default function FamiliaPage() {
                       <Link href="/mymeds" onClick={() => activate(p)} style={act(ACCENT, true)}>Medicação</Link>
                       <Link href="/vitals" onClick={() => activate(p)} style={act(ACCENT)}>Vitais</Link>
                       <Link href="/sintomas" onClick={() => activate(p)} style={act(ACCENT)}>Sintomas</Link>
-                      <Link href="/consult-prep" onClick={() => activate(p)} style={act(ACCENT)}>Preparar consulta</Link>
+                      <Link href="/timeline" onClick={() => activate(p)} style={act(ACCENT)}>Ver histórico</Link>
                       <Link href="/med-review" onClick={() => activate(p)} style={act(ACCENT)}>Rever medicação</Link>
                       {/* Ligar ao lar/centro: usa o Portal Família (código + verificação) — daí
                           mensagens, medicação e visitas ligam-se ao utente da instituição. */}
@@ -247,8 +313,7 @@ export default function FamiliaPage() {
                 )
               })}
 
-              <button onClick={() => setAdding(true)} style={{ display: 'block', width: '100%', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 14, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: ACCENT, cursor: 'pointer' }}>+ Adicionar familiar</button>
-              <Link href="/familia360" style={{ display: 'block', padding: '12px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#475569', textDecoration: 'none' }}>Abrir o painel completo (Família 360°) →</Link>
+              <button onClick={openAdd} style={{ display: 'block', width: '100%', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 14, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: ACCENT, cursor: 'pointer' }}>+ Adicionar familiar</button>
             </div>
           </>
         )}

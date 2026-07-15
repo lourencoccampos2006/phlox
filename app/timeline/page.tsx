@@ -14,6 +14,7 @@ import { useAuth } from '@/components/AuthContext'
 import { getActiveProfile } from '@/lib/profileContext'
 import { printDoc } from '@/lib/print'
 import Link from 'next/link'
+import RiskIndexCard from '@/components/RiskIndexCard'
 
 // ─── Event types ──────────────────────────────────────────────────────────────
 
@@ -156,6 +157,10 @@ function TimelineEventCard({ event, isLast }: { event: TimelineEvent; isLast: bo
       {/* Card */}
       <div style={{ flex: 1, paddingBottom: isLast ? 0 : 10, paddingLeft: 12 }}>
         <div onClick={() => setExpanded(!expanded)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } }}
+          role={event.detail ? 'button' : undefined}
+          tabIndex={event.detail ? 0 : undefined}
+          aria-expanded={event.detail ? expanded : undefined}
           style={{ background: 'white', border: `1px solid ${expanded ? s.border : 'var(--border)'}`, borderRadius: 8, padding: '10px 14px', cursor: event.detail ? 'pointer' : 'default', transition: 'border-color 0.15s', marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: event.detail && expanded ? 8 : 0 }}>
             <span style={{ fontSize: 14, flexShrink: 0 }}>{s.icon}</span>
@@ -536,7 +541,7 @@ export default function TimelinePage() {
               </button>
             )}
             {/* Fechar o ciclo do registo: mostrar tudo ao médico por QR seguro. */}
-            <Link href="/health-pass" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            <Link href="/passport" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               📲 Mostrar ao médico (QR)
             </Link>
             {events.length > 0 && (
@@ -565,6 +570,14 @@ export default function TimelinePage() {
       </div>
 
       <div className="page-container page-body">
+
+        {/* Índice de Risco Contínuo (Pro) — a mesma fórmula partilhada com /familia,
+            calculada automaticamente ao abrir a página, sem pedir nada ao utilizador. */}
+        {canAnalyse && activeProfileType !== 'patient' && (
+          <div style={{ marginBottom: 20 }}>
+            <RiskIndexCard profileId={activeProfileType === 'family' ? (activeProfileId || undefined) : undefined} />
+          </div>
+        )}
 
         {/* TIMELINE */}
         {tab === 'timeline' && (

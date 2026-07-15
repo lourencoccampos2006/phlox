@@ -224,8 +224,7 @@ export default function PhloxCopilot() {
               <span style={{ fontWeight: 700, fontSize: 14 }}>Phlox Copilot</span>
               <span style={{ fontSize: 10, color: '#8b8f99', fontFamily: 'monospace' }}>⌘K</span>
             </div>
-            <button onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#8b8f99' }}>×</button>
-          </div>
+            <button aria-label="Fechar" onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#8b8f99' }}>×</button>          </div>
 
           {/* Mensagens */}
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>

@@ -44,7 +44,7 @@ export function setHidden(href: string, hidden: boolean) {
 export function resetHidden() { write({ hiddenTools: [], promotedTools: read().promotedTools }) }
 
 // Ferramentas que o utilizador escolheu mostrar no Hub apesar de não estarem
-// promovidas por defeito (estão na lista EXTRA_TOOLS_BY_MODE).
+// promovidas por defeito.
 export function getPromotedTools(): string[] { return read().promotedTools }
 export function isPromoted(href: string): boolean { return read().promotedTools.includes(href) }
 export function setPromoted(href: string, promoted: boolean) {

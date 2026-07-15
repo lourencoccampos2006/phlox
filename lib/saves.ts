@@ -7,14 +7,14 @@
 // índice central com tipos discriminados; cada ferramenta sabe o seu kind.
 
 export type SavedKind =
-  | 'mnemonic'             // /mnemonicas
-  | 'explanation'          // /explica
+  | 'mnemonic'             // /tutor?mode=explicar (era /mnemonicas)
+  | 'explanation'          // /tutor?mode=explicar (era /explica)
   | 'med_check'            // /quickcheck
-  | 'consult_prep'         // /preparar-consulta
+  | 'consult_prep'         // legado — ferramenta removida, mantido para guardados antigos
   | 'triage'               // /triagem
   | 'anatomy_model'        // /anatomia-3d
   | 'calc_result'          // /calc, /calculos
-  | 'briefing'             // /briefing
+  | 'briefing'             // /relatorio?tab=consulta (era /briefing)
   | 'note'                 // notas livres do utilizador
   | 'other'
 

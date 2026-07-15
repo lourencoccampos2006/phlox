@@ -141,7 +141,7 @@ FORMATO:
       actions.push({ label: 'Calcular ajuste de dose renal', href: '/calculators' })
     }
     if (rl.includes('compatibilidade') || rl.includes('soro')) {
-      actions.push({ label: 'Verificar compatibilidade IV', href: '/compatibility' })
+      actions.push({ label: 'Verificar compatibilidade IV', href: '/iv-compatibility' })
     }
     if (rl.includes('tensão arterial') || rl.includes('glicemia') || rl.includes('sinais vitais') || rl.includes('monitoriz')) {
       actions.push({ label: 'Registar sinais vitais', href: '/vitals' })

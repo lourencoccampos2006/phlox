@@ -125,8 +125,7 @@ export default function DocumentosPage() {
               <span style={{ fontSize: 11, color: '#8b8f99' }}>{d.chunk_count} trechos</span>
               <button onClick={() => summarizeDoc(d.id, d.title)} disabled={!!docBusy} style={docAct}>{docBusy === d.id + ':sum' ? '…' : '📄 Resumir'}</button>
               <button onClick={() => flashcardsDoc(d.id, d.title)} disabled={!!docBusy} style={docAct}>{docBusy === d.id + ':fc' ? '…' : '🃏 Flashcards'}</button>
-              <button onClick={() => removeDoc(d.id)} style={{ border: 'none', background: '#f3f4f6', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>
-            </div>
+              <button aria-label="Eliminar" onClick={() => removeDoc(d.id)} style={{ border: 'none', background: '#f3f4f6', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>            </div>
           ))}
         </div>
       )}
@@ -136,8 +135,7 @@ export default function DocumentosPage() {
         <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 18, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <b style={{ fontSize: 14 }}>{docOutput.summary ? `Resumo · ${docOutput.title}` : `Flashcards · ${docOutput.title}`}</b>
-            <button onClick={() => setDocOutput(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>
-          </div>
+            <button aria-label="Fechar" onClick={() => setDocOutput(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>          </div>
           {docOutput.summary && <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{docOutput.summary.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^## /gm, '')}</div>}
           {docOutput.cards && (
             <div style={{ display: 'grid', gap: 8 }}>

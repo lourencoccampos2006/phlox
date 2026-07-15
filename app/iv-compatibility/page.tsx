@@ -96,7 +96,7 @@ export default function IVCompatibilityPage() {
                   placeholder={`Fármaco ${i + 1} (ex: Vancomicina, Piperacilina-Tazobactam)`}
                   style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'var(--font-sans)' }} />
                 {drugs.length > 2 && (
-                  <button onClick={() => removeDrug(i)}
+                  <button aria-label="Remover" onClick={() => removeDrug(i)}
                     style={{ width: 28, height: 28, borderRadius: '50%', background: '#fee2e2', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
                 )}
               </div>

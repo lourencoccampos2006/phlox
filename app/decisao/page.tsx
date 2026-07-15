@@ -532,7 +532,7 @@ export default function DecisaoPage() {
   if (phase === 'briefing' && patient && selectedCase) return (
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: 'var(--font-sans)' }}>
 
-      <div className="page-container" style={{ padding: '40px 20px', maxWidth: 700 }}>
+      <div className="page-container" style={{ paddingTop: 40, paddingBottom: 40, maxWidth: 700 }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#475569', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Phlox Decisão · {selectedCase.specialty}</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 4 }}>{selectedCase.title}</h1>

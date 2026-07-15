@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc } from '@/lib/print'
+import TherapeuticProtocolGenerator from '@/components/protocols/TherapeuticProtocolGenerator'
 
 interface Step { text: string; critical?: boolean }
 interface Protocol {
@@ -99,6 +100,7 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 export default function ProtocolosPage() {
   const { user, supabase } = useAuth() as any
+  const [tab, setTab] = useState<'inst' | 'ai'>('inst')
   const [protocols, setProtocols] = useState<Protocol[]>([])
   const [loading, setLoading] = useState(true)
   const [tableMissing, setTableMissing] = useState(false)
@@ -191,17 +193,30 @@ export default function ProtocolosPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 880 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Governança clínica</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Protocolos</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Os protocolos da tua instituição — usados nos fluxos clínicos e imprimíveis.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Procedimentos da tua instituição, ou gera um protocolo terapêutico por IA para um doente.</p>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => setShowTemplates(true)} style={{ padding: '9px 15px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>Modelos</button>
-            <button onClick={openNew} style={{ padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Protocolo</button>
-          </div>
+          {tab === 'inst' && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setShowTemplates(true)} style={{ padding: '9px 15px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>Modelos</button>
+              <button onClick={openNew} style={{ padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Protocolo</button>
+            </div>
+          )}
         </div>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+          {([{ k: 'inst', l: '📋 Protocolos institucionais' }, { k: 'ai', l: '✨ Protocolo terapêutico (IA)' }] as const).map(x => (
+            <button key={x.k} onClick={() => setTab(x.k)}
+              style={{ padding: '9px 16px', borderRadius: 8, border: `1.5px solid ${tab === x.k ? '#0d6e42' : 'var(--border)'}`, background: tab === x.k ? '#0d6e42' : 'white', color: tab === x.k ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              {x.l}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'ai' ? <TherapeuticProtocolGenerator /> : <>
 
         {tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
@@ -238,10 +253,11 @@ export default function ProtocolosPage() {
             </div>
           ))
         )}
+        </>}
       </div>
 
       {/* VIEW */}
-      {view && (
+      {tab === 'inst' && view && (
         <Modal title={view.title} onClose={() => setView(null)} wide>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: CATS[view.category]?.color, background: (CATS[view.category]?.color || '#000') + '14', padding: '3px 10px', borderRadius: 6 }}>{CATS[view.category]?.label}</span>
@@ -312,8 +328,7 @@ export default function ProtocolosPage() {
                     <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: s.critical ? '#dc2626' : 'var(--ink-5)', cursor: 'pointer', flexShrink: 0 }}>
                       <input type="checkbox" checked={!!s.critical} onChange={e => updateStep(i, { critical: e.target.checked })} /> crítico
                     </label>
-                    <button onClick={() => removeStep(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16, flexShrink: 0 }}>×</button>
-                  </div>
+                    <button aria-label="Eliminar" onClick={() => removeStep(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16, flexShrink: 0 }}>×</button>                  </div>
                 ))}
               </div>
               <button onClick={addStep} style={{ marginTop: 8, padding: '6px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>+ Adicionar passo</button>

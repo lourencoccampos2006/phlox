@@ -132,9 +132,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Modo "${mode}" inválido` }, { status: 400 })
     }
 
-    // Log image size for debugging
     const imageSizeKB = Math.round((body.image.length * 3) / 4 / 1024)
-    console.log(`Vision request: mode=${mode}, imageSize=${imageSizeKB}KB, mime=${mimeType}`)
 
     if (imageSizeKB > 8000) {
       return NextResponse.json(

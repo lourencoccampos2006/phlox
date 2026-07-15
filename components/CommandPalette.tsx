@@ -21,14 +21,13 @@ const TOOLS: Tool[] = [
   // A Minha Saúde
   { href: '/mymeds', label: 'Medicamentos', desc: 'Lista completa com lembretes e verificação automática', icon: '💊', category: 'Saúde' },
   { href: '/vitals', label: 'Sinais Vitais', desc: 'TA · FC · SpO₂ · peso · tendências', icon: '📊', category: 'Saúde' },
-  { href: '/objetivos', label: 'Objetivos de Saúde', desc: 'Define metas e acompanha o progresso', icon: '🎯', category: 'Saúde' },
   { href: '/relatorio', label: 'Relatório Semanal', desc: 'IA analisa a tua semana e dá recomendações', icon: '📋', category: 'Saúde' },
   { href: '/sintomas', label: 'Diário de Saúde', desc: 'Registo de sintomas e bem-estar diário', icon: '📝', category: 'Saúde' },
   { href: '/adherencia', label: 'Adesão à Medicação', desc: 'Padrões de toma e insights pessoais', icon: '✅', category: 'Saúde' },
   // IA & Análise
   { href: '/ai', label: 'Phlox AI', desc: 'Co-piloto farmacológico com contexto clínico', icon: '🤖', category: 'IA & Análise' },
   { href: '/oracle', label: 'Oracle — Farmacêutico AI', desc: 'Consulta estruturada com plano de intervenção', icon: '🔮', category: 'IA & Análise' },
-  { href: '/schedule', label: 'Horário Inteligente', desc: 'IA cria o horário perfeito para a tua medicação', icon: '⏰', category: 'IA & Análise' },
+  { href: '/calendario-meds', label: 'Horário Inteligente', desc: 'IA cria o horário perfeito para a tua medicação', icon: '⏰', category: 'IA & Análise' },
   { href: '/optimizer', label: 'Otimizar Prescrição', desc: 'Genéricos mais baratos · STOPP/START · segurança', icon: '⚡', category: 'IA & Análise' },
   { href: '/scan', label: 'Tradutor de Bula', desc: 'Texto técnico em linguagem simples', icon: '📖', category: 'IA & Análise', badge: 'Grátis' },
   { href: '/labs', label: 'Perceber as Análises', desc: 'O que está fora do normal e o que fazer', icon: '🧬', category: 'IA & Análise' },
@@ -36,7 +35,7 @@ const TOOLS: Tool[] = [
   { href: '/passport', label: 'Passaporte de Saúde', desc: 'Cartão de emergência com QR code e PDF', icon: '🪪', category: 'Documentos' },
   { href: '/link', label: 'Phlox Link', desc: 'Partilha dados com médico ou farmacêutico', icon: '🔗', category: 'Documentos' },
   { href: '/prescription', label: 'Perceber a Receita', desc: 'Foto ou texto → explicação clara', icon: '📄', category: 'Documentos' },
-  { href: '/vaccines', label: 'Vacinas em Dia?', desc: 'Calendário PT · viagens · recomendações', icon: '💉', category: 'Documentos' },
+  { href: '/preventivo', label: 'Vacinas em Dia?', desc: 'Calendário PT · viagens · recomendações', icon: '💉', category: 'Documentos' },
   { href: '/integracoes', label: 'Importar Dados', desc: 'Apple Saúde · Garmin · Fitbit · MySNS', icon: '📥', category: 'Documentos' },
   // Clínico
   { href: '/turno', label: 'Turno', desc: 'Todos os doentes, doses e alertas num ecrã', icon: '🏥', category: 'Clínico' },
@@ -44,7 +43,7 @@ const TOOLS: Tool[] = [
   { href: '/mar', label: 'Administração (MAR)', desc: 'Registo de tomas por turno · alertas', icon: '📋', category: 'Clínico' },
   { href: '/patients', label: 'Doentes & Utentes', desc: 'Fichas, medicação, alertas e notas clínicas', icon: '🗂️', category: 'Clínico' },
   { href: '/calculators', label: 'Calculadoras Clínicas', desc: 'SCORE2 · CKD-EPI · Vancomicina · 15+', icon: '🧮', category: 'Clínico' },
-  { href: '/protocol', label: 'Protocolos', desc: 'ESC · ADA · NICE · DGS', icon: '📚', category: 'Clínico' },
+  { href: '/protocolos', label: 'Protocolos', desc: 'ESC · ADA · NICE · DGS', icon: '📚', category: 'Clínico' },
   { href: '/med-review', label: 'Revisão de Medicação', desc: 'Análise clínica completa do esquema', icon: '🔬', category: 'Clínico' },
   // Estudantes
   { href: '/arena', label: 'Arena', desc: 'Ligas competitivas com casos clínicos IA', icon: '🏆', category: 'Estudantes' },

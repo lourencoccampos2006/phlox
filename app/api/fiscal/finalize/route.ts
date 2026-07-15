@@ -37,14 +37,15 @@ export async function POST(req: NextRequest) {
   // série + código ATCUD validado (se a instituição o tiver registado)
   const { data: serieRow } = await sb.from('doc_series').select('atcud_code').eq('user_id', userId).eq('doc_type', docType).eq('series', series).eq('year', year).maybeSingle()
 
-  // alocar nº sequencial atómico (RPC). Fallback: contar + 1 se a função não existir.
-  let seq: number | null = null
+  // alocar nº sequencial atómico (RPC). Sem fallback: um "contar + 1" não é
+  // atómico e duas finalizações em simultâneo podiam gerar o mesmo número —
+  // numeração legal (AT) tem de falhar em vez de arriscar uma colisão.
   const rpc = await sb.rpc('next_doc_seq', { p_user: userId, p_type: docType, p_series: series, p_year: year })
-  if (!rpc.error && typeof rpc.data === 'number') seq = rpc.data
-  if (seq == null) {
-    const { count } = await sb.from('sales').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('doc_type', docType).eq('series', series).not('seq', 'is', null)
-    seq = (count || 0) + 1
+  if (rpc.error || typeof rpc.data !== 'number') {
+    console.error('next_doc_seq RPC failed:', rpc.error)
+    return NextResponse.json({ error: 'Não foi possível atribuir o número sequencial. Tente novamente.' }, { status: 500 })
   }
+  const seq: number = rpc.data
 
   // hash do documento anterior da MESMA série/ano (cadeia)
   const { data: prev } = await sb.from('sales').select('doc_hash,seq').eq('user_id', userId).eq('doc_type', docType).eq('series', series).not('doc_hash', 'is', null).order('seq', { ascending: false }).limit(1).maybeSingle()

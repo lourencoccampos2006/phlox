@@ -249,8 +249,7 @@ function AgendaTool() {
                           ) : (
                             <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, padding: '3px 9px', borderRadius: 6 }}>{st.label}</span>
                           )}
-                          <button onClick={() => remove(a)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>
-                        </div>
+                          <button aria-label="Eliminar" onClick={() => remove(a)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>                        </div>
                       </div>
                     )
                   })}
@@ -266,8 +265,7 @@ function AgendaTool() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 36px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editId ? 'Editar agendamento' : 'Novo agendamento'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><span style={lbl}>Título *</span><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: Consulta de Cardiologia" style={inp} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

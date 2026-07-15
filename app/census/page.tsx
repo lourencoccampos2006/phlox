@@ -159,8 +159,7 @@ export default function CensusPage() {
             <input type="number" value={totalBeds} onChange={e => updateTotalBeds(parseInt(e.target.value) || 30)} min={1} max={500}
               style={{ width: 80, border: '1.5px solid var(--border)', borderRadius: 7, padding: '6px 10px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
             <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>Guardado neste dispositivo.</span>
-            <button onClick={() => setShowConfig(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-4)', marginLeft: 'auto' }}>×</button>
-          </div>
+            <button aria-label="Fechar" onClick={() => setShowConfig(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--ink-4)', marginLeft: 'auto' }}>×</button>          </div>
         )}
 
         {/* Occupancy bar */}
@@ -222,6 +221,10 @@ export default function CensusPage() {
               return (
                 <div key={room.number}
                   onClick={empty ? () => cycleRoomStatus(room.number) : undefined}
+                  onKeyDown={empty ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleRoomStatus(room.number) } } : undefined}
+                  role={empty ? 'button' : undefined}
+                  tabIndex={empty ? 0 : undefined}
+                  aria-label={empty ? `Quarto ${room.number} — alternar estado` : undefined}
                   title={empty ? 'Tocar para alternar: Disponível → Manutenção → Reservado' : undefined}
                   style={{ background: sc.bg, border: `1.5px solid ${sc.border}`, borderRadius: 10, padding: '10px 12px', minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: empty ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

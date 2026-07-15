@@ -155,7 +155,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                 style={{ padding: '6px 14px', background: loading || !drugInput.trim() ? 'var(--bg-3)' : 'var(--green)', color: loading || !drugInput.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
                 {loading ? '...' : 'Pesquisar'}
               </button>
-              <button onClick={handleClose}
+              <button aria-label="Fechar" onClick={handleClose}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', fontSize: 20, padding: '0 4px', lineHeight: 1, flexShrink: 0 }}>×</button>
             </div>
 
@@ -414,7 +414,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                 Gerado por AI — confirma sempre com o RCM/SmPC do medicamento
               </span>
               {data?.name && (
-                <a href={`/ficha?drug=${encodeURIComponent(data.name)}`} target="_blank"
+                <a href={`/tutor?mode=ficha&drug=${encodeURIComponent(data.name)}`} target="_blank"
                   style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green)', textDecoration: 'none', fontWeight: 700 }}>
                   Ficha completa →
                 </a>

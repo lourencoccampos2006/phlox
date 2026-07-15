@@ -769,8 +769,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Conversas anteriores</div>
-                  <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>
-                </div>
+                  <button aria-label="Fechar" onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>                </div>
                 {savedChats.length === 0 ? (
                   <div style={{ fontSize: 12.5, color: 'var(--ink-5)', textAlign: 'center', padding: 12 }}>Sem conversas guardadas ainda.</div>
                 ) : (
@@ -781,8 +780,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
                           <div style={{ fontSize: 10.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{c.count} msg · {new Date(c.updated).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                         </button>
-                        <button onClick={() => deleteSavedChat(c.id)} title="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 14, padding: '0 4px' }}>×</button>
-                      </div>
+                        <button aria-label="Eliminar" onClick={() => deleteSavedChat(c.id)} title="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 14, padding: '0 4px' }}>×</button>                      </div>
                     ))}
                   </div>
                 )}

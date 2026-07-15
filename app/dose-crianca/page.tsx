@@ -202,7 +202,7 @@ export default function DoseCriancaPage() {
                 <div style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>
                   Guardar no perfil de uma criança?
                 </div>
-                <Link href="/perfis" style={{ fontSize: 12, color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, border: '1px solid var(--green)', padding: '6px 12px', borderRadius: 5, flexShrink: 0 }}>
+                <Link href="/familia" style={{ fontSize: 12, color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700, border: '1px solid var(--green)', padding: '6px 12px', borderRadius: 5, flexShrink: 0 }}>
                   Ver perfis →
                 </Link>
               </div>

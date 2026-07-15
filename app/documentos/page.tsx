@@ -167,8 +167,7 @@ function DocumentosTool() {
                           <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 1 }}>{new Date(d.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}{d.expiry_date ? ` · validade ${new Date(d.expiry_date + 'T12:00:00').toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}` : ''}</div>
                         </div>
                         <button onClick={() => open(d)} style={{ padding: '7px 13px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Abrir</button>
-                        <button onClick={() => remove(d)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>
-                      </div>
+                        <button aria-label="Eliminar" onClick={() => remove(d)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>                      </div>
                     )
                   })}
                 </div>
@@ -183,8 +182,7 @@ function DocumentosTool() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, padding: '20px 22px 36px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Novo documento</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><span style={lbl}>Nome *</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Contrato de prestação de serviços" style={inp} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

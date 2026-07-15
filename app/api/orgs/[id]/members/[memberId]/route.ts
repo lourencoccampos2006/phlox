@@ -2,23 +2,14 @@
 // DELETE remove membership.
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
-import { createClient } from '@supabase/supabase-js'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { authedClient as sb, requireOrgRole } from '@/lib/orgAuth'
 
 const ROLES = ['owner','admin','clinician','pharmacist','nurse','assistant','accountant','viewer','student','caregiver','self']
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string; memberId: string }> }) {
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-  const { memberId } = await ctx.params
+  const { id: orgId, memberId } = await ctx.params
   const body = await req.json().catch(() => null)
   const updates: any = {}
   if (typeof body?.role === 'string' && ROLES.includes(body.role)) updates.role = body.role
@@ -28,7 +19,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (typeof body?.active === 'boolean') updates.active = body.active
 
   const db = sb(req)
-  const { data, error } = await db.from('org_members').update(updates).eq('id', memberId).select().single()
+  const denied = await requireOrgRole(db, userId, orgId, ['owner', 'admin'])
+  if (denied) return denied
+  const { data, error } = await db.from('org_members').update(updates).eq('id', memberId).eq('org_id', orgId).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ member: data })
 }
@@ -36,9 +29,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string; memberId: string }> }) {
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
-  const { memberId } = await ctx.params
+  const { id: orgId, memberId } = await ctx.params
   const db = sb(req)
-  const { error } = await db.from('org_members').delete().eq('id', memberId)
+  const denied = await requireOrgRole(db, userId, orgId, ['owner', 'admin'])
+  if (denied) return denied
+  const { error } = await db.from('org_members').delete().eq('id', memberId).eq('org_id', orgId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

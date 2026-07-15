@@ -114,8 +114,7 @@ export default function WebhooksPage() {
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
                         <button onClick={() => test(ep)} style={{ padding: '6px 11px', borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: '#374151', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Testar</button>
                         <button onClick={() => toggleActive(ep)} style={{ padding: '6px 11px', borderRadius: 7, border: `1px solid ${ep.active ? '#bbf7d0' : 'var(--border)'}`, background: ep.active ? '#f0fdf4' : 'white', color: ep.active ? '#16a34a' : 'var(--ink-4)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{ep.active ? 'Ativo' : 'Inativo'}</button>
-                        <button onClick={() => del(ep.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-                      </div>
+                        <button aria-label="Eliminar" onClick={() => del(ep.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                      </div>
                     </div>
                     <div style={{ marginTop: 8, fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>secret: {ep.secret.slice(0, 12)}…</div>
                   </div>
@@ -149,8 +148,7 @@ export default function WebhooksPage() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 500, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Novo webhook</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div><span style={lbl}>URL de destino</span><input value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://hooks.zapier.com/…" style={inp} autoFocus /></div>
               <div><span style={lbl}>Descrição (opcional)</span><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Ex: Sincronizar com o ERP" style={inp} /></div>

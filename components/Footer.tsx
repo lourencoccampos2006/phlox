@@ -11,7 +11,7 @@ export default function Footer() {
 
   return (
     <footer style={{ borderTop: '1px solid var(--border)', background: 'white', marginTop: 80, fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container" style={{ padding: '34px 0 30px' }}>
+      <div className="page-container" style={{ paddingTop: 34, paddingBottom: 30 }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 28, flexWrap: 'wrap' }}>
 

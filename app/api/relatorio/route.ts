@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getUserPlan } from '@/lib/planGate'
+import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
 
@@ -17,8 +17,11 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || 'unknown'
   if (!checkRateLimit(ip, 3, 60_000).allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
-  const { userId } = await getUserPlan(req)
+  const { userId, plan } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  // /relatorio deixou de ser uma página só Pro em PLAN_ROUTES (agora tem
+  // separadores grátis) — o gate tem de estar aqui, não só no <PlanGate> cliente.
+  if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('pro', 'Relatório Semanal')
 
   const supabase = makeSupabase(req)
 

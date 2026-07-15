@@ -4,10 +4,7 @@ import { sendEmail, planUpgradedEmail, paymentFailedEmail } from '@/lib/email'
 import { planName } from '@/lib/plans'
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
 async function verifyStripeSignature(body: string, signature: string, secret: string): Promise<boolean> {
@@ -26,6 +23,14 @@ async function verifyStripeSignature(body: string, signature: string, secret: st
 }
 
 export async function POST(req: NextRequest) {
+  // Sem a service-role key, um fallback para a chave anon deixaria estas
+  // atualizações de plano falhar por RLS de forma confusa (ou, pior, correr
+  // sob permissões mais fracas sem avisar). Falha alto e claro em vez disso.
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY not set — refusing to process Stripe webhook')
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 503 })
+  }
+
   const body = await req.text()
   const signature = req.headers.get('stripe-signature') || ''
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -54,12 +59,16 @@ export async function POST(req: NextRequest) {
       const userId = obj.metadata?.user_id
       const plan = obj.metadata?.plan
       if (userId && plan) {
-        await getSupabase().from('profiles').update({
+        const { error } = await getSupabase().from('profiles').update({
           plan,
           stripe_customer_id: obj.customer || null,
           stripe_subscription_id: obj.subscription || null,
           plan_status: 'active',
         }).eq('id', userId)
+        if (error) {
+          console.error(`Failed to upgrade user ${userId} to ${plan}:`, error)
+          return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
+        }
         console.log(`Upgraded user ${userId} to ${plan}`)
         // Email de confirmação (best-effort)
         const email = obj.customer_details?.email || obj.customer_email
@@ -83,7 +92,11 @@ export async function POST(req: NextRequest) {
           plan_renews_at: obj.current_period_end ? new Date(obj.current_period_end * 1000).toISOString() : null,
         }
         if (plan && status === 'active' && !obj.cancel_at_period_end) patch.plan = plan
-        await getSupabase().from('profiles').update(patch).eq('id', userId)
+        const { error } = await getSupabase().from('profiles').update(patch).eq('id', userId)
+        if (error) {
+          console.error(`Failed to update subscription for user ${userId}:`, error)
+          return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
+        }
       }
       break
     }
@@ -92,7 +105,11 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.deleted': {
       const userId = obj.metadata?.user_id
       if (userId) {
-        await getSupabase().from('profiles').update({ plan: 'free', plan_status: 'canceled', stripe_subscription_id: null }).eq('id', userId)
+        const { error } = await getSupabase().from('profiles').update({ plan: 'free', plan_status: 'canceled', stripe_subscription_id: null }).eq('id', userId)
+        if (error) {
+          console.error(`Failed to downgrade user ${userId} to free:`, error)
+          return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
+        }
         console.log(`Downgraded user ${userId} to free`)
       }
       break

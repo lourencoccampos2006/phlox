@@ -37,13 +37,13 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: 'health', label: 'Saúde', color: '#e11d48',
     tools: [
       { href: '/saude-agora', icon: '🚨', label: 'Não me sinto bem',     desc: 'Médico, urgências ou em casa? · 112' },
+      { href: '/sintomas',  icon: '🌡', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
       { href: '/vault',     icon: '🔒', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
-      { href: '/passport',  icon: '🆘', label: 'Cartão de emergência',  desc: 'Código QR para uma emergência' },
-      { href: '/health-pass', icon: '📲', label: 'Mostrar a minha saúde ao médico', desc: 'Um código QR com tudo, para o médico ou a farmácia' },
+      { href: '/timeline',  icon: '🗓', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
+      { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
       { href: '/labs',      icon: '🧪', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
       { href: '/preventivo', icon: '🛡️', label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)' },
-      { href: '/objetivos', icon: '🎯', label: 'Os meus objetivos',     desc: 'Metas e acompanhamento' },
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
       { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
     ],
@@ -52,7 +52,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: 'caregiver', label: 'Cuidador', color: '#b45309',
     tools: [
       { href: '/familia',    icon: '🏠',   label: 'A minha família',    desc: 'A saúde de cada pessoa num só sítio' },
-      { href: '/perfis',     icon: '👤',   label: 'Gerir perfis',       desc: 'Adicionar e editar familiares' },
+      { href: '/familia',     icon: '👤',   label: 'Gerir perfis',       desc: 'Adicionar e editar familiares' },
       { href: '/dose-crianca', icon: '🧒', label: 'Dose para crianças', desc: 'Por peso e por medicamento' },
     ],
   },
@@ -74,7 +74,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/tpn',                icon: '🧪', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
       { href: '/adr-report',         icon: '⚠️', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
       { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',   desc: 'Formulário · DDD · Ruturas · Custos' },
-      { href: '/schedule',               icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
+      { href: '/equipa',                 icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
     ],
   },
   {
@@ -92,31 +92,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     ],
   },
 ]
-
-export const PERSONA_NAV: Record<string, Array<{ href: string; label: string }>> = {
-  personal:  [
-    { href: '/mymeds',       label: 'Medicação' },
-    { href: '/vitals',       label: 'Saúde' },
-    { href: '/interactions', label: 'Verificar' },
-    { href: '/ai',           label: 'IA' },
-  ],
-  caregiver: [
-    { href: '/familia',  label: 'Família' },
-    { href: '/mymeds',   label: 'Medicação' },
-    { href: '/verificar', label: 'Verificar' },
-    { href: '/passport', label: 'Emergência' },
-  ],
-  clinical: [
-    { href: '/painel',             label: 'Painel' },
-    { href: '/mar',                label: 'MAR' },
-  ],
-  student: [
-    { href: '/arena',     label: 'Arena' },
-    { href: '/study',     label: 'Estudar' },
-    { href: '/simulador', label: 'Simular' },
-    { href: '/arena', label: 'Progresso' },
-  ],
-}
 
 // ── Mode isolation ────────────────────────────────────────────────────────────
 // Quem é clínico NÃO vê ferramentas pessoais. Quem é pessoal NÃO vê o cockpit.
@@ -152,55 +127,6 @@ export function getAllToolsForMode(mode: Mode): (NavTool & { categoryLabel: stri
   )
 }
 
-/**
- * Ferramentas que existem na app mas não estão promovidas no Hub. O utilizador
- * pode ativá-las em /settings/tools. Ficam por modo, com etiqueta clara.
- * 2026-06-01: adicionada por feedback explícito do utilizador — "há ferramentas
- * que não são acessíveis de lado nenhum".
- */
-export const EXTRA_TOOLS_BY_MODE: Record<Mode, NavTool[]> = {
-  personal: [
-    { href: '/sintomas',         icon: '📓', label: 'Diário de saúde',     desc: 'Sintomas diários · bem-estar · notas' },
-    { href: '/objetivos',     icon: '🎯', label: 'Objetivos de saúde',  desc: 'Metas e acompanhamento' },
-    { href: '/preparar-consulta', icon: '📋', label: 'Preparar consulta', desc: 'Perguntas certas para o médico' },
-    { href: '/sintomas',      icon: '🩹', label: 'Diário de sintomas',  desc: 'Regista episódios com gatilhos' },
-    { href: '/cartao-emergencia', icon: '🆘', label: 'Cartão de emergência', desc: 'Cartão visual estilo Wallet' },
-    { href: '/dose-crianca',  icon: '🧒', label: 'Dose pediátrica',     desc: 'Por peso e medicamento' },
-    { href: '/timeline',      icon: '📈', label: 'Histórico clínico',   desc: 'Evolução ao longo do tempo' },
-  ],
-  caregiver: [
-    { href: '/preparar-consulta', icon: '📋', label: 'Preparar consulta', desc: 'Perguntas para o médico do familiar' },
-    { href: '/sintomas',         icon: '📓', label: 'Diário',              desc: 'Registo diário do familiar' },
-    { href: '/sintomas',      icon: '🩹', label: 'Diário de sintomas',  desc: 'Episódios com gatilhos' },
-    { href: '/dose-crianca',  icon: '🧒', label: 'Dose pediátrica',     desc: 'Para crianças por peso' },
-    { href: '/timeline',      icon: '📈', label: 'Histórico',           desc: 'Evolução clínica' },
-  ],
-  student: [
-    { href: '/estudar-conceito', icon: '🎓', label: 'Estudar um conceito', desc: 'Explica + mnemónica + plano · num só sítio' },
-    { href: '/exam',          icon: '📝', label: 'Simulação de exame',  desc: 'Exame cronometrado, formato real' },
-    // Mantemos /explica e /mnemonicas como atalhos para quem só quer um
-    { href: '/explica',       icon: '✨', label: 'Explica-me (só)',     desc: 'Atalho direto à explicação' },
-    { href: '/mnemonicas',    icon: '🧠', label: 'Mnemónicas (só)',     desc: 'Atalho direto à mnemónica' },
-  ],
-  clinical: [
-    { href: '/calculos',      icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, eGFR, doses, escalas (CHA₂DS₂, qSOFA…)' },
-    { href: '/pk-dosing',     icon: '🔬', label: 'Console PK',          desc: 'Vancomicina AUC, aminoglicosídeos' },
-    { href: '/antibiotics',   icon: '💉', label: 'Antibioterapia',      desc: 'Empírica + stewardship' },
-    { href: '/stopp-start',   icon: '🛑', label: 'STOPP/START',         desc: 'v3 + Beers' },
-    { href: '/tpn',           icon: '🧪', label: 'Nutrição parentérica',desc: 'ASPEN 2022' },
-    { href: '/adr-report',    icon: '⚠️', label: 'Notificar RAM',       desc: 'WHO-UMC + INFARMED' },
-    { href: '/drug-intelligence', icon: '🧬', label: 'Drug Intelligence', desc: 'Formulário, DDD, ruturas' },
-    { href: '/counseling',    icon: '🗒', label: 'Aconselhamento',      desc: 'Folha informativa ao doente' },
-    { href: '/iv-compatibility', icon: '🧪', label: 'Compatibilidade IV', desc: 'Y-site, mistura, seringa' },
-    { href: '/electrolytes',  icon: '⚡', label: 'Eletrólitos',         desc: 'Protocolos K, Na, Mg, Ca' },
-    { href: '/emergency-doses', icon: '🚨', label: 'Doses de urgência', desc: 'Por peso e tempo' },
-    { href: '/nota-clinica',  icon: '🗒', label: 'Nota clínica SOAP',   desc: 'Estruturada com IA' },
-    { href: '/ronda-guiada',  icon: '🔁', label: 'Passa-turno',         desc: 'Ronda coordenada' },
-    { href: '/drug-info',     icon: '💊', label: 'Info de fármaco',     desc: 'Monografia' },
-    { href: '/protocol',      icon: '📑', label: 'Protocolos',          desc: 'ESC, ADA, NICE, DGS' },
-  ],
-}
-
 export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   personal: [
     { href: '/mymeds',       icon: '💊', label: 'Comprimidos', desc: 'A lista e os lembretes de hoje' },
@@ -212,7 +138,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   ],
   caregiver: [
     { href: '/familia',      icon: '👨‍👩‍👧', label: 'Dashboard',  desc: 'Resumo de todos os familiares', badge: 'Novo' },
-    { href: '/perfis',       icon: '👤',   label: 'Perfis',     desc: 'Gerir perfis familiares' },
+    { href: '/familia',       icon: '👤',   label: 'Perfis',     desc: 'Gerir perfis familiares' },
     { href: '/mymeds',       icon: '💊',   label: 'Medicação',  desc: 'Lista e lembretes' },
     { href: '/interactions', icon: '🔍',   label: 'Verificar',  desc: 'São seguros juntos?' },
     { href: '/calendario-meds', icon: '⏰',   label: 'Horário de toma', desc: 'A que horas devo tomar cada medicamento' },
@@ -222,7 +148,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/painel',             icon: '🎛️', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
     { href: '/mar',                icon: '📝', label: 'MAR',           desc: 'Registo de administração' },
     { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intel',    desc: 'Formulário · DDD · Ruturas · Custos' },
-    { href: '/schedule',               icon: '👥', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
+    { href: '/equipa',                 icon: '👥', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
     { href: '/calculos',           icon: '🧮', label: 'Calculadoras',  desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
     { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',    desc: 'Vancomicina AUC · Aminoglicosídeos' },
     { href: '/tpn',                icon: '🧪', label: 'NP',            desc: 'Nutrição parentérica ASPEN 2022' },

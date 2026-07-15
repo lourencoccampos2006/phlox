@@ -121,8 +121,7 @@ export default function VigiaPage() {
         <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
             <b style={{ fontSize: 15 }}>Relatório clínico do lar</b>
-            <button onClick={() => setReport(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>
-          </div>
+            <button aria-label="Fechar" onClick={() => setReport(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>          </div>
           <MarkdownLite text={report} />
         </article>
       )}
@@ -163,8 +162,7 @@ export default function VigiaPage() {
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, maxWidth: 560, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h3 style={{ margin: 0, fontSize: 18 }}>{open.name} · risco {open.vigilance.risk_score}/100</h3>
-              <button onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>            </div>
             {open.vigilance.alerts.length === 0 ? <p style={{ color: '#6b7280', fontSize: 13 }}>Sem alertas farmacológicos relevantes.</p> : (
               <div style={{ display: 'grid', gap: 8 }}>
                 {open.vigilance.alerts.map((a, i) => {

@@ -30,8 +30,6 @@ const LABELS: Record<string, { label: string; icon: string }> = {
   '/patients': { label: 'Doentes', icon: '👥' },
   '/calc': { label: 'Calculadoras', icon: '∑' },
   '/emergency': { label: 'Cartão emergência', icon: '🆘' },
-  '/preparar-consulta': { label: 'Preparar consulta', icon: '📋' },
-  '/motor-clinico': { label: 'Decision Engine', icon: '🧠' },
   '/atendimentos': { label: 'Atendimentos', icon: '📝' },
   '/vendas': { label: 'POS', icon: '🧾' },
 }

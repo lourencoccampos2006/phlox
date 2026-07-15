@@ -268,7 +268,7 @@ export default function MonitorPage() {
                 <div style={{ fontSize:13, color:'var(--ink-4)', marginBottom:20 }}>Adiciona medicamentos aos teus perfis para activar a monitorização.</div>
                 <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
                   <Link href="/mymeds" style={{ padding:'10px 18px', background:'var(--ink)', color:'white', textDecoration:'none', borderRadius:7, fontSize:13, fontWeight:700 }}>Os meus medicamentos →</Link>
-                  <Link href="/perfis" style={{ padding:'10px 18px', background:'white', color:'var(--ink)', textDecoration:'none', borderRadius:7, fontSize:13, fontWeight:700, border:'1px solid var(--border)' }}>Perfis familiares →</Link>
+                  <Link href="/familia" style={{ padding:'10px 18px', background:'white', color:'var(--ink)', textDecoration:'none', borderRadius:7, fontSize:13, fontWeight:700, border:'1px solid var(--border)' }}>Perfis familiares →</Link>
                 </div>
               </div>
             ) : (

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         user_id: c.user.id, author_id: c.user.id, author_name: c.name, channel: 'stock',
         body: `📦 ${item.name} a acabar${body.note ? ` — ${body.note}` : ''}. Precisa de encomenda.`, priority: 'importante',
       })).then(() => {}, () => {})
-      if (c.orgId) notifyOrgMembers(c.orgId, c.user.id, { title: '📦 Stock a acabar', body: `${item.name} — precisa de encomenda`, url: '/equipa-mural', tag: 'stock' }).catch(() => {})
+      if (c.orgId) notifyOrgMembers(c.orgId, c.user.id, { title: '📦 Stock a acabar', body: `${item.name} — precisa de encomenda`, url: '/equipa?tab=mural', tag: 'stock'}).catch(() => {})
       return NextResponse.json({ ok: true, reorder_status: 'requested' })
     }
     if (body.action === 'ordered') {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       user_id: c.user.id, author_id: c.user.id, author_name: c.name, channel: 'stock',
       body: `📦 ${item.name} atingiu o mínimo (${newQty} ${item.unit || 'un'}). Precisa de encomenda.`, priority: 'importante',
     })).then(() => {}, () => {})
-    if (c.orgId) notifyOrgMembers(c.orgId, c.user.id, { title: '📦 Stock no mínimo', body: `${item.name} — ${newQty} ${item.unit || 'un'}`, url: '/equipa-mural', tag: 'stock' }).catch(() => {})
+    if (c.orgId) notifyOrgMembers(c.orgId, c.user.id, { title: '📦 Stock no mínimo', body: `${item.name} — ${newQty} ${item.unit || 'un'}`, url: '/equipa?tab=mural', tag: 'stock'}).catch(() => {})
     alerted = true
   }
   return NextResponse.json({ ok: true, quantity: newQty, alerted })

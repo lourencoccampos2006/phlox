@@ -1,6 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+// JUNTADO em /assessments (aba "Polimedicação"). A rota antiga redireciona; o
+// PolypharmacyTool abaixo é reutilizado por /assessments.
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
+export default function PolypharmacyRedirect() {
+  const r = useRouter()
+  useEffect(() => { r.replace('/assessments?tab=polypharmacy') }, [r])
+  return null
+}
 
 interface PolypharmacyResult {
   risk_score: number
@@ -56,7 +66,7 @@ Ibuprofeno 400mg 3x/dia
 Metoclopramida 10mg 3x/dia
 Haloperidol 1mg 1x/dia`
 
-export default function PolypharmacyPage() {
+export function PolypharmacyTool() {
   const [age, setAge] = useState('')
   const [sex, setSex] = useState('')
   const [weight, setWeight] = useState('')

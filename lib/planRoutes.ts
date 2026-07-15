@@ -23,14 +23,14 @@ export const PLAN_ROUTES: PlanRoute[] = [
 
   // ── Pro: pessoa / cuidador avançado ──
   { prefix: '/saude360', min: 'pro', tool: 'Saúde 360°', note: 'A tua saúde toda num só sítio: adesão à medicação, análises, agenda e o que precisa de atenção.' },
-  { prefix: '/relatorio', min: 'pro', tool: 'Relatório semanal', note: 'Resumo por IA de como correu a tua semana de saúde.' },
+  // NOTA: /relatorio NÃO está aqui de propósito — deixou de ser uma página só
+  // Pro (absorveu /brief e /medico-bolso, grátis). O separador "Relatório
+  // Semanal" gate-a a si próprio com <PlanGate> dentro da página.
   { prefix: '/familia360', min: 'pro', tool: 'Família 360°', note: 'Tudo de quem cuidas num só painel: medicação, mensagens e sobrecarga do cuidador (Zarit).' },
 
   // ── Pro: ferramentas clínicas individuais ──
-  { prefix: '/motor-clinico', min: 'pro', tool: 'Decision Engine', note: 'Motor de regras clínicas determinístico, com 25+ regras (STOPP/Beers/renal/QTc/anticolinérgico).' },
   { prefix: '/vigia', min: 'pro', tool: 'Vigia Clínico do Lar', note: 'Vigilância farmacológica automática de todos os residentes — interações, STOPP/Beers, polimedicação, priorizado por risco.' },
   { prefix: '/copiloto', min: 'pro', tool: 'AI Copilot clínico', note: 'IA ancorada no Decision Engine — cita cada recomendação por id de regra.' },
-  { prefix: '/insights', min: 'pro', tool: 'Phlox Insights', note: 'Benchmarks anonimizados contra o pool do mesmo tipo de instituição.' },
   { prefix: '/reconciliacao', min: 'pro', tool: 'Reconciliação Terapêutica', note: 'Reconciliação de medicação na transição de cuidados.' },
   { prefix: '/med-review', min: 'pro', tool: 'Revisão da Medicação', note: 'Revisão farmacoterapêutica avançada.' },
   { prefix: '/tpn', min: 'pro', tool: 'Nutrição Parentérica (TPN)', note: 'Cálculo e validação de TPN.' },
@@ -44,7 +44,6 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/osce', min: 'student', tool: 'OSCE' },
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },
   { prefix: '/tutor', min: 'student', tool: 'AI Tutor' },
-  { prefix: '/exam', min: 'student', tool: 'Quiz / Teste' },
   { prefix: '/modo-exame', min: 'student', tool: 'Modo Exame', note: 'Plano de contagem decrescente até ao exame, com revisão espaçada e sprint final.' },
   { prefix: '/study/professor', min: 'student', tool: 'Modo Professor', note: 'Ensinas o Phlox e ele descobre as tuas lacunas.' },
   { prefix: '/study/exame', min: 'student', tool: 'Gerador de exame', note: 'Prevê o teu exame a partir das tuas sebentas e corrige respostas de desenvolvimento.' },

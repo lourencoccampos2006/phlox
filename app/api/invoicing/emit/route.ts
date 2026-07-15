@@ -73,11 +73,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Este provedor usa exportação de ficheiro (não emissão automática). Usa o botão Exportar.' }, { status: 400 })
     }
 
-    // marca a venda como exportada/emitida + auditoria
-    if (sale.id) await sb.from('sales').update({ exported: true, export_ref: ref, doc_number: docNumber || sale.doc_number || null, provider: cfg.provider }).eq('id', sale.id).eq('user_id', userId)
-    await sb.from('fiscal_exports').insert({ user_id: userId, kind: cfg.provider, rows: 1, total: Math.max(0, (sale.gross || 0) - (sale.discount || 0)), ref, status: 'ok' })
+    // marca a venda como exportada/emitida + auditoria. O documento já foi
+    // emitido no provedor externo nesta altura — se o registo local falhar,
+    // não podemos dizer "falhou" (arriscaria emissão duplicada numa nova
+    // tentativa); avisamos o cliente para reconciliar manualmente em vez de
+    // esconder o problema.
+    let localSaveFailed = false
+    if (sale.id) {
+      const { error } = await sb.from('sales').update({ exported: true, export_ref: ref, doc_number: docNumber || sale.doc_number || null, provider: cfg.provider }).eq('id', sale.id).eq('user_id', userId)
+      if (error) { console.error('Failed to mark sale as exported:', error); localSaveFailed = true }
+    }
+    const { error: exportErr } = await sb.from('fiscal_exports').insert({ user_id: userId, kind: cfg.provider, rows: 1, total: Math.max(0, (sale.gross || 0) - (sale.discount || 0)), ref, status: 'ok' })
+    if (exportErr) { console.error('Failed to record fiscal export:', exportErr); localSaveFailed = true }
 
-    return NextResponse.json({ ok: true, ref, docNumber, provider: cfg.provider })
+    return NextResponse.json({
+      ok: true, ref, docNumber, provider: cfg.provider,
+      ...(localSaveFailed ? { warning: `Documento emitido (ref. ${ref}) mas o registo local falhou — confirme manualmente para evitar emissão duplicada.` } : {}),
+    })
   } catch (e: any) {
     await sb.from('fiscal_exports').insert({ user_id: userId, kind: cfg.provider, rows: 1, status: 'error', detail: String(e?.message || e).slice(0, 300) }).then(() => {}, () => {})
     return NextResponse.json({ error: `Falha na emissão: ${String(e?.message || e).slice(0, 200)}` }, { status: 502 })

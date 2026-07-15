@@ -250,8 +250,7 @@ function SavedRow({ item }: { item: SavedItem }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
         <button onClick={() => togglePin(item.id)} title={item.pinned ? 'Desafixar' : 'Fixar'} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: item.pinned ? '#b45309' : '#cbd5e1', padding: 3 }}>★</button>
-        <button onClick={() => { if (confirm('Eliminar?')) remove(item.id) }} title="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8', padding: 3 }}>×</button>
-      </div>
+        <button aria-label="Eliminar" onClick={() => { if (confirm('Eliminar?')) remove(item.id) }} title="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8', padding: 3 }}>×</button>      </div>
     </div>
   )
 }
@@ -266,8 +265,7 @@ function EmptyState() {
       </p>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Link href="/medicamento" style={chipLink}>O que é este medicamento? ↗</Link>
-        <Link href="/explica" style={chipLink}>Explica-me ↗</Link>
-        <Link href="/preparar-consulta" style={chipLink}>Preparar consulta ↗</Link>
+        <Link href="/tutor?mode=explicar" style={chipLink}>Explica-me ↗</Link>
       </div>
     </div>
   )

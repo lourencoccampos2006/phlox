@@ -138,8 +138,7 @@ export default function FinanceLedger({ month, monthlyReceived }: { month: strin
                 <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 1 }}>{m.category ? `${m.category} · ` : ''}{new Date(m.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}{m.method ? ` · ${m.method}` : ''}</div>
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: m.kind === 'expense' ? '#dc2626' : '#16a34a', flexShrink: 0 }}>{m.kind === 'expense' ? '−' : '+'}{euro(Number(m.amount))}</div>
-              <button onClick={() => remove(m)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>
-            </div>
+              <button aria-label="Eliminar" onClick={() => remove(m)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>            </div>
           ))}
         </div>
       )}
@@ -149,8 +148,7 @@ export default function FinanceLedger({ month, monthlyReceived }: { month: strin
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 460, padding: '20px 22px 36px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{form.kind === 'expense' ? 'Nova despesa' : 'Nova receita'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><span style={lbl}>Descrição *</span><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder={form.kind === 'expense' ? 'Ex: Fatura da luz' : 'Ex: Donativo de família'} style={inp} autoFocus /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

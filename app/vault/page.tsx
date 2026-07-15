@@ -154,8 +154,7 @@ export default function VaultPage() {
                     <button onClick={() => setSharing(it)} title="Partilhar com código" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#1d4ed8', fontWeight: 700 }}>↗</button>
                     <button onClick={() => setEditing(it)} title="Editar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#475569' }}>✎</button>
                     <button onClick={() => togglePin(it)} title="Fixar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: it.pinned ? '#b45309' : '#94a3b8' }}>★</button>
-                    <button onClick={() => removeItem(it.id)} title="Eliminar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#94a3b8' }}>×</button>
-                  </div>
+                    <button aria-label="Eliminar" onClick={() => removeItem(it.id)} title="Eliminar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#94a3b8' }}>×</button>                  </div>
                 </div>
               )
             })}

@@ -251,8 +251,8 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
 
           {/* Equipa */}
           <div style={card}>
-            {secTitle('Equipa', '/schedule')}
-            {team.length === 0 ? <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem equipa registada. <Link href="/team" style={{ color: '#2563eb' }}>Adicionar →</Link></div> : (
+            {secTitle('Equipa', '/equipa?tab=escalas')}
+            {team.length === 0 ? <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem equipa registada. <Link href="/equipa?tab=escalas" style={{ color: '#2563eb' }}>Adicionar →</Link></div> : (
               <>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#2563eb', lineHeight: 1 }}>{onShift}<span style={{ fontSize: 13, color: 'var(--ink-4)' }}> / {team.length}</span></div>
                 <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>em serviço</div>

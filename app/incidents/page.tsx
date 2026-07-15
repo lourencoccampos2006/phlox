@@ -431,6 +431,8 @@ export default function IncidentsPage() {
               const st = STATUS_STYLE[inc.status]
               return (
                 <div key={inc.id} onClick={() => setSelected(inc)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(inc) } }}
+                  role="button" tabIndex={0}
                   style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', display: 'flex', transition: 'box-shadow 0.12s' }}
                   onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.07)')}
                   onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
@@ -494,8 +496,7 @@ export default function IncidentsPage() {
             <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 680, maxHeight: '92vh', overflow: 'auto', padding: '24px 24px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editingId ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
-                <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
-              </div>
+                <button aria-label="Fechar" onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>              </div>
 
               {saveError && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, padding: '9px 13px', fontSize: 13, color: '#991b1b', marginBottom: 14 }}>{saveError}</div>}
 

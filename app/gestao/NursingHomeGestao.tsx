@@ -226,7 +226,7 @@ export default function NursingHomeGestao() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
           {[
             { label: 'Ocupação', value: `${occupied}/${totalBeds}`, sub: `${occupancyPct}%`, color: occupancyPct >= 90 ? '#dc2626' : '#0d6e42', href: '/census' },
-            { label: 'Equipa em serviço', value: onShift, sub: `de ${team.length}`, color: '#2563eb', href: '/schedule' },
+            { label: 'Equipa em serviço', value: onShift, sub: `de ${team.length}`, color: '#2563eb', href: '/equipa?tab=escalas' },
             { label: 'Risco crítico', value: criticalCount, sub: warningCount ? `+${warningCount} a vigiar` : 'residentes', color: criticalCount ? '#dc2626' : warningCount ? '#d97706' : '#16a34a', href: '/rounds' },
             { label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? '#dc2626' : '#16a34a', href: '/incidents' },
             { label: 'Feridas ativas', value: activeWounds.length, sub: severeWounds.length ? `${severeWounds.length} cat. III/IV` : 'acompanhamento', color: severeWounds.length ? '#991b1b' : '#d97706', href: '/feridas' },
@@ -324,9 +324,9 @@ export default function NursingHomeGestao() {
 
           {/* Equipa hoje por turno */}
           <div style={card}>
-            {secTitle('Equipa de hoje', '/schedule')}
+            {secTitle('Equipa de hoje', '/equipa?tab=escalas')}
             {shifts.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem escala marcada para hoje. <Link href="/schedule" style={{ color: '#2563eb' }}>Marcar turnos →</Link></div>
+              <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem escala marcada para hoje. <Link href="/equipa?tab=escalas" style={{ color: '#2563eb' }}>Marcar turnos →</Link></div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {(['manha', 'tarde', 'noite'] as Shift[]).map(s => {

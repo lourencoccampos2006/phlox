@@ -10,6 +10,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { CALCULATORS, CATEGORY_LABEL, type ClinicalCalc, type CalcResult } from '@/lib/clinicalCalcs'
 import { usePhloxContext } from '@/lib/copilotContext'
+import IVReference from '@/components/calc/IVReference'
 
 const ACCENT = '#0d6e42'
 
@@ -26,7 +27,6 @@ const TONE: Record<CalcResult['tone'], { bg: string; border: string; text: strin
 
 // Ferramentas especializadas relacionadas (páginas próprias).
 const RELATED: { href: string; icon: string; label: string; desc: string }[] = [
-  { href: '/iv-calc', icon: '💧', label: 'Cálculo de gotejo IV', desc: 'mL/h, gotas/min, tempo de infusão' },
   { href: '/dose-crianca', icon: '👶', label: 'Dose pediátrica', desc: 'Por peso, com limites de segurança' },
   { href: '/iv-compatibility', icon: '🧪', label: 'Compatibilidade IV', desc: 'Misturar fármacos na mesma via' },
   { href: '/antibiotics', icon: '🦠', label: 'Antibioterapia', desc: 'Escolha e dose por infeção' },
@@ -39,6 +39,7 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 6
 export default function Calculos() {
   const [active, setActive] = useState<ClinicalCalc | null>(null)
   const [q, setQ] = useState('')
+  const [tab, setTab] = useState<'calc' | 'ref'>('calc')
 
   // Contexto p/ o Copilot: a calculadora/escala aberta.
   usePhloxContext(
@@ -83,9 +84,20 @@ export default function Calculos() {
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Calculadoras</h1>
         <p style={{ fontSize: 14.5, color: '#64748b', margin: '0 0 18px', lineHeight: 1.5 }}>{CALCULATORS.length} calculadoras e escalas determinísticas, com interpretação e referência. Toque numa para abrir.</p>
 
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+          {([{ k: 'calc', l: '🧮 Calculadoras & Escalas' }, { k: 'ref', l: '💧 Referência IV' }] as const).map(x => (
+            <button key={x.k} onClick={() => setTab(x.k)}
+              style={{ padding: '9px 16px', borderRadius: 8, border: `1.5px solid ${tab === x.k ? ACCENT : '#e2e8f0'}`, background: tab === x.k ? ACCENT : 'white', color: tab === x.k ? 'white' : '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {x.l}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'ref' ? <IVReference /> : <>
+
         <div style={{ position: 'relative', marginBottom: 20 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Procurar (ex: renal, CHA2DS2, sépsis, peso…)"
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Procurar (ex: renal, CHA2DS2, sépsis, peso, PHQ-9…)"
             style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px 12px 40px', fontSize: 15, fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' }} />
         </div>
 
@@ -124,8 +136,9 @@ export default function Calculos() {
         )}
 
         <div style={{ marginTop: 22, fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
-          Apoio à decisão — cada resultado tem referência. Para uma análise por caso completo, vê o <Link href="/motor-clinico" style={{ color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Motor Clínico →</Link>
+          Apoio à decisão — cada resultado tem referência. Para uma análise por caso completo, vê o <Link href="/assessments?tab=motor-clinico" style={{ color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Motor Clínico →</Link>
         </div>
+        </>}
       </div>
       <CalcStyles />
     </div>

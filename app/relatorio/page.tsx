@@ -1,9 +1,22 @@
 'use client'
 
+// /relatorio — Relatórios & Planos. Fundiu 4 páginas antigas em separadores reais
+// (não redirects): Diário (era /brief, grátis), Relatório Semanal (o que já
+// estava aqui, Pro), Médico de Bolso (era /medico-bolso, grátis), Plano de
+// Cuidado (era /plano, Plus+) e Briefing de Consulta (era /briefing, Pro).
+// O gate de plano deixou de ser a rota inteira (removido de PLAN_ROUTES) — cada
+// separador paga gere o seu próprio gate (PlanGate aqui, isPro/canGenerate nos
+// componentes extraídos), para não bloquear os separadores grátis.
+
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import PlanGate from '@/components/PlanGate'
+import DailyBrief from '@/components/relatorio/DailyBrief'
+import MedicoBolso from '@/components/relatorio/MedicoBolso'
+import CarePlan from '@/components/relatorio/CarePlan'
+import BriefingConsulta from '@/components/relatorio/BriefingConsulta'
 
 interface Highlight { type: 'positive' | 'warning' | 'info'; text: string }
 interface Trend { metric: string; trend: 'subiu' | 'desceu' | 'estável' | 'sem dados'; comment: string }
@@ -59,9 +72,10 @@ function ScoreRing({ score }: { score: number }) {
   )
 }
 
-export default function RelatorioPage() {
+// ─── Relatório Semanal (conteúdo original de /relatorio, agora um separador) ──
+function WeeklyReport() {
   const { user, supabase } = useAuth()
-  const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
+  const [, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -88,40 +102,21 @@ export default function RelatorioPage() {
     }
   }
 
-  if (!user) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-      <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
-        <div style={{ fontSize: 40 }}>📊</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>Relatório Semanal</div>
-        <div style={{ fontSize: 14, color: 'var(--ink-4)', marginTop: 8 }}>Inicie sessão para ver o seu relatório de saúde personalizado.</div>
-      </div>
-    </div>
-  )
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="no-print"></div>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }} className="no-print">
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Relatório Semanal</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O resumo da sua semana de saúde</div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <ProfileSelector onChange={p => setActiveProfileState(p)} />
-              {report && (
-                <button onClick={() => window.print()} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  🖨️ Imprimir
-                </button>
-              )}
-            </div>
-          </div>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }} className="no-print">
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)' }}>O resumo da sua semana de saúde</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <ProfileSelector onChange={p => setActiveProfileState(p)} />
+          {report && (
+            <button onClick={() => window.print()} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              🖨️ Imprimir
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="page-container page-body" style={{ maxWidth: 720 }}>
+      <div style={{ maxWidth: 720 }}>
         {!report ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: 40, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
@@ -157,7 +152,6 @@ export default function RelatorioPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {/* Header card */}
             <div style={{ background: '#0f172a', borderRadius: 16, padding: '24px 24px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
               <ScoreRing score={report.overall_score} />
               <div style={{ flex: 1 }}>
@@ -171,7 +165,6 @@ export default function RelatorioPage() {
               </div>
             </div>
 
-            {/* Highlights */}
             {report.highlights.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {report.highlights.map((h, i) => {
@@ -186,7 +179,6 @@ export default function RelatorioPage() {
               </div>
             )}
 
-            {/* Trends */}
             {report.trends.length > 0 && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>📈 Tendências da semana</div>
@@ -204,7 +196,6 @@ export default function RelatorioPage() {
               </div>
             )}
 
-            {/* Vitals & Adherence */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>📊 Análise de sinais vitais</div>
@@ -214,14 +205,12 @@ export default function RelatorioPage() {
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>✅ Adesão à medicação</div>
                 <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>{report.adherence_comment || 'Sem dados de tomas registados.'}</div>
               </div>
-              {/* Sintomas — só se houver análise */}
               {report.symptoms_analysis && (
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>🩹 Sintomas da semana</div>
                   <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>{report.symptoms_analysis}</div>
                 </div>
               )}
-              {/* Análises — só se houver nota */}
               {report.labs_note && (
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>🧪 Análises recentes</div>
@@ -230,7 +219,6 @@ export default function RelatorioPage() {
               )}
             </div>
 
-            {/* Recommendations */}
             {report.recommendations.length > 0 && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>💡 Recomendações personalizadas</div>
@@ -251,13 +239,11 @@ export default function RelatorioPage() {
               </div>
             )}
 
-            {/* Next steps */}
             <div style={{ background: '#f0fdf4', border: '1px solid #6ee7b7', borderRadius: 12, padding: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', marginBottom: 6 }}>🎯 Foco para a próxima semana</div>
               <div style={{ fontSize: 13, color: '#047857' }}>{report.next_steps}</div>
             </div>
 
-            {/* Footer */}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ fontSize: 11, color: 'var(--ink-5)', fontStyle: 'italic', flex: 1 }}>{report.disclaimer}</div>
               <button onClick={() => { setReport(null); }} className="no-print" style={{ padding: '8px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, cursor: 'pointer', color: 'var(--ink-4)', whiteSpace: 'nowrap' }}>
@@ -268,6 +254,66 @@ export default function RelatorioPage() {
         )}
       </div>
       <style>{`@media print { .no-print { display: none !important } body { background: white !important } }`}</style>
+    </div>
+  )
+}
+
+// ─── Hub ────────────────────────────────────────────────────────────────────
+type Tab = 'diario' | 'semanal' | 'bolso' | 'plano' | 'consulta'
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'diario', label: 'Diário', icon: '☀️' },
+  { id: 'semanal', label: 'Relatório Semanal', icon: '📊' },
+  { id: 'bolso', label: 'Médico de Bolso', icon: '🩺' },
+  { id: 'plano', label: 'Plano de Cuidado', icon: '📋' },
+  { id: 'consulta', label: 'Briefing de Consulta', icon: '⚕️' },
+]
+
+export default function RelatorioPage() {
+  const { user } = useAuth() as any
+  const [tab, setTab] = useState<Tab>('diario')
+
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t && TABS.some(x => x.id === t)) setTab(t as Tab)
+  }, [])
+
+  if (!user) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
+        <div style={{ fontSize: 40 }}>📊</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>Relatórios & Planos</div>
+        <div style={{ fontSize: 14, color: 'var(--ink-4)', marginTop: 8 }}>Inicia sessão para ver os teus relatórios e planos de saúde.</div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <div className="page-container page-body" style={{ maxWidth: 980 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 22, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }} className="no-print">
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: '9px 14px', background: 'none', border: 'none',
+              borderBottom: `2.5px solid ${tab === t.id ? 'var(--green)' : 'transparent'}`,
+              cursor: 'pointer', fontSize: 13.5, fontWeight: tab === t.id ? 800 : 600,
+              color: tab === t.id ? 'var(--green)' : 'var(--ink-4)', marginBottom: -1, fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>{t.icon}</span>{t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'diario' && <DailyBrief />}
+        {tab === 'semanal' && (
+          <PlanGate min="pro" tool="Relatório Semanal" note="Análise por IA da tua semana de saúde — medicação, vitais, sintomas e análises.">
+            <WeeklyReport />
+          </PlanGate>
+        )}
+        {tab === 'bolso' && <MedicoBolso />}
+        {tab === 'plano' && <CarePlan />}
+        {tab === 'consulta' && <BriefingConsulta />}
+      </div>
     </div>
   )
 }

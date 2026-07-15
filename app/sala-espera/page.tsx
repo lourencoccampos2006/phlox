@@ -155,8 +155,7 @@ export function SalaEsperaTool() {
                           {r.status === 'waiting' && <button onClick={() => setStatus(r, 'called')} style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: '#0d9488', border: 'none', borderRadius: 7, padding: '6px 12px', cursor: 'pointer' }}>Chamar</button>}
                           {inServ && <button onClick={() => setStatus(r, 'done')} style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: '#16a34a', border: 'none', borderRadius: 7, padding: '6px 12px', cursor: 'pointer' }}>Concluir</button>}
                           <button onClick={() => setStatus(r, 'left')} title="Desistiu / saiu" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 10px', cursor: 'pointer' }}>Saiu</button>
-                          <button onClick={() => del(r.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-                        </div>
+                          <button aria-label="Eliminar" onClick={() => del(r.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                        </div>
                       </div>
                     </div>
                   )
@@ -179,7 +178,7 @@ export function SalaEsperaTool() {
             )}
 
             <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 18, textAlign: 'center' }}>
-              Quem chega tem conta Phlox? Pede o <Link href="/health-pass" style={{ color: '#0d9488', fontWeight: 600, textDecoration: 'none' }}>Health Pass</Link> para ver o histórico de saúde.
+              Quem chega tem conta Phlox? Pede o <Link href="/passport" style={{ color: '#0d9488', fontWeight: 600, textDecoration: 'none' }}>Passaporte de Saúde</Link> para ver o histórico de saúde.
             </div>
           </>
         )}
@@ -190,14 +189,13 @@ export function SalaEsperaTool() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 460, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Check-in</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <div><span style={lbl}>Nome</span><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nome de quem chegou" style={inp} autoFocus /></div>
-              <div><span style={lbl}>Motivo (opcional)</span><input value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} placeholder="Ex: consulta, medição de TA, dúvida…" style={inp} /></div>
+              <div><label htmlFor="sala-name" style={lbl}>Nome</label><input id="sala-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nome de quem chegou" style={inp} autoFocus /></div>
+              <div><label htmlFor="sala-reason" style={lbl}>Motivo (opcional)</label><input id="sala-reason" value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} placeholder="Ex: consulta, medição de TA, dúvida…" style={inp} /></div>
               <div>
-                <span style={lbl}>Prioridade</span>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <span id="sala-priority-label" style={lbl}>Prioridade</span>
+                <div role="group" aria-labelledby="sala-priority-label" style={{ display: 'flex', gap: 6 }}>
                   {(['urgente', 'prioritario', 'normal'] as const).map(k => (
                     <button key={k} onClick={() => setForm({ ...form, priority: k })} style={{ flex: 1, padding: '8px 0', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${form.priority === k ? PRI[k].color : 'var(--border)'}`, background: form.priority === k ? PRI[k].bg : 'white', color: form.priority === k ? PRI[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{PRI[k].label}</button>
                   ))}

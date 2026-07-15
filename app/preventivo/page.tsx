@@ -11,6 +11,104 @@ import { useAuth } from '@/components/AuthContext'
 import { recommendPreventive, type PreventiveItem, type Sex } from '@/lib/preventiveCare'
 import Link from 'next/link'
 
+// ── Vacinas de viagem / caso especial (era /vaccines) ──────────────────────────
+// O checklist determinístico acima já cobre vacinas de rotina (categoria 'vacina').
+// Isto cobre o que ele não sabe: destinos de viagem e reconciliar vacinas já
+// tomadas em texto livre — por isso usa IA, ao contrário do resto da página.
+interface VaccineResult {
+  due_now: { vaccine: string; why: string; urgency: 'alta' | 'normal' | 'baixa'; where: string }[]
+  up_to_date: { vaccine: string; schedule: string }[]
+  travel_specific?: { destination: string; vaccines: { name: string; notes: string }[] } | null
+  next_appointment: string
+  general_advice: string
+}
+const TRAVEL_DESTINATIONS = ['Brasil', 'Angola', 'Moçambique', 'Cabo Verde', 'Índia', 'Tailândia', 'Vietname', 'África Subsaariana', 'América Central', 'América do Sul', 'Sudeste Asiático', 'Médio Oriente', 'Marrocos']
+const URGENCY: Record<string, { label: string; bg: string; border: string; color: string; dot: string }> = {
+  alta:   { label: 'URGENTE',     bg: '#fee2e2', border: '#fca5a5', color: '#991b1b', dot: '#dc2626' },
+  normal: { label: 'EM FALTA',    bg: '#fef9c3', border: '#fde68a', color: '#854d0e', dot: '#d97706' },
+  baixa:  { label: 'RECOMENDADO', bg: '#f0fdf5', border: '#bbf7d0', color: '#14532d', dot: '#16a34a' },
+}
+
+function TravelVaccines({ age, sex }: { age: string; sex: Sex | '' }) {
+  const { supabase } = useAuth() as any
+  const [open, setOpen] = useState(false)
+  const [destination, setDestination] = useState('')
+  const [knownVaccines, setKnownVaccines] = useState('')
+  const [result, setResult] = useState<VaccineResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function check() {
+    setLoading(true); setError(''); setResult(null)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (sd.session?.access_token) headers['Authorization'] = `Bearer ${sd.session.access_token}`
+      const res = await fetch('/api/vaccines', {
+        method: 'POST', headers,
+        body: JSON.stringify({ profile: sex === 'F' ? 'adult' : 'adult', age: age ? parseInt(age) : null, destination: destination.trim(), own_vaccines: knownVaccines.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setResult(data)
+    } catch (e: any) { setError(e.message || 'Erro. Tenta novamente.') }
+    finally { setLoading(false) }
+  }
+
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', padding: '14px 18px', background: 'white', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: open ? '1px solid var(--bg-3)' : 'none' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>✈️ Viagem ou caso especial</span>
+        <span style={{ fontSize: 14, color: 'var(--ink-5)' }}>{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '14px 18px' }}>
+          <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: '0 0 12px', lineHeight: 1.6 }}>
+            Vais viajar ou tens vacinas específicas para reconciliar? Diz-nos o destino e o que já tomaste — a IA cruza com o PNV e guidelines ECDC.
+          </p>
+          <select value={destination} onChange={e => setDestination(e.target.value)}
+            style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', marginBottom: 8, boxSizing: 'border-box' }}>
+            <option value="">Sem viagem planeada</option>
+            {TRAVEL_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <textarea value={knownVaccines} onChange={e => setKnownVaccines(e.target.value)} rows={2} placeholder="Vacinas já tomadas — ex: Febre amarela 2019, Hepatite A+B..."
+            style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }} />
+          <button onClick={check} disabled={loading || (!destination && !knownVaccines.trim())}
+            style={{ width: '100%', background: loading ? 'var(--bg-3)' : '#1d4ed8', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, padding: '11px', fontSize: 13, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+            {loading ? 'A consultar…' : '💉 Verificar'}
+          </button>
+          {error && <div style={{ marginTop: 10, padding: '9px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 7, fontSize: 12.5, color: '#991b1b' }}>{error}</div>}
+          {result && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {result.due_now?.map((item, i) => {
+                const u = URGENCY[item.urgency] || URGENCY.baixa
+                return (
+                  <div key={i} style={{ padding: '10px 12px', background: u.bg, border: `1px solid ${u.border}`, borderRadius: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: u.color }}>{item.vaccine}</span>
+                      <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: u.color }}>{u.label}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: u.color, marginTop: 3 }}>{item.why}</div>
+                  </div>
+                )
+              })}
+              {result.travel_specific && (
+                <div style={{ padding: '10px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', marginBottom: 6 }}>✈️ Para {result.travel_specific.destination}</div>
+                  {result.travel_specific.vaccines.map((v, i) => (
+                    <div key={i} style={{ fontSize: 12.5, color: '#1d4ed8' }}>→ {v.name}{v.notes ? ` — ${v.notes}` : ''}</div>
+                  ))}
+                </div>
+              )}
+              {result.general_advice && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>{result.general_advice}</div>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const PRIO_META: Record<string, { color: string; bg: string; border: string; label: string }> = {
   devido:    { color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', label: 'Em atraso' },
   em_breve:  { color: '#b45309', bg: '#fffbeb', border: '#fde68a', label: 'Em breve' },
@@ -123,6 +221,7 @@ export default function PreventivoPage() {
             <SectionGroup title={`Em atraso (${result.due.length})`} color="#dc2626" items={result.due} onMarkDone={markDone} onMarkUndone={markUndone} doneMap={done} emptyMsg="✓ Sem itens em atraso!" />
             <SectionGroup title={`Em breve (${result.soon.length})`} color="#d97706" items={result.soon} onMarkDone={markDone} onMarkUndone={markUndone} doneMap={done} />
             <SectionGroup title={`Em dia (${result.upToDate.length})`} color="#15803d" items={result.upToDate} onMarkDone={markDone} onMarkUndone={markUndone} doneMap={done} collapsibleByDefault />
+            <TravelVaccines age={age} sex={sex} />
             <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 11.5, color: 'var(--ink-4)', lineHeight: 1.55 }}>
               Tabela baseada em: <strong>Programa Nacional de Vacinação 2020/2024</strong>, normas DGS para rastreios oncológicos (mama 051/2017, colo 018/2012, cólon 003/2014) e cardiovasculares. Confirma com o teu médico, especialmente se tiveres condições de risco.
             </div>

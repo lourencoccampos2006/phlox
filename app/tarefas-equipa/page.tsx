@@ -9,11 +9,11 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 
-// Fundido em "Equipa & Escalas" (/schedule) como aba "Tarefas" (TarefasTool
+// Fundido em /equipa (aba "Escalas & Turnos" → sub-aba "Tarefas", TarefasTool
 // reutilizado). A rota /tarefas-equipa redireciona p/ não partir links antigos.
 export default function TarefasRedirect() {
   const r = useRouter()
-  useEffect(() => { r.replace('/schedule?tab=tarefas') }, [r])
+  useEffect(() => { r.replace('/equipa?tab=tarefas') }, [r])
   return null
 }
 
@@ -145,8 +145,7 @@ export function TarefasTool() {
                             <div key={t.id} style={{ background: 'white', border: `1px solid ${isOverdue ? '#fca5a5' : 'var(--border)'}`, borderRadius: 10, padding: '10px 11px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'flex-start' }}>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: '#0b1120', lineHeight: 1.35 }}>{t.title}</span>
-                                <button onClick={() => del(t.id)} style={{ fontSize: 14, color: '#cbd5e1', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}>×</button>
-                              </div>
+                                <button aria-label="Eliminar" onClick={() => del(t.id)} style={{ fontSize: 14, color: '#cbd5e1', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}>×</button>                              </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
                                 <span style={{ fontSize: 10, fontWeight: 700, color: a.color, background: a.color + '12', padding: '1px 6px', borderRadius: 4 }}>{a.icon} {a.label}</span>
                                 {t.priority !== 'normal' && <span style={{ fontSize: 10, fontWeight: 700, color: PRI[t.priority].color }}>{PRI[t.priority].label}</span>}
@@ -176,8 +175,7 @@ export function TarefasTool() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Nova tarefa</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div><span style={lbl}>Tarefa</span><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: limpar sala 2, repor luvas, ligar à família…" style={inp} autoFocus /></div>
               <div>

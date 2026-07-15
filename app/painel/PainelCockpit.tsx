@@ -288,7 +288,7 @@ export default function PainelCockpit() {
                   : { n: 2, icon: '📦', label: 'Pôr o stock', sub: 'Produtos, validades e mínimos', href: '/stock' },
                 cfg.hasFamilies
                   ? { n: 3, icon: '👨‍👩‍👧', label: 'Convidar as famílias', sub: 'Mostra-lhes como corre o dia', href: '/family' }
-                  : { n: 3, icon: '👥', label: 'Adicionar a equipa', sub: 'Quem trabalha contigo', href: '/schedule' },
+                  : { n: 3, icon: '👥', label: 'Adicionar a equipa', sub: 'Quem trabalha contigo', href: '/equipa?tab=escalas' },
               ].map(s => (
                 <Link key={s.n} href={s.href} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '12px 14px', textDecoration: 'none' }}>
                   <span style={{ fontSize: 22, flexShrink: 0 }}>{s.icon}</span>
@@ -393,8 +393,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
               {present.slice(0, 30).map(p => (
                 <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 20, padding: '3px 4px 3px 11px', fontSize: 12, fontWeight: 600 }}>
                   {p.name.split(' ')[0]}
-                  <button onClick={() => ctx.markAttendance(p.id, 'absent')} title="Marcar ausente" style={{ border: 'none', background: 'transparent', color: '#86c9a3', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 3px' }}>×</button>
-                </span>
+                  <button aria-label="Fechar" onClick={() => ctx.markAttendance(p.id, 'absent')} title="Marcar ausente" style={{ border: 'none', background: 'transparent', color: '#86c9a3', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 3px' }}>×</button>                </span>
               ))}
               {/* Por chegar — botão marca presença já (não é preciso abrir o registo) */}
               {pending.slice(0, 24).map(p => (

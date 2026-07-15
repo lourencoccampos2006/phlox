@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 // ─── NOVO: ProfileSelector para pré-carregar contexto clínico do perfil ───
@@ -191,6 +191,16 @@ function ReportView({ report }: { report: LabReport }) {
   const router = useRouter()
   const [savedToVault, setSavedToVault] = useState(false)
   const [savingVault, setSavingVault] = useState(false)
+  // Análises anteriores guardadas — para mostrar "desde a última vez", algo que
+  // uma conversa genérica com IA não consegue (não tem memória do teu histórico).
+  const [previous, setPrevious] = useState<{ title: string; issued_at: string; notes: string | null } | null>(null)
+
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('health_vault').select('title,issued_at,notes').eq('user_id', user.id).eq('category', 'exam')
+      .order('issued_at', { ascending: false }).limit(1)
+      .then(({ data }: { data: any[] | null }) => { if (data?.[0]) setPrevious(data[0]) })
+  }, [user, supabase])
 
   // Handoff estruturado p/ o Farmacêutico AI (/oracle) com o contexto das análises.
   function askPharmacist() {
@@ -252,6 +262,14 @@ function ReportView({ report }: { report: LabReport }) {
           <div style={{ fontSize: 13, color: overall.color, opacity: 0.8 }}>{report.patient_summary}</div>
         </div>
       </div>
+
+      {/* Desde a última análise guardada — contexto que só o Phlox tem, não um chat genérico */}
+      {previous && (
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 12.5, color: 'var(--ink-3)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span>📈</span>
+          <span>Última análise guardada — <strong>{new Date(previous.issued_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>{previous.notes ? `: ${previous.notes}` : ''}. Compara os valores abaixo com o que guardaste no <Link href="/vault" style={{ color: '#0d6e42', fontWeight: 600 }}>cofre</Link>.</span>
+        </div>
+      )}
 
       {/* Reassurance for normal results */}
       {report.reassurance && (
@@ -537,6 +555,8 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
             ) : (
               <div style={{ marginBottom: 12 }}>
                 <div onClick={() => fileRef.current?.click()}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() } }}
+                  role="button" tabIndex={0} aria-label="Selecionar ficheiro"
                   style={{ border: '2px dashed var(--border-2)', borderRadius: 6, padding: '32px 16px', textAlign: 'center', cursor: 'pointer', background: file ? 'var(--green-light)' : 'white' }}>
                   <div style={{ fontSize: 28, marginBottom: 8 }}>📄</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>

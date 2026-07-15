@@ -45,6 +45,18 @@ export async function POST(req: NextRequest) {
   }
 
   const db = sb(req)
+
+  // Confia no org_id do cliente só depois de confirmar que o utilizador é
+  // mesmo membro ativo dessa organização — a RLS já protege isto (RLS
+  // `prescriptions_write`), mas uma auditoria encontrou este padrão repetido
+  // sem verificação própria na rota; falhar aqui dá um 403 claro em vez de
+  // depender só da RLS para bloquear silenciosamente.
+  if (body.org_id) {
+    const { data: membership } = await db.from('org_members')
+      .select('id').eq('org_id', body.org_id).eq('user_id', userId).eq('active', true).maybeSingle()
+    if (!membership) return NextResponse.json({ error: 'Sem acesso a esta instituição.' }, { status: 403 })
+  }
+
   const { data: rx, error: rxErr } = await db.from('prescriptions').insert({
     org_id: body.org_id || null,
     patient_id: body.patient_id || null,

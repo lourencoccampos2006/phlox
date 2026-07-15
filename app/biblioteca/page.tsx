@@ -180,8 +180,7 @@ function DocCard({ item, onOpen, onPin, onDelete }: { item: DocSummary; onOpen: 
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={onOpen} style={{ flex: 1, padding: '7px 10px', background: '#0b1120', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Abrir</button>
         <button onClick={onPin} title="Fixar" style={{ padding: '7px 10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 13, cursor: 'pointer', color: item.pinned ? '#b45309' : '#94a3b8' }}>★</button>
-        <button onClick={onDelete} title="Eliminar" style={{ padding: '7px 10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 13, cursor: 'pointer', color: '#94a3b8' }}>×</button>
-      </div>
+        <button aria-label="Fechar" onClick={onDelete} title="Eliminar" style={{ padding: '7px 10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 13, cursor: 'pointer', color: '#94a3b8' }}>×</button>      </div>
     </div>
   )
 }

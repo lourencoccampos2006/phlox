@@ -49,6 +49,24 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ vitals: data || [] })
 }
 
+// Gamas fisiologicamente plausíveis — não são limites clínicos de alerta
+// (isso é o PUT/análise abaixo), só uma rede de segurança contra erros de
+// digitação/leitura de sensor que produziriam um valor sem sentido (ou NaN)
+// guardado silenciosamente.
+const VITAL_RANGES: Record<string, [number, number]> = {
+  hr: [20, 300], bp_sys: [40, 300], bp_dia: [20, 200],
+  spo2: [0, 100], weight: [0.5, 500], glucose: [10, 1000], temp: [25, 45],
+}
+
+function parseVital(field: string, raw: unknown): { value: number | null; error?: string } {
+  if (raw == null || raw === '') return { value: null }
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return { value: null, error: `${field}: valor inválido` }
+  const range = VITAL_RANGES[field]
+  if (range && (n < range[0] || n > range[1])) return { value: null, error: `${field}: fora da gama plausível (${range[0]}-${range[1]})` }
+  return { value: n }
+}
+
 export async function POST(req: NextRequest) {
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
@@ -60,18 +78,22 @@ export async function POST(req: NextRequest) {
   const url = new URL(req.url)
   const profileId = url.searchParams.get('profile_id') || (body as any).profile_id || null
 
+  const fields = ['hr', 'bp_sys', 'bp_dia', 'spo2', 'weight', 'glucose', 'temp'] as const
+  const parsed: Record<string, number | null> = {}
+  const errors: string[] = []
+  for (const f of fields) {
+    const r = parseVital(f, (body as any)[f])
+    if (r.error) errors.push(r.error)
+    parsed[f] = r.value
+  }
+  if (errors.length) return NextResponse.json({ error: errors.join('; ') }, { status: 400 })
+
   const record: any = {
     user_id: userId,
     profile_id: profileId || null,
     recorded_at: body.recorded_at || new Date().toISOString(),
-    hr:     body.hr     != null ? Number(body.hr)     : null,
-    bp_sys: body.bp_sys != null ? Number(body.bp_sys) : null,
-    bp_dia: body.bp_dia != null ? Number(body.bp_dia) : null,
-    spo2:   body.spo2   != null ? Number(body.spo2)   : null,
-    weight: body.weight != null ? Number(body.weight) : null,
-    glucose:body.glucose!= null ? Number(body.glucose): null,
-    temp:   body.temp   != null ? Number(body.temp)   : null,
-    notes:  body.notes  ? String(body.notes).slice(0, 500) : null,
+    ...parsed,
+    notes: body.notes ? String(body.notes).slice(0, 500) : null,
   }
 
   const { data, error } = await supabase.from('vitals').insert(record).select().single()

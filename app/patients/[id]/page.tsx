@@ -511,8 +511,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                         {givenToday && <Tag color="#15803d" bg="#f0fdf4">{homeRec ? `✓ dado em casa${homeRec.home_by ? ` (${homeRec.home_by})` : ''}` : '✓ dado hoje'}</Tag>}
                       </div>
                     </div>
-                    <button onClick={() => removeMed(m.id)} style={{ background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontWeight: 700, flexShrink: 0 }} onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')} onMouseLeave={e => (e.currentTarget.style.color = '#cbd5e1')}>×</button>
-                  </div>
+                    <button aria-label="Eliminar" onClick={() => removeMed(m.id)} style={{ background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontWeight: 700, flexShrink: 0 }} onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')} onMouseLeave={e => (e.currentTarget.style.color = '#cbd5e1')}>×</button>                  </div>
                 )
               })}
             </div>}
@@ -627,8 +626,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Convidar a família de {patient.name.split(' ')[0]}</div>
-              <button onClick={() => setInviteOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setInviteOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>            </div>
             {inviteErr ? <div style={{ fontSize: 13, color: '#dc2626', lineHeight: 1.5 }}>{inviteErr}</div>
             : inviteBusy || !familyCode ? <div style={{ color: '#94a3b8', fontSize: 13, padding: 12 }}>A gerar código…</div>
             : (
@@ -658,8 +656,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 520, maxHeight: '88vh', overflow: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Editar ficha</div>
-              <button onClick={() => setEditing(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setEditing(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input value={edit.name || ''} onChange={e => setEdit(p => ({ ...p, name: e.target.value }))} placeholder="Nome" style={inp} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

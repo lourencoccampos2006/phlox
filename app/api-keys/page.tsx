@@ -116,8 +116,7 @@ export default function ApiKeysPage() {
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
                     {k.active ? <button onClick={() => revoke(k.id)} style={{ padding: '6px 11px', borderRadius: 7, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Revogar</button>
                               : <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>Revogada</span>}
-                    <button onClick={() => del(k.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-                  </div>
+                    <button aria-label="Eliminar" onClick={() => del(k.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                  </div>
                 </div>
               </div>
             ))}
@@ -142,8 +141,7 @@ export default function ApiKeysPage() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 500, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Nova chave</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div><span style={lbl}>Nome</span><input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Importador ERP, BI nocturno…" style={inp} autoFocus /></div>
               <div>

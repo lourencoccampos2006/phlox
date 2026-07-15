@@ -78,6 +78,16 @@ export default function MedicamentoTool() {
   const [result, setResult] = useState<Result | null>(null)
   const [error, setError] = useState('')
   const usage = useUsageLimit('medicamento')
+  // A minha medicação já guardada — para saber se este medicamento já está na
+  // lista (evita "+ Adicionar" redundante) e para verificar interações com
+  // TUDO o que a pessoa toma, não só este medicamento isolado.
+  const [myMeds, setMyMeds] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('personal_meds').select('name').eq('user_id', user.id)
+      .then(({ data }: { data: { name: string }[] | null }) => setMyMeds((data || []).map(m => m.name)))
+  }, [user, supabase])
 
   // Publica para o Copilot o medicamento pesquisado + resultado
   usePhloxContext(
@@ -120,6 +130,16 @@ export default function MedicamentoTool() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const rx = result ? RX_META[result.prescription] || RX_META['com receita médica'] : null
+
+  // Já está na lista? Comparação simples por substring (nomes DCI vs. comerciais variam).
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const alreadyTracked = !!result && myMeds.some(m => {
+    const a = norm(m), b = norm(result.identified || ''), c = norm(result.active || '')
+    return (b && (a.includes(b) || b.includes(a))) || (c && (a.includes(c) || c.includes(a)))
+  })
+  // Se já há medicação guardada, verifica interações com TUDO o que a pessoa toma —
+  // não só este medicamento isolado (o que um chat genérico não consegue fazer).
+  const interactionsDrugs = result ? [result.active || result.identified || name, ...myMeds].filter(Boolean).join(',') : ''
 
   // Tokens visuais
   const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
@@ -345,13 +365,19 @@ export default function MedicamentoTool() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
               {/* Handoff: leva o medicamento identificado já preenchido para o
                   verificador de interações (que lê ?drugs=). */}
-              <Link href={`/interactions?drugs=${encodeURIComponent(result.active || result.identified || name)}`} style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>
-                ⚗ Verificar interações
+              <Link href={`/interactions?drugs=${encodeURIComponent(interactionsDrugs)}`} style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>
+                ⚗ {myMeds.length > 0 ? 'Verificar interações com a minha lista' : 'Verificar interações'}
               </Link>
               {user && (
-                <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: '#0d6e42', color: 'white', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-                  + Adicionar à minha lista
-                </Link>
+                alreadyTracked ? (
+                  <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                    ✓ Já está na tua lista
+                  </Link>
+                ) : (
+                  <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: '#0d6e42', color: 'white', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                    + Adicionar à minha lista
+                  </Link>
+                )
               )}
               <Link href="/scan" style={{ flex: '1 1 100%', textAlign: 'center', padding: '11px', background: 'white', border: '1px dashed var(--border)', borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none' }}>
                 Não te pareceu certo? Tira foto à bula no Scan →

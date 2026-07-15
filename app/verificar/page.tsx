@@ -31,7 +31,7 @@ const TOOLS = [
     featured: false,
   },
   {
-    href: '/schedule',
+    href: '/calendario-meds',
     icon: '⏰',
     label: 'Horário inteligente',
     desc: 'A IA cria o horário ideal para os teus medicamentos, evitando interações e respeitando refeições.',

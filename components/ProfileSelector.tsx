@@ -330,7 +330,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
             </a>
           )}
           <a
-            href="/perfis"
+            href="/familia"
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 14px 12px',

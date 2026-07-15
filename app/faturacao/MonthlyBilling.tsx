@@ -241,8 +241,7 @@ export default function MonthlyBilling() {
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 460, padding: '20px 22px 36px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{nameOf(edit.patient_id)}</h2>
-              <button onClick={() => setEdit(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setEdit(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div><span style={lbl}>Mensalidade (€)</span><input type="number" value={edit.fee} onChange={e => setEdit({ ...edit, fee: parseFloat(e.target.value) || 0 })} style={inp} /></div>
               <div><span style={lbl}>Comparticipação (€)</span><input type="number" value={edit.subsidy} onChange={e => setEdit({ ...edit, subsidy: parseFloat(e.target.value) || 0 })} style={inp} /></div>

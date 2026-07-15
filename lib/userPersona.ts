@@ -39,15 +39,13 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     },
     starters: [
       { label: 'Adicionar medicação', href: '/mymeds', icon: '💊', desc: 'A base de tudo' },
-      { label: 'Cartão de emergência', href: '/cartao-emergencia', icon: '🆘', desc: 'Para qualquer médico ver em segundos' },
-      { label: 'Preparar consulta', href: '/preparar-consulta', icon: '📋', desc: 'Levar tudo organizado' },
+      { label: 'Cartão de emergência', href: '/passport', icon: '🆘', desc: 'Para qualquer médico ver em segundos' },
     ],
     daily: [
       { label: 'Sintomas de hoje', href: '/sintomas', icon: '🌡' },
       { label: 'Verificar interações', href: '/interactions', icon: '⚗' },
       { label: 'Phlox Scan', href: '/scan', icon: '📷' },
-      { label: 'Hidratação', href: '/agua', icon: '💧' },
-      { label: 'Peso', href: '/pesar', icon: '⚖' },
+      { label: 'Sinais vitais', href: '/vitals', icon: '💓' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },
@@ -62,11 +60,10 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     starters: [
       { label: 'Adicionar perfil familiar', href: '/familia', icon: '👨‍👩‍👧', desc: 'Criar um perfil por pessoa' },
       { label: 'Verificar interações', href: '/interactions', icon: '⚗', desc: 'Cruzar toda a medicação' },
-      { label: 'Cartão de emergência', href: '/cartao-emergencia', icon: '🆘', desc: 'Cada pessoa pode ter o seu' },
+      { label: 'Cartão de emergência', href: '/passport', icon: '🆘', desc: 'Cada pessoa pode ter o seu' },
     ],
     daily: [
       { label: 'Sintomas / diário', href: '/sintomas', icon: '🌡' },
-      { label: 'Preparar consulta', href: '/preparar-consulta', icon: '📋' },
       { label: 'Phlox Scan', href: '/scan', icon: '📷' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
@@ -86,7 +83,6 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     ],
     daily: [
       { label: 'Casos clínicos', href: '/simulador', icon: '📚' },
-      { label: 'Phlox Hive', href: '/hive', icon: '🐝' },
       { label: 'Calculadoras', href: '/calculos', icon: '∑' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
@@ -106,7 +102,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     ],
     daily: [
       { label: 'Doentes / utentes', href: '/patients', icon: '👥' },
-      { label: 'Decision Engine', href: '/motor-clinico', icon: '🧠' },
+      { label: 'Decision Engine', href: '/assessments?tab=motor-clinico', icon: '🧠' },
       { label: 'Calculadoras', href: '/calculos', icon: '∑' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],

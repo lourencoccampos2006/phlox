@@ -221,8 +221,7 @@ function OrgDrawer({ org, members, invites, onClose, onRefresh }: { org: any; me
                 </select>
                 <button onClick={() => patchMember(m.id, { active: !m.active })}
                   style={{ ...ghostBtn, color: m.active ? '#dc2626' : '#0d6e42' }}>{m.active ? 'Desativar' : 'Ativar'}</button>
-                {!isMe && <button onClick={() => deleteMember(m.id)} style={{ ...ghostBtn, color: '#dc2626' }}>×</button>}
-              </div>
+                {!isMe && <button aria-label="Eliminar" onClick={() => deleteMember(m.id)} style={{ ...ghostBtn, color: '#dc2626' }}>×</button>}              </div>
             )
           })}
         </div>

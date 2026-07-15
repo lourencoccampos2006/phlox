@@ -204,8 +204,7 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, maxWidth: 620, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 18 }}>{aiResult.title}</h3>
-              <button onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>            </div>
             {aiResult.ddx ? (
               <div style={{ display: 'grid', gap: 10 }}>
                 {(aiResult.ddx.differential || []).map((d: any, i: number) => {
@@ -1141,8 +1140,7 @@ function ObjectivesTab({ objectives, onUpdate, onAdd, onDel, internshipId, onAi,
                 <span style={{ flex: 1, fontSize: 13, color: '#111827', textDecoration: o.status === 'completed' || o.status === 'validated' ? 'line-through' : 'none' }}>{o.title}</span>
                 <span style={{ padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', fontSize: 10, fontWeight: 700, color: '#374151' }}>{o.level}</span>
                 {o.required && <span style={{ fontSize: 10, color: '#dc2626' }}>obrigatório</span>}
-                <button onClick={() => { if (confirm('Apagar este objectivo?')) onDel(o.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 12 }}>×</button>
-              </div>
+                <button aria-label="Eliminar" onClick={() => { if (confirm('Apagar este objectivo?')) onDel(o.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 12 }}>×</button>              </div>
             ))}
           </div>
         </section>
@@ -1355,8 +1353,7 @@ function CasesTab({ cases }: any) {
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 10 }}>
               <h2 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
-              <button onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>            </div>
             {[
               ['História clínica', open.history],
               ['Exame físico', open.exam_findings],
@@ -1421,8 +1418,7 @@ function ReportsTab({ reports, onGenerate, busy }: any) {
               <h2 style={{ margin: 0, fontSize: 19, fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => download(open)} style={btn('ghost')}>↓ Descarregar</button>
-                <button onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
-              </div>
+                <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>              </div>
             </div>
             <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
               {open.body ? <MarkdownLike text={open.body} /> : <p style={{ color: '#9ca3af' }}>(Relatório sem conteúdo)</p>}

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   notifyOrgMembers(ctx.orgId, ctx.user.id, {
     title: `${prefix}${CHAN_LABEL[channel]} · ${ctx.name || 'Equipa'}`,
     body: text.slice(0, 140),
-    url: '/equipa-mural',
+    url: '/equipa?tab=mural',
     tag: `team-${channel}`,
   }).catch(() => {})
 

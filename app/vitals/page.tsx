@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useToast } from '@/components/Toast'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
@@ -14,6 +15,44 @@ interface Vital {
 }
 interface TrendAlert { field: string; message: string; severity: 'critical'|'warning'|'info' }
 interface TrendAnalysis { alerts: TrendAlert[]; trends: any[]; medication_correlations: any[]; summary: string }
+interface HydrationLog { id: string; at: string; fluid_ml: number }
+
+// ─── Peso — gráfico de tendência 30 dias com área (era /pesar) ─────────────────
+function WeightTrend({ points }: { points: { date: string; weight: number }[] }) {
+  if (points.length < 2) return null
+  const min = Math.min(...points.map(p => p.weight)), max = Math.max(...points.map(p => p.weight))
+  const range = Math.max(0.5, max - min), padY = range * 0.15
+  const W = 600, H = 140
+  const path = points.map((p, i) => {
+    const x = points.length === 1 ? W / 2 : (i / (points.length - 1)) * W
+    const norm = (p.weight - (min - padY)) / (range + 2 * padY)
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${(H - norm * H).toFixed(1)}`
+  }).join(' ')
+  const latest = points[points.length - 1]
+  const monthAgo = points.find(p => new Date(p.date).getTime() >= Date.now() - 30 * 86400000) || points[0]
+  const delta = Math.round((latest.weight - monthAgo.weight) * 10) / 10
+  const deltaColor = delta < -0.3 ? '#15803d' : delta > 0.3 ? '#b45309' : '#64748b'
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Tendência de peso — 30 dias</div>
+        {delta !== 0 && <div style={{ fontSize: 13, fontWeight: 700, color: deltaColor }}>{delta > 0 ? '+' : ''}{delta} kg</div>}
+      </div>
+      <div style={{ position: 'relative', height: 130 }}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible' }}>
+          <defs>
+            <linearGradient id="weightArea" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={path + ` L${W},${H} L0,${H} Z`} fill="url(#weightArea)" />
+          <path d={path} fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  )
+}
 
 // ─── SVG Sparkline ─────────────────────────────────────────────────────────────
 function Sparkline({ values, color, width=120, height=36 }: { values: number[]; color: string; width?: number; height?: number }) {
@@ -59,8 +98,11 @@ const FIELDS = [
   { key:'temp',    label:'Temp.',     unit:'°C',    placeholder:'36.8', color:'#ea580c' },
 ]
 
+const WATER_GOAL_KEY = 'phlox-water-goal-ml'
+
 export default function VitalsPage() {
   const { user, supabase } = useAuth()
+  const toast = useToast()
   const [activeProfile, setActiveProfileState] = useState<ActiveProfile | null>(null)
   const [vitals, setVitals] = useState<Vital[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,8 +113,48 @@ export default function VitalsPage() {
   const [analysis, setAnalysis] = useState<TrendAnalysis|null>(null)
   const [analysing, setAnalysing] = useState(false)
   const [meds, setMeds] = useState<string[]>([])
+  const [expandWeight, setExpandWeight] = useState(false)
+
+  // ── Hidratação (era /agua) — sempre da própria pessoa, não segue o perfil ativo ──
+  const [waterLogs, setWaterLogs] = useState<HydrationLog[]>([])
+  const [waterGoal, setWaterGoal] = useState(2000)
+  const [editingGoal, setEditingGoal] = useState(false)
 
   useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
+
+  useEffect(() => {
+    try { const v = localStorage.getItem(WATER_GOAL_KEY); if (v) setWaterGoal(Number(v) || 2000) } catch { /* noop */ }
+  }, [])
+
+  const loadWater = useCallback(async () => {
+    if (!user) return
+    const since = new Date(Date.now() - 7 * 86400000).toISOString()
+    const { data } = await supabase.from('hydration_logs')
+      .select('id,at,fluid_ml').eq('user_id', user.id).eq('kind', 'fluid')
+      .gte('at', since).order('at', { ascending: false }).limit(100)
+    setWaterLogs(data || [])
+  }, [user, supabase])
+  useEffect(() => { loadWater() }, [loadWater])
+
+  async function addWater(ml: number) {
+    if (!user) return
+    const { data, error } = await supabase.from('hydration_logs').insert({ user_id: user.id, kind: 'fluid', fluid_ml: ml, at: new Date().toISOString() }).select().single()
+    if (error) toast.error('Não consegui guardar', error.message)
+    else if (data) {
+      setWaterLogs(p => [data, ...p])
+      const todayKey = new Date().toISOString().slice(0, 10)
+      const todayTotal = [data, ...waterLogs].filter(l => l.at.slice(0, 10) === todayKey).reduce((s, l) => s + (l.fluid_ml || 0), 0)
+      if (todayTotal >= waterGoal) toast.success('Meta atingida! 💧', `${todayTotal} ml hoje. Boa.`)
+    }
+  }
+  async function delWater(id: string) {
+    await supabase.from('hydration_logs').delete().eq('id', id)
+    setWaterLogs(p => p.filter(l => l.id !== id))
+  }
+  function saveWaterGoal() {
+    try { localStorage.setItem(WATER_GOAL_KEY, String(waterGoal)) } catch { /* noop */ }
+    setEditingGoal(false); toast.success('Meta guardada')
+  }
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
@@ -145,6 +227,23 @@ export default function VitalsPage() {
 
   const criticalAlerts = analysis?.alerts.filter(a => a.severity === 'critical') || []
   const warnings = analysis?.alerts.filter(a => a.severity === 'warning') || []
+
+  // ── Derivados de hidratação ──
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const todayWaterLogs = waterLogs.filter(l => l.at.slice(0, 10) === todayKey)
+  const todayWaterMl = todayWaterLogs.reduce((s, l) => s + (l.fluid_ml || 0), 0)
+  const waterPct = Math.min(100, Math.round((todayWaterMl / waterGoal) * 100))
+  const waterDays: { key: string; label: string; ml: number }[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0, 0, 0, 0)
+    const key = d.toISOString().slice(0, 10)
+    const ml = waterLogs.filter(l => l.at.slice(0, 10) === key).reduce((s, l) => s + (l.fluid_ml || 0), 0)
+    waterDays.push({ key, label: d.toLocaleDateString('pt-PT', { weekday: 'short' }).slice(0, 3), ml })
+  }
+  const maxWaterDayMl = Math.max(waterGoal, ...waterDays.map(d => d.ml))
+
+  // ── Pontos de peso (a partir dos vitais já carregados) para o gráfico de tendência ──
+  const weightPoints = vitals.filter(v => v.weight != null).map(v => ({ date: v.recorded_at, weight: v.weight as number })).reverse()
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
@@ -285,8 +384,10 @@ export default function VitalsPage() {
               const data = sparkData(f.key)
               const latestVal = (latest as any)?.[f.key] as number|null
               const status = latestVal != null ? vitalStatus(f.key, latestVal) : 'normal'
+              const clickable = f.key === 'weight' && weightPoints.length >= 2
               return (
-                <div key={f.key} style={{ background:'white', border:`1.5px solid ${status==='critical'?'#fca5a5':status==='warning'?'#fde68a':'var(--border)'}`, borderRadius:10, padding:'14px 16px' }}>
+                <div key={f.key} onClick={clickable ? () => setExpandWeight(p => !p) : undefined}
+                  style={{ background:'white', border:`1.5px solid ${status==='critical'?'#fca5a5':status==='warning'?'#fde68a':'var(--border)'}`, borderRadius:10, padding:'14px 16px', cursor: clickable ? 'pointer' : 'default' }}>
                   <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
                     <div>
                       <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-5)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:2 }}>{f.label}</div>
@@ -298,12 +399,66 @@ export default function VitalsPage() {
                     {status !== 'normal' && <span style={{ fontSize:16 }}>{status==='critical'?'🚨':'⚠️'}</span>}
                   </div>
                   <Sparkline values={data} color={status==='critical'?'#dc2626':status==='warning'?'#d97706':f.color} />
-                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-5)', marginTop:4 }}>{data.length} med{data.length!==1?'ições':'ição'}</div>
+                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-5)', marginTop:4 }}>{data.length} med{data.length!==1?'ições':'ição'}{clickable ? ' · toca para ver tendência' : ''}</div>
                 </div>
               )
             })}
           </div>
         )}
+
+        {expandWeight && weightPoints.length >= 2 && <WeightTrend points={weightPoints} />}
+
+        {/* ─── Hidratação (era /agua) ─── */}
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>💧 Hidratação</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>{todayWaterMl} / {waterGoal} ml hoje · {waterPct}%</div>
+          </div>
+          <div style={{ height: 14, background: '#e0f2fe', borderRadius: 7, overflow: 'hidden', marginBottom: 14 }}>
+            <div style={{ height: '100%', width: `${waterPct}%`, background: waterPct >= 100 ? 'linear-gradient(90deg,#16a34a,#22c55e)' : 'linear-gradient(90deg,#0284c7,#0ea5e9,#38bdf8)', borderRadius: 7, transition: 'width 0.5s ease' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
+            {[{ ml: 200, label: '200 ml' }, { ml: 330, label: '330 ml' }, { ml: 500, label: '500 ml' }, { ml: 750, label: '750 ml' }].map(b => (
+              <button key={b.ml} onClick={() => addWater(b.ml)} style={{ padding: '10px 6px', background: 'white', border: '1.5px solid #bae6fd', borderRadius: 9, cursor: 'pointer', textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 700, color: '#0c4a6e' }}>
+                💧 {b.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, alignItems: 'flex-end', height: 70, marginBottom: 10 }}>
+            {waterDays.map(d => {
+              const h = Math.max(6, Math.round((d.ml / maxWaterDayMl) * 100))
+              const reach = d.ml >= waterGoal
+              return (
+                <div key={d.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: '100%', maxWidth: 24, height: `${h}%`, background: reach ? 'linear-gradient(180deg,#22c55e,#16a34a)' : 'linear-gradient(180deg,#bae6fd,#7dd3fc)', borderRadius: 5 }} />
+                  <span style={{ fontSize: 9, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{d.label}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Meta diária</div>
+            {editingGoal ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="number" min={500} max={5000} step={250} value={waterGoal} onChange={e => setWaterGoal(Number(e.target.value))} style={{ width: 90, border: '1.5px solid var(--border)', borderRadius: 7, padding: '6px 9px', fontSize: 12.5, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                <button onClick={saveWaterGoal} style={{ padding: '6px 12px', background: '#0284c7', color: 'white', border: 'none', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Guardar</button>
+              </div>
+            ) : (
+              <button onClick={() => setEditingGoal(true)} style={{ fontSize: 12.5, fontWeight: 700, color: '#0284c7', background: 'none', border: 'none', cursor: 'pointer' }}>{waterGoal} ml — Mudar</button>
+            )}
+          </div>
+          {todayWaterLogs.length > 0 && (
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 10 }}>
+              {todayWaterLogs.map(l => (
+                <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>💧 {l.fluid_ml} ml</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{new Date(l.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <button onClick={() => delWater(l.id)} aria-label="Remover" style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 14 }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* ─── History table ─── */}
         {!loading && vitals.length > 0 && (
@@ -341,7 +496,7 @@ export default function VitalsPage() {
                         )
                       })}
                       <td style={{ padding:'10px 12px', textAlign:'right' }}>
-                        <button onClick={() => deleteVital(v.id)}
+                        <button aria-label="Eliminar" onClick={() => deleteVital(v.id)}
                           style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink-5)', fontSize:14, padding:0, lineHeight:1 }}>×</button>
                       </td>
                     </tr>

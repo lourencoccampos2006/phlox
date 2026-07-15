@@ -221,8 +221,7 @@ export default function DoentePage({ params }: { params: Promise<{ id: string; p
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, maxWidth: 600, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 18 }}>{aiResult.title}</h3>
-              <button onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>            </div>
             {aiResult.ddx ? (
               <div style={{ display: 'grid', gap: 10 }}>
                 {(aiResult.ddx.differential || []).map((d: any, i: number) => {

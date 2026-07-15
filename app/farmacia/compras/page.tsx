@@ -238,7 +238,7 @@ function NewPOModal({ orgId, suppliers, onClose, onCreated, authHeader }: {
           <div style={{ display: 'grid', gap: 10 }}>
             {items.map((it, idx) => (
               <div key={idx} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, position: 'relative' }}>
-                <button type="button" onClick={() => setItems(arr => arr.filter((_, i) => i !== idx))}
+                <button type="button" aria-label="Remover" onClick={() => setItems(arr => arr.filter((_, i) => i !== idx))}
                   style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 18, lineHeight: 1 }}>×</button>
                 <input placeholder="Produto" value={it.product_name} onChange={e => setItem(idx, 'product_name', e.target.value)} style={{ ...input, marginBottom: 6 }} />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 6 }}>

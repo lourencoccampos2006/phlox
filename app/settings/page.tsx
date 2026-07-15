@@ -10,6 +10,7 @@ import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { planById, planName } from '@/lib/plans'
 import SecuritySettings from '@/components/settings/SecuritySettings'
+import HealthGoalPicker from '@/components/HealthGoalPicker'
 
 const ROLE_OPTIONS = [
   { value: 'pharmacist',  label: 'Farmacêutico' },
@@ -331,6 +332,8 @@ function SettingsPage() {
                 ))}
               </div>
             </div>
+
+            <HealthGoalPicker />
 
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Informação pessoal</div>

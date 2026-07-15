@@ -10,8 +10,11 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs, INST_META, OFFERED_INSTITUTIONS } from '@/lib/useClinicPrefs'
+import EscalasEquipa from '@/components/team/EscalasEquipa'
+import MuralEquipa from '@/components/team/MuralEquipa'
 
 const ACCENT = '#0d9488'
+type PageTab = 'conta' | 'escalas' | 'mural'
 
 const ROLES = [
   { id: 'assistant', label: 'Auxiliar / Cuidador', hint: 'Regista cuidados, medicação e ocorrências' },
@@ -27,6 +30,17 @@ interface GenLogin { name: string; username: string; password: string; role: str
 export default function EquipaPage() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
+
+  // Aceita ?tab=conta|escalas|mural e o antigo ?tab=team|schedule|tarefas|config
+  // (do /schedule) para não partir favoritos/links antigos.
+  const [tab, setTab] = useState<PageTab>('conta')
+  const [escalasSubTab, setEscalasSubTab] = useState<'team' | 'schedule' | 'tarefas' | 'config' | undefined>(undefined)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('tab')
+    if (q === 'mural') setTab('mural')
+    else if (q === 'escalas') setTab('escalas')
+    else if (['team', 'schedule', 'tarefas', 'config'].includes(q || '')) { setTab('escalas'); setEscalasSubTab(q as any) }
+  }, [])
 
   const [loading, setLoading] = useState(true)
   const [noKey, setNoKey] = useState(false)
@@ -174,9 +188,22 @@ export default function EquipaPage() {
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
           {org ? org.name : 'A sua instituição'}
         </h1>
-        <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 22px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 18px', lineHeight: 1.5 }}>
           {org ? 'Adicione os funcionários e dê-lhes acesso. Todos trabalham sobre os mesmos utentes.' : 'Crie a sua instituição para começar a adicionar a equipa.'}
         </p>
+
+        {org && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+            {([['conta', '👤 Conta & Acesso'], ['escalas', '🗓️ Escalas & Turnos'], ['mural', '💬 Mural']] as const).map(([t, l]) => (
+              <button key={t} onClick={() => setTab(t)}
+                style={{ padding: '8px 15px', borderRadius: 8, border: `1.5px solid ${tab === t ? ACCENT : '#e2e8f0'}`, background: tab === t ? ACCENT : 'white', color: tab === t ? 'white' : '#475569', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab === 'escalas' && org ? <EscalasEquipa initialSubTab={escalasSubTab} /> : tab === 'mural' && org ? <MuralEquipa /> : <>
 
         {err && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '11px 15px', fontSize: 13, marginBottom: 16 }}>{err}</div>}
         {loading && <div style={{ ...card, color: '#94a3b8' }}>A carregar…</div>}
@@ -198,8 +225,8 @@ export default function EquipaPage() {
         {!loading && !org && !noKey && (
           <div style={card}>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 14 }}>Criar a instituição</div>
-            <label style={lbl}>Nome da instituição</label>
-            <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Ex: Centro de Dia São José" style={inp} />
+            <label htmlFor="org-name-create" style={lbl}>Nome da instituição</label>
+            <input id="org-name-create" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Ex: Centro de Dia São José" style={inp} />
             <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
               {OFFERED_INSTITUTIONS.map(k => (
@@ -243,8 +270,8 @@ export default function EquipaPage() {
                   </button>
                   {showSettings && (
                     <div style={{ marginTop: 14 }}>
-                      <label style={lbl}>Nome da instituição</label>
-                      <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da instituição" style={inp} />
+                      <label htmlFor="org-name-edit" style={lbl}>Nome da instituição</label>
+                      <input id="org-name-edit" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da instituição" style={inp} />
                       <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                         {OFFERED_INSTITUTIONS.map(k => (
@@ -255,8 +282,8 @@ export default function EquipaPage() {
                       </div>
                       {/* Negócio — lotação e mensalidade (alimentam o painel do dono) */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div><label style={lbl}>Lotação (lugares)</label><input value={editCapacity} onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 30" inputMode="numeric" style={inp} /></div>
-                        <div><label style={lbl}>Mensalidade por utente (€)</label><input value={editFee} onChange={e => setEditFee(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Ex: 450" inputMode="decimal" style={inp} /></div>
+                        <div><label htmlFor="org-capacity" style={lbl}>Lotação (lugares)</label><input id="org-capacity" value={editCapacity} onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 30" inputMode="numeric" style={inp} /></div>
+                        <div><label htmlFor="org-fee" style={lbl}>Mensalidade por utente (€)</label><input id="org-fee" value={editFee} onChange={e => setEditFee(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Ex: 450" inputMode="decimal" style={inp} /></div>
                       </div>
 
                       {/* Página pública (prova social + angariação) */}
@@ -265,13 +292,13 @@ export default function EquipaPage() {
                           <input type="checkbox" checked={editPublic} onChange={e => setEditPublic(e.target.checked)} /> Página pública da instituição
                         </label>
                         <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 10px', lineHeight: 1.5 }}>Cria um endereço que pode partilhar com as famílias e nas redes — bom para angariar.</p>
-                        <label style={lbl}>Endereço (slug)</label>
+                        <label htmlFor="org-slug" style={lbl}>Endereço (slug)</label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                           <span style={{ fontSize: 12.5, color: '#94a3b8', whiteSpace: 'nowrap' }}>phloxclinical.com/c/</span>
-                          <input value={editSlug} onChange={e => setEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))} placeholder="centro-sao-jose" style={{ ...inp, flex: 1 }} />
+                          <input id="org-slug" value={editSlug} onChange={e => setEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))} placeholder="centro-sao-jose" style={{ ...inp, flex: 1 }} />
                         </div>
-                        <label style={lbl}>Frase de apresentação</label>
-                        <input value={editTagline} onChange={e => setEditTagline(e.target.value)} placeholder="Cuidamos de quem mais ama, perto de si." style={inp} maxLength={160} />
+                        <label htmlFor="org-tagline" style={lbl}>Frase de apresentação</label>
+                        <input id="org-tagline" value={editTagline} onChange={e => setEditTagline(e.target.value)} placeholder="Cuidamos de quem mais ama, perto de si." style={inp} maxLength={160} />
                         {editPublic && editSlug && <a href={`/c/${editSlug}`} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ver a página →</a>}
                       </div>
                       <button onClick={saveOrgSettings} disabled={savingOrg || !editName.trim()} style={{ ...btn, opacity: savingOrg || !editName.trim() ? 0.5 : 1 }}>
@@ -295,14 +322,14 @@ export default function EquipaPage() {
 
                   {addMode === 'generate' ? (
                     <>
-                      <label style={lbl}>Nome do funcionário</label>
-                      <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex: Ana Silva" style={inp} />
+                      <label htmlFor="staff-name" style={lbl}>Nome do funcionário</label>
+                      <input id="staff-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex: Ana Silva" style={inp} />
                       <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>O Phlox cria o utilizador e a palavra-passe — entrega-os ao funcionário (pode imprimir).</p>
                     </>
                   ) : (
                     <>
-                      <label style={lbl}>Email do funcionário</label>
-                      <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="ana@exemplo.pt" style={inp} />
+                      <label htmlFor="staff-email" style={lbl}>Email do funcionário</label>
+                      <input id="staff-email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="ana@exemplo.pt" style={inp} />
                       <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>Se já tiver conta Phlox, entra já na equipa. Senão, recebe um convite por email para criar a conta.</p>
                     </>
                   )}
@@ -374,6 +401,7 @@ export default function EquipaPage() {
             </div>
           </>
         )}
+        </>}
       </div>
     </div>
   )

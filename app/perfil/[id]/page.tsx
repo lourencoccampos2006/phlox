@@ -107,7 +107,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
 
       <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 16 }}>Perfil não encontrado</div>
-        <Link href="/perfis" style={{ color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>← Voltar aos perfis</Link>
+        <Link href="/familia" style={{ color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>← Voltar aos perfis</Link>
       </div>
     </div>
   )
@@ -119,7 +119,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
       {/* Header da página */}
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 20, paddingBottom: 0 }}>
-          <Link href="/perfis" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)', marginBottom: 14 }}>
+          <Link href="/familia" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-mono)', marginBottom: 14 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Todos os perfis
           </Link>
@@ -147,8 +147,8 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
               <Link href={`/interactions?profile=${profile.id}`} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 Interações
               </Link>
-              <Link href={`/consult-prep?profile=${profile.id}`} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
-                Preparar consulta
+              <Link href={`/timeline?profile=${profile.id}`} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+                Ver histórico
               </Link>
             </div>
           </div>
@@ -287,8 +287,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => removeMed(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 18, padding: '2px 6px', flexShrink: 0 }} className="remove-btn">×</button>
-                </div>
+                  <button aria-label="Eliminar" onClick={() => removeMed(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 18, padding: '2px 6px', flexShrink: 0 }} className="remove-btn">×</button>                </div>
               ))}
             </div>
 
@@ -311,7 +310,7 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
                 <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{profile.notes}</div>
               ) : (
                 <div style={{ fontSize: 14, color: 'var(--ink-4)', fontStyle: 'italic' }}>
-                  Sem notas. Edita este perfil em <Link href="/perfis" style={{ color: 'var(--green)' }}>Perfis</Link> para adicionar.
+                  Sem notas. Edita este perfil em <Link href="/familia" style={{ color: 'var(--green)' }}>Família</Link> para adicionar.
                 </div>
               )}
             </div>

@@ -29,7 +29,7 @@ const SITUATIONS: Situation[] = [
       { label: 'Foto da carta de alta', desc: 'O Phlox lê e percebe o que mudou na medicação.', href: '/reconciliacao' },
       { label: 'Organizar a medicação nova', desc: 'Cria a lista, com horários e lembretes.', href: '/mymeds' },
       { label: 'Ver se tudo se dá bem', desc: 'Verifica interações entre o que já tomavas e o novo.', href: '/interactions' },
-      { label: 'Preparar a consulta de seguimento', desc: 'Junta as dúvidas para não te esqueceres.', href: '/preparar-consulta' },
+      { label: 'Ver o histórico', desc: 'Junta tudo para não te esqueceres na consulta de seguimento.', href: '/timeline' },
     ],
   },
   {
@@ -41,7 +41,7 @@ const SITUATIONS: Situation[] = [
       { label: 'Perceber a medicação que começaste', desc: 'O que é, para que serve, em português simples.', href: '/scan' },
       { label: 'Decifrar as análises', desc: 'O que cada valor quer dizer, sem o palavreado.', href: '/labs' },
       { label: 'Começar a tua história de saúde', desc: 'Tudo num sítio, pronto a mostrar ao médico.', href: '/timeline' },
-      { label: 'Tirar dúvidas quando surgirem', desc: 'Pergunta o que quiseres, quando quiseres.', href: '/medico-bolso' },
+      { label: 'Tirar dúvidas quando surgirem', desc: 'Pergunta o que quiseres, quando quiseres.', href: '/relatorio?tab=bolso' },
     ],
   },
   {
@@ -52,7 +52,7 @@ const SITUATIONS: Situation[] = [
     steps: [
       { label: 'Criar o perfil da pessoa', desc: 'Um espaço só para a saúde de quem cuidas.', href: '/familia' },
       { label: 'Foto da receita ou das caixas', desc: 'O Phlox organiza a medicação dela toda.', href: '/scan' },
-      { label: 'Saber quando agir', desc: 'O Phlox avisa o que merece atenção.', href: '/medico-bolso' },
+      { label: 'Saber quando agir', desc: 'O Phlox avisa o que merece atenção.', href: '/relatorio?tab=bolso' },
       { label: 'É urgente? Devo ir ao médico?', desc: 'Ajuda a decidir num momento de aflição.', href: '/saude-agora' },
     ],
   },

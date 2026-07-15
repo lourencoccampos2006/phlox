@@ -236,7 +236,7 @@ export default function AdherenciaPage() {
                                   <span style={{ fontSize: 11, color: rec.taken ? '#0d6e42' : '#dc2626', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                                     {rec.taken ? 'Tomado' : rec.reason_skipped ? riskLabel(rec.reason_skipped) : 'Não tomado'}
                                   </span>
-                                  <button onClick={() => supabase.from('adherence_records').delete().eq('user_id', user?.id).eq('med_id', med.id).eq('date', today).eq('scheduled_time', slot.id).then(() => load())}
+                                  <button aria-label="Eliminar" onClick={() => supabase.from('adherence_records').delete().eq('user_id', user?.id).eq('med_id', med.id).eq('date', today).eq('scheduled_time', slot.id).then(() => load())}
                                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 14, padding: 2 }}>×</button>
                                 </div>
                               ) : (

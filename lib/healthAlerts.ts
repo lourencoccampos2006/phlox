@@ -8,6 +8,7 @@
 
 import { runRules, type Finding } from '@/lib/decisionEngine'
 import { vitalTrendSignals, stockSignals, symptomSignals, type TrendSignal, type TrendVital, type TrendMed, type TrendSymptom, type TrendSeverity } from '@/lib/healthTrends'
+import { computeRiskScore, type RiskResult } from '@/lib/riskIndex'
 
 export interface HealthAlert {
   level: 'high' | 'medium' | 'low'
@@ -40,11 +41,11 @@ const TREND_TO_LEVEL: Record<TrendSeverity, HealthAlert['level'] | null> = {
 
 // CTA + ícone por tipo de sinal de tendência, na perspetiva da PRÓPRIA pessoa.
 const SELF_CTA: Record<string, { icon: string; href: string; cta: string }> = {
-  bp_high: { icon: '🩸', href: '/preparar-consulta', cta: 'Preparar consulta' },
+  bp_high: { icon: '🩸', href: '/timeline', cta: 'Ver histórico' },
   bp_crisis: { icon: '🩸', href: '/saude-agora', cta: 'O que fazer' },
   spo2_low: { icon: '🫁', href: '/saude-agora', cta: 'O que fazer' },
   glucose_out: { icon: '🍬', href: '/vitals', cta: 'Ver vitais' },
-  weight_loss: { icon: '⚖️', href: '/preparar-consulta', cta: 'Preparar consulta' },
+  weight_loss: { icon: '⚖️', href: '/timeline', cta: 'Ver histórico' },
   vitals_stale: { icon: '📏', href: '/vitals', cta: 'Registar' },
   vitals_none: { icon: '📏', href: '/vitals', cta: 'Começar' },
   stock_out: { icon: '💊', href: '/mymeds', cta: 'Ver medicação' },
@@ -60,32 +61,54 @@ function trendToAlert(t: TrendSignal): HealthAlert | null {
   return { level, icon: meta?.icon || (level === 'high' ? '⚠️' : '!'), title: t.title, detail: t.action || t.detail, href: meta?.href, cta: meta?.cta }
 }
 
+/** Achados clínicos (Decision Engine) da pessoa, a partir dos mesmos dados usados nos alertas. */
+function gatherFindings(input: AlertInput): Finding[] {
+  const medNames = (input.meds || []).map(m => m.name).filter(Boolean)
+  if (medNames.length < 2) return []
+  try {
+    return runRules({
+      age: input.age ?? undefined,
+      sex: input.sex === 'M' || input.sex === 'F' ? input.sex : undefined,
+      conditions: input.conditions ? input.conditions.split(/[,;]\s*/).filter(Boolean) : undefined,
+      meds: medNames,
+    })
+  } catch { return [] }
+}
+
+/** Sinais de tendência (lib/healthTrends) + adesão, na mesma "moeda" partilhada com o /familia. */
+function gatherTrendSignals(input: AlertInput): TrendSignal[] {
+  const medNames = (input.meds || []).map(m => m.name).filter(Boolean)
+  const out: TrendSignal[] = [
+    ...vitalTrendSignals(input.vitalSeries || [], medNames.length > 0),
+    ...stockSignals(input.meds || []),
+    ...symptomSignals(input.symptoms || []),
+  ]
+  if (input.adherencePct != null && input.adherencePct < 60 && medNames.length > 0) {
+    out.push({
+      kind: 'adherence_low', severity: input.adherencePct < 40 ? 'major' : 'moderate',
+      title: 'Adesão à medicação a descer',
+      detail: `Tomou ${input.adherencePct}% das doses recentes.`,
+      action: 'Ativar lembretes pode ajudar.',
+    })
+  }
+  return out
+}
+
 export function computeHealthAlerts(input: AlertInput): HealthAlert[] {
   const alerts: HealthAlert[] = []
   const medNames = (input.meds || []).map(m => m.name).filter(Boolean)
 
   // 1) Regras clínicas determinísticas (interações, polimedicação, renal, QTc…)
-  if (medNames.length >= 2) {
-    let findings: Finding[] = []
-    try {
-      findings = runRules({
-        age: input.age ?? undefined,
-        sex: input.sex === 'M' || input.sex === 'F' ? input.sex : undefined,
-        conditions: input.conditions ? input.conditions.split(/[,;]\s*/).filter(Boolean) : undefined,
-        meds: medNames,
-      })
-    } catch { findings = [] }
-    findings
-      .map(f => ({ f, level: SEV_TO_LEVEL[f.severity] }))
-      .filter(x => x.level)
-      .slice(0, 3)
-      .forEach(({ f, level }) => alerts.push({
-        level: level!, icon: level === 'high' ? '⚠️' : '!',
-        title: f.title,
-        detail: f.action || f.detail,
-        href: '/interactions', cta: 'Verificar',
-      }))
-  }
+  gatherFindings(input)
+    .map(f => ({ f, level: SEV_TO_LEVEL[f.severity] }))
+    .filter(x => x.level)
+    .slice(0, 3)
+    .forEach(({ f, level }) => alerts.push({
+      level: level!, icon: level === 'high' ? '⚠️' : '!',
+      title: f.title,
+      detail: f.action || f.detail,
+      href: '/interactions', cta: 'Verificar',
+    }))
 
   // 2) Tendências de vitais — se houver a SÉRIE, usa o motor partilhado (TA alta repetida,
   // perda de peso, etc.); caso contrário, fica pelos limiares da última leitura.
@@ -125,4 +148,13 @@ export function computeHealthAlerts(input: AlertInput): HealthAlert[] {
   const unique = alerts.filter(a => { if (seen.has(a.title)) return false; seen.add(a.title); return true })
   const rank = { high: 0, medium: 1, low: 2 }
   return unique.sort((a, b) => rank[a.level] - rank[b.level]).slice(0, 6)
+}
+
+/**
+ * Índice de Risco Contínuo (self) — a MESMA fórmula usada em lib/caregiverWatch
+ * para o familiar (lib/riskIndex.computeRiskScore), aplicada aos dados da
+ * própria pessoa. Usado por /api/risk-index.
+ */
+export function computeSelfRiskScore(input: AlertInput): RiskResult {
+  return computeRiskScore(gatherFindings(input), gatherTrendSignals(input))
 }

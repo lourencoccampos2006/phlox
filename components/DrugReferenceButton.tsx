@@ -66,8 +66,7 @@ export default function DrugReferenceButton({ drug }: { drug: string }) {
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0b1120' }}>{data?.generic_name || data?.normalized || drug}</div>
                 <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{data?.brand_names?.length ? data.brand_names.join(' · ') : 'Referência farmacológica'}</div>
               </div>
-              <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8', lineHeight: 1 }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8', lineHeight: 1 }}>×</button>            </div>
             <div style={{ padding: '16px 20px' }}>
               {loading && <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, padding: 24 }}>A consultar referência…</div>}
               {err && <div style={{ color: '#dc2626', fontSize: 13 }}>{err}</div>}

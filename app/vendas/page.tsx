@@ -396,8 +396,7 @@ export function VendasTool() {
                   <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '9px 10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', minWidth: 0 }}>{l.name}</span>
-                      <button onClick={() => removeLine(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
-                    </div>
+                      <button aria-label="Eliminar" onClick={() => removeLine(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}>
                       <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 7 }}>
                         <button onClick={() => setQty(i, l.qty - 1)} style={{ width: 26, height: 28, border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--ink-3)' }}>−</button>

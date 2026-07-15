@@ -66,7 +66,6 @@ export const TOOLS: Tool[] = [
   // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/health-pass',  label: 'Mostrar a minha saúde ao médico', desc: 'Um código QR com tudo, para o médico ou a farmácia', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   // Existia (Phlox Reach) mas só aparecia na command palette clínica — invisível
   // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em
   // /tudo, não empurrado para a Hub (convidar não deve ser a 1ª coisa que se vê).
@@ -95,7 +94,7 @@ export const TOOLS: Tool[] = [
   { id: '/mar',          label: 'Administração (MAR)',           desc: 'Registo por turno · alertas',      category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/vigia',        label: 'Vigia Clínico do Lar',          desc: 'Vigilância farmacológica IA · todos os residentes', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
 
-  { id: '/equipa-mural', label: 'Mural da equipa',               desc: 'Mensagens e avisos entre a equipa (com push)', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/equipa?tab=mural', label: 'Mural da equipa',           desc: 'Mensagens e avisos entre a equipa (com push)', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/ronda-guiada', label: 'Ronda coordenada',              desc: 'Ronda a vários, sem repetir, com transferência automática', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
 
   // Cuidado diário (lar + centro de dia) — sem vocabulário fixo de "lar".
@@ -113,7 +112,7 @@ export const TOOLS: Tool[] = [
 
   // Operações & equipa
   { id: '/stock',        label: 'Stock & consumíveis',           desc: 'Consumo a 1 toque · ruturas · encomendas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care', 'pharmacy_community', 'clinic'], plan: 'pro' },
-  { id: '/schedule',     label: 'Equipa & escalas',              desc: 'Membros, turnos, competências e tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/equipa?tab=escalas', label: 'Equipa & escalas',        desc: 'Membros, turnos, competências e tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/faturacao',    label: 'Faturação',                     desc: 'Emissão e exportação',             category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'clinic'], plan: 'pro' },
 
   // Qualidade & farmacovigilância

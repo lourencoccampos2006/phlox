@@ -27,16 +27,15 @@ const CLINICAL_PREFIXES = [
   '/cockpit', '/patients', '/rounds', '/mar', '/team', '/turno', '/hoje', '/painel', '/ronda-guiada',
   '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
   '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
-  '/schedule', '/census', '/roi', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos', '/radar', '/vigia', '/comecar-instituicao', '/vitals', '/equipa-mural',
+  '/census', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos', '/radar', '/vigia', '/comecar-instituicao', '/vitals',
   '/indicacao', '/soap', '/rastreios', '/atendimentos',
   // ferramentas do blueprint que faltavam (abriam sem sidebar institucional)
   '/reconciliacao', '/interactions', '/calculos', '/balcao', '/counseling',
-  '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/motor-clinico', '/api-keys', '/sso-config',
-  '/insights', '/reach', '/brief', '/calc', '/codes',
+  '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/api-keys', '/sso-config',
+  '/reach', '/calc', '/codes', '/relatorio',
   '/guardados', '/calendario',
-  '/equipa', '/painel-dono', '/schedule', '/activities',
+  '/equipa', '/painel-dono', '/activities',
   '/farmacia',
-  '/traduzir',
   '/aprender', '/study', '/estagio',
 ]
 

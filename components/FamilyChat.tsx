@@ -96,8 +96,7 @@ export default function FamilyChat({ messages, mySide, onSend, title, height = 3
         <div style={{ padding: '8px 12px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src={photo} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} />
           <span style={{ fontSize: 12.5, color: '#64748b', flex: 1 }}>Foto pronta a enviar</span>
-          <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}>×</button>
-        </div>
+          <button aria-label="Fechar" onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}>×</button>        </div>
       )}
 
       {/* Barra de envio */}

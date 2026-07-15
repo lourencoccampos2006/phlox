@@ -14,6 +14,17 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { logStudy } from '@/lib/studyProgress'
 import { usePhloxContext } from '@/lib/copilotContext'
+import ExplicarMnemonica from '@/components/tutor/ExplicarMnemonica'
+import SimulacaoExame from '@/components/tutor/SimulacaoExame'
+import FichaFarmaco from '@/components/tutor/FichaFarmaco'
+
+type TutorMode = 'socratico' | 'explicar' | 'exame' | 'ficha'
+const MODES: { id: TutorMode; label: string; icon: string }[] = [
+  { id: 'socratico', label: 'Tutoria socrática', icon: '🧑‍🏫' },
+  { id: 'explicar', label: 'Explicar & Mnemónica', icon: '✨' },
+  { id: 'exame', label: 'Simulação de exame', icon: '🏆' },
+  { id: 'ficha', label: 'Ficha de Fármaco', icon: '🧠' },
+]
 
 interface TutorMessage {
   role: 'tutor' | 'student'
@@ -73,6 +84,8 @@ const MSG_STYLE: Record<NonNullable<TutorMessage['type']>, { bg: string; border:
 
 export default function TutorPage() {
   const { user, supabase } = useAuth()
+  const [mode, setMode] = useState<TutorMode>('socratico')
+  const [initialDrug, setInitialDrug] = useState<string | undefined>(undefined)
   const [session, setSession] = useState<TutorSession | null>(null)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -80,6 +93,15 @@ export default function TutorPage() {
   const [topic, setTopic] = useState('')
   const [resumable, setResumable] = useState<TutorSession | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Deep-link a partir de outras ferramentas: ?mode=ficha&drug=... ou ?mode=exame
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const m = params.get('mode') as TutorMode | null
+    if (m && MODES.some(x => x.id === m)) setMode(m)
+    const drug = params.get('drug')
+    if (drug) setInitialDrug(drug)
+  }, [])
 
   // Ao chegar, há uma tutoria por acabar? Convida a retomar em vez de aplicar
   // em silêncio (pode já não fazer sentido continuar de onde ficou).
@@ -223,8 +245,24 @@ export default function TutorPage() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)', display:'flex', flexDirection:'column' }}>
 
+      {(mode !== 'socratico' || !session) && (
+        <div className="page-container" style={{ paddingTop: 16 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            {MODES.map(m => (
+              <button key={m.id} onClick={() => setMode(m.id)}
+                style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${mode === m.id ? '#7c3aed' : 'var(--border)'}`, background: mode === m.id ? '#7c3aed' : 'white', color: mode === m.id ? 'white' : 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                {m.icon} {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {!session ? (
+      {mode === 'explicar' && <div className="page-container page-body"><ExplicarMnemonica /></div>}
+      {mode === 'exame' && <div className="page-container page-body"><SimulacaoExame /></div>}
+      {mode === 'ficha' && <div className="page-container page-body"><FichaFarmaco initialDrug={initialDrug} /></div>}
+
+      {mode === 'socratico' && (!session ? (
         /* ── Setup ── */
         <div className="page-container page-body" style={{ maxWidth:680, margin:'0 auto', flex:1 }}>
           {/* Tutoria por acabar — sair a meio já não perde o diálogo. */}
@@ -247,9 +285,8 @@ export default function TutorPage() {
             <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, maxWidth:500 }}>
               Diferente do chat normal: o tutor não te dá as respostas directamente. Faz perguntas, activa o teu raciocínio, e guia-te até à compreensão real. Mais difícil. Mais eficaz.
             </p>
-            {/* Modos rápidos — explicar/mnemónica e Q&A com guidelines (consolidados aqui) */}
+            {/* Q&A com guidelines fica em /study/biblioteca — explicar/mnemónica/exame/ficha agora são separadores acima. */}
             <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:14 }}>
-              <Link href="/estudar-conceito" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:12.5, fontWeight:600, color:'var(--ink-3)' }}>💡 Explicar + mnemónica</Link>
               <Link href="/study/biblioteca" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:12.5, fontWeight:600, color:'var(--ink-3)' }}>📚 Pergunta clínica (guidelines)</Link>
             </div>
           </div>
@@ -412,7 +449,7 @@ export default function TutorPage() {
             </div>
           )}
         </div>
-      )}
+      ))}
 
       <style>{`
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }

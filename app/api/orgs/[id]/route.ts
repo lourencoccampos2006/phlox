@@ -4,16 +4,7 @@
 // DELETE → desativar (só owner)
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
-import { createClient } from '@supabase/supabase-js'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { authedClient as sb, requireOrgRole } from '@/lib/orgAuth'
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { userId } = await getUserPlan(req)
@@ -51,6 +42,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (body.total_beds === null || typeof body.total_beds === 'number') updates.total_beds = body.total_beds
 
   const db = sb(req)
+  const denied = await requireOrgRole(db, userId, id, ['owner', 'admin'])
+  if (denied) return denied
   let { data, error } = await db.from('organizations').update(updates).eq('id', id).select().single()
   // Esquema antigo? Remove a coluna em falta e tenta de novo.
   let retries = 0
@@ -71,6 +64,8 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const { id } = await ctx.params
   const db = sb(req)
+  const denied = await requireOrgRole(db, userId, id, ['owner'])
+  if (denied) return denied
   const { error } = await db.from('organizations').update({ active: false }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

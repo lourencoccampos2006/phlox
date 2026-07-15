@@ -330,8 +330,7 @@ export default function NotaClinicaPage() {
           <div style={{ marginTop: 24, background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Notas anteriores</div>
-              <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', fontSize: 18 }}>×</button>
-            </div>
+              <button aria-label="Fechar" onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', fontSize: 18 }}>×</button>            </div>
             {savedNotes.length === 0 ? (
               <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem notas guardadas ainda.</div>
             ) : (

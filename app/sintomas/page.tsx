@@ -185,8 +185,7 @@ export default function SintomasPage() {
                     </div>
                     {l.notes && <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>{l.notes}</div>}
                   </div>
-                  <button onClick={() => del(l.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>×</button>
-                </div>
+                  <button aria-label="Eliminar" onClick={() => del(l.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>×</button>                </div>
               )
             })}
           </div>

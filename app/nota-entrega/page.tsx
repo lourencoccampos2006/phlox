@@ -202,7 +202,7 @@ export default function NotaEntregaPage() {
                       {med.withFood && ' · 🍽 com alimento'}
                     </div>
                   </div>
-                  <button onClick={() => setMeds(p => p.filter((_,idx) => idx !== i))}
+                  <button aria-label="Remover" onClick={() => setMeds(p => p.filter((_,idx) => idx !== i))}
                     style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink-5)', fontSize:18, padding:2, flexShrink:0 }}>×</button>
                 </div>
               ))}

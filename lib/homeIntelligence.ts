@@ -77,7 +77,7 @@ export function pickFocus(mode: string, d: HomeData): FocusCard {
   // Boas-vindas: ainda não há nada — uma primeira ação clara por modo.
   if (!d.hasAnyData) {
     if (mode === 'student') return { id: 'w-study', kind: 'welcome', title: 'Comece a treinar', sub: 'Um caso clínico, 2 minutos. Veja onde está.', href: '/arena', cta: 'Entrar na Arena', icon: 'trophy' }
-    if (mode === 'caregiver') return { id: 'w-fam', kind: 'welcome', title: 'Quem está a cuidar?', sub: 'Crie um espaço para cada pessoa de quem cuida.', href: '/perfis', cta: 'Adicionar pessoa', icon: 'family' }
+    if (mode === 'caregiver') return { id: 'w-fam', kind: 'welcome', title: 'Quem está a cuidar?', sub: 'Crie um espaço para cada pessoa de quem cuida.', href: '/familia', cta: 'Adicionar pessoa', icon: 'family' }
     return { id: 'w-meds', kind: 'welcome', title: 'Vamos juntar a sua medicação', sub: 'Tire foto à receita — o Phlox trata do resto.', href: '/scan', cta: 'Tirar foto', icon: 'camera' }
   }
 
@@ -116,7 +116,7 @@ export function pickFocus(mode: string, d: HomeData): FocusCard {
   // 2) Consulta a chegar.
   if (d.nextAppt && d.nextAppt.inDays <= 3) {
     const when = d.nextAppt.inDays === 0 ? 'hoje' : d.nextAppt.inDays === 1 ? 'amanhã' : `em ${d.nextAppt.inDays} dias`
-    return { id: 'h-appt', kind: 'today', title: `Consulta ${when}`, sub: `${d.nextAppt.title}. Quer levar tudo organizado?`, href: '/preparar-consulta', cta: 'Preparar consulta', icon: 'calendar' }
+    return { id: 'h-appt', kind: 'today', title: `Consulta ${when}`, sub: `${d.nextAppt.title}. Quer levar tudo organizado?`, href: '/timeline', cta: 'Ver histórico', icon: 'calendar' }
   }
   // 3) Vitais há muito tempo.
   if (d.lastVitalDaysAgo != null && d.lastVitalDaysAgo >= 7 && d.medsCount > 0) {

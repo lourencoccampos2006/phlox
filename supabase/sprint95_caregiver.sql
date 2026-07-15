@@ -9,7 +9,7 @@
 
 -- 1) Medicação de familiares: faltavam campos para lembretes funcionarem.
 alter table family_profile_meds
-  add column if not exists reminder_times text[],                         -- ex: {'09:00','21:00'}
+  add column if not exists reminder_times text[],                          -- ex: {'09:00','21:00'}
   add column if not exists active boolean not null default true,
   add column if not exists take_location text check (take_location in ('casa','centro','ambos')) default 'casa';
 
@@ -46,19 +46,21 @@ create table if not exists family_alerts (
   snoozed_until timestamptz
 );
 create index if not exists family_alerts_open_idx on family_alerts (user_id, dismissed_at) where dismissed_at is null;
-create unique index if not exists family_alerts_dedup on family_alerts (profile_id, kind, (created_at::date));
+
+-- CORREÇÃO APLICADA AQUI: Adicionado AT TIME ZONE 'UTC'
+create unique index if not exists family_alerts_dedup on family_alerts (profile_id, kind, ((created_at AT TIME ZONE 'UTC')::date));
 
 -- 4) Cofre de documentos POR FAMILIAR (fotografar exames/receitas, perguntar, partilhar).
 create table if not exists family_documents (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  profile_id  uuid references family_profiles(id) on delete cascade,        -- null = próprio
-  title       text not null,
-  kind        text,                              -- 'exame','receita','relatorio','outro'
-  extracted_text text,                           -- texto OCR (para perguntar sem embeddings)
-  summary     text,
-  file_url    text,
-  created_at  timestamptz not null default now()
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users(id) on delete cascade,
+  profile_id    uuid references family_profiles(id) on delete cascade,        -- null = próprio
+  title         text not null,
+  kind          text,                              -- 'exame','receita','relatorio','outro'
+  extracted_text text,                             -- texto OCR (para perguntar sem embeddings)
+  summary       text,
+  file_url      text,
+  created_at    timestamptz not null default now()
 );
 create index if not exists family_documents_idx on family_documents (user_id, profile_id, created_at desc);
 

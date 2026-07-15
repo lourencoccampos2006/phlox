@@ -38,7 +38,6 @@ function routeContext(path: string): string {
     [/^\/labs|^\/study\/lab/, 'Está a interpretar análises laboratoriais. Foca-te nos valores alterados e no que fazer.'],
     [/^\/sintomas|^\/saude-agora|^\/triagem/, 'Está a avaliar sintomas. Distingue o que pode esperar do que precisa de cuidados já; nunca minimizes sinais de alarme.'],
     [/^\/mymeds|^\/calendario-meds/, 'Está a gerir a medicação pessoal. Ajuda com horários, esquecimentos e cuidados.'],
-    [/^\/preparar-consulta/, 'Está a preparar uma consulta. Ajuda a estruturar perguntas e o que levar.'],
     [/^\/rounds|^\/mar|^\/turno|^\/painel|^\/care-log/, 'Está num fluxo clínico profissional/institucional. Sê preciso e prático.'],
     [/^\/patients|^\/residentes/, 'Está na lista de doentes/utentes. Pode pedir um resumo ou o que vigiar.'],
   ]

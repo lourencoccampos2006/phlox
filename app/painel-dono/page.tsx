@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { buildLedger } from '@/lib/workLedger'
 import { printDoc } from '@/lib/print'
+import OwnerPerformance from '@/components/owner/OwnerPerformance'
+import OwnerInsights from '@/components/owner/OwnerInsights'
 
 const ACCENT = '#0d9488'
 
@@ -33,8 +35,8 @@ export default function PainelDonoPage() {
   const [totals, setTotals] = useState({ meds: 0, care: 0, incidents: 0 })
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [tab, setTab] = useState<'negocio' | 'qualidade' | 'registos'>(() => {
-    if (typeof window !== 'undefined') { const t = new URLSearchParams(window.location.search).get('tab'); if (t === 'qualidade' || t === 'registos') return t }
+  const [tab, setTab] = useState<'negocio' | 'qualidade' | 'registos' | 'desempenho' | 'comparar'>(() => {
+    if (typeof window !== 'undefined') { const t = new URLSearchParams(window.location.search).get('tab'); if (t === 'qualidade' || t === 'registos' || t === 'desempenho' || t === 'comparar') return t }
     return 'negocio'
   })
   const [biz, setBiz] = useState<any | null>(null)
@@ -107,7 +109,7 @@ export default function PainelDonoPage() {
             { href: '/equipa', icon: '👥', title: 'Equipa & acessos', desc: 'Convidar e gerir funcionários' },
             { href: '/faturacao', icon: '💶', title: 'Faturação', desc: 'Mensalidades, despesas, receitas' },
             { href: '/stock', icon: '📦', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
-            { href: '/equipa-mural', icon: '📣', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
+            { href: '/equipa?tab=mural', icon: '📣', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
             { href: '/radar', icon: '📋', title: 'A vigiar', desc: 'O que merece atenção hoje' },
             { href: '/comecar-instituicao', icon: '⚙️', title: 'Definições', desc: 'Dados da instituição' },
           ].map(h => (
@@ -128,8 +130,8 @@ export default function PainelDonoPage() {
         {!err && (
           <>
             {/* Separadores: Visão geral | Qualidade | Registos */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0' }}>
-              {([['negocio', 'Visão geral'], ['qualidade', 'Qualidade'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0', flexWrap: 'wrap' }}>
+              {([['negocio', 'Visão geral'], ['desempenho', 'Desempenho'], ['qualidade', 'Qualidade'], ['comparar', 'Comparar'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} style={{ padding: '9px 16px', background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? ACCENT : 'transparent'}`, cursor: 'pointer', fontSize: 14, fontWeight: tab === k ? 800 : 600, color: tab === k ? ACCENT : '#64748b', marginBottom: -1, fontFamily: 'inherit' }}>{l}</button>
               ))}
             </div>
@@ -238,6 +240,12 @@ export default function PainelDonoPage() {
               )
             })()}
             {tab === 'negocio' && !biz && <div style={{ ...card, color: '#94a3b8' }}>A carregar indicadores…</div>}
+
+            {/* ── DESEMPENHO (era /roi): receita, atividade e tendências reais ── */}
+            {tab === 'desempenho' && <OwnerPerformance />}
+
+            {/* ── COMPARAR (era /insights, Pro): benchmarks vs pool do mesmo tipo ── */}
+            {tab === 'comparar' && <OwnerInsights />}
 
             {/* ── QUALIDADE (juntou o antigo /quality): indicadores reais do serviço,
                 calculados dos registos, prontos para inspeção. ── */}

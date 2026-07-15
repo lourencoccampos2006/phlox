@@ -15,7 +15,7 @@ const TABS: Record<string, { href: string; icon: string; label: string; badge?: 
   ],
   caregiver: [
     { href: '/inicio',    icon: '🏠',   label: 'Início' },
-    { href: '/perfis',    icon: '👨‍👩‍👧', label: 'Família' },
+    { href: '/familia',   icon: '👨‍👩‍👧', label: 'Família' },
     { href: '/mymeds',    icon: '💊',   label: 'Meds' },
     { href: '/vitals',    icon: '❤️',   label: 'Saúde' },
     { href: '/passport',  icon: '🆘',   label: 'SOS' },
