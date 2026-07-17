@@ -76,6 +76,7 @@ export const TOOLS: Tool[] = [
   // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em
   // /tudo, não empurrado para a Hub (convidar não deve ser a 1ª coisa que se vê).
   { id: '/reach',        label: 'Convidar amigos',               desc: 'Ambos ganham quando alguém se junta com o seu código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/partilhado-comigo', label: 'Partilhado comigo',        desc: 'Perfis de família que outra pessoa te deu acesso a ver', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Perceber ──
   { id: '/ai',           label: 'Tirar uma dúvida de saúde',     desc: 'Pergunte em português simples',    category: 'understand', modes: ['personal', 'caregiver', 'student'], default: ['personal'], plan: 'free_limited' },

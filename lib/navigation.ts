@@ -49,6 +49,10 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/plano-peso', icon: '⚖️', label: 'Plano de perda de peso', desc: 'Dieta e exercício contextualizados à tua medicação', badge: 'Pro' },
       { href: '/rastreio-visual', icon: '🔬', label: 'Rastreio visual', desc: 'Risco dermatológico ABCDE por IA de visão', badge: 'Pro' },
       { href: '/vigia-ruturas', icon: '📦', label: 'Vigia de ruturas', desc: 'Cruza a tua medicação com a lista oficial do INFARMED', badge: 'Pro' },
+      { href: '/minha-condicao', icon: '🩺', label: 'Painel da minha condição', desc: 'Medicação, vitais, sintomas e risco à volta da tua doença crónica', badge: 'Pro' },
+      { href: '/plano-recuperacao', icon: '🏥', label: 'Plano de recuperação', desc: 'Marcos realistas para o teu evento de saúde', badge: 'Pro' },
+      { href: '/revisao-medicacao', icon: '🔍', label: 'Revisão da minha medicação', desc: 'O motor de regras clínicas explicado em linguagem simples', badge: 'Pro' },
+      { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
     ],
   },
   {

@@ -15,6 +15,7 @@ import RiskIndexCard from '@/components/RiskIndexCard'
 import CrisisPlaybookCard from '@/components/CrisisPlaybookCard'
 import ZaritBurdenCard from '@/components/ZaritBurdenCard'
 import HandoffSheetButton from '@/components/HandoffSheetButton'
+import ShareInviteButton from '@/components/ShareInviteButton'
 import Link from 'next/link'
 
 interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; height?: number | null; creatinine?: number | null; conditions?: string | null; allergies?: string | null; notes?: string | null }
@@ -306,6 +307,7 @@ export default function FamiliaPage() {
                       <div style={{ padding: '0 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <CrisisPlaybookCard profileId={p.id} name={p.name} />
                         <ZaritBurdenCard profileId={p.id} name={p.name} />
+                        <ShareInviteButton profileId={p.id} name={p.name} />
                       </div>
                     )}
 
