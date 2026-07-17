@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { aiJSON } from '@/lib/ai'
 import { analyzeFamilyMember } from '@/lib/caregiverWatch'
+import { computeSelfRiskScore } from '@/lib/healthAlerts'
+import { RISK_LEVEL_META, type RiskLevel } from '@/lib/riskIndex'
 import { sendPushNotification } from '@/lib/webPush'
 import { sendEmail, caregiverWatchEmail } from '@/lib/email'
 
@@ -87,7 +89,79 @@ export async function GET(req: NextRequest) {
   // for NOVO (ainda não notificado). Tudo best-effort: se faltar SQL/env, não rebenta.
   const caregiver = await runCaregiverWatch(db)
 
-  return NextResponse.json({ ok: true, scanned, worsened, caregiver })
+  // ─── Índice de Risco PRÓPRIO (item B10 da auditoria 2026-07-17) ─────────────
+  // O lado do familiar já tem aviso proativo (acima); o lado da PRÓPRIA pessoa
+  // não tinha nenhum — o /api/risk-index só calculava ao abrir a página. Aqui
+  // calculamos 1x/dia para quem tem Objetivo de Saúde definido (sinal de
+  // engagement real) e avisamos só quando o NÍVEL piora (não a cada flutuação
+  // pequena do score). Sem IA — mesmo motor determinístico do /timeline.
+  const selfRisk = await runSelfRiskWatch(db)
+
+  return NextResponse.json({ ok: true, scanned, worsened, caregiver, selfRisk })
+}
+
+const RISK_RANK: Record<RiskLevel, number> = { ok: 0, info: 1, warning: 2, critical: 3 }
+
+async function runSelfRiskWatch(db: any) {
+  let users = 0, worsened = 0, notified = 0
+  try {
+    const { data: profs, error } = await db.from('profiles')
+      .select('id, plan, health_goal').in('plan', ['pro', 'clinic']).not('health_goal', 'is', null).limit(200)
+    if (error || !profs?.length) return { users: 0, worsened: 0, notified: 0 }
+
+    const now = new Date()
+    const since90 = new Date(now.getTime() - 90 * 86400000).toISOString()
+    const since14date = new Date(now.getTime() - 14 * 86400000).toISOString().slice(0, 10)
+    const today = now.toISOString().slice(0, 10)
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10)
+
+    for (const prof of profs) {
+      users++
+      const userId = prof.id
+      const [{ data: meds }, { data: vitals }, { data: syms }, { data: logs }] = await Promise.all([
+        db.from('personal_meds').select('name,pills_remaining,pills_per_day').eq('user_id', userId).then((r: any) => r, () => ({ data: [] })),
+        db.from('vitals').select('recorded_at,bp_sys,bp_dia,hr,spo2,weight,glucose,temp').eq('user_id', userId).is('profile_id', null).gte('recorded_at', since90).then((r: any) => r, () => ({ data: [] })),
+        db.from('symptom_logs').select('at,pain,temperature,symptoms').eq('user_id', userId).is('profile_id', null).gte('at', since90).then((r: any) => r, () => ({ data: [] })),
+        db.from('med_logs').select('status,date').eq('user_id', userId).gte('date', since14date).then((r: any) => r, () => ({ data: [] })),
+      ])
+      const logList = (logs || []) as any[]
+      const adherencePct = logList.length > 0 ? Math.round((logList.filter((l: any) => l.status === 'taken').length / logList.length) * 100) : null
+
+      const result = computeSelfRiskScore({
+        meds: (meds || []).map((m: any) => ({ name: m.name, pills_remaining: m.pills_remaining, pills_per_day: m.pills_per_day })),
+        vitalSeries: vitals || [], symptoms: syms || [], adherencePct,
+      })
+
+      const { data: prevRow } = await db.from('risk_snapshots').select('score,level')
+        .eq('user_id', userId).is('profile_id', null).eq('snapshot_date', yesterday).maybeSingle()
+
+      // Persiste o snapshot de hoje (check-then-write, mesmo padrão do /api/risk-index).
+      const { data: existing } = await db.from('risk_snapshots').select('id').eq('user_id', userId).is('profile_id', null).eq('snapshot_date', today).maybeSingle()
+      if (existing) await db.from('risk_snapshots').update({ score: result.score, level: result.level, top_factors: result.topFactors }).eq('id', existing.id)
+      else await db.from('risk_snapshots').insert({ user_id: userId, profile_id: null, snapshot_date: today, score: result.score, level: result.level, top_factors: result.topFactors })
+
+      const prevRank = prevRow ? RISK_RANK[prevRow.level as RiskLevel] : null
+      const newRank = RISK_RANK[result.level]
+      if (prevRank != null && newRank > prevRank) {
+        worsened++
+        let didNotify = false
+        const { data: subs } = await db.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId)
+        for (const sub of subs || []) {
+          const ok = await sendPushNotification(sub, {
+            title: `Phlox — o teu Índice de Risco subiu`,
+            body: `Passou de "${RISK_LEVEL_META[prevRow.level as RiskLevel].label}" para "${RISK_LEVEL_META[result.level].label}". Toca para ver o que mudou.`,
+            url: '/timeline', tag: `self-risk-${userId}`,
+          })
+          if (ok) didNotify = true
+          else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        }
+        if (didNotify) notified++
+      }
+    }
+  } catch (e) {
+    return { users, worsened, notified, error: String((e as any)?.message || e).slice(0, 160) }
+  }
+  return { users, worsened, notified }
 }
 
 async function runCaregiverWatch(db: any) {

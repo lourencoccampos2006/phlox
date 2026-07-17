@@ -39,6 +39,8 @@ export interface HomeData {
   cardsDue?: number             // cartões de repetição espaçada a rever hoje (de /api/study/cards)
   // cuidador — o alerta de vigilância mais urgente (de family_alerts/caregiverWatch)
   caregiverAlert?: { who: string; title: string; detail?: string; href: string } | null
+  // cuidador — sobrecarga do PRÓPRIO cuidador (Zarit-12 mais recente, moderada/grave)
+  caregiverBurdenAlert?: { profileName: string; band: string; label: string; advice: string } | null
   // pessoal — o alerta de saúde próprio mais urgente (de healthAlerts/healthTrends)
   healthAlert?: { level: 'high' | 'medium' | 'low'; title: string; detail?: string; href: string; cta?: string } | null
   // pessoal — "a minha saúde esta semana" (tendências determinísticas)
@@ -96,10 +98,22 @@ export function pickFocus(mode: string, d: HomeData): FocusCard {
     return { id: 's-keep', kind: 'suggest', title: 'Mantenha o ritmo', sub: 'Reveja os flashcards de hoje.', href: '/study/notas', cta: 'Rever', icon: 'cards' }
   }
 
+  // CUIDADOR — sobrecarga GRAVE do próprio cuidador vem antes de tudo (um
+  // cuidador esgotado é um risco maior do que um alerta pontual de um familiar).
+  if (mode === 'caregiver' && d.caregiverBurdenAlert?.band === 'sobrecarga_grave') {
+    return { id: 'c-burden', kind: 'urgent', title: 'Como estás a aguentar-te?', sub: `${d.caregiverBurdenAlert.label} identificada ao cuidar de ${d.caregiverBurdenAlert.profileName}. ${d.caregiverBurdenAlert.advice}`, href: '/familia', cta: 'Ver apoio disponível', icon: 'heart' }
+  }
+
   // CUIDADOR — um familiar a precisar de atenção vem ANTES da própria medicação.
   // (Vem do motor de vigilância / family_alerts; é o "Anjo da Guarda" a antecipar-se.)
   if (mode === 'caregiver' && d.caregiverAlert) {
     return { id: 'c-watch', kind: 'urgent', title: `${d.caregiverAlert.who}: ${d.caregiverAlert.title}`, sub: d.caregiverAlert.detail || 'Toque para ver o que precisa de atenção.', href: d.caregiverAlert.href, cta: 'Ver a minha família', icon: 'family' }
+  }
+
+  // CUIDADOR — sobrecarga MODERADA: menos urgente que um alerta do familiar,
+  // mas ainda assim vale mais do que a sugestão calma por defeito.
+  if (mode === 'caregiver' && d.caregiverBurdenAlert?.band === 'sobrecarga_moderada') {
+    return { id: 'c-burden-mod', kind: 'today', title: 'Como estás a aguentar-te?', sub: `${d.caregiverBurdenAlert.label} identificada ao cuidar de ${d.caregiverBurdenAlert.profileName}. ${d.caregiverBurdenAlert.advice}`, href: '/familia', cta: 'Ver mais', icon: 'heart' }
   }
 
   // PESSOAL — um alerta de saúde GRAVE da própria pessoa vem antes da toma do dia.

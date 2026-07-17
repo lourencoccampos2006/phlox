@@ -143,10 +143,34 @@ export default function InicioPage() {
             caregiverAlert = { who: (pr?.name || 'Familiar').split(' ')[0], title: fa.title, detail: fa.detail, href: '/familia' }
           }
         }
+        // CUIDADOR: sobrecarga do próprio cuidador (item B13 da auditoria) — a
+        // avaliação Zarit-12 mais recente feita a QUALQUER familiar, só se for
+        // moderada/grave e recente (<30 dias). Sinal de burnout mais direto que
+        // existe (auto-relatado), não telemetria nova de engagement.
+        let caregiverBurdenAlert: HomeData['caregiverBurdenAlert'] = null
+        if (expMode === 'caregiver') {
+          const { data: bc } = await supabase.from('caregiver_burden_checks')
+            .select('profile_id, band, total_score, created_at')
+            .eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+          if (bc && (bc.band === 'sobrecarga_moderada' || bc.band === 'sobrecarga_grave')) {
+            const daysOld = Math.floor((Date.now() - new Date(bc.created_at).getTime()) / 86400000)
+            if (daysOld <= 30) {
+              const { data: pr } = await supabase.from('family_profiles').select('name').eq('id', bc.profile_id).maybeSingle()
+              caregiverBurdenAlert = {
+                profileName: (pr?.name || 'um familiar').split(' ')[0],
+                band: bc.band,
+                label: bc.band === 'sobrecarga_grave' ? 'Sobrecarga grave' : 'Sobrecarga moderada',
+                advice: bc.band === 'sobrecarga_grave'
+                  ? 'Falar com o médico de família, assistente social ou serviço de cuidados paliativos pode fazer diferença real.'
+                  : 'Vale a pena procurar pequenas pausas regulares e identificar tarefas que possa delegar.',
+              }
+            }
+          }
+        }
         if (!cancel) setData({
           firstName, medsCount: medList.length,
           dosesDueNow: dueNow, dosesTakenToday: taken, dosesTotalToday: totalToday, nextDoseLabel: nextLabel,
-          lastVitalDaysAgo, nextAppt, caregiverAlert, healthAlert, week,
+          lastVitalDaysAgo, nextAppt, caregiverAlert, caregiverBurdenAlert, healthAlert, week,
           hasAnyData: medList.length > 0 || !!lastVital || !!appt || !!caregiverAlert || !!healthAlert,
         })
       } catch {

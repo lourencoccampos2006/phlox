@@ -14,6 +14,7 @@ import LinkedResidents from '@/components/LinkedResidents'
 import RiskIndexCard from '@/components/RiskIndexCard'
 import CrisisPlaybookCard from '@/components/CrisisPlaybookCard'
 import ZaritBurdenCard from '@/components/ZaritBurdenCard'
+import HandoffSheetButton from '@/components/HandoffSheetButton'
 import Link from 'next/link'
 
 interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; height?: number | null; creatinine?: number | null; conditions?: string | null; allergies?: string | null; notes?: string | null }
@@ -318,6 +319,9 @@ export default function FamiliaPage() {
                       {/* Ligar ao lar/centro: usa o Portal Família (código + verificação) — daí
                           mensagens, medicação e visitas ligam-se ao utente da instituição. */}
                       <Link href="/portal-familia" onClick={() => activate(p)} style={act('#1d4ed8')}>Ligar ao lar / centro</Link>
+                      {(user?.plan === 'pro' || user?.plan === 'clinic') && (
+                        <HandoffSheetButton profileId={p.id} name={p.name} age={p.age} allergies={p.allergies} conditions={p.conditions} meds={pmeds.map(m => ({ name: m.name, dose: m.dose }))} />
+                      )}
                     </div>
                   </div>
                 )
