@@ -40,6 +40,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/sintomas',  icon: '🌡', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
       { href: '/vault',     icon: '🔒', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
+      { href: '/health-import', icon: '📥', label: 'Importar do Apple Health', desc: 'Traz o histórico de peso, tensão e frequência cardíaca de uma vez', modes: ['personal', 'caregiver'] },
       { href: '/timeline',  icon: '🗓', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
       { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
       { href: '/labs',      icon: '🧪', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },

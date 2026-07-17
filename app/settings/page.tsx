@@ -6,11 +6,11 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
-import { useEnabledTools } from '@/lib/useEnabledTools'
 import { planById, planName } from '@/lib/plans'
 import SecuritySettings from '@/components/settings/SecuritySettings'
 import HealthGoalPicker from '@/components/HealthGoalPicker'
+import PinPickerGrid from '@/components/PinPickerGrid'
+import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 
 const ROLE_OPTIONS = [
   { value: 'pharmacist',  label: 'Farmacêutico' },
@@ -148,7 +148,6 @@ function SettingsPage() {
   // Adaptive tool visibility (personal/caregiver/student/clinical)
   // 2026-06-01: clínico agora customiza por instituição selecionada.
   const expMode: string = (user as any)?.experience_mode || 'personal'
-  const toolMode: ToolMode = (['personal', 'caregiver', 'student', 'clinical'].includes(expMode) ? expMode : 'personal') as ToolMode
   const [clinicInst, setClinicInst] = useState<any>(null)
   useEffect(() => {
     if (typeof localStorage === 'undefined') return
@@ -158,10 +157,24 @@ function SettingsPage() {
     return () => window.removeEventListener('storage', h)
   }, [])
 
-  // Picker de ferramentas — só para modos não-clínicos. No clínico, as ferramentas
-  // vêm do blueprint da instituição (não se escolhem).
-  const notClinical = toolMode !== 'clinical'
-  const tools = useEnabledTools(toolMode === 'clinical' ? 'personal' : toolMode)
+  // Picker de atalhos fixos — só para modos não-clínicos. No clínico, as
+  // ferramentas vêm do blueprint da instituição (não se escolhem).
+  // REDESIGN 2026-07-17: era um liga/desliga de visibilidade (TOOL_CATEGORIES);
+  // desde que /inicio passou a ter a vista "Tudo o que o Phlox faz" sempre
+  // completa e pesquisável, esconder ferramentas deixou de fazer sentido — o
+  // que os utilizadores queriam mesmo era escolher os SEUS atalhos, que é
+  // exatamente o que o botão "Personalizar" em /inicio já abre. Aqui é o
+  // mesmo seletor, "nas definições" como o Fernando pediu.
+  const notClinical = expMode !== 'clinical'
+  const [pinIds, setPinIds] = useState<string[]>([])
+  useEffect(() => { setPinIds(getPins()) }, [])
+  function togglePin(path: string) {
+    setPinIds(prev => {
+      const next = prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path].slice(0, 6)
+      persistPins(next)
+      return next
+    })
+  }
 
   const downloadExport = async (format: 'json' | 'csv') => {
     setExporting(true)
@@ -361,47 +374,19 @@ function SettingsPage() {
           </div>
         )}
 
-        {/* Picker de ferramentas — só modos não-clínicos. No clínico vem do blueprint. */}
+        {/* Picker de atalhos — só modos não-clínicos. No clínico vem do blueprint. */}
         {tab === 'ferramentas' && notClinical && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>As tuas ferramentas</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Os teus atalhos</div>
               <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55 }}>
-                Liga ou desliga ferramentas. As que estiverem ligadas aparecem na tua página de início.
+                Escolhe até 6 ferramentas para aparecerem sempre à mão na tua página de início. Para veres tudo o
+                resto, abre "Tudo o que o Phlox faz" no início — está sempre lá, organizado e com pesquisa.
               </div>
-              {tools.customised && <button onClick={tools.reset} style={{ marginTop: 10, fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600, padding: 0 }}>Repor predefinições</button>}
             </div>
-            {Object.entries(TOOL_CATEGORIES).filter(([cat]) => tools.all.some(t => t.category === cat)).map(([cat, meta]) => (
-              <div key={cat} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{meta.label}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {tools.all.filter(t => t.category === cat).map(t => {
-                    const on = tools.isOn(t.id)
-                    const badge = PLAN_BADGE[t.plan]
-                    const isDefault = tools.defaults.includes(t.id)
-                    return (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--bg-3)' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</span>
-                            {badge && <span style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: badge.bg, padding: '1px 6px', borderRadius: 4 }}>{badge.label}</span>}
-                            {isDefault && <span style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>por defeito</span>}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{t.desc}</div>
-                        </div>
-                        <button onClick={() => tools.toggle(t.id)} aria-label={on ? 'Desativar' : 'Ativar'}
-                          style={{ width: 42, height: 24, borderRadius: 12, background: on ? '#0d6e42' : 'var(--bg-3)', border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-                          <span style={{ position: 'absolute', top: 2, left: on ? 20 : 2, width: 20, height: 20, borderRadius: '50%', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <PinPickerGrid pins={pinIds} onToggle={togglePin} />
+            </div>
           </div>
         )}
 

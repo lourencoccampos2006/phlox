@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getPins, setPins, PINNABLE_TOOLS, PIN_MAX } from '@/lib/pinnedTools'
+import PinPickerModal from '@/components/PinPickerModal'
 
 export default function PinnedToolsBar() {
   const [pins, setLocalPins] = useState<string[]>([])
@@ -63,46 +64,7 @@ export default function PinnedToolsBar() {
         </button>
       )}
 
-      {open && (
-        <div onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 560, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400 }}>Atalhos fixos</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>Selecionados {pins.length} de {PIN_MAX}</div>
-              </div>
-              <button onClick={() => setOpen(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-2)', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink-4)' }}>×</button>
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '14px 20px 22px' }}>
-              {Array.from(new Set(PINNABLE_TOOLS.map(t => t.group))).map(group => (
-                <div key={group} style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>{group}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 6 }}>
-                    {PINNABLE_TOOLS.filter(t => t.group === group).map(t => {
-                      const checked = pins.includes(t.path)
-                      const disabled = !checked && pins.length >= PIN_MAX
-                      return (
-                        <button key={t.path} onClick={() => !disabled && toggle(t.path)} disabled={disabled}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', borderRadius: 9,
-                            border: `1.5px solid ${checked ? '#0d6e42' : 'var(--border)'}`,
-                            background: checked ? '#f0fdf4' : 'white',
-                            cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
-                            fontFamily: 'var(--font-sans)', textAlign: 'left',
-                          }}>
-                          <span style={{ fontSize: 16 }}>{t.icon}</span>
-                          <span style={{ fontSize: 12.5, color: checked ? '#15803d' : 'var(--ink-2)', fontWeight: checked ? 700 : 500, flex: 1 }}>{t.label}</span>
-                          {checked && <span style={{ fontSize: 11, color: '#15803d' }}>✓</span>}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <PinPickerModal open={open} onClose={() => setOpen(false)} pins={pins} onToggle={toggle} />
       <style>{`
         .pin-grid {
           display: grid;

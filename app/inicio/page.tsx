@@ -11,10 +11,10 @@ import { computeHealthAlerts } from '@/lib/healthAlerts'
 import { modeTheme, isPremiumMode, type ModeTheme } from '@/lib/modeTheme'
 import { homeGreeting, homeSubline, pickFocus, quickActions, type HomeData, type FocusCard, type QuickAction } from '@/lib/homeIntelligence'
 import { summarize, syncStudyProgress } from '@/lib/studyProgress'
-import { useEnabledTools } from '@/lib/useEnabledTools'
-import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
-import { getPins, PINNABLE_TOOLS } from '@/lib/pinnedTools'
+import { getPins, setPins as persistPins, PINNABLE_TOOLS } from '@/lib/pinnedTools'
+import PinPickerModal from '@/components/PinPickerModal'
 import { ALL_PERSONAS, personaFor } from '@/lib/userPersona'
+import { getNavForMode, type NavCategory } from '@/lib/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { blueprintFor } from '@/lib/institutionBlueprint'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -35,6 +35,22 @@ export default function InicioPage() {
   const [mounted, setMounted] = useState(false)
   const [data, setData] = useState<HomeData | null>(null)
   useEffect(() => { setMounted(true) }, [])
+
+  // REDESIGN 2026-07-17 — não há mais uma página /tudo separada. "Para ti" e
+  // "Tudo o que o Phlox faz" são duas VISTAS da mesma página, trocadas por um
+  // botão grande (não um menu escondido) — para ninguém, incluindo pessoas
+  // menos à vontade com tecnologia, precisar de descobrir uma página à parte.
+  // Fica na URL (?ver=tudo) para ser possível voltar atrás/partilhar/marcar.
+  const [view, setView] = useState<'para-ti' | 'tudo'>('para-ti')
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (new URLSearchParams(window.location.search).get('ver') === 'tudo') setView('tudo')
+  }, [])
+  function changeView(v: 'para-ti' | 'tudo') {
+    setView(v)
+    router.replace(v === 'tudo' ? '/inicio?ver=tudo' : '/inicio', { scroll: false })
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }
 
   useEffect(() => {
     if (loading) return
@@ -247,27 +263,35 @@ export default function InicioPage() {
           <ModeChip theme={t} />
         </div>
 
-        {/* ── O FOCO — a única coisa que importa agora ── */}
-        <FocusHero focus={focus} theme={t} loading={!data} />
+        {/* ── Trocar de vista — GRANDE e claro, não um menu escondido ── */}
+        <ViewToggle view={view} onChange={changeView} theme={t} />
 
-        {/* ── A tua saúde (alertas restantes + tendências da semana, 1 só cartão) ── */}
-        {(expMode === 'personal' || expMode === 'caregiver') && <HealthStrip data={d} loading={!data} theme={t} />}
+        {view === 'para-ti' ? (
+          <>
+            {/* ── O FOCO — a única coisa que importa agora ── */}
+            <FocusHero focus={focus} theme={t} loading={!data} />
 
-        {/* ── Atalhos — os teus fixados + os essenciais do modo, uma lista só ── */}
-        <ShortcutsSection mode={expMode} actions={actions} theme={t} />
+            {/* ── A tua saúde (alertas restantes + tendências da semana, 1 só cartão) ── */}
+            {(expMode === 'personal' || expMode === 'caregiver') && <HealthStrip data={d} loading={!data} theme={t} />}
 
-        {/* ── TODAS as ferramentas do modo, por categoria (expansível) ── */}
-        <AllToolsSection mode={expMode as ToolMode} theme={t} />
+            {/* ── Atalhos — os teus fixados + os essenciais do modo, uma lista só ── */}
+            <ShortcutsSection mode={expMode} actions={actions} theme={t} />
 
-        {/* ── Momento difícil — só modos de cuidado ── */}
-        {(expMode === 'personal' || expMode === 'caregiver') && (
-          <Link href="/comecar" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', marginTop: 14, background: t.surfaceMuted, border: `1px solid ${t.border}`, borderRadius: t.radius, textDecoration: 'none' }}>
-            <span style={{ fontSize: 19, flexShrink: 0 }}>🤍</span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: t.ink }}>A passar por um momento difícil?</span>
-              <span style={{ display: 'block', fontSize: 12, color: t.inkFaint, marginTop: 1 }}>Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo.</span>
-            </span>
-          </Link>
+            {/* ── Momento difícil — só modos de cuidado ── */}
+            {(expMode === 'personal' || expMode === 'caregiver') && (
+              <Link href="/comecar" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', marginTop: 14, background: t.surfaceMuted, border: `1px solid ${t.border}`, borderRadius: t.radius, textDecoration: 'none' }}>
+                <span style={{ fontSize: 19, flexShrink: 0 }}>🤍</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: t.ink }}>A passar por um momento difícil?</span>
+                  <span style={{ display: 'block', fontSize: 12, color: t.inkFaint, marginTop: 1 }}>Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo.</span>
+                </span>
+              </Link>
+            )}
+          </>
+        ) : (
+          /* ── TUDO O QUE O PHLOX FAZ — antes era a página /tudo à parte;
+              agora é só uma vista aqui, com pesquisa e tudo por categoria. ── */
+          <TudoView mode={expMode} theme={t} />
         )}
 
         {/* ── Pé discreto ── */}
@@ -368,18 +392,26 @@ const PIN_ICON: Record<string, string> = {
 const SHORTCUTS_MAX = 6
 
 function ShortcutsSection({ mode, actions, theme: t }: { mode: string; actions: QuickAction[]; theme: ModeTheme }) {
-  const [pins, setPins] = useState<{ href: string; icon: string; label: string; sub: string }[] | null>(null)
+  const [pinIds, setPinIds] = useState<string[] | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
-  useEffect(() => {
-    const ids = getPins()
-    setPins(ids
-      .map(id => PINNABLE_TOOLS.find(x => x.path === id))
-      .filter(Boolean)
-      .map((x: any) => ({ href: x.path, icon: PIN_ICON[x.path] || 'grid', label: x.label, sub: 'Fixado por ti' })))
-  }, [])
+  useEffect(() => { setPinIds(getPins()) }, [])
 
-  if (pins === null) return <div className="skeleton" style={{ height: 160, borderRadius: 12, marginTop: 22 }} />
+  function togglePin(path: string) {
+    setPinIds(prev => {
+      const cur = prev || []
+      const next = cur.includes(path) ? cur.filter(p => p !== path) : [...cur, path].slice(0, 6)
+      persistPins(next)
+      return next
+    })
+  }
 
+  if (pinIds === null) return <div className="skeleton" style={{ height: 160, borderRadius: 12, marginTop: 22 }} />
+
+  const pins = pinIds
+    .map(id => PINNABLE_TOOLS.find(x => x.path === id))
+    .filter(Boolean)
+    .map((x: any) => ({ href: x.path, icon: PIN_ICON[x.path] || 'grid', label: x.label, sub: 'Fixado por ti' }))
   const seen = new Set(pins.map(p => p.href))
   const combined = [...pins, ...actions.filter(a => !seen.has(a.href))].slice(0, SHORTCUTS_MAX)
 
@@ -389,8 +421,12 @@ function ShortcutsSection({ mode, actions, theme: t }: { mode: string; actions: 
         <span style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {mode === 'student' ? 'Estudar' : 'Atalhos'}
         </span>
-        {pins.length > 0 && <Link href="/tudo" style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Editar</Link>}
+        {/* REDESIGN 2026-07-17: antes ligava a /tudo, que nunca teve edição de
+            pins nenhuma (link morto). Abre agora o mesmo seletor usado em
+            /settings — "personalizado nas definições", sem sair da página. */}
+        <button onClick={() => setPickerOpen(true)} style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Personalizar</button>
       </div>
+      <PinPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} pins={pinIds} onToggle={togglePin} />
       <div className="ini-actions">
         {combined.map(a => (
           <Link key={a.href} href={a.href} className="ini-action" style={{ background: t.surface, borderColor: t.border }}>
@@ -409,61 +445,83 @@ function ShortcutsSection({ mode, actions, theme: t }: { mode: string; actions: 
   )
 }
 
-// ─── TODAS as ferramentas do modo, por categoria — acesso completo, calmo ───────
-function AllToolsSection({ mode, theme: t }: { mode: ToolMode; theme: ModeTheme }) {
-  const { enabledTools } = useEnabledTools(mode)
-  const [expanded, setExpanded] = useState(false)
-  const cats = Object.keys(TOOL_CATEGORIES).filter(c => enabledTools.some(tt => tt.category === c))
-  if (enabledTools.length === 0) return (
-    <Link href="/tudo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '15px', marginTop: 18, border: `1.5px solid ${t.border}`, borderRadius: t.radius, textDecoration: 'none', color: t.inkSoft, fontSize: 14.5, fontWeight: 700 }}>
-      <Icon name="grid" size={18} color={t.inkSoft} />Ver tudo o que o Phlox faz
-    </Link>
-  )
+// ─── Trocar de vista — REDESIGN 2026-07-17 ──────────────────────────────────────
+// Botão grande, sempre visível, com os DOIS destinos escritos por extenso (não
+// um ícone sozinho nem um menu escondido) — para uma pessoa idosa ou pouco à
+// vontade com tecnologia perceber ao primeiro olhar que há duas formas de ver
+// esta página, sem ter de descobrir nada.
+function ViewToggle({ view, onChange, theme: t }: { view: 'para-ti' | 'tudo'; onChange: (v: 'para-ti' | 'tudo') => void; theme: ModeTheme }) {
+  const opt = (v: 'para-ti' | 'tudo', label: string) => {
+    const active = view === v
+    return (
+      <button onClick={() => onChange(v)} style={{
+        flex: 1, padding: '13px 10px', border: 'none', borderRadius: t.radius - 2, cursor: 'pointer',
+        fontFamily: 'var(--font-sans)', fontSize: 14.5, fontWeight: active ? 800 : 700,
+        background: active ? t.accent : 'transparent', color: active ? '#fff' : t.inkSoft,
+        transition: 'background 0.15s, color 0.15s',
+      }}>{label}</button>
+    )
+  }
   return (
-    <div style={{ marginTop: 22 }} data-tour="all">
-      <button onClick={() => setExpanded(e => !e)} style={{
-        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 9,
-        padding: '14px 16px', background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: t.radius,
-        cursor: 'pointer', fontFamily: 'var(--font-sans)', color: t.inkSoft, fontSize: 14.5, fontWeight: 700,
-      }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><Icon name="grid" size={18} color={t.accent} />Todas as ferramentas</span>
-        <Icon name="chevron" size={17} color={t.inkFaint} style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-      </button>
-      {expanded && (
-        <div style={{ marginTop: 12 }}>
-          {cats.map(cat => {
-            const meta = TOOL_CATEGORIES[cat]
-            const items = enabledTools.filter(tt => tt.category === cat)
-            return (
-              <div key={cat} style={{ marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9, padding: '0 2px' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color }} />
-                  <span style={{ fontSize: 10.5, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{meta.label}</span>
-                </div>
-                <div className="ini-actions">
-                  {items.map(tool => {
-                    const badge = PLAN_BADGE[tool.plan]
-                    return (
-                      <Link key={tool.id} href={tool.id} className="ini-action" style={{ background: t.surface, borderColor: t.border }}>
-                        <span className="ini-action-ic" style={{ background: meta.color + '18', color: meta.color }}><Icon name={PIN_ICON[tool.id] || 'grid'} size={20} /></span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 14.5, fontWeight: 700, color: t.ink, letterSpacing: '-0.01em' }}>{tool.label}</span>
-                            {badge && <span style={{ fontSize: 9, fontWeight: 800, color: badge.color, background: badge.bg, padding: '1px 6px', borderRadius: 4 }}>{badge.label}</span>}
-                          </span>
-                          <span style={{ display: 'block', fontSize: 12.5, color: t.inkFaint, marginTop: 1 }}>{tool.desc}</span>
-                        </span>
-                        <Icon name="chevron" size={16} color={t.inkFaint} />
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-          <Link href="/tudo" style={{ display: 'block', textAlign: 'center', padding: '12px', fontSize: 13, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Ver catálogo completo →</Link>
+    <div style={{ display: 'flex', gap: 4, padding: 4, background: t.surfaceMuted, border: `1px solid ${t.border}`, borderRadius: t.radius, marginBottom: 18 }}>
+      {opt('para-ti', 'Para ti')}
+      {opt('tudo', 'Tudo o que o Phlox faz')}
+    </div>
+  )
+}
+
+// ─── TUDO O QUE O PHLOX FAZ — antes /tudo, agora uma vista aqui ─────────────────
+// Pesquisa + catálogo completo por categoria. Mesma fonte de dados do ⌘K
+// (lib/navigation.ts) — não filtrado pelas preferências de "Para ti" (aqui é
+// para ver mesmo TUDO), com secções sempre abertas (nada escondido atrás de um
+// "expandir" que uma pessoa possa não descobrir).
+function TudoView({ mode, theme: t }: { mode: string; theme: ModeTheme }) {
+  const [q, setQ] = useState('')
+  const navMode = (mode === 'clinical' ? 'clinical' : mode) as 'personal' | 'caregiver' | 'student' | 'clinical'
+  const cats: NavCategory[] = getNavForMode(navMode)
+  const term = q.trim().toLowerCase()
+  const filtered = !term ? cats : cats
+    .map(c => ({ ...c, tools: c.tools.filter(x => x.label.toLowerCase().includes(term) || x.desc.toLowerCase().includes(term)) }))
+    .filter(c => c.tools.length > 0)
+
+  return (
+    <div>
+      <div style={{ position: 'relative', marginBottom: 20 }}>
+        <label htmlFor="tudo-search" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: t.inkFaint, marginBottom: 6 }}>Procurar uma ferramenta</label>
+        <span style={{ position: 'absolute', left: 15, top: 40, color: t.inkFaint }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+        </span>
+        <input id="tudo-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Ex: comprimidos, tensão, dúvida…"
+          style={{ width: '100%', boxSizing: 'border-box', padding: '14px 14px 14px 44px', fontSize: 16, border: `1.5px solid ${t.border}`, borderRadius: t.radius, outline: 'none', background: t.surface, color: t.ink }} />
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{ background: t.surface, border: `1px dashed ${t.border}`, borderRadius: t.radius, padding: '36px 20px', textAlign: 'center', color: t.inkFaint, fontSize: 14 }}>
+          Nada encontrado para "{q}". Tenta outra palavra.
         </div>
-      )}
+      ) : filtered.map(cat => (
+        <div key={cat.id} style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11, padding: '0 2px' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color }} />
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{cat.label}</span>
+          </div>
+          <div className="ini-actions">
+            {cat.tools.map(tool => (
+              <Link key={tool.href} href={tool.href} className="ini-action" style={{ background: t.surface, borderColor: t.border }}>
+                <span className="ini-action-ic" style={{ background: `${cat.color}22`, fontSize: 20 }}>{tool.icon}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: t.ink, letterSpacing: '-0.01em' }}>{tool.label}</span>
+                    {tool.badge && <span style={{ fontSize: 9, fontWeight: 800, color: t.accent, background: t.accentSoft, padding: '1px 6px', borderRadius: 4 }}>{tool.badge}</span>}
+                  </span>
+                  <span style={{ display: 'block', fontSize: 12.5, color: t.inkFaint, marginTop: 1 }}>{tool.desc}</span>
+                </span>
+                <Icon name="chevron" size={16} color={t.inkFaint} />
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
