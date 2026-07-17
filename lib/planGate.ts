@@ -96,12 +96,24 @@ export async function getUserPlan(req: NextRequest): Promise<{ userId: string | 
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('plan, experience_mode')
+      .select('plan, experience_mode, plan_status')
       .eq('id', userId)
       .single()
 
     if (error || !data) return { userId, plan: 'free' }
     let plan = (data.plan as Plan) || 'free'
+
+    // BUG CORRIGIDO 2026-07-15: quando o pagamento falha (Stripe entra em
+    // Smart Retries), o subscription.updated do webhook só atualiza
+    // `plan_status` — NUNCA baixava `plan`, por isso o utilizador mantinha
+    // acesso pago indefinidamente enquanto a cobrança continuava a falhar
+    // (só descia a 'free' quando o Stripe desistia de vez e cancelava a
+    // subscrição, semanas depois). Aqui, não mexe na coluna `plan` (mantém o
+    // que a pessoa está subscrita a pagar, para restaurar certo quando o
+    // pagamento recupera) — em vez disso, o ACESSO efetivo é que degrada.
+    // Espelha effectivePlan() no cliente (AuthContext).
+    const UNHEALTHY_PLAN_STATUS = new Set(['past_due', 'unpaid', 'incomplete', 'incomplete_expired'])
+    if (UNHEALTHY_PLAN_STATUS.has(data.plan_status)) plan = 'free'
 
     // Acesso institucional por PERTENÇA, não por plano: um funcionário convidado
     // fica com plan='free' (limites gratuitos FORA da instituição — pessoal/

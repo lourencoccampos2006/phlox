@@ -22,6 +22,7 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   { path: '/calendario',        label: 'Calendário',             icon: '📅', group: 'Pessoal' },
   { path: '/plano-peso',        label: 'Plano de perda de peso', icon: '⚖️', group: 'Pessoal' },
   { path: '/rastreio-visual',   label: 'Rastreio visual',        icon: '🔬', group: 'Pessoal' },
+  { path: '/vigia-ruturas',     label: 'Vigia de ruturas',        icon: '📦', group: 'Pessoal' },
   // Cuidador
   { path: '/familia',           label: 'Perfis de família',      icon: '👨‍👩‍👧', group: 'Cuidador' },
   // Estudante

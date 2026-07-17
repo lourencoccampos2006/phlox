@@ -1,0 +1,749 @@
+- generic [active] [ref=f5e1]:
+  - banner [ref=f5e2]:
+    - generic [ref=f5e3]:
+      - generic:
+        - link:
+          - /url: "#header-navigation"
+    - generic [ref=f5e4]:
+      - generic [ref=f5e7]:
+        - generic [ref=f5e8]:
+          - link [ref=f5e9] [cursor=pointer]:
+            - /url: /web/infarmed
+            - strong [ref=f5e10]: INFARMED - Autoridade Nacional do Medicamento e Produtos de Sa�de I.P.
+          - link "MENU" [ref=f5e11] [cursor=pointer]:
+            - /url: "#navigation-collapse"
+        - text:                                                                                                                                                                      
+      - generic:                                                                                                                                                                         
+  - text:    
+  - generic [ref=f5e13]:
+    - link " Contacte-nos" [ref=f5e15] [cursor=pointer]:
+      - /url: /web/infarmed/contacte-nos
+      - generic [ref=f5e16]: 
+      - generic: Contacte-nos
+    - generic [ref=f5e20]:
+      - main [ref=f5e21]:
+        - generic [ref=f5e28]:
+          - article [ref=f5e30]:
+            - generic [ref=f5e31]:
+              - heading "Gestão da disponibilidade do medicamento" [level=2] [ref=f5e32]
+              - generic [ref=f5e33]:
+                - link "Imprimir" [ref=f5e34] [cursor=pointer]:
+                  - /url: javascript:mvuq_printPage();
+                  - text: Imprimir
+                  - generic [ref=f5e35]: 
+                - generic [ref=f5e36]:
+                  - text: Partilhar
+                  - list [ref=f5e37]:
+                    - listitem [ref=f5e38]:
+                      - link "" [ref=f5e39] [cursor=pointer]:
+                        - /url: https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fwww.infarmed.pt%2Fweb%2Finfarmed%2Fgestao-da-disponibilidade-do-medicamento&title=Gest%C3%A3o+da+disponibilidade+do+medicamento&description=Infarmed&picture=http%3A%2F%2Fwww.infarmed.pt%2Finfarmed-theme%2Fimages%2Finfarmed-coloured.png
+                    - listitem [ref=f5e41]:
+                      - link "" [ref=f5e42] [cursor=pointer]:
+                        - /url: https://www.linkedin.com/shareArticle?mini=true&url=http%3A%2F%2Fwww.infarmed.pt%2Fweb%2Finfarmed%2Fgestao-da-disponibilidade-do-medicamento&title=Gest%C3%A3o+da+disponibilidade+do+medicamento&summary=Infarmed
+                    - listitem [ref=f5e44]:
+                      - link "" [ref=f5e45] [cursor=pointer]:
+                        - /url: https://twitter.com/intent/tweet?text=Gest%C3%A3o+da+disponibilidade+do+medicamento&url=http%3A%2F%2Fwww.infarmed.pt%2Fweb%2Finfarmed%2Fgestao-da-disponibilidade-do-medicamento
+                    - listitem [ref=f5e47]:
+                      - link "" [ref=f5e48] [cursor=pointer]:
+                        - /url: mailto:?subject=Gest%C3%A3o%20da%20disponibilidade%20do%20medicamento&body=http%3A%2F%2Fwww.infarmed.pt%2Fweb%2Finfarmed%2Fgestao-da-disponibilidade-do-medicamento
+          - generic [ref=f5e50]:
+            - list [ref=f5e51]:
+              - listitem [ref=f5e52]:
+                - link "Introdução" [ref=f5e53]:
+                  - /url: "#tab1"
+              - listitem [ref=f5e54]:
+                - link "Destaques" [ref=f5e55] [cursor=pointer]:
+                  - /url: "#tab2"
+              - listitem [ref=f5e56]:
+                - link "Notificar" [ref=f5e57] [cursor=pointer]:
+                  - /url: "#tab3"
+              - listitem [ref=f5e58]:
+                - link "Ruturas" [ref=f5e59] [cursor=pointer]:
+                  - /url: "#tab4"
+              - listitem [ref=f5e60]:
+                - link "Cessações" [ref=f5e61] [cursor=pointer]:
+                  - /url: "#tab5"
+              - listitem [ref=f5e62]:
+                - link "Controlo da disponibilidade" [ref=f5e63] [cursor=pointer]:
+                  - /url: "#tab6"
+              - listitem [ref=f5e64]:
+                - link "AUE" [ref=f5e65] [cursor=pointer]:
+                  - /url: "#tab7"
+              - listitem [ref=f5e66]:
+                - link "SAR" [ref=f5e67] [cursor=pointer]:
+                  - /url: "#tab8"
+              - listitem [ref=f5e68]:
+                - link "DP" [ref=f5e69] [cursor=pointer]:
+                  - /url: "#tab9"
+              - listitem [ref=f5e70]:
+                - link "Medicamentos essenciais" [ref=f5e71] [cursor=pointer]:
+                  - /url: "#tab10"
+              - listitem [ref=f5e72]:
+                - link "Orientações" [ref=f5e73] [cursor=pointer]:
+                  - /url: "#tab11"
+            - generic [ref=f5e74]:
+              - generic [ref=f5e76]:
+                - article [ref=f5e77]:
+                  - paragraph [ref=f5e80]:
+                    - text: A garantia do acesso dos cidadãos aos medicamentos de que necessitam assume-se como uma das mais relevantes vertentes do direito fundamental à proteção da saúde. Todos os intervenientes na cadeia de abastecimento do medicamento – titulares de AIM, distribuidores e farmácias - têm responsabilidades legais muito importantes na garantia do acesso adequado, regular e contínuo do mercado e na disponibilidade de medicamentos. A disponibilidade de medicamentos tem sido um assunto central para as autoridades europeias e nacionais. O Regulamento 2022/123 do Parlamento Europeu e do Conselho reforçou o papel da Agência Europeia do Medicamento na preparação para crises e na gestão de medicamentos e dispositivos médicos, e criou o
+                    - link "Grupo de Trabalho SPOC" [ref=f5e81] [cursor=pointer]:
+                      - /url: http://www.ema.europa.eu/en/committees/working-parties-other-groups/medicines-shortages-single-point-contact-spoc-working-party/medicine-shortages-spoc-working-party-meetings
+                    - text: e o Grupo Diretor sobre Ruturas de Medicamentos (MSSG), onde todos os Estados-membros, a Agência e a Comissão Europeia partilham informações e colaboram na gestão da disponibilidade de medicamentos a nível europeu. O Infarmed participa ativamente na rede europeia. No Infarmed, a gestão da disponibilidade de medicamentos é garantida por uma unidade dedicada - Unidade de Gestão da Disponibilidade e para o Sistema de Saúde (USS) -, que estabelece uma extensa colaboração com todos os parceiros e analisa e discute cada situação de indisponibilidade e a correspondente medida de mitigação. Colabora ainda com a
+                    - link "Comissão Nacional de Farmácia e Terapêutica (CNFT)" [ref=f5e82] [cursor=pointer]:
+                      - /url: http://www.infarmed.pt/web/infarmed/institucional/estrutura-e-organizacao/comissoes-tecnicas-especializadas/comissao_nacional_de_farmacia_terapeutica
+                    - text: ", que fornece as orientações clínicas para a identificação de alternativas terapêuticas. O Infarmed preside ainda à Comissão de Acompanhamento da Gestão da Disponibilidade de Medicamentos (CAGDM), que reúne todos os intervenientes (titulares de autorização de introdução no mercado, distribuidores por grosso, farmácias, ordens profissionais, associações de doentes e a Comissão Nacional de Farmácia e Terapêutica). Esta comissão foi estabelecida pelo regulamento de gestão da disponibilidade de medicamentos aprovado pelo Conselho Diretivo do Infarmed. O Infarmed colabora em projetos europeus e nacionais que visam reforçar a harmonização da gestão de ruturas de medicamentos, a segurança e a robustez das cadeias de abastecimento."
+                    - strong [ref=f5e83]: "Contacto:"
+                    - link "uss@infarmed.pt" [ref=f5e84] [cursor=pointer]:
+                      - /url: mailto:uss@infarmed.pt
+                - generic [ref=f5e86]:
+                  - generic [ref=f5e88]:
+                    - heading "Acesso rápido" [level=2] [ref=f5e89]
+                    - list [ref=f5e91]:
+                      - listitem [ref=f5e92]:
+                        - link "Perguntas frequentes " [ref=f5e93] [cursor=pointer]:
+                          - /url: /web/infarmed/perguntas-frequentes-area-transversal/disponibilidade-de-medicamentos
+                      - listitem [ref=f5e94]:
+                        - link [ref=f5e95] [cursor=pointer]:
+                          - /url: https://www.ema.europa.eu/en/human-regulatory/post-authorisation/availability-medicines
+                          - emphasis [ref=f5e96]: Availability of medicines
+                          - text: (EMA) 
+                      - listitem [ref=f5e97]:
+                        - link [ref=f5e98] [cursor=pointer]:
+                          - /url: https://www.ema.europa.eu/en/human-regulatory/post-authorisation/availability-medicines/shortages-catalogue
+                          - emphasis [ref=f5e99]: Shortages catalogue
+                          - text: (EMA) 
+                  - generic [ref=f5e101]:
+                    - heading "Relacionados" [level=2] [ref=f5e102]
+                    - list [ref=f5e104]:
+                      - listitem [ref=f5e105]:
+                        - link "Relatório sobre a gestão da disponibilidade de medicamentos de 2024 " [ref=f5e106] [cursor=pointer]:
+                          - /url: /documents/15786/10901776/Relat%C3%B3rio+2024/2f02f60e-ef04-a5b1-7962-be7d5ef353a2
+                      - listitem [ref=f5e107]:
+                        - link "Vídeo sobre a disponibilidade de medicamentos " [ref=f5e108] [cursor=pointer]:
+                          - /url: https://www.youtube.com/watch?v=YhWKWlGJcsA
+              - article [ref=f5e110]:
+                - generic [ref=f5e112]:
+                  - strong [ref=f5e113]: Situações de escassez em monitorização
+                  - paragraph [ref=f5e114]:
+                    - strong [ref=f5e115]: Agonistas do recetor da GLP-1
+                  - paragraph [ref=f5e116]:
+                    - text: Recomendações para gestão da disponibilidade dos medicamentos agonistas do recetor da GLP-1 A situação de escassez dos medicamentos Ozempic (semaglutido, nas suas 3 dosagens) e Trulicity (dulaglutido) deverá manter-se durante 2026. Esta limitação deve-se à existência da elevada prescrição destes medicamentos, aliada a constrangimentos na capacidade de produção. A utilização destes medicamentos para indicações que não se encontram aprovadas, nomeadamente na perda de peso, tem contribuído de forma significativa para o agravamento da situação. No caso do medicamento Ozempic, a indicação comparticipada foi recentemente atualizada, para doentes com diabetes mellitus tipo 2 insuficientemente controlada com IMC igual ou superior a 30 kg/m
+                    - superscript [ref=f5e117]: "2"
+                    - text: "ou risco elevado de doença cardiovascular, como adjuvante à dieta e exercício, em adição a outros medicamentos para o tratamento da diabetes, para ser utilizado em 2ª e 3ª linhas terapêuticas, conforme já divulgado através das Orientações da Comissão Nacional de Farmácia e Terapêutica. Em caso de dificuldades de obtenção deste medicamento consulte o seu médico para que lhe possa ser indicada uma alternativa terapêutica. Sobre este tema poderá consultar:"
+                  - list [ref=f5e118]:
+                    - listitem [ref=f5e119]:
+                      - text: •
+                      - link "Circular Informativa n.º 045/CD/100.20.200 de 03/07/2024 - Recomendações para gestão da disponibilidade dos medicamentos agonistas do recetor da GLP-1" [ref=f5e120] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/9677612/Recomenda%C3%A7%C3%B5es+para+gest%C3%A3o+da+disponibilidade+dos+medicamentos+agonistas+do+recetor+da+GLP-1/670963ea-0c46-b14d-24e0-c6af7a5877d3
+                    - listitem [ref=f5e121]:
+                      - text: •
+                      - link [ref=f5e122] [cursor=pointer]:
+                        - /url: https://www.ema.europa.eu/en/news/eu-actions-tackle-shortages-glp-1-receptor-agonists
+                        - text: EMA -
+                        - emphasis [ref=f5e123]: EU actions to tackle shortages of GLP-1 receptor agonists
+                    - listitem [ref=f5e124]:
+                      - text: •
+                      - link "Orientações da Comissão Nacional de Farmácia e Terapêutica - Tratamento da diabetes mellitus tipo 2 em doentes elegíveis para o tratamento com semaglutido ou outro aGLP1" [ref=f5e125] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/1816213/Orienta%C3%A7%C3%A3o+n.%C2%BA+15+Semaglutido.pdf/a138a197-33a8-69bb-7fa4-4d19a8b8f046
+                    - listitem [ref=f5e126]:
+                      - text: •
+                      - link "Indisponibilidade de medicamentos contendo semaglutido (Ozempic)" [ref=f5e127] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/1816213/Orienta%C3%A7%C3%A3o+n.%C2%BA+15+Semaglutido.pdf/a138a197-33a8-69bb-7fa4-4d19a8b8f046
+                      - text: (
+                      - link "Circular Informativa n.º 125/CD/100.20.200 de 24/10/2021)" [ref=f5e128] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/5261813/Indisponibilidade+de+medicamentos+contendo+semaglutido+%28Ozempic%29/874ac6a3-5161-b647-2641-a5f9a25bf06c
+                  - paragraph [ref=f5e129]:
+                    - strong [ref=f5e130]: Pancreatina
+                  - paragraph [ref=f5e131]: Dificuldade no abastecimento do medicamento Kreon
+                  - paragraph [ref=f5e132]: "Os medicamentos contendo pancreatina são essenciais para o tratamento da insuficiência pancreática exócrina. O titular de AIM informou o INFARMED, I.P. e a Agência Europeia de Medicamentos de dificuldades no fabrico até 2026. O INFARMED, I.P. em conjunto com o titular, estabeleceu um conjunto de regras para uma distribuição controlada, bem como orientações dirigidas aos profissionais de saúde. De momento, o mercado encontra-se abastecido. Sobre este tema poderá consultar:"
+                  - list [ref=f5e133]:
+                    - listitem [ref=f5e134]:
+                      - text: •
+                      - link "Pancreatina – dificuldade de abastecimento do medicamento Kreon (Circular informativa n.º 042/CD/100.20.200 de 27/06/2024)" [ref=f5e135] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/9677612/Pancreatina+-+dificuldade+de+abastecimento+do+medicamento+Kreon/a107f9f6-f51f-bf95-d8cd-60006256d684
+                    - listitem [ref=f5e136]:
+                      - text: •
+                      - link [ref=f5e137] [cursor=pointer]:
+                        - /url: https://www.ema.europa.eu/en/documents/shortage/creon-pancrelipase-pancreas-powder-supply-shortage_en.pdf
+                        - text: EMA -
+                        - emphasis [ref=f5e138]: Shortage of Creon (pancrelipase/pancreas powder)
+                  - paragraph [ref=f5e139]
+                  - paragraph [ref=f5e140]:
+                    - strong [ref=f5e141]: Quetiapina
+                  - paragraph [ref=f5e142]:
+                    - generic [ref=f5e143]: Indisponibilidade de medicamentos contendo Quetiapina de libertação prolongada
+                  - paragraph [ref=f5e144]: Os medicamentos contendo quetiapina, principalmente na forma farmacêutica de comprimido de libertação prolongada, apresentam dificuldade de abastecimento, devido a constrangimentos na principal unidade fabril, localizada na Grécia, os quais afetam a maioria das empresas presentes no mercado.
+                  - paragraph [ref=f5e145]: Esta situação é transversal a toda a Europa, pelo que o Infarmed, e demais autoridades europeias, têm estado a acompanhar a situação e a procurar soluções que possam mitigar o impacto destas ruturas. Segundo a Agência Europeia de Medicamentos, estes constrangimentos deverão manter-se durante o primeiro semestre de 2026.
+                  - paragraph [ref=f5e146]: "Sobre este tema poderá consultar:"
+                  - list [ref=f5e147]:
+                    - listitem [ref=f5e148]:
+                      - text: •
+                      - link "Indisponibilidade de medicamentos contendo Quetiapina de libertação prolongada (Circular Informativa n.º 002/CD/2026 de 08/01/2026)" [ref=f5e149] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/12277909/Indisponibilidade+de+medicamentos+contendo+Quetiapina+de+liberta%C3%A7%C3%A3o+prolongada/da144095-d30a-6251-d6fb-18177007c345?version=1.0
+                  - paragraph [ref=f5e150]
+                  - paragraph [ref=f5e151]:
+                    - strong [ref=f5e152]: Estriol
+                  - paragraph [ref=f5e153]: Dificuldade no abastecimento do medicamento Ovestin
+                  - paragraph [ref=f5e154]: O medicamento Ovestin continua a atravessar um período de alguma escassez, devido a uma elevada procura e a constrangimentos na produção a nível europeu. O Infarmed tem monitorizado a situação de abastecimento do mercado em conjunto com o representante do titular de AIM em território nacional.
+              - generic [ref=f5e155]:
+                - article [ref=f5e156]:
+                  - generic [ref=f5e158]:
+                    - paragraph [ref=f5e159]:
+                      - strong [ref=f5e160]: Ruturas
+                    - paragraph [ref=f5e161]:
+                      - text: A comunicação das situações de indisponibilidade temporária, potencial ou real, de uma determinada apresentação de um medicamento no mercado nacional é feita, com dois meses de antecedência, pelos titulares de autorização de introdução no mercado (AIM) no
+                      - link "Sistema de Informação para a Avaliação das Tecnologias de Saúde (SiATS)" [ref=f5e162] [cursor=pointer]:
+                        - /url: https://extranet.infarmed.pt/siats/Login.aspx
+                      - text: . Consulte
+                      - link "Perguntas frequentes sobre ruturas." [ref=f5e163] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/perguntas-frequentes-area-transversal/disponibilidade-de-medicamentos/ruturas
+                    - paragraph [ref=f5e164]:
+                      - strong [ref=f5e165]: Faltas
+                    - paragraph [ref=f5e166]:
+                      - text: Sempre que uma determinada apresentação de um medicamento não se encontre disponível na farmácia num período até 12 horas para dispensa ao doente, a farmácia deve efetuar uma notificação de falta ao Infarmed através de um
+                      - emphasis [ref=f5e167]: web service
+                      - text: dedicado. Os distribuidores por grosso também notificam faltas ao Infarmed através de
+                      - emphasis [ref=f5e168]: web service
+                      - text: ", traduzindo-se incapacidade do titular de AIM em fornecer total ou parcialmente uma encomenda. Estes dados são muito importantes para a monitorização do mercado. Os serviços farmacêuticos hospitalares e restantes entidades habilitadas a dispensar medicamentos ao público bem como profissionais de saúde, cidadãos e associações que representam pessoas portadoras de doença podem comunicar as faltas de medicamentos através do"
+                      - link "formulário de reporte de faltas de medicamentos" [ref=f5e169] [cursor=pointer]:
+                        - /url: https://extranet.infarmed.pt/GDM-fo/
+                      - text: . Consulte
+                      - link "Perguntas frequentes sobre faltas." [ref=f5e170] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/perguntas-frequentes-area-transversal/disponibilidade-de-medicamentos/faltas
+                      - strong [ref=f5e171]: Cessação de comercialização
+                    - paragraph [ref=f5e172]:
+                      - text: A comunicação de uma indisponibilidade permanente de uma determinada apresentação de medicamento no mercado nacional, é feita pelos titulares de AIM, com dois meses de antecedência, no
+                      - link "Sistema de Informação para a Avaliação das Tecnologias de Saúde (SiATS)" [ref=f5e173] [cursor=pointer]:
+                        - /url: https://extranet.infarmed.pt/siats/Login.aspx
+                      - text: . Consulte
+                      - link "Perguntas frequentes sobre cessação" [ref=f5e174] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/perguntas-frequentes-area-transversal/disponibilidade-de-medicamentos/cessacoes
+                      - text: .
+                      - strong [ref=f5e175]: Exportação para países terceiros
+                    - paragraph [ref=f5e176]:
+                      - text: Os fabricantes e distribuidores por grosso devem comunicar, trimestralmente, os medicamentos exportados, a respetiva quantidade e país de destino. A comunicação deve ser efetuada através através da plataforma
+                      - link "SiExp" [ref=f5e177] [cursor=pointer]:
+                        - /url: http://siexp.infarmed.pt/Login.aspx
+                      - text: até ao dia 15 do mês seguinte de cada trimestre civil (15 de janeiro, 15 de abril, 15 de julho e 15 de outubro). Nesta comunicação não devem constar os medicamentos incluídos na lista de notificação prévia.
+                      - strong [ref=f5e178]: Medicamentos incluídos na Lista de notificação prévia (LNP)
+                    - paragraph [ref=f5e179]:
+                      - text: A notificação das transações destes medicamentos é efetuada através da plataforma
+                      - link "SiExp" [ref=f5e180] [cursor=pointer]:
+                        - /url: http://siexp.infarmed.pt/Login.aspx
+                      - text: .
+                    - paragraph [ref=f5e181]:
+                      - text: Consulte
+                      - link "Controlo da disponibilidade" [ref=f5e182] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/gestao-da-disponibilidade-do-medicamento#tab6
+                      - text: .
+                - generic [ref=f5e186]:
+                  - heading "Relacionados" [level=2] [ref=f5e187]
+                  - list [ref=f5e189]:
+                    - listitem [ref=f5e190]:
+                      - link "Manual do SiATS " [ref=f5e191] [cursor=pointer]:
+                        - /url: /documents/15786/1672954/Manual+do+Utilizador+SIATS/c6886716-f055-67aa-87aa-0f1ad5f64da7
+                    - listitem [ref=f5e192]:
+                      - link "Modelo de carta aos profissionais de saúde " [ref=f5e193] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/13020002/Modelo+de+carta/c553da70-7f23-d415-4ad2-7a6ebb116f69
+              - article [ref=f5e195]:
+                - iframe [ref=f5e198]:
+                  - generic [ref=f6e2]:
+                    - generic [ref=f6e5]:
+                      - button "Submit" [ref=f6e6] [cursor=pointer]
+                      - button "Submit" [ref=f6e7] [cursor=pointer]
+                    - generic [ref=f6e10]:
+                      - heading "Pesquisa de Medicamentos em Rutura" [level=2] [ref=f6e13]
+                      - generic [ref=f6e14]: Para efetuar a pesquisa, preencha o campo Substância ativa/DCI, Nome do medicamento, Titular de AIM, Número de registo, CNPEM ou CHNM.
+                      - separator [ref=f6e15]
+                      - table [ref=f6e17]:
+                        - rowgroup [ref=f6e18]:
+                          - row [ref=f6e19]:
+                            - cell [ref=f6e20]:
+                              - group [ref=f6e21]:
+                                - table [ref=f6e23]:
+                                  - rowgroup [ref=f6e24]:
+                                    - row [ref=f6e25]:
+                                      - cell [ref=f6e26]
+                                      - cell [ref=f6e27]:
+                                        - textbox "Substância ativa/DCI" [ref=f6e28] [cursor=pointer]
+                                      - cell [ref=f6e29]:
+                                        - textbox "Nome do medicamento" [ref=f6e30] [cursor=pointer]
+                                      - cell [ref=f6e31]:
+                                        - textbox "Titular de AIM" [ref=f6e32] [cursor=pointer]
+                                      - cell [ref=f6e33]:
+                                        - textbox "Número de registo" [ref=f6e34] [cursor=pointer]
+                                    - row [ref=f6e35]:
+                                      - cell [ref=f6e36]
+                                      - cell [ref=f6e37]:
+                                        - textbox "CNPEM" [ref=f6e38] [cursor=pointer]
+                                      - cell [ref=f6e39]:
+                                        - textbox "CHNM" [ref=f6e40] [cursor=pointer]
+                                      - cell [ref=f6e41]
+                                      - cell [ref=f6e42]
+                                    - row [ref=f6e43]:
+                                      - cell [ref=f6e44]:
+                                        - button "Pesquisar" [ref=f6e45] [cursor=pointer]
+                                        - button "Limpar" [ref=f6e46] [cursor=pointer]
+              - article [ref=f5e200]:
+                - iframe [ref=f5e203]:
+                  - generic [ref=f7e2]:
+                    - generic [ref=f7e5]:
+                      - button "Submit" [ref=f7e6] [cursor=pointer]
+                      - button "Submit" [ref=f7e7] [cursor=pointer]
+                    - generic [ref=f7e10]:
+                      - heading "Pesquisa de Cessações de Comercialização" [level=2] [ref=f7e13]
+                      - generic [ref=f7e14]: Para efetuar a pesquisa das cessações de comercialização dos últimos 6 meses, preencha o campo Substância ativa/DCI, Nome do medicamento, Titular de AIM, Número de registo, CNPEM ou CHNM.
+                      - separator [ref=f7e15]
+                      - table [ref=f7e17]:
+                        - rowgroup [ref=f7e18]:
+                          - row [ref=f7e19]:
+                            - cell [ref=f7e20]:
+                              - group [ref=f7e21]:
+                                - table [ref=f7e23]:
+                                  - rowgroup [ref=f7e24]:
+                                    - row [ref=f7e25]:
+                                      - cell [ref=f7e26]
+                                      - cell [ref=f7e27]:
+                                        - textbox "Substância ativa/DCI" [ref=f7e28] [cursor=pointer]
+                                      - cell [ref=f7e29]:
+                                        - textbox "Nome do medicamento" [ref=f7e30] [cursor=pointer]
+                                      - cell [ref=f7e31]:
+                                        - textbox "Titular de AIM" [ref=f7e32] [cursor=pointer]
+                                      - cell [ref=f7e33]:
+                                        - textbox "Número de registo" [ref=f7e34] [cursor=pointer]
+                                    - row [ref=f7e35]:
+                                      - cell [ref=f7e36]
+                                      - cell [ref=f7e37]:
+                                        - textbox "CNPEM" [ref=f7e38] [cursor=pointer]
+                                      - cell [ref=f7e39]:
+                                        - textbox "CHNM" [ref=f7e40] [cursor=pointer]
+                                      - cell [ref=f7e41]
+                                      - cell [ref=f7e42]
+                                    - row [ref=f7e43]:
+                                      - cell [ref=f7e44]:
+                                        - button "Pesquisar" [ref=f7e45] [cursor=pointer]
+                                        - button "Limpar" [ref=f7e46] [cursor=pointer]
+              - generic [ref=f5e204]:
+                - article [ref=f5e205]:
+                  - generic [ref=f5e207]:
+                    - paragraph [ref=f5e208]:
+                      - text: O Infarmed monitoriza diariamente a informação sobre faltas, ruturas e cessações de comercialização, de forma a identificar e evitar, em tempo útil, situações críticas que possam afetar a disponibilidade de medicamentos. No âmbito do controlo da disponibilidade de medicamentos, uma das medidas adotadas para garantir o equilíbrio entre o abastecimento regular do mercado e o comércio paralelo e exportação de medicamentos é o cumprimento do
+                      - link "Regulamento sobre o Controlo de Transações de Medicamentos para o Exterior do País" [ref=f5e209] [cursor=pointer]:
+                        - /url: https://diariodarepublica.pt/dr/detalhe/deliberacao/234-2025-907742765
+                      - text: ". De acordo com o referido regulamento, são publicadas periodicamente duas listas de restrições ao comércio paralelo e à exportação, tendo por base o impacto na saúde pública:"
+                    - list [ref=f5e210]:
+                      - listitem [ref=f5e211]: • Lista de medicamentos cuja exportação, ou distribuição para outros Estados-membros da União Europeia, depende de prévia notificação ao Infarmed (lista de notificação prévia) - atualizada trimestralmente
+                      - listitem [ref=f5e212]: • Lista de medicamentos cuja exportação, ou distribuição para outros Estados-membros da União Europeia, é temporariamente suspensa por razões de proteção e garantia de saúde pública – atualizada mensalmente
+                    - paragraph [ref=f5e213]:
+                      - strong [ref=f5e214]: Lista de notificação prévia (LNP)
+                    - paragraph [ref=f5e215]:
+                      - text: Atualizada pela
+                      - link "Deliberação n.º 033/CD2026" [ref=f5e216] [cursor=pointer]:
+                        - /url: /documents/15786/9423561/Delibera%C3%A7%C3%A3o+033+-+LNP+-+abril+2026/1099b78a-492a-ad49-800b-af2e8ec4f9cd
+                    - paragraph [ref=f5e217]:
+                      - link "Lista em vigor a partir de 15 de abril de 2026" [ref=f5e218] [cursor=pointer]:
+                        - /url: /documents/15786/9423561/LNP+-+abril+2026/62bc1839-322a-ca6a-8c71-032283eb5da6
+                    - paragraph [ref=f5e219]: "A LNP inclui apresentações de medicamentos para as quais se identificam problemas de disponibilidade. A inclusão de medicamentos na lista de notificação prévia é efetuada mediante a ponderação dos seguintes fatores:"
+                    - list [ref=f5e220]:
+                      - listitem [ref=f5e221]: • Notificação de faltas de medicamentos comunicadas por distribuidores por grosso, farmácias e outras entidades legalmente habilitadas a dispensar medicamentos ao público, bem como de profissionais de saúde e cidadãos;
+                      - listitem [ref=f5e222]: • Quantidades de medicamentos colocadas no mercado nacional pelo titular de autorização de introdução no mercado;
+                      - listitem [ref=f5e223]: • Quantidades exportadas ou distribuídas para países comunitários;
+                      - listitem [ref=f5e224]: • Quantidades de medicamentos prescritos;
+                      - listitem [ref=f5e225]: • Disponibilidade de medicamentos com a mesma substância ativa, dosagem, forma farmacêutica e tamanhos de embalagens equivalentes (mesmo Código Nacional de Prescrição Eletrónica de Medicamentos - CNPEM);
+                      - listitem [ref=f5e226]: • Criticidade da substância ativa do medicamento;
+                      - listitem [ref=f5e227]: • Existência de rutura de fornecimento no mercado nacional notificada pelo titular de autorização de introdução no mercado.
+                    - paragraph [ref=f5e228]:
+                      - strong [ref=f5e229]: Notificação prévia
+                      - text: As entidades que pretendam exportar ou distribuir para outros Estados-membros da UE medicamentos que constem da LNP, terão de manifestar essa intenção através da notificação na
+                      - link "plataforma SiExp" [ref=f5e230] [cursor=pointer]:
+                        - /url: http://siexp.infarmed.pt/Login.aspx
+                      - text: ":"
+                    - list [ref=f5e231]:
+                      - listitem [ref=f5e232]: • Esta notificação tem de ser efetuada com uma antecedência não inferior a 5 dias nem superior a 20 dias;
+                      - listitem [ref=f5e233]: • A notificação tem de incluir a data prevista para a transação, a identificação do número de registo do medicamento, número de embalagens e país de destino;
+                      - listitem [ref=f5e234]:
+                        - text: • Cada notificação deve corresponder a uma transação.
+                        - link "Lista de proibições a partir de 6 de julho de 2026" [ref=f5e235] [cursor=pointer]:
+                          - /url: /documents/15786/11927579/Lista+de+proibi%C3%A7%C3%B5es+-+6+de+julho+de+2026/3ee03499-57f9-75b7-d2b3-efa27a9302e1
+                    - paragraph [ref=f5e236]:
+                      - strong [ref=f5e237]: Comunicação de transações de medicamentos
+                      - text: Os distribuidores por grosso têm de comunicar as transações através da
+                      - link "plataforma SiExp" [ref=f5e238] [cursor=pointer]:
+                        - /url: http://siexp.infarmed.pt/Login.aspx
+                      - text: ":"
+                    - list [ref=f5e239]:
+                      - listitem [ref=f5e240]: • Esta comunicação tem de ser efetuada mensalmente até ao dia 15 do mês seguinte àquele em que as transações ocorreram;
+                      - listitem [ref=f5e241]: • A notificação tem de incluir o mês, a identificação do número de registo do medicamento, número de embalagens fornecidas em Portugal e o número de embalagens exportadas ou distribuídas para outros Estado membros da União Europeia e o respetivo país de destino;
+                      - listitem [ref=f5e242]: • Cada comunicação deve corresponder a um fornecimento e/ou exportação ou distribuição;
+                      - listitem [ref=f5e243]: • As entidades que não tenham transacionado os medicamentos incluídos na LNP têm de comunicar a zero.
+                    - strong [ref=f5e244]: Lista de medicamentos cuja exportação é temporariamente suspensa
+                    - paragraph [ref=f5e245]:
+                      - text: Atualizada pela
+                      - link "Deliberação n.º 075/CD/2026, de 26 junho" [ref=f5e246] [cursor=pointer]:
+                        - /url: /documents/15786/12277919/Delibera%C3%A7%C3%A3o+075+CD+2026%2C+de+26+de+junho/2b756f81-213f-f973-9ee2-16c2b09acf60
+                      - text: .
+                      - link "Lista em vigor a partir de 6 de juiho de 2026" [ref=f5e247] [cursor=pointer]:
+                        - /url: /documents/15786/4326055/Lista+em+vigor+a+partir+de+5+de+julho+de+2026/d89dd5b6-1c28-0ac4-5078-f214a63f225a
+                      - text: Esta lista inclui os medicamentos que estiveram em rutura no mês anterior e cujo impacto foi considerado médio ou elevado na saúde pública, incluindo também os medicamentos fornecidos ao abrigo da Autorização de Utilização Excecional (AUE). Esta proibição destina-se a garantir o tempo necessário para restabelecer o fornecimento em todo o canal de distribuição após a ocorrência de uma rutura seguida do reabastecimento pelo titular da autorização de introdução no mercado e aplica-se a todos os intervenientes, incluindo os fabricantes.
+                      - link "Deliberações anteriores" [ref=f5e248] [cursor=pointer]:
+                        - /url: /web/infarmed/controlo-da-disponibilidade-deliberacoes
+                - generic [ref=f5e252]:
+                  - heading "Relacionados" [level=2] [ref=f5e253]
+                  - list [ref=f5e255]:
+                    - listitem [ref=f5e256]:
+                      - link [ref=f5e257] [cursor=pointer]:
+                        - /url: https://ec.europa.eu/health/system/files/2018-10/ev_20180525_rd01_en_0.pdf
+                        - emphasis [ref=f5e258]: Paper on the obligation of continuous supply to tackle the problem of shortages of medicines - Agreed by the Ad-hoc technical meeting under the Pharmaceutical Committee on shortages of medicines on 25 May 2018
+                        - text: 
+                    - listitem [ref=f5e259]:
+                      - link "Regulamento sobre o controlo de transações de medicamentos para o exterior do país - aspetos práticos " [ref=f5e260] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/noticias/-/journal_content/56/15786/10982859
+              - generic [ref=f5e261]:
+                - article [ref=f5e262]:
+                  - generic [ref=f5e264]:
+                    - paragraph [ref=f5e265]:
+                      - strong [ref=f5e266]: Autorização de Utilização Excecional
+                    - paragraph [ref=f5e267]:
+                      - text: O Infarmed pode autorizar a utilização excecional de medicamentos considerados imprescindíveis à prevenção, diagnóstico ou tratamento de determinadas patologias, para os quais não existam alternativas terapêuticas. Esta utilização está sujeita a uma autorização concedida pelo Infarmed nos termos e condições previstos no artigo 92.º do
+                      - link "Estatuto do Medicamento" [ref=f5e268] [cursor=pointer]:
+                        - /url: https://dre.pt/dre/legislacao-consolidada/decreto-lei/2006-34530575
+                      - text: e na
+                      - link "Deliberação n.º 840/2023, de 31 de agosto" [ref=f5e269] [cursor=pointer]:
+                        - /url: https://diariodarepublica.pt/dr/detalhe/deliberacao/840-2023-221101485
+                      - text: ". As AUE enquadram-se em dois grupos:"
+                    - list [ref=f5e270]:
+                      - listitem [ref=f5e271]: • destinadas a grupos de doentes ou populacionais;
+                      - listitem [ref=f5e272]: • destinadas a doente específico.
+                    - paragraph [ref=f5e273]:
+                      - strong [ref=f5e275]: AUE de grupos de doentes ou populacionais
+                    - paragraph [ref=f5e276]: "Estas AUE podem ser concedidas às seguintes entidades:"
+                    - paragraph [ref=f5e277]:
+                      - strong [ref=f5e278]: Titulares de AIM
+                    - list [ref=f5e279]:
+                      - listitem [ref=f5e280]:
+                        - text: •
+                        - link "Orientações para pedido de AUE de lote" [ref=f5e281] [cursor=pointer]:
+                          - /url: /documents/15786/9202519/Orienta%C3%A7%C3%B5es+para+pedido+de+AUE+de+lote/2890373e-7338-2375-2cec-67f77e1f8c92
+                      - listitem [ref=f5e282]:
+                        - text: •
+                        - link "Formulário do pedido de AUE de lote" [ref=f5e283] [cursor=pointer]:
+                          - /url: /documents/15786/9202519/Formul%C3%A1rio+de+pedido+de+AUE+de+lote/1d1319aa-9a00-7ed9-4888-8fdf25845bbe
+                      - listitem [ref=f5e284]:
+                        - text: •
+                        - link "Lista de AUE de lote concedidas" [ref=f5e285] [cursor=pointer]:
+                          - /url: /documents/15786/9202519/Lista+de+AUE+de+lote+concedidas/e4ec158f-d198-3201-0023-21d88ba06af8
+                    - paragraph [ref=f5e286]:
+                      - strong [ref=f5e287]: Distribuidores por grosso/Fabricantes
+                    - list [ref=f5e288]:
+                      - listitem [ref=f5e289]:
+                        - text: •
+                        - link "Orientações para pedido de AUE por DG/Fabricantes" [ref=f5e290] [cursor=pointer]:
+                          - /url: /documents/15786/9202585/Orienta%C3%A7%C3%B5es+para+pedido+de+AUE+por+DG+e+Fabricantes/629861f4-3d56-0275-5bc5-7e36d633dcdb
+                      - listitem [ref=f5e291]:
+                        - text: •
+                        - link "Lista de medicamentos para AUE por DG/Fabricantes" [ref=f5e292] [cursor=pointer]:
+                          - /url: /documents/15786/9202585/Lista+de+medicamentos+para+AUE+por+DG+e+Fabricantes/d25d3057-43f2-c9b6-c013-b3515d1ea5f9
+                        - text: (atualizado a 17/03/2026)
+                      - listitem [ref=f5e293]:
+                        - text: •
+                        - link "Formulário do pedido de AUE por DG/Fabricantes" [ref=f5e294] [cursor=pointer]:
+                          - /url: /documents/15786/9202585/Formul%C3%A1rio+do+pedido+de+AUE+por+DG+e+Fabricantes/11102318-e0e0-6bb7-4f31-62ffa53c50b0
+                      - listitem [ref=f5e295]:
+                        - text: •
+                        - link "Lista de AUE concedidas a DG/Fabricantes" [ref=f5e296] [cursor=pointer]:
+                          - /url: /documents/15786/9202585/Lista+de+AUE+concedidas+a+DG+e+fabricantes/e0a06938-9a79-4891-229f-3a5eb06e958c
+                      - listitem [ref=f5e297]:
+                        - text: •
+                        - link "Modelo para comunicação das quantidades fornecidas" [ref=f5e298] [cursor=pointer]:
+                          - /url: /documents/15786/9202585/Modelo+para+comunica%C3%A7%C3%A3o+das+quantidades+fornecidas/9daff8ec-6838-82ae-7166-faa3f6cd36cb
+                    - paragraph [ref=f5e299]:
+                      - strong [ref=f5e300]: Hospitais e outras entidades com autorização de aquisição direta
+                    - list [ref=f5e301]:
+                      - listitem [ref=f5e302]:
+                        - text: •
+                        - link "Orientações para pedido de AUE por hospitais" [ref=f5e303] [cursor=pointer]:
+                          - /url: /documents/15786/9203340/Orienta%C3%A7%C3%B5es+para+pedido+de+AUE+por+hospitais/238624c1-8cc7-3650-f70f-984dca7bd979
+                      - listitem [ref=f5e304]:
+                        - text: •
+                        - link "Formulário do pedido de AUE por hospitais" [ref=f5e305] [cursor=pointer]:
+                          - /url: /documents/15786/9203340/Formul%C3%A1rio+do+pedido+de+AUE+por+hospitais/91474795-25f9-3ec4-1326-ab5680007e1e
+                      - listitem [ref=f5e306]:
+                        - text: •
+                        - link "Lista de medicamentos com dispensa de justificação clínica" [ref=f5e307] [cursor=pointer]:
+                          - /url: /documents/15786/9203340/Lista+de+medicamentos+com+dispensa+de+justifica%C3%A7%C3%A3o+cl%C3%ADnica/48ed4c7c-a9f8-6ed7-9229-11c54022c6b6
+                      - listitem [ref=f5e308]:
+                        - text: •
+                        - link "Orientações para pedido de AUE de alergenos" [ref=f5e309] [cursor=pointer]:
+                          - /url: /documents/15786/9203340/Orienta%C3%A7%C3%B5es+Alergenos/132886b3-e66a-ca43-3f33-55ea09259e5e
+                      - listitem [ref=f5e310]:
+                        - text: •
+                        - link "Formulário de pedido de AUE de alergenos" [ref=f5e311] [cursor=pointer]:
+                          - /url: /documents/15786/9203340/formulario_aue_alergeno/7b2e4489-e955-361c-6a25-53d465ad7389
+                    - paragraph [ref=f5e312]:
+                      - strong [ref=f5e313]: Clínicas e Consultórios Médicos ou Dentários – ADMED
+                    - list [ref=f5e314]:
+                      - listitem [ref=f5e315]:
+                        - text: •
+                        - link "Orientações para pedido de AUE por clínicas e consultórios médicos ou dentários" [ref=f5e316] [cursor=pointer]:
+                          - /url: /documents/15786/9202693/Orienta%C3%A7%C3%B5es+para+pedido+de+AUE+por+cl%C3%ADnicas+e+consult%C3%B3rios+m%C3%A9dicos+ou+dent%C3%A1rios/8504e27b-fab4-fb82-d04f-c1d2358c75f1
+                      - listitem [ref=f5e317]:
+                        - text: •
+                        - link "Formulário do pedido de AUE por clínicas e consultórios médicos ou dentários" [ref=f5e318] [cursor=pointer]:
+                          - /url: /documents/15786/9202693/Formul%C3%A1rio+do+pedido+de+AUE+por+cl%C3%ADnicas+e+consult%C3%B3rios+m%C3%A9dicos+ou+dent%C3%A1rios/4638bf03-37ab-21f4-1d7f-a9907e6233ec
+                      - listitem [ref=f5e319]:
+                        - text: •
+                        - link "Lista de medicamentos que podem ser adquiridos por clínicas e consultórios médicos" [ref=f5e320] [cursor=pointer]:
+                          - /url: /documents/15786/9202693/Anexo+Delibera%C3%A7%C3%A3o+97+-+Consult%C3%B3rios+m%C3%A9dicos/5f58be1a-8d2e-bb2d-f7d1-c18567e9c025
+                      - listitem [ref=f5e321]:
+                        - text: •
+                        - link "Lista de medicamentos que podem ser adquiridos por clínicas e consultórios dentários" [ref=f5e322] [cursor=pointer]:
+                          - /url: /documents/15786/9202693/Anexo+Delibera%C3%A7%C3%A3o+98+-+Consult%C3%B3rios+dent%C3%A1rios/83bb6de0-691b-a5dc-5f9c-b3caa297b54f
+                      - listitem [ref=f5e323]:
+                        - text: •
+                        - link "Modelo para comunicação das quantidades utilizadas" [ref=f5e324] [cursor=pointer]:
+                          - /url: /documents/15786/9202693/Modelo+para+comunica%C3%A7%C3%A3o+das+quantidades+utilizadas/2d871ab8-7e93-ab26-7745-5c981a807b45
+                    - paragraph [ref=f5e325]:
+                      - strong [ref=f5e327]: AUE de doente específico
+                    - paragraph [ref=f5e328]:
+                      - strong [ref=f5e329]: Farmácia de oficina
+                    - list [ref=f5e330]:
+                      - listitem [ref=f5e331]:
+                        - text: •
+                        - link "Orientações para AUE por farmácia de oficina" [ref=f5e332] [cursor=pointer]:
+                          - /url: /documents/15786/9203314/Orienta%C3%A7%C3%B5es+para+AUE+por+farm%C3%A1cia+de+oficina/0c51e172-6c8f-0a40-f9c2-9636771c5d92
+                      - listitem [ref=f5e333]:
+                        - text: •
+                        - link "Modelo para comunicação semestral" [ref=f5e334] [cursor=pointer]:
+                          - /url: /documents/15786/9203314/Modelo_comunica%C3%A7%C3%A3o_farm%C3%A1cia/0def553f-9152-298b-b552-1b5ff54fc170
+                    - paragraph [ref=f5e335]:
+                      - strong [ref=f5e336]: Hospitais e outras entidades com autorização de aquisição direta
+                    - paragraph [ref=f5e337]: "Os pedidos para doente específico devem ser submetidos no módulo \"Autorização para doente específico\" do portal SIATS para os medicamentos:"
+                    - list [ref=f5e338]:
+                      - listitem [ref=f5e339]:
+                        - text: •
+                        - link "Com AIM (incluindo novas indicações terapêuticas) sem processo de avaliação prévia hospitalar concluída" [ref=f5e340] [cursor=pointer]:
+                          - /url: /web/infarmed/entidades/medicamentos-uso-humano/avaliacao-tecnologias-saude/avaliacao-terapeutica-e-economica/autorizacao-de-utilizacao-excecional
+                        - text: ;
+                      - listitem [ref=f5e341]:
+                        - text: •
+                        - link "Sem AIM e com provas preliminares de benefício clínico" [ref=f5e342] [cursor=pointer]:
+                          - /url: /web/infarmed/entidades/medicamentos-uso-humano/autorizacao-de-introducao-no-mercado/autorizacao_de_utilizacao_especial
+                        - text: .
+                    - paragraph [ref=f5e343]:
+                      - text: Para a submissão de pedidos de substâncias controladas deverá utilizar o
+                      - link "formulário" [ref=f5e344] [cursor=pointer]:
+                        - /url: /documents/15786/9203340/Formul%C3%A1rio+AUE+para+doente+espec%C3%ADfico+-+pedidos+de+subst%C3%A2ncias+controladas/5cfcdd5a-2d4a-2b64-0c17-bac0c7c213c6
+                      - text: e remetê-lo para o endereço eletrónico
+                      - link "dil-lic@infarmed.pt" [ref=f5e345] [cursor=pointer]:
+                        - /url: mailto:dil-lic@infarmed.pt
+                - generic [ref=f5e349]:
+                  - heading "Acesso rápido" [level=2] [ref=f5e350]
+                  - list [ref=f5e352]:
+                    - listitem [ref=f5e353]:
+                      - link "Lista de CHNM dos medicamentos de AUE de grupo de doentes (junho de 2026) " [ref=f5e354] [cursor=pointer]:
+                        - /url: /documents/15786/4854518/Lista+de+CHNM+dos+medicamentos+de+AUE+de+grupo+de+doentes/0db2b0f8-5177-046e-dfde-c043661bc058
+              - article [ref=f5e356]:
+                - generic [ref=f5e358]:
+                  - paragraph [ref=f5e359]:
+                    - strong [ref=f5e360]: Autorização de comercialização de medicamentos sem autorização ou registo válidos em Portugal (SAR)
+                  - paragraph [ref=f5e361]: Por razões de saúde pública, o Infarmed pode autorizar a comercialização de medicamentos sem autorização ou registo válidos em Portugal (SAR).
+                  - paragraph [ref=f5e362]:
+                    - text: Esta comercialização está sujeita a uma autorização concedida pelo Infarmed nos termos e condições previstos no artigo 93.º do
+                    - link "Estatuto do Medicamento" [ref=f5e363] [cursor=pointer]:
+                      - /url: https://dre.pt/dre/legislacao-consolidada/decreto-lei/2006-34530575
+                    - text: e na
+                    - link "Deliberação n.º 840/2023, de 31 de agosto" [ref=f5e364] [cursor=pointer]:
+                      - /url: https://diariodarepublica.pt/dr/detalhe/deliberacao/840-2023-221101485
+                    - text: .
+                  - paragraph [ref=f5e365]:
+                    - text: O pedido deve ser enviado para o
+                    - emphasis [ref=f5e366]: e-mail
+                    - link "aut_sar@infarmed.pt" [ref=f5e367] [cursor=pointer]:
+                      - /url: mailto:aut_sar@infarmed.pt?subject=Pedido%20de%20SAR
+                    - text: ", utilizando o"
+                    - link "Requerimento de pedido de SAR" [ref=f5e368] [cursor=pointer]:
+                      - /url: /documents/15786/7846892/Requerimento+de+pedido+de+SAR/298681a4-521f-fc07-9526-59dedfddf2ae
+                    - text: e de acordo com as
+                    - link "Instruções aos Requerentes" [ref=f5e369] [cursor=pointer]:
+                      - /url: /documents/15786/7846892/Instru%C3%A7%C3%B5es+aos+requerentes+de+pedido+de+SAR/4c7c42d3-9b0c-1cde-44ed-b5c68c966d2c
+                    - text: .
+              - generic [ref=f5e370]:
+                - article [ref=f5e371]:
+                  - generic [ref=f5e373]:
+                    - paragraph [ref=f5e374]:
+                      - strong [ref=f5e375]: Distribuição paralela (DP)
+                    - paragraph [ref=f5e376]: Consiste na distribuição de um medicamento, autorizado por procedimento comunitário centralizado, de um Estado-membro para outro, por um distribuidor independente do titular de autorização de introdução no mercado.
+                    - paragraph [ref=f5e377]:
+                      - text: A intenção de efetuar a distribuição paralela é comunicada à EMA, de acordo com as
+                      - link [ref=f5e378] [cursor=pointer]:
+                        - /url: https://www.ema.europa.eu/en/human-regulatory/post-authorisation/parallel-distribution
+                        - text: regras disponíveis no
+                        - emphasis [ref=f5e379]: site
+                        - text: da EMA
+                      - text: .
+                    - paragraph [ref=f5e380]:
+                      - text: As entidades que pretendam comercializar um medicamento objeto de DP em Portugal devem solicitar a atribuição do número de registo nacional ao Infarmed, através do
+                      - emphasis [ref=f5e381]: e-mail
+                      - link "uss@infarmed.pt" [ref=f5e382] [cursor=pointer]:
+                        - /url: mailto:uss@infarmed.pt
+                      - text: ", anexando a"
+                      - emphasis [ref=f5e383]: Initial Notice of Parallel Distribution
+                      - text: emitida pela EMA.
+                    - paragraph [ref=f5e384]: Estes medicamentos ficam disponíveis na base de dados Infomed com a indicação DP e a designação do distribuidor paralelo.
+                    - paragraph [ref=f5e385]:
+                      - text: Ao medicamento objeto de DP aplica-se o regime de preços e de comparticipação em vigor. Ver
+                      - link "Atribuição de preços" [ref=f5e386] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/entidades/medicamentos-uso-humano/avaliacao-economica/regulamentacao-preco-medicamentos/atribuicao_precos
+                      - text: .
+                - generic [ref=f5e390]:
+                  - heading "Acesso rápido" [level=2] [ref=f5e391]
+                  - list [ref=f5e393]:
+                    - listitem [ref=f5e394]:
+                      - link "Autorização de Importação Paralela (AIP) " [ref=f5e395] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/web/infarmed/entidades/medicamentos-uso-humano/autorizacao-de-introducao-no-mercado/aip
+              - generic [ref=f5e396]:
+                - article [ref=f5e397]:
+                  - generic [ref=f5e399]:
+                    - paragraph [ref=f5e400]:
+                      - strong [ref=f5e401]: Medicamentos essenciais de natureza crítica
+                    - paragraph [ref=f5e402]:
+                      - text: A
+                      - link "Portaria n.º 235/2023, de 27 de julho," [ref=f5e403] [cursor=pointer]:
+                        - /url: https://files.diariodarepublica.pt/1s/2023/07/14500/0002600028.pdf
+                      - text: determina a possibilidade de aplicação de medidas específicas que visam garantir o acesso e a manutenção no mercado nacional de medicamentos essenciais, mediante o cumprimento de determinadas obrigações por parte dos titulares de AIM.
+                    - paragraph [ref=f5e404]:
+                      - text: O universo dos medicamentos essenciais de natureza crítica potencialmente abrangidos por esta Portaria consta da
+                      - link "Deliberação n.º 1132/2024, de 27 de agosto" [ref=f5e405] [cursor=pointer]:
+                        - /url: https://diariodarepublica.pt/dr/detalhe/deliberacao/1132-2024-885783043
+                      - text: ", publicada em Diário da República, 2ª Série, N.º 165, de 27 de agosto de 2024."
+                    - paragraph [ref=f5e406]:
+                      - link "Orientações necessárias à operacionalização da Portaria n.º 235/2023, de 27 de julho." [ref=f5e407] [cursor=pointer]:
+                        - /url: /documents/15786/4326055/Orienta%C3%A7%C3%B5es+Portaria+n%C2%BA+235+2023%2C+de+27+de+julho/e68b6f21-b8a2-3450-defc-ae7c51370ceb
+                      - strong [ref=f5e408]: Obrigações do titular
+                    - paragraph [ref=f5e409]: "Após concessão de uma destas medidas específicas, o titular de AIM terá de:"
+                    - list [ref=f5e410]:
+                      - listitem [ref=f5e411]: • Garantir o fornecimento das quantidades necessárias à satisfação do consumo no sistema de saúde em todo o território nacional;
+                      - listitem [ref=f5e412]:
+                        - text: • Manter um nível de
+                        - emphasis [ref=f5e413]: stock
+                        - text: permanente que assegure o abastecimento de um período mínimo de quatro meses de consumo;
+                      - listitem [ref=f5e414]:
+                        - text: • Comunicar os níveis de
+                        - emphasis [ref=f5e415]: stock
+                        - text: semanalmente através da plataforma
+                        - link "SIEXP" [ref=f5e416] [cursor=pointer]:
+                          - /url: http://siexp.infarmed.pt/Login.aspx
+                        - text: .
+                - generic [ref=f5e420]:
+                  - heading "Relacionados" [level=2] [ref=f5e421]
+                  - list [ref=f5e423]:
+                    - listitem [ref=f5e424]:
+                      - link "Esclarecimentos - Medicamentos essenciais de natureza crítica " [ref=f5e425] [cursor=pointer]:
+                        - /url: /documents/15786/1147401/Esclarecimentos+-+Medicamentos+essenciais+de+natureza+cr%C3%ADtica/18629959-1dd4-654d-74f1-65b4a481077d
+              - generic [ref=f5e426]:
+                - article [ref=f5e427]:
+                  - generic [ref=f5e429]:
+                    - paragraph [ref=f5e430]:
+                      - strong [ref=f5e431]: Gerais
+                    - paragraph [ref=f5e432]:
+                      - link "Estatuto do medicamento" [ref=f5e433] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/1068535/Estatuto%2bdo%2bMedicamento/1dc6ada4-f002-4a12-ab8d-ebaba772068e
+                      - link "Regulamento de gestão da disponibilidade do medicamento" [ref=f5e434] [cursor=pointer]:
+                        - /url: https://diariodarepublica.pt/dr/detalhe/deliberacao/233-2025-907742764
+                      - emphasis [ref=f5e435]:
+                        - link "Paper on the obligation of continuous supply to tackle the problem of shortages of medicines" [ref=f5e436] [cursor=pointer]:
+                          - /url: https://ec.europa.eu/health/system/files/2018-10/ev_20180525_rd01_en_0.pdf
+                      - text: "-"
+                      - emphasis [ref=f5e437]: Agreed by the Ad-hoc technical meeting under the Pharmaceutical Committee on shortages of medicines on 25 May 2018
+                      - strong [ref=f5e438]: Titulares de AIM
+                      - text: Compete aos titulares de autorização de introdução no mercado (AIM) manter atualizado o estado de comercialização dos seus medicamentos. O estado de comercialização comunicado ao Infarmed pode ser verificado através da consulta à Infomed ou através do
+                      - link "Portal CITS para titulares de AIM" [ref=f5e439] [cursor=pointer]:
+                        - /url: https://www.infarmed.pt/documents/15786/2897018/CITS+%C2%BF+Acesso+%C3%A0+informa%C3%A7%C3%A3o+pelos+Titulares+de+AIM/8fb016f9-d17b-de34-1589-5a5ced4d9a94?version=1.0
+                      - text: .
+                      - strong [ref=f5e440]: Distribuidores por grosso
+                      - link [ref=f5e441] [cursor=pointer]:
+                        - /url: /documents/15786/3464134/Web+Service+Notifica%C3%A7%C3%A3o+de+Faltas/1e11c3c0-3c11-1923-f1a1-94f253ecbc54
+                        - emphasis [ref=f5e442]: Web service
+                        - text: "- Notificação de faltas por distribuidores por grosso de medicamentos de uso humano"
+                      - text: (Circular Informativa n.º 053/CD/500.20.001, de 13/02/2020)
+                      - strong [ref=f5e443]: Farmácias
+                      - link "Infografia - Notificação de faltas pela farmácia" [ref=f5e444] [cursor=pointer]:
+                        - /url: /documents/15786/4326055/Infografia+-+Notifica%C3%A7%C3%A3o+de+faltas+pela+farm%C3%A1cia/186b65e0-f65e-c1f5-4792-0892bc44aad8
+                      - link [ref=f5e445] [cursor=pointer]:
+                        - /url: /documents/15786/3464134/Web+Service+-+Notifica%C3%A7%C3%A3o+de+Faltas/398d2f31-dcc1-a850-f664-5e8b2ee46ff8
+                        - emphasis [ref=f5e446]: Web service
+                        - text: "- Notificação de faltas por farmácias"
+                      - text: (Circular Informativa n.º 022/CD/100.20.200 Data:14/01/2020)
+                - generic [ref=f5e450]:
+                  - heading "Acesso rápido" [level=2] [ref=f5e451]
+                  - list [ref=f5e453]:
+                    - listitem [ref=f5e454]:
+                      - link "Perguntas frequentes " [ref=f5e455] [cursor=pointer]:
+                        - /url: /web/infarmed/perguntas-frequentes-area-transversal/disponibilidade-de-medicamentos
+      - generic [ref=f5e456]:
+        - button "Aceitar" [ref=f5e458] [cursor=pointer]
+        - generic [ref=f5e462]:
+          - text: Este
+          - emphasis [ref=f5e463]: site
+          - text: utiliza
+          - emphasis [ref=f5e464]: cookies
+          - text: . Ao carregar em "Aceitar", está a consentir a sua utilização. Poderá saber mais acedendo à nossa página sobre
+          - link [ref=f5e465] [cursor=pointer]:
+            - /url: /web/infarmed/lei-cookies
+            - text: utilização de
+            - emphasis [ref=f5e466]: cookies
+          - text: .
+  - contentinfo [ref=f5e467]:
+    - generic [ref=f5e468]:
+      - link "Encontrou algum problema nesta página? Informe-nos " [ref=f5e470] [cursor=pointer]:
+        - /url: javascript:void(0);
+        - text: Encontrou algum problema nesta página?
+        - emphasis [ref=f5e471]: Informe-nos
+        - generic [ref=f5e472]: 
+      - link "Tem dúvidas? Consulte a nossa lista de Perguntas frequentes " [ref=f5e475] [cursor=pointer]:
+        - /url: /web/infarmed/perguntas-frequentes-area-transversal
+        - emphasis [ref=f5e476]: Tem dúvidas?
+        - text: Consulte a nossa lista de
+        - emphasis [ref=f5e477]: Perguntas frequentes
+        - generic [ref=f5e478]: 
+    - list [ref=f5e482]:
+      - listitem [ref=f5e483]:
+        - link [ref=f5e484] [cursor=pointer]:
+          - /url: /web/infarmed/links
+          - strong [ref=f5e485]:
+            - emphasis [ref=f5e486]: Links
+      - listitem [ref=f5e487]:
+        - link [ref=f5e488] [cursor=pointer]:
+          - /url: /web/infarmed/mapa-do-site
+          - text: Mapa do
+          - strong [ref=f5e489]:
+            - emphasis [ref=f5e490]: site
+      - listitem [ref=f5e491]:
+        - link "Ajuda" [ref=f5e492] [cursor=pointer]:
+          - /url: /web/infarmed/ajuda
+      - listitem [ref=f5e493]:
+        - link [ref=f5e494] [cursor=pointer]:
+          - /url: /web/infarmed/sobre-o-site
+          - text: Sobre o
+          - strong [ref=f5e495]:
+            - emphasis [ref=f5e496]: site
+      - listitem [ref=f5e497]:
+        - link "Contactos" [ref=f5e498] [cursor=pointer]:
+          - /url: /web/infarmed/institucional/contactos
+      - listitem [ref=f5e499]:
+        - link "Onde estamos" [ref=f5e500] [cursor=pointer]:
+          - /url: /web/infarmed/institucional/contactos/onde-estamos
+      - listitem [ref=f5e501]:
+        - link "Acessibilidade" [ref=f5e502] [cursor=pointer]:
+          - /url: /web/infarmed/acessibilidade
+    - generic [ref=f5e503]:
+      - generic:
+        - generic [ref=f5e504]:
+          - link "República Portuguesa":
+            - /url: https://www.portugal.gov.pt/
+        - paragraph [ref=f5e506]: Infarmed © 2016. Todos os direitos reservados
+  - generic:
+    - img "InfarmedImg" [ref=f5e507]
+    - link "CofinanciadoImg":
+      - /url: /web/infarmed/compete-2020
+      - img "CofinanciadoImg" [ref=f5e508] [cursor=pointer]

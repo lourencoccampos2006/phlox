@@ -28,6 +28,7 @@ type User = {
   avatar: string
   plan: 'free' | 'student' | 'pro' | 'clinic'   // plano EFETIVO na app (clinic quando em modo clínico + membro de org)
   billing_plan?: 'free' | 'student' | 'pro' | 'clinic'  // plano real (faturação) — free para funcionários convidados
+  plan_status?: string | null   // 'active' | 'past_due' | 'unpaid' | 'incomplete' | 'canceling' | 'canceled' — ver effectivePlan()
   searches_today: number
   profile_type: 'personal' | 'student' | 'professional' | null
   profile_sub: string | null
@@ -45,8 +46,18 @@ type User = {
 // 'clinic' (a instituição toda + Copilot). Nos outros modos (pessoal/estudo/
 // cuidador) valem os limites do plano free. É isto que o Fernando pediu:
 // "modo clínico bloqueado a free, MAS funcionários têm acesso à sua instituição".
+// BUG CORRIGIDO 2026-07-15: quando o pagamento Stripe falha (past_due/unpaid
+// durante as Smart Retries), o webhook só atualizava `plan_status` — nunca
+// baixava `plan` — e nada aqui olhava a `plan_status`, por isso o utilizador
+// mantinha acesso pago completo enquanto a cobrança continuava a falhar (só
+// descia a 'free' quando o Stripe desistia de vez, semanas depois). `plan` na
+// BD continua a ser "a que está subscrito" (para restaurar certo quando o
+// pagamento recupera); é o ACESSO efetivo aqui que degrada enquanto falha.
+const UNHEALTHY_PLAN_STATUS = new Set(['past_due', 'unpaid', 'incomplete', 'incomplete_expired'])
+
 function effectivePlan(data: any): 'free' | 'student' | 'pro' | 'clinic' {
-  const real = (data?.plan || 'free') as 'free' | 'student' | 'pro' | 'clinic'
+  let real = (data?.plan || 'free') as 'free' | 'student' | 'pro' | 'clinic'
+  if (UNHEALTHY_PLAN_STATUS.has(data?.plan_status)) real = 'free'
   const inOrg = !!(data?.active_org_id || data?.org_id || data?.org_role)
   if (data?.experience_mode === 'clinical' && inOrg && real !== 'clinic') return 'clinic'
   return real
@@ -170,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar: data.avatar || '',
           plan: effectivePlan(data),
           billing_plan: data.plan || 'free',
+          plan_status: data.plan_status || null,
           profile_type: data.profile_type || null,
           profile_sub: data.profile_sub || null,
           searches_today: data.searches_today || 0,

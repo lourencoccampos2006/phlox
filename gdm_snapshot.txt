@@ -1,0 +1,133 @@
+- generic [ref=f4e2]:
+  - generic [ref=f4e5]:
+    - generic [ref=f4e6]:
+      - link "Saltar para o conteúdo principal (carregue em Enter)" [ref=f4e7] [cursor=pointer]:
+        - /url: "#pageContents"
+      - link "Gestão da disponibilidade do medicamento" [ref=f4e9] [cursor=pointer]:
+        - /url: /GDM-fo
+      - link "Reporte de faltas de medicamentos" [ref=f4e11] [cursor=pointer]:
+        - /url: /GDM-fo
+    - img "Infarmed Logo" [ref=f4e13]
+  - generic [ref=f4e15]:
+    - generic [ref=f4e17]:
+      - generic:
+        - generic:
+          - menubar:
+            - list
+    - img "Imagem do Infarmed" [ref=f4e22]
+    - generic [ref=f4e23]:
+      - menu [ref=f4e25]:
+        - list:
+          - menuitem [ref=f4e26]:
+            - link "#" [ref=f4e27] [cursor=pointer]:
+              - /url: /GDM-fo/
+          - listitem [ref=f4e29]
+          - menuitem [ref=f4e30]:
+            - link "Início" [ref=f4e31] [cursor=pointer]:
+              - /url: /GDM-fo/
+      - generic [ref=f4e33]:
+        - group "Origem do reporte" [ref=f4e34]:
+          - generic [ref=f4e36]:
+            - generic [ref=f4e39]:
+              - generic [ref=f4e40]: Localização:*
+              - combobox [ref=f4e43] [cursor=pointer]:
+                - textbox "Localização:*" [ref=f4e45]
+                - combobox [ref=f4e47]
+                - generic [ref=f4e48]: Selecionar
+              - generic [ref=f4e51]: Caracterização do reporte:*
+              - combobox [ref=f4e54] [cursor=pointer]:
+                - textbox "Caracterização do reporte:*" [ref=f4e56]
+                - combobox [ref=f4e58]
+                - generic [ref=f4e59]: Selecionar
+            - text: "NOTA: no caso das farmácias e dos distribuidores por grosso a notificação deve ser efetuada via web service."
+        - group "Pesquisa de embalagens" [ref=f4e62]:
+          - generic [ref=f4e64]:
+            - generic [ref=f4e65]: Para a identificação do medicamento em falta, basta que preencha um ou vários dos seguintes campos
+            - generic [ref=f4e67]:
+              - generic [ref=f4e68]:
+                - generic [ref=f4e69]: Substância ativa/DCI
+                - textbox "Substância ativa/DCI" [ref=f4e72]
+                - generic [ref=f4e73]: Nome do medicamento
+                - textbox "Nome do medicamento" [ref=f4e76]
+              - generic [ref=f4e77]:
+                - generic [ref=f4e78]: Dosagem
+                - textbox "Dosagem" [ref=f4e81]
+                - generic [ref=f4e82]: Forma farmacêutica
+                - textbox "Forma farmacêutica" [ref=f4e85]
+              - generic [ref=f4e86]:
+                - generic [ref=f4e87]: CHNM
+                - textbox "CHNM" [ref=f4e90]
+                - generic [ref=f4e91]: CNPEM
+                - textbox "CNPEM" [ref=f4e94]
+              - generic [ref=f4e95]:
+                - generic [ref=f4e96]: Número de registo
+                - textbox "Número de registo" [ref=f4e99]
+            - generic [ref=f4e100]:
+              - button "Pesquisar" [ref=f4e101] [cursor=pointer]
+              - button "Limpar" [ref=f4e103] [cursor=pointer]
+        - group "Seleção de embalagens em falta" [ref=f4e105]:
+          - grid [ref=f4e110]:
+            - rowgroup [ref=f4e111]:
+              - row [ref=f4e112]:
+                - 'columnheader "Número de registo: activate to sort column ascending" [ref=f4e113] [cursor=pointer]': Número de registo
+                - 'columnheader "Nome do medicamento: activate to sort column ascending" [ref=f4e115] [cursor=pointer]': Nome do medicamento
+                - 'columnheader "Substância ativa/DCI: activate to sort column ascending" [ref=f4e117] [cursor=pointer]': Substância ativa/DCI
+                - 'columnheader "Dosagem: activate to sort column ascending" [ref=f4e119] [cursor=pointer]': Dosagem
+                - 'columnheader "Forma farmacêutica: activate to sort column ascending" [ref=f4e121] [cursor=pointer]': Forma farmacêutica
+                - 'columnheader "Tamanho da embalagem: activate to sort column ascending" [ref=f4e123] [cursor=pointer]': Tamanho da embalagem
+                - 'columnheader "Estado de comercialização: activate to sort column ascending" [ref=f4e125] [cursor=pointer]': Estado de comercialização
+                - columnheader [ref=f4e127]:
+                  - link "Adicionar " [ref=f4e129] [cursor=pointer]:
+                    - /url: "#"
+                    - generic [ref=f4e130]:
+                      - text: Adicionar
+                      - generic [ref=f4e131]: 
+            - rowgroup [ref=f4e132]:
+              - row [ref=f4e133]:
+                - gridcell "Sem resultados" [ref=f4e134]
+        - group "Embalagens selecionadas" [ref=f4e135]:
+          - grid [ref=f4e140]:
+            - rowgroup [ref=f4e141]:
+              - row [ref=f4e142]:
+                - columnheader "Número de registo" [ref=f4e143]
+                - columnheader "Nome do medicamento" [ref=f4e144]
+                - columnheader "Substância ativa/DCI" [ref=f4e145]
+                - columnheader "Dosagem" [ref=f4e146]
+                - columnheader "Forma farmacêutica" [ref=f4e147]
+                - columnheader "Tamanho da embalagem" [ref=f4e148]
+                - columnheader "Estado de comercialização" [ref=f4e149]
+                - columnheader "Remover" [ref=f4e150]
+            - rowgroup [ref=f4e151]:
+              - row [ref=f4e152]:
+                - gridcell "Sem resultados" [ref=f4e153]
+        - button "Submeter" [ref=f4e155] [cursor=pointer]
+  - generic [ref=f4e157]:
+    - generic [ref=f4e159]:
+      - img "footer bar" [ref=f4e160]
+      - generic [ref=f4e161] [cursor=pointer]:
+        - text: Condições de utilização do site
+        - img "help icon" [ref=f4e162]
+      - img "Infarmed Logo e Rep. Port. logo" [ref=f4e163]
+      - generic [ref=f4e164]:
+        - text: Parque de Saúde de Lisboa - Avenida do Brasil, 53 | 1749-004 Lisboa - Portugal |
+        - link "infarmed@infarmed.pt" [ref=f4e165] [cursor=pointer]:
+          - /url: mailto:infarmed@infarmed.pt
+        - paragraph [ref=f4e166]:
+          - text: Em caso de dificuldades na utilização do portal, poderá contactar o INFARMED, I.P. através do endereço de email
+          - link "cimi@infarmed.pt" [ref=f4e167] [cursor=pointer]:
+            - /url: mailto:cimi@infarmed.pt
+          - text: ", ou utilizando o telefone +351 21 798 7373."
+    - generic [ref=f4e168]: Versão:2.5.0 Build:142 Data:202607131000
+  - generic [ref=f4e172]:
+    - generic [ref=f4e173]:
+      - text: Este
+      - emphasis [ref=f4e174]: site
+      - text: utiliza
+      - emphasis [ref=f4e175]: cookies
+      - text: . Ao carregar em "Aceitar", está a consentir a sua utilização. Poderá saber mais acedendo à nossa página sobre
+      - link [ref=f4e176] [cursor=pointer]:
+        - /url: https://www.infarmed.pt/web/infarmed/lei-cookies
+        - text: utilização de
+        - emphasis [ref=f4e177]: cookies
+      - text: .
+    - button "Aceitar" [ref=f4e178] [cursor=pointer]

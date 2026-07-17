@@ -395,3 +395,116 @@ integrados, o Playbook, o Plano de Peso e o Rastreio Visual.
 
 Verificado no fim (tudo o que está ✅): `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`,
 `check-nav.mjs`, `npm run build` — 0 erros em cada passo.
+
+---
+
+## 7. BUG CRÍTICO CORRIGIDO — Stripe não descia o plano quando o pagamento falhava (2026-07-15)
+
+Fernando reportou (e estava certo): quando um pagamento falha, o Stripe entra em Smart Retries
+(tenta cobrar de novo durante dias/semanas) — durante esse período a subscrição fica com
+`status: 'past_due'`. Confirmei no código:
+
+- **`customer.subscription.updated`** (webhook) atualizava corretamente `plan_status` para
+  `'past_due'`, MAS só atualizava a coluna `plan` (o que dá acesso real) quando `status === 'active'`
+  — ou seja, `plan` ficava congelado no valor antigo (ex: `'pro'`) enquanto o pagamento continuava a
+  falhar. Só descia a `'free'` quando o Stripe desistia de vez e cancelava a subscrição
+  (`customer.subscription.deleted`) — semanas depois, dependendo da configuração de retries.
+- **Pior**: nem `getUserPlan()` (server, `lib/planGate.ts`) nem `effectivePlan()` (cliente,
+  `components/AuthContext.tsx`) — as DUAS funções que decidem o acesso em toda a app — alguma vez
+  olhavam para `plan_status`. Mesmo que a coluna `plan` fosse corrigida, nada a usava para bloquear.
+- **Resultado real**: um utilizador cujo cartão falhasse mantinha acesso Pro/Institucional completo
+  durante todo o ciclo de retries do Stripe, sem pagar.
+
+**Corrigido** (sem tocar na escrita do webhook — `plan` continua a guardar "a que está subscrito",
+para restaurar certo quando o pagamento recupera; o ACESSO efetivo é que passa a degradar):
+- `lib/planGate.ts`: `getUserPlan()` agora lê também `plan_status` e devolve `'free'` como plano
+  efetivo se estiver em `past_due`/`unpaid`/`incomplete`/`incomplete_expired`.
+- `components/AuthContext.tsx`: `effectivePlan()` (o espelho do lado do cliente) faz exatamente o
+  mesmo — verificado ANTES do override de acesso institucional por organização (que é um direito de
+  acesso independente da subscrição pessoal, não deve ser afetado por isto).
+- **`components/PaymentIssueBanner.tsx`** (novo) — sem isto, alguém que perdesse o Pro por um cartão
+  recusado não fazia ideia porquê. Aviso fixo no topo quando `plan_status` está numa destas situações,
+  com link para `/pricing`. Dispensável por sessão (`sessionStorage`, não `localStorage` — reaparece na
+  próxima sessão se o problema continuar por resolver).
+- Confirmado que `subscription_data[metadata][user_id]` já é propagado corretamente na criação do
+  checkout (`app/api/stripe/checkout/route.ts`) — os eventos de subscrição sempre tiveram o `user_id`
+  certo; o problema era mesmo só a lógica de acesso ignorar `plan_status`.
+- **Nota**: "continuar a tentar" (as retentativas em si) é configurado no painel do Stripe (Smart
+  Retries, em Billing → Configurações de faturação) — isso não é código, é uma configuração da conta
+  Stripe que vale a pena confirmares que está ativa.
+- Verificado: `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`, `check-nav.mjs`, `npm run build` —
+  0 erros.
+
+---
+
+## 8. Vigia de Ruturas — feito e VERIFICADO com dados reais em produção (2026-07-15)
+
+Depois de testar (a sério, não em teoria) as duas alternativas anteriores — automatizar a pesquisa ao
+vivo do INFARMED (ASP.NET WebForms num iframe cross-origin; cliquei o botão várias vezes num teste real
+com Playwright e falhou de forma inconsistente) e ler o PDF trimestral de preços (descarreguei-o e corri
+`pdftotext` a sério — é uma imagem digitalizada, zero texto por trás) — encontrei uma terceira via, esta
+sim sólida: a **Lista de Notificação Prévia (LNP)**, publicada pelo INFARMED como um ficheiro **Excel
+genuíno** (`.xlsx` real, confirmado pelo `Content-Type` do servidor), sem login, trimestral.
+
+**Descoberta do URL — não é fixo, tive de ser resiliente**: os nomes dos ficheiros mudam a cada trimestre
+e às vezes nem contêm a palavra "notificação" (o atual chama-se apenas "Lista em vigor a partir de 5 de
+julho de 2026"). O que se mantém estável é o ID da PASTA de documentos (`4326055`) — confirmado
+comparando a publicação de 2023 com a de 2026, o mesmo ID aparece nas duas. `lib/shortageIngest.ts`
+procura por esse ID de pasta primeiro (filtrando por rótulos que começam por "Lista", excluindo
+"Infografia"/"Orientações" que vivem na mesma pasta), com um fallback para o nome antigo caso a pasta
+alguma vez mude.
+
+**Estrutura da tabela também muda — tratado por nome de coluna, não posição**: a versão de 2023 usava
+colunas como "Nome do medicamento"/"DCI"/"Apresentação"; a de 2026 usa "Nome Comercial"/"DCI/Substância
+Ativa"/"Tamanho da embalagem". `buildColumnMap` + `findColumn` fazem correspondência por SUBSTRING no
+nome da coluna (não índice fixo), para aguentar esta deriva sem se partir silenciosamente — e se a coluna
+essencial ("nome comercial"/"nome do medicamento") não for encontrada, a ingestão falha alto (não insere
+dados possivelmente desalinhados).
+
+**Testado de ponta a ponta com um script isolado (`npx tsx`) contra o site real do INFARMED, não só em
+teoria**: descoberta do URL → download (6.2MB) → parsing → 40 medicamentos reais extraídos corretamente
+(Adenoscan, Bactrim, Xarelto, etc., com DCI/dosagem/forma corretos, verificados linha a linha contra o
+conteúdo bruto da folha) → teste de correspondência (nome exato "Bactrim" → encontrado; "Aspirina" → não
+encontrado, corretamente, não está na lista). Só depois de ver isto a funcionar com dados reais é que
+considerei a funcionalidade pronta.
+
+**Arquitetura final**:
+- **`lib/shortageIngest.ts`** — descoberta do URL + parsing do Excel (`exceljs`, não `xlsx`/SheetJS — a
+  versão do `xlsx` disponível no npm tem uma vulnerabilidade HIGH conhecida por publicarem os patches só
+  no CDN deles, não no npm; troquei para `exceljs`, que tem só uma vulnerabilidade MODERADA numa
+  dependência interna não relacionada com segurança de dados — `uuid`, usado só para IDs internos).
+- **`supabase/sprint103_shortage_watch.sql`** — `infarmed_shortage_list` (dados de referência, leitura
+  pública — não é informação pessoal de ninguém) + `infarmed_shortage_sync` (metadados da última
+  ingestão, para a UI mostrar "atualizado em X"). **Fernando: falta correr este SQL.**
+- **`/api/cron/ingest-shortages`** — protegido por `CRON_SECRET` (mesmo padrão do
+  `/api/vigilancia/cron` já existente), corre semanalmente (`vercel.json`, segunda-feira às 6h — a lista
+  só muda a cada trimestre, mas correr semanalmente é barato e apanha a mudança cedo). Aborta sem tocar
+  nos dados existentes se encontrar menos de 20 linhas (proteção contra descarregar o ficheiro errado).
+- **`/api/shortage-watch`** — cruza a medicação do utilizador (ou de um familiar) com a lista ingerida.
+  Matching CONSERVADOR: nome exato normalizado = "confirmado"; correspondência parcial (contém/está
+  contido) = sinalizado como "parece corresponder", nunca apresentado como certeza.
+- **`app/vigia-ruturas/page.tsx`** — por pessoa (própria + cada familiar), mostra cada medicamento com
+  ✅/❓/⚠️ consoante o resultado, sempre com a data e fonte da lista visível.
+- **Preços/poupança com genérico — NÃO construído nesta ronda**: como já tinha explicado, a tabela de
+  preços vem só como imagem digitalizada (precisaria de OCR, risco real de erro num número). Fica de fora
+  até haver uma fonte de dados de texto real — prefiro não construir do que arriscar mostrar um preço
+  errado.
+
+### Pendente do lado do Fernando (atualizado)
+1. Correr `supabase/sprint101_crisis_playbook.sql`, `sprint102_skin_lesion_tracking.sql` e
+   `sprint103_shortage_watch.sql`.
+2. Criar o bucket `skin-lesions` no Supabase Storage (público, igual ao `wounds`).
+3. Confirmar que `CRON_SECRET` está definido nas variáveis de ambiente do Vercel (já devia estar, por
+   causa do `/api/vigilancia/cron` existente) e que os Smart Retries do Stripe estão ativos (Billing →
+   Configurações).
+4. Depois do deploy, correr manualmente `/api/cron/ingest-shortages` uma vez (`curl -H "Authorization:
+   Bearer $CRON_SECRET" ...`) para popular a tabela pela primeira vez, sem esperar pela segunda-feira.
+
+**Achado da revisão de segurança automática, corrigido**: a 1ª versão desta rota aceitava o
+`CRON_SECRET` também por query string (`?secret=...`), copiado do padrão já existente em
+`/api/vigilancia/cron`. Removido — segredos em URLs ficam em logs de servidor, proxies e histórico do
+browser. Só cabeçalhos (`Authorization: Bearer` ou `x-cron-secret`) daqui para a frente nesta rota; o
+`/api/vigilancia/cron` mais antigo ainda tem o padrão antigo (fora do âmbito desta ronda, não mexido).
+
+Verificado: `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`, `check-nav.mjs`, `npm run build` —
+0 erros. Pipeline de ingestão testado à parte contra o site real do INFARMED (não só compilado).

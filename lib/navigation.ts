@@ -48,6 +48,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
       { href: '/plano-peso', icon: '⚖️', label: 'Plano de perda de peso', desc: 'Dieta e exercício contextualizados à tua medicação', badge: 'Pro' },
       { href: '/rastreio-visual', icon: '🔬', label: 'Rastreio visual', desc: 'Risco dermatológico ABCDE por IA de visão', badge: 'Pro' },
+      { href: '/vigia-ruturas', icon: '📦', label: 'Vigia de ruturas', desc: 'Cruza a tua medicação com a lista oficial do INFARMED', badge: 'Pro' },
     ],
   },
   {

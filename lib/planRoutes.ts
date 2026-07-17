@@ -25,6 +25,7 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/saude360', min: 'pro', tool: 'Saúde 360°', note: 'A tua saúde toda num só sítio: adesão à medicação, análises, agenda e o que precisa de atenção.' },
   { prefix: '/plano-peso', min: 'pro', tool: 'Plano de Perda de Peso', note: 'Dieta e exercício contextualizados à tua medicação e condições reais.' },
   { prefix: '/rastreio-visual', min: 'pro', tool: 'Rastreio Visual', note: 'Pontuação de risco ABCDE por IA de visão, com evolução ao longo do tempo.' },
+  { prefix: '/vigia-ruturas', min: 'pro', tool: 'Vigia de Ruturas', note: 'Cruza a tua medicação com a Lista de Notificação Prévia oficial do INFARMED.' },
   // NOTA: /relatorio NÃO está aqui de propósito — deixou de ser uma página só
   // Pro (absorveu /brief e /medico-bolso, grátis). O separador "Relatório
   // Semanal" gate-a a si próprio com <PlanGate> dentro da página.
