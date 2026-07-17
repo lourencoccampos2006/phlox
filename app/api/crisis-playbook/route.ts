@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { checkAIBudget, recordAIUsage, aiBudgetResponse } from '@/lib/aiUsage'
 import { aiJSON } from '@/lib/ai'
 import { makeSupabase, getToken } from '@/lib/orgAuth'
 
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ scenarios: existing.scenarios, generated_at: existing.generated_at, cached: true })
   }
 
+  const budget = await checkAIBudget(userId, plan)
+  if (!budget.ok) return aiBudgetResponse(budget.used, budget.cap)
+
   const result = await aiJSON<any>([
     {
       role: 'system',
@@ -84,5 +88,6 @@ Medicação atual: ${medNames.length ? medNames.join(', ') : 'nenhuma registada'
     await supabase.from('family_crisis_playbooks').insert(row)
   }
 
+  await recordAIUsage(userId, 'crisis-playbook')
   return NextResponse.json({ scenarios, disclaimer: result?.disclaimer, generated_at: row.generated_at, cached: false })
 }

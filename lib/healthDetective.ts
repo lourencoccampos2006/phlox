@@ -69,3 +69,57 @@ export function findTemporalCorrelations(meds: TemporalMed[], symptoms: Temporal
 
   return out.sort((a, b) => b.occurrences - a.occurrences).slice(0, 3)
 }
+
+// ─── D19 (auditoria 2026-07-17): mesma lente, para ANÁLISES CLÍNICAS ────────
+// Cruza a data de início de cada medicamento com valores de análises que
+// ficam alterados (status != NORMAL) DEPOIS de começar, e que estavam normais
+// (ou não tinham sido medidos) antes — ex: função renal a piorar depois de
+// começar um fármaco nefrotóxico. lab_records é a tabela REAL onde /registo
+// grava (o /api/companion lia, por engano, de lab_results — tabela nunca
+// escrita por nada no código — por isso esta secção nunca disparava).
+
+export interface TemporalLabValue { name: string; status: string }
+export interface TemporalLab { date: string | null; values: TemporalLabValue[] | null }
+
+export interface LabHypothesis {
+  medication: string
+  started_at: string
+  test: string
+  status: string
+  days_after_start: number
+}
+
+export function findLabCorrelations(meds: TemporalMed[], labs: TemporalLab[]): LabHypothesis[] {
+  const out: LabHypothesis[] = []
+  const withDates = meds.filter(m => m.started_at)
+
+  for (const med of withDates) {
+    const startMs = new Date(med.started_at!).getTime()
+    if (isNaN(startMs)) continue
+
+    // Testes já alterados ANTES do início (para excluir os que já eram um problema).
+    const priorAbnormal = new Set<string>()
+    labs.forEach(l => {
+      const t = l.date ? new Date(l.date).getTime() : NaN
+      if (!isNaN(t) && t < startMs) (l.values || []).forEach(v => { if (v.status && v.status !== 'NORMAL') priorAbnormal.add(v.name.toLowerCase().trim()) })
+    })
+
+    // Primeira análise, depois do início, onde um teste fica alterado pela 1ª vez.
+    const after = labs
+      .filter(l => { const t = l.date ? new Date(l.date).getTime() : NaN; return !isNaN(t) && t >= startMs })
+      .sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime())
+
+    const seen = new Set<string>()
+    for (const l of after) {
+      for (const v of (l.values || [])) {
+        const key = (v.name || '').toLowerCase().trim()
+        if (!key || !v.status || v.status === 'NORMAL' || priorAbnormal.has(key) || seen.has(key)) continue
+        seen.add(key)
+        const daysAfter = Math.round((new Date(l.date!).getTime() - startMs) / 86400000)
+        out.push({ medication: med.name, started_at: med.started_at!, test: v.name, status: v.status, days_after_start: daysAfter })
+      }
+    }
+  }
+
+  return out.slice(0, 3)
+}

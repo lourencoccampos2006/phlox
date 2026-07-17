@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { checkAIBudget, recordAIUsage, aiBudgetResponse } from '@/lib/aiUsage'
 
 // Plano de Recuperação — Pro, ligado ao Objetivo de Saúde "recover" (cirurgia,
 // internamento ou evento agudo recente). Mesmo padrão do /api/weight-plan
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
   if (!event?.trim()) {
     return NextResponse.json({ error: 'Indica o evento (ex: "Cirurgia à anca", "Internamento por pneumonia") — o plano tem de ser sobre a tua recuperação real.' }, { status: 400 })
   }
+
+  const budget = await checkAIBudget(userId, plan)
+  if (!budget.ok) return aiBudgetResponse(budget.used, budget.cap)
 
   const result = await aiJSON<any>([
     {
@@ -50,5 +54,6 @@ Condições/diagnósticos: ${conditions?.trim() || 'nenhuma registada'}.`,
     },
   ], { maxTokens: 1400, temperature: 0.4 })
 
+  await recordAIUsage(userId, 'recovery-plan')
   return NextResponse.json(result)
 }

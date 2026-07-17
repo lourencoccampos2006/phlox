@@ -26,7 +26,10 @@ export default function NextStep({ mode }: { mode: string }) {
       const [meds, vitals, labs, logs] = await Promise.all([
         supabase.from('personal_meds').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('vitals').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('lab_results').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        // BUG CORRIGIDO 2026-07-17 (item D19): lia de 'lab_results', tabela
+        // nunca escrita por nada no código — nLabs era sempre 0, por isso esta
+        // sugestão aparecia mesmo a quem já tinha análises guardadas.
+        supabase.from('lab_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('profile_id', null),
         supabase.from('med_logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('logged_at', since30),
       ])
       if (cancelled) return

@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { aiComplete } from '@/lib/ai'
-import { findTemporalCorrelations } from '@/lib/healthDetective'
+import { findTemporalCorrelations, findLabCorrelations } from '@/lib/healthDetective'
 import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 type Sev = 'urgent' | 'attention' | 'info' | 'good'
@@ -67,7 +67,11 @@ export async function POST(req: NextRequest) {
       supabase.from('profiles').select('name').eq('id', userId).maybeSingle(),
       supabase.from('personal_meds').select('name, dose, frequency, pills_remaining, pills_per_day, reminder_times, started_at').eq('user_id', userId),
       supabase.from('vitals').select('bp_sys, bp_dia, spo2, glucose, weight, hr, temp, recorded_at').eq('user_id', userId).gte('recorded_at', days30).order('recorded_at', { ascending: false }).limit(60),
-      supabase.from('lab_results').select('test_code, test_label, value, unit, ref_low, ref_high, measured_at').eq('user_id', userId).order('measured_at', { ascending: false }).limit(120),
+      // BUG CORRIGIDO 2026-07-17 (item D19): lia de 'lab_results', uma tabela
+      // que nada no código escreve — esta secção nunca disparava na prática.
+      // 'lab_records' é a tabela real onde /registo grava (values é um array
+      // por relatório, não uma linha por teste).
+      supabase.from('lab_records').select('date, lab_name, values').eq('user_id', userId).is('profile_id', null).order('date', { ascending: false }).limit(30),
       supabase.from('med_logs').select('status, date, taken_at').eq('user_id', userId).gte('date', days14.slice(0, 10)),
       // Histórico mais alargado (não só 14/30 dias) — o Detetive de Saúde precisa
       // de ver desde ANTES de cada medicamento começar até à janela de suspeita.
@@ -176,22 +180,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 7) Análises alteradas (último valor de cada teste) ─────────────────
+    // ── 7) Análises alteradas (último valor de cada teste, do relatório mais recente) ──
     const seenTest = new Set<string>()
-    for (const l of labList) {
-      if (seenTest.has(l.test_code)) continue
-      seenTest.add(l.test_code)
-      const v = Number(l.value)
-      if (isNaN(v)) continue
-      const low = l.ref_low != null ? Number(l.ref_low) : null
-      const high = l.ref_high != null ? Number(l.ref_high) : null
-      const isLow = low != null && v < low
-      const isHigh = high != null && v > high
-      if (isLow || isHigh) {
+    for (const rec of labList) {
+      for (const v of (rec.values || []) as any[]) {
+        const key = (v.name || '').toLowerCase().trim()
+        if (!key || seenTest.has(key)) continue
+        seenTest.add(key)
+        if (!v.status || v.status === 'NORMAL') continue
+        const isHigh = v.status === 'ALTO' || v.status === 'CRITICO_ALTO'
         concerns.push({
-          id: `lab-${l.test_code}`, severity: 'info', icon: '🧪',
-          title: `${l.test_label || l.test_code} ${isHigh ? 'acima' : 'abaixo'} do normal`,
-          detail: `O teu valor de ${l.test_label || l.test_code} foi ${l.value}${l.unit ? ' ' + l.unit : ''} (referência ${low ?? '–'}–${high ?? '–'}). Mostra ao teu médico na próxima consulta.`,
+          id: `lab-${key}`, severity: v.status.startsWith('CRITICO') ? 'urgent' : 'info', icon: '🧪',
+          title: `${v.name} ${isHigh ? 'acima' : 'abaixo'} do normal`,
+          detail: `O teu valor de ${v.name} foi ${v.value}${v.unit ? ' ' + v.unit : ''}${v.reference ? ` (referência ${v.reference})` : ''}. Mostra ao teu médico na próxima consulta.`,
           action: { label: 'Perceber as minhas análises', route: '/labs' },
         })
       }
@@ -222,6 +223,23 @@ export async function POST(req: NextRequest) {
         title: `${c.symptom} desde que começaste ${c.medication}?`,
         detail: `Registaste "${c.symptom}" ${c.occurrences}x, começando ${c.days_after_start} dia${c.days_after_start === 1 ? '' : 's'} depois de iniciares ${c.medication}. Pode ser coincidência, mas vale a pena mencionar ao médico ou farmacêutico.`,
         action: { label: 'Ver o meu histórico', route: '/timeline' },
+      })
+    })
+
+    // ── 9b) Detetive de Saúde: correlações medicamento → análise (item D19) ─
+    // Mesma lógica, terceiro eixo: uma análise que ficava normal e passa a
+    // alterada depois de começar um medicamento (ex: função renal a piorar
+    // com um fármaco nefrotóxico).
+    const labCorrelations = findLabCorrelations(
+      medsList.map(m => ({ name: m.name, started_at: m.started_at || null })),
+      labList.map((l: any) => ({ date: l.date || null, values: (l.values || []).map((v: any) => ({ name: v.name, status: v.status })) })),
+    )
+    labCorrelations.forEach(c => {
+      concerns.push({
+        id: `labcorrel-${norm(c.medication)}-${norm(c.test)}`, severity: 'info', icon: '🔗',
+        title: `${c.test} alterado desde que começaste ${c.medication}?`,
+        detail: `${c.test} ficou alterado ${c.days_after_start} dia${c.days_after_start === 1 ? '' : 's'} depois de iniciares ${c.medication}. Pode ser coincidência, mas vale a pena mencionar ao médico.`,
+        action: { label: 'Perceber as minhas análises', route: '/labs' },
       })
     })
 

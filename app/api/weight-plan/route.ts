@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { checkAIBudget, recordAIUsage, aiBudgetResponse } from '@/lib/aiUsage'
 
 // Plano de Perda de Peso — Pro, ligado ao Objetivo de Saúde "lose_weight".
 // Contextualizado à medicação/condições REAIS da pessoa: um plano genérico de
@@ -21,6 +22,9 @@ export async function POST(req: NextRequest) {
   if (!medications?.trim() && !conditions?.trim()) {
     return NextResponse.json({ error: 'Indica pelo menos a medicação ou as condições — o plano tem de ser sobre ti.' }, { status: 400 })
   }
+
+  const budget = await checkAIBudget(userId, plan)
+  if (!budget.ok) return aiBudgetResponse(budget.used, budget.cap)
 
   const result = await aiJSON<any>([
     {
@@ -52,5 +56,6 @@ Nota da pessoa sobre o objetivo: ${target_note?.trim() || 'sem nota adicional �
     },
   ], { maxTokens: 1400, temperature: 0.4 })
 
+  await recordAIUsage(userId, 'weight-plan')
   return NextResponse.json(result)
 }

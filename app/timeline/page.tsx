@@ -340,32 +340,39 @@ export default function TimelinePage() {
       })
     }
 
-    // ─── Análises (lab_results) → eventos + séries para a aba de gráficos ────
+    // ─── Análises (lab_records) → eventos + séries para a aba de gráficos ────
+    // BUG CORRIGIDO 2026-07-17 (item D19): lia de 'lab_results', tabela nunca
+    // escrita por nada no código — esta secção nunca tinha dados na prática.
+    // 'lab_records' é a tabela real (/registo grava lá); 'values' é um array
+    // por relatório (vários testes por linha), não uma linha por teste.
     if (isSelf) {
-      const { data: labs } = await supabase.from('lab_results')
-        .select('id, test_code, test_label, value, unit, ref_low, ref_high, measured_at')
-        .eq('user_id', user.id)
-        .gte('measured_at', since.split('T')[0])
-        .order('measured_at', { ascending: false })
+      const { data: labs } = await supabase.from('lab_records')
+        .select('id, date, values')
+        .eq('user_id', user.id).is('profile_id', null)
+        .gte('date', since.split('T')[0])
+        .order('date', { ascending: false })
 
       const seriesMap: Record<string, LabSeries> = {}
-      ;(labs || []).forEach((l: any) => {
-        const v = Number(l.value)
-        const status: 'normal' | 'high' | 'low' | 'critical' =
-          l.ref_high != null && v > Number(l.ref_high) ? 'high'
-          : l.ref_low != null && v < Number(l.ref_low) ? 'low' : 'normal'
-        allEvents.push({
-          id: `lab_${l.id}`, date: l.measured_at, type: 'lab_result',
-          title: `${l.test_label || l.test_code}: ${l.value}${l.unit ? ' ' + l.unit : ''}`,
-          detail: (l.ref_low != null || l.ref_high != null) ? `Referência: ${l.ref_low ?? '–'}–${l.ref_high ?? '–'} ${l.unit || ''}` : undefined,
-          source: 'labs',
-          severity: status === 'normal' ? undefined : 'moderate',
-          profileName: profileName || undefined,
+      ;(labs || []).forEach((rec: any) => {
+        ;((rec.values || []) as any[]).forEach((v: any, i: number) => {
+          const num = Number(v.value)
+          const status: 'normal' | 'high' | 'low' | 'critical' =
+            v.status === 'CRITICO_ALTO' || v.status === 'CRITICO_BAIXO' ? 'critical'
+            : v.status === 'ALTO' ? 'high' : v.status === 'BAIXO' ? 'low' : 'normal'
+          allEvents.push({
+            id: `lab_${rec.id}_${i}`, date: rec.date, type: 'lab_result',
+            title: `${v.name}: ${v.value}${v.unit ? ' ' + v.unit : ''}`,
+            detail: v.reference ? `Referência: ${v.reference}` : undefined,
+            source: 'labs',
+            severity: status === 'normal' ? undefined : status === 'critical' ? 'critical' : 'moderate',
+            profileName: profileName || undefined,
+          })
+          // série temporal (precisa ≥2 pontos para gráfico)
+          const key = v.name
+          if (!key) return
+          if (!seriesMap[key]) seriesMap[key] = { name: v.name, unit: v.unit || '', values: [], reference_range: v.reference || '—' }
+          if (!isNaN(num)) seriesMap[key].values.push({ date: rec.date, value: num, status })
         })
-        // série temporal (precisa ≥2 pontos para gráfico)
-        const key = l.test_code || l.test_label
-        if (!seriesMap[key]) seriesMap[key] = { name: l.test_label || l.test_code, unit: l.unit || '', values: [], reference_range: (l.ref_low != null || l.ref_high != null) ? `${l.ref_low ?? '–'}–${l.ref_high ?? '–'}` : '—' }
-        if (!isNaN(v)) seriesMap[key].values.push({ date: l.measured_at, value: v, status })
       })
       // ordena cada série por data ascendente e guarda só as que têm ≥2 pontos
       const series = Object.values(seriesMap)

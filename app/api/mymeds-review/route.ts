@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { checkAIBudget, recordAIUsage, aiBudgetResponse } from '@/lib/aiUsage'
 import { runRules, SEVERITY_META, type ClinicalCase } from '@/lib/decisionEngine'
 
 // Revisão da Minha Medicação — Pro. Porte para consumidor de uma ferramenta
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
   if (!medications?.trim()) {
     return NextResponse.json({ error: 'Indica a tua medicação — a revisão tem de ser sobre o que tomas de verdade.' }, { status: 400 })
   }
+
+  const budget = await checkAIBudget(userId, plan)
+  if (!budget.ok) return aiBudgetResponse(budget.used, budget.cap)
 
   const medLines = String(medications).split('\n').map((s: string) => s.trim()).filter(Boolean).slice(0, 30)
   const condList = conditions ? String(conditions).split(/[,;]\s*/).map((s: string) => s.trim()).filter(Boolean) : []
@@ -66,6 +70,7 @@ ${findingsText}`,
     },
   ], { maxTokens: 1300, temperature: 0.3 })
 
+  await recordAIUsage(userId, 'mymeds-review')
   return NextResponse.json({
     findings_raw: findings.map(f => ({ id: f.id, severity: f.severity, title: f.title })),
     ...result,
