@@ -69,6 +69,9 @@ export const TOOLS: Tool[] = [
   { id: '/plano-peso',   label: 'Plano de perda de peso',        desc: 'Dieta e exercício contextualizados à tua medicação', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/rastreio-visual', label: 'Rastreio visual',            desc: 'Risco dermatológico ABCDE por IA, com evolução ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/vigia-ruturas', label: 'Vigia de ruturas',              desc: 'Cruza a tua medicação com a lista oficial de ruturas do INFARMED', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
+  { id: '/minha-condicao', label: 'Painel da minha condição',     desc: 'Medicação, vitais, sintomas e risco — tudo à volta da tua doença crónica', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
+  { id: '/plano-recuperacao', label: 'Plano de recuperação',      desc: 'Marcos realistas para o teu evento de saúde, contextualizados à tua medicação', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
+  { id: '/revisao-medicacao', label: 'Revisão da minha medicação', desc: 'O motor de regras clínicas que os profissionais usam, explicado em linguagem simples', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
   // Existia (Phlox Reach) mas só aparecia na command palette clínica — invisível
   // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em
   // /tudo, não empurrado para a Hub (convidar não deve ser a 1ª coisa que se vê).

@@ -63,10 +63,24 @@ export default function HealthGoalPicker() {
           placeholder="Qual doença crónica? Ex: Diabetes tipo 2, DPOC, Insuficiência cardíaca…"
           style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
       )}
+      {goal === 'recover' && (
+        <input value={detail} onChange={e => setDetail(e.target.value)} onBlur={() => save(goal, detail)}
+          placeholder="Que evento? Ex: Cirurgia à anca, internamento por pneumonia…"
+          style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
+      )}
       {saving && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>A guardar…</div>}
       {saved && <div style={{ fontSize: 11, color: '#0d6e42', marginTop: 8, fontWeight: 700 }}>✓ Guardado</div>}
       {goal === 'lose_weight' && !saving && (
         <Link href="/plano-peso" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0d9488', textDecoration: 'none' }}>Abrir o teu plano de perda de peso →</Link>
+      )}
+      {goal === 'manage_chronic' && !saving && (
+        <Link href="/minha-condicao" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Abrir o painel da tua condição →</Link>
+      )}
+      {goal === 'recover' && !saving && (
+        <Link href="/plano-recuperacao" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Abrir o teu plano de recuperação →</Link>
+      )}
+      {goal === 'wellness' && !saving && (
+        <Link href="/relatorio" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0d6e42', textDecoration: 'none' }}>Abrir o teu check-in geral →</Link>
       )}
     </div>
   )

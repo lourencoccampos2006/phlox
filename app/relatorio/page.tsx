@@ -17,6 +17,7 @@ import DailyBrief from '@/components/relatorio/DailyBrief'
 import MedicoBolso from '@/components/relatorio/MedicoBolso'
 import CarePlan from '@/components/relatorio/CarePlan'
 import BriefingConsulta from '@/components/relatorio/BriefingConsulta'
+import { printDoc } from '@/lib/print'
 
 interface Highlight { type: 'positive' | 'warning' | 'info'; text: string }
 interface Trend { metric: string; trend: 'subiu' | 'desceu' | 'estável' | 'sem dados'; comment: string }
@@ -24,6 +25,7 @@ interface Recommendation { priority: 'urgente' | 'importante' | 'sugestão'; act
 
 interface Report {
   title: string
+  period_kind?: 'week' | 'month'
   period: string
   overall_score: number
   overall_label: string
@@ -76,6 +78,7 @@ function ScoreRing({ score }: { score: number }) {
 function WeeklyReport() {
   const { user, supabase } = useAuth()
   const [, setActiveProfileState] = useState<ActiveProfile | null>(null)
+  const [period, setPeriod] = useState<'week' | 'month'>('week')
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -91,6 +94,7 @@ function WeeklyReport() {
       const res = await fetch('/api/relatorio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ period }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Erro ao gerar relatório'); return }
@@ -102,16 +106,61 @@ function WeeklyReport() {
     }
   }
 
+  function exportPDF() {
+    if (!report) return
+    printDoc({
+      docTitle: report.title,
+      docSubtitle: report.period,
+      meta: [
+        { label: 'pontuação', value: `${report.overall_score}/10` },
+        ...(report.raw_data.adherence != null ? [{ label: 'adesão', value: `${report.raw_data.adherence}%` }] : []),
+      ],
+      sections: [
+        {
+          heading: 'Resumo',
+          records: [{ title: report.overall_label, bullets: report.highlights.map(h => h.text) }],
+        },
+        ...(report.trends.length ? [{
+          heading: 'Tendências',
+          records: report.trends.map(t => ({ title: t.metric, meta: `${t.trend}${t.comment ? ' — ' + t.comment : ''}` })),
+        }] : []),
+        {
+          heading: 'Análise',
+          records: [
+            { title: 'Sinais vitais', body: report.vitals_analysis || 'Sem dados suficientes.' },
+            { title: 'Adesão à medicação', body: report.adherence_comment || 'Sem dados de tomas registados.' },
+            ...(report.symptoms_analysis ? [{ title: 'Sintomas', body: report.symptoms_analysis }] : []),
+            ...(report.labs_note ? [{ title: 'Análises recentes', body: report.labs_note }] : []),
+          ],
+        },
+        ...(report.recommendations.length ? [{
+          heading: 'Recomendações',
+          records: report.recommendations.map(r => ({ title: r.action, tags: [{ label: r.priority, color: r.priority === 'urgente' ? '#dc2626' : r.priority === 'importante' ? '#b45309' : '#1d4ed8' }] })),
+        }] : []),
+        {
+          heading: 'Foco seguinte',
+          records: [{ title: report.next_steps }],
+        },
+      ],
+      footerNote: report.disclaimer,
+    })
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }} className="no-print">
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)' }}>O resumo da sua semana de saúde</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)' }}>O resumo da sua saúde</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <ProfileSelector onChange={p => setActiveProfileState(p)} />
           {report && (
-            <button onClick={() => window.print()} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-              🖨️ Imprimir
-            </button>
+            <>
+              <button onClick={exportPDF} style={{ padding: '9px 16px', background: 'white', color: 'var(--green)', border: '1px solid var(--green)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                📄 Exportar PDF
+              </button>
+              <button onClick={() => window.print()} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                🖨️ Imprimir
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -120,9 +169,9 @@ function WeeklyReport() {
         {!report ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: 40, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Relatório Semanal de Saúde</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Relatório {period === 'month' ? 'Mensal' : 'Semanal'} de Saúde</div>
             <div style={{ fontSize: 14, color: 'var(--ink-4)', marginBottom: 8, maxWidth: 480, margin: '0 auto 8px' }}>
-              O Phlox analisa a sua medicação, sinais vitais, sintomas e análises da última semana e gera um relatório personalizado com recomendações.
+              O Phlox analisa a sua medicação, sinais vitais, sintomas e análises {period === 'month' ? 'do último mês' : 'da última semana'} e gera um relatório personalizado com recomendações.
             </div>
             <div style={{ display: 'flex', gap: 20, justifyContent: 'center', margin: '20px 0', flexWrap: 'wrap' }}>
               {[
@@ -137,6 +186,16 @@ function WeeklyReport() {
                 </div>
               ))}
             </div>
+            <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 10, padding: 3, marginBottom: 18, gap: 2 }}>
+              {(['week', 'month'] as const).map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{
+                  padding: '7px 16px', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                  background: period === p ? '#0f172a' : 'transparent', color: period === p ? 'white' : 'var(--ink-4)',
+                }}>
+                  {p === 'week' ? 'Última semana' : 'Último mês'}
+                </button>
+              ))}
+            </div>
             {error && (
               <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b', marginBottom: 16 }}>
                 ⚠️ {error}
@@ -146,7 +205,7 @@ function WeeklyReport() {
               padding: '14px 32px', background: loading ? '#9ca3af' : '#0f172a', color: 'white',
               border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
             }}>
-              {loading ? '⏳ A analisar a sua semana...' : '✨ Gerar o meu relatório'}
+              {loading ? `⏳ A analisar o seu ${period === 'month' ? 'mês' : 'semana'}...` : `✨ Gerar o meu relatório ${period === 'month' ? 'mensal' : 'semanal'}`}
             </button>
           </div>
         ) : (

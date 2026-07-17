@@ -17,22 +17,34 @@ export async function POST(req: NextRequest) {
 
   const supabase = makeSupabase(req)
 
-  const weekAgoIso = new Date(Date.now() - 7 * 86400000).toISOString()
-  const weekAgoDate = weekAgoIso.split('T')[0]
+  // MELHORIAS 2026-07-17 (item B7): período mensal, além do semanal original —
+  // mesma análise, só com a janela de dados e os limites maiores. 'week' é o
+  // default para não mudar o comportamento de quem já chamava esta rota.
+  const body = await req.json().catch(() => null)
+  const period: 'week' | 'month' = body?.period === 'month' ? 'month' : 'week'
+  const days = period === 'month' ? 30 : 7
+  const periodLabel = period === 'month' ? 'mês' : 'semana'
+  const sinceIso = new Date(Date.now() - days * 86400000).toISOString()
+  const sinceDate = sinceIso.split('T')[0]
+  const vitalsLimit = period === 'month' ? 60 : 30
+  const symptomsLimit = period === 'month' ? 60 : 20
+  const labsLimit = period === 'month' ? 6 : 3
+  const vitalsSummaryLimit = period === 'month' ? 20 : 7
+  const symptomsSummaryLimit = period === 'month' ? 25 : 10
 
   // Fetch all relevant data. Sintomas e análises degradam a vazio se a tabela faltar.
   const [{ data: meds }, { data: vitals }, { data: logs }, { data: syms }, { data: labs }] = await Promise.all([
     supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', userId),
-    supabase.from('vitals').select('*').eq('user_id', userId).order('recorded_at', { ascending: false }).limit(30),
-    supabase.from('med_logs').select('*').eq('user_id', userId).gte('date', weekAgoDate).order('date', { ascending: false }),
-    supabase.from('symptom_logs').select('at, feeling, symptoms, pain, temperature, notes').eq('user_id', userId).is('profile_id', null).gte('at', weekAgoIso).order('at', { ascending: false }).limit(20).then((r: any) => r, () => ({ data: [] })),
-    supabase.from('lab_records').select('date, lab_name, values, flags, ai_summary').eq('user_id', userId).order('date', { ascending: false }).limit(3).then((r: any) => r, () => ({ data: [] })),
+    supabase.from('vitals').select('*').eq('user_id', userId).order('recorded_at', { ascending: false }).limit(vitalsLimit),
+    supabase.from('med_logs').select('*').eq('user_id', userId).gte('date', sinceDate).order('date', { ascending: false }),
+    supabase.from('symptom_logs').select('at, feeling, symptoms, pain, temperature, notes').eq('user_id', userId).is('profile_id', null).gte('at', sinceIso).order('at', { ascending: false }).limit(symptomsLimit).then((r: any) => r, () => ({ data: [] })),
+    supabase.from('lab_records').select('date, lab_name, values, flags, ai_summary').eq('user_id', userId).order('date', { ascending: false }).limit(labsLimit).then((r: any) => r, () => ({ data: [] })),
   ])
 
   const medList = (meds || []).map(m => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` (${m.frequency})` : ''}`).join(', ') || 'Nenhum medicamento registado'
 
   const vitalsSummary = vitals?.length
-    ? vitals.slice(0, 7).map(v => {
+    ? vitals.slice(0, vitalsSummaryLimit).map(v => {
         const parts = []
         if (v.bp_sys && v.bp_dia) parts.push(`TA ${v.bp_sys}/${v.bp_dia}`)
         if (v.hr) parts.push(`FC ${v.hr}bpm`)
@@ -47,10 +59,10 @@ export async function POST(req: NextRequest) {
   const takenDoses = (logs || []).filter((l: any) => l.status === 'taken').length
   const adherence = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : null
 
-  // Sintomas da semana (diário) — antes ignorados.
+  // Sintomas do período (diário) — antes ignorados.
   const symList = (syms || []) as any[]
   const symptomsSummary = symList.length
-    ? symList.slice(0, 10).map((s: any) => {
+    ? symList.slice(0, symptomsSummaryLimit).map((s: any) => {
         const parts: string[] = []
         if (Array.isArray(s.symptoms) && s.symptoms.length) parts.push(s.symptoms.join(', '))
         if (s.pain != null) parts.push(`dor ${s.pain}/10`)
@@ -70,21 +82,21 @@ export async function POST(req: NextRequest) {
       }).join('\n')
     : 'Sem análises recentes'
 
-  const prompt = `És um farmacêutico clínico a gerar o relatório semanal de saúde de um utente.
+  const prompt = `És um farmacêutico clínico a gerar o relatório ${period === 'month' ? 'mensal' : 'semanal'} de saúde de um utente.
 
 MEDICAÇÃO: ${medList}
-SINAIS VITAIS (últimos 7 dias):
+SINAIS VITAIS (últimos ${days} dias):
 ${vitalsSummary}
-SINTOMAS (diário, últimos 7 dias):
+SINTOMAS (diário, últimos ${days} dias):
 ${symptomsSummary}
 ANÁLISES RECENTES:
 ${labsSummary}
 ADESÃO À MEDICAÇÃO: ${adherence != null ? `${adherence}% (${takenDoses}/${totalDoses} doses tomadas)` : 'Sem dados'}
 
-Gera um relatório semanal claro, útil e personalizado em JSON:
+Gera um relatório ${period === 'month' ? 'mensal' : 'semanal'} claro, útil e personalizado em JSON. Este é um relatório de ${periodLabel}${period === 'month' ? ' — dá mais peso a tendências e padrões ao longo do mês do que a eventos isolados de um dia' : ''}:
 {
-  "title": "Relatório Semanal de Saúde",
-  "period": "semana de dd/MM a dd/MM",
+  "title": "Relatório ${period === 'month' ? 'Mensal' : 'Semanal'} de Saúde",
+  "period": "${periodLabel} de dd/MM a dd/MM",
   "overall_score": 1-10,
   "overall_label": "Ex: Boa semana · Semana estável · Atenção necessária",
   "highlights": [
@@ -113,7 +125,8 @@ Responde APENAS JSON. Usa linguagem simples e positiva. Se os dados são escasso
     )
 
     return NextResponse.json({
-      title: String(result?.title || 'Relatório Semanal de Saúde').slice(0, 100),
+      period_kind: period,
+      title: String(result?.title || (period === 'month' ? 'Relatório Mensal de Saúde' : 'Relatório Semanal de Saúde')).slice(0, 100),
       period: String(result?.period || '').slice(0, 60),
       overall_score: typeof result?.overall_score === 'number' ? Math.min(10, Math.max(1, result.overall_score)) : 5,
       overall_label: String(result?.overall_label || '').slice(0, 60),
