@@ -7,15 +7,13 @@ import Link from 'next/link'
 import { planName } from '@/lib/plans'
 import Icon from '@/components/Icon'
 import WelcomeTour from '@/components/WelcomeTour'
-import HealthAlertsCard from '@/components/HealthAlertsCard'
 import { computeHealthAlerts } from '@/lib/healthAlerts'
 import { modeTheme, isPremiumMode, type ModeTheme } from '@/lib/modeTheme'
-import { homeGreeting, homeSubline, pickFocus, quickActions, type HomeData, type FocusCard } from '@/lib/homeIntelligence'
+import { homeGreeting, homeSubline, pickFocus, quickActions, type HomeData, type FocusCard, type QuickAction } from '@/lib/homeIntelligence'
 import { summarize, syncStudyProgress } from '@/lib/studyProgress'
 import { useEnabledTools } from '@/lib/useEnabledTools'
 import { TOOL_CATEGORIES, PLAN_BADGE, type ToolMode } from '@/lib/toolRegistry'
-import { getPins } from '@/lib/pinnedTools'
-import { getTopTools } from '@/lib/userPersona'
+import { getPins, PINNABLE_TOOLS } from '@/lib/pinnedTools'
 import { ALL_PERSONAS, personaFor } from '@/lib/userPersona'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { blueprintFor } from '@/lib/institutionBlueprint'
@@ -79,7 +77,11 @@ export default function InicioPage() {
           supabase.from('med_logs').select('id, status').eq('user_id', user.id).gte('date', today).eq('status', 'taken'),
           supabase.from('vitals').select('bp_sys,bp_dia,hr,spo2,glucose,weight,temp,recorded_at').eq('user_id', user.id).gte('recorded_at', monthAgo).order('recorded_at', { ascending: false }).limit(40),
           supabase.from('appointments').select('title, date').eq('user_id', user.id).gte('date', today).order('date').limit(1),
-          expMode === 'personal' ? supabase.from('symptom_logs').select('at, pain, temperature, symptoms').eq('user_id', user.id).is('profile_id', null).gte('at', weekAgo).then((r: any) => r, () => ({ data: [] })) : Promise.resolve({ data: [] }),
+          // REDESIGN 2026-07-17: agora também para cuidador — "a tua própria
+          // saúde" deixou de depender de um HealthAlertsCard separado com o
+          // seu próprio fetch (fazia esta MESMA pergunta 2x e mostrava o
+          // mesmo alerta 2x, no foco E num cartão à parte).
+          (expMode === 'personal' || expMode === 'caregiver') ? supabase.from('symptom_logs').select('at, pain, temperature, symptoms').eq('user_id', user.id).is('profile_id', null).gte('at', weekAgo).then((r: any) => r, () => ({ data: [] })) : Promise.resolve({ data: [] }),
           // idade/sexo/condições do próprio: o profiles NÃO tem estas colunas
           // (dava 400 em toda a home). Fica null; o motor de alertas trata disso. (Ronda 11)
           Promise.resolve({ data: null }),
@@ -103,10 +105,15 @@ export default function InicioPage() {
         const appt = (appts || [])[0]
         const nextAppt = appt ? { title: appt.title || 'Consulta', inDays: Math.max(0, Math.ceil((new Date(appt.date).getTime() - Date.now()) / 86400000)) } : null
 
-        // PESSOAL: alerta de saúde próprio mais urgente + "a minha semana" (tendências).
+        // "A tua saúde": alerta próprio mais urgente + os restantes + "a minha
+        // semana" (tendências). REDESIGN 2026-07-17: computado uma única vez
+        // aqui (antes: /inicio calculava o topo para o foco E o
+        // HealthAlertsCard recalculava tudo outra vez, do zero, só para
+        // mostrar por baixo — o mesmo alerta aparecia 2x, em sítios diferentes).
         let healthAlert: HomeData['healthAlert'] = null
+        let moreHealthAlerts: HomeData['moreHealthAlerts'] = []
         let week: HomeData['week'] = null
-        if (expMode === 'personal') {
+        if (expMode === 'personal' || expMode === 'caregiver') {
           const totalSlots = medList.reduce((n, m) => n + (m.reminder_times?.length || 0), 0)
           const adherencePct = totalSlots > 0 ? Math.round((taken / totalSlots) * 100) : null
           const out = computeHealthAlerts({
@@ -114,17 +121,29 @@ export default function InicioPage() {
             age: (prof as any)?.age ?? null, sex: (prof as any)?.sex ?? null, conditions: (prof as any)?.conditions ?? null,
             vitalSeries: vitalRows, symptoms: (syms || []) as any[], adherencePct,
           })
-          const top = out[0]
-          if (top) healthAlert = { level: top.level, title: top.title, detail: top.detail, href: top.href || '/inicio', cta: top.cta }
-          // Tendências para a "história da semana".
-          const weights = vitalRows.filter(v => v.weight != null)
-          const weightDelta = weights.length >= 2 ? Math.round((weights[0].weight - weights[weights.length - 1].weight) * 10) / 10 : null
-          const bps = vitalRows.filter(v => v.bp_sys != null)
-          let bpTrend: 'up' | 'down' | 'flat' | null = null
-          if (bps.length >= 2) { const diff = bps[0].bp_sys - bps[bps.length - 1].bp_sys; bpTrend = diff <= -5 ? 'down' : diff >= 5 ? 'up' : 'flat' }
-          const symWeek = ((syms || []) as any[]).length
-          if (weights.length || bps.length || adherencePct != null || symWeek) {
-            week = { weightDelta, bpTrend, adherencePct, vitalsCount: vitalRows.length, symptomsCount: symWeek }
+          // Em modo pessoal, o 1º alerta grave pode virar o FOCO principal
+          // (pickFocus) — não o repetimos na tira secundária. Em modo cuidador
+          // nenhum alerta próprio vira foco (o familiar tem prioridade), por
+          // isso aqui vão todos.
+          if (expMode === 'personal') {
+            const top = out[0]
+            if (top) healthAlert = { level: top.level, title: top.title, detail: top.detail, href: top.href || '/inicio', cta: top.cta }
+            moreHealthAlerts = out.slice(1, 4)
+          } else {
+            moreHealthAlerts = out.slice(0, 3)
+          }
+          // Tendências para a "história da semana" (só pessoal — em modo
+          // cuidador o foco é a saúde de quem se cuida, não a própria semana).
+          if (expMode === 'personal') {
+            const weights = vitalRows.filter(v => v.weight != null)
+            const weightDelta = weights.length >= 2 ? Math.round((weights[0].weight - weights[weights.length - 1].weight) * 10) / 10 : null
+            const bps = vitalRows.filter(v => v.bp_sys != null)
+            let bpTrend: 'up' | 'down' | 'flat' | null = null
+            if (bps.length >= 2) { const diff = bps[0].bp_sys - bps[bps.length - 1].bp_sys; bpTrend = diff <= -5 ? 'down' : diff >= 5 ? 'up' : 'flat' }
+            const symWeek = ((syms || []) as any[]).length
+            if (weights.length || bps.length || adherencePct != null || symWeek) {
+              week = { weightDelta, bpTrend, adherencePct, vitalsCount: vitalRows.length, symptomsCount: symWeek }
+            }
           }
         }
 
@@ -170,7 +189,7 @@ export default function InicioPage() {
         if (!cancel) setData({
           firstName, medsCount: medList.length,
           dosesDueNow: dueNow, dosesTakenToday: taken, dosesTotalToday: totalToday, nextDoseLabel: nextLabel,
-          lastVitalDaysAgo, nextAppt, caregiverAlert, caregiverBurdenAlert, healthAlert, week,
+          lastVitalDaysAgo, nextAppt, caregiverAlert, caregiverBurdenAlert, healthAlert, moreHealthAlerts, week,
           hasAnyData: medList.length > 0 || !!lastVital || !!appt || !!caregiverAlert || !!healthAlert,
         })
       } catch {
@@ -231,38 +250,11 @@ export default function InicioPage() {
         {/* ── O FOCO — a única coisa que importa agora ── */}
         <FocusHero focus={focus} theme={t} loading={!data} />
 
-        {/* ── Avisos proativos de saúde (determinístico, grátis no pessoal) ── */}
-        {(expMode === 'personal' || expMode === 'caregiver') && <HealthAlertsCard />}
+        {/* ── A tua saúde (alertas restantes + tendências da semana, 1 só cartão) ── */}
+        {(expMode === 'personal' || expMode === 'caregiver') && <HealthStrip data={d} loading={!data} theme={t} />}
 
-        {/* ── A minha saúde esta semana (tendências reais) ── */}
-        {expMode === 'personal' && <WeekStory data={d} loading={!data} theme={t} />}
-
-        {/* ── Atalhos fixos do utilizador (pins) ── */}
-        <PinnedRow theme={t} />
-
-        {/* ── O que mais usa (aprende sozinho) ── */}
-        <TopToolsRow theme={t} />
-
-        {/* ── Ações sempre à mão ── */}
-        <div style={{ marginTop: 22 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 11, paddingLeft: 2 }}>
-            {expMode === 'student' ? 'Estudar' : 'O que precisa'}
-          </div>
-          <div className="ini-actions">
-            {actions.map(a => (
-              <Link key={a.href + a.label} href={a.href} className="ini-action" style={{ background: t.surface, borderColor: t.border }}>
-                <span className="ini-action-ic" style={{ background: t.accentSoft, color: t.accent }}>
-                  <Icon name={a.icon} size={22} />
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink, letterSpacing: '-0.01em' }}>{a.label}</span>
-                  <span style={{ display: 'block', fontSize: 12.5, color: t.inkFaint, marginTop: 1 }}>{a.sub}</span>
-                </span>
-                <Icon name="chevron" size={17} color={t.inkFaint} />
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* ── Atalhos — os teus fixados + os essenciais do modo, uma lista só ── */}
+        <ShortcutsSection mode={expMode} actions={actions} theme={t} />
 
         {/* ── TODAS as ferramentas do modo, por categoria (expansível) ── */}
         <AllToolsSection mode={expMode as ToolMode} theme={t} />
@@ -297,13 +289,9 @@ export default function InicioPage() {
         }
         .ini-action:active { transform: scale(0.99); }
         .ini-action-ic { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .pin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
-        .pin-cell { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 13px 6px; border: 1px solid; border-radius: ${t.radius}px; text-decoration: none; transition: transform 0.12s; }
-        .pin-cell:active { transform: scale(0.97); }
         @media (min-width: 620px) {
           .ini-actions { grid-template-columns: 1fr 1fr; gap: 10px; }
           .ini-action:hover { box-shadow: 0 6px 20px rgba(0,0,0,${premium ? '0.4' : '0.06'}); }
-          .pin-row { grid-template-columns: repeat(6, 1fr); }
         }
       `}</style>
     </div>
@@ -363,65 +351,59 @@ function ModeChip({ theme: t }: { theme: ModeTheme }) {
   )
 }
 
-// ─── Atalhos fixos (pins do utilizador) ────────────────────────────────────────
+// ─── Atalhos — REDESIGN 2026-07-17 ──────────────────────────────────────────────
+// Antes havia TRÊS listas de atalhos empilhadas (pins fixados, "o que mais usa"
+// aprendido sozinho, e as ações fixas do modo) em DOIS estilos visuais
+// diferentes (grelha de ícones vs. lista) — a fonte mais citada de "confuso".
+// Agora é uma lista só: os teus pins primeiro (se tiveres), a preencher o resto
+// com os essenciais do modo que ainda não tenhas fixado. "O que mais usa"
+// (aprendido sozinho) saiu — era o menos legível dos três e duplicava o que os
+// pins/essenciais já cobrem.
 const PIN_ICON: Record<string, string> = {
   '/mymeds': 'pill', '/scan': 'camera', '/interactions': 'shield', '/ai': 'spark',
   '/familia': 'family', '/vitals': 'heart', '/saude-agora': 'heart', '/sintomas': 'heart',
   '/arena': 'trophy', '/study': 'cards', '/tutor': 'spark', '/labs': 'search',
   '/medicamento': 'question', '/timeline': 'calendar',
 }
-function PinnedRow({ theme: t }: { theme: ModeTheme }) {
-  const [pins, setPins] = useState<{ path: string; label: string }[]>([])
+const SHORTCUTS_MAX = 6
+
+function ShortcutsSection({ mode, actions, theme: t }: { mode: string; actions: QuickAction[]; theme: ModeTheme }) {
+  const [pins, setPins] = useState<{ href: string; icon: string; label: string; sub: string }[] | null>(null)
+
   useEffect(() => {
-    import('@/lib/pinnedTools').then(({ PINNABLE_TOOLS }) => {
-      const ids = getPins()
-      setPins(ids.map(p => PINNABLE_TOOLS.find(x => x.path === p)).filter(Boolean).map((x: any) => ({ path: x.path, label: x.label })))
-    })
+    const ids = getPins()
+    setPins(ids
+      .map(id => PINNABLE_TOOLS.find(x => x.path === id))
+      .filter(Boolean)
+      .map((x: any) => ({ href: x.path, icon: PIN_ICON[x.path] || 'grid', label: x.label, sub: 'Fixado por ti' })))
   }, [])
-  if (pins.length === 0) return null
+
+  if (pins === null) return <div className="skeleton" style={{ height: 160, borderRadius: 12, marginTop: 22 }} />
+
+  const seen = new Set(pins.map(p => p.href))
+  const combined = [...pins, ...actions.filter(a => !seen.has(a.href))].slice(0, SHORTCUTS_MAX)
+
   return (
     <div style={{ marginTop: 22 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Os meus atalhos</span>
-        <Link href="/tudo" style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Editar</Link>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, paddingLeft: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {mode === 'student' ? 'Estudar' : 'Atalhos'}
+        </span>
+        {pins.length > 0 && <Link href="/tudo" style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Editar</Link>}
       </div>
-      <div className="pin-row">
-        {pins.map(p => (
-          <Link key={p.path} href={p.path} className="pin-cell" style={{ background: t.surface, borderColor: t.border }}>
-            <span style={{ width: 40, height: 40, borderRadius: 12, background: t.accentSoft, color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={PIN_ICON[p.path] || 'grid'} size={20} /></span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: t.inkSoft, textAlign: 'center', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.label}</span>
+      <div className="ini-actions">
+        {combined.map(a => (
+          <Link key={a.href} href={a.href} className="ini-action" style={{ background: t.surface, borderColor: t.border }}>
+            <span className="ini-action-ic" style={{ background: t.accentSoft, color: t.accent }}>
+              <Icon name={a.icon} size={22} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: t.ink, letterSpacing: '-0.01em' }}>{a.label}</span>
+              <span style={{ display: 'block', fontSize: 12.5, color: t.inkFaint, marginTop: 1 }}>{a.sub}</span>
+            </span>
+            <Icon name="chevron" size={17} color={t.inkFaint} />
           </Link>
         ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── O que mais usa (aprende localmente) ───────────────────────────────────────
-const TOP_LABELS: Record<string, { label: string; icon: string }> = {
-  '/mymeds': { label: 'Comprimidos', icon: 'pill' }, '/familia': { label: 'Família', icon: 'family' },
-  '/interactions': { label: 'Interações', icon: 'shield' }, '/sintomas': { label: 'Sintomas', icon: 'heart' },
-  '/scan': { label: 'Foto à receita', icon: 'camera' }, '/medicamento': { label: 'Medicamento', icon: 'question' },
-  '/ai': { label: 'Perguntar', icon: 'spark' }, '/vitals': { label: 'Tensão e peso', icon: 'heart' },
-  '/labs': { label: 'Análises', icon: 'search' }, '/arena': { label: 'Arena', icon: 'trophy' },
-  '/study': { label: 'Estudar', icon: 'cards' }, '/tutor': { label: 'Tutor', icon: 'spark' },
-}
-function TopToolsRow({ theme: t }: { theme: ModeTheme }) {
-  const [paths, setPaths] = useState<string[]>([])
-  useEffect(() => { setPaths(getTopTools(8).filter(p => TOP_LABELS[p])) }, [])
-  if (paths.length < 2) return null
-  return (
-    <div style={{ marginTop: 22 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 11 }}>O que mais usa</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {paths.slice(0, 5).map(p => {
-          const m = TOP_LABELS[p]
-          return (
-            <Link key={p} href={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 14px', background: t.surface, border: `1px solid ${t.border}`, borderRadius: 999, textDecoration: 'none', fontSize: 13, color: t.inkSoft, fontWeight: 600 }}>
-              <Icon name={m.icon} size={16} color={t.accent} />{m.label}
-            </Link>
-          )
-        })}
       </div>
     </div>
   )
@@ -530,40 +512,71 @@ function FocusHero({ focus, theme: t, loading }: { focus: FocusCard; theme: Mode
   )
 }
 
-// ─── "A minha saúde esta semana" — síntese determinística de tendências ────────
-function WeekStory({ data: d, loading, theme: t }: { data: HomeData; loading: boolean; theme: ModeTheme }) {
+// ─── "A tua saúde" — REDESIGN 2026-07-17 ────────────────────────────────────────
+// Substitui HealthAlertsCard (cartão à parte, com o SEU PRÓPRIO fetch — mostrava
+// o mesmo alerta que já ia no foco, outra vez, num sítio diferente) + WeekStory
+// (outro cartão logo a seguir). Agora é UM cartão: os alertas que não couberam
+// no foco (moreHealthAlerts, já calculados 1x pelo /inicio) + as tendências da
+// semana, só quando há mesmo algo a mostrar.
+const ALERT_LVL: Record<string, { c: string; bg: string; b: string }> = {
+  high: { c: '#991b1b', bg: '#fef2f2', b: '#fecaca' },
+  medium: { c: '#92400e', bg: '#fffbeb', b: '#fde68a' },
+  low: { c: '#1e40af', bg: '#eff6ff', b: '#bfdbfe' },
+}
+const TREND_TONE: Record<string, { c: string; bg: string; b: string }> = {
+  good: { c: '#15803d', bg: '#f0fdf4', b: '#bbf7d0' },
+  warn: { c: '#b45309', bg: '#fffbeb', b: '#fde68a' },
+  neutral: { c: '#475569', bg: '#f8fafc', b: '#e2e8f0' },
+}
+function HealthStrip({ data: d, loading, theme: t }: { data: HomeData; loading: boolean; theme: ModeTheme }) {
+  if (loading) return null
+  const alerts = d.moreHealthAlerts || []
   const w = d.week
-  if (loading || !w) return null
-  // Constrói os "chips" só com o que houver dados.
-  const chips: { label: string; tone: 'good' | 'warn' | 'neutral' }[] = []
-  if (w.weightDelta != null && Math.abs(w.weightDelta) >= 0.3)
-    chips.push({ label: `Peso ${w.weightDelta < 0 ? '↓' : '↑'}${Math.abs(w.weightDelta)} kg`, tone: 'neutral' })
-  if (w.bpTrend === 'down') chips.push({ label: 'Tensão a melhorar', tone: 'good' })
-  else if (w.bpTrend === 'up') chips.push({ label: 'Tensão a subir', tone: 'warn' })
-  if (w.adherencePct != null) chips.push({ label: `Medicação ${w.adherencePct}%`, tone: w.adherencePct >= 80 ? 'good' : w.adherencePct >= 50 ? 'neutral' : 'warn' })
-  if (w.symptomsCount && w.symptomsCount > 0) chips.push({ label: `${w.symptomsCount} registo${w.symptomsCount > 1 ? 's' : ''} de sintomas`, tone: 'neutral' })
-  if (chips.length === 0) return null
 
-  const TONE: Record<string, { c: string; bg: string; b: string }> = {
-    good: { c: '#15803d', bg: '#f0fdf4', b: '#bbf7d0' },
-    warn: { c: '#b45309', bg: '#fffbeb', b: '#fde68a' },
-    neutral: { c: '#475569', bg: '#f8fafc', b: '#e2e8f0' },
+  const chips: { label: string; tone: 'good' | 'warn' | 'neutral' }[] = []
+  if (w) {
+    if (w.weightDelta != null && Math.abs(w.weightDelta) >= 0.3)
+      chips.push({ label: `Peso ${w.weightDelta < 0 ? '↓' : '↑'}${Math.abs(w.weightDelta)} kg`, tone: 'neutral' })
+    if (w.bpTrend === 'down') chips.push({ label: 'Tensão a melhorar', tone: 'good' })
+    else if (w.bpTrend === 'up') chips.push({ label: 'Tensão a subir', tone: 'warn' })
+    if (w.adherencePct != null) chips.push({ label: `Medicação ${w.adherencePct}%`, tone: w.adherencePct >= 80 ? 'good' : w.adherencePct >= 50 ? 'neutral' : 'warn' })
+    if (w.symptomsCount && w.symptomsCount > 0) chips.push({ label: `${w.symptomsCount} registo${w.symptomsCount > 1 ? 's' : ''} de sintomas`, tone: 'neutral' })
   }
+
+  if (alerts.length === 0 && chips.length === 0) return null
+
   return (
-    <Link href="/relatorio" style={{ textDecoration: 'none', display: 'block', marginTop: 14 }}>
-      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: t.radius, padding: '15px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 800, color: t.ink }}>A minha saúde esta semana</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: t.accent }}>Ver detalhe →</span>
+    <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: t.radius, padding: '15px 16px', marginTop: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: t.ink }}>A tua saúde</span>
+        <Link href="/relatorio" style={{ fontSize: 12, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Ver detalhe →</Link>
+      </div>
+      {alerts.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: chips.length > 0 ? 11 : 0 }}>
+          {alerts.map((a, i) => {
+            const s = ALERT_LVL[a.level]
+            return (
+              <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: s.bg, border: `1px solid ${s.b}`, borderRadius: 9, padding: '9px 11px' }}>
+                <span style={{ flexShrink: 0, marginTop: 1 }}>{a.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: s.c }}>{a.title}</div>
+                  {a.detail && <div style={{ fontSize: 12, color: s.c, opacity: 0.9, lineHeight: 1.4, marginTop: 1 }}>{a.detail}</div>}
+                </div>
+                {a.href && <Link href={a.href} style={{ flexShrink: 0, alignSelf: 'center', fontSize: 11, fontWeight: 800, color: s.c, textDecoration: 'none', whiteSpace: 'nowrap' }}>{a.cta || 'Ver'} →</Link>}
+              </div>
+            )
+          })}
         </div>
+      )}
+      {chips.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {chips.map((c, i) => {
-            const s = TONE[c.tone]
+            const s = TREND_TONE[c.tone]
             return <span key={i} style={{ fontSize: 12.5, fontWeight: 700, color: s.c, background: s.bg, border: `1px solid ${s.b}`, borderRadius: 8, padding: '5px 11px' }}>{c.label}</span>
           })}
         </div>
-      </div>
-    </Link>
+      )}
+    </div>
   )
 }
 

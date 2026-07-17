@@ -43,6 +43,11 @@ export interface HomeData {
   caregiverBurdenAlert?: { profileName: string; band: string; label: string; advice: string } | null
   // pessoal — o alerta de saúde próprio mais urgente (de healthAlerts/healthTrends)
   healthAlert?: { level: 'high' | 'medium' | 'low'; title: string; detail?: string; href: string; cta?: string } | null
+  // REDESIGN 2026-07-17 — os restantes alertas de saúde próprios, além do que já
+  // virou o foco principal (evita mostrar o mesmo alerta 2x, em /inicio E num
+  // HealthAlertsCard à parte, como acontecia antes). Em modo cuidador nenhum é
+  // promovido a foco, por isso aqui vêm TODOS.
+  moreHealthAlerts?: { level: 'high' | 'medium' | 'low'; icon: string; title: string; detail?: string; href?: string; cta?: string }[]
   // pessoal — "a minha saúde esta semana" (tendências determinísticas)
   week?: { weightDelta?: number | null; bpTrend?: 'up' | 'down' | 'flat' | null; adherencePct?: number | null; vitalsCount?: number; symptomsCount?: number } | null
   // estado geral
