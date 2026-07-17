@@ -99,9 +99,23 @@ export default function OnboardingPage() {
     else if ((user as any)?.onboarded === true) router.push('/inicio')
   }, [user, authLoading, router])
 
+
   const go = (n: number) => { setAnim(true); setTimeout(() => { setStep(n); setAnim(false) }, 160) }
   const meta = profile ? PROFILES.find(p => p.id === profile)! : null
   const accent = meta?.accent || 'var(--green)'
+
+  // MELHORIA 2026-07-17 (item C15) — ponte do Portal Família para o onboarding:
+  // quem chega com ?suggest=family já sabemos, pelo contexto, que é cuidador —
+  // avança logo ao passo seguinte (mesmo efeito de clicar no cartão "Cuidador
+  // familiar"), em vez de obrigar a escolher de novo algo já óbvio. Totalmente
+  // reversível com um clique em "← Voltar". Lê window.location diretamente
+  // para não obrigar esta página a entrar em Suspense só por isto.
+  useEffect(() => {
+    if (typeof window === 'undefined' || step !== 0) return
+    const suggest = new URLSearchParams(window.location.search).get('suggest')
+    if (suggest === 'family') { setProfile('caregiver'); go(1) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Detail step completeness
   const detailReady =

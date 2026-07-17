@@ -69,8 +69,12 @@ function LoginContent() {
   useEffect(() => {
     // Encaminha pelo estado de onboarding — uma conta NOVA (ex.: signup por email)
     // tem de passar pela configuração inicial, não saltar logo para /inicio.
-    if (user) router.push((user as any).onboarded ? '/inicio' : '/onboarding')
-  }, [user, router])
+    // BUG/MELHORIA 2026-07-17 (item C15): mode=family (vindo do Portal Família)
+    // já sabemos, pelo contexto, que esta pessoa é cuidadora — encaminha para o
+    // onboarding com essa pista, para pré-selecionar "Cuidador" em vez de a
+    // pessoa ter de escolher de novo algo que já é óbvio.
+    if (user) router.push((user as any).onboarded ? '/inicio' : `/onboarding${mode ? `?suggest=${mode}` : ''}`)
+  }, [user, router, mode])
 
   const handleGoogleSignIn = async () => {
     setError('')

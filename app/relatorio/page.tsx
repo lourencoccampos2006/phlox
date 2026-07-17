@@ -82,6 +82,7 @@ function WeeklyReport() {
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shareNudgeDismissed, setShareNudgeDismissed] = useState(false)
 
   useEffect(() => { setActiveProfileState(getActiveProfile()) }, [])
 
@@ -299,9 +300,21 @@ function WeeklyReport() {
             )}
 
             <div style={{ background: '#f0fdf4', border: '1px solid #6ee7b7', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', marginBottom: 6 }}>🎯 Foco para a próxima semana</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', marginBottom: 6 }}>🎯 Foco para a próxima {period === 'month' ? 'mês' : 'semana'}</div>
               <div style={{ fontSize: 13, color: '#047857' }}>{report.next_steps}</div>
             </div>
+
+            {/* Nudge de partilha (item C14) — só depois de um momento de satisfação
+                GENUÍNA (pontuação alta, calculada pela IA a partir dos dados reais),
+                nunca por defeito nem repetidamente. Dispensável por sessão. */}
+            {report.overall_score >= 8 && !shareNudgeDismissed && (
+              <div className="no-print" style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 12, padding: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 20 }}>🌱</span>
+                <div style={{ flex: 1, minWidth: 200, fontSize: 12.5, color: '#6b21a8' }}>Boa {period === 'month' ? 'mês' : 'semana'}! Se o Phlox te tem ajudado, conheces mais alguém a quem isto podia servir?</div>
+                <a href="/reach" style={{ fontSize: 12.5, fontWeight: 700, color: 'white', background: '#7c3aed', padding: '7px 14px', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}>Convidar →</a>
+                <button onClick={() => setShareNudgeDismissed(true)} style={{ fontSize: 11, color: '#a78bfa', background: 'none', border: 'none', cursor: 'pointer' }}>Agora não</button>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ fontSize: 11, color: 'var(--ink-5)', fontStyle: 'italic', flex: 1 }}>{report.disclaimer}</div>
