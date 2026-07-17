@@ -4,6 +4,12 @@
 // familiares que acompanhas) com a Lista de Notificação Prévia do INFARMED —
 // dados reais, uma tabela Excel publicada oficialmente, não OCR nem scraping
 // ao vivo. Atualizado a cada trimestre (ver lib/shortageIngest.ts).
+// MELHORIA 2026-07-17 (item B11): ganhou uma 2ª secção — Vigia de Recalls,
+// que cruza a mesma medicação com os alertas de qualidade/segurança do
+// INFARMED (recolhas de lote). Dobrado nesta página em vez de criar uma nova
+// por serem a mesma pergunta ("a minha medicação está nas listas oficiais do
+// INFARMED?"). Ver lib/recallIngest.ts para porque o matching é só por título
+// (menciona), nunca por nº de lote (não é um dado estruturado e fiável).
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
@@ -13,10 +19,13 @@ const ACCENT = '#0d9488'
 
 interface MatchResult { medication: string; match: 'exato' | 'parcial' | null; matched_name: string | null; source_document: string | null }
 interface Group { label: string; profileId: string | null; results: MatchResult[] }
+interface RecallMatch { medication: string; url: string; title: string; notice_date: string | null }
+interface RecallGroup { label: string; profileId: string | null; matches: RecallMatch[] }
 
 export default function VigiaRuturasPage() {
   const { user, supabase } = useAuth() as any
   const [groups, setGroups] = useState<Group[]>([])
+  const [recallGroups, setRecallGroups] = useState<RecallGroup[]>([])
   const [syncInfo, setSyncInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -36,13 +45,18 @@ export default function VigiaRuturasPage() {
       setSyncInfo(selfRes.list_status)
 
       const newGroups: Group[] = [{ label: 'A minha medicação', profileId: null, results: selfRes.results || [] }]
+      const selfRecall = await fetch('/api/recall-watch', { headers }).then(r => r.json()).catch(() => null)
+      const newRecallGroups: RecallGroup[] = [{ label: 'A minha medicação', profileId: null, matches: selfRecall?.matches || [] }]
 
       for (const fp of (familyProfiles || [])) {
         const r = await fetch(`/api/shortage-watch?profile_id=${fp.id}`, { headers }).then(res => res.json())
         if (!r.error) newGroups.push({ label: fp.name, profileId: fp.id, results: r.results || [] })
+        const rc = await fetch(`/api/recall-watch?profile_id=${fp.id}`, { headers }).then(res => res.json()).catch(() => null)
+        newRecallGroups.push({ label: fp.name, profileId: fp.id, matches: rc?.matches || [] })
       }
 
       setGroups(newGroups)
+      setRecallGroups(newRecallGroups)
     } catch (e: any) { setErr(e.message || 'Erro ao verificar ruturas.') }
     finally { setLoading(false) }
   }, [user, supabase])
@@ -105,6 +119,29 @@ export default function VigiaRuturasPage() {
                 : 'Lista ainda não sincronizada.'}
               {' '}Esta lista reflete o que o INFARMED publica oficialmente — não substitui confirmar na farmácia.
             </div>
+
+            {/* Vigia de Recalls (item B11) — recolhas de lote e alertas de
+                segurança, separado das ruturas por serem listas diferentes. */}
+            {recallGroups.some(g => g.matches.length > 0) && (
+              <div style={{ borderTop: '1px solid var(--bg-3)', paddingTop: 18, marginTop: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>🚨 Alertas de qualidade/segurança que mencionam a tua medicação</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>Recolhas de lote e alertas de segurança recentes do INFARMED — confirma sempre o nº de lote na notícia oficial, não aqui.</div>
+                {recallGroups.filter(g => g.matches.length > 0).map(g => (
+                  <div key={g.profileId || 'self-recall'} style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0b1120', marginBottom: 8 }}>{g.label}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {g.matches.map((m, i) => (
+                        <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '11px 14px', textDecoration: 'none' }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#9a3412', marginBottom: 2 }}>{m.medication}</div>
+                          <div style={{ fontSize: 13, color: '#7c2d12', lineHeight: 1.4 }}>{m.title}</div>
+                          {m.notice_date && <div style={{ fontSize: 11, color: '#9a3412', marginTop: 3 }}>{m.notice_date} · Ver notícia oficial →</div>}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,0 +1,138 @@
+'use client'
+
+// /exportar-saude — Exportar o meu Registo de Saúde (Pro, item D20 da
+// auditoria). Um dump completo e estruturado (medicação, vitais, sintomas,
+// análises) para levar a qualquer médico — diferente do /passport (cartão de
+// emergência mínimo) e do /relatorio (resumo curado por IA): aqui é o
+// histórico completo em bruto, sem interpretação.
+
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useAuth } from '@/components/AuthContext'
+import { printDoc } from '@/lib/print'
+
+const ACCENT = '#0f172a'
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+
+interface Med { name: string; dose?: string; frequency?: string; started_at?: string }
+interface Vital { recorded_at: string; bp_sys?: number; bp_dia?: number; hr?: number; spo2?: number; weight?: number; glucose?: number; temp?: number }
+interface Symptom { at: string; symptoms?: string[]; pain?: number; temperature?: number; notes?: string }
+interface LabRecord { date: string; lab_name?: string; values: { name: string; value: string; unit?: string; reference?: string; status?: string }[] }
+interface ExportData { meds: Med[]; vitals: Vital[]; symptoms: Symptom[]; labs: LabRecord[]; generated_at: string }
+
+export default function ExportarSaudePage() {
+  const { user, supabase } = useAuth() as any
+  const [data, setData] = useState<ExportData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+
+  const load = useCallback(async () => {
+    if (!user) return
+    setLoading(true); setErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/health-export', { headers: { Authorization: `Bearer ${sd?.session?.access_token || ''}` } })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Erro')
+      setData(j)
+    } catch (e: any) { setErr(e.message || 'Não foi possível carregar o teu registo.') }
+    finally { setLoading(false) }
+  }, [user, supabase])
+
+  useEffect(() => { load() }, [load])
+
+  function exportPDF() {
+    if (!data) return
+    printDoc({
+      docTitle: `Registo de Saúde — ${user?.name || ''}`,
+      docSubtitle: `Gerado em ${new Date(data.generated_at).toLocaleDateString('pt-PT')} · para entregar ao médico`,
+      meta: [
+        { label: 'medicamentos', value: String(data.meds.length) },
+        { label: 'registos vitais', value: String(data.vitals.length) },
+      ],
+      sections: [
+        {
+          heading: `Medicação atual (${data.meds.length})`,
+          records: data.meds.length ? data.meds.map(m => ({ title: m.name, meta: [m.dose, m.frequency, m.started_at ? `desde ${new Date(m.started_at).toLocaleDateString('pt-PT')}` : ''].filter(Boolean).join(' · ') })) : [{ title: 'Nenhum medicamento registado' }],
+        },
+        {
+          heading: `Sinais vitais — últimos 12 meses (${data.vitals.length})`,
+          records: data.vitals.length ? data.vitals.map(v => ({
+            title: new Date(v.recorded_at).toLocaleDateString('pt-PT'),
+            meta: [
+              v.bp_sys != null ? `TA ${v.bp_sys}/${v.bp_dia ?? '—'}` : '',
+              v.hr != null ? `FC ${v.hr}bpm` : '',
+              v.spo2 != null ? `SpO₂ ${v.spo2}%` : '',
+              v.weight != null ? `${v.weight}kg` : '',
+              v.glucose != null ? `Glicemia ${v.glucose}mg/dL` : '',
+              v.temp != null ? `${v.temp}°C` : '',
+            ].filter(Boolean).join(' · '),
+          })) : [{ title: 'Nenhum registo' }],
+        },
+        {
+          heading: `Sintomas — últimos 12 meses (${data.symptoms.length})`,
+          records: data.symptoms.length ? data.symptoms.map(s => ({
+            title: new Date(s.at).toLocaleDateString('pt-PT'),
+            meta: [s.symptoms?.join(', '), s.pain != null ? `dor ${s.pain}/10` : '', s.temperature != null ? `${s.temperature}°C` : ''].filter(Boolean).join(' · '),
+            body: s.notes || undefined,
+          })) : [{ title: 'Nenhum registo' }],
+        },
+        {
+          heading: `Análises (${data.labs.length} relatório${data.labs.length === 1 ? '' : 's'})`,
+          records: data.labs.length ? data.labs.map(l => ({
+            title: `${new Date(l.date).toLocaleDateString('pt-PT')}${l.lab_name ? ` · ${l.lab_name}` : ''}`,
+            bullets: (l.values || []).map(v => `${v.name}: ${v.value}${v.unit ? ' ' + v.unit : ''}${v.status && v.status !== 'NORMAL' ? ` (${v.status})` : ''}`),
+          })) : [{ title: 'Nenhuma análise guardada' }],
+        },
+      ],
+      footerNote: 'Gerado pelo utilizador a partir dos seus próprios dados no Phlox. Documento informativo — não substitui o processo clínico oficial.',
+    })
+  }
+
+  if (!user) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Link href="/login" style={{ color: ACCENT, fontWeight: 700 }}>Iniciar sessão →</Link>
+    </div>
+  )
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ background: ACCENT, padding: '26px 24px 22px' }}>
+        <div className="page-container">
+          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Pro</div>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Exportar o meu registo de saúde</h1>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', margin: '6px 0 0', maxWidth: 560, lineHeight: 1.5 }}>O histórico completo — medicação, vitais, sintomas e análises — num único PDF para levar a qualquer médico.</p>
+        </div>
+      </div>
+
+      <div className="page-container page-body" style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {loading && <div className="skeleton" style={{ height: 160, borderRadius: 12 }} />}
+        {err && <div style={{ ...card, background: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', fontSize: 13 }}>{err}</div>}
+
+        {data && !loading && (
+          <>
+            <div style={card}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, textAlign: 'center' }}>
+                {[
+                  { label: 'Medicamentos', v: data.meds.length },
+                  { label: 'Registos vitais', v: data.vitals.length },
+                  { label: 'Sintomas', v: data.symptoms.length },
+                  { label: 'Análises', v: data.labs.length },
+                ].map(s => (
+                  <div key={s.label}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: ACCENT, fontFamily: 'var(--font-mono)' }}>{s.v}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={exportPDF} style={{ padding: '13px 24px', background: ACCENT, color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              📄 Gerar PDF completo
+            </button>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center' }}>Últimos 12 meses de vitais/sintomas · últimos 20 relatórios de análises · toda a medicação atual.</div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

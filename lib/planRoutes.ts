@@ -35,6 +35,7 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/minha-condicao', min: 'pro', tool: 'Painel da Minha Condição', note: 'Medicação, vitais e sintomas à volta da tua doença crónica, num só ecrã.' },
   { prefix: '/plano-recuperacao', min: 'pro', tool: 'Plano de Recuperação', note: 'Marcos de recuperação contextualizados à tua medicação e ao teu evento de saúde.' },
   { prefix: '/revisao-medicacao', min: 'pro', tool: 'Revisão da Minha Medicação', note: 'O motor de regras clínicas (Decision Engine) explicado em linguagem leiga.' },
+  { prefix: '/exportar-saude', min: 'pro', tool: 'Exportar o Meu Registo de Saúde', note: 'Medicação, vitais, sintomas e análises num PDF completo para o médico.' },
   // NOTA: /relatorio NÃO está aqui de propósito — deixou de ser uma página só
   // Pro (absorveu /brief e /medico-bolso, grátis). O separador "Relatório
   // Semanal" gate-a a si próprio com <PlanGate> dentro da página.

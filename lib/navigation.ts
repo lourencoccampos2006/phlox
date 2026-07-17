@@ -52,6 +52,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/minha-condicao', icon: '🩺', label: 'Painel da minha condição', desc: 'Medicação, vitais, sintomas e risco à volta da tua doença crónica', badge: 'Pro' },
       { href: '/plano-recuperacao', icon: '🏥', label: 'Plano de recuperação', desc: 'Marcos realistas para o teu evento de saúde', badge: 'Pro' },
       { href: '/revisao-medicacao', icon: '🔍', label: 'Revisão da minha medicação', desc: 'O motor de regras clínicas explicado em linguagem simples', badge: 'Pro' },
+      { href: '/exportar-saude', icon: '📄', label: 'Exportar o meu registo de saúde', desc: 'Medicação, vitais, sintomas e análises num PDF para o médico', badge: 'Pro' },
       { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
     ],
   },
