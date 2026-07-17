@@ -147,9 +147,11 @@ export default function PlanoPesoPage() {
               <div style={{ fontSize: 15, fontWeight: 700, color: '#0f766e', marginBottom: 6 }}>{plan.summary}</div>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: '#134e4a' }}>
                 <span>🎯 {plan.weekly_calorie_target} kcal/dia</span>
-                <span>🍗 {plan.macro_split.protein_g}g proteína</span>
-                <span>🍞 {plan.macro_split.carbs_g}g hidratos</span>
-                <span>🥑 {plan.macro_split.fat_g}g gordura</span>
+                {plan.macro_split && <>
+                  <span>🍗 {plan.macro_split.protein_g}g proteína</span>
+                  <span>🍞 {plan.macro_split.carbs_g}g hidratos</span>
+                  <span>🥑 {plan.macro_split.fat_g}g gordura</span>
+                </>}
               </div>
             </div>
 
@@ -167,41 +169,47 @@ export default function PlanoPesoPage() {
               </div>
             )}
 
-            <div style={card}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>🍽 Plano alimentar</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-                {plan.meal_plan.map((m, i) => (
-                  <div key={i} style={{ padding: '10px 12px', background: 'var(--bg-2)', borderRadius: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.meal}</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 3 }}>{m.suggestion}</div>
-                    {m.note && <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, fontStyle: 'italic' }}>{m.note}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={card}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>🏃 Plano de exercício</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {plan.exercise_plan.map((e, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '8px 0', borderBottom: i < plan.exercise_plan.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', width: 70, flexShrink: 0 }}>{e.day}</span>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>{e.activity}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink-4)', marginLeft: 8 }}>({e.intensity})</span>
-                      {e.caution && <div style={{ fontSize: 11.5, color: '#b45309', marginTop: 2 }}>⚠ {e.caution}</div>}
+            {plan.meal_plan?.length > 0 && (
+              <div style={card}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>🍽 Plano alimentar</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                  {plan.meal_plan.map((m, i) => (
+                    <div key={i} style={{ padding: '10px 12px', background: 'var(--bg-2)', borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.meal}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 3 }}>{m.suggestion}</div>
+                      {m.note && <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, fontStyle: 'italic' }}>{m.note}</div>}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div style={card}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>🗓 Marcos semanais</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {plan.weekly_milestones.map((m, i) => <div key={i} style={{ fontSize: 13, color: 'var(--ink-2)' }}>• {m}</div>)}
+            {plan.exercise_plan?.length > 0 && (
+              <div style={card}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>🏃 Plano de exercício</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {plan.exercise_plan.map((e, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '8px 0', borderBottom: i < plan.exercise_plan.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', width: 70, flexShrink: 0 }}>{e.day}</span>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>{e.activity}</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink-4)', marginLeft: 8 }}>({e.intensity})</span>
+                        {e.caution && <div style={{ fontSize: 11.5, color: '#b45309', marginTop: 2 }}>⚠ {e.caution}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {plan.weekly_milestones?.length > 0 && (
+              <div style={card}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>🗓 Marcos semanais</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {plan.weekly_milestones.map((m, i) => <div key={i} style={{ fontSize: 13, color: 'var(--ink-2)' }}>• {m}</div>)}
+                </div>
+              </div>
+            )}
 
             {plan.red_flags?.length > 0 && (
               <div style={{ ...card, background: '#fef2f2', borderColor: '#fca5a5' }}>

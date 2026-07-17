@@ -3,17 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { makeMBReference, validPhonePT } from '@/lib/payments'
+import { authClient } from '@/lib/orgAuth'
 
 // Inicia um pagamento para uma venda. Conforme o provedor configurado:
 //   • mb_referencia → gera Entidade+Referência+Montante (algoritmo 991), localmente
 //   • mbway / sibs / easypay → cria pedido via gateway (precisa de api_key)
 //   • manual → apenas marca o método
 // Atualiza pay_provider/pay_ref/pay_entity/pay_status na venda. Server-side (chaves).
-
-function authClient(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)

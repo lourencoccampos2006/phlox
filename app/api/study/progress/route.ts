@@ -8,17 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
+import { sb } from '@/lib/orgAuth'
 
 const MAX_EVENTS = 400
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
 
 // Trata "tabela/coluna em falta" (sprint96 não corrido) como precisa-migração — cobre as
 // mensagens do Postgres ("does not exist") e do PostgREST ("Could not find the table ...").

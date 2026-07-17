@@ -5,14 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
-
-function makeSupabase(token: string) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { makeSupabase } from '@/lib/orgAuth'
 
 function extractToken(req: NextRequest): string | null {
   const auth = req.headers.get('authorization')

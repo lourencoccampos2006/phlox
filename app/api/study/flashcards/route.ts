@@ -4,10 +4,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { QUIZ_RULES_PT } from '@/lib/quizQuality'
+import { getUserPlan } from '@/lib/planGate'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 const cache = new Map<string, any>()
 
 export async function POST(request: NextRequest) {
+  // ACHADO DE SEGURANÇA 2026-07-17: esta rota não tinha autenticação NEM rate
+  // limit — qualquer pessoa, sem sessão, podia gerar flashcards à vontade
+  // (cache por string literal, trivial de contornar variando o input), a
+  // esgotar o orçamento de IA sem nenhum controlo. Mesmo padrão de todas as
+  // rotas irmãs (ex: /api/study/exam-generator).
+  if (!checkRateLimit(getIP(request), 15, 60_000).allowed) return rateLimitResponse()
+  const { userId } = await getUserPlan(request)
+  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
   try {
     const { drugClass, domain } = await request.json()
     if (!drugClass) return NextResponse.json({ error: 'Tópico obrigatório' }, { status: 400 })

@@ -113,9 +113,9 @@ function NoMeds() {
       <div style={{ fontSize: 40, marginBottom: 16 }}>💊</div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 12 }}>Sem medicamentos no perfil</h2>
       <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>
-        Adiciona os teus medicamentos no dashboard para gerar a revisão clínica.
+        Adiciona os teus medicamentos para gerar a revisão clínica.
       </p>
-      <Link href="/dashboard?tab=meds" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
+      <Link href="/mymeds" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
         Adicionar medicamentos →
       </Link>
     </div>
@@ -374,7 +374,7 @@ export function MedReviewTool() {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     {meds.length} medicamentos
                   </div>
-                  <Link href="/dashboard?tab=meds" style={{ fontSize: 11, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Editar →</Link>
+                  <Link href="/mymeds" style={{ fontSize: 11, color: 'var(--green-2)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Editar →</Link>
                 </div>
                 {meds.map((med, i) => (
                   <div key={med.id} style={{ padding: '10px 16px', borderBottom: i < meds.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

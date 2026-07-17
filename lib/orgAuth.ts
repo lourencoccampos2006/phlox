@@ -6,6 +6,15 @@
 // inteiramente da RLS (que já teve uma fuga real, ver sprint109). Isto dá
 // uma segunda camada de defesa com uma resposta 403 limpa em vez de um erro
 // bruto do Postgres.
+//
+// MELHORIAS 2026-07-17 (item A5 da auditoria): `authedClient` (e os aliases
+// abaixo) passaram a ser o ÚNICO sítio com esta lógica em todo o site — o
+// mesmo cliente "Supabase com o token Bearer do pedido" estava duplicado,
+// quase byte-a-byte, em ~65 rotas fora do âmbito de organizações, sob nomes
+// diferentes (sb/authClient/makeSupabase+getToken). Os aliases têm esses
+// nomes de propósito, para os sites de chamada não precisarem de mudar,
+// só o import — apesar do nome do ficheiro, este helper não é específico
+// de organizações.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
@@ -19,6 +28,26 @@ export function authedClient(req: NextRequest): SupabaseClient {
     { global: { headers: { Authorization: `Bearer ${token}` } } }
   )
 }
+
+/** Extrai só o token Bearer (para rotas que também o reencaminham para outro fetch). */
+export function getToken(req: NextRequest): string | null {
+  const h = req.headers.get('authorization')
+  return h?.startsWith('Bearer ') ? h.slice(7) : null
+}
+
+/** Mesmo cliente que `authedClient`, mas a partir de um token já extraído. */
+export function makeSupabase(token: string): SupabaseClient {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+}
+
+// Aliases — nomes que já existiam duplicados por rota, agora todos apontando
+// para a mesma implementação única acima.
+export const sb = authedClient
+export const authClient = authedClient
 
 /**
  * Confirma que `userId` tem um dos `roles` na organização `orgId` (membro

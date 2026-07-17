@@ -7,15 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb } from '@/lib/orgAuth'
 
 const NO_TABLE = (m: string) => /relation .*quiz_feedback.* does not exist/i.test(m)
 const VALID_SOURCES = ['arena', 'cases', 'exam', 'flashcards', 'decisao', 'other'] as const

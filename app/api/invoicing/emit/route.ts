@@ -3,15 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { toMoloni, toInvoiceXpress, toVendus, type SaleRecord } from '@/lib/posExport'
+import { authClient } from '@/lib/orgAuth'
 
 // Emissão de documento no software de faturação certificado do cliente (opcional).
 // O Phlox não é certificado — delega a emissão fiscal no provedor configurado.
 // Lê a chave de API a partir de invoice_settings (server-side; nunca exposta ao cliente).
-
-function authClient(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)

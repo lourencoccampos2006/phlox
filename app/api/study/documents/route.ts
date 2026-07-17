@@ -9,15 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { aiComplete } from '@/lib/ai'
 import { getUserPlan, planGateResponse, isPlanSufficient } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb } from '@/lib/orgAuth'
 
 // Parte texto em chunks de ~900 chars respeitando parágrafos.
 function chunkText(text: string, size = 900): string[] {

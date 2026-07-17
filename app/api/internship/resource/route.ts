@@ -4,15 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb } from '@/lib/orgAuth'
 
 const TABLES = new Set([
   'internship_patients','patient_followups','internship_log_entries',

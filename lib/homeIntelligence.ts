@@ -86,14 +86,14 @@ export function pickFocus(mode: string, d: HomeData): FocusCard {
   if (mode === 'student') {
     // 1) Cartões de repetição espaçada a rever HOJE = o mais alto valor de estudo.
     if (d.cardsDue && d.cardsDue > 0) {
-      return { id: 's-due', kind: 'today', title: d.cardsDue === 1 ? '1 cartão para rever hoje' : `${d.cardsDue} cartões para rever hoje`, sub: 'A repetição espaçada fixa o que estudou. Comece por aqui.', href: '/study360?tab=review', cta: 'Rever agora', icon: 'cards' }
+      return { id: 's-due', kind: 'today', title: d.cardsDue === 1 ? '1 cartão para rever hoje' : `${d.cardsDue} cartões para rever hoje`, sub: 'A repetição espaçada fixa o que estudou. Comece por aqui.', href: '/study/notas', cta: 'Rever agora', icon: 'cards' }
     }
     // 2) Reforçar a área mais fraca (agora alimentada por TODA a prática).
     if (d.weakArea) return { id: 's-weak', kind: 'today', title: `Reforce ${d.weakArea}`, sub: 'É onde está a falhar mais. 5 minutos chegam.', href: `/study?mode=quiz&area=${encodeURIComponent(d.weakArea)}`, cta: 'Praticar agora', icon: 'target' }
     // 3) Fechar a meta diária.
     if ((d.studyXpToday || 0) < (d.studyGoal || 50)) return { id: 's-goal', kind: 'today', title: 'Falta pouco para a meta de hoje', sub: 'Um caso na Arena e está feito.', href: '/arena', cta: 'Continuar', icon: 'trophy' }
     // 4) Manter o ritmo.
-    return { id: 's-keep', kind: 'suggest', title: 'Mantenha o ritmo', sub: 'Reveja os flashcards de hoje.', href: '/study360?tab=review', cta: 'Rever', icon: 'cards' }
+    return { id: 's-keep', kind: 'suggest', title: 'Mantenha o ritmo', sub: 'Reveja os flashcards de hoje.', href: '/study/notas', cta: 'Rever', icon: 'cards' }
   }
 
   // CUIDADOR — um familiar a precisar de atenção vem ANTES da própria medicação.

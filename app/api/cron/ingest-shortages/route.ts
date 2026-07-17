@@ -57,8 +57,18 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error('ingest-shortages error:', err)
     try {
+      // NÃO tocar em last_synced_at aqui — esse campo é "quando a lista foi
+      // atualizada com sucesso pela última vez"; sobrescrevê-lo com a hora
+      // atual mesmo numa falha faria a UI mostrar a lista como fresca quando
+      // pode estar vazia ou parcialmente inserida. Só o status/erro mudam.
+      const { data: prev } = await db.from('infarmed_shortage_sync').select('last_synced_at, source_document, row_count').eq('id', 1).maybeSingle()
       await db.from('infarmed_shortage_sync').upsert({
-        id: 1, last_synced_at: new Date().toISOString(), status: 'error', error_detail: String(err?.message || err).slice(0, 500),
+        id: 1,
+        last_synced_at: prev?.last_synced_at ?? null,
+        source_document: prev?.source_document ?? null,
+        row_count: prev?.row_count ?? null,
+        status: 'error',
+        error_detail: String(err?.message || err).slice(0, 500),
       })
     } catch { /* melhor esforço — não deixar o erro de log esconder o erro real */ }
     return NextResponse.json({ error: String(err?.message || err) }, { status: 500 })

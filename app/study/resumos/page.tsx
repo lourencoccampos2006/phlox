@@ -172,7 +172,10 @@ export default function ResumosPage() {
 
 function MarkdownLike({ text }: { text: string }) {
   // Renderer simples para o markdown leve dos resumos
-  const html = text
+  // SEGURANÇA: escapar HTML antes das transformações markdown (texto vem de IA
+  // e pode ecoar conteúdo livre do utilizador) — evita XSS via dangerouslySetInnerHTML.
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const html = escaped
     .replace(/^## (.+)$/gm, '<h3 style="font-size:16px; font-weight:700; margin:18px 0 8px; color:#111827">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')

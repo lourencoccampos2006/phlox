@@ -11,15 +11,7 @@ import { getUserPlan } from '@/lib/planGate'
 import { computeSelfRiskScore } from '@/lib/healthAlerts'
 import { analyzeFamilyMember } from '@/lib/caregiverWatch'
 import type { RiskResult } from '@/lib/riskIndex'
-
-function makeSupabase(token: string) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
-function getToken(req: NextRequest): string | null {
-  const h = req.headers.get('authorization')
-  return h?.startsWith('Bearer ') ? h.slice(7) : null
-}
+import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 export async function GET(req: NextRequest) {
   try {

@@ -6,15 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb } from '@/lib/orgAuth'
 
 const NO_TABLE = (m: string) => /relation .*study_plans.* does not exist/i.test(m)
 

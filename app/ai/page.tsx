@@ -539,12 +539,12 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
       const hasMeds = patientCtx.meds.length > 0
       greeting = hasMeds
         ? `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nVejo que tens **${patientCtx.meds.length} medicamento${patientCtx.meds.length !== 1 ? 's' : ''}** registado${patientCtx.meds.length !== 1 ? 's' : ''}: ${patientCtx.meds.slice(0, 3).map(m => m.name).join(', ')}${patientCtx.meds.length > 3 ? ` e mais ${patientCtx.meds.length - 3}` : ''}.\n\nPosso ajudar-te a verificar interações, esclarecer dúvidas farmacológicas, ou analisar a tua medicação completa. O que precisas?`
-        : `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nAinda não tens medicamentos registados no teu perfil. Podes adicioná-los no [Dashboard](/dashboard?tab=meds) para que eu possa analisar a tua medicação completa.\n\nMas podes também fazer-me perguntas directamente — sobre qualquer medicamento, interação, ou dúvida clínica.`
+        : `Olá${user?.name ? `, ${user.name.split(' ')[0]}` : ''}! Sou o teu farmacologista clínico da Phlox.\n\nAinda não tens medicamentos registados no teu perfil. Podes adicioná-los em [Os meus medicamentos](/mymeds) para que eu possa analisar a tua medicação completa.\n\nMas podes também fazer-me perguntas directamente — sobre qualquer medicamento, interação, ou dúvida clínica.`
       sources = hasMeds ? ['Perfil do utilizador'] : undefined
       actions = hasMeds ? [
         { label: 'Analisar toda a minha medicação', prompt: `Analisa todos os meus medicamentos (${patientCtx.meds.map(m => m.name).join(', ')}) e diz-me se há interações, redundâncias ou problemas que devo saber.` },
       ] : [
-        { label: 'Adicionar medicamentos', href: '/dashboard?tab=meds' },
+        { label: 'Adicionar medicamentos', href: '/mymeds' },
       ]
     }
 
@@ -719,7 +719,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                     Ver perfil
                   </Link>
                 ) : (
-                  <Link href="/dashboard?tab=meds"
+                  <Link href="/mymeds"
                     style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#0d6e42', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
                     Editar medicação
                   </Link>

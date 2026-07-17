@@ -8,15 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { normalizeDrugName } from '@/lib/shortageIngest'
-
-function makeSupabase(token: string) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
-function getToken(req: NextRequest): string | null {
-  const h = req.headers.get('authorization')
-  return h?.startsWith('Bearer ') ? h.slice(7) : null
-}
+import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 interface MatchResult {
   medication: string
@@ -34,6 +26,17 @@ export async function GET(req: NextRequest) {
   const supabase = makeSupabase(token)
 
   const profileId = req.nextUrl.searchParams.get('profile_id')
+
+  // Confirma que o perfil pertence mesmo a este utilizador ANTES de ler a
+  // medicação dele — o RLS de family_profile_meds (auth.uid() = user_id) já
+  // bloqueava um profile_id alheio na prática, mas não depender só disso
+  // (defesa em profundidade) e devolver um 404 claro em vez de um resultado
+  // vazio sem explicação, tal como /api/risk-index e /api/crisis-playbook já
+  // fazem.
+  if (profileId) {
+    const { data: owned } = await supabase.from('family_profiles').select('id').eq('id', profileId).eq('user_id', userId).maybeSingle()
+    if (!owned) return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
+  }
 
   const [{ data: meds }, { data: shortageList }, { data: sync }] = await Promise.all([
     profileId

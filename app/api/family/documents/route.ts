@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { callGeminiVisionJSON, aiJSON } from '@/lib/ai'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 export const maxDuration = 45
 
@@ -35,6 +36,7 @@ Responde APENAS JSON:
 NUNCA dês diagnóstico definitivo — orienta para o médico quando apropriado.`
 
 export async function POST(req: NextRequest) {
+  if (!checkRateLimit(getIP(req), 10, 60_000).allowed) return rateLimitResponse()
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const supabase = db(req)
@@ -83,6 +85,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!checkRateLimit(getIP(req), 15, 60_000).allowed) return rateLimitResponse()
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const supabase = db(req)

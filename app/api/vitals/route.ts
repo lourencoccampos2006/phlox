@@ -3,15 +3,7 @@ import { getUserPlan } from '@/lib/planGate'
 import { aiJSON } from '@/lib/ai'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { createClient } from '@supabase/supabase-js'
-
-function makeSupabase(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb as makeSupabase } from '@/lib/orgAuth'
 
 interface Vital {
   id: string; user_id: string; recorded_at: string
@@ -35,10 +27,20 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '90'), 200)
   const profileId = url.searchParams.get('profile_id')
 
+  if (profileId) {
+    // ACHADO DE SEGURANÇA 2026-07-17: o comentário antigo dizia "verify
+    // ownership via join" mas isso nunca foi implementado — só o RLS
+    // (auth.uid() = user_id em cada linha de vitals) impedia mesmo um
+    // profile_id alheio de vazar dados. Correto na prática hoje, mas não
+    // depender só disso: se o RLS de vitals alguma vez mudar (ex: perfis
+    // partilhados entre cuidadores), isto reabriria um IDOR silenciosamente.
+    const { data: owned } = await supabase.from('family_profiles').select('id').eq('id', profileId).eq('user_id', userId).maybeSingle()
+    if (!owned) return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
+  }
+
   let query = supabase.from('vitals').select('*').order('recorded_at', { ascending: false }).limit(limit)
 
   if (profileId) {
-    // Family profile vitals — verify ownership via join
     query = query.eq('profile_id', profileId)
   } else {
     query = query.eq('user_id', userId).is('profile_id', null)

@@ -249,7 +249,10 @@ function KPI({ label, v, color }: { label: string; v: number; color: string }) {
   </div>
 }
 function MarkdownLite({ text }: { text: string }) {
-  const html = text
+  // SEGURANÇA: o texto (gerado por IA) pode conter dados livres do utilizador —
+  // escapar HTML antes de aplicar as transformações markdown, para não abrir XSS.
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const html = escaped
     .replace(/^### (.+)$/gm, '<h4 style="font-size:14px;font-weight:700;margin:12px 0 4px">$1</h4>')
     .replace(/^## (.+)$/gm, `<h3 style="font-size:16px;font-weight:700;margin:16px 0 6px;color:${ACCENT}">$1</h3>`)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')

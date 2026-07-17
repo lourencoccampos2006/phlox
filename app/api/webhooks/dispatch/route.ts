@@ -4,15 +4,11 @@ import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { signPayload } from '@/lib/webhooks'
 import { recordAudit } from '@/lib/auditServer'
+import { authClient } from '@/lib/orgAuth'
 
 // Dispara um evento para os webhooks do utilizador subscritos a esse evento.
 // Assina com HMAC-SHA256 (X-Phlox-Signature). Regista cada entrega.
 // `test: true` + `endpointId` → envia um ping a um único endpoint.
-
-function authClient(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)

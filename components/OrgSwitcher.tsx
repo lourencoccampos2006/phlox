@@ -99,14 +99,15 @@ export default function OrgSwitcher({ compact = false }: { compact?: boolean }) 
               </button>
             )
           })}
-          <div style={{ padding: '8px 12px', background: '#f8fafc', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {/* BUG CORRIGIDO 2026-07-17: havia um 2º botão "Gerir" para
+              /settings?tab=organizacoes — esse separador foi removido de
+              app/settings/page.tsx (a gestão de organização passou a viver
+              só em /organizacao), por isso caía sempre no separador Perfil
+              em silêncio. Removido; "Abrir hub" já cobre a gestão. */}
+          <div style={{ padding: '8px 12px', background: '#f8fafc' }}>
             <Link href="/organizacao" onClick={() => setOpen(false)}
-              style={{ textAlign: 'center', padding: '8px', background: '#0d6e42', color: 'white', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+              style={{ display: 'block', textAlign: 'center', padding: '8px', background: '#0d6e42', color: 'white', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
               🏥 Abrir hub
-            </Link>
-            <Link href="/settings?tab=organizacoes" onClick={() => setOpen(false)}
-              style={{ textAlign: 'center', padding: '8px', background: 'white', color: '#475569', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-              Gerir
             </Link>
           </div>
         </div>

@@ -12,11 +12,15 @@ import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
   if (!checkRateLimit(ip, 5, 60_000).allowed) return rateLimitResponse()
-  const { plan } = await getUserPlan(req)
+  const { userId, plan } = await getUserPlan(req)
+  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('pro', 'Plano de Perda de Peso')
 
   const body = await req.json().catch(() => null)
   const { medications, conditions, age, sex, current_weight, target_note, weight_trend } = body || {}
+  if (!medications?.trim() && !conditions?.trim()) {
+    return NextResponse.json({ error: 'Indica pelo menos a medicação ou as condições — o plano tem de ser sobre ti.' }, { status: 400 })
+  }
 
   const result = await aiJSON<any>([
     {

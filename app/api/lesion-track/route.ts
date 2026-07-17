@@ -2,20 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 // Rastreio Visual — Pro. Cada foto de uma "track" (lesão/mancha que a pessoa
 // decide vigiar) é pontuada por IA de visão nos critérios ABCDE via
 // /api/vision (mode: 'skin_lesion'), com o contexto da foto anterior da MESMA
 // track para a IA avaliar EVOLUÇÃO real, não só uma foto isolada.
-
-function makeSupabase(token: string) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
-function getToken(req: NextRequest): string | null {
-  const h = req.headers.get('authorization')
-  return h?.startsWith('Bearer ') ? h.slice(7) : null
-}
 
 export async function GET(req: NextRequest) {
   const { userId } = await getUserPlan(req)

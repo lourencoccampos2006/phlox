@@ -64,7 +64,12 @@ function trendToAlert(t: TrendSignal): HealthAlert | null {
 /** Achados clínicos (Decision Engine) da pessoa, a partir dos mesmos dados usados nos alertas. */
 function gatherFindings(input: AlertInput): Finding[] {
   const medNames = (input.meds || []).map(m => m.name).filter(Boolean)
-  if (medNames.length < 2) return []
+  // BUG CORRIGIDO 2026-07-17: este guard fazia return [] com 0-1 medicamentos,
+  // saltando TODAS as regras do Decision Engine (não só as de interação entre
+  // fármacos — também as de fármaco único: renal, QTc, idade, etc.). O caminho
+  // paralelo do familiar (lib/caregiverWatch.ts analyzeFamilyMember) chama
+  // runRules() sem este guard, por isso o Índice de Risco pessoal subestimava
+  // o risco face ao do familiar com os mesmos dados.
   try {
     return runRules({
       age: input.age ?? undefined,

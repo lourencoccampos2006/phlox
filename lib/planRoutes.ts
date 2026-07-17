@@ -22,14 +22,19 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/sso-config', min: 'clinic', tool: 'SSO Empresarial', note: 'SAML/OIDC com Microsoft Entra ID, Google Workspace e Okta.' },
 
   // ── Pro: pessoa / cuidador avançado ──
-  { prefix: '/saude360', min: 'pro', tool: 'Saúde 360°', note: 'A tua saúde toda num só sítio: adesão à medicação, análises, agenda e o que precisa de atenção.' },
+  // BUG CORRIGIDO 2026-07-17: /saude360, /familia360 e /study360 eram TODAS
+  // páginas cortadas na Ronda 13b, agora só redirects incondicionais (sem
+  // conteúdo próprio) — mas continuavam aqui como rotas Pro/Plus bloqueadas.
+  // O gate de plano corre no ClientLayout ANTES do redirect (que é só um
+  // useEffect client-side) disparar — por isso um utilizador free a abrir
+  // um link antigo para qualquer uma delas via uma paywall em vez de ser
+  // silenciosamente encaminhado para o destino gratuito real. Removidas.
   { prefix: '/plano-peso', min: 'pro', tool: 'Plano de Perda de Peso', note: 'Dieta e exercício contextualizados à tua medicação e condições reais.' },
   { prefix: '/rastreio-visual', min: 'pro', tool: 'Rastreio Visual', note: 'Pontuação de risco ABCDE por IA de visão, com evolução ao longo do tempo.' },
   { prefix: '/vigia-ruturas', min: 'pro', tool: 'Vigia de Ruturas', note: 'Cruza a tua medicação com a Lista de Notificação Prévia oficial do INFARMED.' },
   // NOTA: /relatorio NÃO está aqui de propósito — deixou de ser uma página só
   // Pro (absorveu /brief e /medico-bolso, grátis). O separador "Relatório
   // Semanal" gate-a a si próprio com <PlanGate> dentro da página.
-  { prefix: '/familia360', min: 'pro', tool: 'Família 360°', note: 'Tudo de quem cuidas num só painel: medicação, mensagens e sobrecarga do cuidador (Zarit).' },
 
   // ── Pro: ferramentas clínicas individuais ──
   { prefix: '/vigia', min: 'pro', tool: 'Vigia Clínico do Lar', note: 'Vigilância farmacológica automática de todos os residentes — interações, STOPP/Beers, polimedicação, priorizado por risco.' },
@@ -51,7 +56,6 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/study/professor', min: 'student', tool: 'Modo Professor', note: 'Ensinas o Phlox e ele descobre as tuas lacunas.' },
   { prefix: '/study/exame', min: 'student', tool: 'Gerador de exame', note: 'Prevê o teu exame a partir das tuas sebentas e corrige respostas de desenvolvimento.' },
   { prefix: '/estagio', min: 'student', tool: 'Estágio' },
-  { prefix: '/study360', min: 'student', tool: 'Estudo 360°' },
   // ── Estudo (Pro) — RAG pessoal ──
   { prefix: '/study/documentos', min: 'pro', tool: 'Os meus documentos (IA)', note: 'Carrega as tuas sebentas e pergunta — a IA responde com base no teu material.' },
 ]

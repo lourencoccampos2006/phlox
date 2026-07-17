@@ -30,7 +30,9 @@ const CHECKS: { table: string; feature: string; sql: string }[] = [
 ]
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
+  // Só cabeçalhos — nunca query string (URLs ficam em logs de servidor,
+  // proxies e histórico do browser). Ver app/api/cron/ingest-shortages.
+  const secret = req.headers.get('x-cron-secret')
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Não autorizado. Usa ?secret=O_TEU_CRON_SECRET' }, { status: 401 })
   }

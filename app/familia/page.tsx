@@ -13,6 +13,7 @@ import { analyzeFamilyMember, WATCH_LEVEL_META, type WatchResult, type WatchSign
 import LinkedResidents from '@/components/LinkedResidents'
 import RiskIndexCard from '@/components/RiskIndexCard'
 import CrisisPlaybookCard from '@/components/CrisisPlaybookCard'
+import ZaritBurdenCard from '@/components/ZaritBurdenCard'
 import Link from 'next/link'
 
 interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; height?: number | null; creatinine?: number | null; conditions?: string | null; allergies?: string | null; notes?: string | null }
@@ -299,10 +300,11 @@ export default function FamiliaPage() {
                       {p.allergies && <span style={{ color: '#dc2626' }}>⚠ {p.allergies}</span>}
                     </div>
 
-                    {/* Playbook de crise (Pro) — "o que fazer se..." específico a esta pessoa. */}
+                    {/* Playbook de crise + sobrecarga do cuidador (Pro) — específico a esta pessoa. */}
                     {(user?.plan === 'pro' || user?.plan === 'clinic') && (
-                      <div style={{ padding: '0 18px 12px' }}>
+                      <div style={{ padding: '0 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <CrisisPlaybookCard profileId={p.id} name={p.name} />
+                        <ZaritBurdenCard profileId={p.id} name={p.name} />
                       </div>
                     )}
 

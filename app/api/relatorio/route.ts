@@ -3,15 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
-
-function makeSupabase(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb as makeSupabase } from '@/lib/orgAuth'
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || 'unknown'

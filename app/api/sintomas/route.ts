@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
+import { sb as makeSupabase } from '@/lib/orgAuth'
 
 // Diário de Sintomas — registo por perfil (próprio ou familiar). Grava no perfil ativo.
-
-function makeSupabase(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  })
-}
 
 const NO_TABLE = (msg: string) =>
   /relation .*symptom_logs.* does not exist|column .*does not exist/i.test(msg) ? 503 : 500

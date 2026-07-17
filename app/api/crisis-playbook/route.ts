@@ -3,21 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
+import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 // Playbook de Crise — Pro, objetivo=cuidador. Para CADA familiar, gera (e
 // cacheia) protocolos "o que fazer se..." específicos às condições e
 // medicação REAIS da pessoa — não conselhos genéricos. Regenera só quando a
 // medicação/condições mudam (source_hash), para não gastar IA à toa nem
 // mostrar um playbook desatualizado sem se perceber.
-
-function makeSupabase(token: string) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
-function getToken(req: NextRequest): string | null {
-  const h = req.headers.get('authorization')
-  return h?.startsWith('Bearer ') ? h.slice(7) : null
-}
 
 // Hash simples e estável (não criptográfico — só para detetar mudanças).
 function simpleHash(s: string): string {

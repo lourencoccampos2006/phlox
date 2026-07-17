@@ -4,15 +4,11 @@ import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { buildFiscalDoc, type DocType } from '@/lib/fiscal'
 import { recordAudit } from '@/lib/auditServer'
+import { authClient } from '@/lib/orgAuth'
 
 // Finaliza fiscalmente uma venda: aloca nº sequencial da série (atómico),
 // encadeia o hash com o documento anterior, gera ATCUD + QR (formato AT).
 // Server-side: a numeração e a cadeia têm de ser autoritativas e não-adulteráveis.
-
-function authClient(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)

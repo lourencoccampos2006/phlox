@@ -3,15 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
+import { sb } from '@/lib/orgAuth'
 
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
 const NO_TABLE = (m: string) => /relation .*study_documents.* does not exist/i.test(m)
 
 export async function GET(req: NextRequest) {

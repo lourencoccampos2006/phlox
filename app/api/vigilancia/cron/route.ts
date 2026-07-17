@@ -31,7 +31,9 @@ function stoppFlags(p: any, meds: any[]): string[] {
 
 export async function GET(req: NextRequest) {
   const bearer = req.headers.get('authorization')?.replace('Bearer ', '')
-  const secret = bearer || req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
+  // Só cabeçalhos — nunca query string (URLs ficam em logs de servidor,
+  // proxies e histórico do browser). Ver app/api/cron/ingest-shortages.
+  const secret = bearer || req.headers.get('x-cron-secret')
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

@@ -2,20 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
-
-function makeSupabase(token: string) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
-
-function getToken(req: NextRequest): string | null {
-  const h = req.headers.get('authorization')
-  if (h?.startsWith('Bearer ')) return h.slice(7)
-  return null
-}
+import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 function makeCode() {
   // CSPRNG: o código dá acesso (read-only) à medicação do utilizador, por isso

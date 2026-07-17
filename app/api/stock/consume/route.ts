@@ -9,13 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyOrgMembers } from '@/lib/notifyTeam'
+import { sb } from '@/lib/orgAuth'
 
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  })
-}
 async function ctx(db: any) {
   const { data: { user } } = await db.auth.getUser()
   if (!user) return { error: 'Não autenticado', status: 401 as const }

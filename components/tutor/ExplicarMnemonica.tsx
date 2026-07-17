@@ -317,7 +317,7 @@ export default function ExplicarMnemonica() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 6 }}>
-                <Link href="/study360" style={{ flex: 1, textAlign: 'center', padding: 11, background: '#0d6e42', color: 'white', textDecoration: 'none', borderRadius: 9, fontSize: 13, fontWeight: 800 }}>Levar para Estudo 360° →</Link>
+                <Link href="/study/notas" style={{ flex: 1, textAlign: 'center', padding: 11, background: '#0d6e42', color: 'white', textDecoration: 'none', borderRadius: 9, fontSize: 13, fontWeight: 800 }}>Levar para revisão espaçada →</Link>
                 <Link href="/biblioteca" style={{ flex: 1, textAlign: 'center', padding: 11, background: 'white', color: '#0d6e42', textDecoration: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, border: '1.5px solid #bbf7d0' }}>Procurar nos meus PDFs</Link>
               </div>
             </div>

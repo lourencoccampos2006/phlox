@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { QUIZ_RULES_PT, inspectQuestion } from '@/lib/quizQuality'
+import { getUserPlan } from '@/lib/planGate'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 interface ExamQuestion {
   question: string
@@ -21,6 +23,12 @@ interface ExamQuestion {
 const cache = new Map<string, any>()
 
 export async function POST(request: NextRequest) {
+  // ACHADO DE SEGURANÇA 2026-07-17: mesma falha da rota irmã /api/study/flashcards
+  // — sem autenticação nem rate limit, explorável para gastar orçamento de IA.
+  if (!checkRateLimit(getIP(request), 15, 60_000).allowed) return rateLimitResponse()
+  const { userId } = await getUserPlan(request)
+  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
   try {
     const { drugClass, domain } = await request.json()
     if (!drugClass) return NextResponse.json({ error: 'Tópico obrigatório' }, { status: 400 })

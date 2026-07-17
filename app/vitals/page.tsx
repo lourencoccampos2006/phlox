@@ -112,6 +112,7 @@ export default function VitalsPage() {
   const [showForm, setShowForm] = useState(false)
   const [analysis, setAnalysis] = useState<TrendAnalysis|null>(null)
   const [analysing, setAnalysing] = useState(false)
+  const [analysisErr, setAnalysisErr] = useState('')
   const [meds, setMeds] = useState<string[]>([])
   const [expandWeight, setExpandWeight] = useState(false)
 
@@ -206,16 +207,26 @@ export default function VitalsPage() {
 
   const analyse = async () => {
     if (vitals.length < 2) return
-    setAnalysing(true); setAnalysis(null)
-    const { data: sd } = await supabase.auth.getSession()
-    const res = await fetch('/api/vitals', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
-      body: JSON.stringify({ vitals: vitals.slice(0, 30), medications: meds }),
-    })
-    const data = await res.json()
-    setAnalysis(data)
-    setAnalysing(false)
+    setAnalysing(true); setAnalysis(null); setAnalysisErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/vitals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sd.session?.access_token}` },
+        body: JSON.stringify({ vitals: vitals.slice(0, 30), medications: meds }),
+      })
+      const data = await res.json()
+      // BUG CORRIGIDO 2026-07-17: em erro (429 rate-limit, 401, 500) a API
+      // devolve {error: msg} sem "alerts" — sem este check, analysis?.alerts
+      // é undefined (analysis?. só protege null, não as suas propriedades) e
+      // .filter() rebenta a página inteira ao renderizar.
+      if (!res.ok || !Array.isArray(data?.alerts)) { setAnalysisErr(data?.error || 'Não foi possível analisar agora.'); return }
+      setAnalysis(data)
+    } catch (e: any) {
+      setAnalysisErr(e?.message || 'Erro de ligação.')
+    } finally {
+      setAnalysing(false)
+    }
   }
 
   // Build sparkline data per field
@@ -284,6 +295,10 @@ export default function VitalsPage() {
       </div>
 
       <div className="page-container page-body">
+
+        {analysisErr && (
+          <div style={{ padding:'12px 16px', background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:10, marginBottom:16, fontSize:13, color:'#991b1b' }}>{analysisErr}</div>
+        )}
 
         {/* ─── AI Analysis ─── */}
         {analysis && (

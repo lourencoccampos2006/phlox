@@ -508,3 +508,203 @@ browser. Só cabeçalhos (`Authorization: Bearer` ou `x-cron-secret`) daqui para
 
 Verificado: `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`, `check-nav.mjs`, `npm run build` —
 0 erros. Pipeline de ingestão testado à parte contra o site real do INFARMED (não só compilado).
+
+### Pendentes acima — CONFIRMADO já resolvidos (2026-07-16/17)
+Verifiquei diretamente (REST API Supabase com a chave anon + `curl` real, sem pedir para correres nada):
+`sprint101`/`sprint102`/`sprint103` já estão aplicados em produção (tabelas existem, RLS bloqueia leitura
+anon como esperado), o bucket `skin-lesions` existe no Storage, e correu a ingestão real do
+`/api/cron/ingest-shortages` contra produção — 40 medicamentos inseridos com sucesso. `CRON_SECRET` já
+estava definido e coincide com o valor local. Nada disto ficou pendente do teu lado.
+
+---
+
+## 9. Auditoria de segurança + caça a bugs site-wide (2026-07-17)
+
+Pedido: "verifica se está tudo seguro, depois se não há bugs, e só no fim sugere 20 melhorias." Ordem
+seguida à letra — nada da secção 10 foi escrito antes de fechar tudo aqui. Metodologia: revisão direta
+minha do código construído nos últimos dias (Ronda 3 + fix Stripe + Vigia de Ruturas) + 2 agentes em
+paralelo (auditoria de segurança site-wide, caça a bugs site-wide), cada um instruído a citar `ficheiro:
+linha` exato e a não misturar suspeita com confirmado. Tudo o que segue foi corrigido e re-verificado
+(`tsc`, `check-links`, `check-vocab`, `check-nav`, `npm run build` — 0 erros no fim de tudo).
+
+### Segurança
+
+- ✅ **IDOR em `/api/shortage-watch`** — consultava `family_profile_meds` por um `profile_id` vindo do
+  cliente sem confirmar que pertence ao utilizador autenticado (as rotas irmãs `risk-index` e
+  `crisis-playbook`, construídas na mesma ronda, já tinham este check). Não era explorável na prática
+  (a RLS de `family_profile_meds` já bloqueia por `user_id` da própria linha), mas corrigido por defesa
+  em profundidade — mesmo padrão das outras duas rotas.
+- ✅ **`/api/vitals` (GET)** — o comentário dizia "verificar posse via join" mas esse código não existia;
+  só a RLS impedia exploração. Adicionado o check explícito (mesmo padrão de `family_profiles.eq('id',
+  profileId).eq('user_id', userId)`).
+- ✅ **Fuga do segredo de cron por query string em 3 rotas pré-existentes** — `/api/vigilancia/cron`,
+  `/api/health-check`, `/api/push/cron` aceitavam `CRON_SECRET` também por `?secret=...` (o mesmo padrão
+  que eu próprio tinha copiado por engano na rota nova do Vigia de Ruturas, e já corrigido lá — ver
+  secção 8). Segredos em URLs ficam em logs de servidor/proxy/histórico do browser. Removido o fallback
+  nas 3, mantendo só `Authorization: Bearer` / `x-cron-secret`.
+- ✅ **`/api/weight-plan`** — sem check explícito de `userId` (inofensivo na prática, pedido sem sessão
+  já falhava o gate Pro) e sem validação de input — um pedido com corpo vazio gastava uma chamada de IA
+  real para gerar um plano sem sentido. Adicionados os dois.
+- ✅ **5 componentes com `dangerouslySetInnerHTML` sem escapar HTML** (`app/vigia/page.tsx:251`,
+  `app/study/resumos/page.tsx:173`, `app/study/notas/page.tsx:581`, `app/study/biblioteca/page.tsx:174`,
+  `app/estagio/[id]/page.tsx:868`) — todos convertem markdown-lite gerado por IA para HTML por
+  substituições de string, sem escapar primeiro os caracteres HTML do texto original. Como o texto pode
+  ecoar conteúdo livre do utilizador (sintomas, notas, perguntas) dentro da resposta da IA, um `<script>`
+  ou atributo malicioso nesse texto passava direto para o DOM. Em `app/study/notas/page.tsx` era mais
+  grave ainda — o link `[[nota]]` insere o texto capturado dentro de um atributo `data-link="…"` sem
+  escapar aspas, permitindo escapar do atributo e injetar novos atributos/handlers. Corrigido nos 5:
+  escapar `&`/`</>`/`"` no texto ANTES de aplicar as transformações markdown (mesmo padrão do `esc()` já
+  usado em `lib/print.ts`/`lib/saft.ts`/`CarePlan.tsx`).
+- ✅ **2 páginas API sem rate limit** (`app/api/study/flashcards/route.ts`, `app/api/study/quiz/route.ts`)
+  — geram conteúdo por IA sem qualquer limite por IP, ao contrário do padrão já estabelecido noutras
+  rotas de IA (`exam-generator`). Adicionado `checkRateLimit`/`getIP`/`rateLimitResponse` (mesmo padrão),
+  mais um check explícito de autenticação em falta.
+- ✅ **`app/api/family/documents/route.ts`** — POST e PUT sem rate limit. Mesma correção.
+- Auditoria de RLS confirmou o `sprint110_viewer_bypass_fix.sql` (papel "leitor" bloqueado em 11 tabelas)
+  continua intacto, sem regressão.
+
+### Bugs
+
+- ✅ **Assimetria no Índice de Risco Contínuo (self vs. familiar)** — `lib/healthAlerts.ts`'s
+  `gatherFindings()` tinha `if (medNames.length < 2) return []`, pensado para só regras de interação
+  entre fármacos, mas na prática saltava TODAS as 26 regras do Decision Engine (incluindo regras de
+  fármaco único — renal, QTc, idade) sempre que a pessoa tivesse 0 ou 1 medicamento. O caminho paralelo
+  do familiar (`lib/caregiverWatch.ts`'s `analyzeFamilyMember`) chama `runRules()` sem este guard — por
+  isso o Índice de Risco pessoal subestimava sistematicamente o risco face ao do familiar com os mesmos
+  dados. Guard removido, comportamento agora simétrico.
+- ✅ **`/vitals` — crash ao falhar a análise por IA** — `analyse()` atribuía a resposta do `fetch`
+  diretamente ao estado sem verificar `res.ok`; uma resposta de erro não tem `alerts`, e
+  `analysis?.alerts.filter(...)` (o `?.` só protege `analysis` ser nulo, não `.alerts` ser `undefined`
+  num objeto de erro truthy) rebentava a página. Corrigido com guard completo (`res.ok` +
+  `Array.isArray`) + banner de erro visível em vez de crash silencioso.
+- ✅ **`/plano-peso` — crash em respostas de IA incompletas** — `meal_plan`/`exercise_plan`/
+  `weekly_milestones` eram desenhados incondicionalmente com `.map()`, ao contrário dos campos irmãos no
+  mesmo ficheiro (`medication_considerations`/`red_flags`) que já tinham guard `?.length > 0 &&`.
+  Inconsistência minha ao construir a página — corrigida para o mesmo padrão nos 3, mais `plan.macro_split`.
+- ✅ **`/api/cron/ingest-shortages` — `last_synced_at` mentia em caso de falha** — o `catch` escrevia a
+  hora atual mesmo quando a ingestão falhava, fazendo a UI mostrar "atualizado agora" com dados
+  potencialmente vazios ou desatualizados. Corrigido: em falha, preserva `last_synced_at`/
+  `source_document`/`row_count` do último sync bem-sucedido, só atualiza `status`/`error_detail`.
+- ✅ **Ligações mortas para `/study360?tab=review`/`?tab=stats`** — `/study360` é (desde a Ronda 13b) um
+  redirect incondicional para `/study` que ignora qualquer query string, por isso estes links nunca
+  chegavam a lado nenhum — incluindo o CTA "Rever N cartões" em destaque (`StudyProgressBar`,
+  `homeIntelligence.ts`, `/progresso`, `ExplicarMnemonica.tsx`). Investigado e encontrado o destino REAL
+  (`/study/notas`, que já abre no separador "rever" por defeito; `/arena` para estatísticas/progresso) —
+  todas as referências repontadas para lá, não só removida a promessa partida.
+- ✅ **Armadilha de paywall em rotas que já eram só redirect** — ao investigar o bug acima, encontrei que
+  `lib/planRoutes.ts` ainda listava `/study360`, `/saude360` E `/familia360` como rotas bloqueadas por
+  plano (Pro/Plus), apesar de as 3 serem hoje só stubs `useEffect`-redirect sem conteúdo próprio. Como o
+  `<PlanGate>` do `ClientLayout` corre ANTES do redirect da própria página disparar, um utilizador FREE a
+  abrir um link antigo para qualquer uma delas via um ecrã de paywall em vez de ser silenciosamente
+  encaminhado para o destino gratuito real — o oposto do que um redirect de compatibilidade deve fazer.
+  Removidas as 3 entradas de `PLAN_ROUTES` (as duas últimas não tinham sido sinalizadas pelo agente,
+  encontradas por analogia ao investigar a primeira).
+- ✅ **`/dashboard?tab=meds` — link morto** (`app/ai/page.tsx` ×2, `app/med-review/page.tsx` ×2) —
+  `/dashboard` é um redirect server-side incondicional para `/inicio` que descarta qualquer query string;
+  o destino real para adicionar/editar medicação é `/mymeds`. Repontado nos 4 sítios.
+- ✅ **`/settings?tab=organizacoes` — link morto** (`components/OrgSwitcher.tsx`) — esse separador foi
+  removido de `app/settings/page.tsx` numa ronda anterior (gestão de organização passou a viver só em
+  `/organizacao`); o link caía sempre em silêncio no separador Perfil. O botão "Gerir" era além disso
+  redundante com o botão "🏥 Abrir hub" (mesmo destino, `/organizacao`) — removido em vez de reapontado.
+- 🤔 **Regressão encontrada, não reconstruída: Zarit-12 (sobrecarga do cuidador) órfã** —
+  `lib/caregiverScales.ts` tem lógica de pontuação real e correta (escala Zarit-12, Bédard 2001) mas
+  **zero consumidores em todo o `.tsx`** — a UI que a usava parece ter-se perdido quando `/familia360`
+  foi cortado para um stub de redirect na Ronda 13b. `lib/planRoutes.ts` e
+  `components/relatorio/DailyBrief.tsx` ainda prometiam esta avaliação em texto/CTAs. **Decisão tomada**:
+  não reconstruir a UI unilateralmente a meio de uma auditoria de bugs (seria criar funcionalidade nova,
+  não corrigir uma); corrigi só a promessa falsa — `DailyBrief.tsx` deixou de mencionar Zarit-12 e de
+  apontar para `/familia360`, os CTAs de cuidador agora apontam para `/familia` com texto honesto. A
+  lógica em `caregiverScales.ts` fica pronta a reaproveitar se decidires trazer de volta uma avaliação de
+  sobrecarga do cuidador — não apagada, só deixou de ser prometida sem existir.
+
+Verificado no fim: `tsc --noEmit`, `check-links.mjs`, `check-vocab.mjs`, `check-nav.mjs`, `npm run build`
+— 0 erros em todos.
+
+---
+
+## 10. 20 melhorias e novas criações (2026-07-17)
+
+Pedidas só depois de fechar segurança + bugs (secção 9). Fundamentadas no que vi em código real ao
+longo de toda esta auditoria — não é uma lista genérica de ideias SaaS. Agrupadas por tipo.
+
+### A. Dívida técnica que vale a pena fechar (não é urgente, mas acumula)
+
+1. **Unificar os 2 catálogos paralelos que restam** (`lib/toolRegistry.ts` vs `lib/navigation.ts`'s
+   `NAV_CATEGORIES`) — sinalizado desde a secção 1, ainda por fazer. Risco real: uma ferramenta pode
+   ficar visível num sítio e invisível noutro sem ninguém reparar (foi o que aconteceu com `/sintomas`/
+   `/timeline` até serem apanhados nesta ronda).
+2. **Sweep sistémico de `<label htmlFor>`** — só 3 ficheiros de ~130 foram corrigidos (secção 3); os
+   outros ~568 inputs continuam sem ligação label↔input. Vale uma ronda dedicada, formulário a formulário
+   (arriscado em massa por ids repetidos em listas).
+3. **Decidir o destino de `.btn`/`.card`/`.chip`** (`globals.css`) — 0 utilizações reais fora de 4
+   páginas. Ou adoptam-se nas próximas páginas tocadas (consistência visual), ou apaga-se o CSS morto e
+   aceita-se o padrão inline como definitivo. A indecisão é que custa (deriva visual continua a crescer).
+4. **Zarit-12 — decidir, não deixar órfão** (achado nesta ronda, secção 9): `lib/caregiverScales.ts` tem
+   pontuação real pronta a usar, só falta UI. Ou reconstrói-se um cartão mínimo em `/familia` (baixo
+   esforço — a lógica já existe), ou apaga-se a lib para não tentar ninguém a prometê-la outra vez.
+5. **Consolidar o helper `authClient`/`sb(req)`** duplicado em ~12 rotas de API (secção 2, pendente desde
+   2026-07-13) — manutenibilidade, não segurança (cada cópia está correta, só repetida).
+
+### B. Aprofundar o Pro em cima da espinha "Objetivo de Saúde" já construída
+
+6. **Ferramenta dedicada por objetivo que ainda não tem uma** — hoje só `lose_weight` desbloqueia um
+   plano próprio (`/plano-peso`); `manage_chronic`/`recover`/`wellness` escolhem o objetivo em
+   `/settings` mas não ganham nada de exclusivo a seguir. Cada objetivo devia abrir pelo menos 1 ecrã à
+   medida, no mesmo espírito.
+7. **Relatório mensal com PDF real** — o item 1 do plano original da Ronda 3, ainda por fazer: estender
+   `/relatorio` com uma vista mensal + export A4 via `lib/print.ts`, no espírito do dossier institucional
+   já construído noutra ronda.
+8. **Porte para consumidor de uma ferramenta clínica de peso** — item 2 do plano original, ainda por
+   fazer: uma "revisão da minha medicação" em linguagem leiga, no espírito do `/med-review` clínico.
+9. **Perfis de família partilhados entre cuidadores** — o maior diferenciador identificado, mas é
+   migração de esquema (RLS de dono único → colaboradores em 2 tabelas). Sugestão de faseamento: começar
+   por um "convite de visualização" (read-only, sem tocar no modelo de posse) antes da versão completa de
+   coautoria — entrega valor mais cedo, de forma reversível.
+10. **Alertas proativos quando o Índice de Risco piora** — hoje o `/api/risk-index` só calcula quando a
+    página é aberta; um push/email quando o score cruza um limiar (ex: sobe de "baixo" para "médio")
+    transforma-o de painel passivo em vigilância ativa, sem construir motor novo.
+11. **Recall por lote de medicamentos** — o pipeline do Vigia de Ruturas (`lib/shortageIngest.ts`,
+    parsing de Excel + cron + matching) já resolveu o problema difícil (descoberta de URL resiliente,
+    matching por nome). O INFARMED publica recalls por lote/AIM num formato semelhante — reaproveitar a
+    mesma infraestrutura em vez de construir de novo.
+12. **Ficha de handoff para o hospital/urgência** — junta Crisis Playbook + medicação atual + Índice de
+    Risco num PDF/QR de um toque. Extensão natural do que já existe em `CrisisPlaybookCard.tsx`
+    (`printDoc()` já implementado ali), não uma feature nova do zero.
+13. **Deteção de burnout do cuidador** — sinalizado como não construído na secção do Playbook (2026-07-15)
+    por faltar telemetria de engagement. Mas essa telemetria já existe em parte: frequência de check-ins
+    em `/familia`, tarefas em atraso, uso de `CrisisPlaybookCard`. Vale olhar para esses sinais já
+    existentes antes de assumir que é preciso instrumentação nova.
+
+### C. Ciclo de crescimento (herda a Ronda 1, já fechada)
+
+14. **Ligar a conclusão de um Objetivo de Saúde a um nudge de partilha** — ex: 4 semanas seguidas do
+    Plano de Peso, ou o primeiro Playbook de Crise usado com sucesso, como o "momento de satisfação
+    genuína" que o plano de crescimento original pedia para acionar o `/reach` — em vez de nudges
+    genéricos por tempo.
+15. **Ponte do resumo diário institucional para o Objetivo de Saúde pessoal** — o family feed do lar
+    (Ronda 5/8) já leva a família a ver como está o residente; um deep-link a convidar essa família a
+    começar o SEU PRÓPRIO Objetivo de Saúde fecha o loop entre o que foi construído no lado institucional
+    e o que foi construído agora no lado Pro pessoal — hoje são dois trabalhos que ainda não se tocam.
+16. **Reverificar a descoberta do `/reach`** — a Ronda 1 do plano de crescimento resolveu a sua
+    invisibilidade, mas houve várias fusões de catálogo desde então (secção 5); vale confirmar que ainda
+    aparece onde devia (`EXTRA_TOOLS_BY_MODE` foi entretanto apagado por estar morto — confirmar que o
+    mecanismo de descoberta do `/reach` não dependia dele).
+
+### D. Infraestrutura / operações
+
+17. **Orçamento/telemetria de custo de IA por utilizador** — o número de endpoints de IA cresceu bastante
+    esta ronda (weight-plan, crisis-playbook, companion, vision, risk-index…) sem nenhum limite agregado
+    por utilizador ao longo do mês, só limites por-pedido. Um contador leve por utilizador/mês protege a
+    margem à medida que a base Pro cresce — alinhado com a tua própria regra de "não pode custar-me
+    dinheiro um upgrade".
+18. **Import de vitais de wearables** (Apple Health/Google Fit) — reduz a fricção do registo manual em
+    `/vitals` e alimenta o Índice de Risco e o Detetive de Saúde com mais dados reais, sem pedir mais
+    esforço à pessoa.
+19. **Ligar `/labs` ao Detetive de Saúde** — hoje o Detetive (`lib/healthDetective.ts`) só cruza início de
+    medicação com sintomas; análises clínicas guardadas (`health_vault`) são um terceiro eixo de
+    correlação óbvio (ex: função renal a piorar depois de começar um fármaco nefrotóxico) que ainda não
+    entra na mesma lente.
+20. **Export FHIR pessoal** ("o meu registo de saúde para o médico") — o motor FHIR R4 já foi auditado
+    como sólido do lado institucional; uma versão Pro pessoal (gerar um bundle FHIR do teu próprio
+    histórico para levar a qualquer médico) reaproveita esse trabalho já feito e testado, em vez de
+    construir exportação de dados de raiz.

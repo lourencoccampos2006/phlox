@@ -8,14 +8,9 @@ import { createClient } from '@supabase/supabase-js'
 import { aiJSON, aiComplete } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { sb } from '@/lib/orgAuth'
 
 export const maxDuration = 60
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
 
 // Resolve o âmbito: se o utilizador pertence a uma organização (equipa), a
 // vigilância vê os residentes da ORG (org_id); senão, os próprios (user_id).

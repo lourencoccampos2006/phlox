@@ -13,15 +13,7 @@ import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { aiComplete } from '@/lib/ai'
 import { findTemporalCorrelations } from '@/lib/healthDetective'
-
-function makeSupabase(token: string) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
-function getToken(req: NextRequest): string | null {
-  const h = req.headers.get('authorization')
-  return h?.startsWith('Bearer ') ? h.slice(7) : null
-}
+import { makeSupabase, getToken } from '@/lib/orgAuth'
 
 type Sev = 'urgent' | 'attention' | 'info' | 'good'
 interface Concern {

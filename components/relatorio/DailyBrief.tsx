@@ -97,14 +97,19 @@ export default function DailyBrief() {
       else if (overdueT > 0) suggestion = { title: 'Põe as tarefas em dia', desc: `${overdueT} tarefa(s) em atraso esperam por ti.`, href: '/tarefas-equipa', cta: 'Ver tarefas' }
       else suggestion = { title: 'Vê o teu Clínico 360°', desc: 'Pulse do turno, ranking de risco e audit num só ecrã.', href: '/painel', cta: 'Abrir painel' }
     } else if (mode === 'caregiver') {
-      if (overdueT > 0) suggestion = { title: 'Tarefas em atraso', desc: `${overdueT} pendentes nos familiares.`, href: '/familia360', cta: 'Abrir Família 360°' }
-      else suggestion = { title: 'Como vais a aguentar?', desc: 'Faz a escala Zarit-12 em 3 min — a sobrecarga do cuidador é real.', href: '/familia360?tab=burden', cta: 'Avaliar sobrecarga' }
+      if (overdueT > 0) suggestion = { title: 'Tarefas em atraso', desc: `${overdueT} pendentes nos familiares.`, href: '/familia', cta: 'Abrir família' }
+      else suggestion = { title: 'Como vais a aguentar?', desc: 'Faz a escala Zarit-12 em 3 min, dentro do cartão de cada familiar — a sobrecarga do cuidador é real.', href: '/familia', cta: 'Avaliar sobrecarga' }
     } else if (mode === 'student') {
-      suggestion = { title: 'Cartões para rever', desc: 'O algoritmo de revisão espaçada espera por ti no Estudo 360°.', href: '/study360', cta: 'Rever agora' }
+      suggestion = { title: 'Cartões para rever', desc: 'O algoritmo de revisão espaçada espera por ti.', href: '/study/notas', cta: 'Rever agora' }
     } else {
-      suggestion = { title: 'Saúde 360°', desc: 'Adesão, análises e agenda da tua saúde num só ecrã.', href: '/saude360', cta: 'Abrir Saúde 360°' }
+      suggestion = { title: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo.', href: '/timeline', cta: 'Abrir' }
     }
 
+    // BUG CORRIGIDO 2026-07-17: /familia360, /study360 e /saude360 são
+    // redirects sem conteúdo próprio (Ronda 13b) — os hrefs abaixo apontavam
+    // para eles em vez do destino real. Corrigido para os destinos reais; o
+    // Zarit-12 (ZaritBurdenCard, item A4 da auditoria 2026-07-17) voltou a
+    // existir de facto, dentro de cada cartão de familiar em /familia.
     const NEWS_BY_MODE: Record<string, { title: string; href: string }[]> = {
       clinical: [
         { title: 'Clínico 360° (Pulse · Risk · Stewardship · Audit)', href: '/painel' },
@@ -112,17 +117,17 @@ export default function DailyBrief() {
         { title: 'Mode isolation: vês só o que é teu', href: '/settings?tab=ferramentas' },
       ],
       caregiver: [
-        { title: 'Família 360° (Inbox · Reconciliação · Zarit)', href: '/familia360' },
+        { title: 'Sobrecarga do cuidador (Zarit-12) por familiar', href: '/familia' },
         { title: 'Cofre de saúde com partilha por código', href: '/vault' },
-        { title: 'Refill por familiar — sabe quando acaba', href: '/familia360' },
+        { title: 'Refill por familiar — sabe quando acaba', href: '/familia' },
       ],
       student: [
         { title: 'Biblioteca: PDFs e slides → resumos + perguntas', href: '/biblioteca' },
-        { title: 'Estudo 360°: SRS, plano AI, Pomodoro', href: '/study360' },
+        { title: 'Revisão espaçada (SRS) das tuas notas', href: '/study/notas' },
         { title: 'Phlox Decisão: simulador com morte possível', href: '/simulador' },
       ],
       personal: [
-        { title: 'Saúde 360°: adesão, sparklines, refill', href: '/saude360' },
+        { title: 'História de saúde: adesão, sparklines, refill', href: '/timeline' },
         { title: 'Cofre de saúde: anexa PDFs e imagens', href: '/vault' },
         { title: 'Estou em dia? Rastreios e vacinas (DGS)', href: '/preventivo' },
       ],

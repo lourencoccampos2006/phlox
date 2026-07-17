@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/planGate'
+import { makeSupabase } from '@/lib/orgAuth'
 
 // Limites de perfis familiares por plano
 const PROFILE_LIMITS: Record<string, number> = {
@@ -12,14 +13,6 @@ const PROFILE_LIMITS: Record<string, number> = {
   student: 3,
   pro: Infinity,
   clinic: Infinity,
-}
-
-function makeSupabase(token: string) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
 }
 
 function extractToken(req: NextRequest): string | null {

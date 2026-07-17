@@ -866,7 +866,10 @@ function PortfolioExport({ internshipId, onAi, onClose }: any) {
 }
 
 function MarkdownLike({ text }: { text: string }) {
-  const html = text
+  // SEGURANÇA: escapar HTML antes das transformações markdown (texto vem de IA
+  // e pode ecoar conteúdo livre do utilizador) — evita XSS via dangerouslySetInnerHTML.
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const html = escaped
     .replace(/^### (.+)$/gm, '<h4 style="font-size:14px; font-weight:700; margin:14px 0 6px">$1</h4>')
     .replace(/^## (.+)$/gm, '<h3 style="font-size:16px; font-weight:700; margin:18px 0 8px">$1</h3>')
     .replace(/^# (.+)$/gm, '<h2 style="font-size:18px; font-weight:700; margin:18px 0 8px">$1</h2>')

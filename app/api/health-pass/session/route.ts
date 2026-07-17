@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
 import { randomInt } from 'crypto'
+import { sb } from '@/lib/orgAuth'
 
 // Lado AUTENTICADO do Health Pass (doente): criar/revogar sessão, listar visitas e devoluções.
 
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { Authorization: `Bearer ${token}` } } })
-}
 // Tokens/PIN com CSPRNG (crypto) — não Math.random (previsível) por guardarem dados clínicos.
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
 const randToken = () => Array.from({ length: 22 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')

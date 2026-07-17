@@ -4,15 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
-
-function sb(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  )
-}
+import { sb } from '@/lib/orgAuth'
 
 export async function GET(req: NextRequest) {
   const { userId } = await getUserPlan(req)

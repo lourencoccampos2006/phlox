@@ -580,7 +580,11 @@ function NoteEditor({ auth, note, allNotes, onClose, reload, onOpen }: {
 // ─── MarkdownRender (preservado) ────────────────────────────────────────────
 function MarkdownRender({ text, onLink }: { text: string; onLink?: (title: string) => void }) {
   if (!text) return <p style={{ color: '#9ca3af', fontSize: 13 }}>(Sem conteúdo)</p>
-  let html = text
+  // SEGURANÇA: escapar HTML antes das transformações markdown — o texto é uma
+  // nota do próprio utilizador e o [[link]] abaixo insere-o num atributo
+  // data-link="…", pelo que aspas não escapadas permitiam escapar do atributo.
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  let html = escaped
     .replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>')

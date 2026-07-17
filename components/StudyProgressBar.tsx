@@ -3,6 +3,11 @@
 // StudyProgressBar — barra partilhada de progresso de estudo (streak, XP, meta
 // diária, "continuar onde ficaste"). Aparece no topo das ferramentas/hub de
 // estudo para dar consistência e motivar o regresso diário. Lê lib/studyProgress.
+// BUG CORRIGIDO 2026-07-17: o CTA "Rever" apontava para /study360?tab=review —
+// /study360 é um redirect incondicional para /study que ignora query strings
+// (Ronda 13b), por isso o "?tab=review" nunca chegava a lado nenhum. A revisão
+// espaçada real (SM-2, /api/study/cards) vive em /study/notas, que já abre por
+// defeito no separador "review".
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -58,7 +63,7 @@ export default function StudyProgressBar({ compact = false }: { compact?: boolea
         <Metric icon="🎯" value={`Nv. ${s.level}`} label={`${s.xpTotal} XP total`} color="#1d4ed8" />
         {s.accuracy7d != null && <Metric icon="✅" value={`${s.accuracy7d}%`} label="acerto 7 dias" color="#0d6e42" />}
         {cardsDue != null && cardsDue > 0 && (
-          <Link href="/study360?tab=review" style={{ textDecoration: 'none' }}>
+          <Link href="/study/notas" style={{ textDecoration: 'none' }}>
             <Metric icon="🃏" value={`${cardsDue}`} label="a rever hoje" color="#b45309" />
           </Link>
         )}
@@ -66,7 +71,7 @@ export default function StudyProgressBar({ compact = false }: { compact?: boolea
 
       {/* Se há cartões a rever, esse é o melhor próximo passo; senão, "continuar". */}
       {cardsDue != null && cardsDue > 0 ? (
-        <Link href="/study360?tab=review" style={{
+        <Link href="/study/notas" style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '8px 14px', background: '#b45309', color: 'white', borderRadius: 999,
           fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
