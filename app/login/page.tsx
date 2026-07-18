@@ -36,6 +36,15 @@ function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') || ''
+  // BUG CORRIGIDO 2026-07-17/18 — Phlox Reach gerava links /login?ref=CODE e
+  // já sabia MOSTRAR resgates, mas nada em todo o código alguma vez os lia
+  // ou gravava: a funcionalidade estava invisivelmente partida desde sempre.
+  // Guarda o código aqui (a conta pode não existir ainda) para o onboarding
+  // o resgatar assim que a conta nova ficar pronta (ver app/onboarding).
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) { try { localStorage.setItem('phlox-pending-ref', ref.trim().toUpperCase()) } catch {} }
+  }, [searchParams])
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
   // Email/password. Quem chega com um `mode` (via os "5 mundos" da homepage ou o

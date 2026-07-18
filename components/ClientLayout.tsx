@@ -5,7 +5,6 @@ import Footer from '@/components/Footer'
 import InstitutionShell from '@/components/InstitutionShell'
 import PlanGate from '@/components/PlanGate'
 import PaymentIssueBanner from '@/components/PaymentIssueBanner'
-import ToolUseTracker from '@/components/ToolUseTracker'
 import { planForRoute } from '@/lib/planRoutes'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
@@ -90,7 +89,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   if (isClinical) {
     return (
       <>
-        <ToolUseTracker />
         <PaymentIssueBanner />
         <InstitutionShell>{gated(children)}</InstitutionShell>
         <ClinicalCommandPalette />
@@ -115,7 +113,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <>
-      <ToolUseTracker />
       <PaymentIssueBanner />
       <Header />
       <div id="app-main" className="has-bottom-nav">{gated(children)}</div>

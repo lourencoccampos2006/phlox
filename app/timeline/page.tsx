@@ -15,6 +15,7 @@ import { getActiveProfile } from '@/lib/profileContext'
 import { printDoc } from '@/lib/print'
 import Link from 'next/link'
 import RiskIndexCard from '@/components/RiskIndexCard'
+import PushNudge from '@/components/PushNudge'
 
 // ─── Event types ──────────────────────────────────────────────────────────────
 
@@ -582,6 +583,7 @@ export default function TimelinePage() {
             calculada automaticamente ao abrir a página, sem pedir nada ao utilizador. */}
         {canAnalyse && activeProfileType !== 'patient' && (
           <div style={{ marginBottom: 20 }}>
+            <PushNudge text="Ativa notificações para saberes logo quando o teu Índice de Risco piorar." />
             <RiskIndexCard profileId={activeProfileType === 'family' ? (activeProfileId || undefined) : undefined} />
           </div>
         )}

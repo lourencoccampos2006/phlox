@@ -155,6 +155,21 @@ export default function OnboardingPage() {
       student_year: profile === 'student' ? year : null,
       onboarding_answers: answers,
     }).eq('id', user.id)
+    // 3) Resgata o código de convite Phlox Reach, se a pessoa chegou por um
+    // link /login?ref=CODE (ver app/login/page.tsx). Best-effort — nunca
+    // bloqueia o onboarding se o código for inválido ou a chamada falhar.
+    try {
+      const pendingRef = localStorage.getItem('phlox-pending-ref')
+      if (pendingRef) {
+        const { data: sd } = await supabase.auth.getSession()
+        await fetch('/api/reach/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+          body: JSON.stringify({ code: pendingRef }),
+        })
+        localStorage.removeItem('phlox-pending-ref')
+      }
+    } catch { /* best-effort — não bloqueia o onboarding */ }
     // Vai para o destino escolhido (uma primeira ação) ou /inicio por defeito.
     // O modo clínico mostra paywall se o plano não chegar; ferramentas pro atrás de gate.
     router.push(dest || '/inicio')

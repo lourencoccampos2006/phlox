@@ -16,6 +16,7 @@ import CrisisPlaybookCard from '@/components/CrisisPlaybookCard'
 import ZaritBurdenCard from '@/components/ZaritBurdenCard'
 import HandoffSheetButton from '@/components/HandoffSheetButton'
 import ShareInviteButton from '@/components/ShareInviteButton'
+import PushNudge from '@/components/PushNudge'
 import Link from 'next/link'
 
 interface Profile { id: string; name: string; relation?: string; age?: number | null; sex?: string | null; weight?: number | null; height?: number | null; creatinine?: number | null; conditions?: string | null; allergies?: string | null; notes?: string | null }
@@ -227,6 +228,11 @@ export default function FamiliaPage() {
           </div>
         ) : profiles.length === 0 ? null : (
           <>
+            {/* Nudge de notificações (item 2 das sugestões extra) — só aparece
+                depois de já teres pelo menos 1 familiar, o momento em que
+                vigilância proativa passa a ter valor real. */}
+            <PushNudge text="Ativa notificações para saberes logo quando alguém da tua família precisar de atenção." />
+
             {/* ── O QUE PRECISA DE ATENÇÃO HOJE ── */}
             {attention.length > 0 && (
               <div style={{ marginBottom: 22 }}>
