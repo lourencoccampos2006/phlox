@@ -11,6 +11,7 @@ import SecuritySettings from '@/components/settings/SecuritySettings'
 import HealthGoalPicker from '@/components/HealthGoalPicker'
 import PinPickerGrid from '@/components/PinPickerGrid'
 import ModuleToggleList from '@/components/ModuleToggleList'
+import AlertPrefsList from '@/components/AlertPrefsList'
 import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 import { activatePush as activatePushShared } from '@/lib/pushActivation'
 
@@ -365,6 +366,15 @@ function SettingsPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Secções</div>
               <ModuleToggleList mode={expMode} />
             </div>
+            {(expMode === 'personal' || expMode === 'caregiver') && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Avisos</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 10 }}>
+                  Escolhe que tipos de aviso aparecem em "A minha saúde" no início.
+                </div>
+                <AlertPrefsList />
+              </div>
+            )}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Atalhos fixos</div>
               <PinPickerGrid pins={pinIds} onToggle={togglePin} />

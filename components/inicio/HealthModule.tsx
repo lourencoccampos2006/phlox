@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { computeHealthAlerts, type HealthAlert } from '@/lib/healthAlerts'
+import { getAlertPrefs } from '@/lib/alertPrefs'
 import type { ModeTheme } from '@/lib/modeTheme'
 
 const LVL_COLOR: Record<string, string> = { high: '#dc2626', medium: '#b45309', low: '#2563eb' }
@@ -38,7 +39,8 @@ export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
         age: null, sex: null, conditions: null, vitalSeries: vitalRows, symptoms: (syms || []) as any[], adherencePct,
       })
       if (cancel) return
-      setAlerts(out.slice(0, 3))
+      const allowed = new Set(getAlertPrefs())
+      setAlerts(out.filter(a => allowed.has(a.category)).slice(0, 3))
 
       const chips: { label: string; tone: 'good' | 'warn' | 'neutral' }[] = []
       const weights = vitalRows.filter(v => v.weight != null)
