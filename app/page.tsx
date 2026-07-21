@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import Petal from '@/components/home/Petal'
+import Reveal from '@/components/home/Reveal'
 
-// ── Homepage — reescrita por completo (2026-07-13) ──────────────────────────
+// ── Homepage — reescrita por completo (2026-07-13), movimento moderado
+// acrescentado depois (2026-07-21) ──────────────────────────────────────────
 // Depois de duas tentativas de herói 3D (ver memória de projeto), Fernando
-// decidiu: zero animações, zero grelhas de cartões, zero frases de bandeja
-// ("cuidado com quem já sabe do que fala", listar marcas para parecer que
-// se sabe do assunto, símbolos "§" a fingir rigor suíço). Esta versão:
+// decidiu: zero grelhas de cartões, zero frases de bandeja ("cuidado com quem
+// já sabe do que fala", listar marcas para parecer que se sabe do assunto,
+// símbolos "§" a fingir rigor suíço). Esta versão:
 //   - copy mais curta e direta, sem alegações vagas;
 //   - a flor da marca ("Phlox") como assinatura gráfica própria (glifo de 5
 //     pétalas desenhado à mão, components/home/Petal.tsx) em vez de um
@@ -15,7 +17,11 @@ import Petal from '@/components/home/Petal'
 //     passam a listas editoriais / tiras de processo ligadas por um traço
 //     fino — cada secção com a sua própria lógica de layout, não o mesmo
 //     molde repetido 4 vezes;
-//   - zero animação: só transição de cor/fundo em hover.
+//   - 2026-07-21: a versão "zero animações" ficava direita a mais. Movimento
+//     MODERADO e orquestrado (não 3D, não scroll-jacking): o herói entra em
+//     cascata curta ao carregar, cada secção seguinte revela-se (fade + subida
+//     curta) ao chegar ao ecrã (components/home/Reveal.tsx, um padrão só,
+//     repetido), e a flor de fundo do herói roda devagar, como algo vivo.
 // Zero dados falsos: sem testemunhos/logótipos fabricados.
 
 const PARES = [
@@ -93,140 +99,162 @@ export default function HomePage() {
   return (
     <div className="lp">
 
-      {/* ── HERÓI ────────────────────────────────────────────────────────── */}
+      {/* ── HERÓI — cascata curta ao carregar, não à espera de scroll ──────── */}
       <section className="lp-hero">
-        <div className="lp-hero-mark"><Petal size={560} outline color="var(--ink)" /></div>
+        <div className="lp-hero-mark lp-hero-mark-spin"><Petal size={560} outline color="var(--ink)" /></div>
         <div className="lp-wrap">
           <div className="lp-hero-grid">
             <div>
-              <h1 className="lp-h1">A sua saúde,<br />organizada <em>a sério</em>.</h1>
-              <p className="lp-lead">Medicação, interações e dúvidas do dia a dia. Em português, com as regras do INFARMED.</p>
-              <div className="lp-actions">
+              <h1 className="lp-h1 lp-fade" style={{ animationDelay: '0.05s' }}>A sua saúde,<br />organizada <em>a sério</em>.</h1>
+              <p className="lp-lead lp-fade" style={{ animationDelay: '0.16s' }}>Medicação, interações e dúvidas do dia a dia. Em português, com as regras do INFARMED.</p>
+              <div className="lp-actions lp-fade" style={{ animationDelay: '0.26s' }}>
                 <Link href="/login" className="lp-go">Criar conta grátis</Link>
                 <Link href="#mundos" className="lp-link">Ver como funciona&nbsp;→</Link>
               </div>
-              <p className="lp-meta">Sem cartão de crédito · Cancele quando quiser</p>
+              <p className="lp-meta lp-fade" style={{ animationDelay: '0.34s' }}>Sem cartão de crédito · Cancele quando quiser</p>
             </div>
-            <VerdictCard />
+            <div className="lp-fade" style={{ animationDelay: '0.2s' }}>
+              <VerdictCard />
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── Manifesto — uma frase, curta e real ─────────────────────────────── */}
-      <section className="lp-manifesto">
-        <div className="lp-wrap">
-          <p className="lp-mani-txt">Não é tradução de fora — as marcas e as regras são as de cá.</p>
-        </div>
-      </section>
+      <Reveal>
+        <section className="lp-manifesto">
+          <div className="lp-wrap">
+            <p className="lp-mani-txt">Não é tradução de fora — as marcas e as regras são as de cá.</p>
+          </div>
+        </section>
+      </Reveal>
 
       {/* ── COMO FUNCIONA — tira de processo, não cartões ───────────────────── */}
-      <section className="lp-sec">
-        <div className="lp-wrap">
-          <header className="lp-sec-h">
-            <h2 className="lp-h2">Como funciona</h2>
-            <p className="lp-sec-sub">Três passos, e está a usar.</p>
-          </header>
-          <div className="lp-flow">
-            {PASSOS.map(s => (
-              <div key={s.n} className="lp-flow-item">
-                <span className="lp-flow-dot" />
-                <div className="lp-flow-n">{s.n}</div>
-                <h3 className="lp-flow-t">{s.t}</h3>
-                <p className="lp-flow-d">{s.d}</p>
-              </div>
-            ))}
+      <Reveal>
+        <section className="lp-sec">
+          <div className="lp-wrap">
+            <header className="lp-sec-h">
+              <h2 className="lp-h2">Como funciona</h2>
+              <p className="lp-sec-sub">Três passos, e está a usar.</p>
+            </header>
+            <div className="lp-flow">
+              {PASSOS.map(s => (
+                <div key={s.n} className="lp-flow-item">
+                  <span className="lp-flow-dot" />
+                  <div className="lp-flow-n">{s.n}</div>
+                  <h3 className="lp-flow-t">{s.t}</h3>
+                  <p className="lp-flow-d">{s.d}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       {/* ── OS 5 MUNDOS — índice editorial, não grelha de cartões ───────────── */}
-      <section className="lp-sec lp-sec-paper" id="mundos">
-        <div className="lp-wrap">
-          <header className="lp-sec-h">
-            <h2 className="lp-h2">Um Phlox para cada pessoa</h2>
-            <p className="lp-sec-sub">Escolha o seu mundo. Muda quando quiser.</p>
-          </header>
-          <div className="lp-index">
-            {MUNDOS.map(m => (
-              <Link key={m.t} href={m.href} className="lp-index-row" style={{ ['--a' as string]: m.accent }}>
-                <span className="lp-index-icon"><Petal size={26} color={m.accent} /></span>
-                <span className="lp-index-main">
-                  <span className="lp-index-top">
-                    <span className="lp-index-tag">{m.tag}</span>
-                    <span className="lp-index-t">{m.t}</span>
+      <Reveal>
+        <section className="lp-sec lp-sec-paper" id="mundos">
+          <div className="lp-wrap">
+            <header className="lp-sec-h">
+              <h2 className="lp-h2">Um Phlox para cada pessoa</h2>
+              <p className="lp-sec-sub">Escolha o seu mundo. Muda quando quiser.</p>
+            </header>
+            <div className="lp-index">
+              {MUNDOS.map(m => (
+                <Link key={m.t} href={m.href} className="lp-index-row" style={{ ['--a' as string]: m.accent }}>
+                  <span className="lp-index-icon"><Petal size={26} color={m.accent} /></span>
+                  <span className="lp-index-main">
+                    <span className="lp-index-top">
+                      <span className="lp-index-tag">{m.tag}</span>
+                      <span className="lp-index-t">{m.t}</span>
+                    </span>
+                    <span className="lp-index-lead">{m.lead}</span>
+                    <span className="lp-index-items">{m.items.join(' · ')}</span>
                   </span>
-                  <span className="lp-index-lead">{m.lead}</span>
-                  <span className="lp-index-items">{m.items.join(' · ')}</span>
-                </span>
-                <span className="lp-index-go">→</span>
-              </Link>
-            ))}
+                  <span className="lp-index-go">→</span>
+                </Link>
+              ))}
+            </div>
+            <div className="lp-index-cta">
+              <p>Ainda não sabe qual é o seu?</p>
+              <Link href="/login" className="lp-go">Criar conta grátis</Link>
+            </div>
           </div>
-          <div className="lp-index-cta">
-            <p>Ainda não sabe qual é o seu?</p>
-            <Link href="/login" className="lp-go">Criar conta grátis</Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       {/* ── COMO SE PROPAGA — mesma tira de processo, 4 batidas ─────────────── */}
-      <section className="lp-sec">
-        <div className="lp-wrap">
-          <header className="lp-sec-h">
-            <h2 className="lp-h2">Um cuidado a sério puxa outro</h2>
-            <p className="lp-sec-sub">Não são cinco produtos. É uma rede.</p>
-          </header>
-          <div className="lp-flow lp-flow-4">
-            {CICLO.map((c) => (
-              <div key={c.t} className="lp-flow-item">
-                <span className="lp-flow-dot" />
-                <h3 className="lp-flow-t">{c.t}</h3>
-                <p className="lp-flow-d">{c.d}</p>
-              </div>
-            ))}
+      <Reveal>
+        <section className="lp-sec">
+          <div className="lp-wrap">
+            <header className="lp-sec-h">
+              <h2 className="lp-h2">Um cuidado a sério puxa outro</h2>
+              <p className="lp-sec-sub">Não são cinco produtos. É uma rede.</p>
+            </header>
+            <div className="lp-flow lp-flow-4">
+              {CICLO.map((c) => (
+                <div key={c.t} className="lp-flow-item">
+                  <span className="lp-flow-dot" />
+                  <h3 className="lp-flow-t">{c.t}</h3>
+                  <p className="lp-flow-d">{c.d}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       {/* ── O QUE GANHA — lista, não grelha ──────────────────────────────────── */}
-      <section className="lp-sec lp-sec-paper">
-        <div className="lp-wrap">
-          <header className="lp-sec-h">
-            <h2 className="lp-h2">O que ganha</h2>
-          </header>
-          <div className="lp-ganhos">
-            {GANHOS.map((x) => (
-              <div key={x.t} className="lp-ganho">
-                <span className="lp-ganho-k">{x.k}</span>
-                <h3 className="lp-ganho-t">{x.t}</h3>
-                <p className="lp-ganho-d">{x.d}</p>
-              </div>
-            ))}
+      <Reveal>
+        <section className="lp-sec lp-sec-paper">
+          <div className="lp-wrap">
+            <header className="lp-sec-h">
+              <h2 className="lp-h2">O que ganha</h2>
+            </header>
+            <div className="lp-ganhos">
+              {GANHOS.map((x) => (
+                <div key={x.t} className="lp-ganho">
+                  <span className="lp-ganho-k">{x.k}</span>
+                  <h3 className="lp-ganho-t">{x.t}</h3>
+                  <p className="lp-ganho-d">{x.d}</p>
+                </div>
+              ))}
+            </div>
+            <p className="lp-badges">
+              {['INFARMED', 'DGS', 'EMA', 'ESC 2024', 'Beers 2023', 'STOPP/START v3'].map((s, i) => (
+                <span key={s}>{i > 0 && <span className="lp-badge-sep">·</span>}{s}</span>
+              ))}
+            </p>
           </div>
-          <p className="lp-badges">
-            {['INFARMED', 'DGS', 'EMA', 'ESC 2024', 'Beers 2023', 'STOPP/START v3'].map((s, i) => (
-              <span key={s}>{i > 0 && <span className="lp-badge-sep">·</span>}{s}</span>
-            ))}
-          </p>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       {/* ── FECHO ────────────────────────────────────────────────────────────── */}
-      <section className="lp-close">
-        <div className="lp-wrap">
-          <h2 className="lp-close-h">Experimente hoje.<br />Decida depois.</h2>
-          <p className="lp-close-p">O <strong>Base</strong> é grátis. O <strong>Plus</strong> tira anúncios e abre o resto — 3,99&nbsp;€/mês, cancele quando quiser.</p>
-          <div className="lp-actions">
-            <Link href="/login" className="lp-go lp-go-light">Criar conta grátis</Link>
-            <Link href="/pricing" className="lp-link lp-link-dark">Ver os planos&nbsp;→</Link>
+      <Reveal>
+        <section className="lp-close">
+          <div className="lp-wrap">
+            <h2 className="lp-close-h">Experimente hoje.<br />Decida depois.</h2>
+            <p className="lp-close-p">O <strong>Base</strong> é grátis. O <strong>Plus</strong> tira anúncios e abre o resto — 3,99&nbsp;€/mês, cancele quando quiser.</p>
+            <div className="lp-actions">
+              <Link href="/login" className="lp-go lp-go-light">Criar conta grátis</Link>
+              <Link href="/pricing" className="lp-link lp-link-dark">Ver os planos&nbsp;→</Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </Reveal>
 
       <style>{`
         .lp { background:var(--bg); color:var(--ink); font-family:var(--font-sans); overflow-x:hidden; }
         .lp-wrap { max-width:1080px; margin:0 auto; padding:0 clamp(20px,5vw,40px); position:relative; }
         .lp em { font-style:italic; color:var(--green); }
+
+        /* ── Movimento moderado: cascata do herói ao carregar + revelar por
+           secção ao chegar ao ecrã. Um padrão só, repetido — nunca um efeito
+           por sítio. prefers-reduced-motion trava tudo isto (regra global). ── */
+        .lp-fade { opacity:0; animation:fadeUp .65s cubic-bezier(.16,1,.3,1) both; }
+        .lp-reveal { opacity:0; transform:translateY(18px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+        .lp-reveal-in { opacity:1; transform:translateY(0); }
+        .lp-hero-mark-spin { animation:spin 140s linear infinite; }
 
         /* ── Herói ── */
         .lp-hero { position:relative; overflow:hidden; padding:clamp(48px,8vw,88px) 0 clamp(40px,6vw,64px); }
@@ -278,9 +306,12 @@ export default function HomePage() {
 
         /* Os 5 mundos — índice editorial, não cartões */
         .lp-index { border-top:1px solid var(--border); }
-        .lp-index-row { display:flex; align-items:flex-start; gap:20px; padding:26px 4px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--ink); }
+        .lp-index-row { display:flex; align-items:flex-start; gap:20px; padding:26px 4px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--ink); transition:background .2s ease; }
         .lp-index-row:hover { background:rgba(0,0,0,.015); }
-        .lp-index-icon { flex:0 0 auto; width:42px; height:42px; border-radius:50%; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; margin-top:2px; }
+        .lp-index-row:hover .lp-index-icon { transform:scale(1.08); border-color:var(--a); }
+        .lp-index-row:hover .lp-index-go { transform:translateX(3px); }
+        .lp-index-icon { flex:0 0 auto; width:42px; height:42px; border-radius:50%; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; margin-top:2px; transition:transform .25s cubic-bezier(.16,1,.3,1), border-color .25s ease; }
+        .lp-index-go { transition:transform .2s ease; }
         .lp-index-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
         .lp-index-top { display:flex; align-items:baseline; gap:13px; flex-wrap:wrap; }
         .lp-index-tag { font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--a); font-weight:700; }
