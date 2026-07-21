@@ -7,6 +7,40 @@ import NotificationBell from '@/components/NotificationBell'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
+import { PRIMARY_NAV } from '@/lib/primaryNav'
+import { modeTheme } from '@/lib/modeTheme'
+import Icon from '@/components/Icon'
+
+// ─── DesktopSecondaryNav ────────────────────────────────────────────────────
+// No mobile há a BottomNav (fixa, em baixo). No desktop não havia nenhuma
+// forma persistente de saltar entre as áreas principais sem voltar ao /inicio
+// — a única "navegação" era o menu de conta. Esta faixa usa os MESMOS 4
+// destinos por modo (lib/primaryNav.ts), só visível a partir de 769px.
+function DesktopSecondaryNav({ mode, pathname }: { mode: ExperienceMode; pathname: string }) {
+  const items = PRIMARY_NAV[mode] || PRIMARY_NAV.personal
+  const t = modeTheme(mode)
+  const isActive = (href: string) =>
+    href.startsWith('/inicio#') ? false
+      : href === '/inicio' ? pathname === '/inicio'
+      : pathname === href || pathname.startsWith(href + '/')
+  return (
+    <nav className="hdr-secondary-nav" aria-label="Navegação principal" style={{ display: 'none', alignItems: 'center', gap: 4, padding: '0 16px 8px' }}>
+      {items.map(it => {
+        const a = isActive(it.href)
+        return (
+          <Link key={it.href} href={it.href} style={{
+            display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 8,
+            textDecoration: 'none', fontSize: 13, fontWeight: a ? 800 : 600,
+            color: a ? t.accent : '#64748b', background: a ? t.accentSoft : 'transparent',
+          }}>
+            <Icon name={it.icon} size={16} stroke={a ? 2.3 : 2} />
+            {it.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
 
 type HeaderUser = {
   id: string
@@ -443,18 +477,21 @@ export default function Header() {
 
   if (isFamilyPortal) return null
 
+  // Modo clínico já tem a sua própria navegação densa (InstitutionShell) —
+  // esta faixa é só para quem se perde nos outros 3 modos, tal como a BottomNav.
+  const hasSecondaryNav = !loading && !!user && mode !== 'clinical'
+
   return (
     <>
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        height: 56,
         background: 'rgba(255,255,255,0.96)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: '1px solid rgba(0,0,0,0.07)',
         transition: 'background 0.25s, border-color 0.25s',
       }}>
-        <div style={{ height: '100%', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ height: 56, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* Logo — alinhado com o resto da identidade (gradient verde + serif) */}
           <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flexShrink: 0 }}>
@@ -544,14 +581,17 @@ export default function Header() {
           </div>
         </div>
 
+        {hasSecondaryNav && <DesktopSecondaryNav mode={mode} pathname={pathname} />}
+
         {/* Mode accent bar */}
         {!loading && user && (
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: modeColor, opacity: 0.75 }} />
         )}
       </header>
 
-      {/* Content spacer */}
-      {!isHomepage && <div style={{ height: 56 }} />}
+      {/* Content spacer — acompanha a altura real do header (56px, +faixa
+          secundária no desktop quando existe) para o conteúdo nunca ficar tapado. */}
+      {!isHomepage && <div className={hasSecondaryNav ? 'hdr-spacer hdr-spacer-secondary' : 'hdr-spacer'} />}
 
       {searchOpen && <SearchBar onClose={closeSearch} mode={mode} />}
 
@@ -580,9 +620,10 @@ export default function Header() {
           border-radius: 4px;
         }
 
-        /* Desktop: hide hamburger */
+        /* Desktop: hide hamburger, show a segunda faixa de navegação */
         @media (min-width:769px) {
-          .hdr-hamburger { display:none !important; }
+          .hdr-hamburger     { display:none !important; }
+          .hdr-secondary-nav { display:flex !important; }
         }
         /* Mobile: show hamburger (for non-clinical), hide desktop-only search elements */
         @media (max-width:768px) {
@@ -595,6 +636,12 @@ export default function Header() {
           /* Esconde a barra de contexto clínico (turno+data) no header em mobile.
              Está disponível dentro das páginas. */
           .hdr-clinical-context { display:none !important; }
+        }
+
+        /* Espaçador do conteúdo — acompanha a altura real do header. */
+        .hdr-spacer { height: 56px; }
+        @media (min-width:769px) {
+          .hdr-spacer-secondary { height: 96px; }
         }
         /* Notification bell pulse */
         .notif-bell-active {

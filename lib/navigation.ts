@@ -40,21 +40,21 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/sintomas',  icon: '🌡', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
       { href: '/vault',     icon: '🔒', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
-      { href: '/health-import', icon: '📥', label: 'Importar do Apple Health', desc: 'Traz o histórico de peso, tensão e frequência cardíaca de uma vez', modes: ['personal', 'caregiver'] },
       { href: '/timeline',  icon: '🗓', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
       { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
       { href: '/labs',      icon: '🧪', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
       { href: '/preventivo', icon: '🛡️', label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)' },
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
       { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
-      { href: '/plano-peso', icon: '⚖️', label: 'Plano de perda de peso', desc: 'Dieta e exercício contextualizados à tua medicação', badge: 'Pro' },
-      { href: '/rastreio-visual', icon: '🔬', label: 'Rastreio visual', desc: 'Risco dermatológico ABCDE por IA de visão', badge: 'Pro' },
-      { href: '/vigia-ruturas', icon: '📦', label: 'Vigia de ruturas', desc: 'Cruza a tua medicação com a lista oficial do INFARMED', badge: 'Pro' },
-      { href: '/minha-condicao', icon: '🩺', label: 'Painel da minha condição', desc: 'Medicação, vitais, sintomas e risco à volta da tua doença crónica', badge: 'Pro' },
-      { href: '/plano-recuperacao', icon: '🏥', label: 'Plano de recuperação', desc: 'Marcos realistas para o teu evento de saúde', badge: 'Pro' },
-      { href: '/revisao-medicacao', icon: '🔍', label: 'Revisão da minha medicação', desc: 'O motor de regras clínicas explicado em linguagem simples', badge: 'Pro' },
-      { href: '/exportar-saude', icon: '📄', label: 'Exportar o meu registo de saúde', desc: 'Medicação, vitais, sintomas e análises num PDF para o médico', badge: 'Pro' },
       { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
+      // CURADORIA 2026-07-21: eram 6 entradas Pro soltas aqui (rastreio visual,
+      // vigia de ruturas, painel da condição, plano de recuperação, revisão da
+      // medicação, exportar registo) — uma parede de itens parecidos, sem
+      // hierarquia. Consolidadas num hub só (/saude-avancada, ver check-nav.mjs
+      // KNOWN para os 6 hrefs originais, continuam alcançáveis a partir de lá).
+      // /health-import saiu da lista (continua acessível por link direto e
+      // pelos atalhos fixos em lib/pinnedTools.ts), só não polui esta lista.
+      { href: '/saude-avancada', icon: '🔬', label: 'Saúde avançada', desc: 'Painel da condição, revisão da medicação, plano de peso, rastreio visual, vigia de ruturas, plano de recuperação, exportar registo', badge: 'Pro' },
     ],
   },
   {

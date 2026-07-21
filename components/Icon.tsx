@@ -32,6 +32,9 @@ const PATHS: Record<string, React.ReactNode> = {
   layers: <><path d="M12 3l9 5-9 5-9-5z" /><path d="M3 13l9 5 9-5" /></>,
   plus: <><path d="M12 5v14M5 12h14" /></>,
   dots: <><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" /></>,
+  scale: <><path d="M12 3v18M12 6l-6 0M12 6l6 0M4 6l2.5 6a2.6 2.6 0 0 0 5 0L9 6M15 6l2.5 6a2.6 2.6 0 0 0 5 0L20 6M7 21h10" /></>,
+  package: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5L12 12l8-4.5M12 12v9" /></>,
+  download: <><path d="M12 3v12M8 11l4 4 4-4" /><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></>,
 }
 
 interface Props { name: string; size?: number; stroke?: number; color?: string; style?: CSSProperties }

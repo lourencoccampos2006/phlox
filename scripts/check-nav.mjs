@@ -42,6 +42,10 @@ const KNOWN = new Set([
   '/migrar',   // alcançável no onboarding /comecar-instituicao (import único)
   '/connect',  // alcançável via /settings (comunicação inter-profissional)
   '/equipa',   // alcançável a partir do /painel-dono (sub-secção de gestão da equipa)
+  // CURADORIA 2026-07-21: consolidadas em /saude-avancada (hub), que está no
+  // catálogo — tirar 6 entradas soltas da categoria Saúde do Explorar.
+  '/minha-condicao', '/revisao-medicacao', '/plano-peso',
+  '/rastreio-visual', '/vigia-ruturas', '/plano-recuperacao', '/exportar-saude',
 ])
 
 // getNavForMode filtra por categoria×modo; para o guard basta saber se o href
