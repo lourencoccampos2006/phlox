@@ -19,12 +19,20 @@ interface Vital { recorded_at: string; bp_sys?: number; bp_dia?: number; hr?: nu
 interface Symptom { at: string; symptoms?: string[]; pain?: number; temperature?: number; notes?: string }
 interface LabRecord { date: string; lab_name?: string; values: { name: string; value: string; unit?: string; reference?: string; status?: string }[] }
 interface ExportData { meds: Med[]; vitals: Vital[]; symptoms: Symptom[]; labs: LabRecord[]; generated_at: string }
+interface ShareSession { token: string; pin: string; expires_at: string }
 
 export default function ExportarSaudePage() {
   const { user, supabase } = useAuth() as any
   const [data, setData] = useState<ExportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+
+  // ── Partilhar por QR — mesma sessão temporária (QR+PIN) do /passport,
+  // pedida com as secções que este registo cobre (meds/vitais/sintomas; as
+  // análises não fazem parte do vocabulário de secções do Health Pass).
+  const [session, setSession] = useState<ShareSession | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [shareErr, setShareErr] = useState('')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -40,6 +48,25 @@ export default function ExportarSaudePage() {
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
+
+  async function createShare() {
+    setCreating(true); setShareErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/health-pass/session', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ sections: ['meds', 'vitals', 'symptoms'], minutes: 30 }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Não foi possível gerar o QR.')
+      setSession(j)
+    } catch (e: any) { setShareErr(e.message || 'Não foi possível gerar o QR.') }
+    finally { setCreating(false) }
+  }
+
+  const shareOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+  const shareUrl = session ? `${shareOrigin}/hp/${session.token}` : ''
+  const shareExpired = session ? new Date(session.expires_at).getTime() < Date.now() : false
 
   function exportPDF() {
     if (!data) return
@@ -130,6 +157,29 @@ export default function ExportarSaudePage() {
               📄 Gerar PDF completo
             </button>
             <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center' }}>Últimos 12 meses de vitais/sintomas · últimos 20 relatórios de análises · toda a medicação atual.</div>
+
+            <div style={card}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>📲 Ou mostrar por QR</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 12 }}>
+                Sem imprimir nada: gera um QR temporário (medicação, vitais e sintomas) para um profissional ler no telemóvel dele. Expira sozinho.
+              </div>
+              {shareErr && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{shareErr}</div>}
+              {session && !shareExpired ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`} alt="QR" style={{ width: 160, height: 160, borderRadius: 8, border: '1px solid var(--border)' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>PIN de acesso</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700, color: ACCENT, letterSpacing: '0.08em' }}>{session.pin}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>Válido até {new Date(session.expires_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <button onClick={() => navigator.clipboard?.writeText(shareUrl)} style={{ padding: '7px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)', marginTop: 4 }}>Copiar link</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={createShare} disabled={creating} style={{ width: '100%', padding: 12, background: 'white', border: `1.5px solid ${ACCENT}`, color: ACCENT, borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: creating ? 'wait' : 'pointer' }}>
+                  {creating ? 'A gerar…' : 'Gerar QR de partilha (30 min)'}
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>

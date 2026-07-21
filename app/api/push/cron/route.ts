@@ -119,6 +119,43 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ─── 1c. Atividade em perfis partilhados (viewer de "Partilhado comigo") ─────
+  // sprint115: o convite de visualização (sprint112) só avisava quem vê se
+  // abrisse a app. Aqui avisamos quando há medicação/vitais/sintomas NOVOS
+  // desde o último aviso (ou desde o resgate do código, à primeira vez) — nunca
+  // sobre o histórico inteiro do perfil.
+  const { data: activeShares } = await supabase
+    .from('family_profile_shares')
+    .select('id, profile_id, viewer_user_id, redeemed_at, last_activity_notified_at')
+    .not('viewer_user_id', 'is', null)
+    .is('revoked_at', null)
+
+  for (const share of activeShares || []) {
+    const since = share.last_activity_notified_at || share.redeemed_at
+    if (!since) continue
+    const [{ count: medCount }, { data: latestVital }, { data: latestSymptom }] = await Promise.all([
+      supabase.from('family_profile_meds').select('id', { count: 'exact', head: true }).eq('profile_id', share.profile_id).gt('created_at', since),
+      supabase.from('vitals').select('recorded_at').eq('profile_id', share.profile_id).gt('recorded_at', since).order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('symptom_logs').select('at').eq('profile_id', share.profile_id).gt('at', since).order('at', { ascending: false }).limit(1).maybeSingle().then((r: any) => r, () => ({ data: null })),
+    ])
+    if ((medCount || 0) === 0 && !latestVital && !latestSymptom) continue
+
+    const { data: prof } = await supabase.from('family_profiles').select('name').eq('id', share.profile_id).maybeSingle()
+    const who = (prof?.name || 'Familiar').split(' ')[0]
+    const { data: subs } = await supabase.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', share.viewer_user_id)
+    for (const sub of subs || []) {
+      const ok = await sendPushNotification(sub, {
+        title: `Phlox — ${who}`,
+        body: `Há novidades na saúde de ${who} que partilharam consigo.`,
+        url: '/partilhado-comigo',
+        tag: `share-activity-${share.id}-${nowHHMM}`,
+      })
+      if (ok) sent++
+      else { errors++; await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint) }
+    }
+    await supabase.from('family_profile_shares').update({ last_activity_notified_at: new Date().toISOString() }).eq('id', share.id)
+  }
+
   // ─── 2. MAR omission alerts (near shift end) ─────────────────────────────────
   // Shift end windows: manhã ends ~13:45-14:15, tarde ~20:45-21:15, noite ~6:45-7:15
   const SHIFT_END_WINDOWS: Record<string, [string, string]> = {

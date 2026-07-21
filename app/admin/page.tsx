@@ -44,7 +44,9 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<RecentUser[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'users' | 'searches'>('overview')
+  const [tab, setTab] = useState<'overview' | 'users' | 'searches' | 'ia'>('overview')
+  const [aiUsage, setAiUsage] = useState<{ month: string; free_tier: { key: string; count: number }[]; pro_tier: { key: string; count: number }[]; total_calls: number } | null>(null)
+  const [aiUsageLoading, setAiUsageLoading] = useState(false)
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email || '')
 
@@ -110,6 +112,20 @@ export default function AdminPage() {
     setLoading(false)
   }
 
+  const loadAiUsage = async () => {
+    if (!isAdmin) return
+    setAiUsageLoading(true)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/ai-usage', { headers: { Authorization: `Bearer ${sd?.session?.access_token || ''}` } })
+      const j = await res.json()
+      if (res.ok) setAiUsage(j)
+    } catch (e) { console.error(e) }
+    setAiUsageLoading(false)
+  }
+
+  useEffect(() => { if (tab === 'ia' && !aiUsage) loadAiUsage() }, [tab])
+
   const upgradeUser = async (userId: string, plan: string) => {
     await supabase.from('profiles').update({ plan }).eq('id', userId)
     setUsers(p => p.map(u => u.id === userId ? { ...u, plan } : u))
@@ -141,10 +157,10 @@ export default function AdminPage() {
             <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>ADMIN</span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
-            {(['overview', 'users', 'searches'] as const).map(t => (
+            {(['overview', 'users', 'searches', 'ia'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 style={{ padding: '6px 12px', background: tab === t ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, color: tab === t ? 'white' : 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : 'Pesquisas'}
+                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : t === 'searches' ? 'Pesquisas' : 'IA'}
               </button>
             ))}
             <button onClick={loadData} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>↻ Refresh</button>
@@ -289,6 +305,51 @@ export default function AdminPage() {
                 As pesquisas são carregadas da tabela <code>search_history</code> no Supabase. Abre o painel de utilizadores para ver por utilizador.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* ── IA (visibilidade de custo, sugestão 7 da auditoria) ───────────── */}
+        {tab === 'ia' && (
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Uso de IA este mês{aiUsage ? ` · ${aiUsage.month}` : ''}</h2>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 18 }}>
+              Não bloqueia ninguém — é só visibilidade de quanto está a ser usado, antes de doer.
+            </div>
+            {aiUsageLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>A carregar…</div>}
+            {aiUsage && (
+              <>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px', marginBottom: 20, maxWidth: 260 }}>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Total de chamadas de IA</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{aiUsage.total_calls}</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
+                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas gratuitas/Plus (com limite diário)</div>
+                    {aiUsage.free_tier.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Sem uso registado.</div> : aiUsage.free_tier.map(({ key, count }, i) => (
+                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--bg-3)' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', minWidth: 16 }}>{i + 1}</span>
+                          <span style={{ fontSize: 13, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{key}</span>
+                        </div>
+                        <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
+                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Rotas Pro com orçamento próprio</div>
+                    {aiUsage.pro_tier.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Sem uso registado.</div> : aiUsage.pro_tier.map(({ key, count }, i) => (
+                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--bg-3)' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', minWidth: 16 }}>{i + 1}</span>
+                          <span style={{ fontSize: 13, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{key}</span>
+                        </div>
+                        <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
