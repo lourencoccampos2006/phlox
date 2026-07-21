@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import type { ExperienceMode } from '@/lib/experienceMode'
-import { modeTheme, isPremiumMode } from '@/lib/modeTheme'
+import { modeTheme } from '@/lib/modeTheme'
 
 interface NavItem { href: string; label: string; icon: React.ReactNode }
 
@@ -72,7 +72,6 @@ export default function BottomNav() {
 
   const items = NAV[mode] || NAV.personal
   const t = modeTheme(mode)
-  const premium = isPremiumMode(mode)
   const active = t.accent
   const inactive = t.inkFaint
 
@@ -83,11 +82,7 @@ export default function BottomNav() {
 
   return (
     <nav className="phlox-bottom-nav" aria-label="Navegação principal"
-      style={{
-        ['--bn-active' as any]: active,
-        background: premium ? 'rgba(17,17,26,0.94)' : 'rgba(255,255,255,0.97)',
-        borderTop: `1px solid ${premium ? t.border : 'rgba(0,0,0,0.08)'}`,
-      }}>
+      style={{ ['--bn-active' as any]: active }}>
       {items.map(it => {
         const a = isActive(it.href)
         const iconFn = it.label === 'Início' ? I.home : it.label === 'Medicação' ? I.pill
@@ -105,9 +100,20 @@ export default function BottomNav() {
         .phlox-bottom-nav {
           position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
           display: none;
+          background: rgba(255,255,255,0.97);
+          border-top: 1px solid rgba(0,0,0,0.08);
           backdrop-filter: blur(14px) saturate(160%);
           -webkit-backdrop-filter: blur(14px) saturate(160%);
           padding-bottom: env(safe-area-inset-bottom, 0px);
+          /* Sem isto, o iOS Safari "destacava" a barra do fundo real do ecrã
+             durante o bounce de overscroll — ficava a meio do ecrã até ao
+             próximo toque. translateZ força a barra para a sua própria camada
+             de composição, em vez de repintar junto com o resto da página. */
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          will-change: transform;
         }
         .phlox-bottom-nav .bn-item {
           flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;

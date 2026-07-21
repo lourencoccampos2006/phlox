@@ -76,6 +76,10 @@ body {
   overflow-x: hidden;
   width: 100%;
   letter-spacing: -0.01em;
+  /* Trava o "elastic bounce" do scroll no telemóvel — sem isto, arrastar para
+     além do fim da página fazia a barra de navegação fixa (BottomNav) parecer
+     destacar-se e ficar a meio do ecrã até ao toque seguinte. */
+  overscroll-behavior-y: none;
 }
 
 * { max-width: 100%; }

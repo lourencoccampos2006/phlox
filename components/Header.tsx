@@ -150,8 +150,8 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
 
 // ─── UserMenu ─────────────────────────────────────────────────────────────────
 
-function UserMenu({ user, signOut, supabase, isDark }: {
-  user: HeaderUser; signOut: () => void; supabase: any; isDark: boolean
+function UserMenu({ user, signOut, supabase }: {
+  user: HeaderUser; signOut: () => void; supabase: any
 }) {
   const [open, setOpen] = useState(false)
   const [dropRight, setDropRight] = useState(20)
@@ -201,8 +201,8 @@ function UserMenu({ user, signOut, supabase, isDark }: {
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
           padding: '4px 8px 4px 4px',
-          background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'}`,
+          background: '#f1f5f9',
+          border: '1px solid #e2e8f0',
           borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
         }}>
         <div style={{
@@ -214,13 +214,13 @@ function UserMenu({ user, signOut, supabase, isDark }: {
         </div>
         <span className="hdr-user-name" style={{
           fontSize: 13, fontWeight: 600,
-          color: isDark ? 'rgba(255,255,255,0.85)' : '#374151',
+          color: '#374151',
           maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {user.name?.split(' ')[0]}
         </span>
         <svg className="hdr-user-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none"
-          stroke={isDark ? 'rgba(255,255,255,0.5)' : '#9ca3af'}
+          stroke="#9ca3af"
           strokeWidth="2.5" strokeLinecap="round">
           <path d="M6 9l6 6 6-6"/>
         </svg>
@@ -426,9 +426,6 @@ export default function Header() {
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal
   const modeColor = modeMeta.color
-  // Premium (clínico + estudante) = header escuro, coerente com o /inicio dark.
-  const isDark = user ? (mode === 'clinical' || mode === 'student') : false
-  const headerBg = isDark ? (mode === 'student' ? '#0b0b12' : '#0f172a') : 'rgba(255,255,255,0.96)'
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -451,10 +448,10 @@ export default function Header() {
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         height: 56,
-        background: headerBg,
-        backdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
-        borderBottom: `1px solid ${isDark ? '#1e293b' : 'rgba(0,0,0,0.07)'}`,
+        background: 'rgba(255,255,255,0.96)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        borderBottom: '1px solid rgba(0,0,0,0.07)',
         transition: 'background 0.25s, border-color 0.25s',
       }}>
         <div style={{ height: '100%', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -463,15 +460,15 @@ export default function Header() {
           <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
               width: 28, height: 28, borderRadius: 8,
-              background: isDark ? 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)' : 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)',
+              background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: isDark ? 'none' : '0 2px 6px -2px rgba(13,110,66,0.35)',
+              boxShadow: '0 2px 6px -2px rgba(13,110,66,0.35)',
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M12 3v18M3 12h18"/>
               </svg>
             </div>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: isDark ? 'white' : '#0b1120', letterSpacing: '-0.015em' }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: '#0b1120', letterSpacing: '-0.015em' }}>
               Phlox
             </span>
           </Link>
@@ -496,12 +493,12 @@ export default function Header() {
                 {mode === 'clinical' && (() => {
                   const h = new Date().getHours()
                   const shift = h >= 8 && h < 16 ? 'Manhã' : h >= 16 ? 'Tarde' : 'Noite'
-                  const shiftColor = h >= 8 && h < 16 ? '#fbbf24' : h >= 16 ? '#818cf8' : '#38bdf8'
+                  const shiftColor = h >= 8 && h < 16 ? '#b45309' : h >= 16 ? '#6d28d9' : '#1d4ed8'
                   const dateStr = new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })
                   return (
-                    <div className="hdr-clinical-context" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontVariantNumeric: 'tabular-nums' }}>{dateStr}</span>
-                      <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
+                    <div className="hdr-clinical-context" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                      <span style={{ fontSize: 12, color: '#94a3b8', fontVariantNumeric: 'tabular-nums' }}>{dateStr}</span>
+                      <span style={{ width: 1, height: 14, background: '#e2e8f0', flexShrink: 0 }} />
                       <span style={{ fontSize: 11, fontWeight: 600, color: shiftColor, display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: shiftColor, display: 'inline-block' }} />
                         Turno {shift}
@@ -512,7 +509,7 @@ export default function Header() {
 
                 <NotificationBell />
 
-                <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} /></span>
+                <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} /></span>
 
                 {/* Hamburger — mobile only (always available so there's a clear menu) */}
                 <button
@@ -522,11 +519,11 @@ export default function Header() {
                   style={{
                     width: 34, height: 34, display: 'none', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', gap: 4,
-                    background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'transparent'}`, borderRadius: 7,
+                    background: '#f1f5f9',
+                    border: '1px solid transparent', borderRadius: 7,
                     cursor: 'pointer', flexShrink: 0,
                   }}>
-                  {[16, 11, 16].map((w, i) => <span key={i} style={{ width: w, height: 1.5, background: isDark ? 'rgba(255,255,255,0.85)' : '#374151', borderRadius: 1, display: 'block' }} />)}
+                  {[16, 11, 16].map((w, i) => <span key={i} style={{ width: w, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />)}
                 </button>
               </>
             )}
