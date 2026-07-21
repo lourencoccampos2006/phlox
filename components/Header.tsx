@@ -510,27 +510,6 @@ export default function Header() {
                   )
                 })()}
 
-                {/* Search — desktop only */}
-                <button
-                  onClick={() => setSearchOpen(true)}
-                  className="hdr-search-btn"
-                  title="Pesquisar ferramentas (⌘K)"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: isDark ? 0 : 7,
-                    padding: isDark ? '7px' : '6px 14px', borderRadius: 9,
-                    background: isDark ? 'rgba(255,255,255,0.07)' : '#f1f5f9',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
-                    cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8',
-                    fontSize: 13, fontFamily: 'inherit', minWidth: isDark ? 32 : 'auto',
-                    justifyContent: 'center',
-                  }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                  </svg>
-                  {!isDark && <span style={{ color: '#94a3b8' }}>Ferramentas e páginas...</span>}
-                  {!isDark && <kbd className="hdr-search-kbd" style={{ fontSize: 10, color: '#cbd5e1', background: 'white', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>⌘K</kbd>}
-                </button>
-
                 <NotificationBell />
 
                 <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} isDark={isDark} /></span>
@@ -611,7 +590,6 @@ export default function Header() {
         /* Mobile: show hamburger (for non-clinical), hide desktop-only search elements */
         @media (max-width:768px) {
           .hdr-hamburger     { display:flex !important; }
-          .hdr-search-btn    { display:none !important; }
           .hdr-user-name     { display:none !important; }
           .hdr-user-chevron  { display:none !important; }
           .hdr-usermenu      { display:none !important; }
@@ -620,11 +598,6 @@ export default function Header() {
           /* Esconde a barra de contexto clínico (turno+data) no header em mobile.
              Está disponível dentro das páginas. */
           .hdr-clinical-context { display:none !important; }
-        }
-        /* Medium desktop: hide search label/kbd */
-        @media (max-width:1100px) {
-          .hdr-search-label { display:none !important; }
-          .hdr-search-kbd   { display:none !important; }
         }
         /* Notification bell pulse */
         .notif-bell-active {

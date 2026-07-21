@@ -24,6 +24,14 @@ const PATHS: Record<string, React.ReactNode> = {
   question: <><circle cx="12" cy="12" r="9" /><path d="M9.2 9.5a2.8 2.8 0 0 1 5.4 1c0 1.8-2.6 2-2.6 3.5" /><circle cx="12" cy="17.4" r="0.6" fill="currentColor" stroke="none" /></>,
   search: <><circle cx="11" cy="11" r="7.5" /><path d="M21 21l-4.3-4.3" /></>,
   user: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></>,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>,
+  flame: <><path d="M12 3c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1.5-1-2-1-3.5 2 1 3 3 3 5.5a5 5 0 0 1-10 0c0-4 3-6 3-8 0-1 0-1.5 2-2z" /></>,
+  sliders: <><path d="M5 6h14M5 12h14M5 18h14" /><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none" /><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none" /><circle cx="10" cy="18" r="1.8" fill="currentColor" stroke="none" /></>,
+  briefcase: <><rect x="3" y="8" width="18" height="12" rx="2" /><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18" /></>,
+  compass: <><circle cx="12" cy="12" r="9" /><path d="M15 9l-2 5-5 2 2-5z" /></>,
+  layers: <><path d="M12 3l9 5-9 5-9-5z" /><path d="M3 13l9 5 9-5" /></>,
+  plus: <><path d="M12 5v14M5 12h14" /></>,
+  dots: <><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" /></>,
 }
 
 interface Props { name: string; size?: number; stroke?: number; color?: string; style?: CSSProperties }

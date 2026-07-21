@@ -8,7 +8,6 @@
 // própria barra inferior): usamos env(safe-area-inset-bottom) + padding extra,
 // e o layout adiciona um espaçador para o conteúdo nunca ficar tapado.
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
@@ -42,19 +41,19 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/inicio', label: 'Início', icon: I.home(false) },
     { href: '/mymeds', label: 'Medicação', icon: I.pill(false) },
     { href: '/sintomas', label: 'Saúde', icon: I.heart(false) },
-    { href: '/inicio?ver=tudo', label: 'Tudo', icon: I.grid(false) },
+    { href: '/inicio#explorar', label: 'Explorar', icon: I.grid(false) },
   ],
   caregiver: [
     { href: '/inicio', label: 'Início', icon: I.home(false) },
     { href: '/familia', label: 'Família', icon: I.family(false) },
     { href: '/mymeds', label: 'Medicação', icon: I.pill(false) },
-    { href: '/inicio?ver=tudo', label: 'Tudo', icon: I.grid(false) },
+    { href: '/inicio#explorar', label: 'Explorar', icon: I.grid(false) },
   ],
   student: [
     { href: '/inicio', label: 'Início', icon: I.home(false) },
     { href: '/study', label: 'Estudar', icon: I.book(false) },
     { href: '/arena', label: 'Arena', icon: I.trophy(false) },
-    { href: '/inicio?ver=tudo', label: 'Tudo', icon: I.grid(false) },
+    { href: '/inicio#explorar', label: 'Explorar', icon: I.grid(false) },
   ],
 }
 
@@ -62,11 +61,6 @@ const NAV: Record<string, NavItem[]> = {
 export default function BottomNav() {
   const { user, loading } = useAuth() as any
   const pathname = usePathname()
-  // REDESIGN 2026-07-17: a "Tudo" já não é uma rota própria, é ?ver=tudo em
-  // /inicio — pathname sozinho não distingue as 2 vistas, por isso lê a query
-  // string num efeito (não no render, para não desalinhar SSR/hidratação).
-  const [search, setSearch] = useState('')
-  useEffect(() => { setSearch(window.location.search) }, [pathname])
 
   if (loading || !user) return null
   const mode: ExperienceMode = user.experience_mode || 'personal'
@@ -82,10 +76,9 @@ export default function BottomNav() {
   const active = t.accent
   const inactive = t.inkFaint
 
-  const onTudoView = pathname === '/inicio' && search.includes('ver=tudo')
   const isActive = (href: string) =>
-    href === '/inicio?ver=tudo' ? onTudoView
-      : href === '/inicio' ? (pathname === '/inicio' && !onTudoView)
+    href.startsWith('/inicio#') ? false
+      : href === '/inicio' ? pathname === '/inicio'
       : pathname === href || pathname.startsWith(href + '/')
 
   return (

@@ -27,8 +27,8 @@ export default function WelcomeTour({ mode = 'personal' }: { mode?: string }) {
   if (!show) return null
 
   const line = mode === 'student'
-    ? 'No botão "Para ti" mostro-lhe sempre o melhor passo seguinte. No botão "Tudo o que o Phlox faz" encontra tudo o resto, organizado.'
-    : 'No botão "Para ti" mostro-lhe o que precisa agora. No botão "Tudo o que o Phlox faz" encontra tudo o resto, organizado por assunto.'
+    ? 'Aqui em cima vê o seu progresso e atalhos — escolha o que aparece em Definições. Mais abaixo, em "Explorar", encontra tudo o resto.'
+    : 'Aqui em cima vê o que precisa agora — escolha o que aparece em Definições. Mais abaixo, em "Explorar", encontra tudo o resto, organizado por assunto.'
 
   return (
     <div style={{

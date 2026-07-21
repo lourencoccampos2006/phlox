@@ -60,8 +60,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'caregiver', label: 'Cuidador', color: '#b45309',
     tools: [
-      { href: '/familia',    icon: '🏠',   label: 'A minha família',    desc: 'A saúde de cada pessoa num só sítio' },
-      { href: '/familia',     icon: '👤',   label: 'Gerir perfis',       desc: 'Adicionar e editar familiares' },
+      { href: '/familia',    icon: '🏠',   label: 'A minha família',    desc: 'A saúde de cada pessoa num só sítio, perfis para adicionar e editar' },
       { href: '/dose-crianca', icon: '🧒', label: 'Dose para crianças', desc: 'Por peso e por medicamento' },
     ],
   },
@@ -97,7 +96,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/study',     icon: '🃏', label: 'Flashcards',       desc: '200+ tópicos com repetição espaçada' },
       { href: '/anatomia-3d', icon: '🫀', label: 'Explorar em 3D', desc: 'Atlas 3D real · pesquisa + AR', badge: 'Premium' },
       { href: '/tutor',     icon: '🤖', label: 'Tutor passo a passo', desc: 'Explica e faz-te pensar' },
-      { href: '/arena', icon: '📈', label: 'O meu progresso',  desc: 'XP e dias seguidos' },
     ],
   },
 ]
@@ -146,8 +144,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/scan',         icon: '📷', label: 'Foto',        desc: 'Foto a uma receita ou caixa' },
   ],
   caregiver: [
-    { href: '/familia',      icon: '👨‍👩‍👧', label: 'Dashboard',  desc: 'Resumo de todos os familiares', badge: 'Novo' },
-    { href: '/familia',       icon: '👤',   label: 'Perfis',     desc: 'Gerir perfis familiares' },
+    { href: '/familia',      icon: '👨‍👩‍👧', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },
     { href: '/mymeds',       icon: '💊',   label: 'Medicação',  desc: 'Lista e lembretes' },
     { href: '/interactions', icon: '🔍',   label: 'Verificar',  desc: 'São seguros juntos?' },
     { href: '/calendario-meds', icon: '⏰',   label: 'Horário de toma', desc: 'A que horas devo tomar cada medicamento' },
@@ -170,6 +167,5 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/study',     icon: '🃏', label: 'Estudar',   desc: 'Flashcards e quizzes' },
     { href: '/tutor',     icon: '🤖', label: 'Tutor AI',  desc: 'Explicações passo a passo' },
     { href: '/osce',      icon: '🎯', label: 'OSCE',      desc: 'Simulação de exame' },
-    { href: '/arena', icon: '📈', label: 'Progresso', desc: 'XP e streak' },
   ],
 }

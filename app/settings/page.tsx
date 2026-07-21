@@ -10,6 +10,7 @@ import { planById, planName } from '@/lib/plans'
 import SecuritySettings from '@/components/settings/SecuritySettings'
 import HealthGoalPicker from '@/components/HealthGoalPicker'
 import PinPickerGrid from '@/components/PinPickerGrid'
+import ModuleToggleList from '@/components/ModuleToggleList'
 import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 import { activatePush as activatePushShared } from '@/lib/pushActivation'
 
@@ -136,13 +137,11 @@ function SettingsPage() {
   }, [])
 
   // Picker de atalhos fixos — só para modos não-clínicos. No clínico, as
-  // ferramentas vêm do blueprint da instituição (não se escolhem).
-  // REDESIGN 2026-07-17: era um liga/desliga de visibilidade (TOOL_CATEGORIES);
-  // desde que /inicio passou a ter a vista "Tudo o que o Phlox faz" sempre
-  // completa e pesquisável, esconder ferramentas deixou de fazer sentido — o
-  // que os utilizadores queriam mesmo era escolher os SEUS atalhos, que é
-  // exatamente o que o botão "Personalizar" em /inicio já abre. Aqui é o
-  // mesmo seletor, "nas definições" como o Fernando pediu.
+  // ferramentas vêm do blueprint da instituição (não se escolhem). A secção
+  // "Explorar" no fundo de /inicio já mostra tudo, sempre, organizado por
+  // assunto — esconder ferramentas não faz sentido; o que resta escolher
+  // aqui são os atalhos fixos (mesmo seletor do botão "Personalizar" em
+  // /inicio), mais o liga/desliga de secções (ModuleToggleList) acima.
   const notClinical = expMode !== 'clinical'
   const [pinIds, setPinIds] = useState<string[]>([])
   useEffect(() => { setPinIds(getPins()) }, [])
@@ -352,17 +351,22 @@ function SettingsPage() {
           </div>
         )}
 
-        {/* Picker de atalhos — só modos não-clínicos. No clínico vem do blueprint. */}
+        {/* Picker de atalhos + módulos — só modos não-clínicos. No clínico vem do blueprint. */}
         {tab === 'ferramentas' && notClinical && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Os teus atalhos</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>A tua página de início</div>
               <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55 }}>
-                Escolhe até 6 ferramentas para aparecerem sempre à mão na tua página de início. Para veres tudo o
-                resto, abre "Tudo o que o Phlox faz" no início — está sempre lá, organizado e com pesquisa.
+                Escolhe que secções aparecem e que ferramentas ficam sempre à mão. Tudo o resto continua
+                sempre acessível mais abaixo no início, organizado por assunto.
               </div>
             </div>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Secções</div>
+              <ModuleToggleList mode={expMode} />
+            </div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Atalhos fixos</div>
               <PinPickerGrid pins={pinIds} onToggle={togglePin} />
             </div>
           </div>
