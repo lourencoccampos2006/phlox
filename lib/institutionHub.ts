@@ -52,7 +52,7 @@ const T = {
   tarefas:    { href: '/tarefas-equipa', label: 'Tarefas da equipa', desc: 'Quadro de tarefas — todas as funções', icon: '✅', isNew: true },
   stock:      { href: '/stock', label: 'Stock & validades', desc: 'Existências, prazos e ruturas', icon: '📦', isNew: true },
   schedule:   { href: '/equipa?tab=escalas', label: 'Escalas & turnos', desc: 'Quem está de serviço', icon: '🗓️' },
-  team:       { href: '/team', label: 'Equipa', desc: 'Membros, funções e contactos', icon: '👥' },
+  team:       { href: '/equipa?tab=escalas', label: 'Equipa', desc: 'Membros, funções e contactos', icon: '👥' },
   roi:        { href: '/painel-dono?tab=desempenho', label: 'Indicadores & desempenho', desc: 'Receita, atividade e tendências reais', icon: '📊', roles: ['administrator', 'coordinator', 'pharmacist_director'] as ClinicalRole[] },
 
   // Secretaria & doentes (NOVAS)

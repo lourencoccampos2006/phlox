@@ -47,6 +47,9 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
       { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
       { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
+      // CURADORIA 2026-07-22: só era alcançável a partir de /checkout/success
+      // (nunca mais depois disso) — auditoria de ferramentas apanhou-a órfã.
+      { href: '/strategy',  icon: '🧭', label: 'Simulador de estratégia', desc: 'Compara caminhos possíveis para a tua medicação', badge: 'Pro' },
       // CURADORIA 2026-07-21: eram 6 entradas Pro soltas aqui (rastreio visual,
       // vigia de ruturas, painel da condição, plano de recuperação, revisão da
       // medicação, exportar registo) — uma parede de itens parecidos, sem
@@ -96,6 +99,10 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/study',     icon: '🃏', label: 'Flashcards',       desc: '200+ tópicos com repetição espaçada' },
       { href: '/anatomia-3d', icon: '🫀', label: 'Explorar em 3D', desc: 'Atlas 3D real · pesquisa + AR', badge: 'Premium' },
       { href: '/tutor',     icon: '🤖', label: 'Tutor passo a passo', desc: 'Explica e faz-te pensar' },
+      // CURADORIA 2026-07-22: "Turno Virtual" — reconstruída em 2026-05-31
+      // (APIs /api/shift/generate e /api/shift/evaluate já reais) mas nunca
+      // chegou a ser ligada a nenhum menu. Auditoria de ferramentas apanhou-a órfã.
+      { href: '/shift',     icon: '🏥', label: 'Turno virtual',     desc: 'Simula um turno completo, decisão a decisão' },
     ],
   },
 ]

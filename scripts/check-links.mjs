@@ -75,6 +75,7 @@ const NAV_SOURCES = [
   'lib/toolRegistry.ts',
   'lib/navigation.ts',
   'lib/institutionBlueprint.ts',
+  'lib/institutionHub.ts',
   'components/Header.tsx',
   'components/ClientLayout.tsx',
   'components/BottomNav.tsx',
