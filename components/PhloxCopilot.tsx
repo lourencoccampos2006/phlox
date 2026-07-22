@@ -78,6 +78,13 @@ export default function PhloxCopilot() {
   const isPro = user?.plan === 'pro' || user?.plan === 'clinic'
   const isPublic = !user || isPublicPath(pathname)
 
+  // Mesma regra de visibilidade da BottomNav (components/BottomNav.tsx) — para
+  // saber, no mobile, se o botão do Copilot precisa de subir para não ficar
+  // em cima da barra de navegação inferior (era a bola "incomodativa": as
+  // duas coisas fixas disputavam o mesmo canto inferior direito do ecrã).
+  const hasBottomNav = !!user && (user.experience_mode || 'personal') !== 'clinical'
+    && !(pathname.startsWith('/portal-familia') || pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
+
   // Acompanha o contexto publicado pelas ferramentas
   useEffect(() => {
     const update = () => setCtxLabel(getPhloxContext()?.label || '')
@@ -88,9 +95,17 @@ export default function PhloxCopilot() {
   // Sincroniza o perfil/doente ativo sempre que o painel abre (e à entrada).
   useEffect(() => { if (open) setActiveProf(getActiveProfile()) }, [open])
 
-  // Posição inicial e persistência do botão
+  // Posição inicial e persistência do botão — limitada ao ecrã ATUAL. Sem
+  // isto, uma posição guardada num ecrã maior (ex: desktop) podia cair fora
+  // do ecrã (ou por cima de outro conteúdo) ao abrir num telemóvel mais
+  // pequeno, já que só o arrasto em si tinha limites (não a leitura inicial).
   useEffect(() => {
-    try { const s = localStorage.getItem('phlox_copilot_pos'); if (s) setPos(JSON.parse(s)) } catch {}
+    try {
+      const s = localStorage.getItem('phlox_copilot_pos')
+      if (!s) return
+      const p = JSON.parse(s)
+      setPos({ x: Math.max(8, Math.min(window.innerWidth - 60, p.x)), y: Math.max(8, Math.min(window.innerHeight - 60, p.y)) })
+    } catch {}
   }, [])
 
   // Atalho de teclado Cmd/Ctrl+K
@@ -190,6 +205,7 @@ export default function PhloxCopilot() {
   const btnStyle: React.CSSProperties = pos
     ? { position: 'fixed', left: pos.x, top: pos.y, zIndex: 9000 }
     : { position: 'fixed', bottom: 20, right: 20, zIndex: 9000 }
+  const btnClassName = !pos && hasBottomNav ? 'copilot-fab copilot-fab-avoid-nav' : 'copilot-fab'
 
   return (
     <>
@@ -200,6 +216,7 @@ export default function PhloxCopilot() {
           onClick={() => { if (dragRef.current?.moved) return; const s = window.getSelection()?.toString() || ''; setSelection(s.slice(0, 1500)); setOpen(true) }}
           aria-label="Abrir Phlox Copilot"
           title={ctxLabel ? `Copilot · sabe: ${ctxLabel}` : 'Phlox Copilot (⌘K)'}
+          className={btnClassName}
           style={{
             ...btnStyle, touchAction: 'none',
             width: 52, height: 52, borderRadius: '50%', border: '1px solid #23262d',
@@ -209,9 +226,15 @@ export default function PhloxCopilot() {
           {ctxLabel && <span style={{ position: 'absolute', top: -3, right: -3, width: 12, height: 12, borderRadius: '50%', background: '#0d6e42', border: '2px solid white' }} />}
         </button>
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .copilot-fab-avoid-nav { bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 14px) !important; }
+          .copilot-panel-avoid-nav { bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 14px) !important; }
+        }
+      `}</style>
 
       {open && (
-        <div style={{
+        <div className={hasBottomNav ? 'copilot-panel copilot-panel-avoid-nav' : 'copilot-panel'} style={{
           position: 'fixed', bottom: 20, right: 20, zIndex: 9001,
           width: 'min(400px, calc(100vw - 32px))', height: 'min(560px, calc(100vh - 100px))',
           background: 'white', border: '1px solid #e7e8ea', borderRadius: 14,
