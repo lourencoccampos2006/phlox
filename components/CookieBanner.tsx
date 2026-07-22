@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getConsent, setConsent } from '@/lib/consent'
 
 // Banner de consentimento de cookies (RGPD / ePrivacy). Só aparece enquanto o
@@ -9,18 +9,37 @@ import { getConsent, setConsent } from '@/lib/consent'
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const t = setTimeout(() => { if (getConsent() === 'unset') setVisible(true) }, 400)
     return () => clearTimeout(t)
   }, [])
 
+  // BUG CORRIGIDO 2026-07-22: sendo position:fixed, o banner não reserva
+  // espaço no fluxo da página (ao contrário da BottomNav, que tem a classe
+  // .has-bottom-nav para isso) — conteúdo real no fundo da página (ex: as
+  // categorias do Explorar em /inicio) ficava por baixo do banner e os
+  // toques/cliques eram engolidos por ele em vez de chegarem ao conteúdo,
+  // parecendo simplesmente "não responder". Reserva-se o espaço equivalente
+  // à altura real do banner enquanto ele está visível.
+  useEffect(() => {
+    if (!visible) { document.body.style.paddingBottom = ''; return }
+    const el = ref.current
+    if (!el) return
+    const apply = () => { document.body.style.paddingBottom = `${el.offsetHeight}px` }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(el)
+    return () => { ro.disconnect(); document.body.style.paddingBottom = '' }
+  }, [visible])
+
   const choose = (state: 'accepted' | 'declined') => { setConsent(state); setVisible(false) }
 
   if (!visible) return null
 
   return (
-    <div style={{
+    <div ref={ref} style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
       background: 'white', borderTop: '1px solid var(--border)',
       padding: '16px clamp(16px,4vw,32px)',
