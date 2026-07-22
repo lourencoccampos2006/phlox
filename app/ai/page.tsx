@@ -830,7 +830,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               </div>
             )}
 
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={onFilePick} style={{ display: 'none' }} />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={onFilePick} style={{ display: 'none' }} />
 
             <div className="ai-input-card" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'white', border: '1.5px solid var(--border)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 0 rgba(8,12,24,0.02), 0 8px 24px -16px rgba(8,12,24,0.12)', transition: 'border-color 0.15s, box-shadow 0.15s' }}>
               <textarea

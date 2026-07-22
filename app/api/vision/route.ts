@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 
-type VisionMode = 'prescription' | 'drug_id' | 'symptom' | 'lab_results' | 'drug_list' | 'skin_lesion'
+type VisionMode = 'prescription' | 'drug_id' | 'symptom' | 'lab_results' | 'drug_list' | 'skin_lesion' | 'skin_condition_progress'
 
 const PROMPTS: Record<VisionMode, string> = {
   prescription: `Analyze this medical prescription or medication packaging image.
@@ -58,6 +58,7 @@ Return ONLY valid JSON with no markdown:
   skin_lesion: `You are a dermatology-informed image assessment tool (NOT a diagnostic device — this is informational triage support only). Assess the skin lesion/mole visible in this image using the ABCDE criteria used for melanoma risk screening. Be conservative: when uncertain, lean toward flagging for professional review rather than reassurance.
 Return ONLY valid JSON with no markdown, values in European Portuguese where they are text:
 {
+  "lesion_detected": true,
   "asymmetry": "descrição curta — simétrico ou assimétrico, e porquê",
   "border": "descrição curta — bordo regular ou irregular/mal definido",
   "color": "descrição curta — cor uniforme ou várias tonalidades (castanho, preto, vermelho, azulado)",
@@ -68,7 +69,22 @@ Return ONLY valid JSON with no markdown, values in European Portuguese where the
   "recommendation": "frase curta e clara sobre o que fazer a seguir",
   "confidence": "high" | "medium" | "low"
 }
-Se a imagem não mostrar claramente uma lesão de pele: {"asymmetry": null, "border": null, "color": null, "diameter_estimate_mm": null, "evolution_note": null, "risk_score": 0, "risk_level": "baixo", "recommendation": "Não foi possível identificar uma lesão de pele nesta imagem — tenta uma foto mais próxima e bem iluminada.", "confidence": "low"}`,
+Se a imagem não mostrar claramente uma lesão de pele (desfocada, mal enquadrada, ou não é pele): {"lesion_detected": false, "asymmetry": null, "border": null, "color": null, "diameter_estimate_mm": null, "evolution_note": null, "risk_score": null, "risk_level": null, "recommendation": "Não foi possível identificar uma lesão de pele nesta imagem — tenta uma foto mais próxima e bem iluminada.", "confidence": "low"}
+IMPORTANTE: "lesion_detected": false significa que ESTA foto falhou — não é uma leitura válida. NUNCA a uses para concluir que "antes não havia lesão" ou para calcular uma evolução. Se o contexto fornecido mencionar uma foto anterior, assume que essa foto anterior foi uma leitura real e válida (o sistema nunca dá contexto de uma leitura falhada).`,
+
+  skin_condition_progress: `Ajudas alguém a ACOMPANHAR A PROGRESSÃO de uma condição de pele JÁ DIAGNOSTICADA por um médico (ex: hidradenite supurativa, eczema, psoríase, uma ferida em tratamento). Isto NÃO é rastreio de risco de cancro de pele — é acompanhamento calmo e informativo de uma doença já conhecida e em tratamento. Tom controlado, descritivo, nunca alarmista. Só sinalizas "ver o médico" perante sinais de alerta CLAROS e específicos (não por rotina, não "para ter a certeza").
+Return ONLY valid JSON with no markdown, values in European Portuguese:
+{
+  "lesion_detected": true,
+  "description": "descrição curta e objetiva do que se vê agora (tamanho aproximado, cor, inflamação/vermelhidão, drenagem ou pus, crosta, sinais de cicatrização)",
+  "trend": "melhoria" | "estavel" | "a_agravar",
+  "trend_note": "se houver foto anterior no contexto, o que mudou concretamente desde então; caso contrário null",
+  "doctor_flag": true ou false — true APENAS perante sinais de alerta claros e específicos (ex: sinais de infeção a espalhar-se, febre referida, dor súbita muito mais intensa, drenagem com mau cheiro, área a crescer rapidamente) — nunca por rotina ou por "mais vale prevenir",
+  "doctor_reason": "se doctor_flag=true, o motivo específico e curto; caso contrário null",
+  "confidence": "high" | "medium" | "low"
+}
+Se a imagem não mostrar claramente a zona a acompanhar: {"lesion_detected": false, "description": null, "trend": null, "trend_note": null, "doctor_flag": false, "doctor_reason": null, "confidence": "low"}
+IMPORTANTE: tal como no rastreio de risco, "lesion_detected": false é uma foto falhada — nunca a interpretes como "a condição desapareceu" nem uses isso para calcular tendência.`,
 }
 
 // ─── OpenAI GPT-4o Vision fallback ───────────────────────────────────────────
@@ -144,9 +160,10 @@ export async function POST(req: NextRequest) {
     const mode: VisionMode = body.mode || 'drug_id'
     const mimeType: string = body.mimeType || 'image/jpeg'
 
-    // skin_lesion é a única modalidade Pro deste endpoint (as restantes servem
-    // /scan e afins, gratuitas/limitadas noutro sítio) — gate aqui, específico ao modo.
-    if (mode === 'skin_lesion') {
+    // skin_lesion/skin_condition_progress são as únicas modalidades Pro deste
+    // endpoint (as restantes servem /scan e afins, gratuitas/limitadas noutro
+    // sítio) — gate aqui, específico ao modo.
+    if (mode === 'skin_lesion' || mode === 'skin_condition_progress') {
       const { plan } = await getUserPlan(req)
       if (plan !== 'pro' && plan !== 'clinic') return planGateResponse('pro', 'Rastreio Visual')
     }

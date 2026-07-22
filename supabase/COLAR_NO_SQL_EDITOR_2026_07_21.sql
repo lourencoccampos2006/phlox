@@ -33,3 +33,15 @@ do $$ begin
   create policy "skin_lesions_delete_own" on storage.objects for delete
     using (bucket_id = 'skin-lesions' and (storage.foldername(name))[1] = auth.uid()::text);
 exception when duplicate_object then null; end $$;
+
+-- sprint117_condition_tracking_mode.sql — NOVO: o /rastreio-visual ganha um
+-- 2º modo, "acompanhar doença diagnosticada" (mais calmo, sem alarme a cada
+-- foto), ao lado do rastreio de risco original. Só acrescenta 2 colunas à
+-- track (mode, condition_name) — as fotos reaproveitam colunas existentes.
+alter table skin_lesion_tracks
+  add column if not exists mode text not null default 'screening',
+  add column if not exists condition_name text;
+
+do $$ begin
+  alter table skin_lesion_tracks add constraint skin_lesion_tracks_mode_check check (mode in ('screening', 'condition'));
+exception when duplicate_object then null; end $$;

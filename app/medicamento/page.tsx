@@ -169,14 +169,14 @@ export default function MedicamentoTool() {
         <div style={{ ...card, marginBottom: 16 }}>
           {/* Foto */}
           <label style={{ display: 'block', border: `1.5px dashed ${photo ? '#0d9488' : 'var(--border)'}`, borderRadius: 12, padding: photo ? 14 : '22px 16px', textAlign: 'center', cursor: 'pointer', background: photo ? '#f0fdfa' : 'var(--bg-2)', marginBottom: 12, transition: 'all 0.15s' }}>
-            <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+            <input type="file" accept="image/*" style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setName(''); setResult(null); setError('') } }} />
             {photo ? (
               <div style={{ fontSize: 13.5, color: '#0d9488', fontWeight: 700 }}>📷 {photo.name} · tocar para trocar</div>
             ) : (
               <>
                 <div style={{ fontSize: 28, marginBottom: 4 }}>📷</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-3)' }}>Tirar foto à caixa</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-3)' }}>Tirar foto ou escolher da galeria</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>(Da galeria ou directamente)</div>
               </>
             )}

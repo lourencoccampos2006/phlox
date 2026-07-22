@@ -416,7 +416,7 @@ function CaptureBar({ auth, reload, onCreated }: { auth: () => Promise<any>; rel
           <span style={{ fontSize: 18 }}>📋</span><span>Template</span>
         </button>
       </div>
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: 'none' }} />
+      <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
       {recState === 'recording' && <p style={{ fontSize: 12, color: '#a82828', marginTop: 8, fontWeight: 600 }}>⏺ A gravar… carrega em "Parar gravação" quando terminares.</p>}
       {(busy || status) && <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{status || 'A processar…'}</p>}
       {showTemplates && (
