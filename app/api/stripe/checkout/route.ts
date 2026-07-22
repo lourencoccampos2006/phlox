@@ -4,32 +4,33 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
-    // Support both old (userId+email in body) and new (token-based) format
-    const { priceId: priceKey, plan: planKey, billing } = body
-    
+    const { priceId: priceKey, plan: planKey } = body
+
     // Get user from token
     const authHeader = req.headers.get('authorization') || ''
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
-    
+
     if (!priceKey) {
       return NextResponse.json({ error: 'Dados inválidos: priceId obrigatório.' }, { status: 400 })
     }
-    
-    // Get user info from Supabase
-    let userId = body.userId
-    let email = body.email
-    if (!userId && token) {
-      const { createClient } = await import('@supabase/supabase-js')
-      const sb = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      )
-      const { data: { user } } = await sb.auth.getUser()
-      userId = user?.id
-      email = user?.email
-    }
-    
+
+    // SEGURANÇA: userId/email vêm SEMPRE do token validado, nunca do corpo do
+    // pedido. Aceitar body.userId/body.email como identidade permitia a
+    // qualquer pessoa (sem sessão nenhuma) associar a SUA compra Stripe à
+    // conta de outra pessoa à escolha (bastava enviar o uuid dela) — o
+    // webhook confia nesse user_id para atualizar o plano de quem quer que
+    // seja essa conta.
+    if (!token) return NextResponse.json({ error: 'Autenticação necessária.' }, { status: 401 })
+    const { createClient } = await import('@supabase/supabase-js')
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    )
+    const { data: { user }, error: authErr } = await sb.auth.getUser(token)
+    if (authErr || !user) return NextResponse.json({ error: 'Autenticação necessária.' }, { status: 401 })
+    const userId = user.id
+    const email = user.email
     if (!userId || !email) {
       return NextResponse.json({ error: 'Autenticação necessária.' }, { status: 401 })
     }

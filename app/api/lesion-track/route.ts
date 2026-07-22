@@ -92,12 +92,17 @@ export async function POST(req: NextRequest) {
 
   // Upload da foto para o Storage (bucket 'skin-lesions') — só depois de saber
   // que a leitura foi válida.
+  // SEGURANÇA: mimeType vem do cliente — sem validação, alguém podia mandar
+  // "text/html" e alojar HTML arbitrário sob um URL público do Supabase/Phlox
+  // (útil para phishing num domínio de confiança). Restringe a imagens reais.
+  const ALLOWED_MIME: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+  const safeMime = ALLOWED_MIME[mimeType] ? mimeType : 'image/jpeg'
   let photoUrl: string | null = null
   try {
-    const ext = (mimeType || 'image/jpeg').split('/')[1] || 'jpg'
+    const ext = ALLOWED_MIME[safeMime]
     const path = `${userId}/${trackId}/${Date.now()}.${ext}`
     const buffer = Buffer.from(image, 'base64')
-    const { error: upErr } = await supabase.storage.from('skin-lesions').upload(path, buffer, { upsert: false, contentType: mimeType || 'image/jpeg' })
+    const { error: upErr } = await supabase.storage.from('skin-lesions').upload(path, buffer, { upsert: false, contentType: safeMime })
     if (upErr) throw upErr
     const { data: pub } = supabase.storage.from('skin-lesions').getPublicUrl(path)
     photoUrl = pub?.publicUrl || null

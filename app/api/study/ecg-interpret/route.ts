@@ -5,8 +5,10 @@ import { createClient } from '@supabase/supabase-js'
 import { aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { sb } from '@/lib/orgAuth'
+import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  if (!checkRateLimit(getIP(req), 15, 60_000).allowed) return rateLimitResponse()
   const { userId, plan } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (plan === 'free') return planGateResponse('student', 'ECG IA')

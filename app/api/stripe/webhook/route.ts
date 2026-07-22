@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail, planUpgradedEmail, paymentFailedEmail } from '@/lib/email'
 import { planName } from '@/lib/plans'
+import { timingSafeEqualHex } from '@/lib/signDoc'
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -19,7 +20,7 @@ async function verifyStripeSignature(body: string, signature: string, secret: st
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(signedPayload))
   const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-  return computed === v1
+  return timingSafeEqualHex(computed, v1)
 }
 
 export async function POST(req: NextRequest) {
