@@ -68,7 +68,17 @@ export async function POST(req: NextRequest) {
     const { data: pub } = supabase.storage.from('skin-lesions').getPublicUrl(path)
     photoUrl = pub?.publicUrl || null
   } catch (e: any) {
-    return NextResponse.json({ error: `Não foi possível guardar a foto: ${e.message} (cria o bucket "skin-lesions" no Supabase Storage)` }, { status: 500 })
+    // A mensagem "cria o bucket" só faz sentido quando o bucket não existe —
+    // se já existir mas faltarem as políticas de RLS em storage.objects (o
+    // erro mais comum quando o bucket é criado à mão no painel), o Supabase
+    // devolve "permission denied"/"not authorized", não "not found". Mostrar
+    // sempre a mesma sugestão independentemente da causa real só confundia.
+    const msg = String(e?.message || '')
+    const bucketMissing = /not found|does not exist/i.test(msg)
+    const hint = bucketMissing
+      ? ' (cria o bucket "skin-lesions" no Supabase Storage)'
+      : ' (o bucket existe mas falta aplicar sprint116_skin_lesions_bucket.sql — políticas de acesso em falta)'
+    return NextResponse.json({ error: `Não foi possível guardar a foto: ${msg}${hint}` }, { status: 500 })
   }
 
   // Chama o motor de visão partilhado (mesmo endpoint que /scan usa, modo diferente).
