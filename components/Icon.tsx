@@ -35,6 +35,27 @@ const PATHS: Record<string, React.ReactNode> = {
   scale: <><path d="M12 3v18M12 6l-6 0M12 6l6 0M4 6l2.5 6a2.6 2.6 0 0 0 5 0L9 6M15 6l2.5 6a2.6 2.6 0 0 0 5 0L20 6M7 21h10" /></>,
   package: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5L12 12l8-4.5M12 12v9" /></>,
   download: <><path d="M12 3v12M8 11l4 4 4-4" /><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></>,
+  // ── Conjunto clínico/institucional (R0.2, 2026-07-23) — substituem emoji ──
+  users: <><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c0-3.6 2.9-5.6 6.5-5.6s6.5 2 6.5 5.6" /><path d="M16.5 5.4a3 3 0 0 1 0 5.7" /><path d="M18 14.5c2 .5 3.5 2.3 3.5 4.5" /></>,
+  alert: <><path d="M12 4.5 21 19.5H3z" /><path d="M12 10v4.2" /><circle cx="12" cy="17.2" r="0.7" fill="currentColor" stroke="none" /></>,
+  note: <><path d="M14 3.5H5.5a1.5 1.5 0 0 0-1.5 1.5v14a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5V9z" /><path d="M14 3.5V9h5.5" /><path d="M8 13h7M8 16.5h5" /></>,
+  edit: <><path d="M4.5 20H8L19 9l-3.5-3.5L4.5 16.5z" /><path d="M14 6.5l3.5 3.5" /></>,
+  clipboard: <><rect x="5" y="5" width="14" height="16" rx="2" /><path d="M9 5V3.8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V5" /><path d="M9 11.5h6M9 15h4" /></>,
+  building: <><path d="M4 21V6.5L12 3l8 3.5V21" /><path d="M3 21h18" /><path d="M9.5 21v-4.5h5V21" /><circle cx="8.5" cy="9" r="0.6" fill="currentColor" stroke="none" /><circle cx="12" cy="9" r="0.6" fill="currentColor" stroke="none" /><circle cx="15.5" cy="9" r="0.6" fill="currentColor" stroke="none" /><circle cx="8.5" cy="12.5" r="0.6" fill="currentColor" stroke="none" /><circle cx="12" cy="12.5" r="0.6" fill="currentColor" stroke="none" /><circle cx="15.5" cy="12.5" r="0.6" fill="currentColor" stroke="none" /></>,
+  chart: <><path d="M4 4v16h16" /><path d="M8 17v-5M12.5 17V8M17 17v-3" /></>,
+  calculator: <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 6.5h8" /><circle cx="9" cy="12.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="12" cy="12.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="15" cy="12.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="9" cy="16.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="12" cy="16.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="15" cy="16.5" r="0.9" fill="currentColor" stroke="none" /></>,
+  refresh: <><path d="M20 11.5a8 8 0 1 0-2.1 6.1" /><path d="M20 5.5v6h-6" /></>,
+  store: <><path d="M4 9.5 5.5 4.5h13L20 9.5" /><path d="M4 9.5a2.4 2.4 0 0 0 4.7 0 2.4 2.4 0 0 0 4.6 0 2.4 2.4 0 0 0 4.7 0" /><path d="M5 11.3V20h14v-8.7" /><path d="M9.5 20v-4.5h5V20" /></>,
+  chat: <><path d="M4 5.5h16v10.5H10l-4 3.3V16H4z" /><path d="M8 9.5h8M8 12.5h5" /></>,
+  cart: <><circle cx="9.5" cy="20" r="1.4" /><circle cx="17" cy="20" r="1.4" /><path d="M3 4.5h2.2l2 10.5h10l1.8-7.5H6.7" /></>,
+  inbox: <><path d="M4 13l2.4-8.2a1 1 0 0 1 1-.8h9.2a1 1 0 0 1 1 .8L20 13v5.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" /><path d="M4 13h4l1.5 2.5h5L16 13h4" /></>,
+  stethoscope: <><path d="M5 3.5v4.5a4 4 0 0 0 8 0V3.5" /><path d="M5 3.5H3.6M13 3.5h1.4" /><path d="M9 16.5v.5a4 4 0 0 0 8 0v-2.2" /><circle cx="18.5" cy="12.5" r="2.3" /></>,
+  flask: <><path d="M9.5 3h5M10.5 3v6l-5 8.4A2 2 0 0 0 7.2 20.5h9.6a2 2 0 0 0 1.7-3.1L13.5 9V3" /><path d="M8 15h8" /></>,
+  bandage: <><rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)" /><path d="M9.5 9.5l5 5" /><circle cx="10.5" cy="12" r="0.5" fill="currentColor" stroke="none" /><circle cx="12" cy="10.5" r="0.5" fill="currentColor" stroke="none" /><circle cx="12" cy="13.5" r="0.5" fill="currentColor" stroke="none" /><circle cx="13.5" cy="12" r="0.5" fill="currentColor" stroke="none" /></>,
+  euro: <><circle cx="12" cy="12" r="9" /><path d="M15.5 8.6a4.3 4.3 0 1 0 0 6.8" /><path d="M6.7 10.8h6M6.7 13.4h5" /></>,
+  megaphone: <><path d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1z" /><path d="M17.5 9.2a4 4 0 0 1 0 5.6" /></>,
+  route: <><circle cx="6.5" cy="6" r="2.2" /><circle cx="17.5" cy="18" r="2.2" /><path d="M8.7 6h5.3a3 3 0 0 1 0 6H10a3 3 0 0 0 0 6h5.3" /></>,
+  bolt: <><path d="M13 3 5 13.5h5L9 21l8-11h-5z" /></>,
 }
 
 interface Props { name: string; size?: number; stroke?: number; color?: string; style?: CSSProperties }

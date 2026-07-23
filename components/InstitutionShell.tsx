@@ -12,6 +12,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { blueprintFor, type ToolEntry } from '@/lib/institutionBlueprint'
+import { iconForHref } from '@/lib/clinicalIcons'
+import Icon from '@/components/Icon'
 import NotificationBell from '@/components/NotificationBell'
 
 function greetingDate() {
@@ -42,10 +44,12 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         style={{
           display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderRadius: 11,
           textDecoration: 'none', background: active ? bp.accentSoft : 'transparent',
-          color: active ? bp.accent : '#475569', fontWeight: active ? 700 : 600, fontSize: 14,
+          color: active ? bp.accent : 'var(--ink-3)', fontWeight: active ? 700 : 600, fontSize: 14,
           border: `1px solid ${active ? bp.accent + '33' : 'transparent'}`,
         }}>
-        <span style={{ fontSize: 17, width: 22, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
+        <span style={{ width: 22, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name={iconForHref(t.href)} size={18} color={active ? bp.accent : 'var(--ink-4)'} />
+        </span>
         <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
       </Link>
     )
@@ -62,8 +66,8 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
       {/* Painel (sempre primeiro) */}
       <Link href="/painel" title="Painel"
         style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderRadius: 11, textDecoration: 'none', marginBottom: 4,
-          background: isActive('/painel') ? bp.accent : 'transparent', color: isActive('/painel') ? 'white' : '#475569', fontWeight: 700, fontSize: 14 }}>
-        <span style={{ fontSize: 17, width: 22, textAlign: 'center' }}>🏠</span> Painel
+          background: isActive('/painel') ? bp.accent : 'transparent', color: isActive('/painel') ? 'white' : 'var(--ink-3)', fontWeight: 700, fontSize: 14 }}>
+        <span style={{ width: 22, display: 'flex', justifyContent: 'center' }}><Icon name="grid" size={18} color={isActive('/painel') ? 'white' : 'var(--ink-4)'} /></span> Painel
       </Link>
 
       {/* Núcleo curado */}
@@ -85,7 +89,9 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa' }}>
+    // --accent / --accent-soft do tipo de instituição → as peças de
+    // components/clinical/ui.tsx pintam-se sozinhas com o acento certo.
+    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa', ['--accent' as any]: bp.accent, ['--accent-soft' as any]: bp.accentSoft }}>
       {/* ── TOPBAR premium ── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 40, height: 58, display: 'flex', alignItems: 'center', gap: 14,
