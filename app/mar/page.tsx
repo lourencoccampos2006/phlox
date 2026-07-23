@@ -10,11 +10,12 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import ClinicalGate from '@/components/ClinicalGate'
+import Icon from '@/components/Icon'
 import Link from 'next/link'
 
 // Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
 function LocBadge({ loc }: { loc?: string | null }) {
-  if (loc === 'casa') return <span style={{ fontSize: 10, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 7px', borderRadius: 99 }}>🏠 em casa</span>
+  if (loc === 'casa') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 7px', borderRadius: 99 }}><Icon name="home" size={11} color="#b45309" /> em casa</span>
   if (loc === 'ambos') return <span style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 7px', borderRadius: 99 }}>casa + centro</span>
   return <span style={{ fontSize: 10, fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '1px 7px', borderRadius: 99 }}>no centro</span>
 }
@@ -92,7 +93,7 @@ function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null;
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 5 }}>
               {cfg.label}
-              {(record as any).source === 'home' && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px' }}>🏠 CASA</span>}
+              {(record as any).source === 'home' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px' }}><Icon name="home" size={9} color="#b45309" /> CASA</span>}
             </div>
             {record.recorded_at && <div style={{ fontSize: 9, color: '#94a3b8' }}>{fmtTime(record.recorded_at)}{record.recorded_by ? ` · ${record.recorded_by.split(' ')[0]}` : ''}</div>}
           </div>
@@ -382,16 +383,16 @@ export default function MARPage() {
         <div className="page-container mar-top" style={{ paddingTop: 10, paddingBottom: 10 }}>
           {/* Row 1: title + secondary actions */}
           <div className="mar-top-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>MAR</span>
-            <span className="mar-badge" style={{ fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>Reg. Administração</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Medicação a dar</span>
+            <span className="mar-badge" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>MAR</span>
             <div style={{ flex: 1 }} />
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
               style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151', minWidth: 0 }} />
-            <button onClick={printMARSheet} className="mar-print" title="Folha de MAR de todos os utentes para este turno (A4, para auditoria)"
+            <button onClick={printMARSheet} className="mar-print" title="Folha de todas as tomas deste turno (A4, para auditoria)"
               style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              🖨 Folha de MAR
+              Folha de MAR
             </button>
-            <Link href="/handover" className="mar-passagem"
+            <Link href="/ronda-guiada" className="mar-passagem"
               style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               Passagem →
             </Link>
@@ -468,7 +469,7 @@ export default function MARPage() {
             crítico no MAR, onde um ecrã vazio nunca pode parecer "nada a dar". */}
         {loadErr && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px' }}>
-            <span style={{ color: '#b91c1c', fontSize: 18 }}>⚠</span>
+            <Icon name="alert" size={18} color="#b91c1c" />
             <span style={{ flex: 1, fontSize: 13.5, color: '#991b1b' }}>{loadErr}</span>
             <button onClick={() => window.location.reload()} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Recarregar</button>
           </div>
@@ -487,7 +488,7 @@ export default function MARPage() {
             {selectedPatient && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 {selectedPatient.room_number && <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 9px', borderRadius: 5 }}>Qt. {selectedPatient.room_number}</span>}
-                {selectedPatient.allergies && <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '3px 9px', borderRadius: 5 }}>⚠ {selectedPatient.allergies}</span>}
+                {selectedPatient.allergies && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '3px 9px', borderRadius: 5 }}><Icon name="alert" size={12} color="#7c3aed" /> {selectedPatient.allergies}</span>}
                 {selectedPatient.conditions && <span style={{ fontSize: 11, color: '#64748b', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPatient.conditions}</span>}
               </div>
             )}
@@ -503,7 +504,7 @@ export default function MARPage() {
         {/* MAR content */}
         {!selectedId ? (
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '56px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 36, marginBottom: 14 }}>💊</div>
+            <div style={{ display: 'inline-flex', marginBottom: 14, color: '#cbd5e1' }}><Icon name="pill" size={38} color="#cbd5e1" /></div>
             <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Seleciona um {cfg.personNoun.toLowerCase()}</div>
             <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
               O MAR regista cada administração de medicação por turno. Cada registo fica assinado com o teu nome e hora.
@@ -523,8 +524,8 @@ export default function MARPage() {
             const home = dayRecords.filter(r => (r as any).source === 'home')
             if (!home.length) return null
             return (
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 15px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
-                🏠 <strong>{home.length}</strong> {home.length === 1 ? 'toma dada em casa' : 'tomas dadas em casa'} hoje pela família{home.some((h: any) => h.home_by) ? ` (${[...new Set(home.map((h: any) => h.home_by).filter(Boolean))].join(', ')})` : ''}.
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 15px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
+                <Icon name="home" size={15} color="#b45309" /> <span><strong>{home.length}</strong> {home.length === 1 ? 'toma dada em casa' : 'tomas dadas em casa'} hoje pela família{home.some((h: any) => h.home_by) ? ` (${[...new Set(home.map((h: any) => h.home_by).filter(Boolean))].join(', ')})` : ''}.</span>
               </div>
             )
           })()}
@@ -632,7 +633,7 @@ export default function MARPage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 14, padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 32px 80px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>⚠️</div>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="alert" size={20} color="#dc2626" /></div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#991b1b' }}>Alerta de segurança</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>

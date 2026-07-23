@@ -8,6 +8,7 @@ import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { reportError, MSG } from '@/lib/clientError'
 import { useToast } from '@/components/Toast'
+import Icon from '@/components/Icon'
 
 interface FamilyContact {
   id: string
@@ -56,11 +57,11 @@ interface Patient {
 }
 
 const MSG_TYPES = {
-  update:  { label: 'Atualização',  color: '#2563eb',  bg: '#eff6ff',  border: '#bfdbfe',  emoji: '📋' },
-  alert:   { label: 'Alerta',       color: '#dc2626',  bg: '#fef2f2',  border: '#fecaca',  emoji: '⚠️' },
-  visit:   { label: 'Visita',       color: '#7c3aed',  bg: '#faf5ff',  border: '#e9d5ff',  emoji: '👨‍👩‍👧' },
-  report:  { label: 'Relatório',    color: '#16a34a',  bg: '#f0fdf4',  border: '#bbf7d0',  emoji: '📊' },
-  general: { label: 'Geral',        color: '#6b7280',  bg: '#f9fafb',  border: '#e5e7eb',  emoji: '💬' },
+  update:  { label: 'Atualização',  color: '#2563eb',  bg: '#eff6ff',  border: '#bfdbfe',  icon: 'note' },
+  alert:   { label: 'Alerta',       color: '#dc2626',  bg: '#fef2f2',  border: '#fecaca',  icon: 'alert' },
+  visit:   { label: 'Visita',       color: '#7c3aed',  bg: '#faf5ff',  border: '#e9d5ff',  icon: 'family' },
+  report:  { label: 'Relatório',    color: '#16a34a',  bg: '#f0fdf4',  border: '#bbf7d0',  icon: 'chart' },
+  general: { label: 'Geral',        color: '#6b7280',  bg: '#f9fafb',  border: '#e5e7eb',  icon: 'chat' },
 }
 
 const VISIT_STATUS = {
@@ -279,8 +280,8 @@ export default function FamilyPage() {
           <input ref={dayPhotoInput} type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) broadcastDayPhoto(f); e.target.value = '' }} />
           <button onClick={() => dayPhotoInput.current?.click()} disabled={dayPhotoBusy}
-            style={{ padding: '10px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #0d6e42', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            {dayPhotoBusy ? 'A partilhar…' : '📸 Foto do dia'}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #0d6e42', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            {dayPhotoBusy ? 'A partilhar…' : <><Icon name="camera" size={16} color="#0d6e42" /> Foto do dia</>}
           </button>
           <button onClick={() => setShowCompose(true)}
             style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
@@ -336,7 +337,7 @@ export default function FamilyPage() {
               </div>
               {enrichedVisits.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍👩‍👧</div>
+                  <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="family" size={38} color="#cbd5e1" /></div>
                   <div style={{ fontWeight: 600, color: '#374151' }}>Sem visitas registadas</div>
                   <div style={{ fontSize: 13, marginTop: 4 }}>Os pedidos de visita das famílias aparecerão aqui</div>
                 </div>
@@ -350,8 +351,8 @@ export default function FamilyPage() {
                           <div style={{ fontWeight: 600, fontSize: 14, color: '#0b1120' }}>
                             {v.contact_name || 'Familiar'} → {v.patient_name || person}
                           </div>
-                          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>
-                            📅 {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}{v.requested_time ? ` às ${v.requested_time}` : ' · hora a combinar'}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6b7280', marginTop: 3 }}>
+                            <Icon name="calendar" size={13} color="#6b7280" /> {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}{v.requested_time ? ` às ${v.requested_time}` : ' · hora a combinar'}
                           </div>
                           {v.notes && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{v.notes}</div>}
                         </div>
@@ -500,8 +501,8 @@ export default function FamilyPage() {
                     <button
                       key={key}
                       onClick={() => setCompose(p => ({ ...p, type: key }))}
-                      style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${compose.type === key ? cfg.color : '#e5e7eb'}`, background: compose.type === key ? cfg.bg : '#fff', color: compose.type === key ? cfg.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                    >{cfg.emoji} {cfg.label}</button>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${compose.type === key ? cfg.color : '#e5e7eb'}`, background: compose.type === key ? cfg.bg : '#fff', color: compose.type === key ? cfg.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                    ><Icon name={cfg.icon} size={13} color={compose.type === key ? cfg.color : '#6b7280'} /> {cfg.label}</button>
                   ))}
                 </div>
               </div>
@@ -853,7 +854,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
       <div className="ft-chat" data-open={patientId ? 'chat' : 'list'} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {!patientId ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: 8, padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 36 }}>💬</div>
+            <div style={{ display: 'inline-flex' }}><Icon name="chat" size={36} color="#cbd5e1" /></div>
             <div style={{ fontWeight: 600, color: '#374151' }}>Seleciona {cfg.personNounIndef}</div>
             <div style={{ fontSize: 13, maxWidth: 320, lineHeight: 1.5 }}>Conversa direta com a família, com atualizações, fotos e boletins de bem-estar — tudo registado no Phlox.</div>
           </div>
@@ -904,10 +905,10 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
               <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 14px', background: '#f8fafc', maxHeight: '40vh', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                   <label style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #e5e7eb', background: 'white', color: '#0d6e42', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    📷 Foto<input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { setPhoto(e.target.files?.[0] || null); setExtrasOpen(false) }} />
+                    <Icon name="camera" size={15} color="#0d6e42" /> Foto<input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { setPhoto(e.target.files?.[0] || null); setExtrasOpen(false) }} />
                   </label>
-                  <button onClick={() => { composeDaySummary(); setExtrasOpen(false) }} disabled={prefilling} style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>{prefilling ? 'A compor…' : '✨ Mensagem do dia'}</button>
-                  <button onClick={() => setMode(mode === 'wellbeing' ? 'message' : 'wellbeing')} style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${mode === 'wellbeing' ? '#0d6e42' : '#e5e7eb'}`, background: mode === 'wellbeing' ? '#f0fdf4' : 'white', color: mode === 'wellbeing' ? '#0d6e42' : '#475569' }}>🌤️ Boletim</button>
+                  <button onClick={() => { composeDaySummary(); setExtrasOpen(false) }} disabled={prefilling} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>{prefilling ? 'A compor…' : <><Icon name="spark" size={15} color="#0d9488" /> Mensagem do dia</>}</button>
+                  <button onClick={() => setMode(mode === 'wellbeing' ? 'message' : 'wellbeing')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${mode === 'wellbeing' ? '#0d6e42' : '#e5e7eb'}`, background: mode === 'wellbeing' ? '#f0fdf4' : 'white', color: mode === 'wellbeing' ? '#0d6e42' : '#475569' }}><Icon name="heart" size={15} color={mode === 'wellbeing' ? '#0d6e42' : '#475569'} /> Boletim</button>
                 </div>
                 {mode === 'wellbeing' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -919,7 +920,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
                         </div>
                       </div>
                     ))}
-                    <button onClick={prefillFromToday} disabled={prefilling} style={{ alignSelf: 'flex-start', padding: '6px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>{prefilling ? '…' : '✨ Pré-preencher do registo de hoje'}</button>
+                    <button onClick={prefillFromToday} disabled={prefilling} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', padding: '6px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>{prefilling ? '…' : <><Icon name="spark" size={14} color="#16a34a" /> Pré-preencher do registo de hoje</>}</button>
                   </div>
                 )}
               </div>

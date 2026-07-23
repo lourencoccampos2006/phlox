@@ -12,6 +12,7 @@ import { useSearchParams } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { blueprintFor } from '@/lib/institutionBlueprint'
+import Icon from '@/components/Icon'
 import { CareLogTool } from './page'
 import { HidratacaoTool } from '../hidratacao/page'
 import { FeridasTool } from '../feridas/page'
@@ -19,10 +20,10 @@ import { AtividadesTool } from '../activities/page'
 
 type TabId = 'registo' | 'hidratacao' | 'feridas' | 'atividades'
 const TAB_META: Record<TabId, { label: string; icon: string }> = {
-  registo:    { label: 'Registo',    icon: '📝' },
-  hidratacao: { label: 'Hidratação', icon: '💧' },
-  atividades: { label: 'Atividades', icon: '🎯' },
-  feridas:    { label: 'Feridas',    icon: '🩹' },
+  registo:    { label: 'Registo',    icon: 'note' },
+  hidratacao: { label: 'Hidratação', icon: 'droplet' },
+  atividades: { label: 'Atividades', icon: 'target' },
+  feridas:    { label: 'Feridas',    icon: 'bandage' },
 }
 
 // Que abas cada tipo de instituição vê (ordem importa). Centro de dia destaca
@@ -72,7 +73,7 @@ export default function RegistoDoDia() {
                   fontSize: 14, fontWeight: active ? 800 : 600, color: active ? bp.accent : '#64748b', marginBottom: -1,
                   fontFamily: 'var(--font-sans)',
                 }}>
-                <span style={{ fontSize: 15 }}>{m.icon}</span> {m.label}
+                <Icon name={m.icon} size={16} color={active ? bp.accent : '#64748b'} /> {m.label}
               </button>
             )
           })}

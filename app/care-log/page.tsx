@@ -416,8 +416,9 @@ export function CareLogTool() {
                   const c = VITAL_LEVEL_COLOR[reading.level]
                   return (
                     <div key={field} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '8px 12px' }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: c.color }}>
-                        {reading.level === 'critical' ? '🔴' : '🟠'} {VITAL_LABEL[field]}: {reading.label} <span style={{ fontWeight: 400, color: '#94a3b8' }}>(ref. {reading.range})</span>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: c.color, display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0, display: 'inline-block' }} />
+                        {VITAL_LABEL[field]}: {reading.label} <span style={{ fontWeight: 400, color: '#94a3b8' }}>(ref. {reading.range})</span>
                       </div>
                       {reading.watch && <div style={{ fontSize: 11.5, color: '#475569', marginTop: 2, lineHeight: 1.45 }}>{reading.watch}</div>}
                     </div>
@@ -563,7 +564,7 @@ export function CareLogTool() {
               </div>
               {pat && (
                 <button onClick={printDayRecord} title="Imprimir o registo de cuidados deste dia (A4)"
-                  style={{ flexShrink: 0, padding: '4px 9px', fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>🖨 Imprimir</button>
+                  style={{ flexShrink: 0, padding: '4px 9px', fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>Imprimir</button>
               )}
             </div>
             {loading ? (
