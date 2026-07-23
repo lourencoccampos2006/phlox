@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
@@ -140,7 +141,7 @@ export default function VitalsPage() {
   async function addWater(ml: number) {
     if (!user) return
     const { data, error } = await supabase.from('hydration_logs').insert({ user_id: user.id, kind: 'fluid', fluid_ml: ml, at: new Date().toISOString() }).select().single()
-    if (error) toast.error('Não consegui guardar', error.message)
+    if (error) toast.error('Não consegui guardar', reportError('vitals-water', error, 'Tenta de novo.'))
     else if (data) {
       setWaterLogs(p => [data, ...p])
       const todayKey = new Date().toISOString().slice(0, 10)

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 // ─── NOVO: ProfileSelector para pré-carregar contexto clínico do perfil ───
 
 // PDF.js via CDN — loaded dynamically to avoid SSR issues
@@ -230,7 +231,7 @@ function ReportView({ report }: { report: LabReport }) {
       issued_at: today,
     })
     setSavingVault(false)
-    if (error) { toast.error(error.message); return }
+    if (error) { toast.error(reportError('labs-vault', error, 'Não foi possível guardar. Tenta de novo.')); return }
     setSavedToVault(true)
     toast.success('Análises guardadas no cofre.')
   }

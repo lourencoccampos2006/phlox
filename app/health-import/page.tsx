@@ -9,6 +9,7 @@ import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 
 interface Summary { total_records_read: number; vitals_count: number; byType: Record<string, number> }
 
@@ -56,8 +57,9 @@ export default function HealthImportPage() {
       if (j.inserted > 0) toast.success(`${j.inserted} medições importadas`, 'Estão no teu histórico de vitais.')
       else toast.info('Sem vitais novos', j.warning || 'Não foi reconhecido nenhum vital.')
     } catch (e: any) {
-      setError(e.message || 'Erro')
-      toast.error('Não consegui importar', e.message)
+      const msg = reportError('health-import', e, 'Não foi possível importar agora. Tenta de novo.')
+      setError(msg)
+      toast.error('Não consegui importar', msg)
     } finally { setBusy(false) }
   }
 

@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 import Link from 'next/link'
 
 type VaultDoc = {
@@ -69,10 +70,10 @@ export default function VaultPage() {
     const payload = { ...d, user_id: user.id, updated_at: new Date().toISOString() }
     if (isNew) {
       const { error } = await supabase.from('health_vault').insert(payload)
-      if (error) { toast.error(error.message); return }
+      if (error) { toast.error(reportError('vault-insert', error, 'Não foi possível guardar. Tenta de novo.')); return }
     } else {
       const { error } = await supabase.from('health_vault').update(payload).eq('id', d.id!)
-      if (error) { toast.error(error.message); return }
+      if (error) { toast.error(reportError('vault-update', error, 'Não foi possível guardar. Tenta de novo.')); return }
     }
     toast.success(isNew ? 'Documento adicionado' : 'Atualizado')
     setEditing(null); setAddingNew(false); refresh()
@@ -344,7 +345,7 @@ function ShareModal({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
       const { error } = await supabase.from('health_vault_shares').insert({
         user_id: user.id, code: c, vault_ids: [doc.id], expires_at: expires, max_views: maxViews,
       })
-      if (error) { toast.error(error.message); return }
+      if (error) { toast.error(reportError('vault-share', error, 'Não foi possível criar a partilha. Tenta de novo.')); return }
       setCode(c)
     } finally { setCreating(false) }
   }
