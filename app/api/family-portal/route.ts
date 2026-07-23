@@ -213,9 +213,19 @@ export async function GET(req: NextRequest) {
   }
   const dailySummariesWithPhoto = dailySummaries.map(d => ({ ...d, photoUrl: photoByDate.get(d.date) || null }))
 
+  // Tipo de instituição — para o portal se apresentar com a identidade do centro
+  // (nome do produto + acento certos), em vez de uma cor genérica. Só o tipo; o
+  // nome/acento derivam do blueprint no cliente.
+  let institutionKind: string | null = null
+  if (pat.org_id) {
+    const { data: org } = await sb.from('organizations').select('kind').eq('id', pat.org_id).maybeSingle()
+    institutionKind = org?.kind || null
+  }
+
   return NextResponse.json({
     patient: { name: pat.name, room_number: pat.room_number },
     contactName: v.contact?.name || null,
+    institutionKind,
     messages: msgs || [],
     dailySummaries: dailySummariesWithPhoto,
     homeMeds: homeMeds || [],

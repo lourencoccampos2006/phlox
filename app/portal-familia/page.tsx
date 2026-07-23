@@ -4,6 +4,8 @@
 // e fala com todos os entes queridos na mesma janela. Sessão guardada no dispositivo.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Icon from '@/components/Icon'
+import { blueprintFor } from '@/lib/institutionBlueprint'
 
 interface Msg {
   id: string; author_side: 'staff' | 'family'; author_name?: string
@@ -55,6 +57,9 @@ export default function FamilyPortalPage() {
   const [activeCode, setActiveCode] = useState('')   // código selecionado
   const [name, setName] = useState('')
   const [hydrated, setHydrated] = useState(false)
+  // Tipo de instituição (vem da API) → o portal veste-se com o acento e o nome do
+  // centro. Sem tipo conhecido (ecrã de código), usa o verde de marca do Phlox.
+  const [instKind, setInstKind] = useState<string | null>(null)
 
   // ── Adicionar código (ecrã/painel) ──
   const [adding, setAdding] = useState(false)
@@ -128,6 +133,7 @@ export default function FamilyPortalPage() {
       const next = [...accesses.filter(a => a.code !== nc), acc]
       persist(next)
       setActiveCode(nc); setMsgs(data.messages || []); setDays(data.dailySummaries || [])
+      setInstKind(data.institutionKind || null)
       setAdding(false); setNeedsVerify(false); setCode(''); setVerify(''); setAddErr('')
       try { if (typeof window !== 'undefined' && localStorage.getItem('phlox-auth')) { window.location.href = '/familia'; return } } catch {}
     } catch { setAddErr('Falha de ligação. Tenta novamente.') }
@@ -149,6 +155,7 @@ export default function FamilyPortalPage() {
       setMsgs(data.messages || []); setDays(data.dailySummaries || [])
       setHomeMeds(data.homeMeds || []); setTodayDoses(data.todayDoses || [])
       setVisits(data.visitRequests || [])
+      setInstKind(data.institutionKind || null)
       // atualiza nome/quarto se mudaram
       if (data.patient && (data.patient.name !== acc.name || data.patient.room_number !== acc.room)) {
         persist(accesses.map(a => a.code === acc.code ? { ...a, name: data.patient.name, room: data.patient.room_number || '' } : a))
@@ -240,7 +247,14 @@ export default function FamilyPortalPage() {
     if (activeCode === c) setActiveCode(next[0]?.code || '')
   }
 
-  const wrap: React.CSSProperties = { minHeight: '100vh', background: '#f1f5f9', fontFamily: 'system-ui, -apple-system, sans-serif', display: 'flex', flexDirection: 'column' }
+  // Identidade do centro: acento e nome vêm do blueprint do tipo de instituição.
+  // Fallback (ecrã de código / tipo desconhecido) = verde de marca do Phlox.
+  const bp = instKind ? blueprintFor(instKind as any) : null
+  const accent = bp?.accent || '#0d6e42'
+  const accentSoft = bp?.accentSoft || '#f0fdf4'
+  const brandName = bp?.productName || 'Phlox'
+
+  const wrap: React.CSSProperties = { minHeight: '100vh', background: '#f6f7f8', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }
 
   if (!hydrated) return <div style={{ ...wrap, alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#9ca3af' }}>A carregar…</div></div>
 
@@ -250,10 +264,10 @@ export default function FamilyPortalPage() {
     return (
       <div style={{ ...wrap, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div style={{ background: '#fff', borderRadius: 18, padding: '32px 28px', width: '100%', maxWidth: 380, boxShadow: '0 12px 40px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#2563eb', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Phlox · Portal Família</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10 }}>{brandName} · Portal da Família</div>
           {needsVerify ? (
             <>
-              <h1 style={{ fontSize: 21, fontWeight: 800, color: '#0b1120', margin: '0 0 6px' }}>Confirme que é da família{verifyName ? ` de ${verifyName}` : ''}</h1>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 23, fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.01em' }}>Confirme que é da família{verifyName ? ` de ${verifyName}` : ''}</h1>
               <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: '0 0 22px' }}>Introduza os <strong>últimos 4 dígitos</strong> do telemóvel que deu à instituição.</p>
               <input value={verify} onChange={e => setVerify(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="••••" inputMode="numeric" maxLength={4}
                 aria-label="Últimos 4 dígitos do telemóvel"
@@ -261,14 +275,14 @@ export default function FamilyPortalPage() {
                 style={{ width: '100%', padding: '13px 14px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 22, fontWeight: 700, letterSpacing: '0.3em', textAlign: 'center', boxSizing: 'border-box', outline: 'none' }} />
               {addErr && <div style={{ marginTop: 12, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{addErr}</div>}
               <button onClick={() => verify.length === 4 && tryAdd(code, verify)} disabled={verify.length !== 4 || addBusy}
-                style={{ width: '100%', marginTop: 16, padding: 14, background: verify.length === 4 ? '#2563eb' : '#e5e7eb', color: verify.length === 4 ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: verify.length === 4 ? 'pointer' : 'default' }}>
+                style={{ width: '100%', marginTop: 16, padding: 14, background: verify.length === 4 ? accent : '#e5e7eb', color: verify.length === 4 ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: verify.length === 4 ? 'pointer' : 'default' }}>
                 {addBusy ? 'A verificar…' : 'Confirmar'}
               </button>
               <button onClick={() => { setNeedsVerify(false); setVerify(''); setAddErr('') }} style={{ width: '100%', marginTop: 8, padding: 10, background: 'none', border: 'none', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>← Usar outro código</button>
             </>
           ) : (
             <>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0b1120', margin: '0 0 6px' }}>{accesses.length ? 'Adicionar familiar' : 'Acompanhe o seu familiar'}</h1>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 25, fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.01em' }}>{accesses.length ? 'Adicionar familiar' : 'Acompanhe o seu familiar'}</h1>
               <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: '0 0 22px' }}>Introduza o código que a instituição lhe forneceu. Pode adicionar vários — um por cada familiar.</p>
               <input value={code} onChange={e => setCode(normalizeCode(e.target.value))} placeholder="Ex: AB12CD" inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false}
                 aria-label="Código da instituição"
@@ -276,7 +290,7 @@ export default function FamilyPortalPage() {
                 style={{ width: '100%', padding: '13px 14px', border: '1.5px solid #e5e7eb', borderRadius: 10, fontSize: 18, fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center', boxSizing: 'border-box', outline: 'none', textTransform: 'uppercase' }} />
               {addErr && <div style={{ marginTop: 12, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{addErr}</div>}
               <button onClick={() => code.trim() && tryAdd(code, '')} disabled={!code.trim() || addBusy}
-                style={{ width: '100%', marginTop: 16, padding: 14, background: code.trim() ? '#2563eb' : '#e5e7eb', color: code.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: code.trim() ? 'pointer' : 'default' }}>
+                style={{ width: '100%', marginTop: 16, padding: 14, background: code.trim() ? accent : '#e5e7eb', color: code.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: code.trim() ? 'pointer' : 'default' }}>
                 {addBusy ? 'A entrar…' : 'Entrar'}
               </button>
               {accesses.length > 0 && (
@@ -294,10 +308,13 @@ export default function FamilyPortalPage() {
   return (
     <div style={wrap}>
       {/* Topo */}
-      <div style={{ background: '#2563eb', color: '#fff', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 800 }}>Portal Família · Phlox</div>
+      <div style={{ background: accent, color: '#fff', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, opacity: 0.85, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>PORTAL · PHLOX</span>
+        </div>
         <button onClick={() => { setAdding(true); setCode(''); setVerify(''); setNeedsVerify(false); setAddErr('') }}
-          style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Adicionar código</button>
+          style={{ flexShrink: 0, background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Adicionar código</button>
       </div>
 
       <div className="fp-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '240px 1fr', minHeight: 0 }}>
@@ -308,8 +325,8 @@ export default function FamilyPortalPage() {
             return (
               <div key={a.code} role="button" tabIndex={0} aria-label={`Ver ${a.name}`} aria-current={on} onClick={() => setActiveCode(a.code)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCode(a.code) } }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: on ? '#eff6ff' : '#fff' }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: on ? '#2563eb' : '#f1f5f9', color: on ? '#fff' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{a.name.charAt(0).toUpperCase()}</div>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: on ? accentSoft : '#fff' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: on ? accent : '#f1f5f9', color: on ? '#fff' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{a.name.charAt(0).toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
                   <div style={{ fontSize: 11, color: '#9ca3af' }}>{a.room ? `Quarto ${a.room}` : 'Código ' + a.code}</div>
@@ -319,7 +336,7 @@ export default function FamilyPortalPage() {
             )
           })}
           <button onClick={() => { setAdding(true); setCode(''); setVerify(''); setNeedsVerify(false); setAddErr('') }}
-            style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>+ Adicionar outro familiar</button>
+            style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', color: accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>+ Adicionar outro familiar</button>
         </div>
 
         {/* Conversa */}
@@ -346,7 +363,7 @@ export default function FamilyPortalPage() {
                   return (
                     <div style={{ marginBottom: 18 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Diário</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Diário</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button onClick={() => setDiaryIndex(i => Math.min(i + 1, days.length - 1))} disabled={idx >= days.length - 1}
                             aria-label="Dia anterior" style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid #e5e7eb', background: idx >= days.length - 1 ? '#f9fafb' : '#fff', color: idx >= days.length - 1 ? '#d1d5db' : '#374151', cursor: idx >= days.length - 1 ? 'default' : 'pointer', fontSize: 13 }}>‹</button>
@@ -379,7 +396,7 @@ export default function FamilyPortalPage() {
                     quando há medicação de casa lista-a; quando não há, deixa a família
                     sugerir uma logo (era o ponto que ficava escondido a quem chegava). */}
                 <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Medicação em casa</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Medicação em casa</div>
                     {homeMeds.length === 0 && !suggestOpen && (
                       <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5, marginBottom: 8 }}>Sem medicação para dar em casa registada. Se dá algum medicamento em casa, adicione-o aqui — a equipa confirma.</div>
                     )}
@@ -394,7 +411,7 @@ export default function FamilyPortalPage() {
                             <div style={{ fontSize: 12.5, color: '#9ca3af' }}>{m.frequency || 'Conforme indicado'}{givenAtCentre ? ' · também dado no centro hoje' : ''}</div>
                           </div>
                           <button onClick={() => markDose(m.id)} disabled={markingMed === m.id}
-                            style={{ flexShrink: 0, padding: '9px 16px', borderRadius: 10, border: done ? '1px solid #16a34a' : 'none', background: done ? '#f0fdf4' : '#0d6e42', color: done ? '#15803d' : 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minWidth: 96 }}>
+                            style={{ flexShrink: 0, padding: '9px 16px', borderRadius: 10, border: done ? '1px solid #16a34a' : 'none', background: done ? '#f0fdf4' : accent, color: done ? '#15803d' : 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minWidth: 96 }}>
                             {markingMed === m.id ? '…' : done ? '✓ Tomado' : 'Marcar toma'}
                           </button>
                         </div>
@@ -403,7 +420,7 @@ export default function FamilyPortalPage() {
                     {homeMeds.length > 0 && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, lineHeight: 1.5 }}>Ao marcar, a equipa do centro vê que já foi dado em casa.</div>}
                     {/* Família sugere um medicamento de casa que falte na ficha */}
                     {!suggestOpen ? (
-                      <button onClick={() => setSuggestOpen(true)} style={{ marginTop: 6, background: 'none', border: 'none', color: '#0d6e42', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>+ Falta um medicamento que dá em casa?</button>
+                      <button onClick={() => setSuggestOpen(true)} style={{ marginTop: 6, background: 'none', border: 'none', color: accent, fontWeight: 700, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>+ Falta um medicamento que dá em casa?</button>
                     ) : (
                       <div style={{ marginTop: 8, background: '#f6f9f7', border: '1px solid #d1e7db', borderRadius: 10, padding: 12 }}>
                         <input value={suggestMed.name} onChange={e => setSuggestMed(p => ({ ...p, name: e.target.value }))} placeholder="Nome do medicamento" aria-label="Nome do medicamento" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box', marginBottom: 6 }} />
@@ -412,7 +429,7 @@ export default function FamilyPortalPage() {
                           <input value={suggestMed.frequency} onChange={e => setSuggestMed(p => ({ ...p, frequency: e.target.value }))} placeholder="Quando" aria-label="Frequência do medicamento" style={{ flex: 1, minWidth: 0, border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
                         </div>
                         <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                          <button onClick={submitSuggestMed} disabled={suggestBusy || !suggestMed.name.trim()} style={{ flex: 1, padding: '9px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{suggestBusy ? 'A enviar…' : 'Enviar à equipa'}</button>
+                          <button onClick={submitSuggestMed} disabled={suggestBusy || !suggestMed.name.trim()} style={{ flex: 1, padding: '9px', background: accent, color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{suggestBusy ? 'A enviar…' : 'Enviar à equipa'}</button>
                           <button onClick={() => setSuggestOpen(false)} style={{ padding: '9px 14px', background: 'white', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
                         </div>
                       </div>
@@ -423,14 +440,14 @@ export default function FamilyPortalPage() {
                 {/* Pedir uma visita — a família marca aqui e a equipa aprova na aba
                     Visitas do /family (ponte família→instituição das visitas). */}
                 <div style={{ marginBottom: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Visitas</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Visitas</div>
                   {visits.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
                       {visits.map(v => {
                         const st = VISIT_STATUS[v.status] || VISIT_STATUS.pending
                         return (
                           <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: st.bg, border: `1px solid ${st.bd}`, borderRadius: 9, padding: '8px 11px' }}>
-                            <span style={{ fontSize: 13 }}>📅</span>
+                            <Icon name="calendar" size={14} color={st.c} />
                             <span style={{ flex: 1, fontSize: 12.5, color: '#0b1120' }}>
                               {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'long' })}
                               {v.requested_time ? ` · ${v.requested_time}` : ''}
@@ -442,7 +459,7 @@ export default function FamilyPortalPage() {
                     </div>
                   )}
                   {!visitOpen ? (
-                    <button onClick={() => setVisitOpen(true)} style={{ padding: '10px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #0d6e42', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>📅 Pedir uma visita</button>
+                    <button onClick={() => setVisitOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'white', color: accent, border: `1.5px solid ${accent}`, borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}><Icon name="calendar" size={15} color={accent} /> Pedir uma visita</button>
                   ) : (
                     <div style={{ background: '#f6f9f7', border: '1px solid #d1e7db', borderRadius: 10, padding: 12 }}>
                       <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
@@ -451,7 +468,7 @@ export default function FamilyPortalPage() {
                       </div>
                       <input value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} placeholder="Nota (opcional)" aria-label="Nota sobre a visita" style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 8, padding: '9px 11px', fontSize: 14, boxSizing: 'border-box' }} />
                       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                        <button onClick={submitVisit} disabled={visitBusy || !visit.date} style={{ flex: 1, padding: '9px', background: visit.date ? '#0d6e42' : '#cbd5e1', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: visit.date ? 'pointer' : 'default' }}>{visitBusy ? 'A enviar…' : 'Pedir visita'}</button>
+                        <button onClick={submitVisit} disabled={visitBusy || !visit.date} style={{ flex: 1, padding: '9px', background: visit.date ? accent : '#cbd5e1', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: visit.date ? 'pointer' : 'default' }}>{visitBusy ? 'A enviar…' : 'Pedir visita'}</button>
                         <button onClick={() => setVisitOpen(false)} style={{ padding: '9px 14px', background: 'white', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
                       </div>
                     </div>
@@ -471,10 +488,10 @@ export default function FamilyPortalPage() {
                     <div key={m.id} style={{ display: 'flex', justifyContent: isFamily ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
                       <div style={{ maxWidth: '82%' }}>
                         <div style={{ background: isFamily ? '#dcf8c6' : '#fff', color: '#0b1120', border: isFamily ? 'none' : '1px solid #ececec', borderRadius: isFamily ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px 6px', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
-                          {!isFamily && <div style={{ fontSize: 11, fontWeight: 700, color: '#0d6e42', marginBottom: 2 }}>{m.author_name || 'Equipa'}</div>}
+                          {!isFamily && <div style={{ fontSize: 11, fontWeight: 700, color: accent, marginBottom: 2 }}>{m.author_name || 'Equipa'}</div>}
                           {m.kind === 'wellbeing' ? (
                             <div>
-                              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0d6e42', marginBottom: 5 }}>Como correu o dia</div>
+                              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: accent, marginBottom: 5 }}>Como correu o dia</div>
                               {[MOOD[m.mood || ''], MEALS[m.meals || ''], ACT[m.activity || '']].filter(Boolean).map((l, i) => <div key={i} style={{ fontSize: 14, marginBottom: 2 }}>{l}</div>)}
                               {m.content && <div style={{ fontSize: 14, marginTop: 6, lineHeight: 1.45 }}>{m.content}</div>}
                             </div>
@@ -500,19 +517,19 @@ export default function FamilyPortalPage() {
                       style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 9, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
                   )}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-                    <label style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 10, border: `1.5px solid ${photo ? '#2563eb' : '#e5e7eb'}`, background: photo ? '#eff6ff' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 20 }} title="Anexar foto">
-                      📷
+                    <label style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 10, border: `1.5px solid ${photo ? accent : '#e5e7eb'}`, background: photo ? accentSoft : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Anexar foto">
+                      <Icon name="camera" size={20} color={photo ? accent : '#64748b'} />
                       <input type="file" accept="image/*" aria-label="Anexar foto" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
                     </label>
                     <textarea value={text} onChange={e => setText(e.target.value)} rows={1} placeholder={`Mensagem à equipa de ${active.name.split(' ')[0]}…`}
                       aria-label="Mensagem à equipa"
                       style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 14, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <button onClick={send} disabled={(!text.trim() && !photo) || sending}
-                      style={{ flexShrink: 0, padding: '11px 18px', background: (text.trim() || photo) ? '#2563eb' : '#e5e7eb', color: (text.trim() || photo) ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: (text.trim() || photo) ? 'pointer' : 'default' }}>
+                      style={{ flexShrink: 0, padding: '11px 18px', background: (text.trim() || photo) ? accent : '#e5e7eb', color: (text.trim() || photo) ? '#fff' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: (text.trim() || photo) ? 'pointer' : 'default' }}>
                       {sending ? '…' : 'Enviar'}
                     </button>
                   </div>
-                  {photo && <div style={{ fontSize: 12, color: '#2563eb' }}>📎 {photo.name} <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>remover</button></div>}
+                  {photo && <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: accent }}><Icon name="camera" size={13} color={accent} /> {photo.name} <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>remover</button></div>}
                 </div>
               </div>
             </>
