@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, currentShiftFor } from '@/lib/institutionConfig'
@@ -252,7 +253,7 @@ export default function RondaCoordenadaPage() {
                         <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800,
                           border: `2px solid ${given ? '#16a34a' : '#cbd5e1'}`, background: given ? '#16a34a' : 'white', color: 'white' }}>{given ? '✓' : ''}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>💊 {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}><Icon name="pill" size={14} color="#0d9488" /> {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
                           <span style={{ display: 'block', fontSize: 11, color: given ? '#16a34a' : '#94a3b8' }}>{busyM ? 'A guardar…' : given ? 'Dada — toque para desmarcar' : (m.frequency || 'Toque para dar')}</span>
                         </span>
                       </button>

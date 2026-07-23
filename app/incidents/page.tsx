@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import Icon from '@/components/Icon'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { printDoc } from '@/lib/print'
@@ -416,7 +417,7 @@ export default function IncidentsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+            <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="clipboard" size={32} color="var(--ink-4)" /></div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>
               {incidents.length === 0 ? 'Sem ocorrências registadas' : 'Nenhuma ocorrência encontrada'}
             </div>

@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import Icon from '@/components/Icon'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -324,7 +325,7 @@ export default function PatientsPage() {
               </>
             ) : (
               <>
-                <div style={{ fontSize: 34, marginBottom: 12 }}>🧑‍🤝‍🧑</div>
+                <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="users" size={36} color="#cbd5e1" /></div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', marginBottom: 8 }}>{cfg.emptyPeopleMsg}</div>
                 <div style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>Adicione o primeiro {noun}, ou importe de uma folha (CSV).</div>
                 <button onClick={() => setShowAdd(true)} style={{ background: accent, color: 'white', border: 'none', borderRadius: 9, padding: '11px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{cfg.addPersonCta} →</button>

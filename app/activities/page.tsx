@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import Icon from '@/components/Icon'
 import { printDoc } from '@/lib/print'
 import { reportError, MSG } from '@/lib/clientError'
 import { useOrgScope } from '@/lib/orgScope'
@@ -449,7 +450,7 @@ export function AtividadesTool() {
             disabled={printingReport}
             style={{ padding: '10px 16px', background: '#fff', color: '#2563eb', border: '1.5px solid #bfdbfe', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
           >
-            {printingReport ? 'A gerar…' : '🖨 Relatório mensal'}
+            {printingReport ? 'A gerar…' : 'Relatório mensal'}
           </button>
           <button
             onClick={() => setShowRecurringModal(true)}
@@ -517,7 +518,7 @@ export function AtividadesTool() {
             <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>A carregar...</div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
+              <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="target" size={38} color="#cbd5e1" /></div>
               <div style={{ fontWeight: 600, color: '#374151' }}>Sem atividades {view === 'today' ? 'hoje' : view === 'week' ? 'esta semana' : ''}</div>
               <div style={{ fontSize: 13, marginTop: 4 }}>Clica em "+ Nova Atividade" para começar</div>
             </div>
@@ -579,9 +580,9 @@ export function AtividadesTool() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16, fontSize: 13, color: '#374151' }}>
-                <div>📅 {new Date(selected.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                <div>🕐 {selected.start_time}{selected.end_time ? ` – ${selected.end_time}` : ''}</div>
-                {selected.location && <div>📍 {selected.location}</div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="calendar" size={14} color="#64748b" /> {new Date(selected.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="clock" size={14} color="#64748b" /> {selected.start_time}{selected.end_time ? ` – ${selected.end_time}` : ''}</div>
+                {selected.location && <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="pin" size={14} color="#64748b" /> {selected.location}</div>}
                 {selected.responsible && <div>👤 {selected.responsible}</div>}
                 {selected.description && <div style={{ background: '#f9fafb', borderRadius: 6, padding: '8px 10px', marginTop: 4, color: '#6b7280' }}>{selected.description}</div>}
               </div>
