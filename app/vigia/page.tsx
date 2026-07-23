@@ -6,15 +6,27 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
+import { blueprintFor } from '@/lib/institutionBlueprint'
 import Link from 'next/link'
 
-const ACCENT = '#0d6e42'
+// Fallback só para o helper de markdown (fora do componente); no componente
+// usa-se o acento do tipo de instituição.
+const ACCENT = 'var(--green)'
 
 interface Vig { risk_score: number; prev_risk_score?: number; alerts: any[]; flags: string[]; summary: string; analysed_at: string; auto_scanned_at?: string }
 interface Patient { id: string; name: string; age: number|null; sex: string|null; room: string|null; risk_level: string|null; vigilance: Vig|null }
 
 export default function VigiaPage() {
   const { user, supabase } = useAuth() as any
+  // Vocabulário e acento do TIPO de instituição (centro de dia = "utentes" +
+  // teal; lar = "residentes" + âmbar; etc.) — nada hardcoded a "Lar".
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const accent = blueprintFor(institution).accent
+  const people = cfg.personNounPlural.toLowerCase()
+  const personWord = (n: number) => `${n} ${n === 1 ? cfg.personNoun.toLowerCase() : people}`
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
@@ -44,7 +56,7 @@ export default function VigiaPage() {
     setScanning(true); setReport(null)
     let offset = 0, total = 0, done = 0
     do {
-      setScanMsg(`A analisar residentes… ${done}${total ? '/' + total : ''}`)
+      setScanMsg(`A analisar ${people}… ${done}${total ? '/' + total : ''}`)
       const headers = await auth()
       const r = await fetch('/api/vigilancia', { method: 'POST', headers, body: JSON.stringify({ action: 'scan', offset }) })
       const j = await r.json().catch(() => ({}))
@@ -68,9 +80,9 @@ export default function VigiaPage() {
     <Shell>
       <div style={{ textAlign: 'center', padding: 30 }}>
         <div style={{ fontSize: 38 }}>🏥</div>
-        <h1 style={{ fontFamily: 'var(--font-serif,serif)', fontSize: 26 }}>Vigia Clínico do Lar</h1>
-        <p style={{ color: '#6b7280', maxWidth: 460, margin: '8px auto 18px', lineHeight: 1.6 }}>Vigilância farmacológica automática de todos os residentes — interações graves, critérios STOPP/Beers, polimedicação — priorizada por risco. Disponível no plano Institucional.</p>
-        <Link href="/pricing" style={{ display: 'inline-block', background: ACCENT, color: 'white', textDecoration: 'none', padding: '12px 26px', borderRadius: 8, fontWeight: 700 }}>Ver Institucional →</Link>
+        <h1 style={{ fontFamily: 'var(--font-serif,serif)', fontSize: 26 }}>Vigia clínico</h1>
+        <p style={{ color: '#6b7280', maxWidth: 460, margin: '8px auto 18px', lineHeight: 1.6 }}>Vigilância farmacológica automática de todos os {people} — interações graves, critérios STOPP/Beers, polimedicação — priorizada por risco. Disponível no plano Institucional.</p>
+        <Link href="/pricing" style={{ display: 'inline-block', background: accent, color: 'white', textDecoration: 'none', padding: '12px 26px', borderRadius: 8, fontWeight: 700 }}>Ver Institucional →</Link>
       </div>
     </Shell>
   )
@@ -86,12 +98,12 @@ export default function VigiaPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8b8f99' }}>Institucional</div>
-          <h1 style={{ margin: '4px 0 0', fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Vigia Clínico do Lar</h1>
-          <p style={{ color: '#6b7280', fontSize: 13.5, marginTop: 4 }}>{patients.length} residentes · a IA varre a medicação de todos e prioriza por risco.</p>
+          <h1 style={{ margin: '4px 0 0', fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Vigia clínico</h1>
+          <p style={{ color: '#6b7280', fontSize: 13.5, marginTop: 4 }}>{personWord(patients.length)} · a IA varre a medicação de todos e prioriza por risco.</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={scan} disabled={scanning} style={{ padding: '10px 18px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{scanning ? scanMsg || 'A analisar…' : '⚡ Analisar todos'}</button>
-          <button onClick={genReport} disabled={reportBusy || scanning} style={{ padding: '10px 18px', background: 'white', color: ACCENT, border: `1px solid ${ACCENT}`, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{reportBusy ? 'A gerar…' : '📄 Relatório do lar'}</button>
+          <button onClick={scan} disabled={scanning} style={{ padding: '10px 18px', background: accent, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{scanning ? scanMsg || 'A analisar…' : '⚡ Analisar todos'}</button>
+          <button onClick={genReport} disabled={reportBusy || scanning} style={{ padding: '10px 18px', background: 'white', color: accent, border: `1px solid ${accent}`, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{reportBusy ? 'A gerar…' : '📄 Relatório'}</button>
         </div>
       </div>
 
@@ -103,8 +115,8 @@ export default function VigiaPage() {
         if (worse.length === 0) return null
         return (
           <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-            <b style={{ color: '#991b1b', fontSize: 14 }}>⚠ {worse.length} residente{worse.length > 1 ? 's pioraram' : ' piorou'} desde a última vigilância</b>
-            <div style={{ fontSize: 12.5, color: '#7f1d1d', marginTop: 4 }}>{worse.map(p => `${p.name || 'Residente'} (${p.vigilance!.prev_risk_score}→${p.vigilance!.risk_score})`).join(' · ')}</div>
+            <b style={{ color: '#991b1b', fontSize: 14 }}>⚠ {worse.length} {cfg.personNoun.toLowerCase()}{worse.length > 1 ? 's pioraram' : ' piorou'} desde a última vigilância</b>
+            <div style={{ fontSize: 12.5, color: '#7f1d1d', marginTop: 4 }}>{worse.map(p => `${p.name || cfg.personNoun} (${p.vigilance!.prev_risk_score}→${p.vigilance!.risk_score})`).join(' · ')}</div>
           </div>
         )
       })()}
@@ -114,13 +126,13 @@ export default function VigiaPage() {
         <KPI label="Risco crítico" v={counts.critico} color="#dc2626" />
         <KPI label="Risco alto" v={counts.alto} color="#d97706" />
         <KPI label="Por analisar" v={counts.semScan} color="#6b7280" />
-        <KPI label="Total residentes" v={patients.length} color={ACCENT} />
+        <KPI label={`Total ${people}`} v={patients.length} color={accent} />
       </div>
 
       {report && (
         <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-            <b style={{ fontSize: 15 }}>Relatório clínico do lar</b>
+            <b style={{ fontSize: 15 }}>Relatório clínico</b>
             <button aria-label="Fechar" onClick={() => setReport(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>          </div>
           <MarkdownLite text={report} />
         </article>
@@ -128,17 +140,17 @@ export default function VigiaPage() {
 
       {/* Lista priorizada — a ronda inteligente */}
       {patients.length === 0 ? (
-        <p style={{ color: '#6b7280', textAlign: 'center', padding: 30 }}>Sem residentes. Adiciona-os em /patients primeiro.</p>
+        <p style={{ color: '#6b7280', textAlign: 'center', padding: 30 }}>Ainda não há {people}. Começa por adicioná-los.</p>
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           {patients.map(p => {
             const s = p.vigilance?.risk_score || 0
-            const c = s >= 60 ? '#dc2626' : s >= 35 ? '#d97706' : s > 0 ? ACCENT : '#9ca3af'
+            const c = s >= 60 ? '#dc2626' : s >= 35 ? '#d97706' : s > 0 ? accent : '#9ca3af'
             return (
               <button key={p.id} onClick={() => p.vigilance && setOpen(p)} style={{ textAlign: 'left', background: 'white', border: '1px solid #e7e8ea', borderLeft: `3px solid ${c}`, borderRadius: 10, padding: 14, cursor: p.vigilance ? 'pointer' : 'default' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                   <div>
-                    <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name || 'Residente'}</span>
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name || cfg.personNoun}</span>
                     <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>{p.age ? `${p.age}a` : ''} {p.sex || ''} {p.room ? `· ${p.room}` : ''}</span>
                   </div>
                   <span style={{ padding: '3px 10px', borderRadius: 999, background: c + '18', color: c, fontWeight: 700, fontSize: 13 }}>{p.vigilance ? `${s}/100` : '—'}</span>
@@ -180,7 +192,7 @@ export default function VigiaPage() {
             {/* Gémeo Farmacológico — simular mudança antes de prescrever */}
             <Simulator patientId={open.id} auth={auth} />
 
-            <Link href={`/patients`} style={{ display: 'inline-block', marginTop: 14, fontSize: 13, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Abrir ficha do residente →</Link>
+            <Link href={`/patients`} style={{ display: 'inline-block', marginTop: 14, fontSize: 13, color: accent, fontWeight: 700, textDecoration: 'none' }}>Abrir ficha do {cfg.personNoun.toLowerCase()} →</Link>
           </div>
         </div>
       )}
