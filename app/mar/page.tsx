@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
+import { reportError, MSG } from '@/lib/clientError'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
@@ -305,22 +306,30 @@ export default function MARPage() {
     if (!user || !selectedId) return
     if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
     setSaving(medId)
-    const existing = getRecord(medId)
-    const base = scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() })
-    if (!status && existing) {
-      const { error } = await supabase.from('mar_records').delete().eq('id', (existing as any).id)
-      if (error) { setSaving(null); toast.error('Não foi possível remover', error.message); return }
-      setRecords(p => p.filter(r => !(r.med_id === medId && r.shift === shift)))
-    } else if (existing) {
-      const { data, error } = await supabase.from('mar_records').update({ status, notes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
-      if (error) { setSaving(null); toast.error('Não foi possível guardar', error.message); return }
-      if (data) setRecords(p => p.map(r => r.med_id === medId && r.shift === shift ? data : r))
-    } else if (status) {
-      const { data, error } = await supabase.from('mar_records').insert(base).select().single()
-      if (error) { setSaving(null); toast.error('Não foi possível registar a toma', error.message); return }
-      if (data) setRecords(p => [...p, data])
+    // Confirma no servidor ANTES de mostrar como dada (mais seguro para
+    // medicação do que otimista). try/catch garante que uma quebra de rede a
+    // meio não deixa o botão preso e mostra sempre uma mensagem calma.
+    try {
+      const existing = getRecord(medId)
+      const base = scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() })
+      if (!status && existing) {
+        const { error } = await supabase.from('mar_records').delete().eq('id', (existing as any).id)
+        if (error) { toast.error('Não foi possível remover', reportError('mar-delete', error, 'Tenta de novo.')); return }
+        setRecords(p => p.filter(r => !(r.med_id === medId && r.shift === shift)))
+      } else if (existing) {
+        const { data, error } = await supabase.from('mar_records').update({ status, notes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
+        if (error) { toast.error('Não foi possível guardar', reportError('mar-update', error, 'Tenta de novo.')); return }
+        if (data) setRecords(p => p.map(r => r.med_id === medId && r.shift === shift ? data : r))
+      } else if (status) {
+        const { data, error } = await supabase.from('mar_records').insert(base).select().single()
+        if (error) { toast.error('Não foi possível registar a toma', reportError('mar-insert', error, 'Tenta de novo.')); return }
+        if (data) setRecords(p => [...p, data])
+      }
+    } catch (e) {
+      toast.error('Não foi possível guardar', reportError('mar-admin', e, 'Verifica a ligação e tenta de novo.'))
+    } finally {
+      setSaving(null)
     }
-    setSaving(null)
   }
 
   const handleAdmin = async (medId: string, status: AdminStatus, notes: string) => {
@@ -341,10 +350,16 @@ export default function MARPage() {
   const administerAllPending = async () => {
     const pending = shiftMeds.filter(m => !getRecord(m.id))
     if (!pending.length || !user || !selectedId) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
     const now = new Date().toISOString()
-    const inserts = pending.map(m => ({ patient_id: selectedId, user_id: user.id, med_id: m.id, shift, date, status: 'administered', notes: '', recorded_by: (user as any).name || user.email || '', recorded_at: now }))
-    const { data } = await supabase.from('mar_records').insert(inserts).select()
-    if (data) setRecords(p => [...p, ...data])
+    const inserts = pending.map(m => scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: m.id, shift, date, status: 'administered', notes: '', recorded_by: (user as any).name || user.email || '', recorded_at: now }))
+    try {
+      const { data, error } = await supabase.from('mar_records').insert(inserts).select()
+      if (error) { toast.error('Não foi possível registar tudo', reportError('mar-admin-all', error, 'Tenta de novo.')); return }
+      if (data) setRecords(p => [...p, ...data])
+    } catch (e) {
+      toast.error('Não foi possível registar tudo', reportError('mar-admin-all', e, 'Verifica a ligação e tenta de novo.'))
+    }
   }
 
   const shiftMedIds  = new Set(shiftMeds.map(m => m.id))

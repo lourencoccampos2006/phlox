@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 import RegistoDoDia from './RegistoDoDia'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
@@ -177,6 +178,7 @@ export function CareLogTool() {
     if (!user || !patientId) return
     if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
     setSaving(true)
+    try {
     const { error } = await supabase.from('care_records').upsert(scope.stamp({
       user_id: user.id,
       patient_id: patientId,
@@ -199,12 +201,16 @@ export function CareLogTool() {
       notes: notes || null,
     }), { onConflict: 'patient_id,date,shift' })
 
-    setSaving(false)
-    if (error) { toast.error('Não foi possível guardar', error.message); return }
+    if (error) { toast.error('Não foi possível guardar', reportError('care-log-save', error, 'Tenta de novo.')); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
     resetForm()
     load()
+    } catch (e) {
+      toast.error('Não foi possível guardar', reportError('care-log-save', e, 'Verifica a ligação e tenta de novo.'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   const pat = patients.find(p => p.id === patientId)

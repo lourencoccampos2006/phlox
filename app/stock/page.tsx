@@ -131,12 +131,12 @@ export default function StockPage() {
     const prev = it.quantity
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: q } : x))
     const { error } = await supabase.from('stock_items').update({ quantity: q, updated_at: new Date().toISOString() }).eq('id', it.id)
-    if (error) { setErr('Não foi possível atualizar: ' + error.message); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)) }
+    if (error) { setErr(reportError('stock-adjust', error, 'Não foi possível atualizar. Tenta de novo.')); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)) }
   }
   async function del(id: string) {
     if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
     const { error } = await supabase.from('stock_items').delete().eq('id', id)
-    if (error) { setErr('Não foi possível remover: ' + error.message); return }
+    if (error) { setErr(reportError('stock-del', error, 'Não foi possível remover. Tenta de novo.')); return }
     setItems(p => p.filter(x => x.id !== id))
   }
   // Consumo a 1 toque via API (desconta + regista + avisa a equipa se atingir o mínimo).

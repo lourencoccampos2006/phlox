@@ -197,7 +197,7 @@ export default function FamilyPage() {
       read: true,
     }))
     setSaving(false)
-    if (error) { toast.error('Não foi possível enviar a mensagem', error.message); return }
+    if (error) { toast.error('Não foi possível enviar a mensagem', reportError('family-msg', error, 'Tenta de novo.')); return }
     setShowCompose(false)
     setCompose({ patient_id: '', contact_id: '', subject: '', body: '', type: 'update' })
     load()
@@ -240,7 +240,7 @@ export default function FamilyPage() {
 
   async function updateVisitStatus(id: string, status: VisitRequest['status']) {
     const { error } = await supabase.from('visit_requests').update({ status }).eq('id', id)
-    if (error) { toast.error('Não foi possível atualizar a visita', error.message); return }
+    if (error) { toast.error('Não foi possível atualizar a visita', reportError('family-visit-update', error, 'Tenta de novo.')); return }
     setVisits(prev => prev.map(v => v.id === id ? { ...v, status } : v))
   }
 
@@ -258,7 +258,7 @@ export default function FamilyPage() {
       status: visitForm.status,
     }))
     setSavingVisit(false)
-    if (error) { toast.error('Não foi possível registar a visita', error.message); return }
+    if (error) { toast.error('Não foi possível registar a visita', reportError('family-visit-register', error, 'Tenta de novo.')); return }
     setShowVisit(false)
     setVisitForm({ patient_id: '', contact_id: '', requested_date: new Date().toISOString().slice(0, 10), requested_time: new Date().toTimeString().slice(0, 5), notes: '', status: 'completed' })
     load()

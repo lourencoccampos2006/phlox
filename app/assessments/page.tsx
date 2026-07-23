@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 import { printDoc } from '@/lib/print'
 import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
@@ -257,8 +258,8 @@ function AssessmentsTool() {
 
   async function save() {
     if (!user || !patientId) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar avaliações.'); return }
     setSaving(true)
-    const pat = patients.find(p => p.id === patientId)
     const payload = scope.stamp({
       patient_id: patientId,
       scale: tab,
@@ -268,12 +269,17 @@ function AssessmentsTool() {
       notes: notes || null,
       evaluated_by: evaluatedBy || null,
     })
-    const { error } = await supabase.from('assessments').insert(payload)
-    setSaving(false)
-    if (error) { toast.error('Não foi possível guardar a avaliação', error.message); return }
-    setScores({})
-    setNotes('')
-    load()
+    try {
+      const { error } = await supabase.from('assessments').insert(payload)
+      if (error) { toast.error('Não foi possível guardar a avaliação', reportError('assessments-save', error, 'Tenta de novo.')); return }
+      setScores({})
+      setNotes('')
+      load()
+    } catch (e) {
+      toast.error('Não foi possível guardar a avaliação', reportError('assessments-save', e, 'Verifica a ligação e tenta de novo.'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   function printHistory() {

@@ -19,6 +19,8 @@ import ClinicalGate from '@/components/ClinicalGate'
 import { riskScore as calcRiskScore } from '@/lib/riskScore'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { useToast } from '@/components/Toast'
+import { reportError } from '@/lib/clientError'
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 function parseCSV(text: string): string[][] {
@@ -63,6 +65,7 @@ type FilterKey = 'all' | 'alerts' | 'poly' | 'no_log'
 export default function PatientsPage() {
   const { user, supabase } = useAuth() as any
   const router = useRouter()
+  const toast = useToast()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
   const cfg = institutionConfig(institution)
@@ -146,19 +149,28 @@ export default function PatientsPage() {
   // ── ações ──
   async function addPatient() {
     if (!newP.name.trim() || !user) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode adicionar pessoas.'); return }
     setAdding(true)
-    const { data, error } = await supabase.from('patients').insert(scope.stamp({
-      user_id: user.id, name: newP.name.trim(), active: true,
-      age: newP.age ? parseInt(newP.age) : null, sex: newP.sex || null,
-      weight: newP.weight ? parseFloat(newP.weight) : null, height: newP.height ? parseInt(newP.height) : null,
-      creatinine: newP.creatinine ? parseFloat(newP.creatinine) : null,
-      conditions: newP.conditions.trim() || null, allergies: newP.allergies.trim() || null,
-      notes: newP.notes.trim() || null, room_number: newP.room_number.trim() || null,
-      admission_date: newP.admission_date || null, emergency_contact: newP.emergency_contact.trim() || null,
-    })).select().single()
-    if (error) console.error('addPatient:', error.message)
-    setNewP(blankP); setAdding(false)
-    if (data) router.push(`/patients/${data.id}`)
+    try {
+      const { data, error } = await supabase.from('patients').insert(scope.stamp({
+        user_id: user.id, name: newP.name.trim(), active: true,
+        age: newP.age ? parseInt(newP.age) : null, sex: newP.sex || null,
+        weight: newP.weight ? parseFloat(newP.weight) : null, height: newP.height ? parseInt(newP.height) : null,
+        creatinine: newP.creatinine ? parseFloat(newP.creatinine) : null,
+        conditions: newP.conditions.trim() || null, allergies: newP.allergies.trim() || null,
+        notes: newP.notes.trim() || null, room_number: newP.room_number.trim() || null,
+        admission_date: newP.admission_date || null, emergency_contact: newP.emergency_contact.trim() || null,
+      })).select().single()
+      // Em falha: NÃO limpar o formulário (a pessoa não perde o que escreveu) e
+      // avisar de forma calma. Só limpa + navega quando gravou mesmo.
+      if (error) { toast.error('Não foi possível adicionar', reportError('patients-add', error, 'Tenta de novo.')); return }
+      setNewP(blankP)
+      if (data) router.push(`/patients/${data.id}`)
+    } catch (e) {
+      toast.error('Não foi possível adicionar', reportError('patients-add', e, 'Verifica a ligação e tenta de novo.'))
+    } finally {
+      setAdding(false)
+    }
   }
 
   // ARQUIVAR (soft-delete): não apaga nada — põe active:false. Sai da lista mas o
