@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
+import { reportError, MSG } from '@/lib/clientError'
 import { printDoc, type PrintRecord } from '@/lib/print'
 
 interface Move { id: string; kind: 'expense' | 'income'; category?: string | null; description: string; amount: number; date: string; method?: string | null }
@@ -55,7 +56,7 @@ export default function FinanceLedger({ month, monthlyReceived }: { month: strin
     })
     const { error } = await supabase.from('finance_entries').insert(row)
     setSaving(false)
-    if (error) { setErr(error.code === '42P01' ? 'Movimentos ainda não disponíveis — corre o sprint104_attendance.sql.' : (error.message || 'Erro ao guardar.')); return }
+    if (error) { setErr(reportError('finance-entry-save', error, MSG.save)); return }
     setForm({ ...blank, kind: form.kind }); setShowForm(false); load()
   }
   async function remove(m: Move) {
@@ -98,7 +99,7 @@ export default function FinanceLedger({ month, monthlyReceived }: { month: strin
   if (tableMissing) return (
     <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
       <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Movimentos ainda por ativar</div>
-      <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Corra o <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint104_attendance.sql</code> no Supabase para registar despesas e outras receitas.</div>
+      <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos.</div>
     </div>
   )
 

@@ -15,6 +15,7 @@ import { blueprintFor, type BlockId, type CockpitBlock } from '@/lib/institution
 import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { reportError, MSG } from '@/lib/clientError'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const HIDE_KEY = 'phlox-cockpit-hidden'
@@ -231,11 +232,9 @@ export default function PainelCockpit() {
     setAttToday(prev => { const rest = prev.filter(a => a.patient_id !== patientId); return [...rest, { patient_id: patientId, status, arrived_at: row.arrived_at }] })
     const { error } = await supabase.from('attendance').upsert(row, { onConflict: 'patient_id,date' })
     if (error) {
-      // reverte e informa
+      // reverte e informa (detalhe técnico só para a consola)
       setAttToday(prev => prev.filter(a => a.patient_id !== patientId))
-      alert(error.message?.includes('attendance') || error.code === '42P01'
-        ? 'Presenças ainda não disponíveis — corre o sprint104_attendance.sql.'
-        : (error.message || 'Não foi possível marcar a presença.'))
+      alert(reportError('cockpit-attendance', error, MSG.save))
     }
   }, [user, supabase, scope])
 

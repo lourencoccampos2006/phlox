@@ -32,7 +32,7 @@ async function resolveCode(code: string): Promise<{ patient: any } | { errorCode
 
 function codeErrorResponse(errorCode: string) {
   if (errorCode === 'no_key') return NextResponse.json({ error: 'O portal família está temporariamente indisponível (configuração do servidor). Tente mais tarde.' }, { status: 503 })
-  if (errorCode === 'no_column') return NextResponse.json({ error: 'O portal família ainda não está ativo nesta conta. A instituição precisa de aplicar a configuração da base de dados (SETUP_CLINICO.sql).' }, { status: 503 })
+  if (errorCode === 'no_column') { console.error('[phlox:family-portal] family_code column missing'); return NextResponse.json({ error: 'O portal ainda não está disponível para esta instituição.' }, { status: 503 }) }
   if (errorCode === 'db') return NextResponse.json({ error: 'Erro de ligação à base de dados. Tente novamente.' }, { status: 500 })
   if (errorCode === 'short') return NextResponse.json({ error: 'Código demasiado curto.' }, { status: 400 })
   return NextResponse.json({ error: 'Código inválido. Confirme com a instituição.' }, { status: 404 })

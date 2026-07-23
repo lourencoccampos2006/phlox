@@ -10,6 +10,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { reportError, MSG } from '@/lib/clientError'
 import ResidentRequests from '@/components/ResidentRequests'
 import PatientTimeline from '@/components/PatientTimeline'
 import { usePhloxContext } from '@/lib/copilotContext'
@@ -177,8 +178,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     const code = Array.from(rnd, n => alpha[n % 32]).join('')
     const { error } = await supabase.from('patients').update({ family_code: code }).eq('id', pid)
     if (!error) setFamilyCode(code)
-    else if (/family_code/.test(error.message)) setInviteErr('O Portal Família precisa do SETUP_CLINICO.sql (cria a coluna family_code).')
-    else setInviteErr('Não consegui gerar o código: ' + error.message)
+    else setInviteErr(reportError('patient-family-code', error, MSG.save))
     setInviteBusy(false)
   }
   const inviteText = () => {

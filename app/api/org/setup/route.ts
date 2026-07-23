@@ -17,7 +17,7 @@ function admin() {
   )
 }
 const NO_KEY = NextResponse.json(
-  { error: 'A gestão de equipa precisa da variável SUPABASE_SERVICE_ROLE_KEY na Vercel (Settings → Environment Variables). Sem ela não é possível criar acessos em segurança.' },
+  { error: 'A gestão de equipa ainda não está ativa nesta conta.', noServiceKey: true },
   { status: 503 }
 )
 

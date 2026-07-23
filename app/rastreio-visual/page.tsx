@@ -278,9 +278,9 @@ export default function RastreioVisualPage() {
                 )}
 
                 {newMode === 'condition' && (
-                  <input value={newConditionName} onChange={e => setNewConditionName(e.target.value)} placeholder="Nome da condição (ex: Hidradenite Supurativa)" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, marginBottom: 8, outline: 'none', boxSizing: 'border-box' }} />
+                  <input value={newConditionName} onChange={e => setNewConditionName(e.target.value)} placeholder="Nome da condição (como o médico a chamou)" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, marginBottom: 8, outline: 'none', boxSizing: 'border-box' }} />
                 )}
-                <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder={newMode === 'condition' ? 'Ex: Lesão na axila esquerda' : 'Ex: Sinal no braço esquerdo'} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, marginBottom: 8, outline: 'none', boxSizing: 'border-box' }} />
+                <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder={newMode === 'condition' ? 'Onde é (ex: zona a acompanhar)' : 'Onde é (ex: sinal ou mancha)'} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, marginBottom: 8, outline: 'none', boxSizing: 'border-box' }} />
                 <input value={newArea} onChange={e => setNewArea(e.target.value)} placeholder="Zona do corpo (opcional)" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, marginBottom: 10, outline: 'none', boxSizing: 'border-box' }} />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => triggerUpload(null)} disabled={!newLabel.trim() || uploading === 'new'} style={{ padding: '9px 16px', background: newLabel.trim() ? ACCENT : '#e2e8f0', color: newLabel.trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: newLabel.trim() ? 'pointer' : 'default' }}>

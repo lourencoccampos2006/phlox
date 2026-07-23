@@ -63,8 +63,9 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) {
-    if (NO_TABLE(error.message)) return NextResponse.json({ error: 'O cofre familiar ainda não está ativo. Aplica supabase/sprint95_caregiver.sql.' }, { status: 503 })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:family-documents]', error.message)
+    if (NO_TABLE(error.message)) return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
+    return NextResponse.json({ error: 'Não foi possível guardar agora. Tenta de novo.' }, { status: 500 })
   }
   return NextResponse.json({ document: data, warning: scan.warning || null })
 }

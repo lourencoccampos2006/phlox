@@ -24,7 +24,7 @@ function admin() {
 
 // Resolve o utilizador a partir do Bearer token e confirma que é owner/admin da org.
 async function requireManager(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Falta SUPABASE_SERVICE_ROLE_KEY na Vercel — necessária para gerir a equipa.', status: 503 as const }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) { console.error('[phlox:org-team] SUPABASE_SERVICE_ROLE_KEY missing'); return { error: 'A gestão de equipa ainda não está ativa nesta conta.', status: 503 as const } }
   const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
   if (!token) return { error: 'Sessão em falta.', status: 401 as const }
   const a = admin()

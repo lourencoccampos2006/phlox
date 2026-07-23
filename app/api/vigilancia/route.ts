@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   // ── SCAN: analisa todos os doentes (ou um lote) ──
   if (body?.action === 'scan') {
     const { data: patients, error } = await db.from('patients').select('*').eq(scope.col, scope.val).eq('active', true)
-    if (error) return NextResponse.json({ error: error.message, hint: 'Aplica supabase/sprint82_vigilancia.sql se faltar a tabela' }, { status: 500 })
+    if (error) { console.error('[phlox:vigilancia]', error.message); return NextResponse.json({ error: 'Não foi possível carregar agora. Tenta de novo.' }, { status: 500 }) }
     const limit = Math.min(body.limit || 8, 12)  // lote por chamada (evita timeout)
     const offset = body.offset || 0
     const batch = (patients || []).slice(offset, offset + limit)

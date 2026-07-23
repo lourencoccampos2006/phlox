@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       p_internship_id: body.internship_id, p_kind: body.kind || 'formative',
       p_evaluator_name: body.evaluator_name || null, p_evaluator_role: body.evaluator_role || null,
     })
-    if (error) return NextResponse.json({ error: error.message, hint: 'Aplica supabase/sprint80_internship_links.sql' }, { status: 500 })
+    if (error) { console.error('[phlox:internship-links]', error.message); return NextResponse.json({ error: 'Não foi possível guardar agora. Tenta de novo.' }, { status: 500 }) }
     return NextResponse.json({ evaluation: data })
   }
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   if (body.action === 'set_portfolio') {
     if (!body.internship_id) return NextResponse.json({ error: 'internship_id obrigatório' }, { status: 400 })
     const { data, error } = await db.rpc('set_portfolio_share', { p_internship_id: body.internship_id, p_public: body.public !== false })
-    if (error) return NextResponse.json({ error: error.message, hint: 'Aplica supabase/sprint80_internship_links.sql' }, { status: 500 })
+    if (error) { console.error('[phlox:internship-links]', error.message); return NextResponse.json({ error: 'Não foi possível guardar agora. Tenta de novo.' }, { status: 500 }) }
     return NextResponse.json({ token: data, public: body.public !== false })
   }
 

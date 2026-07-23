@@ -53,8 +53,8 @@ export default function ComecarInstituicaoPage() {
     try {
       const t = await token()
       const r = await fetch('/api/org/setup', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }, body: JSON.stringify({ name: orgName.trim(), kind: instType }) }).then(r => r.json())
-      if (r.noServiceKey) { setMsg('A partilha em equipa precisa da chave de serviço no servidor (SUPABASE_SERVICE_ROLE_KEY). Pode continuar a usar sozinho por agora.'); }
-      else if (r.error) setMsg(r.error)
+      if (r.noServiceKey) { console.error('[phlox:org-setup] service key missing'); setMsg('A partilha em equipa ainda não está ativa nesta conta — podes continuar a usar sozinho por agora, e ativamos a equipa contigo quando quiseres.'); }
+      else if (r.error) setMsg('Não foi possível criar a instituição agora. Tenta de novo daqui a pouco.')
       else { setOrg(r.org); try { setInstitution?.(instType) } catch {} ; setMsg('Instituição criada. Os seus utentes foram associados à equipa.') }
     } catch (e: any) { setMsg(e.message || 'Erro a criar.') }
     setBusy(false)

@@ -188,7 +188,7 @@ export default function LabPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <p style={{ color: '#6b7280', fontSize: 14 }}>Nenhum parâmetro. Aplica o sprint70 SQL.</p>
+          <p style={{ color: '#6b7280', fontSize: 14 }}>Ainda não há parâmetros disponíveis.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
             {filtered.map(r => (

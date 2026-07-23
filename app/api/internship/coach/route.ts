@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   let snap: any
   try { snap = await snapshot(db, body.internship_id) }
-  catch (e: any) { return NextResponse.json({ error: e.message, hint: 'Aplica supabase/sprint79_internship_coach.sql' }, { status: 500 }) }
+  catch (e: any) { console.error('[phlox:internship-coach]', e?.message || e); return NextResponse.json({ error: 'Não foi possível processar agora. Tenta de novo.' }, { status: 500 }) }
 
   const ctx = `Estágio: ${JSON.stringify(snap?.internship || {})}
 Diagnósticos dos doentes vistos: ${JSON.stringify(snap?.diagnoses || [])}

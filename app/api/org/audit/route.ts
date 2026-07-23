@@ -11,7 +11,7 @@ function admin() {
 }
 
 export async function GET(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ error: 'Falta SUPABASE_SERVICE_ROLE_KEY na Vercel — necessária para o painel do dono.' }, { status: 503 })
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) { console.error('[phlox:org-audit] SUPABASE_SERVICE_ROLE_KEY missing'); return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 }) }
   const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
   if (!token) return NextResponse.json({ error: 'Sessão em falta.' }, { status: 401 })
   const a = admin()

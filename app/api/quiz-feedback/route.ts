@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     if (NO_TABLE(error.message)) {
-      return NextResponse.json({ error: 'O sistema de reportes ainda não está ativo (aplicar sprint44_quiz_feedback.sql).' }, { status: 503 })
+      console.error('[phlox:quiz-feedback] tables missing')
+      return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
     }
     // Duplicate (já reportou) — não é erro, é idempotência
     if (/duplicate key/i.test(error.message)) {

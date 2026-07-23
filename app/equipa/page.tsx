@@ -108,7 +108,9 @@ export default function EquipaPage() {
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       try { localStorage.setItem('phlox-clinic-institution', orgKind) } catch {}
-      if (d.kindConstraintOutdated) setErr('Instituição criada. Nota: falta correr o sprint94_fix_org_kind.sql no Supabase para guardar o tipo "centro de dia" corretamente.')
+      // A instituição foi criada; um ajuste de esquema do lado do servidor
+      // afina o tipo — irrelevante para o cliente, só se regista para o dev.
+      if (d.kindConstraintOutdated) console.error('[phlox:org-setup-kind] kindConstraintOutdated')
       await loadAll()
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
@@ -123,8 +125,10 @@ export default function EquipaPage() {
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       try { localStorage.setItem('phlox-clinic-institution', editKind) } catch {}
-      if (d.kindConstraintOutdated) setErr('Guardado. Para fixar o tipo "centro de dia", corra o sprint94_fix_org_kind.sql no Supabase.')
-      if (d.publicColumnsMissing) setErr('Guardado (nome/tipo). A página pública precisa do sprint93_org_public.sql no Supabase.')
+      // Guardado. Ajustes de esquema do lado do servidor (tipo / página
+      // pública) — só se registam para o dev, o cliente não precisa de saber.
+      if (d.kindConstraintOutdated) console.error('[phlox:org-settings-kind] kindConstraintOutdated')
+      if (d.publicColumnsMissing) console.error('[phlox:org-settings-public] publicColumnsMissing')
       setOrgSaved(true); setTimeout(() => setOrgSaved(false), 2500)
       await loadAll()
     } catch (e: any) { setErr(e.message) } finally { setSavingOrg(false) }
@@ -208,18 +212,17 @@ export default function EquipaPage() {
         {err && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '11px 15px', fontSize: 13, marginBottom: 16 }}>{err}</div>}
         {loading && <div style={{ ...card, color: '#94a3b8' }}>A carregar…</div>}
 
-        {/* Falta a chave de serviço → explica o que fazer (acordos/testes) */}
-        {!loading && noKey && (
+        {/* Criação de contas de equipa ainda não ativa nesta conta (config do
+            servidor). Mensagem calma para o cliente; o detalhe é para o dev. */}
+        {!loading && noKey && (() => { console.error('[phlox:equipa] service key missing — team account creation disabled'); return (
           <div style={{ ...card, background: '#fffbeb', border: '1px solid #fde68a' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>Falta um passo de configuração</div>
-            <p style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6, margin: '0 0 10px' }}>
-              Para criar contas de funcionários em segurança, o Phlox precisa da chave de serviço do Supabase.
-              Na <strong>Vercel → Settings → Environment Variables</strong>, adicione <strong>SUPABASE_SERVICE_ROLE_KEY</strong>
-              (encontra-a no Supabase → Project Settings → API → <em>service_role</em>) e faça redeploy.
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>Contas de equipa a caminho</div>
+            <p style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6, margin: 0 }}>
+              A criação de contas para os funcionários ainda não está ativa nesta conta. Fala connosco e
+              ativamos num instante — entretanto, podes continuar a usar o Phlox normalmente.
             </p>
-            <p style={{ fontSize: 12.5, color: '#92400e', margin: 0 }}>É uma chave secreta — fica só no servidor, nunca é exposta ao navegador.</p>
           </div>
-        )}
+        ) })()}
 
         {/* ── Sem organização → criar ── */}
         {!loading && !org && !noKey && (

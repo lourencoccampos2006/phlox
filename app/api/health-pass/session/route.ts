@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     byP(db.from('health_visits').select('*').eq('user_id', userId).order('at', { ascending: false }).limit(30)),
     db.from('health_pass_returns').select('*').eq('user_id', userId).eq('applied', false).order('created_at', { ascending: false }),
   ])
-  if (sess.error && NO_TABLE(sess.error.message)) return NextResponse.json({ error: 'Health Pass não está ativo (aplicar sprint29_healthpass.sql).' }, { status: 503 })
+  if (sess.error && NO_TABLE(sess.error.message)) { console.error('[phlox:health-pass] tables missing'); return NextResponse.json({ error: 'A partilha temporária ainda não está disponível nesta conta.' }, { status: 503 }) }
   const active = (sess.data || []).find((s: any) => (profileId ? s.profile_id === profileId : !s.profile_id)) || null
   return NextResponse.json({ session: active, visits: visits.data || [], returns: returns.data || [] })
 }
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     expires_at: new Date(Date.now() + minutes * 60000).toISOString(),
   }
   const { data, error } = await db.from('health_pass_sessions').insert(record).select().single()
-  if (error) return NextResponse.json({ error: NO_TABLE(error.message) ? 'Health Pass não está ativo (aplicar sprint29_healthpass.sql).' : error.message }, { status: NO_TABLE(error.message) ? 503 : 500 })
+  if (error) { console.error('[phlox:health-pass-session]', error.message); return NextResponse.json({ error: NO_TABLE(error.message) ? 'A partilha temporária ainda não está disponível nesta conta.' : 'Não foi possível guardar agora. Tenta de novo.' }, { status: NO_TABLE(error.message) ? 503 : 500 }) }
   return NextResponse.json(data)
 }
 

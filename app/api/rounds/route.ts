@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     const { data: patients, error: pErr } = c.orgId ? await patQ.eq('org_id', c.orgId) : await patQ.eq('user_id', c.user.id)
     if (pErr) return NextResponse.json({ error: pErr.message }, { status: 400 })
     const ins = await db.from('rounds').insert(stamp({ user_id: c.user.id, date: today, shift, participants, status: 'active', created_by: c.user.id })).select().single()
-    if (ins.error) return NextResponse.json({ error: setupErr(ins.error.message) ? 'Rondas ainda não disponíveis — corre o sprint107_rounds.sql.' : ins.error.message }, { status: 400 })
+    if (ins.error) { console.error('[phlox:rounds-post]', ins.error.message); return NextResponse.json({ error: setupErr(ins.error.message) ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível guardar agora. Tenta de novo.' }, { status: 400 }) }
     const round = ins.data
     // divide os utentes pelos participantes (round-robin) → cada um a UM só
     const rows = (patients || []).map((p: any, i: number) => {

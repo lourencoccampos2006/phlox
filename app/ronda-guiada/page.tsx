@@ -172,7 +172,7 @@ export default function RondaCoordenadaPage() {
   )
 
   if (loading) return shell(<div style={{ color: '#94a3b8', fontSize: 13 }}>A carregar…</div>)
-  if (needsSetup) return shell(<div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 15px', fontSize: 13, color: '#92400e' }}>Corre o <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint107_rounds.sql</code> no Supabase para ativar as rondas coordenadas.</div>)
+  if (needsSetup) { console.error('[phlox:ronda-guiada] rounds tables not set up'); return shell(<div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 15px', fontSize: 13, color: '#92400e' }}>As rondas coordenadas ainda não estão disponíveis nesta conta. Fala connosco e ativamos.</div>) }
 
   if (!round) return shell(
     <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: 20 }}>

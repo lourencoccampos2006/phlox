@@ -72,13 +72,8 @@ export async function POST(req: NextRequest) {
   // tenta acrescentar a membership a seguir (também com retry).
   const noRpc = rpcErr && /function .*create_org_with_owner.* does not exist/i.test(rpcErr.message)
   if (rpcErr && !noRpc) {
-    if (/row-level security/i.test(rpcErr.message)) {
-      return NextResponse.json({
-        error: 'A base de dados rejeitou a inserção por política de segurança (RLS). Aplica supabase/sprint62_orgs_rls_final.sql + sprint63_create_org_rpc.sql no SQL Editor do Supabase. (Detalhe: ' + rpcErr.message + ')',
-        hint: 'sprint62_orgs_rls_final.sql, sprint63_create_org_rpc.sql',
-      }, { status: 500 })
-    }
-    return NextResponse.json({ error: rpcErr.message }, { status: 500 })
+    console.error('[phlox:orgs-create-rpc]', rpcErr.message)
+    return NextResponse.json({ error: 'Não foi possível criar a instituição agora. Tenta de novo daqui a pouco.' }, { status: 500 })
   }
 
   // Fallback path
@@ -103,16 +98,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (error) {
-    if (NO_TABLE(error.message)) {
-      return NextResponse.json({ error: 'Tabela organizations ainda não existe. Aplica sprint49_organizations.sql.' }, { status: 503 })
-    }
-    if (/row-level security/i.test(error.message)) {
-      return NextResponse.json({
-        error: 'A base de dados rejeitou a inserção por política de segurança (RLS). Aplica supabase/sprint63_create_org_rpc.sql no SQL Editor.',
-        hint: 'sprint63_create_org_rpc.sql',
-      }, { status: 500 })
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:orgs-create]', error.message)
+    if (NO_TABLE(error.message)) return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
+    return NextResponse.json({ error: 'Não foi possível criar a instituição agora. Tenta de novo daqui a pouco.' }, { status: 500 })
   }
 
   // Garante membership (caso o trigger AFTER INSERT não tenha corrido com auth.uid())

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
+import { reportError } from '@/lib/clientError'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -148,7 +149,7 @@ export function FeridasTool() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro')
       const { error } = await supabase.from('wound_assessments').update({ ai_report: data }).eq('id', assessment.id)
-      if (error) throw new Error('Relatório obtido mas não foi possível guardar (correr SETUP_CLINICO.sql).')
+      if (error) { console.error('[phlox:feridas-ai-save]', error.message); throw new Error('O relatório foi gerado mas não foi possível guardá-lo agora.') }
       setAssessments((prev: any[]) => prev.map(a => a.id === assessment.id ? { ...a, ai_report: data } : a))
     } catch (e: any) { setStoredAiErr(p => ({ ...p, [assessment.id]: e.message || 'Falhou' })) }
     finally { setAnalyzingId(null) }
@@ -232,8 +233,8 @@ export function FeridasTool() {
         if (upErr) throw upErr
         const { data: pub } = supabase.storage.from('wounds').getPublicUrl(path)
         photoUrl = pub?.publicUrl || null
-      } catch {
-        setUploadErr('Não foi possível guardar a foto (cria o bucket "wounds" no Supabase). A avaliação foi guardada sem foto.')
+      } catch (e) {
+        setUploadErr(reportError('feridas-photo', e, 'Não foi possível guardar a foto agora. A avaliação foi guardada sem foto.'))
       }
     }
     await supabase.from('wound_assessments').insert({

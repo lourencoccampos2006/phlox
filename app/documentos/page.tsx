@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
+import { reportError, MSG } from '@/lib/clientError'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 
@@ -82,7 +83,7 @@ function DocumentosTool() {
       if (insErr) throw insErr
       setShowForm(false); setForm(blank); setFile(null); load()
     } catch (e: any) {
-      setErr(e.message?.includes('Bucket') || e.message?.includes('bucket') ? 'Cria o bucket "documents" no Supabase (sprint23).' : (e.message || 'Erro ao guardar.'))
+      setErr(reportError('documentos-upload', e, MSG.save))
     } finally { setSaving(false) }
   }
   async function open(d: Doc) {

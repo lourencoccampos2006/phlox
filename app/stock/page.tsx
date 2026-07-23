@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
+import { reportError } from '@/lib/clientError'
 import { buildProducts, type ImportedProduct } from '@/lib/productImport'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -148,7 +149,7 @@ export default function StockPage() {
     const prev = it.quantity
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: Math.max(0, prev - qty) } : x))
     const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, qty }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
-    if (r.error) { setErr(r.error.includes('sprint106') ? r.error : 'Não foi possível registar o consumo.'); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)); return }
+    if (r.error) { setErr(reportError('stock-consume', r.error, 'Não foi possível registar o consumo agora. Tenta de novo.')); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)); return }
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: r.quantity, reorder_status: r.alerted ? 'requested' : x.reorder_status } : x))
   }
   async function reorder(it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) {
@@ -237,8 +238,7 @@ export default function StockPage() {
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Stock ainda por ativar</div>
             <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-              A base de dados do stock ainda não está criada nesta conta. Aplique a migração <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>stock_items</code> no Supabase e recarregue.
-              Tudo o resto continua a funcionar normalmente.
+              Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos — tudo o resto continua a funcionar normalmente.
             </div>
           </div>
         ) : (

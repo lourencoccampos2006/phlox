@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
+import { reportError, MSG } from '@/lib/clientError'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -218,7 +219,7 @@ export function AtividadesTool() {
       active: true,
     }))
     setSavingRecurring(false)
-    if (error) { alert('Não foi possível guardar. Confirma que a migração sprint108 já foi aplicada.'); return }
+    if (error) { alert(reportError('activities-recurring-save', error, MSG.save)); return }
     setRecurringForm({ title: '', type: 'gym', weekday: 3, start_time: '10:00', end_time: '', location: 'Sala de convívio', responsible: '', description: '', max_participants: '' })
     load()
   }

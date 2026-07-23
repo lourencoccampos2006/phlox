@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
   const { data, error } = await q
   if (error) {
     const missing = /team_messages/.test(error.message) && /does not exist|relation/.test(error.message)
-    return NextResponse.json({ messages: [], error: missing ? 'Comunicação ainda não disponível — corre o sprint105_team_comms.sql.' : error.message })
+    console.error('[phlox:team-messages-get]', error.message)
+    return NextResponse.json({ messages: [], error: missing ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível carregar agora.' })
   }
   // conta não-lidas (mais recentes que a última leitura do membro)
   const { data: read } = await db.from('team_reads').select('last_read').eq('org_id', ctx.orgId).eq('user_id', ctx.user.id).maybeSingle()
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     patient_id: body.patient_id || null,
   }
   const { data, error } = await db.from('team_messages').insert(row).select().single()
-  if (error) return NextResponse.json({ error: error.message.includes('team_messages') ? 'Comunicação ainda não disponível — corre o sprint105_team_comms.sql.' : error.message }, { status: 400 })
+  if (error) { console.error('[phlox:team-messages-post]', error.message); return NextResponse.json({ error: error.message.includes('team_messages') ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível enviar agora. Tenta de novo.' }, { status: 400 }) }
 
   // Push aos outros membros (best-effort, não bloqueia a resposta se falhar).
   const CHAN_LABEL: Record<string, string> = { geral: 'Equipa', doentes: 'Doentes', stock: 'Stock', avisos: 'Aviso' }

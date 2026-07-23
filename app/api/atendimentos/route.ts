@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const days = Math.min(120, Math.max(1, parseInt(req.nextUrl.searchParams.get('days') || '30')))
   const since = new Date(Date.now() - days * 86400000).toISOString()
   const { data, error } = await db.from('encounters').select('*').eq('user_id', userId).gte('at', since).order('at', { ascending: false }).limit(300)
-  if (error) return NextResponse.json({ error: NO_TABLE(error.message) ? 'Os atendimentos ainda não estão ativos (aplicar sprint31_atendimentos.sql).' : error.message }, { status: NO_TABLE(error.message) ? 503 : 500 })
+  if (error) { console.error('[phlox:atendimentos]', error.message); return NextResponse.json({ error: NO_TABLE(error.message) ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível carregar agora. Tenta de novo.' }, { status: NO_TABLE(error.message) ? 503 : 500 }) }
   return NextResponse.json({ encounters: data || [] })
 }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     professional: String(b.professional || '').slice(0, 80) || null,
   }
   const { data, error } = await db.from('encounters').insert(rec).select().single()
-  if (error) return NextResponse.json({ error: NO_TABLE(error.message) ? 'Os atendimentos ainda não estão ativos (aplicar sprint31_atendimentos.sql).' : error.message }, { status: NO_TABLE(error.message) ? 503 : 500 })
+  if (error) { console.error('[phlox:atendimentos]', error.message); return NextResponse.json({ error: NO_TABLE(error.message) ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível carregar agora. Tenta de novo.' }, { status: NO_TABLE(error.message) ? 503 : 500 }) }
   return NextResponse.json({ encounter: data })
 }
 

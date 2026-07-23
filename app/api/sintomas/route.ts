@@ -19,8 +19,9 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query
   if (error) {
-    if (NO_TABLE(error.message) === 503) return NextResponse.json({ error: 'O Diário de Sintomas ainda não está ativo. Aplica supabase/sprint28_symptom_log.sql.' }, { status: 503 })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:sintomas]', error.message)
+    if (NO_TABLE(error.message) === 503) return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
+    return NextResponse.json({ error: 'Não foi possível guardar agora. Tenta de novo.' }, { status: 500 })
   }
   return NextResponse.json({ logs: data || [] })
 }
@@ -44,8 +45,9 @@ export async function POST(req: NextRequest) {
   }
   const { data, error } = await supabase.from('symptom_logs').insert(record).select().single()
   if (error) {
-    if (NO_TABLE(error.message) === 503) return NextResponse.json({ error: 'O Diário de Sintomas ainda não está ativo. Aplica supabase/sprint28_symptom_log.sql.' }, { status: 503 })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:sintomas]', error.message)
+    if (NO_TABLE(error.message) === 503) return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
+    return NextResponse.json({ error: 'Não foi possível guardar agora. Tenta de novo.' }, { status: 500 })
   }
   if (profileId && (data as any)?.profile_id == null)
     return NextResponse.json({ error: 'Registo não associado ao familiar (coluna profile_id em falta).' }, { status: 503 })

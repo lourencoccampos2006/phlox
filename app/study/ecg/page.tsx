@@ -216,7 +216,7 @@ export default function ECGPage() {
       </div>
 
       {ecgs.length === 0 ? (
-        <p style={{ color: '#6b7280', fontSize: 14 }}>Nenhum ECG disponível ainda. Aplica o sprint70 SQL.</p>
+        <p style={{ color: '#6b7280', fontSize: 14 }}>Ainda não há ECGs disponíveis.</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
           {ecgs.map((e, idx) => (

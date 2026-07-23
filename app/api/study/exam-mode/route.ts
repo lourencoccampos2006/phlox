@@ -82,7 +82,7 @@ day começa em 1 (hoje) e vai até ${days}. date_offset = nº de dias a partir d
     if (!rpcErr && rpc) return NextResponse.json({ goal: rpc })
 
     const noRpc = rpcErr && /function .*create_exam_goal.* does not exist/i.test(rpcErr.message)
-    if (rpcErr && !noRpc) return NextResponse.json({ error: rpcErr.message, hint: 'Aplica supabase/sprint78_exam_mode.sql' }, { status: 500 })
+    if (rpcErr && !noRpc) { console.error('[phlox:exam-mode]', rpcErr.message); return NextResponse.json({ error: 'Não foi possível iniciar o modo exame agora. Tenta de novo.' }, { status: 500 }) }
 
     const { data, error } = await db.from('exam_goals')
       .insert({ user_id: userId, name, exam_date: examDate, topics, daily_minutes: daily, plan: plan?.plan || [] })

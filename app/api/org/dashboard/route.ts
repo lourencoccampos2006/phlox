@@ -11,7 +11,7 @@ function admin() {
 const safe = async (q: any) => { try { const r = await q; return r.error ? { data: [], count: 0 } : r } catch { return { data: [], count: 0 } } }
 
 export async function GET(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ error: 'Falta SUPABASE_SERVICE_ROLE_KEY na Vercel.' }, { status: 503 })
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) { console.error('[phlox:org-dashboard] SUPABASE_SERVICE_ROLE_KEY missing'); return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 }) }
   const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
   if (!token) return NextResponse.json({ error: 'Sessão em falta.' }, { status: 401 })
   const a = admin()

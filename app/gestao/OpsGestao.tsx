@@ -282,7 +282,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
         )}
 
         <div style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', padding: '18px 0', lineHeight: 1.6 }}>
-          Painel adaptado a {instName}. Sinais que não aparecem precisam da ferramenta respetiva ativada (ver migrações sprint32/33).
+          Painel adaptado a {instName}. Alguns sinais só aparecem quando a ferramenta respetiva estiver em uso.
         </div>
       </div>
       <style>{`@media (max-width: 760px){ .gestao-grid { grid-template-columns: 1fr !important; } }`}</style>

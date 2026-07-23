@@ -6,6 +6,7 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { reportError, MSG } from '@/lib/clientError'
 import { useToast } from '@/components/Toast'
 
 interface FamilyContact {
@@ -656,9 +657,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
     const code = Array.from(rnd, n => alpha[n % 32]).join('')
     const { error } = await supabase.from('patients').update({ family_code: code }).eq('id', patientId).eq('user_id', user.id)
     if (!error) setFamilyCode(code)
-    else if (/column .*family_code.* does not exist/i.test(error.message) || (error as any).code === '42703')
-      setCodeErr('O Portal Família ainda não está ativo. É preciso correr o SETUP_CLINICO.sql no Supabase (cria a coluna family_code).')
-    else setCodeErr('Não foi possível gerar o código: ' + error.message)
+    else setCodeErr(reportError('family-code', error, MSG.save))
     setCodeBusy(false)
   }
 

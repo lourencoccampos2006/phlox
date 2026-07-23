@@ -102,7 +102,7 @@ Gera o material de estudo segundo o esquema.`,
   }).select('id,title,kind,subject,summary,page_count,chars,created_at').single()
 
   if (error) {
-    if (NO_TABLE(error.message)) return NextResponse.json({ error: 'A biblioteca ainda não está ativa (aplicar sprint45_study_documents.sql).' }, { status: 503 })
+    if (NO_TABLE(error.message)) { console.error('[phlox:study-doc] tables missing'); return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 }) }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

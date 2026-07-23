@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const sb = admin()
   // Sem PIN → indica que precisa de PIN (e se a sessão existe/está válida)
   const { data: meta, error: mErr } = await sb.from('health_pass_sessions').select('expires_at,revoked').eq('token', token).maybeSingle()
-  if (mErr && NO_TABLE(mErr.message)) return NextResponse.json({ error: 'Health Pass não está ativo nesta conta (aplicar sprint29_healthpass.sql).' }, { status: 503 })
+  if (mErr && NO_TABLE(mErr.message)) { console.error('[phlox:health-pass] tables missing'); return NextResponse.json({ error: 'A partilha temporária ainda não está disponível nesta conta.' }, { status: 503 }) }
   if (!meta) return NextResponse.json({ error: 'Sessão inválida ou inexistente.' }, { status: 404 })
   if (meta.revoked || new Date(meta.expires_at).getTime() < Date.now()) return NextResponse.json({ error: 'Esta partilha expirou ou foi terminada pelo doente.' }, { status: 410 })
   if (!pin) return NextResponse.json({ needsPin: true }, { status: 200 })

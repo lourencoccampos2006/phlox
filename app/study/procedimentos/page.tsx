@@ -106,7 +106,7 @@ export default function ProcedimentosPage() {
       <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Procurar…" style={{ ...input, marginBottom: 16 }} />
 
       {filtered.length === 0 ? (
-        <p style={{ color: '#6b7280' }}>Nenhum procedimento. Aplica sprint70 SQL.</p>
+        <p style={{ color: '#6b7280' }}>Ainda não há procedimentos disponíveis.</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
           {filtered.map(p => (

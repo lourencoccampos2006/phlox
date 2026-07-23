@@ -174,7 +174,7 @@ export default function MonthlyBilling() {
         ) : tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação ainda por ativar</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>A base de dados de mensalidades ainda não está criada nesta conta. Aplique a migração de faturação (<code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>billing_entries</code>) no Supabase e recarregue. Tudo o resto continua a funcionar normalmente.</div>
+            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos — tudo o resto continua a funcionar normalmente.</div>
           </div>
         ) : (
           <>
