@@ -16,6 +16,8 @@ import { analyzeResident, SEVERITY_STYLE } from '@/lib/residentSignals'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { reportError, MSG } from '@/lib/clientError'
+import Icon from '@/components/Icon'
+import { iconForHref } from '@/lib/clinicalIcons'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const HIDE_KEY = 'phlox-cockpit-hidden'
@@ -261,13 +263,14 @@ export default function PainelCockpit() {
             <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 520, lineHeight: 1.5 }}>{bp.tagline}</p>
           </div>
           <button onClick={() => setEditing(e => !e)} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: editing ? bp.accent : 'white', color: editing ? 'white' : '#64748b', border: `1px solid ${editing ? bp.accent : 'var(--border)'}`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
-            {editing ? '✓ Concluir' : '⚙ Personalizar'}
+            <Icon name={editing ? 'check' : 'sliders'} size={15} color={editing ? 'white' : '#64748b'} />
+            {editing ? 'Concluir' : 'Personalizar'}
           </button>
         </div>
 
         {err && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
-            <span style={{ color: '#b91c1c', fontSize: 18 }}>⚠</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--red-light, #fef2f2)', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
+            <Icon name="alert" size={18} color="#b91c1c" />
             <span style={{ flex: 1, fontSize: 13.5, color: '#991b1b' }}>{err}</span>
             <button onClick={() => load()} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Tentar novamente</button>
           </div>
@@ -281,16 +284,16 @@ export default function PainelCockpit() {
             <div style={{ fontSize: 13, color: '#475569', marginBottom: 14 }}>Três passos rápidos e o painel ganha vida com os teus dados reais.</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
               {[
-                { n: 1, icon: '🧑‍🤝‍🧑', label: `Adicionar ${cfg.personNounPlural.toLowerCase()}`, sub: 'Um a um ou importar de uma folha (CSV)', href: '/patients' },
+                { n: 1, icon: 'users', label: `Adicionar ${cfg.personNounPlural.toLowerCase()}`, sub: 'Um a um ou importar de uma folha (CSV)', href: '/patients' },
                 cfg.hasMAR
-                  ? { n: 2, icon: '💊', label: 'Registar a medicação', sub: `A medicação de cada ${cfg.personNoun.toLowerCase()}`, href: '/patients' }
-                  : { n: 2, icon: '📦', label: 'Pôr o stock', sub: 'Produtos, validades e mínimos', href: '/stock' },
+                  ? { n: 2, icon: 'pill', label: 'Registar a medicação', sub: `A medicação de cada ${cfg.personNoun.toLowerCase()}`, href: '/patients' }
+                  : { n: 2, icon: 'package', label: 'Pôr o stock', sub: 'Produtos, validades e mínimos', href: '/stock' },
                 cfg.hasFamilies
-                  ? { n: 3, icon: '👨‍👩‍👧', label: 'Convidar as famílias', sub: 'Mostra-lhes como corre o dia', href: '/family' }
-                  : { n: 3, icon: '👥', label: 'Adicionar a equipa', sub: 'Quem trabalha contigo', href: '/equipa?tab=escalas' },
+                  ? { n: 3, icon: 'family', label: 'Convidar as famílias', sub: 'Mostra-lhes como corre o dia', href: '/family' }
+                  : { n: 3, icon: 'users', label: 'Adicionar a equipa', sub: 'Quem trabalha contigo', href: '/equipa?tab=escalas' },
               ].map(s => (
                 <Link key={s.n} href={s.href} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '12px 14px', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>{s.icon}</span>
+                  <span style={{ flexShrink: 0, display: 'inline-flex', width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', background: bp.accentSoft }}><Icon name={s.icon as any} size={18} color={bp.accent} /></span>
                   <span style={{ minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{s.label}</span>
                     <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{s.sub}</span>
@@ -338,8 +341,24 @@ function BlockShell({ block, editing, hidden, onToggle, accent, children }: { bl
 }
 
 // ── Cartão base ──
-const card: React.CSSProperties = { background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '16px 18px', height: '100%', boxSizing: 'border-box' }
-const blkTitle: React.CSSProperties = { fontSize: 13, fontWeight: 800, color: '#0b1120', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7 }
+// Blend "calmo + operação" (R2): cartão branco, cantos moderados, sombra
+// sussurro. Títulos com ícone de linha (nunca emoji) via <BTitle>.
+const card: React.CSSProperties = { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px', height: '100%', boxSizing: 'border-box', boxShadow: 'var(--shadow-xs)' }
+const blkTitle: React.CSSProperties = { fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }
+
+// Título de bloco: ícone de linha (accent) + rótulo + contagem/ação opcionais.
+function BTitle({ icon, title, count, accent, action }: { icon: string; title: string; count?: number; accent: string; action?: { href: string; label: string } }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <Icon name={icon} size={16} color={accent} />
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+        {count != null && count > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: accent, background: accent + '18', padding: '1px 7px', borderRadius: 999 }}>{count}</span>}
+      </span>
+      {action && <Link href={action.href} style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: accent, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 2 }}>{action.label}<Icon name="chevron" size={13} color={accent} /></Link>}
+    </div>
+  )
+}
 
 interface Ctx {
   patients: PatientRow[]; careToday: any[]; withCareToday: Set<string>; marToday: any[]; marTaken: number; medsPending: number; expectedDoses: number
@@ -364,14 +383,23 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
   switch (id) {
     case 'day_overview': {
       const present = ctx.presentToday.size
+      const stats: { n: number; l: string; tone?: 'accent' | 'warn' }[] = [
+        { n: ctx.patients.length, l: noun.toLowerCase() },
+        { n: present, l: 'presentes hoje', tone: 'accent' },
+        { n: ctx.marTaken, l: 'tomas dadas' },
+        { n: ctx.medsPending, l: 'por dar', tone: ctx.medsPending > 0 ? 'warn' : undefined },
+        { n: ctx.acts.length, l: 'atividades' },
+      ]
       return (
-        <div style={{ ...card, background: bp.accent, border: 'none', color: 'white' }}>
-          <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 600, marginBottom: 10 }}>O dia de hoje</div>
-          <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap' }}>
-            <Stat n={ctx.patients.length} l={noun} light />
-            <Stat n={present} l="presentes hoje" light />
-            <Stat n={ctx.marTaken} l="tomas dadas" light />
-            <Stat n={ctx.acts.length} l="atividades" light />
+        <div style={{ ...card, padding: '16px 20px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700, marginBottom: 14 }}>O dia de hoje</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 36px' }}>
+            {stats.map(s => (
+              <div key={s.l}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: s.tone === 'accent' ? bp.accent : s.tone === 'warn' ? '#c2410c' : 'var(--ink)' }}>{s.n}</div>
+                <div style={{ fontSize: 11.5, marginTop: 5, fontWeight: 600, color: 'var(--ink-4)' }}>{s.l}</div>
+              </div>
+            ))}
           </div>
         </div>
       )
@@ -384,7 +412,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const pending = ctx.patients.filter(p => !ctx.presentToday.has(p.id) && ctx.attByPt.get(p.id)?.status !== 'absent')
       return (
         <div style={card}>
-          <div style={blkTitle}>🟢 Presenças <span style={{ color: '#94a3b8', fontWeight: 600 }}>{present.length}/{ctx.patients.length}</span></div>
+          <div style={blkTitle}><Icon name="users" size={16} color={bp.accent} /> Presenças <span style={{ color: 'var(--ink-4)', fontWeight: 600 }}>{present.length}/{ctx.patients.length}</span></div>
           {ctx.patients.length === 0 ? <Empty msg={`Sem ${noun.toLowerCase()} ainda.`} href="/patients" cta={`Adicionar ${noun.toLowerCase()}`} />
           : <>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -425,11 +453,11 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const pend = ctx.medsPending
       return (
         <div style={card}>
-          <div style={blkTitle}>💊 Medicação a dar</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
-            <div><span style={{ fontSize: 28, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>{ctx.marTaken}</span><span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}> dadas hoje</span></div>
+          <div style={blkTitle}><Icon name="pill" size={16} color={bp.accent} /> Medicação a dar</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, flexWrap: 'wrap' }}>
+            <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-0.02em' }}>{ctx.marTaken}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> dadas hoje</span></div>
             {ctx.expectedDoses > 0 && (
-              <div><span style={{ fontSize: 28, fontWeight: 800, color: pend > 0 ? '#d97706' : '#16a34a', lineHeight: 1 }}>{pend}</span><span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}> por dar</span></div>
+              <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: pend > 0 ? '#c2410c' : '#16a34a', lineHeight: 1, letterSpacing: '-0.02em' }}>{pend}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> por dar</span></div>
             )}
           </div>
           <Link href="/mar" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>{pend > 0 ? `Dar as ${pend} que faltam →` : 'Abrir medicação →'}</Link>
@@ -447,7 +475,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       return (
         <div style={card}>
           <div style={{ ...blkTitle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>📋 O que há a fazer hoje {(nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)) > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)}</span>}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Icon name="clipboard" size={16} color={bp.accent} />O que há a fazer hoje {(nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)) > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)}</span>}</span>
             <Link href="/radar" style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Ver tudo →</Link>
           </div>
           {nada ? <div style={{ fontSize: 13, color: '#16a34a' }}>Tudo em dia. Nada fora do padrão. ✓</div>
@@ -455,13 +483,13 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
               {/* Tarefas operacionais primeiro (acionáveis já) */}
               {ctx.medsPending > 0 && (
                 <Link href="/mar" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#fff7ed', border: '1.5px solid #fed7aa', color: '#c2410c', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>💊</span>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#fff7ed', border: '1.5px solid #fed7aa', color: '#c2410c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="pill" size={15} color="#c2410c" /></span>
                   <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{ctx.medsPending} {ctx.medsPending === 1 ? 'toma por dar' : 'tomas por dar'}</span><span style={{ display: 'block', fontSize: 11, color: '#c2410c' }}>Abrir a folha de medicação</span></span>
                 </Link>
               )}
               {semRegisto.length > 0 && (
                 <Link href={`/care-log?patient=${semRegisto[0].id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1d4ed8', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>📝</span>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="note" size={15} color="#1d4ed8" /></span>
                   <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{semRegisto.length} {semRegisto.length === 1 ? 'registo do dia por fazer' : 'registos do dia por fazer'}</span><span style={{ display: 'block', fontSize: 11, color: '#1d4ed8' }}>{semRegisto.slice(0, 3).map((p: any) => p.name.split(' ')[0]).join(', ')}{semRegisto.length > 3 ? '…' : ''}</span></span>
                 </Link>
               )}
@@ -484,7 +512,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
     case 'activities': {
       return (
         <div style={card}>
-          <div style={blkTitle}>🎯 Atividades de hoje</div>
+          <div style={blkTitle}><Icon name="target" size={16} color={bp.accent} /> Atividades de hoje</div>
           {ctx.acts.length === 0 ? <Empty msg="Sem atividades marcadas para hoje." href="/activities" cta="Planear atividades" />
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {ctx.acts.slice(0, 5).map(a => (
@@ -500,7 +528,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
     case 'family_feed': {
       return (
         <div style={card}>
-          <div style={blkTitle}>👨‍👩‍👧 Famílias</div>
+          <div style={blkTitle}><Icon name="family" size={16} color={bp.accent} /> Famílias</div>
           {ctx.family.length === 0 ? <Empty msg="Nenhuma mensagem ainda. Partilha como correu o dia." href="/family" cta="Abrir portal das famílias" />
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ctx.family.slice(0, 4).map(m => (
@@ -518,7 +546,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
     case 'incidents': {
       return (
         <div style={card}>
-          <div style={blkTitle}>⚠️ Ocorrências</div>
+          <div style={blkTitle}><Icon name="alert" size={16} color={bp.accent} /> Ocorrências</div>
           {ctx.incidents.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Nenhuma em aberto. ✓</div>
           : <div style={{ fontSize: 13, color: '#b91c1c', fontWeight: 700 }}>{ctx.incidents.length} em aberto · <Link href="/incidents" style={{ color: '#b91c1c' }}>ver</Link></div>}
         </div>
@@ -527,10 +555,10 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
     case 'quick_actions': {
       return (
         <div style={card}>
-          <div style={blkTitle}>⚡ Ações rápidas</div>
+          <div style={blkTitle}><Icon name="bolt" size={16} color={bp.accent} /> Ações rápidas</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             {bp.coreTools.slice(0, 4).map((t: any) => (
-              <Link key={t.href} href={t.href} style={{ textDecoration: 'none', background: bp.accentSoft, borderRadius: 9, padding: '9px 11px', fontSize: 12, fontWeight: 700, color: '#0b1120' }}>{t.icon} {t.label}</Link>
+              <Link key={t.href} href={t.href} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: bp.accentSoft, borderRadius: 9, padding: '9px 11px', fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}><Icon name={iconForHref(t.href)} size={15} color={bp.accent} /> {t.label}</Link>
             ))}
           </div>
         </div>
@@ -560,7 +588,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const { count, total } = ctx.salesToday
       return (
         <div style={card}>
-          <div style={blkTitle}>🛒 Vendas de hoje</div>
+          <div style={blkTitle}><Icon name="cart" size={16} color={bp.accent} /> Vendas de hoje</div>
           {count === 0 ? <Empty msg="Ainda não há vendas registadas hoje." href="/vendas" cta="Abrir caixa" />
           : <>
               <div style={{ fontSize: 30, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>
@@ -576,7 +604,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const q = ctx.rxQueue
       return (
         <div style={card}>
-          <div style={blkTitle}>📬 Receitas a validar {q.pending > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{q.pending}</span>}</div>
+          <div style={blkTitle}><Icon name="inbox" size={16} color={bp.accent} /> Receitas a validar {q.pending > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{q.pending}</span>}</div>
           {q.pending === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Fila limpa — nada por validar. ✓</div>
           : <div style={{ fontSize: 13, color: '#334155' }}><b style={{ color: '#b45309' }}>{q.pending}</b> à espera de validação · <Link href="/prescription-queue" style={{ color: bp.accent, fontWeight: 700 }}>abrir fila</Link></div>}
         </div>
@@ -589,7 +617,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const upcoming = appts.filter(a => a.status === 'scheduled')
       return (
         <div style={card}>
-          <div style={blkTitle}>📅 Agenda de hoje <span style={{ color: '#94a3b8', fontWeight: 600 }}>{done}/{appts.length}</span></div>
+          <div style={blkTitle}><Icon name="calendar" size={16} color={bp.accent} /> Agenda de hoje <span style={{ color: 'var(--ink-4)', fontWeight: 600 }}>{done}/{appts.length}</span></div>
           {appts.length === 0 ? <Empty msg="Sem marcações para hoje." href="/agenda" cta="Abrir agenda" />
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {upcoming.slice(0, 6).map(a => (
@@ -610,7 +638,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const urgent = open.filter(t => t.priority === 'high' || t.priority === 'urgent').length
       return (
         <div style={card}>
-          <div style={blkTitle}>✅ Tarefas {open.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: urgent ? '#b91c1c' : '#64748b', background: urgent ? '#fef2f2' : '#f1f5f9', padding: '2px 7px', borderRadius: 6 }}>{open.length}</span>}</div>
+          <div style={blkTitle}><Icon name="check" size={16} color={bp.accent} /> Tarefas {open.length > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: urgent ? '#b91c1c' : '#64748b', background: urgent ? '#fef2f2' : '#f1f5f9', padding: '2px 7px', borderRadius: 6 }}>{open.length}</span>}</div>
           {open.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Sem tarefas pendentes. ✓</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {open.slice(0, 4).map(t => (
