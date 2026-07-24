@@ -109,12 +109,9 @@ export function HidratacaoTool() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body" style={{ maxWidth: 880 }}>
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Clínico · Hidratação & Eliminação</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Hidratação & Eliminação</h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Balanço hídrico do dia e controlo de dejeções, com alertas de desidratação e obstipação.</p>
-        </div>
+      <div className="page-container page-body" style={{ maxWidth: 880, paddingTop: 16 }}>
+        {/* Sem cabeçalho próprio: esta ferramenta vive dentro do "Registo do dia"
+            (a moldura já dá o título e a aba). */}
 
         {tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>

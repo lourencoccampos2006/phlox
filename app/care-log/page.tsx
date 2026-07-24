@@ -275,29 +275,24 @@ export function CareLogTool() {
   })
 
   return (
-    <div style={{ padding: '4px 0 24px', maxWidth: 960, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Registos Diários</h1>
-        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Sinais vitais · Nutrição · Continência · Bem-estar · Pele · Notas</p>
-      </div>
-
-      {/* Today summary strip — só os turnos que ESTA instituição tem. */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+    <div className="carelog-tool" style={{ padding: '4px clamp(14px,3vw,28px) 40px', maxWidth: 1120, margin: '0 auto' }}>
+      {/* Resumo do dia por turno — só os turnos que ESTA instituição tem.
+          (O título da página vem do RegistoDoDia; não repetimos aqui.) */}
+      <div className="cl-shifts" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: 10, marginBottom: 20 }}>
         {shiftsFor(institution).map(s => {
           const sm = SHIFTS[s]
           const count = todayRecords.filter(r => r.shift === s).length
           return (
-            <div key={s} style={{ flex: 1, minWidth: 120, background: sm.bg, border: `1.5px solid ${sm.color}30`, borderRadius: 10, padding: '10px 14px' }}>
+            <div key={s} style={{ background: sm.bg, border: `1.5px solid ${sm.color}30`, borderRadius: 10, padding: '10px 14px' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: sm.color }}>{sm.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: sm.color, marginTop: 2 }}>{count}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: sm.color, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
               <div style={{ fontSize: 11, color: '#9ca3af' }}>registos hoje</div>
             </div>
           )
         })}
-        <div style={{ flex: 1, minWidth: 120, background: '#f9fafb', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 14px' }}>
+        <div style={{ background: '#f9fafb', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 14px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Total {cfg.personNounPlural.toLowerCase()}</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#0b1120', marginTop: 2 }}>{patients.length}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#0b1120', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{patients.length}</div>
           <div style={{ fontSize: 11, color: '#9ca3af' }}>registados</div>
         </div>
       </div>
@@ -312,7 +307,7 @@ export function CareLogTool() {
               <span style={{ width: 20, height: 20, background: '#0b1120', borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>1</span>
               Contexto do registo
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12, marginBottom: 12 }}>
+            <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12, marginBottom: 12 }}>
               <div style={{ minWidth: 0 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cfg.personNoun} *</label>
                 <select value={patientId} onChange={e => setPatientId(e.target.value)} style={{ ...inp(), maxWidth: '100%' }}>
@@ -331,7 +326,7 @@ export function CareLogTool() {
                 ⤵ Copiar do último registo <span style={{ fontWeight: 400, color: '#6b7280' }}>({lastRecord.date}{lastRecord.shift ? ` · ${SHIFTS[lastRecord.shift as Shift]?.label || lastRecord.shift}` : ''})</span>
               </button>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12 }}>
+            <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12 }}>
               {/* Só os turnos desta instituição (o centro de dia não tem noite). */}
               <div style={{ minWidth: 0 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cfg.hasShifts ? 'Turno' : 'Período'}</label>
@@ -437,7 +432,7 @@ export function CareLogTool() {
             </div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>% Refeição ingerida</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 8 }}>
+              <div className="cl-3col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 8 }}>
                 {([['Pequeno-almoço', breakfast, setBreakfast], ['Almoço', lunch, setLunch], ['Jantar', dinner, setDinner]] as [string, number | null, (v: number | null) => void][]).map(([label, val, setter]) => (
                   <div key={label as string}>
                     <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>{label as string}</div>
@@ -453,7 +448,7 @@ export function CareLogTool() {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 }}>Líquidos (mL)</label>
                 <input type="number" value={fluidMl} onChange={e => setFluidMl(e.target.value)} placeholder="1500" min={0} max={5000} style={inp()} />
@@ -477,7 +472,7 @@ export function CareLogTool() {
               <span style={{ width: 20, height: 20, background: '#0891b2', borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>4</span>
               Eliminação
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 6 }}>Urinária</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -502,7 +497,7 @@ export function CareLogTool() {
           </div>
 
           {/* Mood + Skin */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 20, height: 20, background: '#7c3aed', borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>5</span>
@@ -602,6 +597,10 @@ export function CareLogTool() {
       <style>{`
         @media (max-width: 768px) {
           .care-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 620px) {
+          .carelog-tool .cl-2col { grid-template-columns: 1fr !important; }
+          .carelog-tool .cl-3col { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

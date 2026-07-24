@@ -383,9 +383,9 @@ export default function MARPage() {
         <div className="page-container mar-top" style={{ paddingTop: 10, paddingBottom: 10 }}>
           {/* Row 1: title + secondary actions */}
           <div className="mar-top-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Medicação a dar</span>
+            <span className="mar-title" style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Medicação a dar</span>
             <span className="mar-badge" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>MAR</span>
-            <div style={{ flex: 1 }} />
+            <div className="mar-spacer" style={{ flex: 1 }} />
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
               style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151', minWidth: 0 }} />
             <button onClick={printMARSheet} className="mar-print" title="Folha de todas as tomas deste turno (A4, para auditoria)"
@@ -531,8 +531,8 @@ export default function MARPage() {
           })()}
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
             {/* Shift header */}
-            <div style={{ background: sl.light, borderBottom: `1px solid ${sl.border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="mar-turn-head" style={{ background: sl.light, borderBottom: `1px solid ${sl.border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, fontWeight: 800, color: sl.color }}>Turno da {sl.label} · {sl.time}</span>
                 <span style={{ fontSize: 12, color: sl.color, opacity: 0.7 }}>
                   {new Date(date).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -672,6 +672,14 @@ export default function MARPage() {
           .mar-badge { display: none !important; }
           .mar-print { display: none !important; }
           .mar-selector { grid-template-columns: 1fr !important; }
+          /* Cabeçalho: título na sua própria linha, controlos por baixo — sem
+             espremer "Medicação a dar" nem cortar a data. */
+          .mar-top-row { flex-wrap: wrap; row-gap: 10px; }
+          .mar-title { flex: 1 0 100%; font-size: 20px; }
+          .mar-spacer { display: none !important; }
+          .mar-top-row input[type="date"] { flex: 1; }
+          .mar-passagem { margin-left: auto; }
+          .mar-turn-head { flex-direction: column; align-items: flex-start !important; }
         }
         @media print {
           @page { size: A4 landscape; margin: 12mm; }

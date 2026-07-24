@@ -437,13 +437,10 @@ export function AtividadesTool() {
   const attendedCount  = participations.filter(p => p.attended).length
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Atividades</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Planeamento e registo de participação dos {cfg.personNounPlural.toLowerCase()}</p>
-        </div>
+    <div style={{ padding: '16px clamp(14px,3vw,28px) 40px', maxWidth: 1100, margin: '0 auto' }}>
+      {/* Sem cabeçalho próprio: vive dentro do "Registo do dia" (moldura dá título+aba).
+          Mantemos só as ações. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', marginBottom: 20, gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={printMonthlyReport}
