@@ -396,7 +396,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 36px' }}>
             {stats.map(s => (
               <div key={s.l}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: s.tone === 'accent' ? bp.accent : s.tone === 'warn' ? '#c2410c' : 'var(--ink)' }}>{s.n}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, lineHeight: 1, letterSpacing: '-0.02em', color: s.tone === 'accent' ? bp.accent : s.tone === 'warn' ? '#c2410c' : 'var(--ink)' }}>{s.n}</div>
                 <div style={{ fontSize: 11.5, marginTop: 5, fontWeight: 600, color: 'var(--ink-4)' }}>{s.l}</div>
               </div>
             ))}
@@ -455,9 +455,9 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
         <div style={card}>
           <div style={blkTitle}><Icon name="pill" size={16} color={bp.accent} /> Medicação a dar</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, flexWrap: 'wrap' }}>
-            <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-0.02em' }}>{ctx.marTaken}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> dadas hoje</span></div>
+            <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-0.02em' }}>{ctx.marTaken}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> dadas hoje</span></div>
             {ctx.expectedDoses > 0 && (
-              <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: pend > 0 ? '#c2410c' : '#16a34a', lineHeight: 1, letterSpacing: '-0.02em' }}>{pend}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> por dar</span></div>
+              <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, color: pend > 0 ? '#c2410c' : '#16a34a', lineHeight: 1, letterSpacing: '-0.02em' }}>{pend}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> por dar</span></div>
             )}
           </div>
           <Link href="/mar" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>{pend > 0 ? `Dar as ${pend} que faltam →` : 'Abrir medicação →'}</Link>
