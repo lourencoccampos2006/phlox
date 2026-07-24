@@ -228,7 +228,7 @@ export default function StockPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={printStockReport} title="Relatório A4 de ruturas e validades — para encomendas e auditoria"
-              style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>🖨 Relatório</button>
+              style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Relatório</button>
             <button onClick={() => { setImporting(true); setPreview(null); setImportMsg('') }} style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Importar CSV</button>
             <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Produto</button>
           </div>
@@ -382,7 +382,7 @@ export default function StockPage() {
 
             <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={onFile} style={{ display: 'none' }} />
             <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 14, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--bg-2)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#374151', fontFamily: 'var(--font-sans)' }}>
-              📄 Escolher ficheiro CSV
+              Escolher ficheiro CSV
             </button>
 
             {importMsg && <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: importMsg.includes('Não') || importMsg.includes('falharam') ? '#dc2626' : '#16a34a' }}>{importMsg}</div>}
