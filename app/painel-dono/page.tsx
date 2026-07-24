@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
 import { buildLedger } from '@/lib/workLedger'
 import { printDoc } from '@/lib/print'
@@ -19,12 +20,13 @@ interface Ev { kind: string; icon: string; at: string; who: string; patient: str
 
 // Atalhos do dono ADAPTADOS ao tipo de instituição (antes mostrava faturação/
 // stock/agenda a todos — um centro de dia não vende ao balcão nem tem stock).
-function ownerLinks(kind: string): [string, string][] {
-  const common: [string, string][] = [['/painel', '📊 Cockpit do dia'], ['/equipa', '👥 Equipa']]
-  if (kind === 'pharmacy_community') return [...common, ['/vendas', '🛒 Vendas'], ['/stock', '📦 Stock'], ['/faturacao', '💶 Faturação']]
-  if (kind === 'clinic' || kind === 'health_center') return [...common, ['/agenda', '📅 Agenda'], ['/faturacao', '💶 Faturação']]
+// [href, ícone (nome do Icon set), label]
+function ownerLinks(kind: string): [string, string, string][] {
+  const common: [string, string, string][] = [['/painel', 'chart', 'Cockpit do dia'], ['/equipa', 'users', 'Equipa']]
+  if (kind === 'pharmacy_community') return [...common, ['/vendas', 'cart', 'Vendas'], ['/stock', 'package', 'Stock'], ['/faturacao', 'euro', 'Faturação']]
+  if (kind === 'clinic' || kind === 'health_center') return [...common, ['/agenda', 'calendar', 'Agenda'], ['/faturacao', 'euro', 'Faturação']]
   // day_care / nursing_home
-  return [...common, ['/radar', '📋 A vigiar'], ['/faturacao', '💶 Mensalidades'], ['/comecar-instituicao', '🚀 Pôr a postos']]
+  return [...common, ['/radar', 'clipboard', 'A vigiar'], ['/faturacao', 'euro', 'Mensalidades'], ['/comecar-instituicao', 'sliders', 'Pôr a postos']]
 }
 
 export default function PainelDonoPage() {
@@ -106,15 +108,15 @@ export default function PainelDonoPage() {
             SEMPRE (mesmo que os dados de negócio falhem), para poder navegar. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 22 }}>
           {[
-            { href: '/equipa', icon: '👥', title: 'Equipa & acessos', desc: 'Convidar e gerir funcionários' },
-            { href: '/faturacao', icon: '💶', title: 'Faturação', desc: 'Mensalidades, despesas, receitas' },
-            { href: '/stock', icon: '📦', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
-            { href: '/equipa?tab=mural', icon: '📣', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
-            { href: '/radar', icon: '📋', title: 'A vigiar', desc: 'O que merece atenção hoje' },
-            { href: '/comecar-instituicao', icon: '⚙️', title: 'Definições', desc: 'Dados da instituição' },
+            { href: '/equipa', icon: 'users', title: 'Equipa & acessos', desc: 'Convidar e gerir funcionários' },
+            { href: '/faturacao', icon: 'euro', title: 'Faturação', desc: 'Mensalidades, despesas, receitas' },
+            { href: '/stock', icon: 'package', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
+            { href: '/equipa?tab=mural', icon: 'megaphone', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
+            { href: '/radar', icon: 'clipboard', title: 'A vigiar', desc: 'O que merece atenção hoje' },
+            { href: '/comecar-instituicao', icon: 'sliders', title: 'Definições', desc: 'Dados da instituição' },
           ].map(h => (
-            <Link key={h.href} href={h.href} style={{ ...card, padding: '14px 16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 3, borderColor: '#e2e8f0' }}>
-              <span style={{ fontSize: 20 }}>{h.icon}</span>
+            <Link key={h.href} href={h.href} style={{ ...card, padding: '14px 16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 6, borderColor: '#e2e8f0' }}>
+              <Icon name={h.icon} size={20} color={ACCENT} />
               <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1120' }}>{h.title}</span>
               <span style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.4 }}>{h.desc}</span>
             </Link>
@@ -201,7 +203,7 @@ export default function PainelDonoPage() {
                             <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>O que o Phlox organizou este mês</div>
                             <div style={{ fontSize: 12, color: '#64748b' }}>{biz.ledger.monthLabel} · números reais, prontos a mostrar</div>
                           </div>
-                          {led.lines.length > 0 && <button onClick={exportLedger} style={{ padding: '8px 14px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}55`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>🖨 Exportar A4</button>}
+                          {led.lines.length > 0 && <button onClick={exportLedger} style={{ padding: '8px 14px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}55`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Exportar A4</button>}
                         </div>
                         {led.lines.length === 0 ? (
                           <div style={{ fontSize: 13, color: '#64748b' }}>{led.note}</div>
@@ -231,8 +233,8 @@ export default function PainelDonoPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {ownerLinks(biz.org.kind).map(([href, l]) => (
-                      <Link key={href} href={href} style={{ padding: '9px 14px', background: 'white', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#0b1120', textDecoration: 'none' }}>{l}</Link>
+                    {ownerLinks(biz.org.kind).map(([href, ic, l]) => (
+                      <Link key={href} href={href} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', background: 'white', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#0b1120', textDecoration: 'none' }}><Icon name={ic} size={15} color={ACCENT} /> {l}</Link>
                     ))}
                   </div>
                   <p style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.6 }}>Defina a lotação e a mensalidade em <Link href="/equipa" style={{ color: ACCENT, fontWeight: 700 }}>Equipa → Definições da instituição</Link> para ver ocupação e receita.</p>
