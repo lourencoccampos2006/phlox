@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       if (e2 && /organizations_kind_check/.test(e2.message)) await a.from('organizations').update({ name }).eq('id', orgId)
       return NextResponse.json({ ok: true, org_id: orgId, kind, publicColumnsMissing: true })
     }
-    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 400 })
+    if (upErr) { console.error('[phlox:org-setup] gravar org falhou:', upErr.message); return NextResponse.json({ error: 'Não foi possível guardar a configuração agora. Tente novamente.' }, { status: 400 }) }
   }
 
   await a.from('profiles').update({

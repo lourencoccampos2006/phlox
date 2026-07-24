@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     doc_hash: fiscal.hash, prev_hash: prev?.doc_hash || null, hash4: fiscal.hash4,
     atcud: fiscal.atcud, qr_data: fiscal.qrData, finalized_at: fiscal.finalizedAt,
   }).eq('id', saleId).eq('user_id', userId)
-  if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 })
+  if (uErr) { console.error('[phlox:fiscal-finalize] finalizar falhou:', uErr.message); return NextResponse.json({ error: 'Não foi possível finalizar o documento agora. Tente novamente.' }, { status: 500 }) }
 
   // Audit trail
   recordAudit({

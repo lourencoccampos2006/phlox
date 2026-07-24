@@ -340,13 +340,15 @@ export async function POST(req: NextRequest) {
     if (pat2.org_id) row.org_id = pat2.org_id
     const { error } = await sb2.from('visit_requests').insert(row)
     if (error) {
-      console.error('request_visit insert falhou:', error.message)
-      return NextResponse.json({ error: `Não foi possível pedir a visita: ${error.message}` }, { status: 500 })
+      console.error('[phlox:family-portal] request_visit insert falhou:', error.message)
+      return NextResponse.json({ error: 'Não foi possível pedir a visita agora. Tente novamente mais tarde.' }, { status: 500 })
     }
     return NextResponse.json({ ok: true })
   }
 
-  const content = String(body.content || '').trim()
+  // Limite de tamanho — evita mensagens gigantes (abuso de armazenamento). Uma
+  // mensagem à equipa nunca precisa de mais do que isto.
+  const content = String(body.content || '').trim().slice(0, 4000)
   const imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64 : ''
   if (!content && !imageBase64) return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 })
 

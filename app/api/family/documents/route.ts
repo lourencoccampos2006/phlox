@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
   const { data, error } = await q
   if (error) {
     if (NO_TABLE(error.message)) return NextResponse.json({ documents: [] })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:family-documents] listar falhou:', error.message)
+    return NextResponse.json({ error: 'Não foi possível carregar os documentos agora.' }, { status: 500 })
   }
   return NextResponse.json({ documents: data || [] })
 }

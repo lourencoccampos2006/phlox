@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     const { error: iErr } = await a.from('org_invites').insert({
       org_id: orgId, email, role: inviteRole, token, expires_at: expires, invited_by: user.id,
     })
-    if (iErr) return NextResponse.json({ error: iErr.message }, { status: 400 })
+    if (iErr) { console.error('[phlox:org-team] criar convite falhou:', iErr.message); return NextResponse.json({ error: 'Não foi possível criar o convite agora. Tente novamente.' }, { status: 400 }) }
     const url = `https://phloxclinical.com/convite/${token}`
     const t = emailLayout({
       heading: 'Foi convidado para uma equipa no Phlox',

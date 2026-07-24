@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     if (NO_TABLE(error.message)) return NextResponse.json({ automations: [], runs: [] })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:automations] listar falhou:', error.message)
+    return NextResponse.json({ error: 'Não foi possível carregar as automações agora.' }, { status: 500 })
   }
 
   const { data: runs } = await db.from('automation_runs')
@@ -69,6 +70,6 @@ export async function POST(req: NextRequest) {
     enabled: body.enabled !== false,
     created_by: userId,
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 403 })
+  if (error) { console.error('[phlox:automations] criar falhou:', error.message); return NextResponse.json({ error: 'Não foi possível guardar a automação. Verifique as permissões e tente novamente.' }, { status: 403 }) }
   return NextResponse.json({ automation: data })
 }

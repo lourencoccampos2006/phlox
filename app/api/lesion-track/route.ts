@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
   const { data: saved, error: saveErr } = await supabase.from('skin_lesion_photos')
     .insert({ track_id: trackId, user_id: userId, photo_url: photoUrl, abcde, risk_score: riskScore, risk_level: riskLevel })
     .select().single()
-  if (saveErr) return NextResponse.json({ error: saveErr.message }, { status: 500 })
+  if (saveErr) { console.error('[phlox:lesion-track] guardar falhou:', saveErr.message); return NextResponse.json({ error: 'Não foi possível guardar o registo agora. Tente novamente.' }, { status: 500 }) }
 
   return NextResponse.json({ track_id: trackId, photo: saved, previous: prevPhoto || null })
 }
@@ -164,6 +164,6 @@ export async function DELETE(req: NextRequest) {
 
   await supabase.from('skin_lesion_photos').delete().eq('track_id', trackId)
   const { error } = await supabase.from('skin_lesion_tracks').delete().eq('id', trackId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) { console.error('[phlox:lesion-track] remover falhou:', error.message); return NextResponse.json({ error: 'Não foi possível remover o registo agora. Tente novamente.' }, { status: 500 }) }
   return NextResponse.json({ ok: true })
 }

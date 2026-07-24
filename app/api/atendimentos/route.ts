@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const { data: enc } = await db.from('encounters').select('*').eq('id', b.promote).eq('user_id', userId).single()
     if (!enc) return NextResponse.json({ error: 'Atendimento não encontrado' }, { status: 404 })
     const { data: pat, error: pErr } = await db.from('patients').insert({ user_id: userId, name: enc.person_name || 'Utente', age: enc.age || null, active: true }).select().single()
-    if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 })
+    if (pErr) { console.error('[phlox:atendimentos] promover a utente falhou:', pErr.message); return NextResponse.json({ error: 'Não foi possível criar a ficha agora. Tente novamente.' }, { status: 500 }) }
     await db.from('encounters').update({ patient_id: pat.id }).eq('id', enc.id)
     return NextResponse.json({ patient: pat })
   }

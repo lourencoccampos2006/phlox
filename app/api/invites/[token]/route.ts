@@ -47,7 +47,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
   })
   // ignora unique-violation (utilizador já é membro)
   if (memErr && !/duplicate key/i.test(memErr.message)) {
-    return NextResponse.json({ error: memErr.message }, { status: 500 })
+    console.error('[phlox:invites] adicionar membro falhou:', memErr.message)
+    return NextResponse.json({ error: 'Não foi possível aceitar o convite agora. Tente novamente.' }, { status: 500 })
   }
 
   // Perfil → modo clínico + org ativa (para ter logo o acesso institucional; o
