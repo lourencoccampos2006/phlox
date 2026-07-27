@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
         note: 'Cria a tabela shared_results no Supabase para activar esta funcionalidade.'
       })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[phlox:share] criar partilha falhou:', error.message)
+    return NextResponse.json({ error: 'Não foi possível criar o link de partilha agora. Tenta novamente.' }, { status: 500 })
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'

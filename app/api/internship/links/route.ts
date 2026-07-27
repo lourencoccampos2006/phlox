@@ -25,13 +25,13 @@ export async function GET(req: NextRequest) {
   const db = anon()
   if (evalToken) {
     const { data, error } = await db.rpc('get_eval_by_token', { p_token: evalToken })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) { console.error('[phlox:internship-links] get_eval_by_token:', error.message); return NextResponse.json({ error: 'Não foi possível abrir este link agora.' }, { status: 500 }) }
     if (!data) return NextResponse.json({ error: 'Link inválido ou expirado.' }, { status: 404 })
     return NextResponse.json({ evaluation: data })
   }
   if (portfolioToken) {
     const { data, error } = await db.rpc('get_portfolio_by_token', { p_token: portfolioToken })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) { console.error('[phlox:internship-links] get_portfolio_by_token:', error.message); return NextResponse.json({ error: 'Não foi possível abrir este link agora.' }, { status: 500 }) }
     if (!data) return NextResponse.json({ error: 'Portefólio não disponível.' }, { status: 404 })
     return NextResponse.json({ portfolio: data })
   }
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       p_strengths: body.strengths || null, p_improvements: body.improvements || null,
       p_comments: body.comments || null, p_evaluator_name: body.evaluator_name || '',
     })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) { console.error('[phlox:internship-links] submit_eval_by_token:', error.message); return NextResponse.json({ error: 'Não foi possível submeter a avaliação agora.' }, { status: 500 }) }
     if (!data) return NextResponse.json({ error: 'Avaliação já submetida ou link inválido.' }, { status: 409 })
     return NextResponse.json({ ok: true })
   }

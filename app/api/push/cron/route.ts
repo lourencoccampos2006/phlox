@@ -11,7 +11,12 @@ export async function GET(req: NextRequest) {
   // Só cabeçalhos — nunca query string (URLs ficam em logs de servidor,
   // proxies e histórico do browser). Ver app/api/cron/ingest-shortages.
   const secret = bearerToken || req.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  // !CRON_SECRET primeiro: sem isto, se a env var nunca tivesse sido definida no
+  // deploy, um pedido SEM nenhum cabeçalho (secret undefined) passava a
+  // verificação (undefined !== undefined é falso) e corria sem autenticação
+  // nenhuma, com a service-role key, sobre os dados de medicação/push de TODOS
+  // os utilizadores. As outras 3 rotas de cron já tinham este guard.
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

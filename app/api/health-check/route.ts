@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
   // Só cabeçalhos — nunca query string (URLs ficam em logs de servidor,
   // proxies e histórico do browser). Ver app/api/cron/ingest-shortages.
   const secret = req.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Não autorizado. Usa ?secret=O_TEU_CRON_SECRET' }, { status: 401 })
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 

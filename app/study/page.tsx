@@ -781,6 +781,8 @@ export default function StudyPage() {
                     { href:'/study/lab', icon:'🧪', label:'Análises' },
                     { href:'/study/procedimentos', icon:'🩺', label:'Procedimentos' },
                     { href:'/study/professor', icon:'🎓', label:'Modo Professor' },
+                    { href:'/study/plano', icon:'🗓️', label:'Plano de estudo' },
+                    { href:'/study/resumos', icon:'📋', label:'Resumos' },
                   ].map(x => (
                     <Link key={x.href} href={x.href} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 13px', borderRadius:9, border:'1.5px solid var(--border)', background:'white', color:'var(--ink)', textDecoration:'none', fontSize:13, fontWeight:600 }}>
                       <span>{x.icon}</span>{x.label}
