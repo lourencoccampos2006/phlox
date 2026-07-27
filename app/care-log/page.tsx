@@ -580,7 +580,7 @@ export function CareLogTool() {
                   </div>
                   {v && (v.bp_sys || v.hr || v.temp) && (
                     <div style={{ fontSize: 11, color: '#374151', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {v.bp_sys && v.bp_dia && <span>TA {v.bp_sys}/{v.bp_dia}</span>}
+                      {(v.bp_sys || v.bp_dia) && <span>TA {v.bp_sys ?? '—'}/{v.bp_dia ?? '—'}</span>}
                       {v.hr && <span>FC {v.hr}bpm</span>}
                       {v.temp && <span>T {v.temp}°C</span>}
                       {v.spo2 && <span>SpO₂ {v.spo2}%</span>}

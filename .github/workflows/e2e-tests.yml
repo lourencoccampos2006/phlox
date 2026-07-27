@@ -1,0 +1,52 @@
+name: E2E Tests
+
+# Corre a suite Playwright (tests/e2e/) contra o servidor de produção local em
+# CADA push/PR — o guarda de regressão para os bugs de scroll/layout mobile de
+# 2026-07-27 (ver tests/e2e/README.md). A conta de QA usada é dedicada a testes
+# (sem dados reais) e a anon key do Supabase é pública por desenho — nenhum
+# GitHub Secret é necessário para este workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar browser do Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Build de produção
+        run: npm run build
+
+      - name: Arrancar servidor de produção
+        run: npm start &
+
+      - name: Esperar o servidor ficar de pé
+        run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Correr os testes E2E
+        run: npm run test:e2e
+
+      - name: Guardar relatório em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
