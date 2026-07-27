@@ -64,7 +64,20 @@
   --r-xl: 12px;
 }
 
-html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-x: clip; }
+/* NÃO pôr overflow-x aqui. `overflow-x: clip` no <html> parte o scroll vertical
+   do site INTEIRO: pela spec CSS Overflow, o body só "propaga" o seu overflow
+   para o viewport quando o overflow ESPECIFICADO do <html> é o valor inicial
+   (visible) nos dois eixos — assim que o <html> declara overflow-x != visible
+   (mesmo "clip"), essa propagação desliga-se. O <body> passa a ser o seu
+   próprio contentor de scroll, mas como a caixa do body cresce sempre para
+   caber o conteúdo (nunca fica mais pequena que o conteúdo), o body nunca tem
+   overflow para dar scroll a si próprio — e o viewport também não recebe o
+   scroll por já não estar propagado. Resultado: a roda do rato/trackpad não
+   move a página em lado nenhum (scrollTo() continua a "funcionar" porque atua
+   direto no scrollingElement, por isso os testes automáticos com scrollTo()
+   nunca apanharam isto — só o scroll REAL do utilizador). O corte horizontal
+   já está garantido pelo overflow-x:hidden do body abaixo — chega. */
+html { font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-sans);
