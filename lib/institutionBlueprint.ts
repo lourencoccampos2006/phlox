@@ -76,7 +76,7 @@ const T = {
   careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: '📝' },
   assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
   team:    { href: '/equipa?tab=escalas', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
-  staff:   { href: '/painel-dono', label: 'Gerir instituição', hint: 'Só dono/admin: negócio, equipa, stock e registos', icon: '🏛️' },
+  staff:   { href: '/painel-dono', label: 'Gestão & qualidade', hint: 'Só dono/admin: negócio, qualidade e registos para inspeção', icon: '🏛️' },
   radar:   { href: '/radar', label: 'O que merece atenção', hint: 'O que a equipa registou que saiu do padrão + pedidos dos utentes', icon: '📋' },
   documents: { href: '/documentos', label: 'Documentos', hint: 'Cofre de documentos da instituição', icon: '📄' },
   quality: { href: '/painel-dono?tab=qualidade', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: '📊' },
@@ -123,7 +123,10 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'As pessoas que frequentam o centro'),
       T.meds, T.careLog, T.ronda, T.family, T.radar, T.mural,
     ],
-    extraTools: [ T.incidents, T.activities, T.assessments, T.wounds, T.stock, T.staff, T.team, T.quality, T.documents, T.meds_check, T.calc ],
+    // "Gestão & qualidade" (T.staff) já leva a /painel-dono, cuja aba "Qualidade"
+    // era antes um item de menu à parte (T.quality) para o mesmo destino — fundidos
+    // num só, para não duplicar entradas que vão ter ao mesmo sítio.
+    extraTools: [ T.incidents, T.activities, T.assessments, T.wounds, T.stock, T.staff, T.team, T.documents, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -146,7 +149,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.ronda, T.radar, T.assessments, T.wounds, T.family, T.mural,
     ],
-    extraTools: [ T.incidents, T.activities, T.vigia, T.stock, T.staff, T.team, T.quality, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.vigia, T.stock, T.staff, T.team, T.documents, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
