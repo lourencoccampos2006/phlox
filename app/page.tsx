@@ -56,6 +56,11 @@ const PASSOS = [
 
 const MUNDOS = [
   {
+    tag: 'Para lares e centros de dia', t: 'A instituição', accent: '#0f766e', href: '/centro-de-dia',
+    lead: 'O dia de cada utente, num painel.',
+    items: ['Presenças e medicação', 'Portal das famílias', 'Equipa e stock'],
+  },
+  {
     tag: 'Para si', t: 'A minha saúde', accent: 'var(--green)', href: '/login?mode=personal',
     lead: 'A sua medicação, debaixo de olho.',
     items: ['Foto à receita', 'Lembretes a tempo', 'Vê o que não se dá bem'],
@@ -69,16 +74,6 @@ const MUNDOS = [
     tag: 'Para estudar', t: 'Estudante de saúde', accent: '#7c3aed', href: '/login?mode=student',
     lead: 'Treino a sério, todos os dias.',
     items: ['Casos clínicos com IA', 'OSCE e decisões', 'O seu progresso'],
-  },
-  {
-    tag: 'Para profissionais', t: 'Trabalho na saúde', accent: '#1d4ed8', href: '/login?mode=clinical',
-    lead: 'Decisão clínica, evidência real.',
-    items: ['Interações e STOPP/START', 'Calculadoras DGS/ESC', 'Revisão de medicação'],
-  },
-  {
-    tag: 'Para instituições', t: 'Centro de dia e lar', accent: '#0f766e', href: '/centro-de-dia',
-    lead: 'O dia inteiro, num painel.',
-    items: ['Presenças e medicação', 'Portal das famílias', 'Equipa e stock'],
   },
 ]
 
@@ -105,8 +100,8 @@ export default function HomePage() {
         <div className="lp-wrap">
           <div className="lp-hero-grid">
             <div>
-              <h1 className="lp-h1 lp-fade" style={{ animationDelay: '0.05s' }}>A sua saúde,<br />organizada <em>a sério</em>.</h1>
-              <p className="lp-lead lp-fade" style={{ animationDelay: '0.16s' }}>Medicação, interações e dúvidas do dia a dia. Em português, com as regras do INFARMED.</p>
+              <h1 className="lp-h1 lp-fade" style={{ animationDelay: '0.05s' }}>Medicação, <em>sem confusão</em>.</h1>
+              <p className="lp-lead lp-fade" style={{ animationDelay: '0.16s' }}>Interações, doses e dúvidas do dia a dia — com as regras do INFARMED.</p>
               <div className="lp-actions lp-fade" style={{ animationDelay: '0.26s' }}>
                 <Link href="/login" className="lp-go">Criar conta grátis</Link>
                 <Link href="#mundos" className="lp-link">Ver como funciona&nbsp;→</Link>
@@ -124,7 +119,7 @@ export default function HomePage() {
       <Reveal>
         <section className="lp-manifesto">
           <div className="lp-wrap">
-            <p className="lp-mani-txt">Não é tradução de fora — as marcas e as regras são as de cá.</p>
+            <p className="lp-mani-txt">As marcas, as doses e as regras são as de Portugal.</p>
           </div>
         </section>
       </Reveal>
