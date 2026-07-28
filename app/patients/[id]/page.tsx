@@ -78,6 +78,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [lifeForm, setLifeForm] = useState<LifeStory>({})
   const [savingLife, setSavingLife] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
+  const [editErr, setEditErr] = useState('')
 
   const [showAddMed, setShowAddMed] = useState(false)
   const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '', shifts: [] as string[], take_location: 'centro' })
@@ -125,7 +126,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   // ── ações ──
   async function saveEdit() {
     if (!patient) return
-    setSavingEdit(true)
+    setSavingEdit(true); setEditErr('')
     const patch: any = {
       name: (edit.name || '').trim() || patient.name,
       age: edit.age ? Number(edit.age) : null, sex: edit.sex || null,
@@ -136,8 +137,14 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       address: (edit.address || '').trim() || null,
       notes: (edit.notes || '').trim() || null,
     }
-    await supabase.from('patients').update(patch).eq('id', patient.id)
-    setSavingEdit(false); setEditing(false); load()
+    // BUG CORRIGIDO 2026-07-28: nunca se verificava o erro do update — um
+    // campo em falta no schema (aconteceu com 'address') fazia o PostgREST
+    // rejeitar o pedido INTEIRO, e o modal fechava como se tivesse guardado.
+    // Nenhum campo de nenhum residente estava a gravar, em silêncio.
+    const { error } = await supabase.from('patients').update(patch).eq('id', patient.id)
+    setSavingEdit(false)
+    if (error) { setEditErr(reportError('patients-save-edit', error, MSG.save)); return }
+    setEditing(false); load()
   }
 
   async function addMed() {
@@ -758,9 +765,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <textarea value={edit.notes || ''} onChange={e => setEdit(p => ({ ...p, notes: e.target.value }))} placeholder="Notas" rows={2} style={{ ...inp, resize: 'vertical' }} />
             </div>
+            {editErr && <div style={{ marginTop: 10, fontSize: 12.5, color: '#dc2626' }}>{editErr}</div>}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button onClick={saveEdit} disabled={savingEdit} style={{ ...btnSolid(accent), flex: 1 }}>{savingEdit ? 'A guardar…' : 'Guardar'}</button>
-              <button onClick={() => setEditing(false)} style={btnGhost(accent)}>Cancelar</button>
+              <button onClick={() => { setEditing(false); setEditErr('') }} style={btnGhost(accent)}>Cancelar</button>
             </div>
           </div>
         </div>
