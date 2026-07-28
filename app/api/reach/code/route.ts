@@ -5,7 +5,7 @@ import { getUserPlan } from '@/lib/planGate'
 // GET /api/reach/code — devolve o código de convite do utilizador (cria se não existir).
 
 function admin() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
 function makeCode(): string {
@@ -16,6 +16,12 @@ function makeCode(): string {
 }
 
 export async function GET(req: NextRequest) {
+  // BUG CORRIGIDO 2026-07-28 (achado por QA ao vivo): sem a service-role key,
+  // isto caía para a chave anon SEM o token do utilizador — o insert em
+  // "invites" era sempre rejeitado por RLS, e a página mostrava um 500 cru
+  // ("Falha a gerar código") em vez de uma mensagem calma, ao contrário do
+  // resto das rotas org/* que já degradam bem.
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const sb = admin()
