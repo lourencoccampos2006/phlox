@@ -72,7 +72,14 @@ export function buildPrintHTML(doc: PrintDoc): string {
 
   return `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="utf-8"><title>${esc(doc.docTitle)}</title>
 <style>
-  @page { size: A4; margin: 16mm 14mm 18mm; }
+  /* BUG CORRIGIDO 2026-07-28: margem superior (16mm ≈ 60px) era mais pequena
+     que o cabeçalho fixo (~74px) — o padding-top:74px do .content só cobria
+     isso na 1ª página (é um valor de UMA vez no início do fluxo, não repete
+     por página). Da 2ª página em diante o texto começava logo a 16mm do
+     topo, por baixo do cabeçalho, ficando tapado. A margem do @page repete-se
+     em TODAS as páginas automaticamente — aumentada para caber o cabeçalho
+     inteiro, e removido o padding-top que só resolvia a 1ª página. */
+  @page { size: A4; margin: 24mm 14mm 20mm; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; }
   body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0b1120; font-size: 10.5pt; line-height: 1.5; }
@@ -96,7 +103,7 @@ export function buildPrintHTML(doc: PrintDoc): string {
     font-size: 7.5pt; color: #94a3b8; }
   .pg-foot .pnum::after { content: counter(page) " / " counter(pages); }
 
-  .content { padding-top: 74px; padding-bottom: 26px; }
+  .content { padding-bottom: 8px; }
 
   .doc-title { font-size: 19pt; font-weight: 800; letter-spacing: -0.02em; margin: 2px 0 2px; }
   .doc-sub { font-size: 10pt; color: #475569; margin-bottom: 10px; }
