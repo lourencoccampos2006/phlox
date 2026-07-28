@@ -75,6 +75,13 @@ export async function PATCH(req: NextRequest) {
   if (!item) return NextResponse.json({ error: 'Não encontrado.' }, { status: 404 })
   if (!(await hasAccess(db, userId, item.profile_id))) return NextResponse.json({ error: 'Sem acesso a este perfil.' }, { status: 403 })
 
+  // IDOR corrigido: "largar" só a quem reclamou — o cliente já escondia o
+  // botão para os outros, mas o servidor deixava qualquer pessoa com acesso
+  // ao perfil desreclamar a tarefa de outra pessoa via chamada direta à API.
+  if (action === 'unclaim' && item.claimed_by !== userId) {
+    return NextResponse.json({ error: 'Só quem reclamou pode largar.' }, { status: 403 })
+  }
+
   const patch: any =
     action === 'claim' ? { status: 'claimed', claimed_by: userId, claimed_at: new Date().toISOString() } :
     action === 'unclaim' ? { status: 'open', claimed_by: null, claimed_at: null } :
@@ -96,6 +103,14 @@ export async function DELETE(req: NextRequest) {
   const { data: item } = await db.from('family_help_requests').select('profile_id, created_by').eq('id', id).maybeSingle()
   if (!item) return NextResponse.json({ error: 'Não encontrado.' }, { status: 404 })
   if (!(await hasAccess(db, userId, item.profile_id))) return NextResponse.json({ error: 'Sem acesso a este perfil.' }, { status: 403 })
+
+  // IDOR corrigido: eliminar só a quem publicou OU ao dono do perfil (para
+  // poder limpar o quadro) — não a qualquer pessoa com acesso partilhado.
+  const { data: owns } = await db.from('family_profiles').select('id').eq('id', item.profile_id).eq('user_id', userId).maybeSingle()
+  if (item.created_by !== userId && !owns) {
+    return NextResponse.json({ error: 'Só quem publicou ou o dono do perfil pode eliminar.' }, { status: 403 })
+  }
+
   await db.from('family_help_requests').delete().eq('id', id)
   return NextResponse.json({ ok: true })
 }
