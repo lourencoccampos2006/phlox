@@ -319,6 +319,13 @@ export default function FamiliaPage() {
 
                     {/* Ações */}
                     <div style={{ padding: '12px 18px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #f1f5f9' }}>
+                      {/* Abre a ficha completa deste perfil — só aqui vivem a
+                          história de vida, "tomas de hoje" (horários) e o
+                          quadro "Preciso de ajuda" partilhado entre cuidadores.
+                          Sem este link não havia NENHUM caminho até /perfil/[id]
+                          a partir de /familia — as ações abaixo levam todas a
+                          ferramentas genéricas partilhadas, não à ficha. */}
+                      <Link href={`/perfil/${p.id}`} style={act(ACCENT)}>Abrir perfil completo</Link>
                       <Link href="/mymeds" onClick={() => activate(p)} style={act(ACCENT, true)}>Medicação</Link>
                       <Link href="/vitals" onClick={() => activate(p)} style={act(ACCENT)}>Vitais</Link>
                       <Link href="/sintomas" onClick={() => activate(p)} style={act(ACCENT)}>Sintomas</Link>
