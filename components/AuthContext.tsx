@@ -55,11 +55,19 @@ type User = {
 // pagamento recupera); é o ACESSO efetivo aqui que degrada enquanto falha.
 const UNHEALTHY_PLAN_STATUS = new Set(['past_due', 'unpaid', 'incomplete', 'incomplete_expired'])
 
+const PLAN_RANK: Record<'free' | 'student' | 'pro' | 'clinic', number> = { free: 0, student: 1, pro: 2, clinic: 3 }
+
 function effectivePlan(data: any): 'free' | 'student' | 'pro' | 'clinic' {
   let real = (data?.plan || 'free') as 'free' | 'student' | 'pro' | 'clinic'
   if (UNHEALTHY_PLAN_STATUS.has(data?.plan_status)) real = 'free'
   const inOrg = !!(data?.active_org_id || data?.org_id || data?.org_role)
   if (data?.experience_mode === 'clinical' && inOrg && real !== 'clinic') return 'clinic'
+  // Bónus do Phlox Reach (mês grátis por amigo que fez upgrade) — espelha
+  // lib/planGate.ts no servidor. Só sobe o acesso, nunca desce.
+  if (data?.reach_bonus_until && new Date(data.reach_bonus_until).getTime() > Date.now()) {
+    const bonusPlan = (data.reach_bonus_plan || 'pro') as 'free' | 'student' | 'pro' | 'clinic'
+    if (PLAN_RANK[bonusPlan] > PLAN_RANK[real]) return bonusPlan
+  }
   return real
 }
 

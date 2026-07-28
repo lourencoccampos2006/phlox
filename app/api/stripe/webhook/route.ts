@@ -23,6 +23,27 @@ async function verifyStripeSignature(body: string, signature: string, secret: st
   return timingSafeEqualHex(computed, v1)
 }
 
+// Marca a redemption pendente (se existir) como upgrade e dá +1 mês de Pro ao
+// referrer, empilhando com bónus ainda ativo. Best-effort: nunca falha o
+// webhook nem bloqueia o upgrade do próprio pagador.
+async function grantReachReward(invoiceeUserId: string) {
+  try {
+    const db = getSupabase()
+    const { data: redemption } = await db.from('invite_redemptions')
+      .select('id, referrer_id').eq('invitee_id', invoiceeUserId).eq('upgraded', false).maybeSingle()
+    if (!redemption) return
+    await db.from('invite_redemptions').update({ upgraded: true, upgraded_at: new Date().toISOString(), reward_status: 'granted' }).eq('id', redemption.id)
+
+    const { data: referrer } = await db.from('profiles').select('reach_bonus_until').eq('id', redemption.referrer_id).maybeSingle()
+    const base = referrer?.reach_bonus_until && new Date(referrer.reach_bonus_until).getTime() > Date.now()
+      ? new Date(referrer.reach_bonus_until) : new Date()
+    base.setMonth(base.getMonth() + 1)
+    await db.from('profiles').update({ reach_bonus_until: base.toISOString(), reach_bonus_plan: 'pro' }).eq('id', redemption.referrer_id)
+  } catch (e) {
+    console.error('[phlox:reach-reward] falhou:', (e as any)?.message || e)
+  }
+}
+
 export async function POST(req: NextRequest) {
   // Sem a service-role key, um fallback para a chave anon deixaria estas
   // atualizações de plano falhar por RLS de forma confusa (ou, pior, correr
@@ -77,6 +98,12 @@ export async function POST(req: NextRequest) {
           const t = planUpgradedEmail(planName(plan))
           sendEmail({ to: email, subject: t.subject, html: t.html }).catch(() => {})
         }
+        // Phlox Reach: se esta conta foi convidada por alguém e ainda não
+        // tinha sido marcada como upgrade, concede a recompensa ao referrer
+        // agora que pagou. BUG CORRIGIDO 2026-07-28: a redemption na
+        // inscrição já funcionava, mas nada marcava upgraded=true nem dava
+        // o mês grátis — /reach mostrava sempre "0 amigos a fazer upgrade".
+        await grantReachReward(userId)
       }
       break
     }

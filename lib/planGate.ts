@@ -96,12 +96,19 @@ export async function getUserPlan(req: NextRequest): Promise<{ userId: string | 
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('plan, experience_mode, plan_status')
+      .select('plan, experience_mode, plan_status, reach_bonus_until, reach_bonus_plan')
       .eq('id', userId)
       .single()
 
     if (error || !data) return { userId, plan: 'free' }
     let plan = (data.plan as Plan) || 'free'
+
+    // Bónus do Phlox Reach (mês grátis por amigo que fez upgrade) — só sobe o
+    // acesso, nunca desce (ver PLAN_RANK abaixo). Espelha effectivePlan() no cliente.
+    if (data.reach_bonus_until && new Date(data.reach_bonus_until).getTime() > Date.now()) {
+      const bonusPlan = (data.reach_bonus_plan as Plan) || 'pro'
+      if (PLAN_RANK[bonusPlan] > PLAN_RANK[plan]) plan = bonusPlan
+    }
 
     // BUG CORRIGIDO 2026-07-15: quando o pagamento falha (Stripe entra em
     // Smart Retries), o subscription.updated do webhook só atualiza
