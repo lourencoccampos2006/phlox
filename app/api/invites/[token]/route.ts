@@ -65,11 +65,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
   // o papel org → papel de escala.
   const TEAM_ROLE: Record<string, string> = { admin: 'coordinator', nurse: 'nurse', assistant: 'caregiver', clinician: 'doctor', viewer: 'other' }
   try {
-    await db.from('team_members').upsert(
+    const { error: tmErr } = await db.from('team_members').upsert(
       { org_id: inv.org_id, user_id: userId, name: prof?.name || inv.email || 'Membro', role: TEAM_ROLE[inv.role] || 'other', status: 'off' },
       { onConflict: 'org_id,user_id' }
     )
-  } catch { /* team_members sem user_id nesta BD → ignora */ }
+    if (tmErr) console.error('[phlox:invites] criar perfil em team_members falhou:', tmErr.message)
+  } catch (e: any) {
+    console.error('[phlox:invites] criar perfil em team_members falhou:', e?.message || e)
+  }
 
   // Marca aceite
   await db.from('org_invites').update({ accepted_at: new Date().toISOString(), accepted_by: userId }).eq('id', inv.id)
