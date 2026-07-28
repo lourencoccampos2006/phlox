@@ -295,22 +295,29 @@ function SettingsPage() {
 
         {tab === 'profile' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Tipo de instituição</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>O Phlox monta-se à volta do tipo que escolheres — o painel, o menu e as ferramentas certas para a tua instituição. Sem configurar nada.</div>
-              <div className="inst-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {INSTITUTION_OPTIONS.map(o => {
-                  const active = instType === o.value
-                  return (
-                    <button key={o.value} onClick={() => changeInstType(o.value)}
-                      style={{ padding: '11px 14px', border: `1.5px solid ${active ? '#1d4ed8' : 'var(--border)'}`, borderRadius: 8, background: active ? '#eff6ff' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#1d4ed8' : 'var(--ink)', marginBottom: 2 }}>{o.label}</div>
-                      <div style={{ fontSize: 10, color: active ? '#3b82f6' : 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{o.sub}</div>
-                    </button>
-                  )
-                })}
+            {/* Só faz sentido para quem já está em modo institucional — achado
+                por QA ao vivo 2026-07-28: contas pessoais/estudante/cuidador
+                viam este cartão sem nenhum motivo, confuso (não é um risco de
+                segurança — changeInstType só grava uma preferência local de
+                pré-visualização, nunca escreve na base de dados). */}
+            {form.experience_mode === 'clinical' && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Tipo de instituição</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>O Phlox monta-se à volta do tipo que escolheres — o painel, o menu e as ferramentas certas para a tua instituição. Sem configurar nada.</div>
+                <div className="inst-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {INSTITUTION_OPTIONS.map(o => {
+                    const active = instType === o.value
+                    return (
+                      <button key={o.value} onClick={() => changeInstType(o.value)}
+                        style={{ padding: '11px 14px', border: `1.5px solid ${active ? '#1d4ed8' : 'var(--border)'}`, borderRadius: 8, background: active ? '#eff6ff' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#1d4ed8' : 'var(--ink)', marginBottom: 2 }}>{o.label}</div>
+                        <div style={{ fontSize: 10, color: active ? '#3b82f6' : 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{o.sub}</div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Modo de experiência</div>
