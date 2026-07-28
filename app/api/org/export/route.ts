@@ -23,7 +23,11 @@ const SOURCES: Record<string, { table: string; dateCol: string; cols: string[]; 
 function toCsv(rows: any[], cols: string[]): string {
   const esc = (v: any) => {
     if (v === null || v === undefined) return ''
-    const s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    let s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    // Campos de texto livre (notas, descrição) vêm de quem usa a app — ao abrir
+    // no Excel, um valor começado por =/+/-/@ é interpretado como fórmula
+    // (CSV formula injection). Neutraliza com um apóstrofo à frente.
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   const header = cols.join(',')
