@@ -22,12 +22,14 @@ import { setActiveProfile } from '@/lib/profileContext'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
 import { printDoc, type PrintRecord } from '@/lib/print'
 
+interface LifeStory { profession?: string; family?: string; hobbies?: string; music?: string; notes?: string }
 interface Patient {
   id: string; name: string; age: number | null; sex: string | null
   weight: number | null; height: number | null; creatinine: number | null
   conditions: string | null; allergies: string | null; notes: string | null
   room_number?: string | null; admission_date?: string | null; emergency_contact?: string | null
   address?: string | null
+  life_story?: LifeStory | null
   updated_at?: string
 }
 interface Med { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: string | null }
@@ -72,6 +74,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
   const [editing, setEditing] = useState(false)
   const [edit, setEdit] = useState<Partial<Patient>>({})
+  const [editingLife, setEditingLife] = useState(false)
+  const [lifeForm, setLifeForm] = useState<LifeStory>({})
+  const [savingLife, setSavingLife] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [showAddMed, setShowAddMed] = useState(false)
@@ -101,7 +106,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       supabase.from('mar_records').select('*').eq('patient_id', pid).eq('date', today),
     ])
     if (!pRes.data) { router.push('/patients'); return }
-    setPatient(pRes.data); setEdit(pRes.data)
+    setPatient(pRes.data); setEdit(pRes.data); setLifeForm(pRes.data?.life_story || {})
     setFamilyCode((pRes.data as any).family_code || null)
     setMeds(mRes.data || []); setContacts(cRes.data || [])
     setVitals(vRes.data?.[0]?.vitals || null)
@@ -220,6 +225,49 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       <p style="margin-top:24px;color:#999;font-size:11px">Phlox · ${new Date().toLocaleDateString('pt-PT')}</p>
       </body></html>`)
     w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
+  }
+
+  // Cartão de emergência — para a equipa levar/enviar quando o utente vai às
+  // urgências. Diferente da "Ficha" (registo clínico completo): só o essencial
+  // num relance (alergias em destaque, medicação atual, contacto de emergência).
+  function printEmergencyCard() {
+    if (!patient) return
+    const w = window.open('', '_blank'); if (!w) return
+    const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string))
+    const medRows = meds.map(m => `<li>${esc(m.name)}${m.dose ? ` — ${esc(m.dose)}` : ''}</li>`).join('')
+    const emergencyContact = contacts.find(c => c.is_emergency) || contacts[0]
+    const contactLine = emergencyContact
+      ? `${esc(emergencyContact.name)}${emergencyContact.relationship ? ` (${esc(emergencyContact.relationship)})` : ''}${emergencyContact.phone ? ` — ${esc(emergencyContact.phone)}` : ''}`
+      : (patient.emergency_contact ? esc(patient.emergency_contact) : null)
+    w.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Cartão de emergência — ${esc(patient.name)}</title>
+      <style>body{font-family:Arial,sans-serif;padding:32px;color:#111;font-size:15px}
+      h1{font-size:26px;font-family:Georgia,serif;margin:0 0 4px}
+      .meta{color:#555;margin:0 0 18px;font-size:14px}
+      .warn{background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:16px;margin:0 0 16px}
+      .warn .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#991b1b;font-weight:700;margin-bottom:4px}
+      .warn .val{font-size:20px;font-weight:700;color:#991b1b}
+      .box{border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin:0 0 14px}
+      .box .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#666;margin-bottom:6px}
+      ul{margin:0;padding-left:20px}li{margin-bottom:3px}</style></head><body>
+      <h1>${esc(patient.name)}</h1>
+      <div class="meta">${[patient.age ? patient.age + ' anos' : '', patient.sex === 'F' ? 'Feminino' : patient.sex === 'M' ? 'Masculino' : '', patient.room_number ? cfg.roomLabel + ' ' + patient.room_number : ''].filter(Boolean).join(' · ')}</div>
+      <div class="warn"><div class="lbl">⚠ Alergias</div><div class="val">${patient.allergies ? esc(patient.allergies) : 'Nenhuma conhecida'}</div></div>
+      ${patient.conditions ? `<div class="box"><div class="lbl">Diagnósticos</div>${esc(patient.conditions)}</div>` : ''}
+      <div class="box"><div class="lbl">Medicação atual (${meds.length})</div><ul>${medRows || '<li>Sem medicação registada</li>'}</ul></div>
+      ${contactLine ? `<div class="box"><div class="lbl">Contacto de emergência</div>${contactLine}</div>` : ''}
+      <p style="margin-top:24px;color:#999;font-size:11px">Phlox · Gerado em ${new Date().toLocaleString('pt-PT')} · ${esc(cfg.unitNoun)}</p>
+      </body></html>`)
+    w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
+  }
+
+  // História de vida — profissão, família, hobbies/música: a equipa usa para
+  // conversar com sentido (essencial em demência); a família ajuda a preencher.
+  async function saveLifeStory() {
+    if (!patient) return
+    setSavingLife(true)
+    const { error } = await supabase.from('patients').update({ life_story: lifeForm }).eq('id', patient.id)
+    if (!error) { setPatient(p => p ? { ...p, life_story: lifeForm } : p); setEditingLife(false) }
+    setSavingLife(false)
   }
 
   // Relatório do mês para a família — A4 caloroso a partir dos registos do mês.
@@ -375,6 +423,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
           <button onClick={() => setEditing(true)} style={btnGhost(accent)}>Editar</button>
           <button onClick={printChart} style={btnGhost(accent)} title="Imprimir ficha clínica">🖨 Ficha</button>
+          <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">🚨 Cartão de emergência</button>
           <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '…' : '📄 Relatório'}</button>
           <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal: presenças, atividades, medicação, ocorrências">{dossierBusy ? '…' : '🗂 Dossier mensal'}</button>
         </div>
@@ -445,6 +494,38 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
         </div>
+      </Card>
+
+      {/* HISTÓRIA DE VIDA — para a equipa conversar com sentido (essencial em
+          demência); a família pode ajudar a preencher. */}
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <CardTitle noMargin>História de vida</CardTitle>
+          {!editingLife && <button onClick={() => setEditingLife(true)} style={btnGhost(accent)}>{patient.life_story ? 'Editar' : '+ Adicionar'}</button>}
+        </div>
+        {editingLife ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input value={lifeForm.profession || ''} onChange={e => setLifeForm(f => ({ ...f, profession: e.target.value }))} placeholder="Profissão (ex: Professora primária, 32 anos)" style={inp} />
+            <input value={lifeForm.family || ''} onChange={e => setLifeForm(f => ({ ...f, family: e.target.value }))} placeholder="Família (ex: 3 filhos, 7 netos, viúva desde 2015)" style={inp} />
+            <input value={lifeForm.hobbies || ''} onChange={e => setLifeForm(f => ({ ...f, hobbies: e.target.value }))} placeholder="Hobbies (ex: jardinagem, tricô, jogar às cartas)" style={inp} />
+            <input value={lifeForm.music || ''} onChange={e => setLifeForm(f => ({ ...f, music: e.target.value }))} placeholder="Música/artistas preferidos (ex: fado, Amália Rodrigues)" style={inp} />
+            <textarea value={lifeForm.notes || ''} onChange={e => setLifeForm(f => ({ ...f, notes: e.target.value }))} placeholder="Outras notas (histórias, o que a acalma, o que evitar)" rows={2} style={{ ...inp, resize: 'vertical' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={saveLifeStory} disabled={savingLife} style={{ ...btnSolid(accent), flex: 1 }}>{savingLife ? 'A guardar…' : 'Guardar'}</button>
+              <button onClick={() => { setLifeForm(patient.life_story || {}); setEditingLife(false) }} style={btnGhost(accent)}>Cancelar</button>
+            </div>
+          </div>
+        ) : patient.life_story && Object.values(patient.life_story).some(Boolean) ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {patient.life_story.profession && <div><Label>Profissão</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.profession}</div></div>}
+            {patient.life_story.family && <div><Label>Família</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.family}</div></div>}
+            {patient.life_story.hobbies && <div><Label>Hobbies</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.hobbies}</div></div>}
+            {patient.life_story.music && <div><Label>Música</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.music}</div></div>}
+            {patient.life_story.notes && <div><Label>Notas</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.notes}</div></div>}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12.5, color: '#94a3b8' }}>Ainda sem história de vida registada. Adicionar ajuda a equipa a conversar com {noun.toLowerCase()} de forma mais próxima.</div>
+        )}
       </Card>
 
       {/* MEDICAÇÃO */}
