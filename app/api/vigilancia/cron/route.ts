@@ -101,7 +101,10 @@ export async function GET(req: NextRequest) {
   // porque é uma questão de segurança/adesão, não uma feature paga.
   const refill = await runRefillWatch(db)
 
-  return NextResponse.json({ ok: true, scanned, worsened, caregiver, selfRisk, refill })
+  // ─── Aviso de toma falhada (perfis de família partilhados) ──────────────────
+  const missedDose = await runMissedDoseWatch(db)
+
+  return NextResponse.json({ ok: true, scanned, worsened, caregiver, selfRisk, refill, missedDose })
 }
 
 const RISK_RANK: Record<RiskLevel, number> = { ok: 0, info: 1, warning: 2, critical: 3 }
@@ -207,6 +210,62 @@ async function runRefillWatch(db: any) {
         notified++
         await db.from('personal_meds').update({ refill_reminded_at: new Date().toISOString() }).in('id', list.map(m => m.id))
       }
+    }
+  } catch (e) {
+    return { checked, notified, error: String((e as any)?.message || e).slice(0, 160) }
+  }
+  return { checked, notified }
+}
+
+// ─── Aviso de toma falhada (Medfriend do Medisafe, pesquisa competitiva
+// 2026-07-27) — family_profile_meds tem reminder_times mas não havia NENHUM
+// registo de toma para perfis de família (só personal_meds tinha med_logs).
+// Como este cron corre 1x/dia, verifica as tomas de ONTEM (não dá para pegar
+// tomas de hoje em tempo real com cadência diária) sem log 'taken' e avisa o
+// dono + qualquer cuidador com acesso partilhado (family_profile_shares).
+async function runMissedDoseWatch(db: any) {
+  let checked = 0, notified = 0
+  try {
+    const { data: meds } = await db.from('family_profile_meds')
+      .select('id, profile_id, name, reminder_times').eq('active', true).not('reminder_times', 'is', null).limit(2000)
+    if (!meds?.length) return { checked: 0, notified: 0 }
+
+    const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const medIds = meds.map((m: any) => m.id)
+    const { data: logs } = await db.from('family_profile_med_logs').select('med_id, scheduled_time').eq('date', yest).in('med_id', medIds)
+    const takenSet = new Set((logs || []).map((l: any) => `${l.med_id}|${l.scheduled_time}`))
+
+    const byProfile: Record<string, { name: string; time: string }[]> = {}
+    for (const m of meds as any[]) {
+      for (const time of (m.reminder_times || [])) {
+        checked++
+        if (takenSet.has(`${m.id}|${time}`)) continue
+        ;(byProfile[m.profile_id] ||= []).push({ name: m.name, time })
+      }
+    }
+    if (!Object.keys(byProfile).length) return { checked, notified: 0 }
+
+    const profileIds = Object.keys(byProfile)
+    const { data: profiles } = await db.from('family_profiles').select('id, name, user_id').in('id', profileIds)
+    const { data: shares } = await db.from('family_profile_shares').select('profile_id, viewer_user_id').in('profile_id', profileIds).is('revoked_at', null).not('viewer_user_id', 'is', null)
+
+    for (const prof of profiles || []) {
+      const missed = byProfile[prof.id]
+      if (!missed?.length) continue
+      const recipients = new Set<string>([prof.user_id, ...(shares || []).filter((s: any) => s.profile_id === prof.id).map((s: any) => s.viewer_user_id)])
+      const body = missed.length === 1
+        ? `${prof.name} ainda não confirmou a toma de ${missed[0].name} das ${missed[0].time} (ontem).`
+        : `${prof.name} tem ${missed.length} tomas de ontem por confirmar.`
+      let anyNotified = false
+      for (const userId of recipients) {
+        const { data: subs } = await db.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId)
+        for (const sub of subs || []) {
+          const ok = await sendPushNotification(sub, { title: 'Phlox — toma por confirmar', body, url: `/perfil/${prof.id}`, tag: `missed-dose-${prof.id}` })
+          if (ok) anyNotified = true
+          else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        }
+      }
+      if (anyNotified) notified++
     }
   } catch (e) {
     return { checked, notified, error: String((e as any)?.message || e).slice(0, 160) }

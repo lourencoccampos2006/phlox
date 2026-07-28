@@ -13,7 +13,8 @@ interface FamilyProfile {
   weight?: number; height?: number; creatinine?: number; conditions?: string
   allergies?: string; notes?: string
 }
-interface Med { id: string; name: string; dose?: string; frequency?: string; indication?: string; started_at?: string }
+interface Med { id: string; name: string; dose?: string; frequency?: string; indication?: string; started_at?: string; reminder_times?: string[] | null; active?: boolean }
+interface MedLog { id: string; med_id: string; date: string; scheduled_time: string; status: string }
 
 // Cockcroft-Gault para CrCl em mL/min
 function calcCrCl(age?: number, weight?: number, sex?: string, creatinine?: number): number | null {
@@ -38,8 +39,10 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
   const [meds, setMeds] = useState<Med[]>([])
   const [tab, setTab] = useState<'overview' | 'meds' | 'notes'>('overview')
   const [loading, setLoading] = useState(true)
-  const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '' })
+  const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '', reminder_times: '' })
   const [addingMed, setAddingMed] = useState(false)
+  const [medLogs, setMedLogs] = useState<MedLog[]>([])
+  const today = new Date().toISOString().slice(0, 10)
 
   useEffect(() => {
     params.then(p => setProfileId(p.id))
@@ -47,13 +50,15 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
 
   const load = useCallback(async () => {
     if (!user || !profileId) return
-    const [{ data: p }, { data: m }] = await Promise.all([
+    const [{ data: p }, { data: m }, { data: logs }] = await Promise.all([
       supabase.from('family_profiles').select('*').eq('id', profileId).eq('user_id', user.id).single(),
       supabase.from('family_profile_meds').select('*').eq('profile_id', profileId).order('created_at', { ascending: false }),
+      supabase.from('family_profile_med_logs').select('id, med_id, date, scheduled_time, status').eq('profile_id', profileId).eq('date', new Date().toISOString().slice(0, 10)),
     ])
     if (!p) { setLoading(false); return }
     setProfile(p)
     setMeds(m || [])
+    setMedLogs(logs || [])
     setLoading(false)
   }, [user, supabase, profileId])
 
@@ -62,19 +67,36 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
   async function addMed() {
     if (!newMed.name.trim() || !user || !profileId) return
     setAddingMed(true)
+    const times = newMed.reminder_times.split(',').map(t => t.trim()).filter(Boolean)
     const { data } = await supabase.from('family_profile_meds').insert({
       profile_id: profileId, user_id: user.id,
       name: newMed.name.trim(), dose: newMed.dose || null,
       frequency: newMed.frequency || null, indication: newMed.indication || null,
+      reminder_times: times.length ? times : null,
     }).select().single()
     if (data) setMeds(m => [data, ...m])
-    setNewMed({ name: '', dose: '', frequency: '', indication: '' })
+    setNewMed({ name: '', dose: '', frequency: '', indication: '', reminder_times: '' })
     setAddingMed(false)
   }
 
   async function removeMed(id: string) {
     await supabase.from('family_profile_meds').delete().eq('id', id).eq('user_id', user!.id)
     setMeds(m => m.filter(med => med.id !== id))
+  }
+
+  // Marca/desmarca a toma de hoje — alimenta o aviso "ainda não confirmou a
+  // toma das 20h" (vigilância noturna verifica esta tabela).
+  async function toggleTaken(medId: string, time: string, currentlyTaken: boolean) {
+    if (!profileId || !user) return
+    if (currentlyTaken) {
+      await supabase.from('family_profile_med_logs').delete().eq('profile_id', profileId).eq('med_id', medId).eq('date', today).eq('scheduled_time', time)
+      setMedLogs(l => l.filter(x => !(x.med_id === medId && x.scheduled_time === time)))
+    } else {
+      const { data } = await supabase.from('family_profile_med_logs')
+        .upsert({ profile_id: profileId, med_id: medId, date: today, scheduled_time: time, status: 'taken', logged_by: user.id }, { onConflict: 'profile_id,med_id,date,scheduled_time' })
+        .select().single()
+      if (data) setMedLogs(l => [...l.filter(x => !(x.med_id === medId && x.scheduled_time === time)), data])
+    }
   }
 
   const crcl = profile ? calcCrCl(profile.age, profile.weight, profile.sex, profile.creatinine) : null
@@ -261,15 +283,39 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
                 <input value={newMed.frequency} onChange={e => setNewMed(f => ({ ...f, frequency: e.target.value }))}
                   placeholder="Frequência" style={inputStyle} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                 <input value={newMed.indication} onChange={e => setNewMed(f => ({ ...f, indication: e.target.value }))}
                   placeholder="Indicação (opcional)" style={inputStyle} />
-                <button onClick={addMed} disabled={!newMed.name.trim() || addingMed}
-                  style={{ padding: '10px 18px', background: newMed.name.trim() && !addingMed ? 'var(--ink)' : 'var(--bg-3)', color: newMed.name.trim() && !addingMed ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: newMed.name.trim() && !addingMed ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                  {addingMed ? '...' : 'Adicionar'}
-                </button>
+                <input value={newMed.reminder_times} onChange={e => setNewMed(f => ({ ...f, reminder_times: e.target.value }))}
+                  placeholder="Horas (ex: 08:00, 20:00)" style={inputStyle} />
               </div>
+              <button onClick={addMed} disabled={!newMed.name.trim() || addingMed}
+                style={{ width: '100%', padding: '10px 18px', background: newMed.name.trim() && !addingMed ? 'var(--ink)' : 'var(--bg-3)', color: newMed.name.trim() && !addingMed ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: newMed.name.trim() && !addingMed ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {addingMed ? '...' : 'Adicionar'}
+              </button>
             </div>
+
+            {/* Tomas de hoje — marca quem já tomou; alimenta o aviso noturno de
+                toma falhada (family_profile_med_logs). */}
+            {meds.some(m => m.reminder_times && m.reminder_times.length > 0) && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>Tomas de hoje</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {meds.filter(m => m.reminder_times && m.reminder_times.length > 0).flatMap(m =>
+                    (m.reminder_times || []).map(time => {
+                      const taken = medLogs.some(l => l.med_id === m.id && l.scheduled_time === time)
+                      return (
+                        <label key={`${m.id}-${time}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, background: taken ? 'var(--green-light)' : 'var(--bg-2)', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={taken} onChange={() => toggleTaken(m.id, time, taken)} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{time}</span>
+                          <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>{m.name}</span>
+                        </label>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {meds.length === 0 && (
