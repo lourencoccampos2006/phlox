@@ -42,6 +42,11 @@ export default function PainelDonoPage() {
     return 'negocio'
   })
   const [biz, setBiz] = useState<any | null>(null)
+  const [expFrom, setExpFrom] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10) })
+  const [expTo, setExpTo] = useState(new Date().toISOString().slice(0, 10))
+  const [expSource, setExpSource] = useState('medicacao')
+  const [exporting, setExporting] = useState(false)
+  const [expErr, setExpErr] = useState('')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -84,6 +89,26 @@ export default function PainelDonoPage() {
       ],
       footerNote: 'Dossier organizado a partir dos registos da equipa. Documento de gestão.',
     })
+  }
+
+  // Exportação por intervalo de datas — para uma inspeção que pede "todos os
+  // registos de fevereiro", sem ter de ir dia a dia. Devolve CSV (Excel).
+  async function exportRange() {
+    if (expFrom > expTo) { setExpErr('A data inicial é depois da final.'); return }
+    setExporting(true); setExpErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const token = sd?.session?.access_token
+      const res = await fetch(`/api/org/export?source=${expSource}&from=${expFrom}&to=${expTo}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j?.error || 'Falha na exportação') }
+      const blob = await res.blob()
+      const dl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = dl; a.download = `phlox-${expSource}-${expFrom}_a_${expTo}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(dl)
+    } catch (e: any) { setExpErr(e.message || 'Não foi possível exportar agora.') }
+    setExporting(false)
   }
 
   if (!user) return null
@@ -285,6 +310,37 @@ export default function PainelDonoPage() {
               <button onClick={printDossier} style={{ padding: '9px 15px', background: ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>🗂 Gerar dossier para inspeção</button>
               <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
             </div>
+
+            {/* Exportar por intervalo — pedido de inspeção que abrange várias
+                semanas/meses, sem ir dia a dia. Os registos ficam sempre
+                guardados, isto só lê o que já existe. */}
+            <div style={{ ...card, marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Exportar por intervalo de datas</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Tipo de registo</label>
+                  <select value={expSource} onChange={e => setExpSource(e.target.value)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white' }}>
+                    <option value="medicacao">Medicação (MAR)</option>
+                    <option value="registos">Registo do dia</option>
+                    <option value="ocorrencias">Ocorrências</option>
+                    <option value="avaliacoes">Avaliações</option>
+                    <option value="atividades">Atividades</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>De</label>
+                  <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} max={expTo} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Até</label>
+                  <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} min={expFrom} max={new Date().toISOString().slice(0, 10)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+                </div>
+                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? '#94a3b8' : ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : 'Exportar CSV'}</button>
+              </div>
+              {expErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{expErr}</div>}
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10, lineHeight: 1.5 }}>Todos os registos ficam guardados para sempre — útil para responder a uma inspeção que peça um mês inteiro de uma vez.</div>
+            </div>
+
             {/* Resumo do dia */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12, marginBottom: 16 }}>
               {[
