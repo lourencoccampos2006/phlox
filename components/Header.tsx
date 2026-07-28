@@ -452,7 +452,6 @@ export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
-  const isHomepage = pathname === '/'
   // Portal público do familiar — página standalone, sem header da app
   const isFamilyPortal = pathname === '/portal-familia' || pathname.startsWith('/portal-familia/')
     || pathname === '/hp' || pathname.startsWith('/hp/')
@@ -590,8 +589,11 @@ export default function Header() {
       </header>
 
       {/* Content spacer — acompanha a altura real do header (56px, +faixa
-          secundária no desktop quando existe) para o conteúdo nunca ficar tapado. */}
-      {!isHomepage && <div className={hasSecondaryNav ? 'hdr-spacer hdr-spacer-secondary' : 'hdr-spacer'} />}
+          secundária no desktop quando existe) para o conteúdo nunca ficar
+          tapado. A homepage tinha uma exceção aqui (header "flutuava" sobre o
+          herói) que deixou de fazer sentido com o fundo do herói a ser a cor
+          normal da página — cortava visivelmente o topo do título. */}
+      <div className={hasSecondaryNav ? 'hdr-spacer hdr-spacer-secondary' : 'hdr-spacer'} />
 
       {searchOpen && <SearchBar onClose={closeSearch} mode={mode} />}
 
