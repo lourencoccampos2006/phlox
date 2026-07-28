@@ -103,6 +103,12 @@ export const NAV_CATEGORIES: NavCategory[] = [
       // (APIs /api/shift/generate e /api/shift/evaluate já reais) mas nunca
       // chegou a ser ligada a nenhum menu. Auditoria de ferramentas apanhou-a órfã.
       { href: '/shift',     icon: '🏥', label: 'Turno virtual',     desc: 'Simula um turno completo, decisão a decisão' },
+      // Pesquisa competitiva 2026-07-27: comunidade completa (casos reais,
+      // votos, diagnóstico revelado) com tabelas próprias, nunca ligada a
+      // nenhum menu — zero pessoas a vê-la. Conteúdo ainda escasso (1 caso
+      // seed) — considerar semear mais casos antes de promover a um lugar
+      // mais visível.
+      { href: '/grand-round', icon: '🩻', label: 'Grand Round',    desc: 'Casos reais anónimos — a comunidade debate, o autor revela' },
     ],
   },
 ]
