@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 
-interface Share { id: string; code: string; created_at: string; redeemed_at: string | null; revoked_at: string | null }
+interface Share { id: string; code: string; created_at: string; redeemed_at: string | null; revoked_at: string | null; viewer_name?: string | null }
 
 export default function ShareInviteButton({ profileId, name }: { profileId: string; name: string }) {
   const { supabase } = useAuth() as any
@@ -79,12 +79,15 @@ export default function ShareInviteButton({ profileId, name }: { profileId: stri
 
       {active.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af' }}>Convites ativos</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af' }}>Quem mais tem acesso</div>
           {active.map(s => (
-            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid #dbeafe', borderRadius: 8, padding: '6px 10px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: '#1e3a8a' }}>{s.code}</span>
-              <span style={{ fontSize: 11, color: s.redeemed_at ? '#15803d' : '#94a3b8' }}>{s.redeemed_at ? '✓ Resgatado' : 'Por resgatar'}</span>
-              <button onClick={() => revoke(s.id)} style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Revogar</button>
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid #dbeafe', borderRadius: 8, padding: '6px 10px', gap: 8 }}>
+              {s.redeemed_at ? (
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#15803d' }}>✓ {s.viewer_name}</span>
+              ) : (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: '#1e3a8a' }}>{s.code} <span style={{ fontFamily: 'inherit', fontWeight: 500, color: '#94a3b8' }}>· por resgatar</span></span>
+              )}
+              <button onClick={() => revoke(s.id)} style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>Revogar</button>
             </div>
           ))}
         </div>
