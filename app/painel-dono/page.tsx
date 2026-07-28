@@ -104,7 +104,7 @@ export default function PainelDonoPage() {
       const blob = await res.blob()
       const dl = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = dl; a.download = `phlox-${expSource}-${expFrom}_a_${expTo}.csv`
+      a.href = dl; a.download = `phlox-${expSource}-${expFrom}_a_${expTo}.xlsx`
       document.body.appendChild(a); a.click(); a.remove()
       URL.revokeObjectURL(dl)
     } catch (e: any) { setExpErr(e.message || 'Não foi possível exportar agora.') }
@@ -335,7 +335,7 @@ export default function PainelDonoPage() {
                   <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Até</label>
                   <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} min={expFrom} max={new Date().toISOString().slice(0, 10)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
                 </div>
-                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? '#94a3b8' : ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : 'Exportar CSV'}</button>
+                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? '#94a3b8' : ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : 'Exportar Excel'}</button>
               </div>
               {expErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{expErr}</div>}
               <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10, lineHeight: 1.5 }}>Todos os registos ficam guardados para sempre — útil para responder a uma inspeção que peça um mês inteiro de uma vez.</div>

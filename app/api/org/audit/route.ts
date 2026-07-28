@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const day = req.nextUrl.searchParams.get('date') || new Date().toISOString().slice(0, 10)
 
   const [mar, care, inc, pats, staff] = await Promise.all([
-    a.from('mar_records').select('patient_id, med_id, status, recorded_at, recorded_by, recorded_by_id, shift').eq('org_id', orgId).eq('date', day),
+    a.from('mar_records').select('patient_id, med_id, status, recorded_at, recorded_by, recorded_by_id, shift, source, home_by').eq('org_id', orgId).eq('date', day),
     a.from('care_records').select('patient_id, shift, created_at, recorded_by, recorded_by_id').eq('org_id', orgId).eq('date', day),
     a.from('incidents').select('patient_id, type, severity, created_at, recorded_by_id').eq('org_id', orgId).eq('date', day),
     a.from('patients').select('id, name').eq('org_id', orgId),
@@ -44,27 +44,34 @@ export async function GET(req: NextRequest) {
   const who = (id?: string | null, fallback?: string | null) => (id && staffName[id]) || fallback || '—'
 
   const events = [
+    // Doses dadas em CASA pela família não são trabalho da equipa — não têm
+    // recorded_by_id (não são funcionários) e vêm identificadas por home_by.
+    // Aparecem no registo (é um facto relevante para a auditoria), mas
+    // marcadas como família, nunca contadas como atividade de funcionário.
     ...(mar.data || []).map((m: any) => ({
       kind: 'med', icon: '💊', at: m.recorded_at,
-      who: who(m.recorded_by_id, m.recorded_by), patient: patName[m.patient_id] || '—',
+      who: m.source === 'home' ? `${m.home_by || 'Família'} (em casa)` : who(m.recorded_by_id, m.recorded_by),
+      isFamily: m.source === 'home',
+      patient: patName[m.patient_id] || '—',
       detail: m.status === 'administered' ? 'deu a medicação' : m.status === 'refused' ? 'medicação recusada' : m.status === 'held' ? 'medicação suspensa' : 'medicação',
       shift: m.shift,
     })),
     ...(care.data || []).map((c: any) => ({
-      kind: 'care', icon: '📝', at: c.created_at,
+      kind: 'care', icon: '📝', at: c.created_at, isFamily: false,
       who: who(c.recorded_by_id, c.recorded_by), patient: patName[c.patient_id] || '—',
       detail: 'registou o dia', shift: c.shift,
     })),
     ...(inc.data || []).map((i: any) => ({
-      kind: 'incident', icon: '⚠️', at: i.created_at,
+      kind: 'incident', icon: '⚠️', at: i.created_at, isFamily: false,
       who: who(i.recorded_by_id, null), patient: patName[i.patient_id] || '—',
       detail: `ocorrência: ${i.type}`, severity: i.severity,
     })),
   ].sort((x, y) => (y.at || '').localeCompare(x.at || ''))
 
-  // resumo por funcionário
+  // resumo por funcionário — família (medicação dada em casa) fica de fora,
+  // não é trabalho da equipa
   const byStaff: Record<string, number> = {}
-  events.forEach(e => { byStaff[e.who] = (byStaff[e.who] || 0) + 1 })
+  events.forEach(e => { if (!e.isFamily) byStaff[e.who] = (byStaff[e.who] || 0) + 1 })
 
   return NextResponse.json({ date: day, events, byStaff, totals: { meds: mar.data?.length || 0, care: care.data?.length || 0, incidents: inc.data?.length || 0 } })
 }
