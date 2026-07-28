@@ -63,6 +63,35 @@ const STAGES = ['I', 'II', 'III', 'IV', 'unstageable', 'DTI']
 const area = (l?: number | null, w?: number | null) => (l && w) ? Math.round(l * w / 100) / 10 : null // cm²
 const daysSince = (d?: string | null) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : null
 
+// PUSH Tool 3.0 (Pressure Ulcer Scale for Healing, NPUAP) — pontuação de evolução
+// (0-17, menor é melhor), complementar ao estadiamento (que classifica gravidade,
+// não progresso). 3 sub-pontuações somadas: área de superfície + exsudado + tecido.
+function pushAreaScore(cm2: number | null): number | null {
+  if (cm2 == null) return null
+  if (cm2 <= 0) return 0
+  if (cm2 < 0.3) return 1
+  if (cm2 <= 0.6) return 2
+  if (cm2 <= 1.0) return 3
+  if (cm2 <= 2.0) return 4
+  if (cm2 <= 3.0) return 5
+  if (cm2 <= 4.0) return 6
+  if (cm2 <= 8.0) return 7
+  if (cm2 <= 12.0) return 8
+  if (cm2 <= 24.0) return 9
+  return 10
+}
+// Nenhum/Escasso/Moderado/Abundante já correspondem, por ordem, a 0/1/2/3 no PUSH.
+const pushExudateScore = (exudate?: string | null) => exudate ? EXUDATE.indexOf(exudate) : null
+// PUSH usa Fechado(0)/Epitelial(1)/Granulação(2)/Esfacelo(3)/Necrótico(4). "Misto"
+// não é categoria PUSH — conservador, conta como Esfacelo (3) até se poder dividir.
+const TISSUE_PUSH: Record<string, number> = { 'Epitelização': 1, 'Granulação': 2, 'Esfacelo': 3, 'Necrótico': 4, 'Misto': 3 }
+const pushTissueScore = (tissue?: string | null) => tissue ? (TISSUE_PUSH[tissue] ?? null) : null
+function pushTotal(x: { length_mm?: number | null; width_mm?: number | null; exudate?: string | null; tissue?: string | null }): number | null {
+  const a = pushAreaScore(area(x.length_mm, x.width_mm)), e = pushExudateScore(x.exudate), t = pushTissueScore(x.tissue)
+  if (a == null || e == null || t == null) return null
+  return a + e + t
+}
+
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
@@ -403,11 +432,21 @@ export function FeridasTool() {
             <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Histórico de avaliações ({a.length})</div>
             {a.length === 0 ? (
               <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem avaliações. Adiciona a primeira com “+ Avaliação”.</div>
-            ) : [...a].reverse().map(x => (
+            ) : [...a].reverse().map((x, i, arr) => {
+              const push = pushTotal(x)
+              const prevPush = i + 1 < arr.length ? pushTotal(arr[i + 1]) : null
+              return (
               <div key={x.id} style={{ padding: '12px 18px', borderBottom: '1px solid var(--bg-3)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{new Date(x.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  <div style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--ink-4)', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 10, fontSize: 12, color: 'var(--ink-4)', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {push != null && (
+                      <span style={{ fontWeight: 700, color: '#6b21a8', background: '#faf5ff', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 5, display: 'inline-flex', alignItems: 'center', gap: 4 }} title="PUSH (Pressure Ulcer Scale for Healing) — 0 a 17, menor é melhor">
+                        PUSH {push}
+                        {prevPush != null && push < prevPush && <span style={{ color: '#16a34a' }}>▼</span>}
+                        {prevPush != null && push > prevPush && <span style={{ color: '#dc2626' }}>▲</span>}
+                      </span>
+                    )}
                     {area(x.length_mm, x.width_mm) != null && <span><strong style={{ color: '#0d6e42' }}>{area(x.length_mm, x.width_mm)} cm²</strong></span>}
                     {x.stage && <span>Cat. {x.stage}</span>}
                     {x.exudate && <span>{x.exudate}</span>}
@@ -449,7 +488,8 @@ export function FeridasTool() {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
