@@ -50,6 +50,9 @@ type HeaderUser = {
   experience_mode: ExperienceMode
   plan: string
   onboarded: boolean
+  org_id: string | null
+  org_role: string | null
+  active_org_id: string | null
 }
 
 // ─── SearchBar ────────────────────────────────────────────────────────────────
@@ -203,6 +206,10 @@ function UserMenu({ user, signOut, supabase }: {
   }, [])
 
   async function switchMode(m: ExperienceMode) {
+    // "Instituição" nunca se escolhe — só quem já pertence a uma organização
+    // chega aqui (o botão nem aparece para o resto). Segunda barreira, caso
+    // este código seja chamado de outro sítio no futuro.
+    if (m === 'clinical' && !(user.active_org_id || user.org_id || user.org_role)) return
     setOpen(false)
     await supabase.from('profiles').update({ experience_mode: m }).eq('id', user.id)
     window.location.reload()
@@ -211,11 +218,16 @@ function UserMenu({ user, signOut, supabase }: {
   // Nomes de plano coerentes com lib/plans.ts (Base/Plus/Pro/Institucional).
   const planLabels: Record<string, string> = { free: 'Base', student: 'Plus', pro: 'Pro', clinic: 'Institucional' }
 
+  // "Instituição" só entra na lista para quem PERTENCE a uma organização —
+  // nunca se auto-seleciona, é atribuído por quem convida (ver /settings e
+  // /inicio, que aplicam a mesma regra). Labels vêm de MODE_META para nunca
+  // voltarem a desalinhar do resto do produto.
+  const inOrg = !!(user.active_org_id || user.org_id || user.org_role)
   const MODES_LIST = [
-    { id: 'personal'  as ExperienceMode, icon: '👤', labelShort: 'Pessoal',   color: MODE_META.personal.color },
-    { id: 'caregiver' as ExperienceMode, icon: '👨‍👩‍👧', labelShort: 'Família',   color: MODE_META.caregiver.color },
-    { id: 'clinical'  as ExperienceMode, icon: '🏥', labelShort: 'Clínico',   color: MODE_META.clinical.color },
-    { id: 'student'   as ExperienceMode, icon: '🎓', labelShort: 'Estudante', color: MODE_META.student.color },
+    { id: 'personal'  as ExperienceMode, icon: '👤', labelShort: MODE_META.personal.labelShort, color: MODE_META.personal.color },
+    { id: 'caregiver' as ExperienceMode, icon: '👨‍👩‍👧', labelShort: MODE_META.caregiver.labelShort, color: MODE_META.caregiver.color },
+    ...(inOrg ? [{ id: 'clinical' as ExperienceMode, icon: '🏥', labelShort: MODE_META.clinical.labelShort, color: MODE_META.clinical.color }] : []),
+    { id: 'student'   as ExperienceMode, icon: '🎓', labelShort: MODE_META.student.labelShort, color: MODE_META.student.color },
   ]
 
   const avatarContent = user.avatar
