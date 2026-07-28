@@ -4,7 +4,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
-    const { priceId: priceKey, plan: planKey } = body
+    const { priceId: priceKey } = body
 
     // Get user from token
     const authHeader = req.headers.get('authorization') || ''
@@ -42,18 +42,28 @@ export async function POST(req: NextRequest) {
       }, { status: 503 })
     }
 
-    // Resolve price ID server-side
-    const PRICE_MAP: Record<string, string | undefined> = {
-      student_monthly: process.env.STRIPE_STUDENT_MONTHLY,
-      student_annual:  process.env.STRIPE_STUDENT_ANNUAL,
-      pro_monthly:     process.env.STRIPE_PRO_MONTHLY,
-      pro_annual:      process.env.STRIPE_PRO_ANNUAL,
-      clinic_monthly:  process.env.STRIPE_CLINIC_MONTHLY,
-      clinic_annual:   process.env.STRIPE_CLINIC_ANNUAL,
+    // Resolve price ID server-side. O PLANO também vem SÓ daqui (nunca do body)
+    // — BUG DE SEGURANÇA CORRIGIDO 2026-07-28: metadata[plan] usava
+    // body.plan diretamente, sem cruzar com o priceId escolhido. Isso deixava
+    // pagar o preço mais barato (ex: student_monthly) e pedir metadata.plan=
+    // 'clinic' no corpo do pedido — o webhook confia cegamente nesse campo
+    // para dar o plano (ver app/api/stripe/webhook/route.ts), por isso
+    // qualquer pessoa conseguia o plano Institucional (€149/mês) pagando o
+    // preço de estudante. O body.plan deixou de ser lido — o plano guardado
+    // é sempre o que corresponde ao priceId validado nesta tabela.
+    const PRICE_MAP: Record<string, { priceId: string | undefined; plan: string }> = {
+      student_monthly: { priceId: process.env.STRIPE_STUDENT_MONTHLY, plan: 'student' },
+      student_annual:  { priceId: process.env.STRIPE_STUDENT_ANNUAL,  plan: 'student' },
+      pro_monthly:     { priceId: process.env.STRIPE_PRO_MONTHLY,     plan: 'pro' },
+      pro_annual:      { priceId: process.env.STRIPE_PRO_ANNUAL,      plan: 'pro' },
+      clinic_monthly:  { priceId: process.env.STRIPE_CLINIC_MONTHLY,  plan: 'clinic' },
+      clinic_annual:   { priceId: process.env.STRIPE_CLINIC_ANNUAL,   plan: 'clinic' },
     }
 
-    const priceId = PRICE_MAP[priceKey]
-    if (!priceId) {
+    const priceEntry = PRICE_MAP[priceKey]
+    const priceId = priceEntry?.priceId
+    const trustedPlan = priceEntry?.plan
+    if (!priceId || !trustedPlan) {
       return NextResponse.json({
         error: `Price ID não encontrado para "${priceKey}". Certifica-te que adicionaste STRIPE_STUDENT_MONTHLY e STRIPE_PRO_MONTHLY ao Cloudflare Variables (sem NEXT_PUBLIC_).`
       }, { status: 400 })
@@ -69,11 +79,11 @@ export async function POST(req: NextRequest) {
       'line_items[0][quantity]': '1',
       customer_email: email,
       'metadata[user_id]': userId,
-      'metadata[plan]': planKey,
+      'metadata[plan]': trustedPlan,
       'subscription_data[metadata][user_id]': userId,
-      'subscription_data[metadata][plan]': planKey,
-      success_url: `${BASE_URL}/checkout/success?plan=${planKey}`,
-      cancel_url: `${BASE_URL}/checkout?plan=${planKey}`,
+      'subscription_data[metadata][plan]': trustedPlan,
+      success_url: `${BASE_URL}/checkout/success?plan=${trustedPlan}`,
+      cancel_url: `${BASE_URL}/checkout?plan=${trustedPlan}`,
       allow_promotion_codes: 'true',
       locale: 'pt',
     })
