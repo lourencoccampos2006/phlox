@@ -97,7 +97,11 @@ export async function GET(req: NextRequest) {
   // pequena do score). Sem IA — mesmo motor determinístico do /timeline.
   const selfRisk = await runSelfRiskWatch(db)
 
-  return NextResponse.json({ ok: true, scanned, worsened, caregiver, selfRisk })
+  // ─── Aviso de reposição (pessoal) — todos os utilizadores, não só pro/clinic,
+  // porque é uma questão de segurança/adesão, não uma feature paga.
+  const refill = await runRefillWatch(db)
+
+  return NextResponse.json({ ok: true, scanned, worsened, caregiver, selfRisk, refill })
 }
 
 const RISK_RANK: Record<RiskLevel, number> = { ok: 0, info: 1, warning: 2, critical: 3 }
@@ -162,6 +166,52 @@ async function runSelfRiskWatch(db: any) {
     return { users, worsened, notified, error: String((e as any)?.message || e).slice(0, 160) }
   }
   return { users, worsened, notified }
+}
+
+// ─── Aviso de reposição (item da pesquisa competitiva 2026-07-27, inspirado no
+// refill tracking do MyTherapy/CareZone) — personal_meds já guarda
+// pills_remaining/pills_per_day; isto avisa ANTES de acabar, não só depois.
+// refill_reminded_at evita repetir o aviso todos os dias enquanto o stock
+// continuar baixo (só volta a avisar passados 4 dias).
+async function runRefillWatch(db: any) {
+  let checked = 0, notified = 0
+  try {
+    const { data: meds } = await db.from('personal_meds')
+      .select('id, user_id, name, pills_remaining, pills_per_day, refill_reminded_at')
+      .eq('active', true).not('pills_remaining', 'is', null).not('pills_per_day', 'is', null).gt('pills_per_day', 0)
+      .limit(2000)
+    if (!meds?.length) return { checked: 0, notified: 0 }
+    const now = Date.now(), staleMs = 4 * 86400000
+    const low = (meds as any[]).filter(m => {
+      checked++
+      if (m.pills_remaining / m.pills_per_day > 4) return false
+      if (m.refill_reminded_at && now - new Date(m.refill_reminded_at).getTime() < staleMs) return false
+      return true
+    })
+    const byUser: Record<string, any[]> = {}
+    low.forEach(m => { (byUser[m.user_id] ||= []).push(m) })
+    for (const userId of Object.keys(byUser)) {
+      const list = byUser[userId]
+      const { data: subs } = await db.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId)
+      if (!subs?.length) continue
+      const body = list.length === 1
+        ? `Restam ${Math.max(0, Math.floor(list[0].pills_remaining / list[0].pills_per_day))} dias de ${list[0].name}. Hora de repor.`
+        : `${list.length} medicamentos a acabar em breve: ${list.map(m => m.name).join(', ')}.`
+      let didNotify = false
+      for (const sub of subs) {
+        const ok = await sendPushNotification(sub, { title: 'Phlox — medicação a acabar', body, url: '/mymeds', tag: `refill-${userId}` })
+        if (ok) didNotify = true
+        else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+      }
+      if (didNotify) {
+        notified++
+        await db.from('personal_meds').update({ refill_reminded_at: new Date().toISOString() }).in('id', list.map(m => m.id))
+      }
+    }
+  } catch (e) {
+    return { checked, notified, error: String((e as any)?.message || e).slice(0, 160) }
+  }
+  return { checked, notified }
 }
 
 async function runCaregiverWatch(db: any) {
