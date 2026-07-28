@@ -76,6 +76,18 @@ export async function POST(req: NextRequest) {
     .select('org_id, role').eq('user_id', user.id).eq('active', true).eq('role', 'owner').limit(1).maybeSingle()
   let orgId = existing?.org_id || null
 
+  // BUG CRÍTICO corrigido 2026-07-28: esta rota dava plan='clinic' (Institucional,
+  // €149/mês) de graça a QUALQUER conta autenticada, sem Stripe, sem aprovação —
+  // só era preciso saber o URL (estava ligado ao onboarding, ver app/onboarding).
+  // Criar uma organização NOVA agora exige aprovação explícita (Fernando ativa
+  // manualmente, fase de acordos diretos). Quem já é dono de uma org não é afetado.
+  if (!orgId) {
+    const { data: prof } = await a.from('profiles').select('institution_signup_approved').eq('id', user.id).maybeSingle()
+    if (!prof?.institution_signup_approved) {
+      return NextResponse.json({ error: 'A criação de instituições ainda não está ativa nesta conta. Fala connosco para ativar.' }, { status: 403 })
+    }
+  }
+
   if (!orgId) {
     let { data: org, error } = await a.from('organizations').insert({ name, kind }).select('id').single()
     // Se o check do 'kind' ainda não inclui day_care (falta sprint94), cria com um

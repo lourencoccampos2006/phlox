@@ -12,11 +12,21 @@ import { useAuth } from '@/components/AuthContext'
 
 type Profile = 'personal' | 'caregiver' | 'student' | 'professional'
 
+// BUG CRÍTICO corrigido 2026-07-28: existia aqui um 4º cartão "Profissional /
+// Instituição" que, ao ser escolhido, levava a "Criar a minha instituição"
+// (/comecar-instituicao → /api/org/setup) — e criar uma instituição dá
+// `plan: 'clinic'` + `experience_mode: 'clinical'` de GRAÇA, sem Stripe (ver
+// comentário no próprio route.ts: "fase de acordos/testes, sem Stripe").
+// Resultado: qualquer conta nova conseguia o plano Institucional (€149/mês)
+// só com 2 cliques no onboarding, sem pagar nem ser convidada por ninguém.
+// O acesso institucional É EXCLUSIVO de quem é convidado por uma instituição
+// real — nunca auto-selecionável. /comecar-instituicao continua a existir
+// para o processo de vendas direto (Fernando), só deixou de estar acessível
+// a partir do onboarding genérico.
 const PROFILES: { id: Profile; label: string; desc: string; accent: string; bg: string; border: string }[] = [
   { id: 'personal',     label: 'Uso pessoal',            desc: 'Gerir a minha saúde e medicação',                 accent: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0' },
   { id: 'caregiver',    label: 'Cuidador familiar',      desc: 'Cuidar da saúde de um familiar',                  accent: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   { id: 'student',      label: 'Estudante de saúde',     desc: 'Estudar e treinar para a minha área',             accent: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
-  { id: 'professional', label: 'Profissional / Instituição', desc: 'Gerir e trabalhar numa organização de saúde', accent: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
 ]
 
 // Primeiras ações por perfil — o "valor em 60s". Em vez de despejar o utilizador
