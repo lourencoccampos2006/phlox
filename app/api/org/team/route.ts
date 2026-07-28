@@ -128,13 +128,13 @@ export async function POST(req: NextRequest) {
 
     // Torna o funcionário AGENDÁVEL logo: cria a linha team_members ligada à conta
     // (a conta e as escalas partilham a mesma página /equipa, mas são tabelas
-    // diferentes). Tolerante: se a tabela/coluna faltar, não parte.
-    try {
-      await a.from('team_members').upsert(
-        { org_id: orgId, user_id: newId, name, role: TEAM_ROLE[role] || 'other', status: 'off' },
-        { onConflict: 'org_id,user_id' }
-      )
-    } catch { /* team_members sem user_id nesta BD → ignora */ }
+    // diferentes). supabase-js não lança exceção em erro de query — tem de se
+    // verificar .error explicitamente, senão uma falha fica invisível.
+    const { error: tmErr } = await a.from('team_members').upsert(
+      { org_id: orgId, user_id: newId, name, role: TEAM_ROLE[role] || 'other', status: 'off' },
+      { onConflict: 'org_id,user_id' }
+    )
+    if (tmErr) console.error('[phlox:org-team] criar perfil em team_members falhou:', tmErr.message)
 
     // devolve as credenciais UMA vez (para imprimir/entregar)
     return NextResponse.json({ ok: true, mode: 'generate', login: { name, username: emailAddr, password, role } })
@@ -160,12 +160,11 @@ export async function POST(req: NextRequest) {
       // vem da pertença (effectivePlan/getUserPlan dão-lhe 'clinic' no modo clínico).
       const patch: any = { experience_mode: 'clinical', org_id: orgId, active_org_id: orgId, org_role: inviteRole === 'admin' ? 'admin' : 'member', onboarded: true }
       await a.from('profiles').update(patch).eq('id', existing.id)
-      try {
-        await a.from('team_members').upsert(
-          { org_id: orgId, user_id: existing.id, name: existing.name || email, role: TEAM_ROLE[inviteRole] || 'other', status: 'off' },
-          { onConflict: 'org_id,user_id' }
-        )
-      } catch { /* tolerante */ }
+      const { error: tmErr } = await a.from('team_members').upsert(
+        { org_id: orgId, user_id: existing.id, name: existing.name || email, role: TEAM_ROLE[inviteRole] || 'other', status: 'off' },
+        { onConflict: 'org_id,user_id' }
+      )
+      if (tmErr) console.error('[phlox:org-team] criar perfil em team_members falhou (convite existente):', tmErr.message)
       return NextResponse.json({ ok: true, mode: 'added', email, name: existing.name || email })
     }
 
