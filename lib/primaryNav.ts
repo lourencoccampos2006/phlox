@@ -10,18 +10,18 @@ export const PRIMARY_NAV: Record<string, PrimaryNavItem[]> = {
     { href: '/inicio', label: 'Início', icon: 'home' },
     { href: '/mymeds', label: 'Medicação', icon: 'pill' },
     { href: '/sintomas', label: 'Saúde', icon: 'heart' },
-    { href: '/inicio#explorar', label: 'Explorar', icon: 'grid' },
+    { href: '/settings', label: 'Perfil', icon: 'user' },
   ],
   caregiver: [
     { href: '/inicio', label: 'Início', icon: 'home' },
     { href: '/familia', label: 'Família', icon: 'family' },
     { href: '/mymeds', label: 'Medicação', icon: 'pill' },
-    { href: '/inicio#explorar', label: 'Explorar', icon: 'grid' },
+    { href: '/settings', label: 'Perfil', icon: 'user' },
   ],
   student: [
     { href: '/inicio', label: 'Início', icon: 'home' },
     { href: '/study', label: 'Estudar', icon: 'book' },
     { href: '/arena', label: 'Arena', icon: 'trophy' },
-    { href: '/inicio#explorar', label: 'Explorar', icon: 'grid' },
+    { href: '/settings', label: 'Perfil', icon: 'user' },
   ],
 }
