@@ -24,8 +24,10 @@ const ROLE_OPTIONS = [
   { value: 'other',       label: 'Outro' },
 ]
 
+// O modo institucional NÃO está aqui de propósito: nunca é auto-selecionável.
+// Fica só disponível a quem é membro ativo de uma organização (dono ou
+// convidado) — atribuído automaticamente, nunca por escolha nem por plano.
 const MODE_OPTIONS = [
-  { value: 'clinical',  label: 'Profissional Clínico', sub: 'Farmácia · Hospital · Clínica' },
   { value: 'student',   label: 'Estudante',             sub: 'Medicina · Farmácia · Enfermagem · +3' },
   { value: 'caregiver', label: 'Cuidador Familiar',     sub: 'Gestão de medicação de familiares' },
   { value: 'personal',  label: 'Uso Pessoal',           sub: 'A minha própria saúde' },
@@ -312,16 +314,35 @@ function SettingsPage() {
 
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Modo de experiência</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>Define as ferramentas e o contexto que aparecem no menu.</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {MODE_OPTIONS.map(m => (
-                  <button key={m.value} onClick={() => set('experience_mode', m.value)}
-                    style={{ padding: '11px 14px', border: `1.5px solid ${form.experience_mode === m.value ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 8, background: form.experience_mode === m.value ? 'var(--ink)' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: form.experience_mode === m.value ? 'white' : 'var(--ink)', marginBottom: 2 }}>{m.label}</div>
-                    <div style={{ fontSize: 10, color: form.experience_mode === m.value ? 'rgba(255,255,255,0.5)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{m.sub}</div>
-                  </button>
-                ))}
-              </div>
+              {form.experience_mode === 'clinical' ? (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14, lineHeight: 1.6 }}>
+                    A sua conta está ligada a uma instituição — o acesso institucional é atribuído pela instituição, não se escolhe aqui.
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {MODE_OPTIONS.map(m => (
+                      <button key={m.value} onClick={() => set('experience_mode', m.value)}
+                        style={{ padding: '11px 14px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{m.label}</div>
+                        <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{m.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>Define as ferramentas e o contexto que aparecem no menu.</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {MODE_OPTIONS.map(m => (
+                      <button key={m.value} onClick={() => set('experience_mode', m.value)}
+                        style={{ padding: '11px 14px', border: `1.5px solid ${form.experience_mode === m.value ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 8, background: form.experience_mode === m.value ? 'var(--ink)' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: form.experience_mode === m.value ? 'white' : 'var(--ink)', marginBottom: 2 }}>{m.label}</div>
+                        <div style={{ fontSize: 10, color: form.experience_mode === m.value ? 'rgba(255,255,255,0.5)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{m.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <HealthGoalPicker />

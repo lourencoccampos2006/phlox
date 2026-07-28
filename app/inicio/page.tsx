@@ -48,10 +48,12 @@ export default function InicioPage() {
   useEffect(() => { setEnabled(getModulePrefs(expMode)) }, [expMode])
 
   const plan = (user?.plan as string) || 'free'
-  // Acesso ao modo clínico por PLANO (pro/clinic) OU por PERTENÇA a uma
-  // organização — espelha getUserPlan no servidor.
+  // Acesso institucional SÓ por PERTENÇA a uma organização — nunca por plano
+  // (nem Pro). Corrigido 2026-07-28: isto tinha "plan === 'pro'" a dar acesso
+  // a quem nunca foi convidado por nenhuma instituição — não espelhava o
+  // servidor (lib/planGate.ts), que sempre exigiu pertença.
   const inOrg = !!(user?.active_org_id || user?.org_id || user?.org_role)
-  const clinicalAllowed = plan === 'pro' || plan === 'clinic' || inOrg
+  const clinicalAllowed = inOrg
 
   if (loading || !user) {
     return (
@@ -64,7 +66,7 @@ export default function InicioPage() {
 
   // ── MODO CLÍNICO — paywall ou hub próprio (já é uma experiência à parte) ──
   if (expMode === 'clinical') {
-    if (!clinicalAllowed) return <ClinicalPaywall plan={plan} />
+    if (!clinicalAllowed) return <ClinicalPaywall />
     return <ClinicalHub name={user?.name?.split(' ')[0] || ''} />
   }
 
@@ -199,16 +201,15 @@ function ModeChip({ theme: t }: { theme: ModeTheme }) {
 }
 
 // ─── Modo clínico: paywall ──────────────────────────────────────────────────
-function ClinicalPaywall({ plan }: { plan: string }) {
+function ClinicalPaywall() {
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
       <div style={{ width: 'min(460px,100%)', background: 'white', border: '1px solid var(--border)', borderRadius: 18, padding: '28px 26px', textAlign: 'center', boxShadow: '0 12px 50px rgba(8,12,24,0.08)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1d4ed8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>Espaço clínico</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--ink)', fontWeight: 400, margin: '0 0 10px' }}>O modo clínico é para profissionais e instituições</h1>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 20px' }}>O painel da instituição, a ronda, o MAR, a vigilância de utentes e os relatórios fazem parte dos planos Pro e Institucional. O seu plano atual é {planName(plan)}.</p>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1d4ed8', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 700 }}>Área institucional</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 23, color: 'var(--ink)', fontWeight: 400, margin: '0 0 10px' }}>Esta área é exclusiva de instituições</h1>
+        <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 20px' }}>O acesso é atribuído pela instituição a quem convida — não se compra nem se ativa aqui.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <Link href="/pricing" style={{ padding: '13px 18px', background: '#1d4ed8', color: 'white', borderRadius: 10, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>Ver planos Pro e Institucional</Link>
-          <Link href="/settings" style={{ padding: '11px', background: 'none', color: 'var(--ink-4)', borderRadius: 10, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Mudar de modo nas Definições</Link>
+          <Link href="/settings" style={{ padding: '13px 18px', background: '#1d4ed8', color: 'white', borderRadius: 10, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>Voltar às Definições</Link>
         </div>
       </div>
     </div>
