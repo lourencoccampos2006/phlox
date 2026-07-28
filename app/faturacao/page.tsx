@@ -8,12 +8,29 @@
 
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { useOrgScope } from '@/lib/orgScope'
 import MonthlyBilling from './MonthlyBilling'
 import SalesBilling from './SalesBilling'
 
 export default function FaturacaoPage() {
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
+  const scope = useOrgScope()
+
+  // Financeiro é só do dono/admin — a base de dados já bloqueia (RLS), mas sem
+  // isto o resto da equipa via um ecrã vazio/confuso em vez de saber porquê.
+  if (scope.orgId && !scope.isManager) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <div className="page-container page-body" style={{ maxWidth: 560 }}>
+          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Só o dono ou administrador</div>
+            <div style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6 }}>Esta área é financeira — só quem gere a instituição tem acesso.</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (cfg.revenue === 'monthly_fee') return <MonthlyBilling />
   if (cfg.revenue === 'internal') {
