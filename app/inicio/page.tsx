@@ -154,8 +154,16 @@ function ModeChip({ theme: t }: { theme: ModeTheme }) {
   const [busy, setBusy] = useState(false)
   if (!user) return null
   const current = personaFor(user.experience_mode)
+  // BUG CRÍTICO corrigido 2026-07-28: este chip listava TODAS as personas
+  // (incluindo "Clínico") a qualquer conta, e switchTo() escrevia
+  // experience_mode direto na BD sem checar pertença a organização nenhuma —
+  // 3º sítio encontrado com este mesmo problema (depois de components/Header.tsx
+  // e /settings). "Instituição" só aparece para quem já pertence a uma org real.
+  const inOrg = !!(user.active_org_id || user.org_id || user.org_role)
+  const personas = ALL_PERSONAS.filter(p => p.mode !== 'clinical' || inOrg)
   async function switchTo(mode: string) {
     if (mode === user.experience_mode) { setOpen(false); return }
+    if (mode === 'clinical' && !inOrg) { setOpen(false); return }
     setBusy(true)
     await supabase.from('profiles').update({ experience_mode: mode }).eq('id', user.id)
     setOpen(false); setTimeout(() => location.reload(), 300)
@@ -176,7 +184,7 @@ function ModeChip({ theme: t }: { theme: ModeTheme }) {
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
           <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 80, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: '0 16px 44px -12px rgba(8,12,24,0.35)', minWidth: 260, padding: 6 }}>
             <div style={{ padding: '6px 10px 8px', fontSize: 10.5, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mudar de modo</div>
-            {ALL_PERSONAS.map(p => {
+            {personas.map(p => {
               const active = p.mode === current.mode
               return (
                 <button key={p.mode} onClick={() => switchTo(p.mode)} disabled={busy} style={{
