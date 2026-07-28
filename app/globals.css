@@ -36,12 +36,17 @@
   --blue:        #1f4a8a;
   --blue-light:  #f0f3f8;
 
-  /* Syne — geometric, technical, distinctive */
-  --font-sans:  'Syne', system-ui, sans-serif;
+  /* Syne — geometric, technical, distinctive. Carregadas via next/font/google
+     em app/layout.tsx (self-hosted, sem pedido externo a fonts.googleapis.com,
+     com ajuste automático da métrica da fonte de reserva — evita o "flash" de
+     troca de fonte que estava a cortar o primeiro scroll/toque da homepage:
+     o texto mudava de tamanho mesmo quando o utilizador começava a interagir,
+     e esse desvio de layout cancelava o gesto em curso). */
+  --font-sans:  var(--font-syne), system-ui, sans-serif;
   /* Lora — editorial serif for display */
-  --font-serif: 'Lora', Georgia, serif;
+  --font-serif: var(--font-lora), Georgia, serif;
   /* JetBrains Mono — code/data feel */
-  --font-mono:  'JetBrains Mono', monospace;
+  --font-mono:  var(--font-jetbrains-mono), monospace;
 
   /* Sombras — sussurro, com tom frio da tinta para profundidade coerente.
      Camadas duplas (ambient + key light) tornam as superfícies mais "reais". */

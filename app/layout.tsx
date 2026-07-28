@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from 'next'
+import { Syne, Lora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
 import AdScript from '@/components/AdScript'
 import ClientLayout from '@/components/ClientLayout'
 import { ToastProvider } from '@/components/Toast'
+
+// Self-hospedadas (sem <link> para fonts.googleapis.com — menos um pedido de
+// rede bloqueante) e com ajuste automático da métrica de fallback: o texto já
+// nasce com o tamanho/altura de linha final, não há "salto" quando a fonte
+// verdadeira chega. Ver nota em globals.css sobre o bug de scroll que isto corrige.
+const syne = Syne({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-syne', display: 'swap' })
+const lora = Lora({ subsets: ['latin'], weight: ['400', '500'], style: ['normal', 'italic'], variable: '--font-lora', display: 'swap' })
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-jetbrains-mono', display: 'swap' })
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
 
@@ -55,18 +64,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-PT">
+    <html lang="pt-PT" className={`${syne.variable} ${lora.variable} ${jetbrainsMono.variable}`}>
       <head>
         {/* Google AdSense — apenas a meta de verificação do site (não define cookies).
             O SCRIPT de anúncios é carregado por <AdScript/> SÓ depois de o utilizador
             consentir cookies de publicidade (RGPD/ePrivacy). */}
         <meta name="google-adsense-account" content="ca-pub-3416387560941562" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
