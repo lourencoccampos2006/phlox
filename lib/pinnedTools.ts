@@ -17,6 +17,8 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   { path: '/triagem',           label: 'Devo ir ao médico?',     icon: '🏥', group: 'Pessoal' },
   { path: '/quickcheck',        label: 'Análise rápida meds',    icon: '⚡', group: 'Pessoal' },
   { path: '/vitals',            label: 'Sinais vitais',          icon: '💓', group: 'Pessoal' },
+  { path: '/adherencia',        label: 'Adesão à medicação',     icon: '📈', group: 'Pessoal' },
+  { path: '/preparar-consulta', label: 'Preparar a consulta',    icon: '🗒️', group: 'Pessoal' },
   { path: '/health-import',     label: 'Importar Apple Health',  icon: '📥', group: 'Pessoal' },
   { path: '/guardados',         label: 'Guardados',              icon: '★',  group: 'Pessoal' },
   { path: '/calendario',        label: 'Calendário',             icon: '📅', group: 'Pessoal' },

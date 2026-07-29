@@ -83,8 +83,8 @@ export const PLANS: PlanDef[] = [
 // limites de saúde modestos mas estudo SEM limite (gerido no gating, não aqui).
 // Pro/Institucional = sem limites.
 const LIMITS: Record<PlanId, Record<string, number>> = {
-  free:    { interactions: 3, ai: 3, drug_reference: 5, labs: 3, scan: 3, medicamento: 5, chat_med: 3 },
-  student: { interactions: 15, ai: 15, drug_reference: 50, labs: 30, scan: 15, medicamento: 30, chat_med: 10 },
+  free:    { interactions: 3, ai: 3, drug_reference: 5, labs: 3, scan: 3, medicamento: 5, chat_med: 3, preparar_consulta: 2 },
+  student: { interactions: 15, ai: 15, drug_reference: 50, labs: 30, scan: 15, medicamento: 30, chat_med: 10, preparar_consulta: 5 },
   pro:     {},
   clinic:  {},
 }

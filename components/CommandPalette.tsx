@@ -24,6 +24,7 @@ const TOOLS: Tool[] = [
   { href: '/relatorio', label: 'Relatório Semanal', desc: 'IA analisa a tua semana e dá recomendações', icon: '📋', category: 'Saúde' },
   { href: '/sintomas', label: 'Diário de Saúde', desc: 'Registo de sintomas e bem-estar diário', icon: '📝', category: 'Saúde' },
   { href: '/adherencia', label: 'Adesão à Medicação', desc: 'Padrões de toma e insights pessoais', icon: '✅', category: 'Saúde' },
+  { href: '/preparar-consulta', label: 'Preparar a Consulta', desc: 'Folha organizada para levar ao médico', icon: '🗒️', category: 'Saúde', badge: 'Novo' },
   // IA & Análise
   { href: '/ai', label: 'Phlox AI', desc: 'Co-piloto farmacológico com contexto clínico', icon: '🤖', category: 'IA & Análise' },
   { href: '/oracle', label: 'Oracle — Farmacêutico AI', desc: 'Consulta estruturada com plano de intervenção', icon: '🔮', category: 'IA & Análise' },

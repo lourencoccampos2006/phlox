@@ -157,7 +157,7 @@ export function computeHealthAlerts(input: AlertInput): HealthAlert[] {
 
   // 5) Adesão a cair
   if (input.adherencePct != null && input.adherencePct < 60 && medNames.length > 0)
-    alerts.push({ level: 'medium', icon: '💊', title: 'Adesão à medicação a descer', detail: `Tem tomado ${input.adherencePct}% das doses recentes. Ativar lembretes pode ajudar.`, href: '/mymeds', cta: 'Ver medicação', category: 'adherence' })
+    alerts.push({ level: 'medium', icon: '💊', title: 'Adesão à medicação a descer', detail: `Tem tomado ${input.adherencePct}% das doses recentes. Ativar lembretes pode ajudar.`, href: '/adherencia', cta: 'Ver padrões', category: 'adherence' })
 
   // Dedup por título + ordena por gravidade.
   const seen = new Set<string>()

@@ -19,6 +19,7 @@ const PIN_ICON: Record<string, string> = {
   '/arena': 'trophy', '/study': 'cards', '/tutor': 'spark', '/labs': 'search',
   '/medicamento': 'question', '/timeline': 'calendar', '/passport': 'shield',
   '/health-import': 'calendar', '/guardados': 'star', '/calendario': 'calendar',
+  '/adherencia': 'target', '/preparar-consulta': 'clock',
 }
 const MAX = 6
 
