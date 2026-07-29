@@ -41,11 +41,13 @@ const BY_HREF: Record<string, string> = {
   '/vitals': 'heart',
   '/scan': 'camera',
   '/ai': 'spark',
+  '/tendencias': 'chart',
 }
 
 // Casos especiais por query string (ex.: /equipa?tab=mural = mural da equipa).
 function specialCase(href: string): string | null {
   if (href.includes('/equipa') && href.includes('mural')) return 'megaphone'
+  if (href.includes('/equipa') && href.includes('cobertura')) return 'refresh'
   if (href.includes('/painel-dono') && href.includes('qualidade')) return 'chart'
   return null
 }

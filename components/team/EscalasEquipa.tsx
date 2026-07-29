@@ -9,9 +9,11 @@ import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { TarefasTool } from '@/app/tarefas-equipa/page'
 
-type SubTab = 'team' | 'schedule' | 'tarefas' | 'config'
+type SubTab = 'team' | 'schedule' | 'cobertura' | 'tarefas' | 'config'
 type Shift = 'manha' | 'tarde' | 'noite'
 type MemberStatus = 'on_shift' | 'break' | 'off' | 'sick' | 'vacation'
+type VacStatus = 'open' | 'filled' | 'cancelled'
+type Urgency = 'critical' | 'urgent' | 'normal'
 
 interface TeamMember {
   id: string
@@ -31,6 +33,28 @@ interface ShiftAssignment {
   date: string
   shift: Shift
   notes?: string
+}
+
+// Vaga de turno ("alguém não pode vir, quem cobre?") — ver sprint118_shift_coverage.sql.
+// A tabela shift_vacancies existia desde sprint10 mas sem org-scoping nem estado de
+// fluxo; esta ronda fecha o ciclo: publicar → a equipa vê → alguém cobre → a escala
+// atualiza-se sozinha (cria-se o shift_assignment de quem cobriu).
+interface Vacancy {
+  id: string
+  date: string
+  shift: Shift
+  role?: string | null
+  urgency: Urgency
+  team_member_id?: string | null
+  team_member_name?: string | null
+  shift_assignment_id?: string | null
+  reason?: string | null
+  notes?: string | null
+  status: VacStatus
+  claimed_by_id?: string | null
+  claimed_by_name?: string | null
+  claimed_at?: string | null
+  created_at: string
 }
 
 interface ShiftTimeCfg { start: string; end: string }
@@ -67,6 +91,20 @@ const STATUS_CFG: Record<MemberStatus, { label: string; color: string; dot: stri
 }
 
 const STATUS_CYCLE: MemberStatus[] = ['on_shift', 'break', 'off', 'sick', 'vacation']
+
+const URGENCY_META: Record<Urgency, { label: string; color: string; bg: string; border: string }> = {
+  critical: { label: 'Hoje / amanhã', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
+  urgent: { label: 'Em breve', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  normal: { label: 'Com antecedência', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+}
+// Sugestão automática de urgência a partir da distância à data do turno — o
+// utilizador pode sempre corrigir manualmente no formulário.
+function autoUrgency(dateStr: string): Urgency {
+  const days = Math.round((new Date(dateStr + 'T12:00:00').getTime() - new Date(fmt(new Date()) + 'T12:00:00').getTime()) / 86400000)
+  if (days <= 1) return 'critical'
+  if (days <= 3) return 'urgent'
+  return 'normal'
+}
 
 const DAY_PT = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
 
@@ -108,6 +146,12 @@ function ChevronLeft() {
 function ChevronRight() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
 }
+// Mesmo traço do ícone 'refresh' de components/Icon.tsx — reutilizado aqui de
+// propósito para o "precisa de substituto" ler visualmente como o mesmo conceito
+// de "troca/cobertura" em todo o produto.
+function SwapIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 11.5a8 8 0 1 0-2.1 6.1"/><path d="M20 5.5v6h-6"/></svg>
+}
 
 function Lbl({ children }: { children: React.ReactNode }) {
   return <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>{children}</div>
@@ -143,6 +187,16 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
   const [showShiftForm, setShowShiftForm] = useState(false)
   const [sForm, setSForm] = useState({ team_member_id: '', date: fmt(new Date()), shift: 'manha' as Shift, notes: '' })
   const [savingShift, setSavingShift] = useState(false)
+
+  // ── Cobertura de turnos (vagas) ──
+  const [vacancies, setVacancies] = useState<Vacancy[]>([])
+  const [vacFilter, setVacFilter] = useState<'open' | 'all'>('open')
+  const [showVacForm, setShowVacForm] = useState(false)
+  const [savingVac, setSavingVac] = useState(false)
+  const emptyVacForm = { date: fmt(new Date()), shift: 'manha' as Shift, role: '', team_member_id: '', shift_assignment_id: '', reason: '', notes: '', urgency: 'normal' as Urgency, notifyMural: true }
+  const [vForm, setVForm] = useState(emptyVacForm)
+  const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [claimMemberId, setClaimMemberId] = useState('')
 
   const weekDates = getWeekDates(weekBase)
   const weekStart = fmt(weekDates[0])
@@ -238,6 +292,96 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
     setShifts(p => p.filter(s => s.id !== id))
   }
 
+  // ── Cobertura de turnos ──────────────────────────────────────────────────
+  // Vagas dos últimos 14 dias (histórico recente) em diante (futuras) — não
+  // depende da semana da escala que está a ser vista, porque uma falta pode
+  // precisar de cobertura para qualquer data.
+  const loadVacancies = useCallback(async () => {
+    if (!user) return
+    const since = fmt(new Date(Date.now() - 14 * 86400000))
+    const { data, error } = await scope.filter(supabase.from('shift_vacancies').select('*')).gte('date', since).order('date', { ascending: true })
+    if (!error) setVacancies(data || [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
+
+  useEffect(() => { loadVacancies() }, [loadVacancies])
+
+  function openVacancyForm(prefill?: Partial<typeof emptyVacForm>) {
+    const merged = { ...emptyVacForm, ...prefill }
+    merged.urgency = autoUrgency(merged.date)
+    setVForm(merged)
+    setShowVacForm(true)
+  }
+
+  // Publica a vaga no mural (canal "avisos", com push) — best-effort: se falhar,
+  // a vaga já foi criada na mesma (a equipa continua a vê-la em Cobertura).
+  async function notifyMuralVacancy(v: { date: string; shift: Shift; role?: string; urgency: Urgency; reason?: string; memberName?: string | null }) {
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data?.session?.access_token || ''
+      const dateLabel = new Date(v.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'short' })
+      const roleTxt = v.role ? ` (${ROLE_LABELS[v.role] || v.role})` : ''
+      const whoTxt = v.memberName ? `, no lugar de ${v.memberName}` : ''
+      const reasonTxt = v.reason ? ` — ${v.reason}` : ''
+      const body = `Vaga aberta: ${SHIFT_META[v.shift].label} de ${dateLabel}${roleTxt}${whoTxt}${reasonTxt}. Quem pode cobrir? Ver em Equipa → Escalas → Cobertura.`
+      const priority = v.urgency === 'critical' ? 'urgente' : v.urgency === 'urgent' ? 'importante' : 'normal'
+      await fetch('/api/team-messages', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ body, channel: 'avisos', priority }),
+      })
+    } catch { /* best-effort — a vaga já foi criada */ }
+  }
+
+  async function saveVacancy() {
+    if (!user) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    setSavingVac(true)
+    const memberName = vForm.team_member_id ? members.find(m => m.id === vForm.team_member_id)?.name || null : null
+    const payload = scope.stamp({
+      date: vForm.date, shift: vForm.shift, role: vForm.role || null,
+      team_member_id: vForm.team_member_id || null,
+      team_member_name: memberName,
+      shift_assignment_id: vForm.shift_assignment_id || null,
+      reason: vForm.reason || null, notes: vForm.notes || null,
+      urgency: vForm.urgency, status: 'open',
+    })
+    const { error } = await supabase.from('shift_vacancies').insert(payload)
+    setSavingVac(false)
+    if (error) { alert('Não foi possível publicar a vaga: ' + error.message); return }
+    setShowVacForm(false)
+    if (vForm.notifyMural) notifyMuralVacancy({ date: vForm.date, shift: vForm.shift, role: vForm.role, urgency: vForm.urgency, reason: vForm.reason, memberName })
+    loadVacancies()
+  }
+
+  // Reivindicar a vaga cria também o turno na escala (se ainda não existir um
+  // igual) — quem cobre fica logo visível em "Escalas", sem passo extra.
+  async function claimVacancy(v: Vacancy, memberId: string) {
+    if (!user || !memberId) return
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    const member = members.find(m => m.id === memberId)
+    if (!member) return
+    const { error } = await supabase.from('shift_vacancies').update({
+      status: 'filled', claimed_by_id: memberId, claimed_by_name: member.name, claimed_at: new Date().toISOString(),
+    }).eq('id', v.id)
+    if (!error) {
+      const dup = shifts.some(s => s.team_member_id === memberId && s.date === v.date && s.shift === v.shift)
+      if (!dup) await supabase.from('shift_assignments').insert(scope.stamp({ team_member_id: memberId, date: v.date, shift: v.shift, notes: 'Cobertura de vaga' }))
+    }
+    setClaimingId(null); setClaimMemberId('')
+    loadVacancies(); load()
+  }
+
+  async function cancelVacancy(v: Vacancy) {
+    if (!confirm('Cancelar esta vaga?')) return
+    await supabase.from('shift_vacancies').update({ status: 'cancelled' }).eq('id', v.id)
+    loadVacancies()
+  }
+
+  async function reopenVacancy(v: Vacancy) {
+    await supabase.from('shift_vacancies').update({ status: 'open', claimed_by_id: null, claimed_by_name: null, claimed_at: null }).eq('id', v.id)
+    loadVacancies()
+  }
+
   const [copying, setCopying] = useState(false)
   async function copyPreviousWeek() {
     if (!user || copying) return
@@ -263,6 +407,17 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
   function byDayShift(date: string, sk: Shift) { return shifts.filter(s => s.date === date && s.shift === sk) }
 
   const gaps = weekDates.filter(d => SHIFTS.some(sk => byDayShift(fmt(d), sk).length === 0)).length
+
+  // ── Derivados de Cobertura ──
+  const openVacancies = vacancies.filter(v => v.status === 'open').sort((a, b) => a.date.localeCompare(b.date))
+  const filledVacancies = vacancies.filter(v => v.status === 'filled')
+  const vacanciesShown = vacFilter === 'open' ? openVacancies : vacancies
+  // Sugestão: membro de baixa/férias com turno marcado esta semana e ainda sem
+  // vaga aberta para esse turno — poupa o passo de ir procurar quem falta.
+  const vacancySuggestions = shifts
+    .map(s => ({ s, mem: members.find(m => m.id === s.team_member_id) }))
+    .filter((x): x is { s: ShiftAssignment; mem: TeamMember } => !!x.mem && (x.mem.status === 'sick' || x.mem.status === 'vacation'))
+    .filter(x => !vacancies.some(v => v.shift_assignment_id === x.s.id && v.status !== 'cancelled'))
 
   function updateTimeCfg(sk: Shift, field: 'start' | 'end', val: string) {
     const next = { ...timeCfg, [sk]: { ...timeCfg[sk], [field]: val } }
@@ -306,11 +461,13 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
         <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: 0 }}>Estado de serviço, escalas semanais, tarefas da equipa e horários dos turnos.</p>
         {tab === 'team' && <button onClick={openNewMember} style={btnPrimary}><PlusIcon /> Adicionar</button>}
         {tab === 'schedule' && <button onClick={() => openShiftForm()} style={btnPrimary}><PlusIcon /> Marcar turno</button>}
+        {tab === 'cobertura' && <button onClick={() => openVacancyForm()} style={btnPrimary}><PlusIcon /> Publicar vaga</button>}
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {tabBtn('team', 'Estado de serviço')}
         {tabBtn('schedule', 'Escalas')}
+        {tabBtn('cobertura', `Cobertura${openVacancies.length ? ` (${openVacancies.length})` : ''}`)}
         {tabBtn('tarefas', 'Tarefas')}
         {tabBtn('config', 'Configurar turnos')}
       </div>
@@ -532,7 +689,14 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                             ) : ss.map(s => (
                               <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3, padding: '3px 6px', background: sm.bg, border: `1px solid ${sm.border}`, borderRadius: 5, gap: 4 }}>
                                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0 }}>{s.member_name}</span>
-                                <button aria-label="Eliminar" onClick={() => removeShift(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(0,0,0,0.2)', padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
+                                <span style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                                  <button title="Precisa de substituto" aria-label={`Publicar vaga para ${s.member_name}`}
+                                    onClick={() => openVacancyForm({ date: ds, shift: sk, team_member_id: s.team_member_id, shift_assignment_id: s.id, role: s.member_role || '' })}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(0,0,0,0.32)', padding: 0, lineHeight: 1, display: 'flex' }}>
+                                    <SwapIcon />
+                                  </button>
+                                  <button aria-label="Eliminar" onClick={() => removeShift(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'rgba(0,0,0,0.2)', padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -564,7 +728,127 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: sm.color }}>{sm.label} · {tc.start}–{tc.end}</div>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginTop: 1 }}>{d.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
                     </div>
+                    <button title="Precisa de substituto" aria-label={`Publicar vaga para ${s.member_name}`}
+                      onClick={() => openVacancyForm({ date: s.date, shift: s.shift, team_member_id: s.team_member_id, shift_assignment_id: s.id, role: s.member_role || '' })}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', padding: '0 4px', flexShrink: 0, display: 'flex' }}>
+                      <SwapIcon size={14} />
+                    </button>
                     <button aria-label="Eliminar" onClick={() => removeShift(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink-5)', padding: '0 4px', flexShrink: 0 }}>×</button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === 'cobertura' && (
+        <>
+          {vacancySuggestions.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+              {vacancySuggestions.map(({ s, mem }) => (
+                <div key={s.id} style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, color: '#1e40af' }}>
+                    <b>{mem.name}</b> está {STATUS_CFG[mem.status].label.toLowerCase()} e tem {SHIFT_META[s.shift].label.toLowerCase()} marcado para {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}.
+                  </span>
+                  <button onClick={() => openVacancyForm({ date: s.date, shift: s.shift, team_member_id: mem.id, shift_assignment_id: s.id, role: mem.role, reason: STATUS_CFG[mem.status].label })}
+                    style={{ padding: '6px 12px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Publicar vaga
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: openVacancies.length ? '#dc2626' : '#16a34a', lineHeight: 1 }}>{openVacancies.length}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>Vagas abertas</div>
+            </div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#16a34a', lineHeight: 1 }}>{filledVacancies.length}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>Cobertas (14 dias)</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            {(['open', 'all'] as const).map(f => (
+              <button key={f} onClick={() => setVacFilter(f)} style={{
+                padding: '6px 14px', borderRadius: 7, fontFamily: 'var(--font-sans)',
+                border: `1.5px solid ${vacFilter === f ? '#1d4ed8' : 'var(--border)'}`,
+                background: vacFilter === f ? '#eff6ff' : 'white',
+                color: vacFilter === f ? '#1d4ed8' : 'var(--ink-4)',
+                fontSize: 12, fontWeight: vacFilter === f ? 700 : 400, cursor: 'pointer',
+              }}>
+                {f === 'open' ? `Abertas (${openVacancies.length})` : `Todas (${vacancies.length})`}
+              </button>
+            ))}
+          </div>
+
+          {vacanciesShown.length === 0 ? (
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 44, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 6 }}>Sem vagas {vacFilter === 'open' ? 'abertas' : 'registadas'}</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Quando alguém não puder vir a um turno, publica a vaga aqui — a equipa vê e cobre.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {vacanciesShown.map(v => {
+                const um = URGENCY_META[v.urgency] || URGENCY_META.normal
+                const sm = SHIFT_META[v.shift]
+                const isClaiming = claimingId === v.id
+                const borderColor = v.status === 'open' ? um.color : v.status === 'filled' ? '#16a34a' : '#94a3b8'
+                return (
+                  <div key={v.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${borderColor}`, borderRadius: 10, padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
+                            {sm.label} · {new Date(v.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          </span>
+                          {v.status === 'open' && <span style={{ fontSize: 10, fontWeight: 700, color: um.color, background: um.bg, border: `1px solid ${um.border}`, padding: '2px 8px', borderRadius: 5 }}>{um.label}</span>}
+                          {v.status === 'filled' && <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: 5 }}>Coberta</span>}
+                          {v.status === 'cancelled' && <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', background: 'var(--bg-2)', padding: '2px 8px', borderRadius: 5 }}>Cancelada</span>}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>
+                          {v.role ? `${ROLE_LABELS[v.role] || v.role}` : 'Sem função definida'}
+                          {v.team_member_name ? ` · no lugar de ${v.team_member_name}` : ''}
+                          {v.reason ? ` · ${v.reason}` : ''}
+                        </div>
+                        {v.status === 'filled' && v.claimed_by_name && <div style={{ fontSize: 12, color: '#16a34a', marginTop: 3, fontWeight: 600 }}>Coberto por {v.claimed_by_name}</div>}
+                        {v.notes && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3, fontStyle: 'italic' }}>{v.notes}</div>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {v.status === 'open' && !isClaiming && (
+                          <button onClick={() => { setClaimingId(v.id); setClaimMemberId('') }}
+                            style={{ padding: '6px 12px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                            Cobrir este turno
+                          </button>
+                        )}
+                        {v.status === 'open' && (
+                          <button onClick={() => cancelVacancy(v)} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                            Cancelar
+                          </button>
+                        )}
+                        {v.status === 'filled' && (
+                          <button onClick={() => reopenVacancy(v)} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                            Reabrir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {isClaiming && (
+                      <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                        <select value={claimMemberId} onChange={e => setClaimMemberId(e.target.value)} style={{ ...sel, width: 240 }}>
+                          <option value="">Quem vai cobrir?</option>
+                          {members.map(m => <option key={m.id} value={m.id}>{m.name} — {ROLE_LABELS[m.role] || m.role}</option>)}
+                        </select>
+                        <button onClick={() => claimVacancy(v, claimMemberId)} disabled={!claimMemberId}
+                          style={{ padding: '8px 16px', background: !claimMemberId ? 'var(--bg-3)' : '#0d6e42', color: !claimMemberId ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: !claimMemberId ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                          Confirmar
+                        </button>
+                        <button onClick={() => setClaimingId(null)} style={{ padding: '8px 12px', background: 'none', border: 'none', color: 'var(--ink-4)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Cancelar</button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -702,6 +986,77 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
               <button onClick={saveShift} disabled={savingShift || !sForm.team_member_id}
                 style={{ padding: '9px 20px', background: !sForm.team_member_id || savingShift ? 'var(--bg-3)' : '#1d4ed8', color: !sForm.team_member_id || savingShift ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: !sForm.team_member_id || savingShift ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                 {savingShift ? 'A guardar...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showVacForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowVacForm(false) }}>
+          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520, padding: '22px 22px 40px', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Publicar vaga</h2>
+              <button aria-label="Fechar" onClick={() => setShowVacForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
+            </div>
+            <p style={{ margin: '0 0 16px', fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5 }}>A equipa vê a vaga em Cobertura e pode reivindicá-la. Se ligares a um turno já marcado, esse turno fica identificado.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <Lbl>Data *</Lbl>
+                  <input type="date" value={vForm.date} onChange={e => setVForm(p => ({ ...p, date: e.target.value, urgency: autoUrgency(e.target.value) }))} style={inp} />
+                </div>
+                <div>
+                  <Lbl>Turno *</Lbl>
+                  <select value={vForm.shift} onChange={e => setVForm(p => ({ ...p, shift: e.target.value as Shift }))} style={sel}>
+                    {SHIFTS.map(k => <option key={k} value={k}>{SHIFT_META[k].label} ({timeCfg[k].start}–{timeCfg[k].end})</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <Lbl>Função necessária</Lbl>
+                  <select value={vForm.role} onChange={e => setVForm(p => ({ ...p, role: e.target.value }))} style={sel}>
+                    <option value="">Qualquer</option>
+                    {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Lbl>Urgência</Lbl>
+                  <select value={vForm.urgency} onChange={e => setVForm(p => ({ ...p, urgency: e.target.value as Urgency }))} style={sel}>
+                    {(Object.keys(URGENCY_META) as Urgency[]).map(u => <option key={u} value={u}>{URGENCY_META[u].label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <Lbl>No lugar de (opcional)</Lbl>
+                <select value={vForm.team_member_id} onChange={e => setVForm(p => ({ ...p, team_member_id: e.target.value }))} style={sel}>
+                  <option value="">Sem atribuição anterior</option>
+                  {members.map(m => <option key={m.id} value={m.id}>{m.name} — {ROLE_LABELS[m.role] || m.role}</option>)}
+                </select>
+              </div>
+              <div>
+                <Lbl>Motivo</Lbl>
+                <input value={vForm.reason} onChange={e => setVForm(p => ({ ...p, reason: e.target.value }))} placeholder="Ex: Baixa médica, imprevisto pessoal..." style={inp} />
+              </div>
+              <div>
+                <Lbl>Notas</Lbl>
+                <input value={vForm.notes} onChange={e => setVForm(p => ({ ...p, notes: e.target.value }))} placeholder="Detalhe adicional para quem for cobrir" style={inp} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', padding: '10px 12px', background: vForm.notifyMural ? '#f0fdf4' : 'var(--bg-2)', border: `1.5px solid ${vForm.notifyMural ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 9 }}>
+                <input type="checkbox" checked={vForm.notifyMural} onChange={e => setVForm(p => ({ ...p, notifyMural: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, accentColor: '#16a34a', flexShrink: 0 }} />
+                <span>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Avisar a equipa no mural</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-4)' }}>Publica no canal Avisos, com notificação.</span>
+                </span>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowVacForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
+              <button onClick={saveVacancy} disabled={savingVac}
+                style={{ padding: '9px 20px', background: savingVac ? 'var(--bg-3)' : '#1d4ed8', color: savingVac ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingVac ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                {savingVac ? 'A publicar...' : 'Publicar vaga'}
               </button>
             </div>
           </div>
