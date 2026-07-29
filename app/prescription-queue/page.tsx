@@ -48,6 +48,7 @@ export default function PrescriptionQueuePage() {
     ]} />
 }
 import { useAuth } from '@/components/AuthContext'
+import { reportError, MSG } from '@/lib/clientError'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -189,6 +190,7 @@ function ValidationQueueTool() {
   const [loading, setLoading] = useState(true)
   const [criticalShortages, setCriticalShortages] = useState<{drug: string; alternatives: string[]}[]>([])
   const [shortagesDismissed, setShortagesDismissed] = useState(false)
+  const [decisionErr, setDecisionErr] = useState('')
 
   useEffect(() => {
     if (!user || !supabase) return
@@ -265,7 +267,7 @@ function ValidationQueueTool() {
 
   const handleDecision = useCallback(async (decision: PrescStatus) => {
     if (!selected) return
-    setSaving(true)
+    setSaving(true); setDecisionErr('')
     const update: Partial<Prescription> = {
       status: decision,
       reviewed_at: new Date().toISOString(),
@@ -274,10 +276,16 @@ function ValidationQueueTool() {
       intervention_note: interventionNote || undefined,
       reviewer_id: user?.id,
     }
-    setPrescriptions(p => p.map(r => r.id === selected.id ? { ...r, ...update } : r))
+    // BUG CORRIGIDO 2026-07-29 (relevante para segurança clínica): a decisão do
+    // farmacêutico (aprovar/rejeitar/reter) era aplicada OTIMISTICAMENTE ao estado local
+    // ANTES da gravação real, e o erro nunca era verificado — uma decisão podia parecer
+    // gravada mesmo que a escrita na BD tivesse falhado. Agora só atualiza o ecrã depois
+    // de confirmar que gravou.
     if (user && supabase) {
-      await supabase.from('prescription_queue').update(update).eq('id', selected.id)
+      const { error } = await supabase.from('prescription_queue').update(update).eq('id', selected.id)
+      if (error) { setDecisionErr(reportError('prescription-decision', error, MSG.save)); setSaving(false); return }
     }
+    setPrescriptions(p => p.map(r => r.id === selected.id ? { ...r, ...update } : r))
     setSelected(null)
     setSaving(false)
   }, [selected, checks, interventionType, interventionNote, user, supabase])
@@ -300,7 +308,7 @@ function ValidationQueueTool() {
       const row: any = { ...rx, id: undefined, user_id: user.id }
       if (!orgId) delete row.org_id
       const { error } = await supabase.from('prescription_queue').insert([row])
-      if (error) { alert('Não foi possível guardar a prescrição: ' + error.message); setPrescriptions(p => p.filter(x => x.id !== rx.id)) }
+      if (error) { alert(reportError('prescription-add', error, MSG.save)); setPrescriptions(p => p.filter(x => x.id !== rx.id)) }
     }
     setNewRx(BLANK_FORM)
     setShowNewRx(false)
@@ -598,6 +606,11 @@ function ValidationQueueTool() {
               </div>
 
               {/* Decision buttons */}
+              {decisionErr && (
+                <div style={{ padding: '8px 10px', borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: 12, fontWeight: 600 }}>
+                  {decisionErr}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   disabled={saving || !allChecked || hasFailed}

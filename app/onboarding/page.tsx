@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { reportError, MSG } from '@/lib/clientError'
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ONBOARDING — a peça central. Igual para todos. Adapta a plataforma a cada um.
@@ -95,6 +96,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0)
   const [anim, setAnim] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [finishErr, setFinishErr] = useState('')
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [instType, setInstType] = useState('')
@@ -142,7 +144,7 @@ export default function OnboardingPage() {
 
   async function finish(dest?: string) {
     if (!user || saving) return
-    setSaving(true)
+    setSaving(true); setFinishErr('')
     const answers = { profile, instType, role, area, year, sub }
     if (profile === 'professional' && instType) {
       try { localStorage.setItem('phlox-clinic-institution', instType) } catch {}
@@ -150,13 +152,17 @@ export default function OnboardingPage() {
     if (profile === 'student' && area) {
       try { localStorage.setItem('phlox-student-area', area) } catch {}
     }
-    // 1) Colunas garantidas — completa o onboarding sempre
-    await supabase.from('profiles').update({
+    // 1) Colunas garantidas — completa o onboarding sempre.
+    // BUG CORRIGIDO 2026-07-29: este erro nunca era verificado — se falhasse, `onboarded`
+    // ficava `false` e router.push acontecia à mesma, deixando a conta a entrar em loop de
+    // onboarding em logins futuros sem nunca ver porquê.
+    const { error } = await supabase.from('profiles').update({
       onboarded: true,
       profile_type: profile === 'caregiver' ? 'personal' : profile,
       profile_sub: sub || null,
       experience_mode: experienceMode(),
     }).eq('id', user.id)
+    if (error) { setFinishErr(reportError('onboarding-finish', error, MSG.save)); setSaving(false); return }
     // 2) Colunas do sprint17 — best-effort (não bloqueia se ainda não existirem)
     await supabase.from('profiles').update({
       institution_type: profile === 'professional' ? instType : null,
@@ -334,6 +340,7 @@ export default function OnboardingPage() {
                   </button>
                 ))}
               </div>
+              {finishErr && <div style={{ marginTop: 14, fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>{finishErr}</div>}
               <div style={{ marginTop: 16, display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center' }}>
                 <button onClick={() => finish()} disabled={saving} style={{ background: 'none', border: 'none', fontSize: 13, color: accent, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A configurar…' : 'Só entrar →'}</button>
                 <button onClick={() => go(1)} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>← Rever</button>

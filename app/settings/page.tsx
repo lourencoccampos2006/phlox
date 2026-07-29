@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { planById, planName } from '@/lib/plans'
+import { reportError, MSG } from '@/lib/clientError'
 import SecuritySettings from '@/components/settings/SecuritySettings'
 import HealthGoalPicker from '@/components/HealthGoalPicker'
 import PinPickerGrid from '@/components/PinPickerGrid'
@@ -112,6 +113,7 @@ function SettingsPage() {
   }
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveErr, setSaveErr] = useState('')
   const [exporting, setExporting] = useState(false)
   const [instType, setInstType] = useState('nursing_home')
 
@@ -237,8 +239,12 @@ function SettingsPage() {
   const save = async () => {
     if (!user) return
     if (form.connect_visible && !handleAvailable && form.connect_handle) return
-    setSaving(true); setSaved(false)
-    await supabase.from('profiles').update({
+    setSaving(true); setSaved(false); setSaveErr('')
+    // BUG CORRIGIDO 2026-07-29 (mesma classe do bug de /patients/[id]): o erro
+    // do update nunca era verificado — "✓ Guardado" aparecia mesmo que nada
+    // tivesse gravado. É o fluxo de guardar mais usado de toda a app (perfil
+    // de qualquer conta), por isso o mais importante de corrigir primeiro.
+    const { error } = await supabase.from('profiles').update({
       display_name:      form.display_name || null,
       connect_handle:    form.connect_handle ? form.connect_handle.toLowerCase() : null,
       professional_role: form.professional_role || null,
@@ -247,6 +253,7 @@ function SettingsPage() {
       experience_mode:   form.experience_mode,
       connect_visible:   form.connect_visible,
     }).eq('id', user.id)
+    if (error) { setSaving(false); setSaveErr(reportError('settings-save', error, MSG.save)); return }
     // Atualiza o utilizador em memória (sem precisar de refresh do browser — essencial
     // na "app instalada", onde o utilizador não consegue recarregar a página).
     await refreshUser()
@@ -377,6 +384,7 @@ function SettingsPage() {
               style={{ padding: '12px', background: saving ? 'var(--bg-3)' : saved ? '#0d6e42' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
               {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar alterações'}
             </button>
+            {saveErr && <div style={{ fontSize: 12, color: '#dc2626', fontFamily: 'var(--font-sans)' }}>{saveErr}</div>}
           </div>
         )}
 
@@ -513,6 +521,7 @@ function SettingsPage() {
               style={{ padding: '12px', background: saving ? 'var(--bg-3)' : saved ? '#0d6e42' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
               {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar definições Connect'}
             </button>
+            {saveErr && <div style={{ fontSize: 12, color: '#dc2626', fontFamily: 'var(--font-sans)' }}>{saveErr}</div>}
             <Link href="/connect" style={{ display: 'block', padding: '11px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
               Ir para o Phlox Connect →
             </Link>

@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { reportError, MSG } from '@/lib/clientError'
 
 interface Settings {
   provider: string; api_key?: string | null; account_id?: string | null
@@ -61,36 +62,47 @@ export default function FaturacaoConfigPage() {
 
   useEffect(() => { load() }, [load])
 
-  async function saveFiscal() {
-    await supabase.from('fiscal_settings').upsert({
+  // BUG CORRIGIDO 2026-07-29 (mesma classe de silent-failure do resto da sessão): as 3
+  // gravações (fiscal/pagamentos/faturação) nunca verificavam o erro — "Guardado ✓" só
+  // olhava para a ÚLTIMA das três, mascarando falhas nas 2 primeiras. Além disso o erro
+  // técnico cru do Supabase (error.message) era mostrado diretamente ao utilizador.
+  async function saveFiscal(): Promise<string | null> {
+    const { error } = await supabase.from('fiscal_settings').upsert({
       user_id: user.id, company_name: fiscal.company_name || null, nif: fiscal.nif || null, address: fiscal.address || null,
       default_series: fiscal.default_series || 'A', default_doc_type: fiscal.default_doc_type || 'FS', updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
+    if (error) return reportError('faturacao-fiscal-save', error, MSG.save)
     // garante a série do ano e grava o código ATCUD validado pela AT
     const yr = new Date().getFullYear()
-    await supabase.from('doc_series').upsert({
+    const { error: dsError } = await supabase.from('doc_series').upsert({
       user_id: user.id, doc_type: fiscal.default_doc_type || 'FS', series: fiscal.default_series || 'A', year: yr,
       atcud_code: fiscal.atcud_code || null,
     }, { onConflict: 'user_id,doc_type,series,year' })
+    if (dsError) return reportError('faturacao-docseries-save', dsError, MSG.save)
+    return null
   }
 
-  async function savePayments() {
-    await supabase.from('payment_settings').upsert({
+  async function savePayments(): Promise<string | null> {
+    const { error } = await supabase.from('payment_settings').upsert({
       user_id: user.id, provider: pay.provider, entity: pay.entity || null, sub_entity: pay.sub_entity || null, api_key: pay.api_key || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
+    if (error) return reportError('faturacao-payments-save', error, MSG.save)
+    return null
   }
 
   async function save() {
-    await saveFiscal()
-    await savePayments()
+    const fiscalErr = await saveFiscal()
+    if (fiscalErr) { setSaved(fiscalErr); return }
+    const paymentsErr = await savePayments()
+    if (paymentsErr) { setSaved(paymentsErr); return }
     const { error } = await supabase.from('invoice_settings').upsert({
       user_id: user.id, provider: s.provider, api_key: s.api_key || null, account_id: s.account_id || null,
       doc_type: s.doc_type, series: s.series || null, auto_emit: s.auto_emit, default_tax: s.default_tax,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
     if (!error) { setSaved('Guardado ✓'); setTimeout(() => setSaved(''), 2500) }
-    else setSaved(error.message)
+    else setSaved(reportError('faturacao-invoice-save', error, MSG.save))
   }
 
   const prov = PROVIDERS.find(p => p.id === s.provider) || PROVIDERS[0]

@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { reportError, MSG } from '@/lib/clientError'
 
 type FormularyStatus = 'approved' | 'restricted' | 'non_formulary' | 'under_review'
 type ShortageLevel   = 'critical'  | 'severe'     | 'moderate'      | 'resolved'
@@ -76,6 +77,7 @@ export function DrugIntelligenceTool() {
   const [editDrug, setEditDrug]     = useState<FormularyDrug | null>(null)
   const [editShortage, setEditShortage] = useState<Shortage | null>(null)
   const [saving, setSaving]         = useState(false)
+  const [saveErr, setSaveErr]       = useState('')
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   async function load() {
@@ -115,7 +117,7 @@ export function DrugIntelligenceTool() {
   }
   const [drugForm, setDrugForm] = useState<typeof DRUG_BLANK>(DRUG_BLANK)
 
-  function openNewDrug() { setDrugForm(DRUG_BLANK); setEditDrug(null); setShowDrugModal(true) }
+  function openNewDrug() { setDrugForm(DRUG_BLANK); setEditDrug(null); setSaveErr(''); setShowDrugModal(true) }
   function openEditDrug(d: FormularyDrug) {
     setDrugForm({ name:d.name, generic:d.generic, class:d.class, atc:d.atc, form:d.form, strength:d.strength,
       status:d.status, restricted_to:d.restricted_to||'', alternatives:d.alternatives||[],
@@ -126,19 +128,19 @@ export function DrugIntelligenceTool() {
 
   async function saveDrug() {
     if (!user || !drugForm.name.trim()) return
-    setSaving(true)
+    setSaving(true); setSaveErr('')
     const payload = { ...drugForm, user_id: user.id }
-    if (editDrug) {
-      await supabase.from('formulary').update(payload).eq('id', editDrug.id)
-    } else {
-      await supabase.from('formulary').insert(payload)
-    }
+    const { error } = editDrug
+      ? await supabase.from('formulary').update(payload).eq('id', editDrug.id)
+      : await supabase.from('formulary').insert(payload)
+    if (error) { setSaveErr(reportError('drug-intel-save-drug', error, MSG.save)); setSaving(false); return }
     setSaving(false); setShowDrugModal(false); load()
   }
 
   async function deleteDrug(id: string) {
     if (!confirm('Remover do formulário?')) return
-    await supabase.from('formulary').delete().eq('id', id)
+    const { error } = await supabase.from('formulary').delete().eq('id', id)
+    if (error) { alert(reportError('drug-intel-delete-drug', error, MSG.save)); return }
     load()
   }
 
@@ -149,7 +151,7 @@ export function DrugIntelligenceTool() {
   }
   const [shortageForm, setShortageForm] = useState<typeof SHORTAGE_BLANK>(SHORTAGE_BLANK)
 
-  function openNewShortage() { setShortageForm(SHORTAGE_BLANK); setEditShortage(null); setShowShortageModal(true) }
+  function openNewShortage() { setShortageForm(SHORTAGE_BLANK); setEditShortage(null); setSaveErr(''); setShowShortageModal(true) }
   function openEditShortage(s: Shortage) {
     setShortageForm({ drug:s.drug, generic:s.generic||'', severity:s.severity,
       since:s.since||'', expected_resolution:s.expected_resolution||'', reason:s.reason||'',
@@ -159,19 +161,19 @@ export function DrugIntelligenceTool() {
 
   async function saveShortage() {
     if (!user || !shortageForm.drug.trim()) return
-    setSaving(true)
+    setSaving(true); setSaveErr('')
     const payload = { ...shortageForm, user_id: user.id }
-    if (editShortage) {
-      await supabase.from('drug_shortages').update(payload).eq('id', editShortage.id)
-    } else {
-      await supabase.from('drug_shortages').insert(payload)
-    }
+    const { error } = editShortage
+      ? await supabase.from('drug_shortages').update(payload).eq('id', editShortage.id)
+      : await supabase.from('drug_shortages').insert(payload)
+    if (error) { setSaveErr(reportError('drug-intel-save-shortage', error, MSG.save)); setSaving(false); return }
     setSaving(false); setShowShortageModal(false); load()
   }
 
   async function deleteShortage(id: string) {
     if (!confirm('Remover rutura?')) return
-    await supabase.from('drug_shortages').delete().eq('id', id)
+    const { error } = await supabase.from('drug_shortages').delete().eq('id', id)
+    if (error) { alert(reportError('drug-intel-delete-shortage', error, MSG.save)); return }
     load()
   }
 
@@ -589,6 +591,7 @@ export function DrugIntelligenceTool() {
                 <input style={inputStyle} value={drugForm.restricted_to} onChange={e => setDrugForm(f => ({ ...f, restricted_to: e.target.value }))} placeholder="Ex: MRSA confirmado — aprovação obrigatória" />
               </div>
             )}
+            {saveErr && <div style={{ fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>{saveErr}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
               <button onClick={() => setShowDrugModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancelar</button>
               <button onClick={saveDrug} disabled={saving || !drugForm.name.trim()} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#0f172a', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>
@@ -643,6 +646,7 @@ export function DrugIntelligenceTool() {
               <label style={labelStyle}>Notas adicionais</label>
               <textarea style={{ ...inputStyle, height: 64, resize: 'vertical' }} value={shortageForm.notes} onChange={e => setShortageForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
+            {saveErr && <div style={{ fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>{saveErr}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowShortageModal(false)} style={{ padding: '9px 18px', background: '#f1f5f9', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancelar</button>
               <button onClick={saveShortage} disabled={saving || !shortageForm.drug.trim()} style={{ padding: '9px 18px', background: saving ? '#94a3b8' : '#dc2626', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer', fontWeight: 600, fontSize: 14 }}>

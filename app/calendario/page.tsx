@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import { downloadICS } from '@/lib/ics'
+import { reportError, MSG } from '@/lib/clientError'
 
 interface CalEvent {
   id: string
@@ -120,10 +121,12 @@ export default function CalendarioPage() {
       remind_minutes_before: edit.remind_minutes_before ?? null,
     }
     if ((edit as any).id) {
-      await supabase.from('cal_events').update(payload).eq('id', (edit as any).id)
+      const { error } = await supabase.from('cal_events').update(payload).eq('id', (edit as any).id)
+      if (error) { toast.error('Não guardado', reportError('calendario-save-update', error, MSG.save)); return }
       toast.success('Evento atualizado')
     } else {
-      await supabase.from('cal_events').insert(payload)
+      const { error } = await supabase.from('cal_events').insert(payload)
+      if (error) { toast.error('Não guardado', reportError('calendario-save-insert', error, MSG.save)); return }
       toast.success('Evento criado')
     }
     setShowForm(false); setEdit(null); load()
@@ -131,7 +134,8 @@ export default function CalendarioPage() {
 
   async function del(id: string) {
     if (!confirm('Eliminar evento?')) return
-    await supabase.from('cal_events').delete().eq('id', id)
+    const { error } = await supabase.from('cal_events').delete().eq('id', id)
+    if (error) { toast.error('Não eliminado', reportError('calendario-delete', error, MSG.save)); return }
     setEvents(p => p.filter(e => e.id !== id))
     toast.info('Eliminado')
   }
