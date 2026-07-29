@@ -1,12 +1,23 @@
 'use client'
 
 // /partilhado-comigo — Convite de Visualização, lado do VIEWER (item B9 da
-// auditoria). Resgatar um código de outra pessoa (dono do perfil) e ver, só em
-// leitura, medicação/vitais/sintomas dela — sem precisar de ser Pro para ver
-// (só o dono precisa de Pro para convidar).
+// auditoria). Resgatar um código de outra pessoa (dono do perfil) e ver
+// medicação/vitais/sintomas dela — sem precisar de ser Pro para ver (só o dono
+// precisa de Pro para convidar).
+//
+// Ronda cuidador 2026-07-29: dados clínicos (medicação/vitais/sintomas)
+// continuam só em leitura aqui, mas agenda partilhada, "Preciso de ajuda" e
+// passagem de cuidado passaram a ser USÁVEIS por quem tem acesso partilhado —
+// antes essas ferramentas só existiam em /perfil/[id], que só carrega para o
+// DONO do perfil (RLS de family_profiles). As APIs já validavam corretamente o
+// acesso partilhado; faltava o caminho de UI — ver ProfileAgenda/
+// ProfileHelpBoard/HandoffNotes (components/), agora usados também aqui.
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import ProfileHelpBoard from '@/components/ProfileHelpBoard'
+import ProfileAgenda from '@/components/ProfileAgenda'
+import HandoffNotes from '@/components/HandoffNotes'
 
 const ACCENT = '#1d4ed8'
 const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
@@ -34,6 +45,11 @@ export default function PartilhadoComigoPage() {
   const [err, setErr] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [viewData, setViewData] = useState<Record<string, ViewData>>({})
+  // Secção ativa dentro de cada perfil expandido — além dos dados só-leitura já
+  // existentes, quem tem acesso partilhado também pode agora publicar/reclamar
+  // no quadro "Preciso de ajuda", marcar agenda partilhada e deixar/confirmar
+  // passagens de cuidado (antes só o dono conseguia usar isto, em /perfil/[id]).
+  const [sectionByProfile, setSectionByProfile] = useState<Record<string, 'info' | 'agenda' | 'help' | 'handoff'>>({})
 
   async function auth() { const { data } = await supabase.auth.getSession(); return data?.session?.access_token || '' }
 
@@ -81,7 +97,7 @@ export default function PartilhadoComigoPage() {
       <div style={{ background: `linear-gradient(135deg, ${ACCENT}, #1e3a8a)`, padding: '26px 24px 22px' }}>
         <div className="page-container">
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Partilhado comigo</h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 560, lineHeight: 1.5 }}>Perfis de família que outra pessoa te deu acesso a ver — medicação, vitais e sintomas, só em leitura.</p>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 560, lineHeight: 1.5 }}>Perfis de família que outra pessoa te deu acesso a ver — medicação, vitais e sintomas em leitura, e agenda, pedidos de ajuda e passagens de cuidado que também podes usar.</p>
         </div>
       </div>
 
@@ -118,45 +134,63 @@ export default function PartilhadoComigoPage() {
 
                 {isOpen && (
                   <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {!vd ? (
-                      <div className="skeleton" style={{ height: 60, borderRadius: 8 }} />
-                    ) : (
-                      <>
-                        <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
-                          {vd.profile.age && <span>{vd.profile.age} anos · </span>}
-                          {vd.profile.allergies && <span style={{ color: '#dc2626' }}>⚠ Alergias: {vd.profile.allergies} · </span>}
-                          {vd.profile.conditions && <span>Condições: {vd.profile.conditions}</span>}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>💊 Medicação ({vd.meds.length})</div>
-                          {vd.meds.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>Sem medicação registada.</div> :
-                            vd.meds.map((m, i) => <div key={i} style={{ fontSize: 13, color: 'var(--ink-2)' }}>• {m.name}{m.dose ? ` — ${m.dose}` : ''}{m.frequency ? ` (${m.frequency})` : ''}</div>)}
-                        </div>
-                        {vd.vitals.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>📈 Vitais recentes</div>
-                            {vd.vitals.slice(0, 5).map((v, i) => (
-                              <div key={i} style={{ display: 'flex', gap: 10, fontSize: 12.5, color: 'var(--ink-2)' }}>
-                                <span style={{ color: 'var(--ink-4)', minWidth: 60 }}>{timeAgo(v.recorded_at)}</span>
-                                {v.bp_sys != null && <span>🩸 {v.bp_sys}/{v.bp_dia ?? '—'}</span>}
-                                {v.weight != null && <span>⚖️ {v.weight}kg</span>}
-                              </div>
-                            ))}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {([['info', 'Dados'], ['agenda', 'Agenda'], ['help', 'Preciso de ajuda'], ['handoff', 'Passagem']] as const).map(([id, label]) => {
+                        const active = (sectionByProfile[s.profile_id] || 'info') === id
+                        return (
+                          <button key={id} onClick={() => setSectionByProfile(m => ({ ...m, [s.profile_id]: id }))}
+                            style={{ padding: '6px 11px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1px solid ${active ? ACCENT : 'var(--border)'}`, background: active ? ACCENT : 'white', color: active ? 'white' : 'var(--ink-3)' }}>
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {(sectionByProfile[s.profile_id] || 'info') === 'info' && (
+                      !vd ? (
+                        <div className="skeleton" style={{ height: 60, borderRadius: 8 }} />
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                            {vd.profile.age && <span>{vd.profile.age} anos · </span>}
+                            {vd.profile.allergies && <span style={{ color: '#dc2626' }}>⚠ Alergias: {vd.profile.allergies} · </span>}
+                            {vd.profile.conditions && <span>Condições: {vd.profile.conditions}</span>}
                           </div>
-                        )}
-                        {vd.symptoms.length > 0 && (
                           <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>📝 Sintomas recentes</div>
-                            {vd.symptoms.slice(0, 5).map((sm, i) => (
-                              <div key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
-                                <span style={{ color: 'var(--ink-4)' }}>{timeAgo(sm.at)}: </span>
-                                {sm.symptoms?.length ? sm.symptoms.join(', ') : 'sem sintomas descritos'}
-                              </div>
-                            ))}
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>💊 Medicação ({vd.meds.length})</div>
+                            {vd.meds.length === 0 ? <div style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>Sem medicação registada.</div> :
+                              vd.meds.map((m, i) => <div key={i} style={{ fontSize: 13, color: 'var(--ink-2)' }}>• {m.name}{m.dose ? ` — ${m.dose}` : ''}{m.frequency ? ` (${m.frequency})` : ''}</div>)}
                           </div>
-                        )}
-                      </>
+                          {vd.vitals.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>📈 Vitais recentes</div>
+                              {vd.vitals.slice(0, 5).map((v, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 10, fontSize: 12.5, color: 'var(--ink-2)' }}>
+                                  <span style={{ color: 'var(--ink-4)', minWidth: 60 }}>{timeAgo(v.recorded_at)}</span>
+                                  {v.bp_sys != null && <span>🩸 {v.bp_sys}/{v.bp_dia ?? '—'}</span>}
+                                  {v.weight != null && <span>⚖️ {v.weight}kg</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {vd.symptoms.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 6 }}>📝 Sintomas recentes</div>
+                              {vd.symptoms.slice(0, 5).map((sm, i) => (
+                                <div key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
+                                  <span style={{ color: 'var(--ink-4)' }}>{timeAgo(sm.at)}: </span>
+                                  {sm.symptoms?.length ? sm.symptoms.join(', ') : 'sem sintomas descritos'}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )
                     )}
+
+                    {(sectionByProfile[s.profile_id] || 'info') === 'agenda' && <ProfileAgenda profileId={s.profile_id} />}
+                    {(sectionByProfile[s.profile_id] || 'info') === 'help' && <ProfileHelpBoard profileId={s.profile_id} />}
+                    {(sectionByProfile[s.profile_id] || 'info') === 'handoff' && <HandoffNotes profileId={s.profile_id} />}
                   </div>
                 )}
               </div>

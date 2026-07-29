@@ -4,9 +4,13 @@
 // Detalhe de perfil familiar. Tabs: Visão Geral | Medicação | Notas.
 // Inclui CrCl (Cockcroft-Gault) automático.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import ProfileHelpBoard from '@/components/ProfileHelpBoard'
+import ProfileAgenda from '@/components/ProfileAgenda'
+import HandoffNotes from '@/components/HandoffNotes'
 
 interface FamilyProfile {
   id: string; name: string; relation?: string; age?: number; sex?: string
@@ -32,33 +36,34 @@ function crClLabel(crcl: number | null): { label: string; color: string } | null
   return { label: 'Falência (<15)', color: '#7f1d1d' }
 }
 
+// useSearchParams (para permitir links diretos a um separador, ex: /perfil/x?tab=agenda)
+// exige um limite Suspense à volta — mesmo padrão de app/settings/page.tsx.
 export default function PerfilPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-2)' }} />}>
+      <PerfilPageInner params={params} />
+    </Suspense>
+  )
+}
+
+type TabId = 'overview' | 'meds' | 'agenda' | 'help' | 'handoff' | 'notes'
+const TAB_IDS: TabId[] = ['overview', 'meds', 'agenda', 'help', 'handoff', 'notes']
+
+function PerfilPageInner({ params }: { params: Promise<{ id: string }> }) {
   const { user, supabase } = useAuth()
+  const searchParams = useSearchParams()
   const [profileId, setProfileId] = useState<string | null>(null)
   const [profile, setProfile] = useState<FamilyProfile | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
-  const [tab, setTab] = useState<'overview' | 'meds' | 'help' | 'notes'>('overview')
+  const [tab, setTab] = useState<TabId>(() => {
+    const t = searchParams.get('tab') as TabId | null
+    return t && TAB_IDS.includes(t) ? t : 'overview'
+  })
   const [loading, setLoading] = useState(true)
   const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '', reminder_times: '' })
   const [addingMed, setAddingMed] = useState(false)
   const [medLogs, setMedLogs] = useState<MedLog[]>([])
   const today = new Date().toISOString().slice(0, 10)
-  const [helpItems, setHelpItems] = useState<any[]>([])
-  const [newHelp, setNewHelp] = useState({ title: '', note: '', needed_by: '' })
-  const [addingHelp, setAddingHelp] = useState(false)
-  const [helpErr, setHelpErr] = useState('')
-
-  const authHeader = useCallback(async () => {
-    const { data } = await supabase.auth.getSession()
-    return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
-  }, [supabase])
-
-  const loadHelp = useCallback(async () => {
-    if (!profileId) return
-    const res = await fetch(`/api/family-help?profile_id=${profileId}`, { headers: await authHeader() })
-    const j = await res.json().catch(() => ({}))
-    if (res.ok) setHelpItems(j.items || [])
-  }, [profileId, authHeader])
 
   useEffect(() => {
     params.then(p => setProfileId(p.id))
@@ -79,30 +84,6 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
   }, [user, supabase, profileId])
 
   useEffect(() => { if (profileId) load() }, [load, profileId])
-  useEffect(() => { if (profileId) loadHelp() }, [loadHelp, profileId])
-
-  async function addHelp() {
-    if (!newHelp.title.trim() || !profileId) return
-    setAddingHelp(true); setHelpErr('')
-    try {
-      const res = await fetch('/api/family-help', { method: 'POST', headers: await authHeader(), body: JSON.stringify({ profile_id: profileId, title: newHelp.title.trim(), note: newHelp.note.trim() || undefined, needed_by: newHelp.needed_by || undefined }) })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error || 'Erro')
-      setNewHelp({ title: '', note: '', needed_by: '' })
-      await loadHelp()
-    } catch (e: any) { setHelpErr(e.message || 'Não foi possível criar o pedido.') }
-    setAddingHelp(false)
-  }
-
-  async function helpAction(id: string, action: 'claim' | 'unclaim' | 'done' | 'reopen') {
-    await fetch('/api/family-help', { method: 'PATCH', headers: await authHeader(), body: JSON.stringify({ id, action }) })
-    await loadHelp()
-  }
-
-  async function removeHelp(id: string) {
-    await fetch(`/api/family-help?id=${id}`, { method: 'DELETE', headers: await authHeader() })
-    await loadHelp()
-  }
 
   async function addMed() {
     if (!newMed.name.trim() || !user || !profileId) return
@@ -215,8 +196,11 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
-            {([['overview', 'Visão Geral'], ['meds', 'Medicação'], ['help', 'Preciso de ajuda'], ['notes', 'Notas']] as const).map(([id, label]) => (
+          {/* overflowX:auto — 6 separadores não cabem todos numa faixa estreita;
+              sem isto o último ("Notas") ficava cortado/inacessível em mobile
+              real (ver nota de QA visual em viewport real do projeto). */}
+          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }} className="hide-scrollbar">
+            {([['overview', 'Visão Geral'], ['meds', 'Medicação'], ['agenda', 'Agenda'], ['help', 'Preciso de ajuda'], ['handoff', 'Passagem'], ['notes', 'Notas']] as const).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={tabStyle(id)}>{label}</button>
             ))}
           </div>
@@ -387,55 +371,34 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
           </div>
         )}
 
-        {/* PRECISO DE AJUDA — quadro de tarefas concretas para quem tem acesso
-            partilhado a este perfil reclamar (Lotsa Helping Hands). */}
-        {tab === 'help' && (
+        {/* AGENDA — consultas e turnos de cobertura partilhados entre cuidadores.
+            Componente autónomo (ver components/ProfileAgenda.tsx) para poder ser
+            usado também em /partilhado-comigo por quem tem acesso partilhado. */}
+        {tab === 'agenda' && profileId && (
           <div style={{ maxWidth: 640 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700 }}>Publicar um pedido</div>
-              <input value={newHelp.title} onChange={e => setNewHelp(f => ({ ...f, title: e.target.value }))}
-                placeholder="Ex: Ida ao médico dia 5" style={{ ...inputStyle, marginBottom: 8 }} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 8, marginBottom: 8 }}>
-                <input value={newHelp.note} onChange={e => setNewHelp(f => ({ ...f, note: e.target.value }))}
-                  placeholder="Detalhe (opcional)" style={inputStyle} />
-                <input type="date" value={newHelp.needed_by} onChange={e => setNewHelp(f => ({ ...f, needed_by: e.target.value }))} style={inputStyle} />
-              </div>
-              {helpErr && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>{helpErr}</div>}
-              <button onClick={addHelp} disabled={!newHelp.title.trim() || addingHelp}
-                style={{ width: '100%', padding: '10px 18px', background: newHelp.title.trim() && !addingHelp ? 'var(--ink)' : 'var(--bg-3)', color: newHelp.title.trim() && !addingHelp ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: newHelp.title.trim() && !addingHelp ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                {addingHelp ? '...' : 'Publicar'}
-              </button>
-            </div>
+            <ProfileAgenda profileId={profileId} />
+          </div>
+        )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {helpItems.length === 0 && (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '40px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
-                  Sem pedidos. Quem tiver acesso partilhado a este perfil também pode reclamar tarefas.
-                </div>
-              )}
-              {helpItems.map(h => (
-                <div key={h.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '13px 16px', opacity: h.status === 'done' ? 0.55 : 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', textDecoration: h.status === 'done' ? 'line-through' : 'none' }}>{h.title}</div>
-                      {h.note && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{h.note}</div>}
-                      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-                        {h.needed_by ? `Até ${new Date(h.needed_by + 'T12:00:00').toLocaleDateString('pt-PT')} · ` : ''}
-                        publicado por {h.created_by_name}
-                        {h.claimed_by_name ? ` · reclamado por ${h.claimed_by_name}` : ''}
-                      </div>
-                    </div>
-                    <button aria-label="Eliminar" onClick={() => removeHelp(h.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 18, padding: '2px 6px', flexShrink: 0 }}>×</button>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                    {h.status === 'open' && <button onClick={() => helpAction(h.id, 'claim')} style={{ padding: '6px 12px', background: 'var(--green-light)', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Eu trato disto</button>}
-                    {h.status === 'claimed' && h.claimed_by === user?.id && <button onClick={() => helpAction(h.id, 'unclaim')} style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Largar</button>}
-                    {h.status === 'claimed' && <button onClick={() => helpAction(h.id, 'done')} style={{ padding: '6px 12px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar feito</button>}
-                    {h.status === 'done' && <button onClick={() => helpAction(h.id, 'reopen')} style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Reabrir</button>}
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* PRECISO DE AJUDA — quadro de tarefas concretas para quem tem acesso
+            partilhado a este perfil reclamar (Lotsa Helping Hands). Componente
+            autónomo (ver components/ProfileHelpBoard.tsx) — usado também em
+            /partilhado-comigo, para que quem tem acesso partilhado consiga de
+            facto publicar/reclamar tarefas, não só o dono do perfil. */}
+        {tab === 'help' && profileId && (
+          <div style={{ maxWidth: 640 }}>
+            <ProfileHelpBoard profileId={profileId} />
+          </div>
+        )}
+
+        {/* PASSAGEM DE CUIDADO — nota estruturada de um cuidador para o próximo
+            quando a responsabilidade muda de mãos por um período. Componente
+            autónomo (ver components/HandoffNotes.tsx), distinto da "Ficha para
+            o hospital" (HandoffSheetButton, em /familia) que é impressa a partir
+            de dados já existentes e não tem autoria nem confirmação de leitura. */}
+        {tab === 'handoff' && profileId && (
+          <div style={{ maxWidth: 640 }}>
+            <HandoffNotes profileId={profileId} />
           </div>
         )}
 
@@ -459,6 +422,8 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
       <style>{`
         .remove-btn:hover { color: var(--red) !important; }
         .ai-banner:hover { background: #1a1a2e !important; }
+        .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   )
