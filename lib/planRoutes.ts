@@ -57,6 +57,7 @@ export const PLAN_ROUTES: PlanRoute[] = [
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },
   { prefix: '/tutor', min: 'student', tool: 'AI Tutor' },
   { prefix: '/modo-exame', min: 'student', tool: 'Modo Exame', note: 'Plano de contagem decrescente até ao exame, com revisão espaçada e sprint final.' },
+  { prefix: '/mnemonicas', min: 'student', tool: 'Mnemónicas visuais', note: 'Imagem mental memorável gerada por IA para cada conceito, com baralho pessoal guardado na conta.' },
   { prefix: '/study/professor', min: 'student', tool: 'Modo Professor', note: 'Ensinas o Phlox e ele descobre as tuas lacunas.' },
   { prefix: '/study/exame', min: 'student', tool: 'Gerador de exame', note: 'Prevê o teu exame a partir das tuas sebentas e corrige respostas de desenvolvimento.' },
   { prefix: '/estagio', min: 'student', tool: 'Estágio' },

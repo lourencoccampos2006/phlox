@@ -32,6 +32,8 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   { path: '/simulador',         label: 'Casos clínicos',         icon: '📚', group: 'Estudante' },
   { path: '/anatomia-3d',       label: 'Atlas 3D',               icon: '🫀', group: 'Estudante' },
   { path: '/calculos',          label: 'Calculadoras',           icon: '∑',  group: 'Estudante' },
+  { path: '/mnemonicas',        label: 'Mnemónicas visuais',     icon: '🧠', group: 'Estudante' },
+  { path: '/modo-exame',        label: 'Modo Exame',             icon: '⏳', group: 'Estudante' },
   // Comum
   { path: '/ai',                label: 'Phlox AI',               icon: '✨', group: 'Geral' },
   { path: '/relatorio?tab=diario', label: 'Brief de hoje',       icon: '☀', group: 'Geral' },
