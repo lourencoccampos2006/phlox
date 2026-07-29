@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!code) return NextResponse.json({ error: 'Código obrigatório' }, { status: 400 })
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  const { data: share } = await db.from('family_profile_shares').select('id, profile_id, owner_user_id, viewer_user_id, revoked_at').eq('code', code).maybeSingle()
+  const { data: share } = await db.from('family_profile_shares').select('id, profile_id, owner_user_id, viewer_user_id, revoked_at, role').eq('code', code).maybeSingle()
   if (!share) return NextResponse.json({ error: 'Código inválido.' }, { status: 404 })
   if (share.revoked_at) return NextResponse.json({ error: 'Este convite foi revogado.' }, { status: 410 })
   if (share.owner_user_id === userId) return NextResponse.json({ error: 'Não podes resgatar o teu próprio convite.' }, { status: 400 })
@@ -31,5 +31,5 @@ export async function POST(req: NextRequest) {
     await db.from('family_profile_shares').update({ viewer_user_id: userId, redeemed_at: new Date().toISOString() }).eq('id', share.id)
   }
   const { data: profile } = await db.from('family_profiles').select('name').eq('id', share.profile_id).maybeSingle()
-  return NextResponse.json({ ok: true, profile_id: share.profile_id, profile_name: profile?.name || 'Familiar' })
+  return NextResponse.json({ ok: true, profile_id: share.profile_id, profile_name: profile?.name || 'Familiar', role: share.role === 'editor' ? 'editor' : 'viewer' })
 }
