@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (!owned) return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
 
   const { data } = await supabase.from('family_profile_shares')
-    .select('id, code, created_at, redeemed_at, revoked_at, viewer_user_id')
+    .select('id, code, created_at, redeemed_at, revoked_at, viewer_user_id, role')
     .eq('profile_id', profileId).eq('owner_user_id', userId)
     .order('created_at', { ascending: false })
 

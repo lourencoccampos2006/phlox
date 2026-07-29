@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const supabase = sb(req)
   const { data: shares } = await supabase.from('family_profile_shares')
-    .select('id, profile_id, redeemed_at').eq('viewer_user_id', userId).is('revoked_at', null)
+    .select('id, profile_id, redeemed_at, role').eq('viewer_user_id', userId).is('revoked_at', null)
     .order('redeemed_at', { ascending: false })
 
   if (!shares?.length) return NextResponse.json({ shared: [] })
@@ -26,6 +26,11 @@ export async function GET(req: NextRequest) {
   const byId = new Map((profiles || []).map((p: any) => [p.id, p]))
 
   return NextResponse.json({
-    shared: shares.map(s => ({ profile_id: s.profile_id, name: byId.get(s.profile_id)?.name || 'Familiar', relation: byId.get(s.profile_id)?.relation || null })),
+    shared: shares.map(s => ({
+      profile_id: s.profile_id,
+      name: byId.get(s.profile_id)?.name || 'Familiar',
+      relation: byId.get(s.profile_id)?.relation || null,
+      role: (s as any).role === 'editor' ? 'editor' : 'viewer',
+    })),
   })
 }
