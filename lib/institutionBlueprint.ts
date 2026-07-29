@@ -96,6 +96,8 @@ const T = {
   vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: '🛡️' },
   mural:   { href: '/equipa?tab=mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: '📣' },
   ronda:   { href: '/ronda-guiada', label: 'Ronda coordenada', hint: 'Ronda a vários, sem repetir utentes, tudo registado', icon: '🚶' },
+  trends:  { href: '/tendencias', label: 'Tendências', hint: 'Humor, alimentação e adesão ao longo de 2-3 semanas, por pessoa', icon: '📈' },
+  coverage: { href: '/equipa?tab=cobertura', label: 'Cobertura de turnos', hint: 'Publica vagas quando falta alguém e a equipa cobre', icon: '🔁' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,7 +128,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     // "Gestão & qualidade" (T.staff) já leva a /painel-dono, cuja aba "Qualidade"
     // era antes um item de menu à parte (T.quality) para o mesmo destino — fundidos
     // num só, para não duplicar entradas que vão ter ao mesmo sítio.
-    extraTools: [ T.incidents, T.activities, T.assessments, T.wounds, T.stock, T.staff, T.team, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.staff, T.team, T.coverage, T.documents, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -149,7 +151,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.ronda, T.radar, T.assessments, T.wounds, T.family, T.mural,
     ],
-    extraTools: [ T.incidents, T.activities, T.vigia, T.stock, T.staff, T.team, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.incidents, T.activities, T.trends, T.vigia, T.stock, T.staff, T.team, T.coverage, T.documents, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.

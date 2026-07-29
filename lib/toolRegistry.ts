@@ -99,6 +99,7 @@ export const TOOLS: Tool[] = [
   // Fluxo de trabalho — base, vista por todos por defeito
   { id: '/patients',     label: 'Doentes / utentes',             desc: 'Fichas, medicação, alertas',       category: 'clinical_daily', modes: ['clinical'], default: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
   { id: '/radar',        label: 'O que merece atenção',          desc: 'Reúne o que a equipa registou e destaca o que saiu do padrão', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/tendencias',   label: 'Tendências',                    desc: 'Humor, alimentação, adesão e ocorrências ao longo de 2-3 semanas, por pessoa', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/mar',          label: 'Administração (MAR)',           desc: 'Registo por turno · alertas',      category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
   { id: '/vigia',        label: 'Vigia Clínico do Lar',          desc: 'Vigilância farmacológica IA · todos os residentes', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
 
@@ -121,6 +122,7 @@ export const TOOLS: Tool[] = [
   // Operações & equipa
   { id: '/stock',        label: 'Stock & consumíveis',           desc: 'Consumo a 1 toque · ruturas · encomendas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care', 'pharmacy_community', 'clinic'], plan: 'pro' },
   { id: '/equipa?tab=escalas', label: 'Equipa & escalas',        desc: 'Membros, turnos, competências e tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/equipa?tab=cobertura', label: 'Cobertura de turnos',  desc: 'Publica vagas quando falta alguém; a equipa vê e cobre', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/faturacao',    label: 'Faturação',                     desc: 'Emissão e exportação',             category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'clinic'], plan: 'pro' },
 
   // Qualidade & farmacovigilância
