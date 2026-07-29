@@ -6,9 +6,19 @@
 // e, se o dono escolheu o papel "gere comigo", também a adicionar medicação e
 // registar vitais/sintomas, tal como o dono. Não precisa de ser Pro para
 // aceitar (só o dono precisa de ser Pro para convidar).
+//
+// Ronda cuidador 2026-07-29: agenda partilhada, "Preciso de ajuda" e passagem
+// de cuidado passaram a ser USÁVEIS por QUALQUER pessoa com acesso partilhado
+// (viewer ou editor) — antes essas ferramentas só existiam em /perfil/[id],
+// que só carrega para o DONO do perfil (RLS de family_profiles). As APIs já
+// validavam corretamente o acesso partilhado; faltava o caminho de UI — ver
+// ProfileAgenda/ProfileHelpBoard/HandoffNotes (components/), usados aqui e lá.
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import ProfileHelpBoard from '@/components/ProfileHelpBoard'
+import ProfileAgenda from '@/components/ProfileAgenda'
+import HandoffNotes from '@/components/HandoffNotes'
 
 const ACCENT = '#1d4ed8'
 const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
@@ -44,7 +54,11 @@ export default function PartilhadoComigoPage() {
   const [err, setErr] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [viewData, setViewData] = useState<Record<string, ViewData>>({})
-  const [tab, setTab] = useState<Record<string, 'ver' | 'medicacao' | 'vitais' | 'sintomas'>>({})
+  // Secção ativa dentro de cada perfil expandido — 'ver' + as 3 de edição
+  // (só para 'editor') vêm do sprint121; 'agenda'/'help'/'handoff' são usáveis
+  // por QUALQUER pessoa com acesso partilhado (viewer ou editor).
+  type Tab = 'ver' | 'medicacao' | 'vitais' | 'sintomas' | 'agenda' | 'help' | 'handoff'
+  const [tab, setTab] = useState<Record<string, Tab>>({})
   const [medForm, setMedForm] = useState(emptyMedForm)
   const [vitalForm, setVitalForm] = useState(emptyVitalForm)
   const [symptomForm, setSymptomForm] = useState(emptySymptomForm)
@@ -165,7 +179,7 @@ export default function PartilhadoComigoPage() {
       <div style={{ background: `linear-gradient(135deg, ${ACCENT}, #1e3a8a)`, padding: '26px 24px 22px' }}>
         <div className="page-container">
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Partilhado comigo</h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 580, lineHeight: 1.5 }}>Perfis de família que outra pessoa te deu acesso a ver — ou a gerir a dois, se ela te deu esse papel.</p>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 580, lineHeight: 1.5 }}>Perfis de família que outra pessoa te deu acesso a ver — ou a gerir a dois, se ela te deu esse papel — e agenda, pedidos de ajuda e passagens de cuidado que também podes usar.</p>
         </div>
       </div>
 
@@ -209,21 +223,22 @@ export default function PartilhadoComigoPage() {
 
                 {isOpen && (
                   <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid var(--bg-3)', paddingBottom: 8, flexWrap: 'wrap' }}>
+                      {([['ver', 'Ver'],
+                        ...(editor ? [['medicacao', 'Medicação'], ['vitais', 'Vitais'], ['sintomas', 'Sintomas']] as const : []),
+                        ['agenda', 'Agenda'], ['help', 'Preciso de ajuda'], ['handoff', 'Passagem'],
+                      ] as [Tab, string][]).map(([id, label]) => (
+                        <button key={id} onClick={() => { setTab(prev => ({ ...prev, [s.profile_id]: id })); setFormErr('') }} style={{
+                          padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
+                          background: activeTab === id ? 'var(--ink)' : 'var(--bg-2)', color: activeTab === id ? 'white' : 'var(--ink-4)',
+                        }}>{label}</button>
+                      ))}
+                    </div>
+
                     {!vd ? (
                       <div className="skeleton" style={{ height: 60, borderRadius: 8 }} />
                     ) : (
                       <>
-                        {editor && (
-                          <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid var(--bg-3)', paddingBottom: 8, flexWrap: 'wrap' }}>
-                            {([['ver', 'Ver'], ['medicacao', 'Medicação'], ['vitais', 'Vitais'], ['sintomas', 'Sintomas']] as const).map(([id, label]) => (
-                              <button key={id} onClick={() => { setTab(prev => ({ ...prev, [s.profile_id]: id })); setFormErr('') }} style={{
-                                padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
-                                background: activeTab === id ? 'var(--ink)' : 'var(--bg-2)', color: activeTab === id ? 'white' : 'var(--ink-4)',
-                              }}>{label}</button>
-                            ))}
-                          </div>
-                        )}
-
                         {activeTab === 'ver' && (
                           <>
                             <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
@@ -335,6 +350,10 @@ export default function PartilhadoComigoPage() {
                         )}
                       </>
                     )}
+
+                    {activeTab === 'agenda' && <ProfileAgenda profileId={s.profile_id} />}
+                    {activeTab === 'help' && <ProfileHelpBoard profileId={s.profile_id} />}
+                    {activeTab === 'handoff' && <HandoffNotes profileId={s.profile_id} />}
                   </div>
                 )}
               </div>
