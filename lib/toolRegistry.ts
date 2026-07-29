@@ -63,6 +63,8 @@ export const TOOLS: Tool[] = [
   { id: '/sintomas',     label: 'Como me sinto hoje',            desc: 'Diário de sintomas e recuperação', category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vitals',       label: 'Tensão, peso e açúcar',         desc: 'Registar e ver como evolui',       category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/adherencia',   label: 'Adesão à medicação',             desc: 'Padrões reais ao longo das semanas — que dias e horas falham mais', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/preparar-consulta', label: 'Preparar a consulta',        desc: 'Transforma o que se passa numa folha organizada para levar ao médico', category: 'health', modes: ['personal', 'caregiver'], plan: 'free_limited' },
   // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
   { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiJSON } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { getUserPlan } from '@/lib/planGate'
+import { enforceDailyLimit } from '@/lib/serverLimit'
+import { sb as makeSupabase } from '@/lib/orgAuth'
 
 // "Preparar a consulta" (pessoal/família) — transforma sintomas/dúvidas numa folha
 // organizada para levar ao médico: resumo, perguntas a fazer, sinais a referir.
@@ -8,11 +11,27 @@ import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 // 2026-06-01: aceita recent_symptoms e recent_vitals para análise contextual.
 // Sugere especialidade quando o utilizador não a indica. Identifica conexões
 // possíveis entre sintomas e medicação.
+//
+// 2026-07-29: a API existia mas NENHUMA página lhe chamava — órfã desde que foi
+// escrita. Ao construir a página (/preparar-consulta), aproveitámos para: exigir
+// sessão (antes era 100% anónima, sem qualquer limite de plano), aplicar o
+// limite diário do Base/Plus (Pro/Institucional sem limite, mesmo padrão do
+// resto do produto), e guardar cada folha gerada em `consult_preps` para o
+// utilizador poder reabrir/reimprimir antes da consulta real.
+
+const NO_TABLE = (msg: string) =>
+  /relation .*consult_preps.* does not exist|column .*does not exist/i.test(msg)
 
 export async function POST(req: NextRequest) {
   const ip = getIP(req)
   const rl = checkRateLimit(ip, 20, 60_000)
   if (!rl.allowed) return rateLimitResponse()
+
+  const { userId } = await getUserPlan(req)
+  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
+  const gate = await enforceDailyLimit(req, 'preparar_consulta')
+  if (!gate.ok) return gate.response!
 
   const body = await req.json().catch(() => null)
   const notes = String(body?.notes || '').trim().slice(0, 1200)
@@ -20,6 +39,7 @@ export async function POST(req: NextRequest) {
   const who = String(body?.who || '').trim().slice(0, 60)
   const meds = String(body?.meds || '').trim().slice(0, 800)
   const specialty = String(body?.specialty || '').trim().slice(0, 60)
+  const profileId = body?.profile_id ? String(body.profile_id) : null
   const recentSymptoms = Array.isArray(body?.recent_symptoms) ? body.recent_symptoms.slice(0, 12).map((s: any) => String(s).slice(0, 200)) : []
   const recentVitals = Array.isArray(body?.recent_vitals) ? body.recent_vitals.slice(0, 8).map((v: any) => String(v).slice(0, 200)) : []
   const suggestSpecialty = body?.suggest_specialty === true || specialty.length === 0
@@ -57,8 +77,53 @@ O que se passa:
 ${notes}`,
       },
     ], { maxTokens: 1600, temperature: 0.2 })
-    return NextResponse.json(result)
+
+    // Guarda o histórico (melhor esforço — se a tabela ainda não existir nesta
+    // conta, ou a inserção falhar por outro motivo, a folha já gerada continua
+    // a ser devolvida na mesma; só a possibilidade de a reabrir depois se perde).
+    let savedId: string | null = null
+    try {
+      const supabase = makeSupabase(req)
+      const { data } = await supabase.from('consult_preps').insert({
+        user_id: userId,
+        profile_id: profileId,
+        specialty: specialty || result?.suggested_specialty || null,
+        notes,
+        result,
+      }).select('id').single()
+      savedId = data?.id || null
+    } catch { /* não bloqueia a resposta */ }
+
+    return NextResponse.json({ ...result, id: savedId })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro. Tenta novamente.' }, { status: 500 })
   }
+}
+
+export async function GET(req: NextRequest) {
+  const { userId } = await getUserPlan(req)
+  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  const supabase = makeSupabase(req)
+  const profileId = req.nextUrl.searchParams.get('profile_id')
+
+  let query = supabase.from('consult_preps').select('*').order('created_at', { ascending: false }).limit(20)
+  query = profileId ? query.eq('profile_id', profileId) : query.eq('user_id', userId).is('profile_id', null)
+
+  const { data, error } = await query
+  if (error) {
+    console.error('[phlox:preparar-consulta]', error.message)
+    if (NO_TABLE(error.message)) return NextResponse.json({ preps: [] })
+    return NextResponse.json({ error: 'Não foi possível carregar agora. Tenta de novo.' }, { status: 500 })
+  }
+  return NextResponse.json({ preps: data || [] })
+}
+
+export async function DELETE(req: NextRequest) {
+  const { userId } = await getUserPlan(req)
+  if (!userId) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  const supabase = makeSupabase(req)
+  const { id } = await req.json().catch(() => ({}))
+  if (!id) return NextResponse.json({ error: 'ID em falta' }, { status: 400 })
+  await supabase.from('consult_preps').delete().eq('id', id).eq('user_id', userId)
+  return NextResponse.json({ ok: true })
 }
