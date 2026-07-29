@@ -101,5 +101,16 @@ day começa em 1 (hoje) e vai até ${days}. date_offset = nº de dias a partir d
     return NextResponse.json({ goal: data })
   }
 
+  // ── Marcar um dia do plano como concluído / por fazer ──
+  if (body.action === 'toggle-day') {
+    if (!body.id || typeof body.day !== 'number') return NextResponse.json({ error: 'id e day obrigatórios' }, { status: 400 })
+    const { data: g } = await db.from('exam_goals').select('plan').eq('id', body.id).eq('user_id', userId).single()
+    if (!g) return NextResponse.json({ error: 'Objetivo não encontrado' }, { status: 404 })
+    const nextPlan = (Array.isArray(g.plan) ? g.plan : []).map((d: any) => d?.day === body.day ? { ...d, completed: !d.completed } : d)
+    const { data, error } = await db.from('exam_goals').update({ plan: nextPlan }).eq('id', body.id).eq('user_id', userId).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ goal: data })
+  }
+
   return NextResponse.json({ error: 'action não suportada' }, { status: 400 })
 }

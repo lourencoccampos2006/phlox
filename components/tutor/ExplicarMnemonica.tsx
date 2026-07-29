@@ -256,6 +256,11 @@ export default function ExplicarMnemonica() {
               <div style={{ ...card, background: 'linear-gradient(135deg,#faf5ff,#f5f3ff)', borderColor: '#e9d5ff', textAlign: 'center' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#6b21a8', letterSpacing: '0.04em' }}>{mnemonic.mnemonic}</div>
               </div>
+              <Link href={`/mnemonicas?concept=${encodeURIComponent(concept)}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'white', border: '1px dashed #e9d5ff', borderRadius: 9, textDecoration: 'none' }}>
+                <span style={{ fontSize: 12.5, color: '#6b21a8' }}>Ver a imagem mental completa + guardar num baralho pessoal</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', whiteSpace: 'nowrap' }}>Abrir Mnemónicas →</span>
+              </Link>
               {mnemonic.breakdown?.length > 0 && (
                 <div style={card}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>

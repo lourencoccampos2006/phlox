@@ -9,7 +9,7 @@
 
 export type StudyActivityKind =
   | 'quiz' | 'flashcard' | 'case' | 'ecg' | 'osce' | 'tutor'
-  | 'notes' | 'reading' | 'anatomy' | 'lab' | 'procedure' | 'exam'
+  | 'notes' | 'reading' | 'anatomy' | 'lab' | 'procedure' | 'exam' | 'mnemonic'
 
 export interface StudyEvent {
   kind: StudyActivityKind
@@ -33,7 +33,7 @@ export const STUDY_EVENT = 'phlox-study-changed'
 
 const DEFAULT_XP: Record<StudyActivityKind, number> = {
   quiz: 10, flashcard: 5, case: 25, ecg: 15, osce: 30, tutor: 8,
-  notes: 6, reading: 4, anatomy: 6, lab: 10, procedure: 8, exam: 20,
+  notes: 6, reading: 4, anatomy: 6, lab: 10, procedure: 8, exam: 20, mnemonic: 6,
 }
 
 function read(): StudyProgress {

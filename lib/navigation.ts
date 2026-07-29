@@ -109,6 +109,12 @@ export const NAV_CATEGORIES: NavCategory[] = [
       // seed) — considerar semear mais casos antes de promover a um lugar
       // mais visível.
       { href: '/grand-round', icon: '🩻', label: 'Grand Round',    desc: 'Casos reais anónimos — a comunidade debate, o autor revela' },
+      // Pesquisa competitiva 2026-07-28: mnemónicas visuais geradas por IA
+      // (Picmonic reporta +331% de retenção) — nunca tinha sido construída a sério.
+      { href: '/mnemonicas', icon: '🧠', label: 'Mnemónicas visuais', desc: 'Uma imagem mental memorável por conceito, com baralho pessoal' },
+      // sprint78 (exam_goals + IA) existia todo no backend mas /modo-exame era
+      // só um redirect morto para /study — ninguém conseguia lá chegar.
+      { href: '/modo-exame', icon: '⏳', label: 'Modo Exame',     desc: 'Contagem decrescente até ao exame, com sprint final' },
     ],
   },
 ]
