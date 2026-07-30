@@ -18,23 +18,26 @@ import { HidratacaoTool } from '../hidratacao/page'
 import { FeridasTool } from '../feridas/page'
 import { AtividadesTool } from '../activities/page'
 import { SaudeApoioTool } from './SaudeApoioTool'
+import { CuidadosTool } from './CuidadosTool'
 
-type TabId = 'registo' | 'hidratacao' | 'feridas' | 'atividades' | 'saude'
+type TabId = 'registo' | 'hidratacao' | 'feridas' | 'atividades' | 'saude' | 'cuidados'
 const TAB_META: Record<TabId, { label: string; icon: string }> = {
   registo:    { label: 'Registo',    icon: 'note' },
   hidratacao: { label: 'Hidratação', icon: 'droplet' },
   atividades: { label: 'Atividades', icon: 'target' },
   feridas:    { label: 'Feridas',    icon: 'bandage' },
   saude:      { label: 'Saúde & Apoio', icon: 'stethoscope' },
+  cuidados:   { label: 'Cuidados',   icon: 'check' },
 }
 
 // Que abas cada tipo de instituição vê (ordem importa). Centro de dia destaca
 // atividades; lar tem feridas; farmácias não usam este registo. "Saúde & Apoio"
-// (enfermagem básica/acompanhamento — sprint122) é para quem tem cuidado direto
-// a residentes/utentes, não para farmácia/clínica.
+// (enfermagem básica/acompanhamento — sprint122) e "Cuidados" (tarefas
+// recorrentes — sprint123) são para quem tem cuidado direto a residentes/
+// utentes, não para farmácia/clínica.
 const TABS_BY_INST: Record<string, TabId[]> = {
-  day_care:      ['registo', 'hidratacao', 'atividades', 'saude'],
-  nursing_home:  ['registo', 'hidratacao', 'feridas', 'atividades', 'saude'],
+  day_care:      ['registo', 'hidratacao', 'atividades', 'saude', 'cuidados'],
+  nursing_home:  ['registo', 'hidratacao', 'feridas', 'atividades', 'saude', 'cuidados'],
   clinic:        ['registo', 'hidratacao'],
   health_center: ['registo', 'hidratacao'],
 }
@@ -91,6 +94,7 @@ export default function RegistoDoDia() {
         {tab === 'feridas' && <FeridasTool />}
         {tab === 'atividades' && <AtividadesTool />}
         {tab === 'saude' && <SaudeApoioTool />}
+        {tab === 'cuidados' && <CuidadosTool />}
       </div>
     </div>
   )

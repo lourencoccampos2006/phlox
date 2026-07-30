@@ -18,6 +18,7 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
+import NotifyFamilyButton from '@/components/NotifyFamilyButton'
 
 interface Patient { id: string; name: string; room_number?: string | null }
 interface CheckIn { id: string; patient_id: string; kind: 'enfermagem' | 'acompanhamento'; date: string; notes: string; duration_min?: number | null; created_at: string }
@@ -132,6 +133,9 @@ export function SaudeApoioTool() {
                         {c.duration_min ? ` · ${c.duration_min}min` : ''}
                       </span>
                       <div style={{ color: 'var(--ink-2)', marginTop: 2 }}>{c.notes}</div>
+                      <div style={{ marginTop: 6 }}>
+                        <NotifyFamilyButton patientId={c.patient_id} defaultBody={`Boa tarde. Deixamos uma nota sobre o dia de ${p.name.split(' ')[0]}: ${c.notes}`} />
+                      </div>
                     </div>
                   ))}
                 </div>

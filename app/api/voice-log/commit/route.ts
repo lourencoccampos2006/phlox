@@ -13,7 +13,7 @@ import { sb } from '@/lib/orgAuth'
 export const runtime = 'nodejs'
 
 type Shift = 'manha' | 'tarde' | 'noite'
-interface Action { domain: 'nutrition' | 'health_checkin' | 'support_service'; payload: Record<string, any> }
+interface Action { domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication'; payload: Record<string, any> }
 interface Result { domain: string; ok: boolean; error?: string }
 
 export async function POST(req: NextRequest) {
@@ -72,6 +72,25 @@ export async function POST(req: NextRequest) {
         recorded_by_id: userId,
       })
       results.push({ domain: 'health_checkin', ok: !error, error: error?.message })
+      continue
+    }
+
+    if (action.domain === 'medication') {
+      const p = action.payload || {}
+      const status = ['administered', 'refused', 'held'].includes(p.status) ? p.status : null
+      const medId = String(p.med_id || '')
+      if (!status || !medId) { results.push({ domain: 'medication', ok: false, error: 'Dados incompletos.' }); continue }
+      // Reconfirma que este medicamento é mesmo desta pessoa e está ativo —
+      // nunca confia só no med_id que veio do cliente (o mesmo cuidado já
+      // aplicado noutras rotas desta sessão, ex. family-share/med).
+      const { data: med } = await db.from('patient_meds').select('id').eq('id', medId).eq('patient_id', patientId).eq('active', true).maybeSingle()
+      if (!med) { results.push({ domain: 'medication', ok: false, error: 'Medicamento não encontrado ou inativo.' }); continue }
+      const { error } = await db.from('mar_records').upsert({
+        user_id: userId, org_id: patient.org_id || null, patient_id: patientId, med_id: medId,
+        date, shift, status, source: 'centro', recorded_by: '', recorded_by_id: userId,
+        recorded_at: new Date().toISOString(),
+      }, { onConflict: 'patient_id,med_id,date,shift' })
+      results.push({ domain: 'medication', ok: !error, error: error?.message })
       continue
     }
 

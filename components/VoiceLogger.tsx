@@ -23,7 +23,7 @@ import Icon from '@/components/Icon'
 
 interface Patient { id: string; name: string; room_number?: string | null }
 interface ProposedAction {
-  domain: 'nutrition' | 'health_checkin' | 'support_service'
+  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication'
   summary: string
   payload: Record<string, any>
   approved: boolean
@@ -35,6 +35,7 @@ const DOMAIN_META: Record<ProposedAction['domain'], { label: string; icon: strin
   nutrition:       { label: 'Refeição',            icon: 'meal' },
   health_checkin:  { label: 'Saúde & Apoio',       icon: 'stethoscope' },
   support_service: { label: 'Serviço de apoio',    icon: 'shirt' },
+  medication:      { label: 'Medicação',           icon: 'pill' },
 }
 
 const MAX_RECORD_MS = 60_000
@@ -98,6 +99,14 @@ export default function VoiceLogger() {
   }
 
   function pick(p: Patient) { setPatient(p); startRecording() }
+
+  // Retroceder até trocar de pessoa — nunca só "recomeçar o texto", também dá
+  // para admitir que se tocou no nome errado, em qualquer ponto do fluxo.
+  function changeResident() {
+    stopRecording(false)
+    setPatient(null); setTranscript(''); setActions([]); setErr('')
+    setStep('pick'); setSearch(''); loadPatients()
+  }
 
   async function startRecording() {
     setErr('')
@@ -192,7 +201,9 @@ export default function VoiceLogger() {
       })
       const j = await res.json()
       if (!res.ok) throw new Error(j.error || 'Erro ao interpretar.')
-      const withApproval: ProposedAction[] = (j.actions || []).map((a: any) => ({ ...a, approved: true }))
+      // Medicação começa por DEFEITO por confirmar (não pré-marcada) — é o domínio
+      // de maior risco, exige um toque extra e deliberado antes de gravar.
+      const withApproval: ProposedAction[] = (j.actions || []).map((a: any) => ({ ...a, approved: a.domain !== 'medication' }))
       if (withApproval.length === 0) { setErr('Não encontrei nada de refeições, saúde ou apoio nessa frase — tenta ser mais específico, ou regista à mão.') }
       setActions(withApproval)
       setStep('actions')
@@ -247,7 +258,14 @@ export default function VoiceLogger() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 9500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={e => { if (e.target === e.currentTarget && step === 'pick') closeAll() }}>
           <div style={{ background: 'white', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', padding: '18px 18px 24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Regista falando</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Regista falando</div>
+                {patient && step !== 'pick' && (
+                  <button onClick={changeResident} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 11.5, color: '#7c3aed', fontWeight: 600, textDecoration: 'underline' }}>
+                    Trocar de {cfg.personNoun.toLowerCase()} ({patient.name})
+                  </button>
+                )}
+              </div>
               <button onClick={closeAll} aria-label="Fechar" style={{ background: 'none', border: 'none', fontSize: 22, color: 'var(--ink-4)', cursor: 'pointer', padding: 0 }}>×</button>
             </div>
 
@@ -318,16 +336,24 @@ export default function VoiceLogger() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-3)', margin: 0 }}>Confirma o que fica registado — desmarca o que não quiseres.</p>
                 {err && <div style={{ fontSize: 12.5, color: '#dc2626' }}>{err}</div>}
-                {actions.map((a, i) => (
-                  <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: a.approved ? 'var(--bg-2)' : 'white', border: `1.5px solid ${a.approved ? 'var(--border)' : 'var(--bg-3)'}`, borderRadius: 9, cursor: 'pointer', opacity: a.approved ? 1 : 0.5 }}>
-                    <input type="checkbox" checked={a.approved} onChange={() => toggleAction(i)} style={{ width: 16, height: 16 }} />
-                    <Icon name={DOMAIN_META[a.domain].icon} size={16} color="var(--ink-3)" />
-                    <div>
-                      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{DOMAIN_META[a.domain].label}</div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{a.summary}</div>
-                    </div>
-                  </label>
-                ))}
+                {actions.map((a, i) => {
+                  const isMed = a.domain === 'medication'
+                  return (
+                    <label key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 9, cursor: 'pointer',
+                      background: a.approved ? (isMed ? '#fffbeb' : 'var(--bg-2)') : 'white',
+                      border: `1.5px solid ${a.approved ? (isMed ? '#f59e0b' : 'var(--border)') : 'var(--bg-3)'}`,
+                      opacity: a.approved ? 1 : 0.5,
+                    }}>
+                      <input type="checkbox" checked={a.approved} onChange={() => toggleAction(i)} style={{ width: 16, height: 16 }} />
+                      <Icon name={DOMAIN_META[a.domain].icon} size={16} color={isMed ? '#b45309' : 'var(--ink-3)'} />
+                      <div>
+                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: isMed ? '#b45309' : 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: isMed ? 700 : 400 }}>{DOMAIN_META[a.domain].label}{isMed ? ' — confirma bem' : ''}</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{a.summary}</div>
+                      </div>
+                    </label>
+                  )
+                })}
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                   <button onClick={() => setStep('transcript')} style={{ flex: 1, padding: '10px', background: 'white', border: '1.5px solid var(--border)', color: 'var(--ink-3)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     ← Voltar ao texto

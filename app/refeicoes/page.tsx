@@ -20,6 +20,7 @@ import { institutionConfig, shiftsFor, currentShiftFor, type Shift } from '@/lib
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
+import NotifyFamilyButton from '@/components/NotifyFamilyButton'
 
 interface Patient { id: string; name: string; room_number?: string | null }
 interface Nutrition { breakfast?: number | null; lunch?: number | null; dinner?: number | null; fluid_ml?: number | null; appetite?: string | null }
@@ -198,6 +199,11 @@ export default function RefeicoesPage() {
                   </div>
                 </div>
                 {errById[p.id] && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{errById[p.id]}</div>}
+                {(n.appetite === 'Recusou' || [n.breakfast, n.lunch, n.dinner].includes(0)) && (
+                  <div style={{ marginTop: 10 }}>
+                    <NotifyFamilyButton patientId={p.id} defaultBody={`Boa tarde. Só para informar que ${p.name.split(' ')[0]} recusou parte da refeição de hoje (${SHIFT_META[shift].toLowerCase()}). Vamos continuar a acompanhar de perto — qualquer coisa entramos em contacto.`} />
+                  </div>
+                )}
               </div>
             )
           })
