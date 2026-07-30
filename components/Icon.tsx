@@ -58,6 +58,8 @@ const PATHS: Record<string, React.ReactNode> = {
   bolt: <><path d="M13 3 5 13.5h5L9 21l8-11h-5z" /></>,
   droplet: <><path d="M12 3.5c3.5 4 6 6.8 6 10a6 6 0 0 1-12 0c0-3.2 2.5-6 6-10z" /><path d="M9.2 14.2a2.9 2.9 0 0 0 2.4 2.6" /></>,
   pin: <><path d="M12 21c4-4.5 6.5-7.6 6.5-11a6.5 6.5 0 0 0-13 0c0 3.4 2.5 6.5 6.5 11z" /><circle cx="12" cy="10" r="2.4" /></>,
+  shirt: <><path d="M8 4 4 8l3 2v9a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-9l3-2-4-4-2 1.3a3 3 0 0 1-4 0z" /></>,
+  meal: <><path d="M6 2v6a2 2 0 0 0 4 0V2M8 8v14M16 2c-1.5 0-3 1.8-3 5 0 2.5 1 4 3 4M16 11v11" /></>,
 }
 
 interface Props { name: string; size?: number; stroke?: number; color?: string; style?: CSSProperties }

@@ -42,6 +42,8 @@ const BY_HREF: Record<string, string> = {
   '/scan': 'camera',
   '/ai': 'spark',
   '/tendencias': 'chart',
+  '/refeicoes': 'meal',
+  '/apoio-servicos': 'shirt',
 }
 
 // Casos especiais por query string (ex.: /equipa?tab=mural = mural da equipa).

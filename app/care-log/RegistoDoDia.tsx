@@ -17,20 +17,24 @@ import { CareLogTool } from './page'
 import { HidratacaoTool } from '../hidratacao/page'
 import { FeridasTool } from '../feridas/page'
 import { AtividadesTool } from '../activities/page'
+import { SaudeApoioTool } from './SaudeApoioTool'
 
-type TabId = 'registo' | 'hidratacao' | 'feridas' | 'atividades'
+type TabId = 'registo' | 'hidratacao' | 'feridas' | 'atividades' | 'saude'
 const TAB_META: Record<TabId, { label: string; icon: string }> = {
   registo:    { label: 'Registo',    icon: 'note' },
   hidratacao: { label: 'Hidratação', icon: 'droplet' },
   atividades: { label: 'Atividades', icon: 'target' },
   feridas:    { label: 'Feridas',    icon: 'bandage' },
+  saude:      { label: 'Saúde & Apoio', icon: 'stethoscope' },
 }
 
 // Que abas cada tipo de instituição vê (ordem importa). Centro de dia destaca
-// atividades; lar tem feridas; farmácias não usam este registo.
+// atividades; lar tem feridas; farmácias não usam este registo. "Saúde & Apoio"
+// (enfermagem básica/acompanhamento — sprint122) é para quem tem cuidado direto
+// a residentes/utentes, não para farmácia/clínica.
 const TABS_BY_INST: Record<string, TabId[]> = {
-  day_care:      ['registo', 'hidratacao', 'atividades'],
-  nursing_home:  ['registo', 'hidratacao', 'feridas', 'atividades'],
+  day_care:      ['registo', 'hidratacao', 'atividades', 'saude'],
+  nursing_home:  ['registo', 'hidratacao', 'feridas', 'atividades', 'saude'],
   clinic:        ['registo', 'hidratacao'],
   health_center: ['registo', 'hidratacao'],
 }
@@ -86,6 +90,7 @@ export default function RegistoDoDia() {
         {tab === 'hidratacao' && <HidratacaoTool />}
         {tab === 'feridas' && <FeridasTool />}
         {tab === 'atividades' && <AtividadesTool />}
+        {tab === 'saude' && <SaudeApoioTool />}
       </div>
     </div>
   )
