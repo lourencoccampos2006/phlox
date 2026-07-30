@@ -18,6 +18,7 @@ const PhloxCopilot = dynamic(() => import('@/components/PhloxCopilot'), { ssr: f
 const UniversalSearch = dynamic(() => import('@/components/UniversalSearch'), { ssr: false })
 const ClinicalCommandPalette = dynamic(() => import('@/components/ClinicalCommandPalette'), { ssr: false })
 const BottomNav = dynamic(() => import('@/components/BottomNav'), { ssr: false })
+const VoiceLogger = dynamic(() => import('@/components/VoiceLogger'), { ssr: false })
 
 // Rotas que correm DENTRO do shell institucional (sidebar do blueprint).
 // Tem de cobrir TODAS as ferramentas que o blueprint referencia (core + extra),
@@ -37,6 +38,7 @@ const CLINICAL_PREFIXES = [
   '/equipa', '/painel-dono', '/activities',
   '/farmacia',
   '/aprender', '/study', '/estagio',
+  '/refeicoes', '/apoio-servicos', '/tendencias',
 ]
 
 function ScrollToTop() {
@@ -93,6 +95,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <InstitutionShell>{gated(children)}</InstitutionShell>
         <ClinicalCommandPalette />
         <PhloxCopilot />
+        <VoiceLogger />
         <UniversalSearch />
         <ScrollToTop />
       </>
