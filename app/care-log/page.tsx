@@ -92,6 +92,18 @@ export function CareLogTool() {
   const pickShift = (s: Shift) => { setShiftTouched(true); setShift(s) }
   useEffect(() => { if (!shiftTouched) setShift(currentShiftFor(institution)) /* eslint-disable-next-line */ }, [institution])
   const [recordedBy, setRecordedBy] = useState('')
+  // BUG CORRIGIDO 2026-08-07: campo ficava sempre vazio — cada registo pedia
+  // para escrever o próprio nome à mão, todos os dias. Pré-preenche da sessão
+  // (continua editável, ex: registo feito por outra pessoa em nome de alguém)
+  // — só na primeira vez que o nome da sessão fica disponível, nunca apaga o
+  // que a pessoa já tenha escrito à mão.
+  const [recordedByTouched, setRecordedByTouched] = useState(false)
+  useEffect(() => {
+    if (recordedByTouched || recordedBy) return
+    const name = (user as any)?.name || user?.email
+    if (name) setRecordedBy(name)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // Vitals
   const [bpSys, setBpSys] = useState('')
@@ -263,7 +275,7 @@ export function CareLogTool() {
         heading: 'Registos do dia',
         records: dayRecs.length ? dayRecs.map(recordToPrint) : [{ title: 'Sem registos neste dia', body: 'Não há registos de cuidados para a data selecionada.' }],
       }],
-      footerNote: 'Registo de cuidados · Phlox · Confidencial · Assinatura: __________________',
+      footerNote: 'Registo de cuidados · Phlox Clinical · Confidencial · Assinatura: __________________',
     })
   }
 
@@ -343,7 +355,7 @@ export function CareLogTool() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registado por</label>
-                <input value={recordedBy} onChange={e => setRecordedBy(e.target.value)} placeholder="Nome do profissional" style={inp()} />
+                <input value={recordedBy} onChange={e => { setRecordedByTouched(true); setRecordedBy(e.target.value) }} placeholder="Nome do profissional" style={inp()} />
               </div>
             </div>
           </div>

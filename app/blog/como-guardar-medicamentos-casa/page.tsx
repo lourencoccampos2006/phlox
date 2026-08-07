@@ -4,7 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Como Guardar Medicamentos em Casa (e Quando Deitar Fora) | Phlox',
+  title: 'Como Guardar Medicamentos em Casa (e Quando Deitar Fora)',
   description: 'Onde guardar os medicamentos, o erro de os ter na casa de banho, o que precisa de frigorífico, prazos de validade depois de abertos e como deitar fora em segurança (VALORMED).',
   keywords: 'como guardar medicamentos, conservar medicamentos casa, validade medicamentos abertos, valormed, medicamentos frigorifico',
   openGraph: {

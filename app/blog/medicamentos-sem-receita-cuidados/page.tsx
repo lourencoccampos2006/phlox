@@ -4,7 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar | Phlox',
+  title: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar',
   description: 'Paracetamol, ibuprofeno, antiácidos, xaropes para a tosse — o que é seguro tomar em casa, o que não combinar, e quando a automedicação se torna perigosa.',
   keywords: 'medicamentos sem receita, automedicação, paracetamol ibuprofeno juntos, misturar medicamentos farmácia, MNSRM',
   openGraph: {

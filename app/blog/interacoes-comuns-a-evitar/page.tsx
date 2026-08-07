@@ -4,7 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'As 10 Interações Medicamentosas Mais Comuns em Portugal (2026) | Phlox Clinical',
+  title: 'As 10 Interações Medicamentosas Mais Comuns em Portugal (2026)',
   description: 'Varfarina + AINEs, estatinas + antibióticos, antidepressivos + tramadol — as 10 combinações perigosas mais comuns em Portugal. Com alternativas seguras e fontes INFARMED/FDA.',
   keywords: 'interações medicamentosas portugal, varfarina ibuprofeno, estatinas antibioticos, interações perigosas medicamentos, farmacologia clínica',
   openGraph: {

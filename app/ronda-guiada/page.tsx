@@ -40,8 +40,10 @@ export default function RondaCoordenadaPage() {
   const [outcome, setOutcome] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [swipe, setSwipe] = useState(0)
-  const [panel, setPanel] = useState<{ meds: any[]; mar: any[] } | null>(null)
+  const [panel, setPanel] = useState<{ meds: any[]; mar: any[]; tasks: any[]; taskLogs: any[] } | null>(null)
   const [medBusy, setMedBusy] = useState<string>('')
+  const [taskBusy, setTaskBusy] = useState<string>('')
+  const [showEndSummary, setShowEndSummary] = useState(false)
   const touchStart = useRef<number | null>(null)
 
   const auth = useCallback(async () => {
@@ -112,10 +114,10 @@ export default function RondaCoordenadaPage() {
     if (r.error) { setErr(r.error); return }
     setOutcome(null); setNote(''); load()
   }
-  async function endRound() {
-    if (!round || !confirm('Terminar a ronda?')) return
+  async function confirmEndRound() {
+    if (!round) return
     await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'end', id: round.id }) })
-    setRound(null); setAssignments([]); load()
+    setShowEndSummary(false); setRound(null); setAssignments([]); load()
   }
 
   // A MINHA fila: atribuídas a mim e ainda por fazer. (A pesquisa deixa atender
@@ -136,8 +138,8 @@ export default function RondaCoordenadaPage() {
     ;(async () => {
       try {
         const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'panel', patient_id: curPatientId }) }).then(r => r.json())
-        if (!cancel) setPanel(r.error ? { meds: [], mar: [] } : { meds: r.meds || [], mar: r.mar || [] })
-      } catch { if (!cancel) setPanel({ meds: [], mar: [] }) }
+        if (!cancel) setPanel(r.error ? { meds: [], mar: [], tasks: [], taskLogs: [] } : { meds: r.meds || [], mar: r.mar || [], tasks: r.tasks || [], taskLogs: r.taskLogs || [] })
+      } catch { if (!cancel) setPanel({ meds: [], mar: [], tasks: [], taskLogs: [] }) }
     })()
     return () => { cancel = true }
   }, [curPatientId, auth])
@@ -155,6 +157,17 @@ export default function RondaCoordenadaPage() {
     const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'give_med', patient_id: current.patient_id, med_id: medId, shift: shiftNow }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     if (r.error) setPanel(p => p ? { ...p, mar: given ? [...p.mar, { med_id: medId, status: 'administered' }] : p.mar.filter(m => m.med_id !== medId) } : p)
     setMedBusy('')
+  }
+
+  const taskDone = (checklistId: string) => !!(panel?.taskLogs || []).find(l => l.checklist_id === checklistId)?.done
+  async function toggleTask(checklistId: string) {
+    if (!current) return
+    setTaskBusy(checklistId)
+    const wasDone = taskDone(checklistId)
+    setPanel(p => p ? { ...p, taskLogs: wasDone ? p.taskLogs.filter(l => l.checklist_id !== checklistId) : [...p.taskLogs, { checklist_id: checklistId, done: true }] } : p)
+    const r = await fetch('/api/rounds', { method: 'POST', headers: await auth(), body: JSON.stringify({ action: 'toggle_task', checklist_id: checklistId, patient_id: current.patient_id }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    if (r.error) setPanel(p => p ? { ...p, taskLogs: wasDone ? [...p.taskLogs, { checklist_id: checklistId, done: true }] : p.taskLogs.filter(l => l.checklist_id !== checklistId) } : p)
+    setTaskBusy('')
   }
 
   function onTouchStart(e: React.TouchEvent) { touchStart.current = e.touches[0].clientX }
@@ -200,7 +213,7 @@ export default function RondaCoordenadaPage() {
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 13, color: '#475569' }}><b>{doneCount}</b>/{total} feitos · <b>{mine.length}</b> na minha fila</div>
-        <button onClick={endRound} style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>Terminar ronda</button>
+        <button onClick={() => setShowEndSummary(true)} style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>Terminar ronda</button>
       </div>
       <div style={{ height: 6, background: '#eceef0', borderRadius: 3, overflow: 'hidden', marginBottom: 14 }}><div style={{ height: '100%', width: `${total ? Math.round((doneCount / total) * 100) : 0}%`, background: ACCENT, borderRadius: 3, transition: 'width 0.3s' }} /></div>
 
@@ -263,6 +276,29 @@ export default function RondaCoordenadaPage() {
               </div>
             )}
 
+            {/* Cuidados de hoje — fusão 2026-08-07 da aba "Cuidados" do /care-log:
+                tarefas recorrentes (banho, higiene, mobilização) direto na ronda,
+                sem ter de abrir outra ferramenta para riscar o que já se fez. */}
+            {panel && panel.tasks.length > 0 && (
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Cuidados de hoje</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {panel.tasks.map((t: any) => {
+                    const done = taskDone(t.id); const busyT = taskBusy === t.id
+                    return (
+                      <button key={t.id} onClick={() => toggleTask(t.id)} disabled={busyT}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 9, cursor: busyT ? 'wait' : 'pointer',
+                          border: `1.5px solid ${done ? '#bbf7d0' : '#e5e7eb'}`, background: done ? '#f0fdf4' : 'white', fontFamily: 'inherit' }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800,
+                          border: `2px solid ${done ? '#16a34a' : '#cbd5e1'}`, background: done ? '#16a34a' : 'white', color: 'white' }}>{done ? '✓' : ''}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: '#0b1120', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>{t.title}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <div style={{ padding: 20 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Como está</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
@@ -280,6 +316,38 @@ export default function RondaCoordenadaPage() {
           <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11.5, color: '#94a3b8' }}>Arraste o cartão → para registar</div>
         </>
       )}
+
+      {/* Resumo de turno ao terminar — antes só um confirm() sem contexto. */}
+      {showEndSummary && (() => {
+        const byOutcome: Record<string, number> = {}
+        assignments.filter(a => a.status === 'done').forEach(a => { const o = (a as any).outcome || 'sem_estado'; byOutcome[o] = (byOutcome[o] || 0) + 1 })
+        const alertCount = byOutcome['alerta'] || 0
+        const pending = total - doneCount
+        return (
+          <div onClick={e => { if (e.target === e.currentTarget) setShowEndSummary(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 420 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Resumo do turno</div>
+              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px' }}>Confirma antes de terminar a ronda.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: '#64748b' }}>Atendidos</span><b>{doneCount}/{total}</b></div>
+                {OUTCOMES.map(o => byOutcome[o.id] ? (
+                  <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: o.color, fontWeight: 700 }}>{o.label}</span><b>{byOutcome[o.id]}</b></div>
+                ) : null)}
+                {pending > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: '#b45309' }}>Por atender</span><b>{pending}</b></div>}
+              </div>
+              {alertCount > 0 && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 13px', fontSize: 12.5, color: '#991b1b', marginBottom: 16 }}>
+                  {alertCount} {alertCount === 1 ? 'utente marcado' : 'utentes marcados'} como "Alerta" — confirma que o turno seguinte sabe.
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowEndSummary(false)} style={{ flex: 1, padding: 12, background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#64748b' }}>Continuar ronda</button>
+                <button onClick={confirmEndRound} style={{ flex: 1, padding: 12, background: '#dc2626', color: 'white', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Terminar</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </>
   )
 }

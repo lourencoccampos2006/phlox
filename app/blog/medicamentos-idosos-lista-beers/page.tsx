@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Medicamentos a evitar em idosos — critérios Beers | Phlox',
+  title: 'Medicamentos a evitar em idosos — critérios Beers',
   description: 'A lista dos medicamentos potencialmente inapropriados em pessoas com mais de 65 anos (critérios Beers/STOPP): benzodiazepinas, anticolinérgicos, AINEs e mais — com alternativas.',
+  keywords: 'critérios beers, medicamentos inapropriados idosos, benzodiazepinas idosos, STOPP START, lista beers 2024',
   openGraph: {
     title: 'Medicamentos a evitar em idosos — critérios Beers',
     description: 'Os medicamentos que merecem uma segunda vista depois dos 65 — e porquê.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/medicamentos-idosos-lista-beers' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

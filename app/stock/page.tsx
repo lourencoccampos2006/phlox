@@ -163,6 +163,15 @@ export default function StockPage() {
   const low = items.filter(i => i.min_quantity > 0 && i.quantity <= i.min_quantity)
   const expiringSoon = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d >= 0 && d <= 30 })
   const expired = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d < 0 })
+  // BUG/PEDIDO 2026-08-07: "mais fácil e intuitivo" — a lista era só alfabética,
+  // por isso o que precisa de atenção (rutura/validade) ficava escondido no
+  // meio de tudo o resto, a ler um a um. Agora separa-se o que precisa de
+  // atenção AGORA do resto do inventário, sem mexer no fluxo de 1 toque que
+  // já existia (Usar 1, +/-, reposição).
+  const needsAttentionIds = new Set([...low, ...expiringSoon, ...expired].map(i => i.id))
+  const attention = shown.filter(i => needsAttentionIds.has(i.id))
+  const rest = shown.filter(i => !needsAttentionIds.has(i.id))
+  const [showRest, setShowRest] = useState(attention.length === 0)
 
   // Relatório profissional (A4): ruturas para encomendar + validades a expirar +
   // produtos fora de validade. É o documento de ordem de compra / auditoria.
@@ -211,7 +220,7 @@ export default function StockPage() {
         { label: 'Expirados', value: String(expired.length) },
       ],
       sections,
-      footerNote: 'Relatório gerado pelo Phlox · Verificado por: __________________',
+      footerNote: 'Relatório gerado pelo Phlox Clinical · Verificado por: __________________',
     })
   }
 
@@ -270,61 +279,30 @@ export default function StockPage() {
             ) : shown.length === 0 ? (
               <div style={{ ...card, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem produtos. Adiciona o primeiro com “+ Produto”.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {shown.map(it => {
-                  const cat = CATS[it.category] || CATS.geral
-                  const isLow = it.min_quantity > 0 && it.quantity <= it.min_quantity
-                  const d = expiryDays(it.expiry_date)
-                  const expColor = d === null ? null : d < 0 ? '#dc2626' : d <= 30 ? '#d97706' : '#16a34a'
-                  return (
-                    <div key={it.id} style={{ ...card, padding: '11px 15px', borderLeft: `3px solid ${isLow ? '#dc2626' : cat.color}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{cat.icon} {it.name}</span>
-                            {isLow && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>Stock baixo</span>}
-                          </div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            {it.price ? <span style={{ color: '#0d6e42', fontWeight: 700 }}>{(Math.round(it.price * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}€</span> : null}
-                            {it.barcode && <span>▮ {it.barcode}</span>}
-                            {it.location && <span>📍 {it.location}</span>}
-                            {it.min_quantity > 0 && <span>mín. {it.min_quantity}{it.unit ? ` ${it.unit}` : ''}</span>}
-                            {d !== null && <span style={{ color: expColor!, fontWeight: 600 }}>{d < 0 ? `expirado há ${-d}d` : `validade em ${d}d`}</span>}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          {/* USAR 1 — o toque frequente (uma luva, uma fralda): grande e rápido. */}
-                          <button onClick={() => consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
-                          <button aria-label="Diminuir" className="stock-adjust-btn" onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
-                          <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: isLow ? '#dc2626' : '#0b1120' }}>{it.quantity}{it.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: '#9ca3af' }}> {it.unit}</span> : ''}</span>
-                          <button aria-label="Aumentar" className="stock-adjust-btn" onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
-                          <button aria-label="Eliminar" onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>                        </div>
-                      </div>
-
-                      {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
-                      {(isLow || (it.reorder_status && it.reorder_status !== 'ok')) && (
-                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          {it.reorder_status === 'requested' ? (
-                            <>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>📦 Pedido de encomenda enviado à equipa</span>
-                              {scope.canEdit && <button onClick={() => reorder(it, 'ordered')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar encomendado</button>}
-                            </>
-                          ) : it.reorder_status === 'ordered' ? (
-                            <>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>✅ Encomendado — a caminho</span>
-                              {scope.canEdit && <button onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Recebido — repor</button>}
-                            </>
-                          ) : (
-                            scope.canEdit && <button onClick={() => reorder(it, 'request')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Avisar equipa — falta este</button>
-                          )}
-                          {it.buy_url && <a href={it.buy_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Comprar →</a>}
-                          {it.supplier_name && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{it.supplier_name}{it.supplier_contact ? ` · ${it.supplier_contact}` : ''}</span>}
-                        </div>
-                      )}
+              <>
+                {attention.length > 0 && (
+                  <div style={{ marginBottom: rest.length > 0 ? 22 : 0 }}>
+                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Precisa de atenção ({attention.length})</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {attention.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} />)}
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )}
+                {rest.length > 0 && (
+                  <div>
+                    {attention.length > 0 && (
+                      <button onClick={() => setShowRest(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, padding: 0 }}>
+                        {showRest ? '▾' : '▸'} Resto do inventário ({rest.length})
+                      </button>
+                    )}
+                    {(showRest || attention.length === 0) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        {rest.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} />)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -412,6 +390,68 @@ export default function StockPage() {
           .stock-adjust-btn { width: 44px !important; height: 44px !important; }
         }
       `}</style>
+    </div>
+  )
+}
+
+// Extraído de dentro do map original (2026-08-07) para poder ser reutilizado
+// nas duas secções ("Precisa de atenção" + "Resto do inventário") sem
+// duplicar a marcação — mesmo comportamento de sempre, só reorganizado.
+function StockItemCard({ it, card, scope, consume, adjust, del, reorder }: {
+  it: Item; card: React.CSSProperties; scope: ReturnType<typeof useOrgScope>
+  consume: (it: Item, qty?: number) => void; adjust: (it: Item, delta: number) => void
+  del: (id: string) => void; reorder: (it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) => void
+}) {
+  const cat = CATS[it.category] || CATS.geral
+  const isLow = it.min_quantity > 0 && it.quantity <= it.min_quantity
+  const d = expiryDays(it.expiry_date)
+  const expColor = d === null ? null : d < 0 ? '#dc2626' : d <= 30 ? '#d97706' : '#16a34a'
+  return (
+    <div style={{ ...card, padding: '11px 15px', borderLeft: `3px solid ${isLow ? '#dc2626' : cat.color}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{cat.icon} {it.name}</span>
+            {isLow && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>Stock baixo</span>}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {it.price ? <span style={{ color: '#0d6e42', fontWeight: 700 }}>{(Math.round(it.price * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}€</span> : null}
+            {it.barcode && <span>▮ {it.barcode}</span>}
+            {it.location && <span>📍 {it.location}</span>}
+            {it.min_quantity > 0 && <span>mín. {it.min_quantity}{it.unit ? ` ${it.unit}` : ''}</span>}
+            {d !== null && <span style={{ color: expColor!, fontWeight: 600 }}>{d < 0 ? `expirado há ${-d}d` : `validade em ${d}d`}</span>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* USAR 1 — o toque frequente (uma luva, uma fralda): grande e rápido. */}
+          <button onClick={() => consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
+          <button aria-label="Diminuir" className="stock-adjust-btn" onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
+          <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: isLow ? '#dc2626' : '#0b1120' }}>{it.quantity}{it.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: '#9ca3af' }}> {it.unit}</span> : ''}</span>
+          <button aria-label="Aumentar" className="stock-adjust-btn" onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
+          <button aria-label="Eliminar" onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>
+        </div>
+      </div>
+
+      {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
+      {(isLow || (it.reorder_status && it.reorder_status !== 'ok')) && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {it.reorder_status === 'requested' ? (
+            <>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>📦 Pedido de encomenda enviado à equipa</span>
+              {scope.canEdit && <button onClick={() => reorder(it, 'ordered')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar encomendado</button>}
+            </>
+          ) : it.reorder_status === 'ordered' ? (
+            <>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>✅ Encomendado — a caminho</span>
+              {scope.canEdit && <button onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Recebido — repor</button>}
+            </>
+          ) : (
+            scope.canEdit && <button onClick={() => reorder(it, 'request')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Avisar equipa — falta este</button>
+          )}
+          {it.buy_url && <a href={it.buy_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Comprar →</a>}
+          {it.supplier_name && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{it.supplier_name}{it.supplier_contact ? ` · ${it.supplier_contact}` : ''}</span>}
+        </div>
+      )}
     </div>
   )
 }

@@ -331,8 +331,12 @@ button, a { transition-property: transform, background-color, border-color, colo
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pulse-dot 2s infinite; flex-shrink: 0; }
 @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
 
-/* Source pill — para fontes de dados */
-.source-pill { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); padding: 5px 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap; }
+/* Source pill — para fontes de dados. BUG CORRIGIDO 2026-08-07 (mobile): uma
+   fonte/referência com nome comprido em white-space:nowrap não encolhia,
+   forçando /interactions mais largo que o ecrã depois de "Analisar
+   substâncias". max-width+wrap deixa o texto quebrar dentro do próprio pill
+   em vez de esticar o cartão inteiro. */
+.source-pill { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); padding: 5px 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 20px; white-space: normal; max-width: 100%; overflow-wrap: break-word; }
 
 /* Data table — para tabelas de comparação */
 .data-table { width: 100%; border-collapse: collapse; }

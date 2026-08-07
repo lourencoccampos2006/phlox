@@ -48,14 +48,21 @@ export async function GET(req: NextRequest) {
 }
 
 // Dados de UM utente para a ronda: medicação ativa + tomas de hoje (para dar
-// medicação a partir da ronda, atualizando o /mar). Endpoint separado (POST).
+// medicação a partir da ronda, atualizando o /mar) + tarefas de cuidado
+// recorrentes de hoje (fusão 2026-08-07 das abas "Saúde & Apoio"/"Cuidados"
+// do /care-log para dentro da ronda — ver care_checklists/care_checklist_logs,
+// mesmas tabelas que essas abas já usavam). Endpoint separado (POST).
 async function patientPanel(db: any, patientId: string) {
   const today = new Date().toISOString().slice(0, 10)
-  const [meds, mar] = await Promise.all([
+  const todayWeekday = new Date().getDay()
+  const [meds, mar, checklists, logs] = await Promise.all([
     db.from('patient_meds').select('id, name, dose, frequency, shifts').eq('patient_id', patientId).eq('active', true),
     db.from('mar_records').select('med_id, status, shift').eq('patient_id', patientId).eq('date', today),
+    db.from('care_checklists').select('id, title, weekdays').eq('patient_id', patientId).eq('active', true),
+    db.from('care_checklist_logs').select('id, checklist_id, done').eq('patient_id', patientId).eq('date', today),
   ])
-  return { meds: meds.data || [], mar: mar.data || [] }
+  const tasks = (checklists.data || []).filter((c: any) => !c.weekdays || c.weekdays.includes(todayWeekday))
+  return { meds: meds.data || [], mar: mar.data || [], tasks, taskLogs: logs.data || [] }
 }
 
 export async function POST(req: NextRequest) {
@@ -95,6 +102,21 @@ export async function POST(req: NextRequest) {
     }))
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ ok: true, toggled: 'on' })
+  }
+
+  // Marcar/desmarcar uma tarefa de cuidado recorrente (fusão da aba "Cuidados").
+  if (body.action === 'toggle_task') {
+    const checklistId = String(body.checklist_id || ''); const pid = String(body.patient_id || '')
+    if (!checklistId || !pid) return NextResponse.json({ error: 'dados em falta' }, { status: 400 })
+    const today = new Date().toISOString().slice(0, 10)
+    const { data: existing } = await db.from('care_checklist_logs').select('id, done').eq('checklist_id', checklistId).eq('date', today).maybeSingle()
+    const nextDone = !existing?.done
+    const { data, error } = await db.from('care_checklist_logs').upsert(stamp({
+      user_id: c.user.id, checklist_id: checklistId, patient_id: pid, date: today,
+      done: nextDone, done_by_id: nextDone ? c.user.id : null, done_at: nextDone ? new Date().toISOString() : null,
+    }), { onConflict: 'checklist_id,date' }).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ ok: true, log: data })
   }
 
   if (body.action === 'start') {

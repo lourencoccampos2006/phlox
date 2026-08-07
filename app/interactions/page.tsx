@@ -318,7 +318,12 @@ export default function InteractionsPage() {
           </div>
 
           {/* RIGHT PANEL */}
-          <div>
+          {/* BUG CORRIGIDO 2026-08-07 (mobile): sem minWidth:0, um item de grid
+              não encolhe abaixo da largura intrínseca do seu conteúdo — uma
+              fonte/referência comprida (ex: "Stockley's Drug Interactions")
+              com white-space:nowrap (.source-pill) empurrava a coluna toda
+              (e a página) para além da largura do ecrã em mobile. */}
+          <div style={{ minWidth: 0 }}>
             {loading && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
                 <div style={{ background: 'var(--green)', padding: '14px 20px' }}>

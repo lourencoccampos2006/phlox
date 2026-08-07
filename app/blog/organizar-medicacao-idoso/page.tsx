@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Como organizar a medicação de um idoso em casa | Phlox',
+  title: 'Como organizar a medicação de um idoso em casa',
   description: 'Guia prático para cuidadores: como organizar a medicação de um familiar idoso, evitar erros e esquecimentos, usar caixa de comprimidos e lembretes. Sem complicações.',
+  keywords: 'organizar medicação idoso, caixa de comprimidos semanal, cuidador medicação, lembrete de toma idoso',
   openGraph: {
     title: 'Como organizar a medicação de um idoso em casa',
     description: 'Um sistema simples para nunca falhar nem trocar tomas.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/organizar-medicacao-idoso' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

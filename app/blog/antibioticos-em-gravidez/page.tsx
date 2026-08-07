@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Antibióticos na gravidez — guia por categoria | Phlox',
+  title: 'Antibióticos na gravidez — guia por categoria',
   description: 'Que antibióticos são seguros na gravidez e quais evitar, por trimestre. Penicilinas, cefalosporinas, macrólidos vs. tetraciclinas e quinolonas. Base EMA/FDA.',
+  keywords: 'antibióticos gravidez, antibiótico seguro grávida, tetraciclinas gravidez, penicilina grávida, amoxicilina gravidez',
   openGraph: {
     title: 'Antibióticos na gravidez — guia completo por categoria',
     description: 'Quais são seguros, quais evitar, e quando o benefício supera o risco.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/antibioticos-em-gravidez' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

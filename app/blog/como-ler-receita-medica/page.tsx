@@ -5,7 +5,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Como Ler uma Receita Médica em Portugal (Guia Completo 2026) | Phlox',
+  title: 'Como Ler uma Receita Médica em Portugal (Guia Completo 2026)',
   description: 'O que significam DCI, posologia, "1+0+1", a receita eletrónica do SNS, o código de dispensa e a comparticipação. Aprenda a ler a sua receita sem dúvidas.',
   keywords: 'como ler receita médica, receita eletrónica SNS, DCI posologia, código de dispensa, comparticipação medicamentos portugal',
   openGraph: {

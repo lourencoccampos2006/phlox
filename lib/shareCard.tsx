@@ -140,4 +140,25 @@ export const SHARE_CARDS: Record<string, ShareCard> = {
     items: ['Rins fracos = fármaco acumula', 'A dose normal pode ser demais', 'Muitos antibióticos precisam de ajuste', 'Hidratação conta muito', 'O médico calcula pela função renal'],
     accent: '#22d3ee', accentSoft: '#155e63', accentText: '#67e8f9',
   },
+
+  'como-ler-receita-medica': {
+    kicker: 'Guia prático',
+    title: 'Como ler a tua receita médica',
+    items: ['3 códigos: receita, dispensa, opção', 'A SMS chega e já tem tudo', 'DCI é o nome do princípio ativo', 'A farmácia sugere sempre o genérico', 'Guarda a SMS até levantar tudo'],
+    accent: '#60a5fa', accentSoft: '#1e3a8a', accentText: '#93c5fd',
+  },
+
+  'medicamentos-sem-receita-cuidados': {
+    kicker: 'Segurança',
+    title: 'Medicamentos sem receita: o que não misturar',
+    items: ['Paracetamol + ibuprofeno: pode, com espaço', 'Antiácido pode cortar o efeito doutros', 'Xarope da tosse tem álcool escondido', 'Sintomas > 3 dias → farmacêutico', 'Lê sempre o folheto'],
+    accent: '#34d399', accentSoft: '#064e3b', accentText: '#6ee7b7',
+  },
+
+  'como-guardar-medicamentos-casa': {
+    kicker: 'Em casa',
+    title: 'Guardar medicamentos: o essencial',
+    items: ['Nunca na casa de banho', 'Local seco, fresco, ao abrigo da luz', 'Confirma o que precisa de frigorífico', 'Prazo muda depois de aberto', 'Devolve na farmácia (VALORMED)'],
+    accent: '#22d3ee', accentSoft: '#155e63', accentText: '#67e8f9',
+  },
 }

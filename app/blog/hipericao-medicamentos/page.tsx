@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Hipericão (erva de São João) — as interações que ninguém conta | Phlox',
+  title: 'Hipericão (erva de São João) — as interações que ninguém conta',
   description: 'O suplemento "natural" com mais interações perigosas: pílula, antidepressivos, anticoagulantes, imunossupressores. Porquê e o que fazer. Base EMA/INFARMED.',
+  keywords: 'hipericão interações, erva de são joão medicamentos, hipericão pílula, hipericão antidepressivos',
   openGraph: {
     title: 'Hipericão — as interações que ninguém conta',
     description: '"Natural" não é o mesmo que "inofensivo". O caso da erva de São João.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/hipericao-medicamentos' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

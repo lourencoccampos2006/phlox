@@ -34,12 +34,14 @@ export default function EquipaPage() {
   // Aceita ?tab=conta|escalas|mural e o antigo ?tab=team|schedule|tarefas|config
   // (do /schedule) para não partir favoritos/links antigos.
   const [tab, setTab] = useState<PageTab>('conta')
-  const [escalasSubTab, setEscalasSubTab] = useState<'team' | 'schedule' | 'cobertura' | 'tarefas' | 'config' | undefined>(undefined)
+  const [escalasSubTab, setEscalasSubTab] = useState<'team' | 'schedule' | 'tarefas' | 'config' | undefined>(undefined)
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('tab')
     if (q === 'mural') setTab('mural')
     else if (q === 'escalas') setTab('escalas')
-    else if (['team', 'schedule', 'cobertura', 'tarefas', 'config'].includes(q || '')) { setTab('escalas'); setEscalasSubTab(q as any) }
+    // "cobertura" fica como link antigo silencioso — pousa em Escalas em vez de rebentar.
+    else if (q === 'cobertura') setTab('escalas')
+    else if (['team', 'schedule', 'tarefas', 'config'].includes(q || '')) { setTab('escalas'); setEscalasSubTab(q as any) }
   }, [])
 
   const [loading, setLoading] = useState(true)

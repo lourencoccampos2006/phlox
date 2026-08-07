@@ -11,7 +11,7 @@ import { ROLE_META } from '@/lib/capabilities'
 
 export default function AcceptInvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
-  const { user, supabase, loading } = useAuth() as any
+  const { user, supabase, loading, refreshUser } = useAuth() as any
   const router = useRouter()
   const [invite, setInvite] = useState<any>(null)
   const [err, setErr] = useState('')
@@ -42,6 +42,15 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'Falhou')
       setActiveOrgId(d.org_id)
+      // BUG CORRIGIDO 2026-08-07: "o perfil nem sempre aparece no primeiro
+      // login" — o servidor grava org_id/active_org_id no profiles com a
+      // service key (bypassa a sessão do browser), mas o `user` em cache no
+      // AuthContext nunca era atualizado antes de navegar. /inicio decidia
+      // "está numa organização?" a partir desse `user` desatualizado (ainda
+      // sem org) e mostrava o modo errado — só um refresh/relogin buscava o
+      // perfil fresco e mostrava a equipa/escalas certas. Espera a sessão
+      // ficar mesmo atualizada ANTES de navegar.
+      await refreshUser()
       router.push('/inicio')
     } catch (e: any) {
       setErr(e.message)

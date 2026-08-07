@@ -72,13 +72,25 @@ export function buildPrintHTML(doc: PrintDoc): string {
 
   return `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="utf-8"><title>${esc(doc.docTitle)}</title>
 <style>
-  /* BUG CORRIGIDO 2026-07-28: margem superior (16mm ≈ 60px) era mais pequena
-     que o cabeçalho fixo (~74px) — o padding-top:74px do .content só cobria
-     isso na 1ª página (é um valor de UMA vez no início do fluxo, não repete
-     por página). Da 2ª página em diante o texto começava logo a 16mm do
-     topo, por baixo do cabeçalho, ficando tapado. A margem do @page repete-se
-     em TODAS as páginas automaticamente — aumentada para caber o cabeçalho
-     inteiro, e removido o padding-top que só resolvia a 1ª página. */
+  /* BUG CORRIGIDO 2026-08-07 (a correção de 2026-07-28 nunca funcionou —
+     confirmado gerando o PDF a sério e olhando para ele, não só a ler CSS).
+     O modelo mental de "aumentar a margem do @page dá espaço ao cabeçalho"
+     estava errado: um elemento position:fixed num contexto de páginas fica
+     ancorado à MESMA origem de coordenadas onde o conteúdo começa (o topo da
+     "margin box"), não ao topo físico do papel — por isso aumentar a margem
+     do @page limita-se a empurrar o cabeçalho E o conteúdo para baixo JUNTOS,
+     sem nunca separar um do outro. Confirmado gerando o PDF real: o
+     cabeçalho e o título ficavam sempre exatamente sobrepostos, em TODAS as
+     páginas, apesar da margem de 24mm.
+     A correção real precisa de DUAS peças, não uma:
+       1) padding-top no .content (de volta, do tamanho do cabeçalho) — para
+          o conteúdo começar mesmo abaixo do cabeçalho.
+       2) box-decoration-break:clone no .content — sem isto, o padding-top
+          de uma caixa que continua por várias páginas SÓ se aplica ao
+          primeiro fragmento (spec CSS Fragmentation); com "clone", repete-se
+          em cada fragmento/página, exatamente como um cabeçalho repetido
+          precisa. Testado a sério: 5 páginas geradas, cabeçalho nunca
+          sobrepõe o conteúdo em nenhuma. */
   @page { size: A4; margin: 24mm 14mm 20mm; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; }
@@ -103,7 +115,7 @@ export function buildPrintHTML(doc: PrintDoc): string {
     font-size: 7.5pt; color: #94a3b8; }
   .pg-foot .pnum::after { content: counter(page) " / " counter(pages); }
 
-  .content { padding-bottom: 8px; }
+  .content { padding-top: 88px; padding-bottom: 8px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 
   .doc-title { font-size: 19pt; font-weight: 800; letter-spacing: -0.02em; margin: 2px 0 2px; }
   .doc-sub { font-size: 10pt; color: #475569; margin-bottom: 10px; }
@@ -139,7 +151,7 @@ export function buildPrintHTML(doc: PrintDoc): string {
   <div class="pg-head">
     <div class="brand">
       <div class="logo">+</div>
-      <div><div class="brand-txt">Phlox</div><div class="brand-sub">Plataforma Clínica</div></div>
+      <div><div class="brand-txt">Phlox Clinical</div><div class="brand-sub">Plataforma Clínica</div></div>
     </div>
     <div class="head-right">
       ${doc.institution ? `<div class="head-inst">${esc(doc.institution)}</div>` : ''}

@@ -9,10 +9,12 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { buildLedger } from '@/lib/workLedger'
 import { printDoc } from '@/lib/print'
 import OwnerPerformance from '@/components/owner/OwnerPerformance'
 import OwnerInsights from '@/components/owner/OwnerInsights'
+import PatientTimeline from '@/components/PatientTimeline'
 
 const ACCENT = '#0d9488'
 
@@ -31,6 +33,9 @@ function ownerLinks(kind: string): [string, string, string][] {
 
 export default function PainelDonoPage() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
+  const [patients, setPatients] = useState<{ id: string; name: string }[]>([])
+  const [timelinePatientId, setTimelinePatientId] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [events, setEvents] = useState<Ev[]>([])
   const [byStaff, setByStaff] = useState<Record<string, number>>({})
@@ -66,6 +71,14 @@ export default function PainelDonoPage() {
   }, [user, supabase, date])
 
   useEffect(() => { load() }, [load])
+
+  // Lista de utentes para o seletor da linha do tempo por pessoa (abaixo).
+  useEffect(() => {
+    if (!user) return
+    scope.filter(supabase.from('patients').select('id,name')).eq('active', true).order('name')
+      .then(({ data }: any) => setPatients((data || []) as { id: string; name: string }[]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   // Dossier para inspeção: junta o resumo do mês (cofre de valor) + a atividade do
   // dia (auditoria) + por funcionário, num A4 organizado. "Na inspeção, está à mão."
@@ -392,6 +405,25 @@ export default function PainelDonoPage() {
                     </div>
                   ))}
                 </div>}
+            </div>
+
+            {/* Linha do tempo POR UTENTE — 2026-08-07: antes só se via na ficha de
+                cada um (/patients/[id]). Aqui o dono escolhe qualquer utente e vê a
+                história completa (medicação, cuidados, vitais, ocorrências,
+                avaliações, consultas, família, pedidos) num só sítio, incluindo
+                impressão A4 — sem ter de abrir a ficha um a um. Reutiliza o mesmo
+                componente da ficha, não é uma versão nova. */}
+            <div style={{ ...card, marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Linha do tempo por utente</div>
+              <select value={timelinePatientId} onChange={e => setTimelinePatientId(e.target.value)}
+                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: timelinePatientId ? 14 : 0 }}>
+                <option value="">Escolher utente…</option>
+                {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {timelinePatientId && (
+                <PatientTimeline patientId={timelinePatientId} supabase={supabase} scope={scope}
+                  patientName={patients.find(p => p.id === timelinePatientId)?.name} accent={ACCENT} />
+              )}
             </div>
 
             <p style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 14, lineHeight: 1.6 }}>

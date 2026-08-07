@@ -8,7 +8,7 @@
 // placeholders honestos até a entidade estar constituída.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const LEGAL_UPDATED = '8 de julho de 2026'
+export const LEGAL_UPDATED = '7 de agosto de 2026'
 
 // Responsável pelo tratamento (Controller).
 // NOTA (Fernando): preenche legalEntity + nif + address com os dados reais assim

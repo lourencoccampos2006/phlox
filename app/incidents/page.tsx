@@ -110,6 +110,11 @@ export default function IncidentsPage() {
   // Comunicação à família de uma ocorrência grave: em vez de um confirm() cru,
   // um modal com a mensagem PRÉ-ESCRITA e EDITÁVEL, que se envia deliberadamente.
   const [notify, setNotify] = useState<{ patientId: string; patientName: string; body: string; sending: boolean; done: boolean } | null>(null)
+  // Registo rápido (IA) — nota informal → tipo/gravidade/descrição propostos,
+  // revistos no formulário completo antes de guardar (nunca grava sozinho).
+  const [quickNote, setQuickNote] = useState('')
+  const [structuring, setStructuring] = useState(false)
+  const [structureErr, setStructureErr] = useState('')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -202,6 +207,7 @@ export default function IncidentsPage() {
       setShowForm(false)
       setEditingId(null)
       setForm({ ...EMPTY_FORM })
+      setQuickNote(''); setStructureErr('')
       load()
     } catch (e: any) {
       setSaveError(e.message)
@@ -250,6 +256,41 @@ export default function IncidentsPage() {
   }
 
   const f = (k: keyof typeof form, v: any) => setForm(prev => ({ ...prev, [k]: v }))
+
+  async function structureQuickNote() {
+    if (!quickNote.trim()) return
+    setStructuring(true); setStructureErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/incidents/structure', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
+        body: JSON.stringify({ note: quickNote.trim() }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Não foi possível estruturar agora.')
+      setForm(prev => ({
+        ...prev, type: d.type, severity: d.severity, description: d.description,
+        injuries: d.injuries || prev.injuries,
+        action_taken: prev.action_taken || (d.action_taken_suggestion ? `Sugestão a rever: ${d.action_taken_suggestion}` : ''),
+      }))
+      setQuickNote('')
+    } catch (e: any) { setStructureErr(e.message) }
+    setStructuring(false)
+  }
+
+  // Padrões: mesmo utente com ≥2 ocorrências do mesmo tipo nos últimos 30 dias
+  // — "mais contexto e inteligência" pedido pelo Fernando. Não é IA (não
+  // precisa de ser): é contagem direta, sempre correta, sempre disponível.
+  const patterns = (() => {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const groups: Record<string, Incident[]> = {}
+    incidents.filter(i => i.date >= cutoffStr).forEach(i => {
+      const key = `${i.patient_id}__${i.type}`
+      ;(groups[key] = groups[key] || []).push(i)
+    })
+    return Object.values(groups).filter(g => g.length >= 2).sort((a, b) => b.length - a.length)
+  })()
 
   if (selected) {
     const ss = SEV_STYLE[selected.severity]
@@ -387,6 +428,22 @@ export default function IncidentsPage() {
           ))}
         </div>
 
+        {/* Padrões — mesmo utente, mesmo tipo, repetido em 30 dias. */}
+        {patterns.length > 0 && (
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>⚠ Padrões nos últimos 30 dias</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {patterns.map((g, i) => (
+                <div key={i} style={{ fontSize: 13, color: '#78350f' }}>
+                  <b>{g[0].patient_name}</b> — {g.length}× {TYPE_LABELS[g[0].type]?.toLowerCase() || g[0].type} nos últimos 30 dias
+                  <button onClick={() => { setSearch(g[0].patient_name || ''); setFilterType(g[0].type) }}
+                    style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>ver todas</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${personLower} ou descrição...`}
@@ -497,9 +554,23 @@ export default function IncidentsPage() {
             <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 680, maxHeight: '92vh', overflow: 'auto', padding: '24px 24px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editingId ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
-                <button aria-label="Fechar" onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>              </div>
+                <button aria-label="Fechar" onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }); setQuickNote(''); setStructureErr('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>              </div>
 
               {saveError && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, padding: '9px 13px', fontSize: 13, color: '#991b1b', marginBottom: 14 }}>{saveError}</div>}
+
+              {!editingId && (
+                <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#5b21b6', marginBottom: 8 }}>✨ Registo rápido — escreve o que aconteceu, a IA propõe o resto</div>
+                  <textarea value={quickNote} onChange={e => setQuickNote(e.target.value)} rows={2} placeholder={`Ex: A ${personLower} caiu na casa de banho, não se magoou mas ficou assustada...`}
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #ddd6fe', borderRadius: 8, padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: 'white' }} />
+                  {structureErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{structureErr}</div>}
+                  <button onClick={structureQuickNote} disabled={structuring || !quickNote.trim()}
+                    style={{ marginTop: 8, padding: '7px 14px', background: structuring || !quickNote.trim() ? '#e5e7eb' : '#5b21b6', color: structuring || !quickNote.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: structuring || !quickNote.trim() ? 'not-allowed' : 'pointer' }}>
+                    {structuring ? 'A estruturar…' : 'Estruturar com IA →'}
+                  </button>
+                  <div style={{ fontSize: 10.5, color: '#7c3aed', marginTop: 6 }}>Preenche o formulário abaixo — revê e ajusta antes de guardar.</div>
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ gridColumn: '1/-1' }}>
@@ -600,7 +671,7 @@ export default function IncidentsPage() {
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
-                <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }) }}
+                <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }); setQuickNote(''); setStructureErr('') }}
                   style={{ padding: '10px 20px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>
                   Cancelar
                 </button>

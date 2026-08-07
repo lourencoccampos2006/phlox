@@ -298,27 +298,42 @@ export default function MARPage() {
         { label: 'Por administrar', value: String(totalMissing) },
       ],
       sections: [{ heading: `${cfg.personNounPlural} — turno ${sl.label}`, records }],
-      footerNote: 'Documento gerado pelo Phlox · Confidencial · Assinatura do responsável: __________________',
+      footerNote: 'Documento gerado pelo Phlox Clinical · Confidencial · Assinatura do responsável: __________________',
     })
   }
   printRef.current = printMARSheet
 
+  // BUG/PEDIDO 2026-08-07: o seletor de data no MAR nunca teve restrição — QUALQUER
+  // funcionário podia mudar para um dia passado e registar/alterar tomas em
+  // silêncio, sem qualquer marca de que foi um registo retroativo. Para uma folha
+  // de MAR (documento legal de administração de medicação) isto é um risco real.
+  // Agora: só HOJE pode registar normalmente; um dia diferente só grava se for
+  // owner/admin (scope.isManager) — exceção deliberada, não a regra — e fica
+  // sempre assinalado na nota, para ficar rastreável no registo.
+  const isToday = date === getToday()
   const doAdmin = async (medId: string, status: AdminStatus, notes: string) => {
     if (!user || !selectedId) return
     if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
+    if (!isToday && !scope.isManager) {
+      toast.error('Só para outro dia com um administrador', 'Só consegues registar tomas de hoje. Para lançar uma toma de outro dia, pede a um administrador da equipa.')
+      return
+    }
     setSaving(medId)
     // Confirma no servidor ANTES de mostrar como dada (mais seguro para
     // medicação do que otimista). try/catch garante que uma quebra de rede a
     // meio não deixa o botão preso e mostra sempre uma mensagem calma.
     try {
       const existing = getRecord(medId)
-      const base = scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() })
+      const finalNotes = (!isToday && scope.isManager)
+        ? `[Registo retroativo — lançado a ${getToday()} por ${(user as any).name || user.email || 'admin'}]${notes ? ' ' + notes : ''}`
+        : notes
+      const base = scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: medId, shift, date, status, notes: finalNotes, recorded_by: (user as any).name || user.email || '', recorded_at: new Date().toISOString() })
       if (!status && existing) {
         const { error } = await supabase.from('mar_records').delete().eq('id', (existing as any).id)
         if (error) { toast.error('Não foi possível remover', reportError('mar-delete', error, 'Tenta de novo.')); return }
         setRecords(p => p.filter(r => !(r.med_id === medId && r.shift === shift)))
       } else if (existing) {
-        const { data, error } = await supabase.from('mar_records').update({ status, notes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
+        const { data, error } = await supabase.from('mar_records').update({ status, notes: finalNotes, recorded_at: base.recorded_at }).eq('id', (existing as any).id).select().single()
         if (error) { toast.error('Não foi possível guardar', reportError('mar-update', error, 'Tenta de novo.')); return }
         if (data) setRecords(p => p.map(r => r.med_id === medId && r.shift === shift ? data : r))
       } else if (status) {
@@ -392,7 +407,8 @@ export default function MARPage() {
               style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
               Folha de MAR
             </button>
-            <Link href="/ronda-guiada" className="mar-passagem"
+            <Link href="/equipa?tab=mural&handover=1" className="mar-passagem"
+              title="Escrever notas de passagem para o turno seguinte"
               style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               Passagem →
             </Link>
@@ -416,6 +432,17 @@ export default function MARPage() {
           )}
         </div>
       </div>
+
+      {/* Aviso de dia retroativo — só aparece fora de hoje. */}
+      {!isToday && (
+        <div style={{ background: scope.isManager ? '#eff6ff' : '#fef2f2', borderBottom: `1px solid ${scope.isManager ? '#bfdbfe' : '#fecaca'}` }}>
+          <div className="page-container" style={{ paddingTop: 8, paddingBottom: 8, fontSize: 12.5, fontWeight: 600, color: scope.isManager ? '#1d4ed8' : '#991b1b' }}>
+            {scope.isManager
+              ? `A ver ${new Date(date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' })} — como administrador, o que registares aqui fica assinalado como retroativo.`
+              : `A ver ${new Date(date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' })} — só podes consultar. Para lançar uma toma deste dia, pede a um administrador da equipa.`}
+          </div>
+        </div>
+      )}
 
       {/* Omissions banner */}
       {omissions.length > 0 && (

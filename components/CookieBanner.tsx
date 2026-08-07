@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useLayoutEffect, useRef } from 'react'
 import { getConsent, setConsent } from '@/lib/consent'
 
 // Banner de consentimento de cookies (RGPD / ePrivacy). Só aparece enquanto o
@@ -8,12 +8,23 @@ import { getConsent, setConsent } from '@/lib/consent'
 // cookies de publicidade (ver components/AdScript + lib/consent) — não é cosmético.
 
 export default function CookieBanner() {
+  // BUG CORRIGIDO 2026-08-07: o atraso de 400ms antes de mostrar o banner
+  // (+ o ResizeObserver a seguir, numa 2ª passagem, a mudar body.paddingBottom)
+  // caía exatamente na janela em que alguém que acabou de abrir a página já
+  // está a meio do primeiro gesto de scroll — a mudança de layout a meio do
+  // gesto cancelava-o (mesma classe do bug de troca de fonte já corrigido em
+  // 7faec19, "homepage precisava de um 1º toque/scroll em vazio"). Mostrar
+  // logo no primeiro render (sem atraso) resolve: a única mudança de layout
+  // acontece antes de haver qualquer gesto em curso para cancelar.
   const [visible, setVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const t = setTimeout(() => { if (getConsent() === 'unset') setVisible(true) }, 400)
-    return () => clearTimeout(t)
+  // useLayoutEffect (não useEffect): decide ANTES do browser pintar a
+  // primeira frame, sem o atraso de 400ms nem o espaço para um gesto de
+  // scroll começar a meio. Estado inicial continua false (igual ao HTML do
+  // servidor) — sem risco de mismatch de hidratação.
+  useLayoutEffect(() => {
+    if (getConsent() === 'unset') setVisible(true)
   }, [])
 
   // BUG CORRIGIDO 2026-07-22: sendo position:fixed, o banner não reserva
@@ -23,7 +34,7 @@ export default function CookieBanner() {
   // toques/cliques eram engolidos por ele em vez de chegarem ao conteúdo,
   // parecendo simplesmente "não responder". Reserva-se o espaço equivalente
   // à altura real do banner enquanto ele está visível.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!visible) { document.body.style.paddingBottom = ''; return }
     const el = ref.current
     if (!el) return

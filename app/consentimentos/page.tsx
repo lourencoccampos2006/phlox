@@ -61,7 +61,7 @@ export default function ConsentimentosPage() {
           ],
         }] }] : []),
       ],
-      footerNote: 'Documento gerado pelo Phlox. Conserve cópia assinada no processo.',
+      footerNote: 'Documento gerado pelo Phlox Clinical. Conserve cópia assinada no processo.',
     })
   }
 

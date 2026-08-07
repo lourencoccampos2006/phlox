@@ -116,6 +116,31 @@ function SettingsPage() {
   const [saveErr, setSaveErr] = useState('')
   const [exporting, setExporting] = useState(false)
   const [instType, setInstType] = useState('nursing_home')
+  const [deleteStep, setDeleteStep] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteErr, setDeleteErr] = useState('')
+
+  async function deleteAccount() {
+    if (deleteConfirmText !== 'APAGAR') return
+    setDeleting(true); setDeleteErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const token = sd?.session?.access_token
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ confirm: 'APAGAR' }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json?.error || 'Falha ao apagar a conta')
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (e: any) {
+      setDeleteErr(e?.message || 'Falha ao apagar a conta')
+    }
+    setDeleting(false)
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem(INST_KEY)
@@ -685,11 +710,32 @@ function SettingsPage() {
             </div>
             <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#742a2a', marginBottom: 4 }}>Zona de perigo</div>
-              <div style={{ fontSize: 12, color: '#742a2a', opacity: 0.7, marginBottom: 14 }}>Apagar a conta remove todos os teus dados permanentemente.</div>
-              <button onClick={() => { if (confirm('Tens a certeza?')) supabase.auth.signOut().then(() => router.push('/')) }}
-                style={{ padding: '9px 16px', background: '#fff5f5', color: '#c53030', border: '1px solid #feb2b2', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
-                Apagar conta
-              </button>
+              <div style={{ fontSize: 12, color: '#742a2a', opacity: 0.7, marginBottom: 14 }}>Apagar a conta remove todos os teus dados permanentemente. Não é reversível.</div>
+              {!deleteStep ? (
+                <button onClick={() => { setDeleteStep(true); setDeleteConfirmText(''); setDeleteErr('') }}
+                  style={{ padding: '9px 16px', background: '#fff5f5', color: '#c53030', border: '1px solid #feb2b2', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                  Apagar conta
+                </button>
+              ) : (
+                <div>
+                  <div style={{ fontSize: 12.5, color: '#742a2a', marginBottom: 8 }}>
+                    Para confirmar, escreve <strong>APAGAR</strong> abaixo. Isto elimina a tua conta e os teus dados de imediato.
+                  </div>
+                  <input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="APAGAR"
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #feb2b2', borderRadius: 7, padding: '8px 11px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 10 }} />
+                  {deleteErr && <div style={{ fontSize: 12, color: '#c53030', marginBottom: 10 }}>{deleteErr}</div>}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setDeleteStep(false)} disabled={deleting}
+                      style={{ padding: '9px 16px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                      Cancelar
+                    </button>
+                    <button onClick={deleteAccount} disabled={deleteConfirmText !== 'APAGAR' || deleting}
+                      style={{ padding: '9px 16px', background: '#c53030', color: 'white', border: 'none', borderRadius: 7, cursor: deleteConfirmText !== 'APAGAR' || deleting ? 'not-allowed' : 'pointer', opacity: deleteConfirmText !== 'APAGAR' || deleting ? 0.5 : 1, fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                      {deleting ? 'A apagar...' : 'Apagar definitivamente'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

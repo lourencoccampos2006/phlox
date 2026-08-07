@@ -1,11 +1,19 @@
 'use client'
 
-// RegistoDoDia — a fusão "Registo do dia": care-log + hidratação + feridas +
-// atividades num só ecrã premium. Cada ferramenta antiga foi extraída como
-// componente (CareLogTool, HidratacaoTool, FeridasTool, AtividadesTool) — ZERO
-// funcionalidade reescrita, só reorganizada em abas. As abas e o tom adaptam-se
-// ao tipo de instituição via blueprint (centro de dia: warm, sem feridas como
-// destaque; lar: tem feridas; etc). Reformulação institucional 2026-06-13.
+// RegistoDoDia — a fusão "Registo do dia": care-log + feridas + atividades num
+// só ecrã premium. Cada ferramenta antiga foi extraída como componente
+// (CareLogTool, FeridasTool, AtividadesTool) — ZERO funcionalidade reescrita,
+// só reorganizada em abas. As abas e o tom adaptam-se ao tipo de instituição
+// via blueprint (centro de dia: warm, sem feridas como destaque; lar: tem
+// feridas; etc). Reformulação institucional 2026-06-13. Aba "Hidratação"
+// removida 2026-08-07 (redundante com "Registo" — ver comentário abaixo).
+//
+// Abas "Saúde & Apoio" e "Cuidados" TAMBÉM saíram 2026-08-07 — fundidas para
+// dentro de /ronda-guiada (reconstruído): tarefas de cuidado recorrentes
+// (care_checklists) e o registo rápido por pessoa passam a acontecer no fluxo
+// já guiado residente-a-residente, em vez de ser mais uma aba separada para
+// abrir. SaudeApoioTool.tsx/CuidadosTool.tsx ficam no repo mas deixam de estar
+// ligados a nada — ver app/ronda-guiada/page.tsx.
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -14,32 +22,28 @@ import { institutionConfig } from '@/lib/institutionConfig'
 import { blueprintFor } from '@/lib/institutionBlueprint'
 import Icon from '@/components/Icon'
 import { CareLogTool } from './page'
-import { HidratacaoTool } from '../hidratacao/page'
 import { FeridasTool } from '../feridas/page'
 import { AtividadesTool } from '../activities/page'
-import { SaudeApoioTool } from './SaudeApoioTool'
-import { CuidadosTool } from './CuidadosTool'
 
-type TabId = 'registo' | 'hidratacao' | 'feridas' | 'atividades' | 'saude' | 'cuidados'
+type TabId = 'registo' | 'feridas' | 'atividades'
 const TAB_META: Record<TabId, { label: string; icon: string }> = {
   registo:    { label: 'Registo',    icon: 'note' },
-  hidratacao: { label: 'Hidratação', icon: 'droplet' },
   atividades: { label: 'Atividades', icon: 'target' },
   feridas:    { label: 'Feridas',    icon: 'bandage' },
-  saude:      { label: 'Saúde & Apoio', icon: 'stethoscope' },
-  cuidados:   { label: 'Cuidados',   icon: 'check' },
 }
 
 // Que abas cada tipo de instituição vê (ordem importa). Centro de dia destaca
-// atividades; lar tem feridas; farmácias não usam este registo. "Saúde & Apoio"
-// (enfermagem básica/acompanhamento — sprint122) e "Cuidados" (tarefas
-// recorrentes — sprint123) são para quem tem cuidado direto a residentes/
-// utentes, não para farmácia/clínica.
+// atividades; lar tem feridas; farmácias não usam este registo.
+// BUG CORRIGIDO 2026-08-07: a aba "Hidratação" foi removida — os mesmos campos
+// já existem dentro de "Registo" (CareLogTool), era um formulário duplicado a
+// pedir os mesmos dados duas vezes. A ferramenta /hidratacao standalone
+// (tracking clínico mais profundo — Bristol, obstipação — via ⌘K) mantém-se,
+// só esta aba redundante saiu.
 const TABS_BY_INST: Record<string, TabId[]> = {
-  day_care:      ['registo', 'hidratacao', 'atividades', 'saude', 'cuidados'],
-  nursing_home:  ['registo', 'hidratacao', 'feridas', 'atividades', 'saude', 'cuidados'],
-  clinic:        ['registo', 'hidratacao'],
-  health_center: ['registo', 'hidratacao'],
+  day_care:      ['registo', 'atividades'],
+  nursing_home:  ['registo', 'feridas', 'atividades'],
+  clinic:        ['registo'],
+  health_center: ['registo'],
 }
 
 export default function RegistoDoDia() {
@@ -47,7 +51,7 @@ export default function RegistoDoDia() {
   const cfg = institutionConfig(institution)
   const bp = blueprintFor(institution)
   const warm = bp.tone === 'warm'
-  const tabs = TABS_BY_INST[institution] || ['registo', 'hidratacao', 'atividades']
+  const tabs = TABS_BY_INST[institution] || ['registo', 'atividades']
 
   const sp = useSearchParams()
   const requested = sp?.get('tab') as TabId | null
@@ -90,11 +94,8 @@ export default function RegistoDoDia() {
       {/* Conteúdo da aba — o componente real, intacto */}
       <div>
         {tab === 'registo' && <CareLogTool />}
-        {tab === 'hidratacao' && <HidratacaoTool />}
         {tab === 'feridas' && <FeridasTool />}
         {tab === 'atividades' && <AtividadesTool />}
-        {tab === 'saude' && <SaudeApoioTool />}
-        {tab === 'cuidados' && <CuidadosTool />}
       </div>
     </div>
   )

@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Sinais de desidratação em idosos — o que vigiar | Phlox',
+  title: 'Sinais de desidratação em idosos — o que vigiar',
   description: 'Como reconhecer a desidratação num idoso: sinais precoces, sinais de alarme, quanto deve beber por dia e quando ir ao médico. Guia prático para cuidadores e famílias.',
+  keywords: 'sinais desidratação idosos, desidratação idoso o que fazer, quanto deve beber idoso por dia',
   openGraph: {
     title: 'Sinais de desidratação em idosos',
     description: 'O que vigiar, quanto deve beber, e quando é urgente.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/sinais-desidratacao-idosos' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

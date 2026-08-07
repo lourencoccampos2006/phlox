@@ -49,11 +49,12 @@ export interface TrendCareRow { patient_id: string; date: string; mood?: any; nu
 export interface TrendMarRow { patient_id: string; date: string; status: string | null }
 export interface TrendIncidentRow { patient_id: string; date: string; severity: string }
 export interface TrendAssessmentRow { patient_id: string; scale: string; date: string; score: number }
+export interface TrendActivityRow { patient_id: string; date: string }
 
 // ── Saídas ────────────────────────────────────────────────────────────────────
 export interface SparkPoint { date: string; value: number | null }
 
-export type MetricKey = 'mood' | 'nutrition' | 'adherence'
+export type MetricKey = 'mood' | 'nutrition' | 'adherence' | 'activity'
 
 export interface MetricTrend {
   key: MetricKey
@@ -106,6 +107,9 @@ export interface ResidentTrend {
 // ── Constantes de escala ──────────────────────────────────────────────────────
 const MOOD_MAX = 5
 const PCT_MAX = 100
+// Teto de atividades/dia para a escala do sparkline — não é uma meta oficial,
+// só serve para desenhar a barra (um centro de dia típico tem 1-3 por dia).
+const ACTIVITY_MAX = 3
 
 // Espelha SCALES/BETTER_WHEN_HIGHER de app/assessments/page.tsx (não exportadas
 // de lá) — mantido sincronizado à mão se ali mudar.
@@ -234,6 +238,7 @@ export interface BuildResidentTrendInput {
   mar: TrendMarRow[]
   incidents: TrendIncidentRow[]
   assessments: TrendAssessmentRow[]
+  activities?: TrendActivityRow[]
 }
 
 export function buildResidentTrend(input: BuildResidentTrendInput): ResidentTrend {
@@ -255,18 +260,30 @@ export function buildResidentTrend(input: BuildResidentTrendInput): ResidentTren
   const adherenceRows: TrendCareRow[] = Object.entries(marByDate).map(([date, b]) => ({ patient_id: p.id, date, nutrition: undefined, mood: undefined, __pct: b.total ? (b.given / b.total) * 100 : null } as any))
   const adherence = buildMetric('adherence', 'Adesão à medicação', '%', PCT_MAX, adherenceRows, (r: any) => (r.__pct == null ? undefined : r.__pct), { warning: 15, critical: 25 })
 
+  // Participação em atividades — mesmo padrão de pré-agregação por dia que a
+  // adesão à medicação usa (uma linha por dia com a contagem, não uma linha
+  // por atividade — "média de 1s" perderia o sinal). "Mais dados/inteligência"
+  // pedido na auditoria: apanha quem está a ir a menos atividades do que ia.
+  const activityByDate: Record<string, number> = {}
+  ;(input.activities || []).forEach(r => { activityByDate[r.date] = (activityByDate[r.date] || 0) + 1 })
+  const activityRows: TrendCareRow[] = Object.entries(activityByDate).map(([date, count]) => ({ patient_id: p.id, date, nutrition: undefined, mood: undefined, __count: count } as any))
+  const activity = buildMetric('activity', 'Atividades', '/dia', ACTIVITY_MAX, activityRows, (r: any) => (r.__count == null ? undefined : r.__count), { warning: 0.6, critical: 1.2 })
+
   const incidentTrend = buildIncidentTrend(input.incidents)
   const assessmentTrends = buildAssessmentTrends(input.assessments)
 
-  const metrics = [mood, nutrition, adherence]
+  const metrics = [mood, nutrition, adherence, activity]
 
   const flags: ResidentTrend['flags'] = []
   metrics.forEach(m => {
     if (m.declining && m.severity) {
       const arrowDetail = m.key === 'mood'
         ? `Média dos últimos 7 dias: ${m.recentAvg!.toFixed(1)}/5 (era ${m.baselineAvg!.toFixed(1)}/5 nas 2 semanas anteriores).`
-        : `Média dos últimos 7 dias: ${Math.round(m.recentAvg!)}% (era ${Math.round(m.baselineAvg!)}% nas 2 semanas anteriores).`
-      flags.push({ kind: `trend_${m.key}`, severity: m.severity, title: `${m.label} a descer há 2-3 semanas`, detail: arrowDetail })
+        : m.key === 'activity'
+          ? `Média dos últimos 7 dias: ${m.recentAvg!.toFixed(1)}/dia (era ${m.baselineAvg!.toFixed(1)}/dia nas 2 semanas anteriores).`
+          : `Média dos últimos 7 dias: ${Math.round(m.recentAvg!)}% (era ${Math.round(m.baselineAvg!)}% nas 2 semanas anteriores).`
+      const title = m.key === 'activity' ? 'Participação em atividades a descer há 2-3 semanas' : `${m.label} a descer há 2-3 semanas`
+      flags.push({ kind: `trend_${m.key}`, severity: m.severity, title, detail: arrowDetail })
     }
   })
   if (incidentTrend.rising && incidentTrend.severity) {

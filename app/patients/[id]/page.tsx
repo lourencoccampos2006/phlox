@@ -21,6 +21,7 @@ import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { setActiveProfile } from '@/lib/profileContext'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { useToast } from '@/components/Toast'
 
 interface LifeStory { profession?: string; family?: string; hobbies?: string; music?: string; notes?: string }
 interface Patient {
@@ -30,6 +31,7 @@ interface Patient {
   room_number?: string | null; admission_date?: string | null; emergency_contact?: string | null
   address?: string | null
   life_story?: LifeStory | null
+  photo_url?: string | null
   updated_at?: string
 }
 interface Med { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: string | null }
@@ -42,6 +44,7 @@ const LOC = [{ v: 'centro', l: '☀️ No centro' }, { v: 'casa', l: '🏠 Em ca
 export default function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, supabase } = useAuth() as any
   const router = useRouter()
+  const toast = useToast()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
   const cfg = institutionConfig(institution)
@@ -79,6 +82,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [savingLife, setSavingLife] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
   const [editErr, setEditErr] = useState('')
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const [showAddMed, setShowAddMed] = useState(false)
   const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '', shifts: [] as string[], take_location: 'centro' })
@@ -145,6 +149,44 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setSavingEdit(false)
     if (error) { setEditErr(reportError('patients-save-edit', error, MSG.save)); return }
     setEditing(false); load()
+  }
+
+  // Foto de perfil — bucket público "patient-photos", pasta por UTENTE (não por
+  // quem faz upload, ao contrário do bucket "documents"): qualquer pessoa da
+  // equipa vê/substitui a mesma foto. Precisa de supabase/sprint125_patient_photo.sql
+  // (coluna photo_url + bucket + políticas) — ver reportError, degrada com
+  // mensagem amigável se ainda não tiver sido aplicado.
+  async function uploadPhoto(file: File) {
+    if (!patient) return
+    setUploadingPhoto(true)
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const path = `${patient.id}/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('patient-photos').upload(path, file, { upsert: false, contentType: file.type || 'image/jpeg' })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('patient-photos').getPublicUrl(path)
+      const photoUrl = pub?.publicUrl
+      if (!photoUrl) throw new Error('sem URL pública')
+      const { error: updErr } = await supabase.from('patients').update({ photo_url: photoUrl }).eq('id', patient.id)
+      if (updErr) throw updErr
+      setPatient(p => p ? { ...p, photo_url: photoUrl } : p)
+    } catch (e) {
+      toast.error('Não foi possível guardar a foto', reportError('patients-photo-upload', e, 'Verifica a ligação e tenta de novo.'))
+    } finally { setUploadingPhoto(false) }
+  }
+
+  // BUG CORRIGIDO 2026-08-07: "não dá para eliminar utentes" — a capacidade já
+  // existia (arquivar = active:false, reversível em "Arquivados"), mas só na
+  // lista /patients, num botão de texto discreto no rodapé do cartão. Quem
+  // está a ver a FICHA do utente (onde realmente se decide isto) não tinha
+  // nenhuma forma de o fazer. Reutiliza o mesmo soft-delete — nunca apagar a
+  // sério: o histórico de cuidados de uma pessoa é um registo que tem de ficar.
+  async function archiveThisPatient() {
+    if (!patient) return
+    if (!confirm(`Arquivar ${patient.name}? Sai das listas ativas, mas o histórico fica guardado e pode ser reposto em "${cfg.personNounPlural}" → Arquivados.`)) return
+    const { error } = await supabase.from('patients').update({ active: false }).eq('id', patient.id)
+    if (error) { toast.error('Não foi possível arquivar', reportError('patients-archive', error, MSG.save)); return }
+    router.push('/patients')
   }
 
   async function addMed() {
@@ -229,7 +271,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       ${patient.conditions ? `<div class="box"><strong>Diagnósticos:</strong> ${esc(patient.conditions)}</div>` : ''}
       <h3>Medicação (${meds.length})</h3>
       <table><thead><tr><th>Medicamento</th><th>Dose</th><th>Frequência</th><th>Indicação</th></tr></thead><tbody>${medRows || '<tr><td colspan=4>Sem medicação registada</td></tr>'}</tbody></table>
-      <p style="margin-top:24px;color:#999;font-size:11px">Phlox · ${new Date().toLocaleDateString('pt-PT')}</p>
+      <p style="margin-top:24px;color:#999;font-size:11px">Phlox Clinical · ${new Date().toLocaleDateString('pt-PT')}</p>
       </body></html>`)
     w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
   }
@@ -262,7 +304,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       ${patient.conditions ? `<div class="box"><div class="lbl">Diagnósticos</div>${esc(patient.conditions)}</div>` : ''}
       <div class="box"><div class="lbl">Medicação atual (${meds.length})</div><ul>${medRows || '<li>Sem medicação registada</li>'}</ul></div>
       ${contactLine ? `<div class="box"><div class="lbl">Contacto de emergência</div>${contactLine}</div>` : ''}
-      <p style="margin-top:24px;color:#999;font-size:11px">Phlox · Gerado em ${new Date().toLocaleString('pt-PT')} · ${esc(cfg.unitNoun)}</p>
+      <p style="margin-top:24px;color:#999;font-size:11px">Phlox Clinical · Gerado em ${new Date().toLocaleString('pt-PT')} · ${esc(cfg.unitNoun)}</p>
       </body></html>`)
     w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
   }
@@ -312,7 +354,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         </div>
         <div class="box">Este mês, ${esc(patient.name.split(' ')[0])} <strong>${mealWord}</strong> e esteve <strong>${moodWord}</strong>. A equipa acompanhou-o(a) de perto, com registo em ${days} ${days === 1 ? 'dia' : 'dias'}.</div>
         <p style="font-size:14px;color:#444">Continuamos a cuidar com atenção e carinho. Para qualquer questão, fale connosco a qualquer momento.</p>
-        <div class="foot">Gerado pelo Phlox a partir dos registos de cuidado · ${new Date().toLocaleDateString('pt-PT')}. Documento informativo para a família.</div>
+        <div class="foot">Gerado pelo Phlox Clinical a partir dos registos de cuidado · ${new Date().toLocaleDateString('pt-PT')}. Documento informativo para a família.</div>
         </body></html>`)
       w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
     } catch { /* ignora */ }
@@ -420,7 +462,11 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-        <div style={{ width: 54, height: 54, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, flexShrink: 0 }}>{patient.name.charAt(0).toUpperCase()}</div>
+        {patient.photo_url ? (
+          <img src={patient.photo_url} alt={patient.name} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 54, height: 54, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, flexShrink: 0 }}>{patient.name.charAt(0).toUpperCase()}</div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: 'clamp(22px,5vw,28px)', fontWeight: warm ? 500 : 800, color: '#0b1120', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{patient.name}</h1>
           <div style={{ fontSize: 13, color: '#64748b', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
@@ -433,6 +479,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">🚨 Cartão de emergência</button>
           <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '…' : '📄 Relatório'}</button>
           <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal: presenças, atividades, medicação, ocorrências">{dossierBusy ? '…' : '🗂 Dossier mensal'}</button>
+          {scope.canEdit && (
+            <button onClick={archiveThisPatient} style={{ ...btnGhost(accent), borderColor: '#e2e8f0', color: '#94a3b8' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.color = '#dc2626' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#94a3b8' }}
+              title={`Arquivar ${noun} — sai das listas ativas, histórico fica guardado`}>🗄 Arquivar</button>
+          )}
         </div>
       </div>
 
@@ -745,6 +797,17 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Editar ficha</div>
               <button aria-label="Fechar" onClick={() => setEditing(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+              {patient.photo_url ? (
+                <img src={patient.photo_url} alt={patient.name} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, flexShrink: 0 }}>{patient.name.charAt(0).toUpperCase()}</div>
+              )}
+              <label style={{ ...btnGhost(accent), cursor: uploadingPhoto ? 'default' : 'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
+                {uploadingPhoto ? 'A enviar…' : patient.photo_url ? 'Trocar foto' : '+ Foto de perfil'}
+                <input type="file" accept="image/*" disabled={uploadingPhoto} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = '' }} style={{ display: 'none' }} />
+              </label>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input value={edit.name || ''} onChange={e => setEdit(p => ({ ...p, name: e.target.value }))} placeholder="Nome" style={inp} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

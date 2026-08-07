@@ -20,7 +20,7 @@ import { usePhloxContext } from '@/lib/copilotContext'
 import {
   buildResidentTrend, rankByTrendAttention, TREND_DISCLAIMER,
   TREND_WINDOW_DAYS, INCIDENT_WINDOW_DAYS, ASSESSMENT_WINDOW_DAYS,
-  type ResidentTrend, type MetricTrend, type SparkPoint,
+  type ResidentTrend, type MetricTrend, type SparkPoint, type TrendActivityRow,
 } from '@/lib/trendSignals'
 
 const ACCENT = '#0f766e'
@@ -53,12 +53,13 @@ export default function TendenciasPage() {
     setLoading(true); setErr('')
     const safe = async (q: any) => { try { const r = await q; return r.error ? { data: [] } : r } catch { return { data: [] } } }
 
-    const [p, care, mar, inc, assess] = await Promise.all([
+    const [p, care, mar, inc, assess, acts] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
       safe(scope.filter(supabase.from('care_records').select('patient_id,date,mood,nutrition')).gte('date', daysAgoISO(TREND_WINDOW_DAYS - 1))),
       safe(scope.filter(supabase.from('mar_records').select('patient_id,date,status')).gte('date', daysAgoISO(TREND_WINDOW_DAYS - 1))),
       safe(scope.filter(supabase.from('incidents').select('patient_id,date,severity')).gte('date', daysAgoISO(INCIDENT_WINDOW_DAYS - 1))),
       safe(scope.filter(supabase.from('assessments').select('patient_id,scale,date,score')).gte('date', daysAgoISO(ASSESSMENT_WINDOW_DAYS - 1))),
+      safe(scope.filter(supabase.from('activities').select('id,date')).gte('date', daysAgoISO(TREND_WINDOW_DAYS - 1))),
     ])
     if (p.error) { setErr('Não foi possível carregar. Verifica a ligação.'); setLoading(false); return }
 
@@ -71,12 +72,29 @@ export default function TendenciasPage() {
     const incBy = by(inc.data || [], (r: any) => r.patient_id)
     const assessBy = by(assess.data || [], (r: any) => r.patient_id)
 
+    // Participação em atividades — activity_participations não tem `date`
+    // própria (vive em `activities`); busca-se as atividades da janela e
+    // depois quem participou nelas, e junta-se pelo activity_id.
+    const actIds = (acts.data || []).map((a: any) => a.id)
+    const actDateById: Record<string, string> = {}
+    ;(acts.data || []).forEach((a: any) => { actDateById[a.id] = a.date })
+    const partsRes = actIds.length
+      ? await safe(supabase.from('activity_participations').select('patient_id,activity_id,attended').in('activity_id', actIds).eq('attended', true))
+      : { data: [] }
+    const activityBy: Record<string, TrendActivityRow[]> = {}
+    ;(partsRes.data || []).forEach((r: any) => {
+      const date = actDateById[r.activity_id]
+      if (!date) return
+      ;(activityBy[r.patient_id] ||= []).push({ patient_id: r.patient_id, date })
+    })
+
     const out = patients.map(pt => buildResidentTrend({
       patient: pt,
       care: careBy[pt.id] || [],
       mar: marBy[pt.id] || [],
       incidents: incBy[pt.id] || [],
       assessments: assessBy[pt.id] || [],
+      activities: activityBy[pt.id] || [],
     }))
     setResults(rankByTrendAttention(out))
     setLoading(false)
@@ -86,7 +104,7 @@ export default function TendenciasPage() {
   useEffect(() => { load() }, [load])
   useLiveData({
     supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load,
-    table: ['patients', 'care_records', 'mar_records', 'incidents', 'assessments'],
+    table: ['patients', 'care_records', 'mar_records', 'incidents', 'assessments', 'activity_participations'],
   })
 
   const needAttention = useMemo(() => results.filter(r => r.level === 'critical' || r.level === 'warning'), [results])
@@ -227,8 +245,47 @@ export default function TendenciasPage() {
 }
 
 function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof institutionConfig> }) {
+  const { supabase } = useAuth() as any
+  const [narrative, setNarrative] = useState('')
+  const [loadingNarrative, setLoadingNarrative] = useState(false)
+  const [narrativeErr, setNarrativeErr] = useState('')
+
+  async function genNarrative() {
+    setLoadingNarrative(true); setNarrativeErr('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/tendencias/narrative', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
+        body: JSON.stringify({
+          name: r.name, hasEnoughData: r.hasEnoughData,
+          flags: r.flags.map(f => ({ title: f.title, detail: f.detail, severity: f.severity })),
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Não consegui gerar agora.')
+      setNarrative(d.narrative)
+    } catch (e: any) { setNarrativeErr(e.message) }
+    setLoadingNarrative(false)
+  }
+
   return (
     <div style={{ padding: '0 18px 18px', borderTop: '1px solid #f1f5f9' }}>
+      {r.flags.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          {!narrative && !loadingNarrative && (
+            <button onClick={genNarrative} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#5b21b6', cursor: 'pointer' }}>
+              ✨ Resumo em palavras (IA)
+            </button>
+          )}
+          {loadingNarrative && <div style={{ fontSize: 12.5, color: '#7c3aed' }}>A escrever…</div>}
+          {narrativeErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{narrativeErr}</div>}
+          {narrative && (
+            <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#4c1d95', lineHeight: 1.6 }}>
+              {narrative}
+            </div>
+          )}
+        </div>
+      )}
       {r.flags.length > 0 && (
         <div style={{ marginTop: 14, marginBottom: 4 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Sinais encontrados</div>
@@ -247,7 +304,7 @@ function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof i
       <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 8px' }}>
         Registo diário · últimos {r.metrics[0]?.points.length || 21} dias
       </div>
-      <div className="trend-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      <div className="trend-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
         {r.metrics.map(m => <MetricBlock key={m.key} m={m} />)}
       </div>
 

@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Metformina e álcool — o que realmente acontece | Phlox',
+  title: 'Metformina e álcool — o que realmente acontece',
   description: 'Posso beber álcool se tomo metformina? Explica o risco de acidose láctica e hipoglicemia, quanto é demasiado, e o que dizer ao médico. Linguagem simples, base científica.',
+  keywords: 'metformina álcool, metformina e bebida, acidose láctica metformina, posso beber álcool diabetes',
   openGraph: {
     title: 'Metformina e álcool — o que realmente acontece',
     description: 'O risco real de juntar metformina e bebida, sem alarmismo nem mitos.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/metformina-alcool' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

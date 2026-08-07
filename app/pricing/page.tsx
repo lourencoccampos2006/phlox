@@ -108,6 +108,10 @@ export default function PricingPage() {
               por instituição · {billing === 'annual' ? `${formatPrice(org.price.annualTotal)}/ano` : `ou ${formatPrice(org.price.annualTotal)}/ano`}
             </div>
             <Link href={org.href} style={{ display: 'inline-block', padding: '12px 28px', background: '#fff', color: INK, textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{org.cta}</Link>
+            <a href="mailto:suporte@phloxclinical.com?subject=Agendar%20demo%20-%20Phlox%20Clinical&body=Ol%C3%A1%2C%0A%0AGostaria%20de%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20Phlox%20Clinical%20para%20a%20nossa%20institui%C3%A7%C3%A3o.%0A%0ANome%20da%20institui%C3%A7%C3%A3o%3A%20%0ANome%3A%20%0ATelefone%3A%20"
+              style={{ display: 'block', textAlign: 'center', marginTop: 10, padding: '12px 28px', background: 'transparent', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2, border: '1.5px solid rgba(255,255,255,0.35)' }}>
+              Agendar demo connosco →
+            </a>
           </div>
         </div>
 

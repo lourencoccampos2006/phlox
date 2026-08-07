@@ -3,6 +3,7 @@
 
 import Link from 'next/link'
 import { CardItem, SecuritySection } from './_parts'
+import { SUBPROCESSORS } from '@/lib/legal'
 
 export const metadata = {
   title: 'Segurança',
@@ -41,7 +42,7 @@ export default function SegurancaPage() {
         <SecuritySection title="Autenticação e sessões" intro="Sem palavras-passe partilhadas. Sem segredos em URLs.">
           <CardItem k="Autenticação" v="Supabase Auth · OAuth Google · email + magic link" />
           <CardItem k="Tokens" v="JWT assinados · sessões refrescadas automaticamente" />
-          <CardItem k="2FA" v="Disponível para contas Institucionais" />
+          <CardItem k="2FA" v="TOTP (app autenticadora) · disponível para qualquer conta em Definições → Segurança" />
           <CardItem k="Roteiro" v="SSO empresarial (SAML / Microsoft Entra ID) no plano Institucional" />
         </SecuritySection>
 
@@ -77,12 +78,14 @@ export default function SegurancaPage() {
 
         {/* Subprocessors */}
         <div id="subprocessadores" style={{ scrollMarginTop: 80 }} />
-        <SecuritySection title="Subprocessadores (Art. 28.º RGPD)" intro="Quem trata dados em nome do Phlox — atualizado a cada alteração.">
-          <CardItem k="Vercel" v="Hosting da aplicação · UE · TLS · sem acesso aos dados" />
-          <CardItem k="Supabase" v="Base de dados e autenticação · UE · titular do tratamento técnico" />
-          <CardItem k="Stripe" v="Pagamentos de subscrição · não recebe dados clínicos" />
-          <CardItem k="Google" v="Login via OAuth (opcional) · apenas para autenticação" />
+        <SecuritySection title="Subprocessadores (Art. 28.º RGPD)" intro="Quem trata dados em nome do Phlox — lista completa, atualizada a cada alteração.">
+          {SUBPROCESSORS.map(s => (
+            <CardItem key={s.name} k={s.name} v={`${s.purpose} · ${s.location}`} />
+          ))}
         </SecuritySection>
+        <p style={{ fontSize: 12.5, color: 'var(--ink-5)', margin: '-12px 0 22px' }}>
+          Finalidades, localizações e bases de transferência detalhadas em <Link href="/subprocessadores" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>/subprocessadores</Link>.
+        </p>
 
         <div style={{ marginTop: 26, padding: 18, background: 'white', border: '1px solid var(--border)', borderRadius: 12, fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
           Encontraste algo que mereça atenção? Vai a <Link href="/settings" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Definições</Link> e usa a ligação direta no perfil. Tratamos com prioridade.

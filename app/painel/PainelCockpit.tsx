@@ -242,6 +242,12 @@ export default function PainelCockpit() {
 
   const firstName = user?.name?.split(' ')[0] || ''
   const visibleBlocks = bp.cockpit.filter(b => editing || b.essential || !hidden.has(b.id))
+  // Catálogo completo, sem duplicados (algumas ferramentas de coreTools também
+  // aparecem em extraTools consoante o tipo — dedupe por href, core primeiro).
+  const allTools = useMemo(() => {
+    const seen = new Set<string>()
+    return [...bp.coreTools, ...bp.extraTools].filter(t => { if (seen.has(t.href)) return false; seen.add(t.href); return true })
+  }, [bp])
 
   // ── estilos por tom ──
   const warm = bp.tone === 'warm'
@@ -314,6 +320,27 @@ export default function PainelCockpit() {
               />
             </BlockShell>
           ))}
+        </div>
+
+        {/* Todas as ferramentas — 2026-08-07: /inicio deixou de mostrar a lista de
+            ferramentas (passou a widgets); /painel absorve o catálogo completo
+            (coreTools+extraTools) e torna-se o hub — aberto a QUALQUER pessoa da
+            equipa, não só a quem gere. As mesmas ferramentas já estavam na barra
+            lateral + "Mais ferramentas", mas escondidas atrás de um menu; aqui
+            ficam todas visíveis de uma vez, com a explicação de cada uma. */}
+        <div style={{ marginTop: 28 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>Todas as ferramentas</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+            {allTools.map(t => (
+              <Link key={t.href} href={t.href} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, textDecoration: 'none', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '12px 14px' }}>
+                <span style={{ flexShrink: 0, display: 'inline-flex', width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', background: bp.accentSoft }}><Icon name={iconForHref(t.href)} size={16} color={bp.accent} /></span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0b1120' }}>{t.label}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2, lineHeight: 1.4 }}>{t.hint}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

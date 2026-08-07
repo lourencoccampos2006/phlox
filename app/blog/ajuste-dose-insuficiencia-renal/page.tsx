@@ -3,13 +3,15 @@ import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Ajustar a dose na insuficiência renal — guia prático | Phlox',
+  title: 'Ajustar a dose na insuficiência renal — guia prático',
   description: 'Como ajustar fármacos à função renal: Cockcroft-Gault vs CKD-EPI, os medicamentos que mais exigem ajuste, e como calcular rapidamente. Para profissionais e estudantes.',
+  keywords: 'ajuste dose insuficiência renal, cockcroft-gault, ckd-epi, fármacos função renal, dose renal calculo',
   openGraph: {
     title: 'Ajuste de dose na insuficiência renal — guia prático',
     description: 'Cockcroft-Gault, CKD-EPI e os fármacos que mais exigem ajuste renal.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/ajuste-dose-insuficiencia-renal' },
 }
 
 const H2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 16, marginTop: 40, letterSpacing: '-0.015em' }

@@ -4,13 +4,15 @@ import AdBanner from '@/components/AdBanner'
 import ArticleSchema from '@/components/ArticleSchema'
 
 export const metadata: Metadata = {
-  title: 'Posso tomar ibuprofeno com varfarina? — Phlox',
+  title: 'Posso tomar ibuprofeno com varfarina?',
   description: 'Ibuprofeno e varfarina juntos podem causar hemorragia grave. Explica o mecanismo, o risco real, e o que podes tomar em alternativa. Verificado com dados FDA.',
+  keywords: 'ibuprofeno varfarina, ibuprofeno e varfarina juntos, varfarina anti-inflamatório, hemorragia varfarina',
   openGraph: {
     title: 'Posso tomar ibuprofeno com varfarina?',
     description: 'Uma das interações mais perigosas e mais comuns em Portugal.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/ibuprofeno-varfarina' },
 }
 
 export default function PostIbuprofenWarfarin() {

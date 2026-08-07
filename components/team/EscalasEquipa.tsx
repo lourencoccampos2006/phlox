@@ -9,7 +9,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { TarefasTool } from '@/app/tarefas-equipa/page'
 
-type SubTab = 'team' | 'schedule' | 'cobertura' | 'tarefas' | 'config'
+type SubTab = 'team' | 'schedule' | 'tarefas' | 'config'
 type Shift = 'manha' | 'tarde' | 'noite'
 type MemberStatus = 'on_shift' | 'break' | 'off' | 'sick' | 'vacation'
 type VacStatus = 'open' | 'filled' | 'cancelled'
@@ -461,13 +461,11 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
         <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: 0 }}>Estado de serviço, escalas semanais, tarefas da equipa e horários dos turnos.</p>
         {tab === 'team' && <button onClick={openNewMember} style={btnPrimary}><PlusIcon /> Adicionar</button>}
         {tab === 'schedule' && <button onClick={() => openShiftForm()} style={btnPrimary}><PlusIcon /> Marcar turno</button>}
-        {tab === 'cobertura' && <button onClick={() => openVacancyForm()} style={btnPrimary}><PlusIcon /> Publicar vaga</button>}
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {tabBtn('team', 'Estado de serviço')}
         {tabBtn('schedule', 'Escalas')}
-        {tabBtn('cobertura', `Cobertura${openVacancies.length ? ` (${openVacancies.length})` : ''}`)}
         {tabBtn('tarefas', 'Tarefas')}
         {tabBtn('config', 'Configurar turnos')}
       </div>
@@ -734,121 +732,6 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                       <SwapIcon size={14} />
                     </button>
                     <button aria-label="Eliminar" onClick={() => removeShift(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink-5)', padding: '0 4px', flexShrink: 0 }}>×</button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </>
-      )}
-
-      {tab === 'cobertura' && (
-        <>
-          {vacancySuggestions.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-              {vacancySuggestions.map(({ s, mem }) => (
-                <div key={s.id} style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12.5, color: '#1e40af' }}>
-                    <b>{mem.name}</b> está {STATUS_CFG[mem.status].label.toLowerCase()} e tem {SHIFT_META[s.shift].label.toLowerCase()} marcado para {new Date(s.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}.
-                  </span>
-                  <button onClick={() => openVacancyForm({ date: s.date, shift: s.shift, team_member_id: mem.id, shift_assignment_id: s.id, role: mem.role, reason: STATUS_CFG[mem.status].label })}
-                    style={{ padding: '6px 12px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    Publicar vaga
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: openVacancies.length ? '#dc2626' : '#16a34a', lineHeight: 1 }}>{openVacancies.length}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>Vagas abertas</div>
-            </div>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#16a34a', lineHeight: 1 }}>{filledVacancies.length}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>Cobertas (14 dias)</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-            {(['open', 'all'] as const).map(f => (
-              <button key={f} onClick={() => setVacFilter(f)} style={{
-                padding: '6px 14px', borderRadius: 7, fontFamily: 'var(--font-sans)',
-                border: `1.5px solid ${vacFilter === f ? '#1d4ed8' : 'var(--border)'}`,
-                background: vacFilter === f ? '#eff6ff' : 'white',
-                color: vacFilter === f ? '#1d4ed8' : 'var(--ink-4)',
-                fontSize: 12, fontWeight: vacFilter === f ? 700 : 400, cursor: 'pointer',
-              }}>
-                {f === 'open' ? `Abertas (${openVacancies.length})` : `Todas (${vacancies.length})`}
-              </button>
-            ))}
-          </div>
-
-          {vacanciesShown.length === 0 ? (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 44, textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 6 }}>Sem vagas {vacFilter === 'open' ? 'abertas' : 'registadas'}</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Quando alguém não puder vir a um turno, publica a vaga aqui — a equipa vê e cobre.</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {vacanciesShown.map(v => {
-                const um = URGENCY_META[v.urgency] || URGENCY_META.normal
-                const sm = SHIFT_META[v.shift]
-                const isClaiming = claimingId === v.id
-                const borderColor = v.status === 'open' ? um.color : v.status === 'filled' ? '#16a34a' : '#94a3b8'
-                return (
-                  <div key={v.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${borderColor}`, borderRadius: 10, padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
-                            {sm.label} · {new Date(v.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          </span>
-                          {v.status === 'open' && <span style={{ fontSize: 10, fontWeight: 700, color: um.color, background: um.bg, border: `1px solid ${um.border}`, padding: '2px 8px', borderRadius: 5 }}>{um.label}</span>}
-                          {v.status === 'filled' && <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: 5 }}>Coberta</span>}
-                          {v.status === 'cancelled' && <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', background: 'var(--bg-2)', padding: '2px 8px', borderRadius: 5 }}>Cancelada</span>}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>
-                          {v.role ? `${ROLE_LABELS[v.role] || v.role}` : 'Sem função definida'}
-                          {v.team_member_name ? ` · no lugar de ${v.team_member_name}` : ''}
-                          {v.reason ? ` · ${v.reason}` : ''}
-                        </div>
-                        {v.status === 'filled' && v.claimed_by_name && <div style={{ fontSize: 12, color: '#16a34a', marginTop: 3, fontWeight: 600 }}>Coberto por {v.claimed_by_name}</div>}
-                        {v.notes && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3, fontStyle: 'italic' }}>{v.notes}</div>}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        {v.status === 'open' && !isClaiming && (
-                          <button onClick={() => { setClaimingId(v.id); setClaimMemberId('') }}
-                            style={{ padding: '6px 12px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                            Cobrir este turno
-                          </button>
-                        )}
-                        {v.status === 'open' && (
-                          <button onClick={() => cancelVacancy(v)} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                            Cancelar
-                          </button>
-                        )}
-                        {v.status === 'filled' && (
-                          <button onClick={() => reopenVacancy(v)} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                            Reabrir
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {isClaiming && (
-                      <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
-                        <select value={claimMemberId} onChange={e => setClaimMemberId(e.target.value)} style={{ ...sel, width: 240 }}>
-                          <option value="">Quem vai cobrir?</option>
-                          {members.map(m => <option key={m.id} value={m.id}>{m.name} — {ROLE_LABELS[m.role] || m.role}</option>)}
-                        </select>
-                        <button onClick={() => claimVacancy(v, claimMemberId)} disabled={!claimMemberId}
-                          style={{ padding: '8px 16px', background: !claimMemberId ? 'var(--bg-3)' : '#0d6e42', color: !claimMemberId ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: !claimMemberId ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                          Confirmar
-                        </button>
-                        <button onClick={() => setClaimingId(null)} style={{ padding: '8px 12px', background: 'none', border: 'none', color: 'var(--ink-4)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Cancelar</button>
-                      </div>
-                    )}
                   </div>
                 )
               })}

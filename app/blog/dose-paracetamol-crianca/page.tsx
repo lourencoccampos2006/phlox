@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Dose de Paracetamol para Crianças — Calculadora por Peso (2026) | Phlox Clinical',
+  title: 'Dose de Paracetamol para Crianças — Calculadora por Peso (2026)',
   description: 'Dose correcta de paracetamol para crianças por peso e idade. Tabela completa, calculadora gratuita, alertas de segurança e quando ir ao médico. Actualizado 2026.',
   keywords: 'dose paracetamol criança, paracetamol peso criança, ben-u-ron criança dose, febre criança tratamento, paracetamol mg kg',
   openGraph: {
@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     description: 'Tabela completa de doses por peso. Calculadora gratuita. Alertas de segurança.',
     type: 'article',
   },
+  alternates: { canonical: 'https://phloxclinical.com/blog/dose-paracetamol-crianca' },
 }
 
 const DOSE_TABLE = [

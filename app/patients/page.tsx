@@ -22,6 +22,7 @@ import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { reportError } from '@/lib/clientError'
+import * as XLSX from 'xlsx'
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 function parseCSV(text: string): string[][] {
@@ -188,17 +189,39 @@ export default function PatientsPage() {
     load(); loadArchived()
   }
 
+  // Usa as linhas já normalizadas (headers + dataRows, tudo string[][]) para
+  // detetar colunas e preparar a pré-visualização — partilhado por CSV e Excel.
+  function applyImportRows(rows: string[][]) {
+    if (rows.length < 2) { setImportError('Ficheiro vazio ou inválido.'); return }
+    const [headers, ...dataRows] = rows
+    const mapping = detectMapping(headers)
+    if (mapping.name === undefined) { setImportError('Não consegui detetar a coluna "Nome". Confirma o cabeçalho.'); return }
+    setImportPreview({ headers, rows: dataRows.filter(r => r[mapping.name]?.trim()), mapping }); setImportError('')
+  }
+
   function handleCSVFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
+    const isExcel = /\.xlsx?$/i.test(file.name)
+    if (isExcel) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        try {
+          const buf = ev.target?.result as ArrayBuffer
+          const wb = XLSX.read(buf, { type: 'array' })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const rows = (XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' }) as unknown[][])
+            .map(row => row.map(cell => String(cell ?? '').trim()))
+            .filter(row => row.some(c => c))
+          applyImportRows(rows)
+        } catch { setImportError('Erro ao ler o ficheiro. É um .xlsx/.xls válido?') }
+      }
+      reader.readAsArrayBuffer(file); e.target.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        const rows = parseCSV(ev.target?.result as string)
-        if (rows.length < 2) { setImportError('Ficheiro vazio ou inválido.'); return }
-        const [headers, ...dataRows] = rows
-        const mapping = detectMapping(headers)
-        if (mapping.name === undefined) { setImportError('Não consegui detetar a coluna "Nome". Confirma o cabeçalho.'); return }
-        setImportPreview({ headers, rows: dataRows.filter(r => r[mapping.name]?.trim()), mapping }); setImportError('')
+        applyImportRows(parseCSV(ev.target?.result as string))
       } catch { setImportError('Erro ao ler o ficheiro. É um CSV válido?') }
     }
     reader.readAsText(file, 'UTF-8'); e.target.value = ''
@@ -438,9 +461,9 @@ export default function PatientsPage() {
             <>
               <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `2px dashed ${accent}`, borderRadius: 12, padding: '38px 24px', cursor: 'pointer', background: accentSoft, gap: 10 }}>
                 <span style={{ fontSize: 32 }}>📄</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: accent }}>Selecionar ficheiro CSV</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>Exportado do Excel ou de outro sistema · até 500 {nounPlural}</span>
-                <input type="file" accept=".csv,.txt" onChange={handleCSVFile} style={{ display: 'none' }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: accent }}>Selecionar ficheiro CSV ou Excel</span>
+                <span style={{ fontSize: 12, color: '#64748b' }}>.csv, .xlsx ou .xls · exportado do Excel ou de outro sistema · até 500 {nounPlural}</span>
+                <input type="file" accept=".csv,.txt,.xlsx,.xls" onChange={handleCSVFile} style={{ display: 'none' }} />
               </label>
               {importError && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#dc2626' }}>{importError}</div>}
               <div style={{ marginTop: 14, padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>

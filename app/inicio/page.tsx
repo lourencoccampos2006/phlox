@@ -239,31 +239,47 @@ function ClinicalHub({ name }: { name: string }) {
   const today = new Date().toISOString().slice(0, 10)
 
   const [snap, setSnap] = useState<{ people: number; logged: number; doses: number; alerts: number } | null>(null)
+  // BUG/PEDIDO 2026-08-07: /inicio deixou de mostrar a grelha de ferramentas
+  // (isso agora vive só em /painel, que absorveu o catálogo completo) — em vez
+  // disso mostra "widgets úteis": info que interessa a QUALQUER funcionário
+  // (nunca restrita a admin), não atalhos para abrir ferramentas.
+  const [attention, setAttention] = useState<{ id: string; name: string; reason: string }[]>([])
+  const [todayActivities, setTodayActivities] = useState<{ title: string; start_time: string | null }[]>([])
 
   const load = useCallback(async () => {
     if (!user) return
-    const [p, care, mar, inc] = await Promise.all([
+    const [p, care, mar, inc, unlogged, acts] = await Promise.all([
       scope.filter(supabase.from('patients').select('id', { count: 'exact', head: true }).eq('active', true)),
       scope.filter(supabase.from('care_records').select('patient_id')).eq('date', today),
       scope.filter(supabase.from('mar_records').select('status')).eq('date', today),
-      scope.filter(supabase.from('incidents').select('id', { count: 'exact', head: true }).eq('status', 'open')),
+      scope.filter(supabase.from('incidents').select('id,patient_id,type', { count: 'exact' }).eq('status', 'open')).limit(3),
+      scope.filter(supabase.from('patients').select('id,name').eq('active', true)),
+      scope.filter(supabase.from('activities').select('title,start_time')).eq('date', today).order('start_time', { ascending: true }),
     ])
-    const logged = new Set((care.data || []).map((r: any) => r.patient_id)).size
+    const loggedIds = new Set((care.data || []).map((r: any) => r.patient_id))
+    const logged = loggedIds.size
     const doses = (mar.data || []).filter((m: any) => m.status === 'administered' || m.status === 'taken' || m.status === 'given').length
-    setSnap({ people: p.count || 0, logged, doses, alerts: inc.count || 0 })
+    setSnap({ people: p.count || 0, logged, doses, alerts: (inc as any).count || 0 })
+    // "A vigiar hoje" — junta ocorrências abertas (nome real do utente) com
+    // utentes ainda sem registo do dia, até 3 no total. Não é pontuação de
+    // risco (isso é o /radar) — é só um lembrete rápido, para todos verem.
+    const patientName: Record<string, string> = {}
+    ;(unlogged.data || []).forEach((p2: any) => { patientName[p2.id] = p2.name })
+    const incItems = ((inc.data || []) as any[]).slice(0, 3).map(i => ({ id: i.id, name: patientName[i.patient_id] || 'Utente', reason: 'ocorrência em aberto' }))
+    const stillNeeded = 3 - incItems.length
+    const unloggedItems = stillNeeded > 0
+      ? ((unlogged.data || []) as any[]).filter(p2 => !loggedIds.has(p2.id)).slice(0, stillNeeded).map(p2 => ({ id: p2.id, name: p2.name, reason: 'sem registo hoje' }))
+      : []
+    setAttention([...incItems, ...unloggedItems])
+    setTodayActivities(((acts.data || []) as any[]).slice(0, 3))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, userId: user?.id, table: ['patients', 'care_records', 'mar_records', 'incidents'], filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
+  useLiveData({ supabase, userId: user?.id, table: ['patients', 'care_records', 'mar_records', 'incidents', 'activities'], filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load })
 
   const firstName = name
   const greetLead = bp.greetingLead(firstName)
-  // ações = núcleo do blueprint (já com vocabulário certo) + atalhos transversais
-  const actions = [
-    { href: '/painel', icon: 'grid', title: 'Abrir o painel', desc: `${bp.productName} ao vivo` },
-    ...bp.coreTools.map(tool => ({ href: tool.href, icon: iconForTool(tool.icon), title: tool.label, desc: tool.hint })),
-  ]
 
   const stats = snap ? [
     { n: snap.people, l: cfg.personNounPlural },
@@ -296,26 +312,48 @@ function ClinicalHub({ name }: { name: string }) {
           )}
         </Link>
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', margin: '30px 0 13px' }}>Por onde começar</div>
-        <div>
-          {actions.map((tool, i) => (
-            <Link key={tool.href} href={tool.href} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 13, padding: '12px 0', borderTop: i === 0 ? 'none' : `1px solid ${t.border}` }}>
-              <span style={{ width: 34, height: 34, borderRadius: '50%', background: t.accentSoft, color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={tool.icon} size={18} /></span>
-              <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: 'block', fontWeight: 700, fontSize: 14.5, color: t.ink }}>{tool.title}</span>
-                <span style={{ display: 'block', fontSize: 12.5, color: t.inkFaint }}>{tool.desc}</span>
-              </span>
-              <Icon name="chevron" size={15} color={t.inkFaint} />
-            </Link>
-          ))}
-        </div>
+        {/* "A vigiar hoje" — lembrete rápido para todos, não é o /radar completo */}
+        {attention.length > 0 && (
+          <div style={{ marginTop: 30 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>A vigiar hoje</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {attention.map((a, i) => (
+                <div key={a.id + i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626', flexShrink: 0 }} />
+                  <span style={{ color: t.ink, fontWeight: 600 }}>{a.name}</span>
+                  <span style={{ color: t.inkFaint }}>— {a.reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Atividades de hoje — útil a qualquer funcionário, não só a quem gere */}
+        {todayActivities.length > 0 && (
+          <div style={{ marginTop: 26 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>Atividades de hoje</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {todayActivities.map((a, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
+                  {a.start_time && <span style={{ fontFamily: 'var(--font-mono)', color: t.inkFaint, fontSize: 12, minWidth: 42 }}>{a.start_time.slice(0, 5)}</span>}
+                  <span style={{ color: t.ink, fontWeight: 600 }}>{a.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Link href="/painel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 32, padding: '13px', borderRadius: 10, background: t.accent, color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 14.5 }}>
+          <Icon name="grid" size={17} color="white" /> Abrir o painel
+        </Link>
       </div>
     </div>
   )
 }
 
 // Mapeia o emoji do blueprint para um ícone do nosso set (fallback p/ grid).
-function iconForTool(emoji: string): string {
+// Exportada: /painel também usa isto para desenhar o catálogo de ferramentas.
+export function iconForTool(emoji: string): string {
   const map: Record<string, string> = {
     '🧑‍🤝‍🧑': 'family', '💊': 'pill', '📝': 'book', '👨‍👩‍👧': 'family', '🔄': 'spark',
     '⚠️': 'shield', '📐': 'check', '🩺': 'check', '🏪': 'grid', '📦': 'grid', '🔍': 'search', '📅': 'calendar',
