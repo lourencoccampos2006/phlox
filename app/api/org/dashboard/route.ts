@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     safe(a.from('incidents').select('id, type, severity, date').eq('org_id', orgId).eq('status', 'open')),
     safe(a.from('family_thread_messages').select('patient_id, author_side').eq('org_id', orgId).gte('created_at', last7 + 'T00:00:00')),
     safe(a.from('care_records').select('patient_id, date').eq('org_id', orgId).gte('date', last7)),
-    safe(a.from('patient_meds').select('patient_id').eq('org_id', orgId).eq('active', true)),
+    safe(a.from('patient_meds').select('patient_id, shifts').eq('org_id', orgId).eq('active', true)),
     // — Cofre de valor (mês corrente): o que ficou registado e organizado —
     safe(a.from('incidents').select('id, status').eq('org_id', orgId).gte('date', mStart)),
     safe(a.from('assessments').select('id').eq('org_id', orgId).gte('date', mStart)),
@@ -85,9 +85,19 @@ export async function GET(req: NextRequest) {
   // achados farmacológicos sinalizados para revisão da equipa (flags + alertas)
   const vigilFindings = (vigil.data || []).reduce((s: number, v: any) =>
     s + (Array.isArray(v.flags) ? v.flags.length : 0) + (Array.isArray(v.alerts) ? v.alerts.length : 0), 0)
-  // adesão da medicação do mês (doses registadas como dadas / total registado)
-  const marTotal = (marMonth.data || []).length
-  const marAdherence = marTotal > 0 ? Math.round((marGiven / marTotal) * 100) : null
+  // adesão da medicação do mês: doses dadas / doses PREVISTAS pelo horário —
+  // NÃO doses dadas / total de registos existentes. Uma dose que a equipa
+  // simplesmente não regista (esquecida ou propositadamente não dada) nunca
+  // cria uma linha em mar_records — por isso dividir pelo nº de registos dava
+  // sempre ~100%, mesmo com doses reais a falhar (o denominador só crescia
+  // quando havia sucesso a registar). O previsto vem do horário real de cada
+  // medicação ativa (patient_meds.shifts — 3 turnos/dia se vazio) × dias
+  // decorridos no mês; é uma aproximação (não sabe se um fármaco só foi
+  // adicionado a meio do mês), mas reflete doses PREVISTAS, não só registadas.
+  const daysSoFarMonth = Math.floor((Date.now() - monthStart.getTime()) / 86400000) + 1
+  const expectedDosesPerDay = (medsActive.data || []).reduce((s: number, m: any) => s + (Array.isArray(m.shifts) && m.shifts.length > 0 ? m.shifts.length : 3), 0)
+  const marExpectedMonth = expectedDosesPerDay * daysSoFarMonth
+  const marAdherence = marExpectedMonth > 0 ? Math.min(100, Math.round((marGiven / marExpectedMonth) * 100)) : null
 
   // ── FINANÇAS DO MÊS — resultado real: mensalidades recebidas + outras receitas
   // − despesas. Tolerante: sem finance_entries/billing_entries fica a zero.

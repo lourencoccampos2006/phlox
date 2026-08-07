@@ -180,7 +180,8 @@ export default function PhloxCopilot() {
     } catch {
       setMsgs(m => m.map((msg, i) => i === idx ? { ...msg, actionError: 'Não foi possível concluir.' } : msg))
     }
-  }, [pathname, supabase, scope])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, supabase, scope.orgId, scope.userId])
 
   if (!isPro || isPublic) return null
 

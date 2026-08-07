@@ -92,12 +92,45 @@ export default function StockPage() {
     setTimeout(() => { setImporting(false); setPreview(null); setImportMsg(''); load() }, 1200)
   }
 
+  // Previsão de reencomenda: dias até esgotar, pelo RITMO REAL de consumo (não
+  // só "abaixo do mínimo"). Cálculo determinístico (soma de stock_consumption
+  // dos últimos 30 dias ÷ dias com histórico) — de propósito NÃO é uma
+  // chamada a IA: uma previsão numérica ganha em ser uma conta reprodutível,
+  // não um palpite de modelo de linguagem.
+  const [daysLeft, setDaysLeft] = useState<Record<string, number>>({})
+  const LOOKBACK_DAYS = 30
+
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true); setErr('')
-    const { data, error } = await scope.filter(supabase.from('stock_items').select('*')).order('name')
-    if (error) { if (/relation .*stock_items.* does not exist/i.test(error.message)) setMissing(true); setItems([]) }
-    else { setMissing(false); setItems(data || []) }
+    const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString()
+    const [itemsRes, consRes] = await Promise.all([
+      scope.filter(supabase.from('stock_items').select('*')).order('name'),
+      scope.filter(supabase.from('stock_consumption').select('item_id,qty,created_at')).gte('created_at', since),
+    ])
+    if (itemsRes.error) { if (/relation .*stock_items.* does not exist/i.test(itemsRes.error.message)) setMissing(true); setItems([]) }
+    else {
+      setMissing(false); setItems(itemsRes.data || [])
+      const byItem: Record<string, { total: number; earliest: number }> = {}
+      ;(consRes.data || []).forEach((c: any) => {
+        const t = new Date(c.created_at).getTime()
+        const cur = byItem[c.item_id] || { total: 0, earliest: t }
+        cur.total += Number(c.qty) || 0
+        cur.earliest = Math.min(cur.earliest, t)
+        byItem[c.item_id] = cur
+      })
+      const dl: Record<string, number> = {}
+      Object.entries(byItem).forEach(([itemId, { total, earliest }]) => {
+        if (total <= 0) return
+        const spanDays = Math.max(1, (Date.now() - earliest) / 86400000)
+        const dailyRate = total / spanDays
+        if (dailyRate > 0) {
+          const it = (itemsRes.data || []).find((x: any) => x.id === itemId)
+          if (it) dl[itemId] = it.quantity / dailyRate
+        }
+      })
+      setDaysLeft(dl)
+    }
     setLoading(false)
   }, [user, supabase])
 
@@ -163,12 +196,16 @@ export default function StockPage() {
   const low = items.filter(i => i.min_quantity > 0 && i.quantity <= i.min_quantity)
   const expiringSoon = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d >= 0 && d <= 30 })
   const expired = items.filter(i => { const d = expiryDays(i.expiry_date); return d !== null && d < 0 })
+  // Previsto para esgotar em breve (≤7 dias ao ritmo real), mesmo que ainda
+  // esteja ACIMA do mínimo fixo — o mínimo estático não sabe se o consumo
+  // acelerou; o ritmo real sabe.
+  const runningOutSoon = items.filter(i => daysLeft[i.id] != null && daysLeft[i.id] <= 7 && !(i.min_quantity > 0 && i.quantity <= i.min_quantity))
   // BUG/PEDIDO 2026-08-07: "mais fácil e intuitivo" — a lista era só alfabética,
   // por isso o que precisa de atenção (rutura/validade) ficava escondido no
   // meio de tudo o resto, a ler um a um. Agora separa-se o que precisa de
   // atenção AGORA do resto do inventário, sem mexer no fluxo de 1 toque que
   // já existia (Usar 1, +/-, reposição).
-  const needsAttentionIds = new Set([...low, ...expiringSoon, ...expired].map(i => i.id))
+  const needsAttentionIds = new Set([...low, ...expiringSoon, ...expired, ...runningOutSoon].map(i => i.id))
   const attention = shown.filter(i => needsAttentionIds.has(i.id))
   const rest = shown.filter(i => !needsAttentionIds.has(i.id))
   const [showRest, setShowRest] = useState(attention.length === 0)
@@ -284,7 +321,7 @@ export default function StockPage() {
                   <div style={{ marginBottom: rest.length > 0 ? 22 : 0 }}>
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Precisa de atenção ({attention.length})</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                      {attention.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} />)}
+                      {attention.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} />)}
                     </div>
                   </div>
                 )}
@@ -297,7 +334,7 @@ export default function StockPage() {
                     )}
                     {(showRest || attention.length === 0) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {rest.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} />)}
+                        {rest.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} />)}
                       </div>
                     )}
                   </div>
@@ -397,15 +434,17 @@ export default function StockPage() {
 // Extraído de dentro do map original (2026-08-07) para poder ser reutilizado
 // nas duas secções ("Precisa de atenção" + "Resto do inventário") sem
 // duplicar a marcação — mesmo comportamento de sempre, só reorganizado.
-function StockItemCard({ it, card, scope, consume, adjust, del, reorder }: {
+function StockItemCard({ it, card, scope, consume, adjust, del, reorder, daysLeft }: {
   it: Item; card: React.CSSProperties; scope: ReturnType<typeof useOrgScope>
   consume: (it: Item, qty?: number) => void; adjust: (it: Item, delta: number) => void
   del: (id: string) => void; reorder: (it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) => void
+  daysLeft?: number
 }) {
   const cat = CATS[it.category] || CATS.geral
   const isLow = it.min_quantity > 0 && it.quantity <= it.min_quantity
   const d = expiryDays(it.expiry_date)
   const expColor = d === null ? null : d < 0 ? '#dc2626' : d <= 30 ? '#d97706' : '#16a34a'
+  const runsOutSoon = daysLeft != null && daysLeft <= 14
   return (
     <div style={{ ...card, padding: '11px 15px', borderLeft: `3px solid ${isLow ? '#dc2626' : cat.color}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -420,6 +459,8 @@ function StockItemCard({ it, card, scope, consume, adjust, del, reorder }: {
             {it.location && <span>📍 {it.location}</span>}
             {it.min_quantity > 0 && <span>mín. {it.min_quantity}{it.unit ? ` ${it.unit}` : ''}</span>}
             {d !== null && <span style={{ color: expColor!, fontWeight: 600 }}>{d < 0 ? `expirado há ${-d}d` : `validade em ${d}d`}</span>}
+            {/* Previsão pelo ritmo real de consumo (últimos 30 dias) — não é só "abaixo do mínimo". */}
+            {runsOutSoon && !isLow && <span style={{ color: daysLeft! <= 7 ? '#dc2626' : '#d97706', fontWeight: 600 }}>⏱ aos números atuais, acaba em ~{Math.max(1, Math.round(daysLeft!))}d</span>}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -433,7 +474,7 @@ function StockItemCard({ it, card, scope, consume, adjust, del, reorder }: {
       </div>
 
       {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
-      {(isLow || (it.reorder_status && it.reorder_status !== 'ok')) && (
+      {(isLow || runsOutSoon || (it.reorder_status && it.reorder_status !== 'ok')) && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {it.reorder_status === 'requested' ? (
             <>

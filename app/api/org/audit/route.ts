@@ -24,12 +24,25 @@ export async function GET(req: NextRequest) {
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).eq('active', true).maybeSingle()
   if (!mem || !['owner', 'admin'].includes(mem.role)) return NextResponse.json({ error: 'Só o dono/admin.' }, { status: 403 })
 
-  const day = req.nextUrl.searchParams.get('date') || new Date().toISOString().slice(0, 10)
+  // Intervalo de datas: aceita from/to (vista multi-dia no ecrã) ou o antigo
+  // "date" isolado (compatibilidade). Sem isto, o ecrã só mostrava UM dia de
+  // cada vez e só o Excel (route /api/org/export) suportava intervalos — o
+  // utilizador não conseguia VER no ecrã os registos de vários dias seguidos.
+  const singleDay = req.nextUrl.searchParams.get('date')
+  const from = req.nextUrl.searchParams.get('from') || singleDay || new Date().toISOString().slice(0, 10)
+  const to = req.nextUrl.searchParams.get('to') || singleDay || new Date().toISOString().slice(0, 10)
+  // Limite de segurança: no máximo ~3 meses por pedido, para não martelar a
+  // base de dados com um intervalo enorme por engano.
+  const MAX_RANGE_DAYS = 92
+  const spanDays = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000)
+  if (spanDays < 0) return NextResponse.json({ error: 'Data inicial depois da final.' }, { status: 400 })
+  if (spanDays > MAX_RANGE_DAYS) return NextResponse.json({ error: `Intervalo máximo de ${MAX_RANGE_DAYS} dias.` }, { status: 400 })
 
+  const EVENTS_CAP = 500
   const [mar, care, inc, pats, staff] = await Promise.all([
-    a.from('mar_records').select('patient_id, med_id, status, recorded_at, recorded_by, recorded_by_id, shift, source, home_by').eq('org_id', orgId).eq('date', day),
-    a.from('care_records').select('patient_id, shift, created_at, recorded_by, recorded_by_id').eq('org_id', orgId).eq('date', day),
-    a.from('incidents').select('patient_id, type, severity, created_at, recorded_by_id').eq('org_id', orgId).eq('date', day),
+    a.from('mar_records').select('patient_id, med_id, status, recorded_at, recorded_by, recorded_by_id, shift, source, home_by').eq('org_id', orgId).gte('date', from).lte('date', to),
+    a.from('care_records').select('patient_id, shift, created_at, recorded_by, recorded_by_id').eq('org_id', orgId).gte('date', from).lte('date', to),
+    a.from('incidents').select('patient_id, type, severity, created_at, recorded_by_id').eq('org_id', orgId).gte('date', from).lte('date', to),
     a.from('patients').select('id, name').eq('org_id', orgId),
     a.from('org_members').select('user_id').eq('org_id', orgId).eq('active', true),
   ])
@@ -43,7 +56,7 @@ export async function GET(req: NextRequest) {
 
   const who = (id?: string | null, fallback?: string | null) => (id && staffName[id]) || fallback || '—'
 
-  const events = [
+  const allEvents = [
     // Doses dadas em CASA pela família não são trabalho da equipa — não têm
     // recorded_by_id (não são funcionários) e vêm identificadas por home_by.
     // Aparecem no registo (é um facto relevante para a auditoria), mas
@@ -68,10 +81,16 @@ export async function GET(req: NextRequest) {
     })),
   ].sort((x, y) => (y.at || '').localeCompare(x.at || ''))
 
-  // resumo por funcionário — família (medicação dada em casa) fica de fora,
-  // não é trabalho da equipa
-  const byStaff: Record<string, number> = {}
-  events.forEach(e => { if (!e.isFamily) byStaff[e.who] = (byStaff[e.who] || 0) + 1 })
+  const truncated = allEvents.length > EVENTS_CAP
+  const events = allEvents.slice(0, EVENTS_CAP)
 
-  return NextResponse.json({ date: day, events, byStaff, totals: { meds: mar.data?.length || 0, care: care.data?.length || 0, incidents: inc.data?.length || 0 } })
+  // resumo por funcionário — família (medicação dada em casa) fica de fora,
+  // não é trabalho da equipa (conta sobre TODOS os eventos do intervalo, não só os mostrados)
+  const byStaff: Record<string, number> = {}
+  allEvents.forEach(e => { if (!e.isFamily) byStaff[e.who] = (byStaff[e.who] || 0) + 1 })
+
+  return NextResponse.json({
+    from, to, events, byStaff, truncated, totalEvents: allEvents.length,
+    totals: { meds: mar.data?.length || 0, care: care.data?.length || 0, incidents: inc.data?.length || 0 },
+  })
 }

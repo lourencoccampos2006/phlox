@@ -59,7 +59,7 @@ interface Patient {
   id: string; name: string; age: number | null; sex: string | null
   conditions: string | null; allergies: string | null
   room_number?: string | null; creatinine?: number | null; weight?: number | null
-  updated_at?: string
+  updated_at?: string; photo_url?: string | null
 }
 
 type FilterKey = 'all' | 'alerts' | 'poly' | 'no_log'
@@ -108,7 +108,7 @@ export default function PatientsPage() {
     if (!user) return
     // utentes da ORGANIZAÇÃO (ou do próprio, se conta individual)
     const { data: pats } = await scope.filter(
-      supabase.from('patients').select('id,name,age,sex,conditions,allergies,room_number,creatinine,weight,updated_at').eq('active', true)
+      supabase.from('patients').select('id,name,age,sex,conditions,allergies,room_number,creatinine,weight,updated_at,photo_url').eq('active', true)
     ).order('name')
     const list = (pats || []) as Patient[]
     setPatients(list)
@@ -366,7 +366,11 @@ export default function PatientsPage() {
                 <div key={p.id} className="pt-card" style={{ position: 'relative', background: 'white', border: '1px solid #e9eaec', borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.15s, transform 0.12s' }}>
                   <Link href={`/patients/${p.id}`} style={{ display: 'block', padding: '16px 18px', textDecoration: 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>{p.name.charAt(0).toUpperCase()}</div>
+                      {p.photo_url ? (
+                        <img src={p.photo_url} alt={p.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>{p.name.charAt(0).toUpperCase()}</div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                         <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

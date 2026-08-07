@@ -2,9 +2,12 @@
 // Passo 3 de 3 do "Regista falando": grava só as ações que o utilizador
 // confirmou explicitamente uma a uma (o cliente só envia as aprovadas).
 // Cada domínio grava exatamente como a ferramenta manual equivalente
-// (/refeicoes, aba "Saúde & Apoio", /apoio-servicos) — nunca um caminho
-// paralelo. nutrition faz merge-safe upsert (lê a linha existente antes de
-// gravar, nunca substitui vitais/humor/pele já registados nesse turno).
+// (/refeicoes, /care-log, /apoio-servicos, /atividades) — nunca um caminho
+// paralelo. nutrition e vitals fazem merge-safe upsert na MESMA linha de
+// care_records (lê a linha existente antes de gravar, nunca substitui o que
+// já lá estava nesse turno) — o loop é sequencial, por isso processar as
+// duas no mesmo commit não perde nenhuma, cada uma vê o que a anterior já
+// gravou.
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
@@ -13,7 +16,7 @@ import { sb } from '@/lib/orgAuth'
 export const runtime = 'nodejs'
 
 type Shift = 'manha' | 'tarde' | 'noite'
-interface Action { domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication'; payload: Record<string, any> }
+interface Action { domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity'; payload: Record<string, any> }
 interface Result { domain: string; ok: boolean; error?: string }
 
 export async function POST(req: NextRequest) {
@@ -46,6 +49,7 @@ export async function POST(req: NextRequest) {
         ...(existing ? { vitals: existing.vitals, continence: existing.continence, mood: existing.mood, skin: existing.skin, notes: existing.notes } : {}),
         user_id: userId,
         org_id: patient.org_id || null,
+        recorded_by_id: userId,
         patient_id: patientId,
         date, shift,
         nutrition: {
@@ -57,6 +61,47 @@ export async function POST(req: NextRequest) {
         },
       }, { onConflict: 'patient_id,date,shift' })
       results.push({ domain: 'nutrition', ok: !error, error: error?.message })
+      continue
+    }
+
+    if (action.domain === 'vitals') {
+      const { data: existing } = await db.from('care_records').select('*')
+        .eq('patient_id', patientId).eq('date', date).eq('shift', shift).maybeSingle()
+      const prev = existing?.vitals || {}
+      const p = action.payload || {}
+      const { error } = await db.from('care_records').upsert({
+        ...(existing ? { nutrition: existing.nutrition, continence: existing.continence, mood: existing.mood, skin: existing.skin, notes: existing.notes } : {}),
+        user_id: userId,
+        org_id: patient.org_id || null,
+        recorded_by_id: userId,
+        patient_id: patientId,
+        date, shift,
+        vitals: {
+          bp_sys: p.bp_sys ?? prev.bp_sys ?? null,
+          bp_dia: p.bp_dia ?? prev.bp_dia ?? null,
+          hr: p.hr ?? prev.hr ?? null,
+          temp: p.temp ?? prev.temp ?? null,
+          spo2: p.spo2 ?? prev.spo2 ?? null,
+          glucose: p.glucose ?? prev.glucose ?? null,
+          weight: p.weight ?? prev.weight ?? null,
+        },
+      }, { onConflict: 'patient_id,date,shift' })
+      results.push({ domain: 'vitals', ok: !error, error: error?.message })
+      continue
+    }
+
+    if (action.domain === 'activity') {
+      const p = action.payload || {}
+      const activityId = String(p.activity_id || '')
+      if (!activityId) { results.push({ domain: 'activity', ok: false, error: 'Dados incompletos.' }); continue }
+      // Reconfirma que a atividade é mesmo de hoje — nunca confia só no id vindo do cliente.
+      const { data: act } = await db.from('activities').select('id').eq('id', activityId).eq('date', date).maybeSingle()
+      if (!act) { results.push({ domain: 'activity', ok: false, error: 'Atividade não encontrada.' }); continue }
+      const { error } = await db.from('activity_participations').upsert({
+        user_id: userId, org_id: patient.org_id || null, patient_id: patientId, activity_id: activityId,
+        attended: p.attended !== false, notes: p.notes || null, recorded_by_id: userId,
+      }, { onConflict: 'activity_id,patient_id' })
+      results.push({ domain: 'activity', ok: !error, error: error?.message })
       continue
     }
 

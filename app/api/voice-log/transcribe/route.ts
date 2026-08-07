@@ -23,8 +23,15 @@ export async function POST(req: NextRequest) {
   if (!body?.audio) return NextResponse.json({ error: 'Áudio em falta.' }, { status: 400 })
   if (body.audio.length > 20 * 1024 * 1024) return NextResponse.json({ error: 'Gravação demasiado longa.' }, { status: 413 })
 
+  // Gravações curtas (≤60s, ver MAX_RECORD_MS no componente) numa sala
+  // possivelmente ruidosa, com vocabulário institucional específico — aqui
+  // rigor importa mais que velocidade, por isso o modelo completo (não o
+  // turbo) + um vocabulário de arranque que ajuda o Whisper a não confundir
+  // termos de cuidados/medicação com palavras parecidas mas erradas.
+  const CARE_VOCAB = 'medicação, comprimido, insulina, tensão arterial, glicemia, oxigenação, temperatura, fisioterapia, banho assistido, fralda, refeição, almoço, jantar, lanche, apetite, hidratação, enfermagem, ronda, turno, manhã, tarde, noite, recusou, suspenso, administrado'
+
   try {
-    const text = await transcribeAudio(body.audio, body.mimeType || 'audio/webm', 'pt')
+    const text = await transcribeAudio(body.audio, body.mimeType || 'audio/webm', 'pt', { model: 'whisper-large-v3', prompt: CARE_VOCAB })
     if (!text.trim()) return NextResponse.json({ error: 'Não percebi nada na gravação — tenta falar mais perto do microfone.' }, { status: 422 })
     return NextResponse.json({ transcript: text.trim() })
   } catch (err: any) {

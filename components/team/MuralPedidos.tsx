@@ -45,7 +45,8 @@ export default function MuralPedidos() {
     ;(patRes.data || []).forEach((p: any) => { nm[p.id] = p.name })
     setNames(nm)
     setLoading(false)
-  }, [user, supabase, scope])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 

@@ -2,17 +2,20 @@
 
 // VoiceLogger — "Regista falando". Botão flutuante sitewide (modo institucional,
 // lar/centro de dia) que transforma uma frase falada durante a ronda em
-// registos estruturados — refeições, enfermagem/acompanhamento, serviços de
-// apoio. Pensado para ambiente ruidoso (sala partilhada, TV, várias pessoas a
-// falar): a decisão mais arriscada — DE QUEM se está a falar — nunca é
-// adivinhada pela IA a partir do áudio. É sempre um toque explícito, ANTES de
-// gravar. A transcrição é sempre mostrada e editável antes de seguir, e cada
-// ação proposta só grava depois de confirmação individual — nada é
-// automático em nenhum passo.
+// registos estruturados — refeições, enfermagem/acompanhamento, sinais
+// vitais, atividades, medicação, serviços de apoio. Pensado para ambiente
+// ruidoso (sala partilhada, TV, várias pessoas a falar): a decisão mais
+// arriscada — DE QUEM se está a falar — nunca é adivinhada pela IA a partir
+// do áudio. É sempre um toque explícito, ANTES de gravar. A transcrição é
+// sempre mostrada e editável antes de seguir, e cada ação proposta só grava
+// depois de confirmação individual — nada é automático em nenhum passo.
 //
-// Âmbito desta primeira versão (deliberado): refeições, enfermagem básica/
-// acompanhamento, serviços de apoio. NÃO cobre medicação nem ocorrências —
-// demasiado sensível para arriscar numa transcrição de ambiente ruidoso.
+// 2026-08-07 (fortificação, a pedido de Fernando): transcrição passou de
+// whisper-large-v3-turbo para o modelo completo + vocabulário de arranque
+// (lib/ai.ts transcribeAudio) — rigor importa mais que velocidade numa
+// gravação curta em sala ruidosa. Domínio ganhou sinais vitais e atividades
+// (medicação e ocorrências continuam de fora por serem as duas áreas mais
+// sensíveis a um erro de transcrição/interpretação).
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
@@ -23,7 +26,7 @@ import Icon from '@/components/Icon'
 
 interface Patient { id: string; name: string; room_number?: string | null }
 interface ProposedAction {
-  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication'
+  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity'
   summary: string
   payload: Record<string, any>
   approved: boolean
@@ -36,6 +39,8 @@ const DOMAIN_META: Record<ProposedAction['domain'], { label: string; icon: strin
   health_checkin:  { label: 'Saúde & Apoio',       icon: 'stethoscope' },
   support_service: { label: 'Serviço de apoio',    icon: 'shirt' },
   medication:      { label: 'Medicação',           icon: 'pill' },
+  vitals:          { label: 'Sinais vitais',       icon: 'heart' },
+  activity:        { label: 'Atividade',           icon: 'trophy' },
 }
 
 const MAX_RECORD_MS = 60_000

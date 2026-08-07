@@ -112,7 +112,8 @@ export default function MuralEquipa() {
     const pName: Record<string, string> = {}; (pats || []).forEach((p: any) => { pName[p.id] = p.name })
     const mName: Record<string, string> = {}; (meds || []).forEach((m: any) => { mName[m.id] = m.name })
     setMedFlags(recs.map((r: any) => ({ patientName: pName[r.patient_id] || 'Utente', medName: mName[r.med_id] || 'Medicamento', status: r.status, notes: r.notes || '' })))
-  }, [user, supabase, scope])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
   useEffect(() => { loadMedFlags() }, [loadMedFlags])
 
   // Passagem de turno — publica um resumo estruturado no canal Avisos, com o que

@@ -432,12 +432,20 @@ export async function callGeminiVisionJSON<T>(
 }
 
 // ─── Transcrição de áudio (Groq Whisper) ──────────────────────────────────────
-// Transcreve áudio para texto. Usa whisper-large-v3-turbo (rápido) via Groq.
+// Transcreve áudio para texto. Por defeito usa whisper-large-v3-turbo (rápido,
+// bom para gravações longas como aulas em /study/notas). Chamadores que
+// precisam de mais RIGOR em vez de velocidade (gravações curtas, vocabulário
+// técnico, sala ruidosa — ex. Regista falando institucional) devem pedir
+// model:'whisper-large-v3' (o modelo completo, sem o corte de precisão do
+// turbo) e podem passar um `prompt` curto com vocabulário esperado — é o
+// mecanismo oficial do Whisper para enviesar o reconhecimento para termos que
+// de outra forma seriam confundidos (nomes de medicamentos, jargão clínico).
 // audioBase64 sem o prefixo data:; mimeType ex: 'audio/webm'.
 export async function transcribeAudio(
   audioBase64: string,
   mimeType: string = 'audio/webm',
-  language: string = 'pt'
+  language: string = 'pt',
+  opts?: { model?: 'whisper-large-v3-turbo' | 'whisper-large-v3'; prompt?: string }
 ): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) throw new Error('GROQ_API_KEY not set')
@@ -450,9 +458,10 @@ export async function transcribeAudio(
 
   const form = new FormData()
   form.append('file', new Blob([bytes], { type: mimeType }), `audio.${ext}`)
-  form.append('model', 'whisper-large-v3-turbo')
+  form.append('model', opts?.model || 'whisper-large-v3-turbo')
   form.append('language', language)
   form.append('response_format', 'text')
+  if (opts?.prompt) form.append('prompt', opts.prompt.slice(0, 800))
 
   const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',

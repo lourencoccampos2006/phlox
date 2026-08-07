@@ -238,7 +238,8 @@ export default function PainelCockpit() {
       setAttToday(prev => prev.filter(a => a.patient_id !== patientId))
       alert(reportError('cockpit-attendance', error, MSG.save))
     }
-  }, [user, supabase, scope])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   const firstName = user?.name?.split(' ')[0] || ''
   const visibleBlocks = bp.cockpit.filter(b => editing || b.essential || !hidden.has(b.id))

@@ -20,6 +20,7 @@ import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 
 interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string }
+interface NewDish { temp_id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string }
 interface Entry { id: string; date: string; meal_type: string; dish_id: string | null; dish_name_free: string | null }
 interface CarePlan { patient_id: string; diet_type?: string | null; diet_texture?: string | null }
 interface Patient { id: string; allergies: string | null }
@@ -64,10 +65,14 @@ export default function RefeicoesPage() {
   const [savingDish, setSavingDish] = useState(false)
 
   // Sugestão IA
-  const [budgetHint, setBudgetHint] = useState('')
+  const [instructions, setInstructions] = useState('')
   const [suggesting, setSuggesting] = useState(false)
   const [suggestErr, setSuggestErr] = useState('')
-  const [proposal, setProposal] = useState<Record<string, string | null> | null>(null) // key `${date}_${meal_type}` -> dish_id
+  // chave `${date}|${meal_type}` — NUNCA '_': meal_type já tem '_' dentro
+  // (ex: "pequeno_almoco"), um separador '_' torna o key.split ambíguo.
+  const [proposal, setProposal] = useState<Record<string, { dishId: string | null; newDishTempId: string | null }> | null>(null)
+  const [proposedNewDishes, setProposedNewDishes] = useState<NewDish[]>([])
+  const [applying, setApplying] = useState(false)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -137,36 +142,56 @@ export default function RefeicoesPage() {
   }
 
   async function suggestWeek() {
-    if (dishes.length === 0) { setSuggestErr('Adiciona pelo menos um prato à biblioteca primeiro.'); return }
-    setSuggesting(true); setSuggestErr(''); setProposal(null)
+    setSuggesting(true); setSuggestErr(''); setProposal(null); setProposedNewDishes([])
     try {
       const { data: sd } = await supabase.auth.getSession()
       const r = await fetch('/api/refeicoes/suggest', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
-        body: JSON.stringify({ dishes, avoidAllergens: needs.allergens, neededTextures: needs.textures, neededDietTags: needs.diets, budgetHint }),
+        body: JSON.stringify({ dishes, avoidAllergens: needs.allergens, neededTextures: needs.textures, neededDietTags: needs.diets, budgetHint: instructions }),
       })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Não foi possível sugerir agora.')
-      const map: Record<string, string | null> = {}
+      const map: Record<string, { dishId: string | null; newDishTempId: string | null }> = {}
       ;(d.assignments || []).forEach((a: any) => {
         const date = fmtDate(weekDates[a.weekday])
-        map[`${date}_${a.meal_type}`] = a.dish_id
+        map[`${date}|${a.meal_type}`] = { dishId: a.dish_id || null, newDishTempId: a.new_dish_temp_id || null }
       })
       setProposal(map)
+      setProposedNewDishes(d.newDishes || [])
     } catch (e: any) { setSuggestErr(e.message) }
     setSuggesting(false)
   }
 
   async function applyProposal() {
     if (!proposal) return
-    const rows = Object.entries(proposal).filter(([, dishId]) => dishId).map(([key, dishId]) => {
-      const [date, mealType] = key.split('_')
-      return scope.stamp({ user_id: user.id, date, meal_type: mealType, dish_id: dishId, dish_name_free: null })
-    })
-    if (rows.length === 0) { setProposal(null); return }
-    const { error } = await supabase.from('meal_plan_entries').upsert(rows, { onConflict: 'org_id,user_id,date,meal_type' })
-    if (error) { toast.error('Não foi possível guardar o plano', reportError('refeicoes-apply-proposal', error, MSG.save)); return }
-    setProposal(null); load()
+    setApplying(true)
+    try {
+      // Pratos novos referenciados por pelo menos um horário passam a fazer
+      // parte real da biblioteca só agora, ao aplicar — não antes.
+      const usedTempIds = new Set(Object.values(proposal).map(v => v.newDishTempId).filter(Boolean) as string[])
+      const toCreate = proposedNewDishes.filter(d => usedTempIds.has(d.temp_id))
+      const tempIdToRealId: Record<string, string> = {}
+      if (toCreate.length) {
+        const { data: created, error: createErr } = await supabase.from('meal_dishes').insert(
+          toCreate.map(d => scope.stamp({ user_id: user.id, name: d.name, meal_types: d.meal_types, allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true }))
+        ).select()
+        if (createErr) throw new Error(createErr.message)
+        ;(created || []).forEach((row: any, i: number) => { tempIdToRealId[toCreate[i].temp_id] = row.id })
+      }
+      const rows = Object.entries(proposal).map(([key, v]) => {
+        const [date, mealType] = key.split('|')
+        const dishId = v.dishId || (v.newDishTempId ? tempIdToRealId[v.newDishTempId] : null)
+        return dishId ? scope.stamp({ user_id: user.id, date, meal_type: mealType, dish_id: dishId, dish_name_free: null }) : null
+      }).filter(Boolean) as any[]
+      if (rows.length) {
+        const { error } = await supabase.from('meal_plan_entries').upsert(rows, { onConflict: 'org_id,user_id,date,meal_type' })
+        if (error) throw new Error(error.message)
+      }
+      setProposal(null); setProposedNewDishes([]); load()
+    } catch (e: any) {
+      toast.error('Não foi possível guardar o plano', reportError('refeicoes-apply-proposal', e, MSG.save))
+    }
+    setApplying(false)
   }
 
   if (needsSetup) {
@@ -252,18 +277,36 @@ export default function RefeicoesPage() {
             {needs.textures.length ? ` · texturas: ${needs.textures.join(', ')}` : ''}
             {needs.diets.length ? ` · dietas: ${needs.diets.join(', ')}` : ''}
           </div>
+          {dishes.length === 0 && (
+            <div style={{ fontSize: 11.5, color: '#6d28d9', marginBottom: 8 }}>Ainda não há pratos na biblioteca — a IA propõe pratos novos, realistas, que revês antes de aplicar.</div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <input value={budgetHint} onChange={e => setBudgetHint(e.target.value)} placeholder="Pista de orçamento (opcional, ex: semana apertada, preferir pratos baratos)"
+            <input value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Orçamento e outras instruções (opcional, ex: semana apertada, menu português, evitar fritos)"
               style={{ flex: '1 1 260px', border: '1.5px solid #ddd6fe', borderRadius: 8, padding: '8px 11px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none', background: 'white' }} />
             <button onClick={suggestWeek} disabled={suggesting} style={{ padding: '8px 16px', background: suggesting ? '#e5e7eb' : '#5b21b6', color: suggesting ? '#94a3b8' : 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: suggesting ? 'wait' : 'pointer' }}>
               {suggesting ? 'A pensar…' : 'Sugerir semana →'}
             </button>
           </div>
           {suggestErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{suggestErr}</div>}
+          {proposedNewDishes.length > 0 && (
+            <div style={{ marginTop: 12, background: 'white', border: '1px solid #ddd6fe', borderRadius: 10, padding: '10px 12px' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#5b21b6', marginBottom: 6 }}>Pratos novos propostos pela IA ({proposedNewDishes.length}) — revê antes de aplicar</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {proposedNewDishes.map(d => (
+                  <div key={d.temp_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>
+                    {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 10, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '1px 6px' }}>⚠ {d.allergens.join(', ')}</span>}
+                    {d.texture && d.texture !== 'Normal' && <span style={{ fontSize: 10, color: '#1d4ed8', background: '#eff6ff', borderRadius: 5, padding: '1px 6px' }}>{d.texture}</span>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 8 }}>Verifica sempre alergénios antes de confirmar — a IA pode falhar a listá-los.</div>
+            </div>
+          )}
           {proposal && (
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={applyProposal} style={{ padding: '8px 16px', background: '#0d9488', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Aplicar proposta à grelha</button>
-              <button onClick={() => setProposal(null)} style={{ padding: '8px 16px', background: 'white', border: '1.5px solid #ddd6fe', color: '#6d28d9', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Descartar</button>
+              <button onClick={applyProposal} disabled={applying} style={{ padding: '8px 16px', background: applying ? '#94a3b8' : '#0d9488', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: applying ? 'wait' : 'pointer' }}>{applying ? 'A aplicar…' : 'Aplicar proposta à grelha'}</button>
+              <button onClick={() => { setProposal(null); setProposedNewDishes([]) }} disabled={applying} style={{ padding: '8px 16px', background: 'white', border: '1.5px solid #ddd6fe', color: '#6d28d9', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Descartar</button>
             </div>
           )}
         </div>
@@ -298,18 +341,29 @@ export default function RefeicoesPage() {
                     {weekDates.map((d, i) => {
                       const date = fmtDate(d)
                       const entry = entryFor(date, mt.id)
-                      const proposedId = proposal?.[`${date}_${mt.id}`]
-                      const showProposed = !!proposal && proposedId !== undefined
+                      const cellProposal = proposal?.[`${date}|${mt.id}`]
+                      const showProposed = !!proposal && cellProposal !== undefined
                       const currentDishId = entry?.dish_id || ''
+                      // prato NOVO proposto: ainda não tem id real, não dá para ser opção do <select>
+                      if (showProposed && cellProposal?.newDishTempId) {
+                        const nd = proposedNewDishes.find(x => x.temp_id === cellProposal.newDishTempId)
+                        return (
+                          <td key={i} style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: '#faf5ff' }}>
+                            <div style={{ border: '1.5px solid #ddd6fe', borderRadius: 7, padding: '6px 8px', fontSize: 12, color: '#7c3aed', background: 'white' }}>{nd?.name || 'Prato novo'}</div>
+                            <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>prato novo · proposta da IA</div>
+                          </td>
+                        )
+                      }
+                      const proposedDishId = cellProposal?.dishId
                       return (
                         <td key={i} style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: showProposed ? '#faf5ff' : undefined }}>
-                          <select value={showProposed ? (proposedId || '') : currentDishId}
+                          <select value={showProposed ? (proposedDishId || '') : currentDishId}
                             onChange={e => assignDish(date, mt.id, e.target.value)}
                             style={{ width: '100%', border: `1.5px solid ${showProposed ? '#ddd6fe' : 'var(--border)'}`, borderRadius: 7, padding: '6px 8px', fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'white', color: showProposed && !entry ? '#7c3aed' : 'var(--ink)' }}>
                             <option value="">—</option>
                             {dishes.map(dh => <option key={dh.id} value={dh.id}>{dh.name}</option>)}
                           </select>
-                          {showProposed && !entry && <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>proposta da IA</div>}
+                          {showProposed && !entry && proposedDishId && <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>proposta da IA</div>}
                         </td>
                       )
                     })}

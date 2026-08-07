@@ -56,6 +56,7 @@ export default function OwnerPerformance() {
   const [team, setTeam] = useState<any[]>([])
   const [care, setCare] = useState<any[]>([])
   const [mar, setMar] = useState<any[]>([])
+  const [activeMeds, setActiveMeds] = useState<any[]>([])
 
   const months = last6Months()
   const sinceMonth = months[0] + '-01'
@@ -64,7 +65,7 @@ export default function OwnerPerformance() {
     if (!user) return
     setLoading(true)
     const sinceISO = new Date(sinceMonth + 'T00:00:00').toISOString()
-    const [sl, enc, inc, p, t, cr, mr] = await Promise.all([
+    const [sl, enc, inc, p, t, cr, mr, mm] = await Promise.all([
       isRevenue ? safe(supabase.from('sales').select('at,kind,gross,discount,method').eq('user_id', user.id).gte('at', sinceISO)) : Promise.resolve([]),
       cfg.hasWalkins ? safe(supabase.from('encounters').select('at,type').eq('user_id', user.id).gte('at', sinceISO)) : Promise.resolve([]),
       safe(supabase.from('incidents').select('type,severity,date').eq('user_id', user.id).gte('date', sinceMonth)),
@@ -72,10 +73,11 @@ export default function OwnerPerformance() {
       safe(supabase.from('team_members').select('id,status').eq('user_id', user.id)),
       isLar ? safe(supabase.from('care_records').select('date,shift').eq('user_id', user.id).gte('date', sinceMonth)) : Promise.resolve([]),
       isLar ? safe(supabase.from('mar_records').select('date,status').eq('user_id', user.id).gte('date', sinceMonth)) : Promise.resolve([]),
+      isLar ? safe(supabase.from('patient_meds').select('shifts').eq('user_id', user.id).eq('active', true)) : Promise.resolve([]),
     ])
     setSales(sl || []); setEncounters(enc || []); setIncidents(inc || [])
     setPatients((p || []).filter((x: any) => x.active !== false)); setTeam(t || [])
-    setCare(cr || []); setMar(mr || [])
+    setCare(cr || []); setMar(mr || []); setActiveMeds(mm || [])
     setLoading(false)
   }, [user, supabase, sinceMonth, isRevenue, isLar, cfg.hasWalkins])
 
@@ -102,7 +104,16 @@ export default function OwnerPerformance() {
   const fallsTotal = incidents.filter(i => i.type === 'fall').length
 
   const marDone = mar.filter(m => m.status === 'administered').length
-  const marPct = mar.length ? Math.round((marDone / mar.length) * 100) : 0
+  // Adesão = doses dadas / doses PREVISTAS pelo horário (não / registos
+  // existentes — uma dose não dada nunca cria uma linha em mar_records, por
+  // isso dividir pelo total de registos dava sempre ~100%, mesmo com doses
+  // reais a falhar). Aproximação: medicação ATIVA agora × turnos/dia × dias
+  // da janela de 6 meses — não sabe se um fármaco só foi adicionado a meio
+  // do período, mas mede doses previstas, não só registos que já existem.
+  const daysInWindow = Math.max(1, Math.round((Date.now() - new Date(sinceMonth + 'T00:00:00').getTime()) / 86400000))
+  const expectedDosesPerDay = activeMeds.reduce((s, m) => s + (Array.isArray(m.shifts) && m.shifts.length > 0 ? m.shifts.length : 3), 0)
+  const marExpected = expectedDosesPerDay * daysInWindow
+  const marPct = marExpected > 0 ? Math.min(100, Math.round((marDone / marExpected) * 100)) : 0
   const careByMonth = months.map(k => ({ key: k, value: care.filter(c => (c.date || '').slice(0, 7) === k).length }))
   const admissions6m = patients.filter(p => months.includes((p.admission_date || '').slice(0, 7))).length
 

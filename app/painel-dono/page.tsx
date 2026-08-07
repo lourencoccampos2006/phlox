@@ -36,10 +36,18 @@ export default function PainelDonoPage() {
   const scope = useOrgScope()
   const [patients, setPatients] = useState<{ id: string; name: string }[]>([])
   const [timelinePatientId, setTimelinePatientId] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  // Intervalo ÚNICO que controla tanto a lista no ecrã como a exportação Excel
+  // (antes eram dois controlos separados: um "date" de um único dia para o
+  // ecrã, e um from/to só para o Excel — confuso, e o ecrã nunca mostrava mais
+  // do que um dia). Default de 7 dias: suficiente para rever a semana sem
+  // carregar um mês inteiro de eventos por omissão.
+  const [expFrom, setExpFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10) })
+  const [expTo, setExpTo] = useState(new Date().toISOString().slice(0, 10))
   const [events, setEvents] = useState<Ev[]>([])
   const [byStaff, setByStaff] = useState<Record<string, number>>({})
   const [totals, setTotals] = useState({ meds: 0, care: 0, incidents: 0 })
+  const [truncated, setTruncated] = useState(false)
+  const [totalEvents, setTotalEvents] = useState(0)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [tab, setTab] = useState<'negocio' | 'qualidade' | 'registos' | 'desempenho' | 'comparar'>(() => {
@@ -47,11 +55,31 @@ export default function PainelDonoPage() {
     return 'negocio'
   })
   const [biz, setBiz] = useState<any | null>(null)
-  const [expFrom, setExpFrom] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10) })
-  const [expTo, setExpTo] = useState(new Date().toISOString().slice(0, 10))
   const [expSource, setExpSource] = useState('medicacao')
   const [exporting, setExporting] = useState(false)
   const [expErr, setExpErr] = useState('')
+  const [narrative, setNarrative] = useState('')
+  const [loadingNarrative, setLoadingNarrative] = useState(false)
+  const [narrativeErr, setNarrativeErr] = useState('')
+
+  async function genNarrative(led: ReturnType<typeof buildLedger>) {
+    setLoadingNarrative(true); setNarrativeErr(''); setNarrative('')
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const res = await fetch('/api/org/weekly-summary', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
+        body: JSON.stringify({
+          orgName: biz?.org?.name, periodLabel: biz?.ledger?.monthLabel || 'este mês',
+          lines: led.lines.map(l => ({ value: l.value, label: l.label })),
+          byStaff, incidentsOpen: biz?.kpis?.incidentsOpen, incidentsGrave: biz?.kpis?.incidentsGrave,
+        }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Não foi possível gerar agora.')
+      setNarrative(j.narrative)
+    } catch (e: any) { setNarrativeErr(e.message) }
+    setLoadingNarrative(false)
+  }
 
   const load = useCallback(async () => {
     if (!user) return
@@ -60,15 +88,16 @@ export default function PainelDonoPage() {
       const { data: sd } = await supabase.auth.getSession()
       const h = { Authorization: `Bearer ${sd?.session?.access_token}` }
       const [auditR, bizR] = await Promise.all([
-        fetch(`/api/org/audit?date=${date}`, { headers: h }).then(r => r.json()),
+        fetch(`/api/org/audit?from=${expFrom}&to=${expTo}`, { headers: h }).then(r => r.json()),
         fetch(`/api/org/dashboard`, { headers: h }).then(r => r.json()).catch(() => null),
       ])
       if (auditR?.error) { setErr(auditR.error); setEvents([]); setLoading(false); return }
       setEvents(auditR.events || []); setByStaff(auditR.byStaff || {}); setTotals(auditR.totals || { meds: 0, care: 0, incidents: 0 })
+      setTruncated(!!auditR.truncated); setTotalEvents(auditR.totalEvents || 0)
       if (bizR && !bizR.error) setBiz(bizR)
     } catch (e: any) { setErr(e.message) }
     setLoading(false)
-  }, [user, supabase, date])
+  }, [user, supabase, expFrom, expTo])
 
   useEffect(() => { load() }, [load])
 
@@ -90,15 +119,16 @@ export default function PainelDonoPage() {
       { title: `${led.incidentsFollowed}/${led.incidentsMonth} ocorrências com seguimento` },
       { title: `${led.assessmentsMonth} avaliações (escalas)` },
     ] : []
-    const staffRecords = Object.entries(byStaff).sort((a, b) => (b[1] as number) - (a[1] as number)).map(([name, n]) => ({ title: name, meta: `${n} ${n === 1 ? 'registo' : 'registos'} em ${date}` }))
+    const rangeLabel = expFrom === expTo ? expFrom : `${expFrom} a ${expTo}`
+    const staffRecords = Object.entries(byStaff).sort((a, b) => (b[1] as number) - (a[1] as number)).map(([name, n]) => ({ title: name, meta: `${n} ${n === 1 ? 'registo' : 'registos'} em ${rangeLabel}` }))
     const dayRecords = events.slice(0, 60).map(e => ({ title: `${e.who} → ${e.patient}`, meta: `${new Date(e.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} · ${e.detail}` }))
     printDoc({
       docTitle: `Dossier de registos — ${biz?.org?.name || 'Instituição'}`,
       docSubtitle: led?.monthLabel ? `Mês de ${led.monthLabel}` : undefined,
       sections: [
         ...(ledgerRecords.length ? [{ heading: 'Resumo do mês', records: ledgerRecords }] : []),
-        ...(staffRecords.length ? [{ heading: `Atividade por funcionário · ${date}`, records: staffRecords }] : []),
-        ...(dayRecords.length ? [{ heading: `Registos do dia · ${date}`, records: dayRecords }] : []),
+        ...(staffRecords.length ? [{ heading: `Atividade por funcionário · ${rangeLabel}`, records: staffRecords }] : []),
+        ...(dayRecords.length ? [{ heading: `Registos · ${rangeLabel}`, records: dayRecords }] : []),
       ],
       footerNote: 'Dossier organizado a partir dos registos da equipa. Documento de gestão.',
     })
@@ -257,6 +287,21 @@ export default function PainelDonoPage() {
                             <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6, lineHeight: 1.5 }}>{led.note}</div>
                           </div>
                         )}
+                        {led.lines.length > 0 && (
+                          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #99f6e4' }}>
+                            {!narrative && !loadingNarrative && (
+                              <button onClick={() => genNarrative(led)} style={{ padding: '8px 14px', background: '#5b21b6', color: 'white', border: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>✨ Resumo em palavras (IA)</button>
+                            )}
+                            {loadingNarrative && <div style={{ fontSize: 12.5, color: '#64748b' }}>A escrever o resumo…</div>}
+                            {narrativeErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{narrativeErr}</div>}
+                            {narrative && (
+                              <div>
+                                <p style={{ fontSize: 13.5, color: '#1e293b', lineHeight: 1.7, margin: 0 }}>{narrative}</p>
+                                <button onClick={() => setNarrative('')} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 11.5, color: '#5b21b6', fontWeight: 600, cursor: 'pointer' }}>gerar de novo</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })()}
@@ -321,14 +366,20 @@ export default function PainelDonoPage() {
             {tab === 'registos' && <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
               <button onClick={printDossier} style={{ padding: '9px 15px', background: ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>🗂 Gerar dossier para inspeção</button>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+              {/* Intervalo único: controla a lista abaixo E a exportação Excel.
+                  Antes eram dois controlos diferentes — um dia único aqui, um
+                  intervalo só para o Excel — por isso os registos de vários
+                  dias só apareciam no ficheiro descarregado, nunca no ecrã. */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} max={expTo} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+                <span style={{ fontSize: 12.5, color: '#94a3b8' }}>até</span>
+                <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} min={expFrom} max={new Date().toISOString().slice(0, 10)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+              </div>
             </div>
 
-            {/* Exportar por intervalo — pedido de inspeção que abrange várias
-                semanas/meses, sem ir dia a dia. Os registos ficam sempre
-                guardados, isto só lê o que já existe. */}
+            {/* Exportar — mesmo intervalo escolhido acima, só muda o tipo de registo. */}
             <div style={{ ...card, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Exportar por intervalo de datas</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Exportar para Excel</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Tipo de registo</label>
@@ -340,15 +391,7 @@ export default function PainelDonoPage() {
                     <option value="atividades">Atividades</option>
                   </select>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>De</label>
-                  <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} max={expTo} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Até</label>
-                  <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} min={expFrom} max={new Date().toISOString().slice(0, 10)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
-                </div>
-                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? '#94a3b8' : ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : 'Exportar Excel'}</button>
+                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? '#94a3b8' : ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : `Exportar ${expFrom} a ${expTo}`}</button>
               </div>
               {expErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{expErr}</div>}
               <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10, lineHeight: 1.5 }}>Todos os registos ficam guardados para sempre — útil para responder a uma inspeção que peça um mês inteiro de uma vez.</div>
@@ -386,9 +429,17 @@ export default function PainelDonoPage() {
 
             {/* Linha do tempo */}
             <div style={card}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Linha do tempo</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Linha do tempo · {expFrom === expTo ? expFrom : `${expFrom} a ${expTo}`}</div>
+                {totalEvents > 0 && <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{totalEvents} {totalEvents === 1 ? 'registo' : 'registos'}</div>}
+              </div>
+              {truncated && (
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', marginBottom: 12 }}>
+                  A mostrar os {events.length} mais recentes de {totalEvents}. Reduz o intervalo de datas para ver todos no ecrã, ou usa "Exportar para Excel" acima para o intervalo completo.
+                </div>
+              )}
               {loading ? <div style={{ color: '#94a3b8', fontSize: 13 }}>A carregar…</div>
-              : events.length === 0 ? <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Sem registos neste dia.</div>
+              : events.length === 0 ? <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Sem registos neste intervalo.</div>
               : <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {events.map((e, i) => (
                     <div key={i} style={{ display: 'flex', gap: 12, padding: '11px 0', borderBottom: i < events.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
@@ -399,7 +450,7 @@ export default function PainelDonoPage() {
                           {e.severity && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: e.severity === 'high' || e.severity === 'grave' ? '#dc2626' : '#b45309' }}>· {e.severity}</span>}
                         </div>
                         <div style={{ fontSize: 11.5, color: '#94a3b8', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                          {e.at ? new Date(e.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '—'}{e.shift ? ` · turno ${e.shift}` : ''}
+                          {e.at ? (expFrom === expTo ? new Date(e.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : new Date(e.at).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : '—'}{e.shift ? ` · turno ${e.shift}` : ''}
                         </div>
                       </div>
                     </div>

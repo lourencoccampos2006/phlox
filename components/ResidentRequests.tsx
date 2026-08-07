@@ -29,7 +29,8 @@ export default function ResidentRequests({ patientId, supabase, scope, accent = 
     const { data, error } = await scope.filter(supabase.from('resident_requests').select('*')).eq('patient_id', patientId).order('created_at', { ascending: false }).limit(50)
     if (error) { if (/does not exist|schema cache/i.test(error.message)) setMissing(true); return }
     setMissing(false); setItems(data || [])
-  }, [patientId, supabase, scope])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 
