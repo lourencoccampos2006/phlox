@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { admin, resolveCode, codeErrorResponse as codeErrorInfo, verifyFamily, HAS_SERVICE_KEY } from '@/lib/familyPortal'
+import { type ScaleType, SCALES, levelOf, trendInfo } from '@/lib/assessmentScales'
 
 // Portal família: acesso por código do residente, validado server-side (service role).
 // Sem expor user_id nem outros residentes. Só o fio do residente correspondente ao código.
@@ -97,6 +98,132 @@ async function buildDailySummaries(patientId: string, days = 30): Promise<DaySum
   return out
 }
 
+// ── Avaliações, plano de cuidados, feridas, incidentes, mudanças de medicação ──
+// Novidade 2026-08-10 (pedido do Fernando): "avaliações e qualquer outro
+// exame, atualizado, e ser super completo" — mas SEM pontuações em bruto (só
+// nível traduzido + tendência), SEM fotografias de feridas, e SEM os campos
+// internos/administrativos de um incidente (testemunhas, causa-raiz, a quem
+// foi reportado) — decisões tomadas com o Fernando antes de construir isto.
+// Tudo lido com o cliente admin (service role), sempre filtrado por
+// patient_id — o mesmo padrão de segurança que buildDailySummaries já usa.
+
+const IMPLEMENTED_SCALES: ScaleType[] = ['barthel', 'braden', 'morse', 'mmse', 'mna']
+
+async function buildAssessments(patientId: string) {
+  const sb = admin()
+  const since = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10) // 2 anos, chega para 2+ avaliações por escala
+  const { data } = await sb.from('assessments').select('scale, score, date, notes, evaluated_by')
+    .eq('patient_id', patientId).gte('date', since).order('date', { ascending: false }).order('created_at', { ascending: false })
+  const rows = (data || []) as any[]
+  return IMPLEMENTED_SCALES.map(scale => {
+    const forScale = rows.filter(r => r.scale === scale)
+    if (!forScale.length) return null
+    const latest = forScale[0]
+    const prev = forScale[1]
+    const lvl = levelOf(scale, latest.score)
+    return {
+      scale, scaleLabel: SCALES[scale].label,
+      levelLabel: lvl.label, levelColor: lvl.color,
+      date: latest.date, evaluatedBy: latest.evaluated_by || null,
+      trend: prev ? trendInfo(scale, latest.score, prev.score) : null,
+    }
+  }).filter(Boolean)
+}
+
+async function buildCarePlan(patientId: string) {
+  const sb = admin()
+  // "medication_notes"/"behavioral_notes" ficam de fora de propósito — são
+  // escritos pela equipa para coordenação interna, em linguagem clínica
+  // direta, não pensados para serem lidos em bruto pela família.
+  const { data } = await sb.from('care_plans').select(
+    'mobility, hygiene, nutrition_plan, skin_care, fall_prevention, pressure_ulcer_prevention, diet_type, diet_texture, fluid_restriction, fluid_restriction_ml, positioning_schedule, family_visit_schedule, goals, last_updated'
+  ).eq('patient_id', patientId).maybeSingle()
+  if (!data) return null
+  return {
+    mobility: data.mobility || null,
+    hygiene: data.hygiene || null,
+    nutritionPlan: data.nutrition_plan || null,
+    skinCare: data.skin_care || null,
+    fallPrevention: data.fall_prevention || [],
+    pressureUlcerPrevention: data.pressure_ulcer_prevention || [],
+    dietType: data.diet_type || null,
+    dietTexture: data.diet_texture || null,
+    fluidRestriction: !!data.fluid_restriction,
+    fluidRestrictionMl: data.fluid_restriction_ml || null,
+    positioningSchedule: data.positioning_schedule || null,
+    familyVisitSchedule: data.family_visit_schedule || null,
+    goals: data.goals || [],
+    lastUpdated: data.last_updated || null,
+  }
+}
+
+const WOUND_TYPE_LABEL: Record<string, string> = { pressure: 'Úlcera de pressão', surgical: 'Ferida cirúrgica', diabetic: 'Pé diabético', venous: 'Úlcera venosa', arterial: 'Úlcera arterial', other: 'Ferida' }
+const WOUND_STATUS_LABEL: Record<string, string> = { active: 'Em tratamento', healed: 'Cicatrizada', worsening: 'A necessitar de atenção' }
+
+async function buildWounds(patientId: string) {
+  const sb = admin()
+  const { data: wounds } = await sb.from('wounds').select('id, location, type, stage, status, onset_date, healed_date')
+    .eq('patient_id', patientId).eq('status', 'active')
+  const list = (wounds || []) as any[]
+  if (!list.length) return []
+  const ids = list.map(w => w.id)
+  // NUNCA pede photo_url — decisão tomada com o Fernando (Q3): só estado clínico.
+  const { data: assess } = await sb.from('wound_assessments').select('wound_id, date, length_mm, width_mm, stage')
+    .in('wound_id', ids).order('date', { ascending: false })
+  const byWound = new Map<string, any[]>()
+  ;(assess || []).forEach((a: any) => { const arr = byWound.get(a.wound_id) || []; arr.push(a); byWound.set(a.wound_id, arr) })
+  return list.map(w => {
+    const hist = byWound.get(w.id) || []
+    const latest = hist[0]
+    const prev = hist[1]
+    let evolution: 'melhorando' | 'estável' | 'atenção' | null = null
+    if (latest?.length_mm != null && latest?.width_mm != null && prev?.length_mm != null && prev?.width_mm != null) {
+      const areaNow = latest.length_mm * latest.width_mm
+      const areaPrev = prev.length_mm * prev.width_mm
+      evolution = areaNow < areaPrev * 0.9 ? 'melhorando' : areaNow > areaPrev * 1.1 ? 'atenção' : 'estável'
+    }
+    return {
+      id: w.id, location: w.location,
+      typeLabel: WOUND_TYPE_LABEL[w.type] || 'Ferida',
+      statusLabel: WOUND_STATUS_LABEL[w.status] || w.status,
+      stage: latest?.stage || w.stage || null,
+      evolution,
+      lastAssessedAt: latest?.date || null,
+      since: w.onset_date || null,
+    }
+  })
+}
+
+const INCIDENT_TYPE_LABEL: Record<string, string> = { fall: 'Queda', medication_error: 'Erro de medicação', pressure_ulcer: 'Úlcera de pressão', behavioral: 'Alteração de comportamento', choking: 'Engasgamento', infection: 'Infeção', other: 'Ocorrência' }
+
+async function buildIncidents(patientId: string, days = 90) {
+  const sb = admin()
+  const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
+  // Fica de fora, de propósito: witnesses, root_cause, reported_to — campos
+  // internos de investigação, não pensados para leitura direta pela família.
+  const { data } = await sb.from('incidents').select('id, date, time, type, description, action_taken, outcome, follow_up_required')
+    .eq('patient_id', patientId).gte('date', since).order('date', { ascending: false })
+  return ((data || []) as any[]).map(i => ({
+    id: i.id, date: i.date, time: i.time || null,
+    typeLabel: INCIDENT_TYPE_LABEL[i.type] || 'Ocorrência',
+    description: i.description, actionTaken: i.action_taken || null,
+    outcome: i.outcome || null, followUp: !!i.follow_up_required,
+  }))
+}
+
+async function buildMedChanges(patientId: string, days = 14) {
+  const sb = admin()
+  const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
+  const { data } = await sb.from('patient_meds').select('id, name, dose, active, started_at, stopped_at')
+    .eq('patient_id', patientId).or(`started_at.gte.${since},stopped_at.gte.${since}`)
+  const out: { id: string; name: string; dose: string | null; event: 'started' | 'stopped'; date: string }[] = []
+  ;((data || []) as any[]).forEach(m => {
+    if (m.active && m.started_at && m.started_at >= since) out.push({ id: m.id, name: m.name, dose: m.dose || null, event: 'started', date: m.started_at })
+    else if (!m.active && m.stopped_at && m.stopped_at >= since) out.push({ id: m.id, name: m.name, dose: m.dose || null, event: 'stopped', date: m.stopped_at })
+  })
+  return out.sort((a, b) => b.date.localeCompare(a.date))
+}
+
 export async function GET(req: NextRequest) {
   const ip = getIP(req)
   const rl = checkRateLimit(ip, 60, 60_000)
@@ -133,7 +260,7 @@ export async function GET(req: NextRequest) {
 
   const sb = admin()
   const today = new Date().toISOString().slice(0, 10)
-  const [{ data: msgs }, dailySummaries, homeMeds, todayDoses, visitRequests] = await Promise.all([
+  const [{ data: msgs }, dailySummaries, homeMeds, todayDoses, visitRequests, assessments, carePlan, wounds, incidents, medChanges] = await Promise.all([
     sb.from('family_thread_messages')
       .select('id, patient_id, author_side, author_name, kind, content, photo_url, mood, meals, activity, created_at')
       .eq('patient_id', pat.id).order('created_at', { ascending: true }).limit(200),
@@ -155,6 +282,15 @@ export async function GET(req: NextRequest) {
         (r: any) => r.error ? [] : (r.data || []),
         () => []
       ),
+    // Transparência 2026-08-10: avaliações traduzidas+tendência, plano de
+    // cuidados, feridas (sem fotos), incidentes (sem campos internos) e
+    // mudanças de medicação recentes — cada um tolerante a tabela/coluna em
+    // falta, para nunca derrubar o resto do portal por causa de uma parte nova.
+    buildAssessments(pat.id).catch(() => []),
+    buildCarePlan(pat.id).catch(() => null),
+    buildWounds(pat.id).catch(() => []),
+    buildIncidents(pat.id).catch(() => []),
+    buildMedChanges(pat.id).catch(() => []),
   ])
 
   // "Foto do dia": a primeira foto que a equipa partilhou nesse dia, para o
@@ -178,7 +314,15 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    patient: { name: pat.name, room_number: pat.room_number },
+    patient: {
+      name: pat.name, room_number: pat.room_number,
+      // Dados clínicos vindos do LAR (fonte oficial, ver decisão do Fernando
+      // 2026-08-10: uma vez ligado, isto substitui o que a família preencheu
+      // à mão em family_profiles — não os dois lado a lado).
+      age: pat.age ?? null, sex: pat.sex ?? null, weight: pat.weight ?? null, height: pat.height ?? null,
+      creatinine: pat.creatinine ?? null, egfr: pat.egfr ?? null,
+      conditions: pat.conditions || null, allergies: pat.allergies || null,
+    },
     contactName: v.contact?.name || null,
     institutionKind,
     messages: msgs || [],
@@ -186,6 +330,11 @@ export async function GET(req: NextRequest) {
     homeMeds: homeMeds || [],
     todayDoses: todayDoses || [],
     visitRequests: visitRequests || [],
+    assessments: assessments || [],
+    carePlan: carePlan || null,
+    wounds: wounds || [],
+    incidents: incidents || [],
+    medChanges: medChanges || [],
   })
 }
 

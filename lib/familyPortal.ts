@@ -17,7 +17,7 @@ export async function resolveCode(code: string): Promise<{ patient: any } | { er
   if (!c || c.length < 4) return { errorCode: 'short' }
   if (!HAS_SERVICE_KEY) return { errorCode: 'no_key' }
   const sb = admin()
-  const { data, error } = await sb.from('patients').select('id, name, room_number, user_id, org_id').eq('family_code', c).maybeSingle()
+  const { data, error } = await sb.from('patients').select('id, name, room_number, user_id, org_id, age, sex, weight, height, creatinine, egfr, conditions, allergies').eq('family_code', c).maybeSingle()
   if (error) {
     if (/column .*family_code.* does not exist/i.test(error.message) || error.code === '42703') return { errorCode: 'no_column' }
     return { errorCode: 'db' }

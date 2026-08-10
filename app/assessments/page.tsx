@@ -10,6 +10,7 @@ import FusionTabs from '@/components/FusionTabs'
 import { CarePlansTool } from '../care-plans/page'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { type ScaleType, SCALES, BETTER_WHEN_HIGHER, barthelLevel, bradenLevel, morseLevel, mmseLevel, mnaLevel, trendInfo } from '@/lib/assessmentScales'
 
 // /assessments = "Avaliações e planos": escalas (Barthel, MNA…) + planos de
 // cuidados. BUG CORRIGIDO 2026-08-07: "Revisão de medicação", "Decision
@@ -32,8 +33,6 @@ export default function AssessmentsPage() {
     ]} />
 }
 
-type ScaleType = 'barthel' | 'braden' | 'morse' | 'mmse' | 'mna'
-
 interface Patient { id: string; name: string; age?: number; room?: string }
 interface AssessmentRecord {
   id: string; patient_id: string; patient_name?: string
@@ -54,14 +53,6 @@ const BARTHEL_ITEMS = [
   { id: 'mobility',  label: 'Deambulação',              max: 15, options: [{ v: 0, l: 'Imóvel' }, { v: 5, l: 'Cadeira de rodas — independente' }, { v: 10, l: 'Anda com ajuda de 1 pessoa' }, { v: 15, l: 'Independente (pode usar bengala)' }] },
   { id: 'stairs',    label: 'Subir escadas',            max: 10, options: [{ v: 0, l: 'Dependente' }, { v: 5, l: 'Necessita ajuda (verbal, física, ajuda técnica)' }, { v: 10, l: 'Independente (com ou sem ajuda técnica)' }] },
 ]
-function barthelLevel(score: number) {
-  if (score <= 20) return { label: 'Dependência Total',   color: '#dc2626', bg: '#fee2e2' }
-  if (score <= 60) return { label: 'Dependência Grave',   color: '#d97706', bg: '#fef3c7' }
-  if (score <= 90) return { label: 'Dependência Moderada',color: '#ca8a04', bg: '#fefce8' }
-  if (score <= 99) return { label: 'Dependência Ligeira', color: '#0284c7', bg: '#e0f2fe' }
-  return                   { label: 'Independente',        color: '#16a34a', bg: '#dcfce7' }
-}
-
 // ── Braden Scale ───────────────────────────────────────────────────────────────
 const BRADEN_ITEMS = [
   { id: 'sensory',   label: 'Perceção sensorial', options: [
@@ -100,14 +91,6 @@ const BRADEN_ITEMS = [
     { v: 3, l: 'Sem problema — move-se de forma independente' },
   ]},
 ]
-function bradenLevel(score: number) {
-  if (score <= 9)  return { label: 'Risco Muito Alto',color: '#7f1d1d', bg: '#fee2e2' }
-  if (score <= 12) return { label: 'Risco Alto',      color: '#dc2626', bg: '#fee2e2' }
-  if (score <= 14) return { label: 'Risco Moderado',  color: '#d97706', bg: '#fef3c7' }
-  if (score <= 18) return { label: 'Risco Ligeiro',   color: '#ca8a04', bg: '#fefce8' }
-  return                   { label: 'Sem Risco',       color: '#16a34a', bg: '#dcfce7' }
-}
-
 // ── Morse Falls Scale ──────────────────────────────────────────────────────────
 const MORSE_ITEMS = [
   { id: 'history',   label: 'Historial de quedas (últimos 3 meses)', options: [{ v: 0, l: 'Não' }, { v: 25, l: 'Sim' }] },
@@ -128,12 +111,6 @@ const MORSE_ITEMS = [
     { v: 15, l: 'Sobrestima capacidades / esquece limitações' },
   ]},
 ]
-function morseLevel(score: number) {
-  if (score <= 24) return { label: 'Baixo Risco',  color: '#16a34a', bg: '#dcfce7' }
-  if (score <= 50) return { label: 'Risco Moderado',color: '#d97706', bg: '#fef3c7' }
-  return                   { label: 'Risco Elevado', color: '#dc2626', bg: '#fee2e2' }
-}
-
 // ── MMSE ───────────────────────────────────────────────────────────────────────
 const MMSE_ITEMS = [
   { id: 'time_orient',  label: 'Orientação temporal',          max: 5,  desc: 'Ano, estação, mês, data, dia da semana' },
@@ -148,13 +125,6 @@ const MMSE_ITEMS = [
   { id: 'writing',      label: 'Escrita',                     max: 1,  desc: 'Escrever uma frase (sujeito + verbo)' },
   { id: 'visuospatial', label: 'Capacidade visuo-construtiva',max: 1,  desc: 'Copiar dois pentágonos interligados' },
 ]
-function mmseLevel(score: number) {
-  if (score >= 27) return { label: 'Normal',           color: '#16a34a', bg: '#dcfce7' }
-  if (score >= 22) return { label: 'Défice Ligeiro',   color: '#ca8a04', bg: '#fefce8' }
-  if (score >= 10) return { label: 'Défice Moderado',  color: '#d97706', bg: '#fef3c7' }
-  return                   { label: 'Défice Grave',     color: '#dc2626', bg: '#fee2e2' }
-}
-
 // ── MNA ────────────────────────────────────────────────────────────────────────
 const MNA_SCREENING = [
   { id: 'intake',    label: 'A — Declínio da ingestão alimentar (últimos 3 meses)', options: [
@@ -170,38 +140,6 @@ const MNA_SCREENING = [
   { id: 'bmi',       label: 'F — IMC (kg/m²)', options: [
     { v: 0, l: 'IMC < 19' }, { v: 1, l: 'IMC 19-21' }, { v: 2, l: 'IMC 21-23' }, { v: 3, l: 'IMC ≥ 23' }] },
 ]
-function mnaLevel(score: number) {
-  if (score >= 12) return { label: 'Normal', color: '#16a34a', bg: '#dcfce7', sub: 'Estado nutricional normal' }
-  if (score >= 8)  return { label: 'Em Risco', color: '#d97706', bg: '#fef3c7', sub: 'Risco de desnutrição' }
-  return                   { label: 'Desnutrição', color: '#dc2626', bg: '#fee2e2', sub: 'Desnutrição confirmada' }
-}
-
-// ── Scale configs ──────────────────────────────────────────────────────────────
-const SCALES: Record<ScaleType, { label: string; max: number; desc: string; color: string }> = {
-  barthel:  { label: 'Índice de Barthel',    max: 100, desc: 'Avaliação das actividades de vida diária (AVD)', color: '#1d4ed8' },
-  braden:   { label: 'Escala de Braden',     max: 23,  desc: 'Risco de desenvolvimento de úlceras de pressão',  color: '#7c3aed' },
-  morse:    { label: 'Escala de Morse',      max: 125, desc: 'Risco de queda',                                   color: '#d97706' },
-  mmse:     { label: 'MMSE',                 max: 30,  desc: 'Mini Mental State Examination — avaliação cognitiva', color: '#0891b2' },
-  mna:      { label: 'MNA — Triagem',        max: 14,  desc: 'Mini Nutritional Assessment — estado nutricional', color: '#16a34a' },
-}
-
-// Direção clínica: para Morse (quedas) maior pontuação = pior; nas restantes maior = melhor.
-const BETTER_WHEN_HIGHER: Record<ScaleType, boolean> = { barthel: true, braden: true, morse: false, mmse: true, mna: true }
-
-// Tendência entre pontuação atual e a anterior, interpretada clinicamente.
-function trendInfo(scale: ScaleType, current: number, prev: number | null) {
-  if (prev == null) return null
-  const delta = current - prev
-  if (delta === 0) return { arrow: '→', label: 'sem alteração', color: '#64748b', delta }
-  const improved = BETTER_WHEN_HIGHER[scale] ? delta > 0 : delta < 0
-  return {
-    arrow: delta > 0 ? '▲' : '▼',
-    label: `${improved ? 'melhorou' : 'agravou'} ${Math.abs(delta)} pts`,
-    color: improved ? '#16a34a' : '#dc2626',
-    delta,
-  }
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 function AssessmentsTool() {
   const { user, supabase } = useAuth()

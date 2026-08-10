@@ -35,15 +35,24 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
-  const familyProfileId = String(body?.family_profile_id || '')
+  let familyProfileId = String(body?.family_profile_id || '')
   const code = String(body?.code || '')
   const verify = String(body?.verify || '')
-  if (!familyProfileId || !code) return NextResponse.json({ error: 'Dados em falta.' }, { status: 400 })
+  // "relation" só é usada quando NÃO há family_profile_id — é o caso novo
+  // (2026-08-10) de criar o perfil DE RAIZ a partir do código, em vez de ligar
+  // um perfil já existente. Sem isto, "+ Adicionar familiar" só sabia ligar
+  // um perfil manual já criado — nunca criar um a partir da instituição.
+  const relation = String(body?.relation || '').trim().slice(0, 40) || null
+  if (!code) return NextResponse.json({ error: 'Dados em falta.' }, { status: 400 })
 
   const a = admin()
-  // O perfil tem de ser mesmo deste utilizador — nunca confiar só no id vindo do cliente.
-  const { data: profile } = await a.from('family_profiles').select('id, user_id').eq('id', familyProfileId).maybeSingle()
-  if (!profile || profile.user_id !== user.id) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 403 })
+  let profile: { id: string; user_id: string } | null = null
+  if (familyProfileId) {
+    // O perfil tem de ser mesmo deste utilizador — nunca confiar só no id vindo do cliente.
+    const { data } = await a.from('family_profiles').select('id, user_id').eq('id', familyProfileId).maybeSingle()
+    if (!data || data.user_id !== user.id) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 403 })
+    profile = data
+  }
 
   const r = await resolveCode(code)
   if ('errorCode' in r) { const { error, status } = codeErrorInfo(r.errorCode); return NextResponse.json({ error }, { status }) }
@@ -53,13 +62,31 @@ export async function POST(req: NextRequest) {
   if (v.noContacts) return NextResponse.json({ needsVerify: true, noContacts: true, patientName: pat.name, error: 'Por segurança, peça à instituição para registar o seu contacto telefónico antes de ligar.' })
   if (v.gated && !v.ok) return NextResponse.json({ needsVerify: true, patientName: pat.name, error: verify ? 'Os dígitos não correspondem ao contacto registado.' : '' })
 
+  let createdProfile = false
+  if (!profile) {
+    // Cria o perfil AGORA, com o nome real vindo da instituição — a família
+    // não escreve nada, é o lar que já mantém estes dados (decisão do
+    // Fernando: a instituição passa a ser a fonte oficial).
+    const { data: created, error: createErr } = await a.from('family_profiles')
+      .insert({ user_id: user.id, name: pat.name, relation }).select('id, user_id').single()
+    if (createErr || !created) return NextResponse.json({ error: 'Não foi possível criar o perfil agora.' }, { status: 500 })
+    profile = created
+    familyProfileId = created.id
+    createdProfile = true
+  }
+
   const { error } = await a.from('family_institution_links').upsert({
     user_id: user.id, family_profile_id: familyProfileId, patient_id: pat.id,
     patient_name: pat.name, code: code.toUpperCase().trim(), verify_digits: verify.replace(/\D/g, '').slice(-4),
   }, { onConflict: 'family_profile_id' })
-  if (error) return NextResponse.json({ error: 'Não foi possível ligar agora.' }, { status: 500 })
+  if (error) {
+    // Já criámos o perfil mas a ligação falhou — não deixar um perfil "fantasma"
+    // sem ligação nenhuma (a família ficaria com um perfil vazio, sem saber porquê).
+    if (createdProfile) await a.from('family_profiles').delete().eq('id', familyProfileId)
+    return NextResponse.json({ error: 'Não foi possível ligar agora.' }, { status: 500 })
+  }
 
-  return NextResponse.json({ ok: true, patientName: pat.name })
+  return NextResponse.json({ ok: true, patientName: pat.name, familyProfileId })
 }
 
 export async function DELETE(req: NextRequest) {
