@@ -59,14 +59,11 @@ export const TOOLS: Tool[] = [
   { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreva o nome e veja para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], plan: 'free' },
 
   // ── A minha saúde ──
-  { id: '/saude-agora',  label: 'Não me sinto bem',              desc: 'Ajuda a decidir: médico, urgências ou em casa', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/sintomas',     label: 'Como me sinto hoje',            desc: 'Diário de sintomas e recuperação', category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vitals',       label: 'Tensão, peso e açúcar',         desc: 'Registar e ver como evolui',       category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/adherencia',   label: 'Adesão à medicação',             desc: 'Padrões reais ao longo das semanas — que dias e horas falham mais', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/preparar-consulta', label: 'Preparar a consulta',        desc: 'Transforma o que se passa numa folha organizada para levar ao médico', category: 'health', modes: ['personal', 'caregiver'], plan: 'free_limited' },
   // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
-  { id: '/preventivo',   label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/plano-peso',   label: 'Plano de perda de peso',        desc: 'Dieta e exercício contextualizados à tua medicação', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/rastreio-visual', label: 'Rastreio visual',            desc: 'Risco dermatológico ABCDE por IA, com evolução ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },

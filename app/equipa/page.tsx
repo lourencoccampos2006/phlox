@@ -42,6 +42,10 @@ export default function EquipaPage() {
     // "cobertura" fica como link antigo silencioso — pousa em Escalas em vez de rebentar.
     else if (q === 'cobertura') setTab('escalas')
     else if (['team', 'schedule', 'tarefas', 'config'].includes(q || '')) { setTab('escalas'); setEscalasSubTab(q as any) }
+    // ?tab=definicoes — abre já a secção "Definições da instituição" (link
+    // direto do HUB em /painel-dono, 2026-08-09: substitui /comecar-instituicao,
+    // que era o assistente de CRIAR uma instituição, não de a configurar).
+    else if (q === 'definicoes') { setTab('conta'); setShowSettings(true) }
   }, [])
 
   const [loading, setLoading] = useState(true)
@@ -65,6 +69,8 @@ export default function EquipaPage() {
   const [editPublic, setEditPublic] = useState(false)
   const [editCapacity, setEditCapacity] = useState('')
   const [editFee, setEditFee] = useState('')
+  const [editLogoUrl, setEditLogoUrl] = useState('')
+  const [editAccentColor, setEditAccentColor] = useState('')
   const [savingOrg, setSavingOrg] = useState(false)
   const [orgSaved, setOrgSaved] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -90,7 +96,7 @@ export default function EquipaPage() {
       const s = await fetch('/api/org/setup', { headers: h }).then(r => r.json())
       setNoKey(!!s.noServiceKey)
       setOrg(s.org || null); setMyRole(s.role || null)
-      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public); setEditCapacity(s.org.capacity != null ? String(s.org.capacity) : ''); setEditFee(s.org.monthly_fee != null ? String(s.org.monthly_fee) : '') }
+      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public); setEditCapacity(s.org.capacity != null ? String(s.org.capacity) : ''); setEditFee(s.org.monthly_fee != null ? String(s.org.monthly_fee) : ''); setEditLogoUrl(s.org.logo_url || ''); setEditAccentColor(s.org.accent_color || '') }
       if (s.org) {
         const t = await fetch('/api/org/team', { headers: h }).then(r => r.json())
         if (t.error) setErr(t.error)
@@ -123,7 +129,7 @@ export default function EquipaPage() {
     if (!editName.trim()) return
     setSavingOrg(true); setErr('')
     try {
-      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, slug: editSlug, tagline: editTagline, public: editPublic, capacity: editCapacity, monthlyFee: editFee }) })
+      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, slug: editSlug, tagline: editTagline, public: editPublic, capacity: editCapacity, monthlyFee: editFee, logoUrl: editLogoUrl.trim(), accentColor: editAccentColor.trim() }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       try { localStorage.setItem('phlox-clinic-institution', editKind) } catch {}
@@ -305,6 +311,22 @@ export default function EquipaPage() {
                         <label htmlFor="org-tagline" style={lbl}>Frase de apresentação</label>
                         <input id="org-tagline" value={editTagline} onChange={e => setEditTagline(e.target.value)} placeholder="Cuidamos de quem mais ama, perto de si." style={inp} maxLength={160} />
                         {editPublic && editSlug && <a href={`/c/${editSlug}`} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ver a página →</a>}
+                      </div>
+
+                      {/* Marca — aparece no cabeçalho do Painel do Dono e na página pública */}
+                      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, marginBottom: 14 }}>
+                        <div style={{ fontSize: 13.5, color: '#0b1120', fontWeight: 700, marginBottom: 4 }}>Marca</div>
+                        <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 10px', lineHeight: 1.5 }}>Opcional — personaliza o Painel do Dono e a página pública com o logótipo e a cor da instituição.</p>
+                        <label htmlFor="org-logo" style={lbl}>Logótipo (endereço da imagem)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                          {editLogoUrl && <img src={editLogoUrl} alt="" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />}
+                          <input id="org-logo" value={editLogoUrl} onChange={e => setEditLogoUrl(e.target.value)} placeholder="https://…/logotipo.png" style={{ ...inp, flex: 1 }} />
+                        </div>
+                        <label htmlFor="org-accent" style={lbl}>Cor de marca</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <input aria-label="Cor de marca" type="color" value={/^#[0-9a-fA-F]{6}$/.test(editAccentColor) ? editAccentColor : '#0d9488'} onChange={e => setEditAccentColor(e.target.value)} style={{ width: 38, height: 38, borderRadius: 9, border: '1px solid #e2e8f0', padding: 2, cursor: 'pointer', flexShrink: 0 }} />
+                          <input id="org-accent" value={editAccentColor} onChange={e => setEditAccentColor(e.target.value)} placeholder="#0d9488" style={{ ...inp, flex: 1 }} />
+                        </div>
                       </div>
                       <button onClick={saveOrgSettings} disabled={savingOrg || !editName.trim()} style={{ ...btn, opacity: savingOrg || !editName.trim() ? 0.5 : 1 }}>
                         {savingOrg ? 'A guardar…' : orgSaved ? '✓ Guardado' : 'Guardar alterações'}

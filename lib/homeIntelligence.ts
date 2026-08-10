@@ -36,6 +36,6 @@ export function quickActions(mode: string): QuickAction[] {
     { href: '/mymeds', icon: 'pill', label: 'Os meus comprimidos', sub: 'Lista e horários' },
     { href: '/scan', icon: 'camera', label: 'Foto à receita', sub: 'Organizar' },
     { href: '/ai', icon: 'spark', label: 'Tenho uma dúvida', sub: 'Perguntar' },
-    { href: '/saude-agora', icon: 'heart', label: 'Não me sinto bem', sub: 'O que fazer' },
+    { href: '/sintomas', icon: 'heart', label: 'Como me sinto hoje', sub: 'Registar' },
   ]
 }

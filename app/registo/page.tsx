@@ -425,9 +425,6 @@ export default function RegistoPage() {
                 style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
                 + Registar vacina
               </button>
-              <Link href="/preventivo" style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 7, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-                Ver calendário PNV →
-              </Link>
             </div>
 
             {adding && (

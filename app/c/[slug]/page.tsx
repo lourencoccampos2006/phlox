@@ -88,8 +88,8 @@ export default async function PublicInstitutionPage({ params }: { params: Promis
         {/* CTA família */}
         <div style={{ background: accent, borderRadius: 16, padding: '24px 26px', textAlign: 'center', color: 'white' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, marginBottom: 8 }}>É família de um utente do {org.name}?</div>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', margin: '0 auto 18px', maxWidth: 420, lineHeight: 1.55 }}>Peça o código de acesso à instituição e acompanhe tudo no portal — sem instalar nada.</p>
-          <Link href="/portal-familia" style={{ display: 'inline-block', background: 'white', color: accent, textDecoration: 'none', padding: '12px 26px', borderRadius: 10, fontSize: 14, fontWeight: 800 }}>Abrir o portal família →</Link>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', margin: '0 auto 18px', maxWidth: 420, lineHeight: 1.55 }}>Peça o código de acesso à instituição, crie a sua conta Phlox e acompanhe tudo em "A minha família".</p>
+          <Link href="/login?mode=family" style={{ display: 'inline-block', background: 'white', color: accent, textDecoration: 'none', padding: '12px 26px', borderRadius: 10, fontSize: 14, fontWeight: 800 }}>Criar conta e acompanhar →</Link>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 24, fontSize: 12.5, color: '#94a3b8' }}>

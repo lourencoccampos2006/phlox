@@ -14,11 +14,9 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   { path: '/scan',              label: 'Perceber bula',          icon: '📄', group: 'Pessoal' },
   { path: '/sintomas',          label: 'Sintomas',               icon: '🌡', group: 'Pessoal' },
   { path: '/passport',          label: 'Cartão emergência',      icon: '🆘', group: 'Pessoal' },
-  { path: '/triagem',           label: 'Devo ir ao médico?',     icon: '🏥', group: 'Pessoal' },
   { path: '/quickcheck',        label: 'Análise rápida meds',    icon: '⚡', group: 'Pessoal' },
   { path: '/vitals',            label: 'Sinais vitais',          icon: '💓', group: 'Pessoal' },
   { path: '/adherencia',        label: 'Adesão à medicação',     icon: '📈', group: 'Pessoal' },
-  { path: '/preparar-consulta', label: 'Preparar a consulta',    icon: '🗒️', group: 'Pessoal' },
   { path: '/health-import',     label: 'Importar Apple Health',  icon: '📥', group: 'Pessoal' },
   { path: '/guardados',         label: 'Guardados',              icon: '★',  group: 'Pessoal' },
   { path: '/calendario',        label: 'Calendário',             icon: '📅', group: 'Pessoal' },
@@ -39,13 +37,11 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   // Comum
   { path: '/ai',                label: 'Phlox AI',               icon: '✨', group: 'Geral' },
   { path: '/relatorio?tab=diario', label: 'Brief de hoje',       icon: '☀', group: 'Geral' },
-  // Clínico
-  { path: '/cockpit',           label: 'Cockpit',                icon: '📊', group: 'Clínico' },
-  { path: '/patients',          label: 'Doentes',                icon: '👥', group: 'Clínico' },
-  { path: '/assessments?tab=motor-clinico', label: 'Decision Engine', icon: '🧠', group: 'Clínico' },
-  { path: '/copiloto',          label: 'AI Copilot',             icon: '🤖', group: 'Clínico' },
-  { path: '/atendimentos',      label: 'Atendimentos',           icon: '📝', group: 'Clínico' },
-  { path: '/vendas',            label: 'POS',                    icon: '🧾', group: 'Clínico' },
+  // 2026-08-09: o grupo "Clínico" (Cockpit/Doentes/Decision Engine/AI Copilot/
+  // Atendimentos/POS) foi removido daqui — o modo clínico nem sequer usa este
+  // sistema de pins (não tem o módulo "atalhos" em /inicio), por isso só
+  // servia para vazar ferramentas institucionais para o pin-picker de contas
+  // pessoais/cuidador via PinPickerGrid (que não filtra por modo).
 ]
 
 export function getPins(): string[] {

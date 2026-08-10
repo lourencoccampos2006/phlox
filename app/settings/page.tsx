@@ -12,18 +12,11 @@ import SecuritySettings from '@/components/settings/SecuritySettings'
 import HealthGoalPicker from '@/components/HealthGoalPicker'
 import PinPickerGrid from '@/components/PinPickerGrid'
 import ModuleToggleList from '@/components/ModuleToggleList'
+import WidgetToggleList from '@/components/WidgetToggleList'
 import AlertPrefsList from '@/components/AlertPrefsList'
 import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
-import { activatePush as activatePushShared } from '@/lib/pushActivation'
-
-const ROLE_OPTIONS = [
-  { value: 'pharmacist',  label: 'Farmacêutico' },
-  { value: 'physician',   label: 'Médico' },
-  { value: 'nurse',       label: 'Enfermeiro' },
-  { value: 'intern',      label: 'Interno' },
-  { value: 'student',     label: 'Estudante' },
-  { value: 'other',       label: 'Outro' },
-]
+import { activatePush as activatePushShared, needsHomeScreenForPush } from '@/lib/pushActivation'
+import InstallInstructions from '@/components/InstallInstructions'
 
 // O modo institucional NÃO está aqui de propósito: nunca é auto-selecionável.
 // Fica só disponível a quem é membro ativo de uma organização (dono ou
@@ -59,7 +52,7 @@ function SettingsPage() {
   // — esses escolhem as suas ferramentas. No modo clínico, o produto monta-se
   // sozinho a partir do tipo de instituição (blueprint), por isso não há picker.
   // "organizacoes" foi removido (criar org era confuso e inútil).
-  const validTabs = ['profile', 'ferramentas', 'seguranca', 'connect', 'account', 'notifications'] as const
+  const validTabs = ['profile', 'ferramentas', 'seguranca', 'account', 'notifications'] as const
   type SettingsTab = typeof validTabs[number]
   const requestedTab = searchParams?.get('tab')
   const initialTab = ((requestedTab && (validTabs as readonly string[]).includes(requestedTab)
@@ -202,17 +195,9 @@ function SettingsPage() {
     } catch {}
     setExporting(false)
   }
-  const [handleChecking, setHandleChecking] = useState(false)
-  const [handleAvailable, setHandleAvailable] = useState<boolean | null>(null)
-  const [handleError, setHandleError] = useState('')
   const [form, setForm] = useState({
     display_name: '',
-    connect_handle: '',
-    professional_role: '',
-    institution: '',
-    speciality: '',
     experience_mode: 'personal',
-    connect_visible: false,
   })
 
   useEffect(() => {
@@ -222,48 +207,18 @@ function SettingsPage() {
     if (authLoading) return
     if (!user) { router.push('/login'); return }
     supabase.from('profiles')
-      .select('display_name, connect_handle, professional_role, institution, speciality, experience_mode, connect_visible')
+      .select('display_name, experience_mode')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (data) setForm({
           display_name:      data.display_name || user.name || '',
-          connect_handle:    data.connect_handle || '',
-          professional_role: data.professional_role || '',
-          institution:       data.institution || '',
-          speciality:        data.speciality || '',
           experience_mode:   data.experience_mode || 'personal',
-          connect_visible:   data.connect_visible || false,
         })
       })
   }, [user, authLoading, supabase, router])
 
-  const checkHandle = useCallback(async (handle: string) => {
-    if (!handle.trim() || !user) { setHandleAvailable(null); setHandleError(''); return }
-    // Validate format
-    if (!/^[a-z0-9_\.]{3,30}$/.test(handle.toLowerCase())) {
-      setHandleError('3-30 caracteres. Apenas letras minúsculas, números, _ e .')
-      setHandleAvailable(false)
-      return
-    }
-    setHandleChecking(true)
-    const { data } = await supabase.rpc('is_handle_available', {
-      h: handle.toLowerCase(),
-      uid: user.id
-    })
-    setHandleAvailable(!!data)
-    setHandleError(data ? '' : 'Este handle já está a ser usado.')
-    setHandleChecking(false)
-  }, [supabase, user])
-
-  // Debounce handle check
-  useEffect(() => {
-    const timer = setTimeout(() => checkHandle(form.connect_handle), 600)
-    return () => clearTimeout(timer)
-  }, [form.connect_handle, checkHandle])
-
   const save = async () => {
     if (!user) return
-    if (form.connect_visible && !handleAvailable && form.connect_handle) return
     setSaving(true); setSaved(false); setSaveErr('')
     // BUG CORRIGIDO 2026-07-29 (mesma classe do bug de /patients/[id]): o erro
     // do update nunca era verificado — "✓ Guardado" aparecia mesmo que nada
@@ -271,12 +226,7 @@ function SettingsPage() {
     // de qualquer conta), por isso o mais importante de corrigir primeiro.
     const { error } = await supabase.from('profiles').update({
       display_name:      form.display_name || null,
-      connect_handle:    form.connect_handle ? form.connect_handle.toLowerCase() : null,
-      professional_role: form.professional_role || null,
-      institution:       form.institution || null,
-      speciality:        form.speciality || null,
       experience_mode:   form.experience_mode,
-      connect_visible:   form.connect_visible,
     }).eq('id', user.id)
     if (error) { setSaving(false); setSaveErr(reportError('settings-save', error, MSG.save)); return }
     // Atualiza o utilizador em memória (sem precisar de refresh do browser — essencial
@@ -312,16 +262,35 @@ function SettingsPage() {
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Conta</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 14 }}>Definições</h1>
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
+        </div>
+        {/* Barra de tabs — no mobile fica fixa mesmo debaixo do header (nunca
+            "sticky": este site tem overflow-x:hidden no body, que quebra
+            sticky em qualquer página, ver globals.css). translateZ/backface
+            evitam o mesmo "destacar" no bounce do iOS já corrigido no
+            BottomNav — mesma técnica, aqui aplicada à barra de definições. */}
+        <div className="settings-tabbar-wrap">
+          <div className="page-container settings-tabbar" style={{ display: 'flex', borderTop: '1px solid var(--border)', background: 'white', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
             {notClinical && <button onClick={() => setTab('ferramentas')} style={tabStyle('ferramentas')}>Ferramentas</button>}
             <button onClick={() => setTab('seguranca')} style={tabStyle('seguranca')}>Segurança</button>
-            <button onClick={() => setTab('connect')} style={tabStyle('connect')}>Phlox Connect</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .settings-tabbar-wrap { height: 42px; }
+          .settings-tabbar {
+            position: fixed; top: 56px; left: 0; right: 0; z-index: 90;
+            border-bottom: 1px solid var(--border);
+            transform: translateZ(0); -webkit-transform: translateZ(0);
+            backface-visibility: hidden; -webkit-backface-visibility: hidden;
+            will-change: transform;
+          }
+        }
+      `}</style>
 
       <div className="page-container page-body" style={{ maxWidth: 580 }}>
 
@@ -437,121 +406,15 @@ function SettingsPage() {
               </div>
             )}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Atalhos fixos</div>
-              <PinPickerGrid pins={pinIds} onToggle={togglePin} />
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>{(expMode === 'personal' || expMode === 'caregiver') ? 'Widgets' : 'Atalhos fixos'}</div>
+              {(expMode === 'personal' || expMode === 'caregiver')
+                ? <WidgetToggleList mode={expMode} />
+                : <PinPickerGrid pins={pinIds} onToggle={togglePin} />}
             </div>
           </div>
         )}
 
         {tab === 'seguranca' && <SecuritySettings />}
-
-
-        {tab === 'connect' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: '#1d4ed8', lineHeight: 1.7 }}>
-              O <strong>Phlox Connect</strong> permite que outros profissionais te encontrem pelo diretório e enviem consultas clínicas. Precisas de um handle único — é o teu identificador na rede.
-            </div>
-
-            {/* Handle */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Handle único *</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 12 }}>O teu identificador público no Connect. Único e permanente (como um username).</div>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', pointerEvents: 'none' }}>@</div>
-                <input value={form.connect_handle} onChange={e => set('connect_handle', e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
-                  placeholder="ex: ana.silva.farm"
-                  style={{ ...inp, paddingLeft: 28, fontFamily: 'var(--font-mono)', borderColor: form.connect_handle ? (handleAvailable === true ? '#6ee7b7' : handleAvailable === false ? '#fca5a5' : 'var(--border)') : 'var(--border)' }} />
-                {form.connect_handle && (
-                  <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13 }}>
-                    {handleChecking ? '⏳' : handleAvailable === true ? '✓' : handleAvailable === false ? '✗' : ''}
-                  </div>
-                )}
-              </div>
-              {handleError && <div style={{ fontSize: 11, color: '#dc2626', fontFamily: 'var(--font-mono)', marginTop: 5 }}>{handleError}</div>}
-              {handleAvailable === true && form.connect_handle && (
-                <div style={{ fontSize: 11, color: '#0d6e42', fontFamily: 'var(--font-mono)', marginTop: 5 }}>@{form.connect_handle} está disponível</div>
-              )}
-              <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 6 }}>
-                3-30 caracteres. Letras minúsculas, números, underscore, ponto.
-              </div>
-            </div>
-
-            {/* Visibility toggle */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Visível no diretório</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Outros profissionais podem encontrar-te e enviar consultas</div>
-                </div>
-                <button onClick={() => set('connect_visible', !form.connect_visible)}
-                  style={{ width: 44, height: 24, borderRadius: 12, background: form.connect_visible ? '#0d6e42' : 'var(--bg-3)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'white', position: 'absolute', top: 2, left: form.connect_visible ? 22 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, opacity: form.connect_visible ? 1 : 0.4, pointerEvents: form.connect_visible ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
-                <div>
-                  <label style={lbl}>Papel profissional *</label>
-                  <select value={form.professional_role} onChange={e => set('professional_role', e.target.value)} style={{ ...inp }}>
-                    <option value="">Selecciona o teu papel...</option>
-                    {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Instituição</label>
-                  <input value={form.institution} onChange={e => set('institution', e.target.value)}
-                    placeholder="Ex: Farmácia Central de Lisboa, Hospital São João" style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>Especialidade (opcional)</label>
-                  <input value={form.speciality} onChange={e => set('speciality', e.target.value)}
-                    placeholder="Ex: Farmácia Hospitalar, Cardiologia" style={inp} />
-                </div>
-              </div>
-
-              {form.connect_visible && !form.connect_handle && (
-                <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#854d0e' }}>
-                  Define um handle único antes de activar a visibilidade.
-                </div>
-              )}
-              {form.connect_visible && !form.professional_role && form.connect_handle && (
-                <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#854d0e' }}>
-                  Define o teu papel profissional para aparecer no diretório.
-                </div>
-              )}
-            </div>
-
-            {/* Preview */}
-            {form.connect_visible && form.connect_handle && form.professional_role && handleAvailable !== false && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Pré-visualização no diretório</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>
-                    {(form.display_name || user?.name || 'A').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{form.display_name || user?.name}</div>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#7c3aed', marginBottom: 2 }}>@{form.connect_handle}</div>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
-                      {ROLE_OPTIONS.find(r => r.value === form.professional_role)?.label}
-                      {form.institution && <span> · {form.institution}</span>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button onClick={save}
-              disabled={saving || (form.connect_visible && (!form.connect_handle || !form.professional_role || handleAvailable === false))}
-              style={{ padding: '12px', background: saving ? 'var(--bg-3)' : saved ? '#0d6e42' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
-              {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar definições Connect'}
-            </button>
-            {saveErr && <div style={{ fontSize: 12, color: '#dc2626', fontFamily: 'var(--font-sans)' }}>{saveErr}</div>}
-            <Link href="/connect" style={{ display: 'block', padding: '11px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
-              Ir para o Phlox Connect →
-            </Link>
-          </div>
-        )}
 
         {tab === 'notifications' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -586,19 +449,22 @@ function SettingsPage() {
 
               {(pushPerm === 'default' || (pushPerm === 'granted' && !pushSubscribed)) && (
                 <>
-                  <button
-                    onClick={activatePush}
-                    disabled={pushBusy}
-                    style={{
-                      padding: '11px 20px', background: pushBusy ? 'var(--bg-3)' : 'var(--ink)', color: pushBusy ? 'var(--ink-4)' : 'white',
-                      border: 'none', borderRadius: 7, cursor: pushBusy ? 'wait' : 'pointer',
-                      fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
-                    }}>
-                    {pushBusy ? 'A ativar…' : 'Activar notificações push →'}
-                  </button>
-                  {pushErr && (
-                    <div style={{ marginTop: 10, padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12, color: '#c53030', lineHeight: 1.6 }}>{pushErr}</div>
+                  {!needsHomeScreenForPush() && (
+                    <button
+                      onClick={activatePush}
+                      disabled={pushBusy}
+                      style={{
+                        padding: '11px 20px', background: pushBusy ? 'var(--bg-3)' : 'var(--ink)', color: pushBusy ? 'var(--ink-4)' : 'white',
+                        border: 'none', borderRadius: 7, cursor: pushBusy ? 'wait' : 'pointer',
+                        fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', marginBottom: 14,
+                      }}>
+                      {pushBusy ? 'A ativar…' : 'Activar notificações push →'}
+                    </button>
                   )}
+                  {pushErr && (
+                    <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12, color: '#c53030', lineHeight: 1.6 }}>{pushErr}</div>
+                  )}
+                  <InstallInstructions compact />
                 </>
               )}
             </div>

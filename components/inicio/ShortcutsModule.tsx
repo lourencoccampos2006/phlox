@@ -1,9 +1,11 @@
 'use client'
 
-// ShortcutsModule — atalhos personalizáveis (todos os modos). REBUILD
-// 2026-07-21: linhas com divisor fino em vez de cartões, consistente com a
-// nova linguagem visual. A personalização em si (escolher os 6) continua a
-// viver no mesmo PinPickerModal, aberto por "Personalizar" ou em /settings.
+// ShortcutsModule — atalhos personalizáveis (todos os modos).
+// REDESIGN 2026-08-09 (pedido do Fernando): as linhas finas em texto eram
+// pouco amigáveis/pouco óbvias como botões — passam a grelha de "widgets":
+// cartões maiores, com ícone destacado, mais fáceis de reconhecer e tocar.
+// A personalização em si (escolher os 6) continua a viver no mesmo
+// PinPickerModal, aberto por "Personalizar" ou em /settings.
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -15,11 +17,11 @@ import type { ModeTheme } from '@/lib/modeTheme'
 
 const PIN_ICON: Record<string, string> = {
   '/mymeds': 'pill', '/scan': 'camera', '/interactions': 'shield', '/ai': 'spark',
-  '/familia': 'family', '/vitals': 'heart', '/saude-agora': 'heart', '/sintomas': 'heart',
+  '/familia': 'family', '/vitals': 'heart', '/sintomas': 'heart',
   '/arena': 'trophy', '/study': 'cards', '/tutor': 'spark', '/labs': 'search',
   '/medicamento': 'question', '/timeline': 'calendar', '/passport': 'shield',
   '/health-import': 'calendar', '/guardados': 'star', '/calendario': 'calendar',
-  '/adherencia': 'target', '/preparar-consulta': 'clock',
+  '/adherencia': 'target',
 }
 const MAX = 6
 
@@ -50,14 +52,21 @@ export default function ShortcutsModule({ mode, theme: t }: { mode: string; them
   return (
     <div>
       <PinPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} pins={pinIds} onToggle={togglePin} />
-      {combined.map((a, i) => (
-        <Link key={a.href} href={a.href} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', textDecoration: 'none', borderTop: i === 0 ? 'none' : `1px solid ${t.border}` }}>
-          <Icon name={a.icon} size={18} color={t.accent} />
-          <span style={{ flex: 1, fontSize: 13.5, color: t.ink, fontWeight: 600 }}>{a.label}</span>
-          <Icon name="chevron" size={15} color={t.inkFaint} />
-        </Link>
-      ))}
-      <button onClick={() => setPickerOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: t.accent, fontFamily: 'var(--font-sans)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+        {combined.map(a => (
+          <Link key={a.href} href={a.href} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10,
+            padding: '16px 14px', borderRadius: t.radius, background: t.surface,
+            border: `1px solid ${t.border}`, textDecoration: 'none', minHeight: 92,
+          }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name={a.icon} size={19} color={t.accent} />
+            </div>
+            <span style={{ fontSize: 13, color: t.ink, fontWeight: 700, lineHeight: 1.3 }}>{a.label}</span>
+          </Link>
+        ))}
+      </div>
+      <button onClick={() => setPickerOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 0 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: t.accent, fontFamily: 'var(--font-sans)' }}>
         <Icon name="sliders" size={14} color={t.accent} /> Personalizar
       </button>
     </div>

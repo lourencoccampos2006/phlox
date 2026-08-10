@@ -14,12 +14,12 @@ export const MODULES_BY_MODE: Record<string, ModuleMeta[]> = {
   personal: [
     { id: 'today', label: 'O meu dia', hint: 'A medicação de hoje, hora a hora' },
     { id: 'health', label: 'A minha saúde', hint: 'Índice de risco e tendências recentes' },
-    { id: 'shortcuts', label: 'Atalhos', hint: 'As ferramentas que escolheres fixar' },
+    { id: 'shortcuts', label: 'Widgets', hint: 'O estado de cada coisa, num relance' },
   ],
   caregiver: [
     { id: 'roster', label: 'As pessoas de quem cuido', hint: 'O estado de cada pessoa, num relance' },
     { id: 'health', label: 'A minha própria saúde', hint: 'Índice de risco e tendências recentes' },
-    { id: 'shortcuts', label: 'Atalhos', hint: 'As ferramentas que escolheres fixar' },
+    { id: 'shortcuts', label: 'Widgets', hint: 'O estado de cada coisa, num relance' },
   ],
   student: [
     { id: 'progress', label: 'O meu progresso', hint: 'Sequência, XP e onde focar hoje' },

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { reportError, MSG } from '@/lib/clientError'
+import InstallInstructions from '@/components/InstallInstructions'
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ONBOARDING — a peça central. Igual para todos. Adapta a plataforma a cada um.
@@ -42,7 +43,7 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
   caregiver: [
     { icon: '👨‍👩‍👧', label: 'Criar o perfil do familiar', sub: 'Um espaço só para a saúde de quem cuidas', href: '/familia' },
     { icon: '📸', label: 'Organizar a medicação dele/dela', sub: 'Foto da receita ou das caixas', href: '/scan' },
-    { icon: '🩺', label: 'Devo ir ao médico?', sub: 'Ajuda a decidir num momento de aflição', href: '/saude-agora' },
+    { icon: '📓', label: 'Registar como está', sub: 'Diário de sintomas e bem-estar', href: '/sintomas' },
   ],
   student: [
     { icon: '🏆', label: 'Entrar na Arena', sub: 'Treina casos e sobe de liga', href: '/arena' },
@@ -97,6 +98,7 @@ export default function OnboardingPage() {
   const [anim, setAnim] = useState(false)
   const [saving, setSaving] = useState(false)
   const [finishErr, setFinishErr] = useState('')
+  const [showInstall, setShowInstall] = useState(false)
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [instType, setInstType] = useState('')
@@ -340,6 +342,19 @@ export default function OnboardingPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Notificações — teaser discreto, não compete com as ações principais.
+                  2026-08-09: no iPhone isto é o único sítio para saber que precisa de
+                  adicionar ao ecrã principal ANTES de tentar ativar notificações. */}
+              <div style={{ maxWidth: 400, margin: '18px auto 0', textAlign: 'left' }}>
+                <button onClick={() => setShowInstall(s => !s)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 2px', fontFamily: 'inherit' }}>
+                  <span style={{ fontSize: 15 }}>🔔</span>
+                  <span style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>Quer lembretes de toma no telemóvel?</span>
+                  <span style={{ fontSize: 11, color: accent, fontWeight: 700 }}>{showInstall ? 'Fechar' : 'Como se faz →'}</span>
+                </button>
+                {showInstall && <InstallInstructions compact />}
+              </div>
+
               {finishErr && <div style={{ marginTop: 14, fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>{finishErr}</div>}
               <div style={{ marginTop: 16, display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center' }}>
                 <button onClick={() => finish()} disabled={saving} style={{ background: 'none', border: 'none', fontSize: 13, color: accent, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A configurar…' : 'Só entrar →'}</button>

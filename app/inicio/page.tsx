@@ -21,6 +21,7 @@ import HealthModule from '@/components/inicio/HealthModule'
 import RosterModule from '@/components/inicio/RosterModule'
 import ProgressModule from '@/components/inicio/ProgressModule'
 import ShortcutsModule from '@/components/inicio/ShortcutsModule'
+import HomeWidgetsModule from '@/components/inicio/HomeWidgets'
 import ExploreSection from '@/components/inicio/ExploreSection'
 
 // ─── /inicio DO ZERO — 2026-07-21 ───────────────────────────────────────────
@@ -131,7 +132,7 @@ function renderModule(id: ModuleId, mode: string, t: ModeTheme) {
     case 'health': return <HealthModule theme={t} />
     case 'roster': return <RosterModule theme={t} />
     case 'progress': return <ProgressModule theme={t} />
-    case 'shortcuts': return <ShortcutsModule mode={mode} theme={t} />
+    case 'shortcuts': return (mode === 'personal' || mode === 'caregiver') ? <HomeWidgetsModule mode={mode} theme={t} /> : <ShortcutsModule mode={mode} theme={t} />
     default: return null
   }
 }

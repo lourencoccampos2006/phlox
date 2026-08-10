@@ -19,7 +19,7 @@ const PUBLIC_PREFIXES = [
   '/about', '/pricing', '/login', '/signup', '/terms', '/privacy', '/trust',
   '/centro-de-dia', '/institucional', '/blog', '/guias', '/onboarding',
   '/seguranca', '/dispositivo-medico', '/subprocessadores', '/cookies',
-  '/portal-familia', '/checkout', '/api-docs', '/changelog',
+  '/checkout', '/api-docs', '/changelog',
 ]
 const isPublicPath = (pathname: string) =>
   pathname === '/' || PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
@@ -83,7 +83,7 @@ export default function PhloxCopilot() {
   // em cima da barra de navegação inferior (era a bola "incomodativa": as
   // duas coisas fixas disputavam o mesmo canto inferior direito do ecrã).
   const hasBottomNav = !!user && (user.experience_mode || 'personal') !== 'clinical'
-    && !(pathname.startsWith('/portal-familia') || pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
+    && !(pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
 
   // Acompanha o contexto publicado pelas ferramentas
   useEffect(() => {

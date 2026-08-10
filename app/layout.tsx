@@ -53,6 +53,19 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: BASE_URL },
   category: 'health',
+  // Ícone de "Adicionar ao ecrã principal" — CORRIGIDO 2026-08-09: o <head>
+  // linkava manualmente para public/manifest.json (só tinha o favicon.ico
+  // como ícone, sem 192/512) em vez do manifest real gerado por
+  // app/manifest.ts — o site nunca tinha, na prática, um ícone PWA a sério.
+  icons: {
+    icon: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Phlox',
+  },
 }
 
 export const viewport: Viewport = {
@@ -70,7 +83,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             O SCRIPT de anúncios é carregado por <AdScript/> SÓ depois de o utilizador
             consentir cookies de publicidade (RGPD/ePrivacy). */}
         <meta name="google-adsense-account" content="ca-pub-3416387560941562" />
-        <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
         <AuthProvider>

@@ -237,7 +237,8 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   }
   const inviteText = () => {
     const first = (patient?.name || '').split(' ')[0]
-    return `Olá! Pode acompanhar o dia de ${first} no portal da família do Phlox.\n\nCódigo de acesso: ${familyCode}\nEntre em: https://phloxclinical.com/portal-familia\n\n(Vai precisar de confirmar com os últimos 4 dígitos do telemóvel registado.)`
+    const base = typeof window !== 'undefined' ? window.location.origin : 'https://phloxclinical.com'
+    return `Olá! Pode acompanhar o dia de ${first} no Phlox.\n\n1. Crie a sua conta: ${base}/login?mode=family\n2. Abra "A minha família" e toque em "Ligar a um lar ou centro de dia"\n3. Introduza o código: ${familyCode}\n\n(Vai confirmar com os últimos 4 dígitos do telemóvel registado na instituição.)`
   }
 
   async function genSummary() {

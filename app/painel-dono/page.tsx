@@ -23,12 +23,18 @@ interface Ev { kind: string; icon: string; at: string; who: string; patient: str
 // Atalhos do dono ADAPTADOS ao tipo de instituição (antes mostrava faturação/
 // stock/agenda a todos — um centro de dia não vende ao balcão nem tem stock).
 // [href, ícone (nome do Icon set), label]
+//
+// "Pôr a postos" (/comecar-instituicao) foi retirado daqui 2026-08-09: era o
+// assistente de CRIAR uma instituição, acessível a partir do painel de uma
+// instituição que já existe — dava a entender (e, em contas com mais do que
+// uma organização, permitia mesmo) criar/confundir com outra. A configuração
+// desta instituição faz-se agora na própria secção "Definições" abaixo.
 function ownerLinks(kind: string): [string, string, string][] {
   const common: [string, string, string][] = [['/painel', 'chart', 'Cockpit do dia'], ['/equipa', 'users', 'Equipa']]
   if (kind === 'pharmacy_community') return [...common, ['/vendas', 'cart', 'Vendas'], ['/stock', 'package', 'Stock'], ['/faturacao', 'euro', 'Faturação']]
   if (kind === 'clinic' || kind === 'health_center') return [...common, ['/agenda', 'calendar', 'Agenda'], ['/faturacao', 'euro', 'Faturação']]
   // day_care / nursing_home
-  return [...common, ['/radar', 'clipboard', 'A vigiar'], ['/faturacao', 'euro', 'Mensalidades'], ['/comecar-instituicao', 'sliders', 'Pôr a postos']]
+  return [...common, ['/radar', 'clipboard', 'A vigiar'], ['/faturacao', 'euro', 'Mensalidades']]
 }
 
 export default function PainelDonoPage() {
@@ -158,16 +164,27 @@ export default function PainelDonoPage() {
 
   const card: React.CSSProperties = { background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '18px 20px' }
   const staffRows = Object.entries(byStaff).sort((a, b) => b[1] - a[1])
+  // Personalização real da instituição (2026-08-09): se o dono definiu uma cor
+  // de marca em Equipa → Definições, o cabeçalho usa-a — senão fica o teal do
+  // produto. Só o cabeçalho, de propósito: mudar TODO o painel (botões, links,
+  // gráficos) para uma cor arbitrária escolhida por cada instituição arrisca
+  // contraste/legibilidade sem revisão — o eyebrow+título já assinam a página.
+  const bizAccent = biz?.org?.accentColor || ACCENT
 
   return (
     <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px clamp(14px,3vw,28px) 70px' }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Painel do dono</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>Registo de tudo</h1>
-            <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>Gira a instituição a partir daqui: ocupação, receita, equipa e tudo o que a equipa regista.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {biz?.org?.logoUrl && (
+              <img src={biz.org.logoUrl} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover', border: '1px solid #e9eaec', flexShrink: 0 }} />
+            )}
+            <div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: bizAccent, fontWeight: 700, marginBottom: 6 }}>Painel do dono</div>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>{biz?.org?.name || 'Registo de tudo'}</h1>
+              <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>Ocupação, receita, equipa e tudo o que a equipa regista — num só sítio.</p>
+            </div>
           </div>
         </div>
 
@@ -181,7 +198,7 @@ export default function PainelDonoPage() {
             { href: '/stock', icon: 'package', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
             { href: '/equipa?tab=mural', icon: 'megaphone', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
             { href: '/radar', icon: 'clipboard', title: 'A vigiar', desc: 'O que merece atenção hoje' },
-            { href: '/comecar-instituicao', icon: 'sliders', title: 'Definições', desc: 'Dados da instituição' },
+            { href: '/equipa?tab=definicoes', icon: 'sliders', title: 'Definições', desc: 'Nome, tipo, lotação e mensalidade' },
           ].map(h => (
             <Link key={h.href} href={h.href} style={{ ...card, padding: '14px 16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 6, borderColor: '#e2e8f0' }}>
               <Icon name={h.icon} size={20} color={ACCENT} />

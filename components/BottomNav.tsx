@@ -26,7 +26,7 @@ export default function BottomNav() {
   // modos pessoais/familiares/estudante, o público que se perde.
   if (mode === 'clinical') return null
   // Não mostrar em páginas de ecrã-inteiro/portais públicos.
-  if (pathname.startsWith('/portal-familia') || pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding')) return null
+  if (pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding')) return null
 
   const items = PRIMARY_NAV[mode] || PRIMARY_NAV.personal
   const t = modeTheme(mode)

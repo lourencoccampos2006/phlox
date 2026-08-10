@@ -183,7 +183,7 @@ export function computeRisk(input: RiskInput): RiskResult {
   const polypharm = input.meds.length
   if (polypharm >= 5) {
     items.push({ id: 'poly', label: `Polifarmácia (${polypharm} fármacos)`, severity: polypharm >= 10 ? 'critical' : 'warning', detail: '≥ 5 fármacos = polifarmácia; ≥ 10 = hiperpolifarmácia. Risco de interações, efeitos adversos e baixa adesão.', reference: 'WHO 2019' })
-    recs.push('Pedir revisão completa da medicação (ex: ferramenta /optimizer no Phlox).')
+    recs.push('Pedir revisão completa da medicação (ex: ferramenta /revisao-medicacao no Phlox).')
   }
 
   // Banda global

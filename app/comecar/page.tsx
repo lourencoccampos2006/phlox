@@ -53,7 +53,6 @@ const SITUATIONS: Situation[] = [
       { label: 'Criar o perfil da pessoa', desc: 'Um espaço só para a saúde de quem cuidas.', href: '/familia' },
       { label: 'Foto da receita ou das caixas', desc: 'O Phlox organiza a medicação dela toda.', href: '/scan' },
       { label: 'Saber quando agir', desc: 'O Phlox avisa o que merece atenção.', href: '/relatorio?tab=bolso' },
-      { label: 'É urgente? Devo ir ao médico?', desc: 'Ajuda a decidir num momento de aflição.', href: '/saude-agora' },
     ],
   },
 ]

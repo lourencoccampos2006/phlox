@@ -14,8 +14,29 @@ function urlBase64ToUint8Array(base64: string): ArrayBuffer {
   return buf
 }
 
+// No iPhone/iPad, o Safari só liga a Push API depois de o site estar
+// ADICIONADO AO ECRÃ PRINCIPAL e aberto a partir daí (iOS 16.4+) — numa aba
+// normal do Safari, pushManager.subscribe() falha sempre, sem exceção clara.
+// Detetar isto permite mostrar "instala primeiro" em vez de um erro genérico.
+export function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  return (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches
+}
+
+// true quando o dispositivo/navegador precisa mesmo de estar instalado no
+// ecrã principal para as notificações poderem funcionar (hoje, só o iOS).
+export function needsHomeScreenForPush(): boolean {
+  return isIOS() && !isStandalone()
+}
+
 export async function activatePush(supabase: any): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    if (needsHomeScreenForPush()) return { ok: false, error: 'No iPhone/iPad, as notificações só funcionam depois de adicionar o Phlox ao ecrã principal e abrir a partir daí — não numa aba do Safari.' }
     if (!('Notification' in window)) return { ok: false, error: 'Este navegador não suporta notificações.' }
     if (Notification.permission !== 'granted') {
       const perm = await Notification.requestPermission()

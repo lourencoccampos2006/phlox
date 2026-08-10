@@ -79,8 +79,11 @@ export default function PostDesidratacao() {
 
         <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Não sabes se é urgente?</div>
-          <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>O Phlox ajuda-te a decidir se deves ir ao médico ou ajudar já em casa, com primeiros passos seguros.</p>
-          <Link href="/saude-agora" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Devo ir ao médico? →</Link>
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>Em caso de dúvida real, liga sempre. Para organizar o que está a observar antes disso, o Phlox ajuda.</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href="tel:112" style={{ display: 'inline-block', background: '#991b1b', color: 'white', textDecoration: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>📞 Ligar 112</a>
+            <Link href="/sintomas" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Diário de sintomas →</Link>
+          </div>
         </div>
 
         <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>

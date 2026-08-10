@@ -311,10 +311,10 @@ export default function VitalsPage() {
                   <div style={{ fontSize:13, fontWeight:700, color:'#991b1b', marginBottom:2 }}>{a.message}</div>
                   <div style={{ fontSize:11, color:'#991b1b', fontFamily:'var(--font-mono)', opacity:0.7 }}>{a.field}</div>
                 </div>
-                {/* Valor crítico → leva à orientação "o que fazer agora". */}
-                <Link href="/saude-agora" style={{ alignSelf:'center', padding:'8px 14px', background:'#991b1b', color:'white', borderRadius:8, fontSize:12.5, fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>
-                  O que fazer agora →
-                </Link>
+                {/* Valor crítico → ação direta, sem passar por uma página intermédia. */}
+                <a href="tel:112" style={{ alignSelf:'center', padding:'8px 14px', background:'#991b1b', color:'white', borderRadius:8, fontSize:12.5, fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>
+                  📞 Ligar 112
+                </a>
               </div>
             ))}
             {warnings.length > 0 && warnings.map((a, i) => (

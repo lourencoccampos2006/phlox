@@ -1,3 +1,4 @@
-// /triagem — Removida 2026-06-01. Fundida com /socorros em /saude-agora.
+// /triagem — Removida 2026-06-01 (fundida em /saude-agora). /saude-agora foi
+// depois também removida 2026-08-09. Mantido como redirect por links antigos.
 import { redirect } from 'next/navigation'
-export default function TriagemRedirect() { redirect('/saude-agora') }
+export default function TriagemRedirect() { redirect('/sintomas') }

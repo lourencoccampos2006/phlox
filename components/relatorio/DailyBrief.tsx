@@ -129,7 +129,7 @@ export default function DailyBrief() {
       personal: [
         { title: 'História de saúde: adesão, sparklines, refill', href: '/timeline' },
         { title: 'Cofre de saúde: anexa PDFs e imagens', href: '/vault' },
-        { title: 'Estou em dia? Rastreios e vacinas (DGS)', href: '/preventivo' },
+        { title: 'Regista como te sentes hoje', href: '/sintomas' },
       ],
     }
     const whats_new = NEWS_BY_MODE[mode] || NEWS_BY_MODE.personal

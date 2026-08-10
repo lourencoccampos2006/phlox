@@ -1,44 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { admin, resolveCode, codeErrorResponse as codeErrorInfo, verifyFamily, HAS_SERVICE_KEY } from '@/lib/familyPortal'
 
 // Portal família: acesso por código do residente, validado server-side (service role).
 // Sem expor user_id nem outros residentes. Só o fio do residente correspondente ao código.
-
-const HAS_SERVICE_KEY = !!process.env.SUPABASE_SERVICE_ROLE_KEY
-
-function admin() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-}
-
-// Devolve o residente OU um objeto de erro com causa, para a API dar mensagens claras.
-async function resolveCode(code: string): Promise<{ patient: any } | { errorCode: 'short' | 'no_column' | 'not_found' | 'db' | 'no_key' }> {
-  const c = (code || '').toUpperCase().trim()
-  if (!c || c.length < 4) return { errorCode: 'short' }
-  // Sem a service-role key, cair para a chave anon devolveria "não
-  // encontrado" para TODOS os códigos (RLS anon não expõe patients) — em vez
-  // de mascarar um servidor mal configurado como "código errado", falha claro.
-  if (!HAS_SERVICE_KEY) return { errorCode: 'no_key' }
-  const sb = admin()
-  const { data, error } = await sb.from('patients').select('id, name, room_number, user_id, org_id').eq('family_code', c).maybeSingle()
-  if (error) {
-    // coluna family_code ainda não existe → a migração não foi corrida
-    if (/column .*family_code.* does not exist/i.test(error.message) || error.code === '42703') return { errorCode: 'no_column' }
-    return { errorCode: 'db' }
-  }
-  if (!data) return { errorCode: 'not_found' }
-  return { patient: data }
-}
+// resolveCode/verifyFamily vivem em lib/familyPortal.ts (partilhado com
+// /api/family-link, a ligação institucional persistida usada por /familia).
 
 function codeErrorResponse(errorCode: string) {
-  if (errorCode === 'no_key') return NextResponse.json({ error: 'O portal família está temporariamente indisponível (configuração do servidor). Tente mais tarde.' }, { status: 503 })
-  if (errorCode === 'no_column') { console.error('[phlox:family-portal] family_code column missing'); return NextResponse.json({ error: 'O portal ainda não está disponível para esta instituição.' }, { status: 503 }) }
-  if (errorCode === 'db') return NextResponse.json({ error: 'Erro de ligação à base de dados. Tente novamente.' }, { status: 500 })
-  if (errorCode === 'short') return NextResponse.json({ error: 'Código demasiado curto.' }, { status: 400 })
-  return NextResponse.json({ error: 'Código inválido. Confirme com a instituição.' }, { status: 404 })
+  const { error, status } = codeErrorInfo(errorCode)
+  if (errorCode === 'no_column') console.error('[phlox:family-portal] family_code column missing')
+  return NextResponse.json({ error }, { status })
 }
-
-const last4 = (phone?: string | null) => (phone || '').replace(/\D/g, '').slice(-4)
 
 // ── "O dia da mãe" — resumo diário caloroso para a família ───────────────────
 // Construído DE FORMA DETERMINÍSTICA a partir dos registos que a equipa já faz
@@ -122,24 +95,6 @@ async function buildDailySummaries(patientId: string, days = 30): Promise<DaySum
     out.push(summariseDay(d, recs, marDay, firstName, d === todayStr))
   }
   return out
-}
-
-// Verifica os últimos 4 dígitos do telemóvel contra os contactos registados do residente.
-// Devolve o contacto correspondente, ou null.
-//
-// SEGURANÇA: antes, se o residente não tivesse telefones registados, o portal
-// abria só com o código (fail-open) — qualquer pessoa que adivinhasse/obtivesse
-// o código via dados clínicos. Agora, sem contactos verificáveis, NÃO abrimos:
-// devolvemos `noContacts` para que o portal peça à instituição que registe o
-// contacto da família. Verificação em 2 fatores: código + últimos 4 dígitos.
-async function verifyFamily(patientId: string, digits: string): Promise<{ ok: boolean; gated: boolean; noContacts?: boolean; contact?: any }> {
-  const sb = admin()
-  const { data: contacts } = await sb.from('resident_contacts').select('id, name, phone').eq('patient_id', patientId)
-  const withPhone = (contacts || []).filter((c: any) => last4(c.phone).length === 4)
-  if (withPhone.length === 0) return { ok: false, gated: true, noContacts: true } // fechado por defeito
-  const d = (digits || '').replace(/\D/g, '').slice(-4)
-  const match = withPhone.find((c: any) => last4(c.phone) === d)
-  return { ok: !!match, gated: true, contact: match }
 }
 
 export async function GET(req: NextRequest) {

@@ -48,17 +48,19 @@ function fromFinding(f: Finding): WatchSignal {
 }
 
 // CTA por tipo de sinal de tendência, na perspetiva do CUIDADOR.
+// bp_crisis/spo2_low apontavam a /saude-agora (removida 2026-08-09) — liga
+// direto, é a mesma ação principal que a página mostrava.
 const CAREGIVER_CTA: Record<string, { label: string; href: string }> = {
   bp_high: { label: 'Ver histórico', href: '/timeline' },
-  bp_crisis: { label: 'O que fazer agora', href: '/saude-agora' },
-  spo2_low: { label: 'O que fazer agora', href: '/saude-agora' },
+  bp_crisis: { label: 'Ligar 112', href: 'tel:112' },
+  spo2_low: { label: 'Ligar 112', href: 'tel:112' },
   glucose_out: { label: 'Registar vitais', href: '/vitals' },
   weight_loss: { label: 'Ver histórico', href: '/timeline' },
   vitals_stale: { label: 'Registar vitais', href: '/vitals' },
   vitals_none: { label: 'Registar vitais', href: '/vitals' },
   stock_out: { label: 'Ver medicação', href: '/mymeds' },
   stock_low: { label: 'Ver medicação', href: '/mymeds' },
-  fever_recurrent: { label: 'O que fazer agora', href: '/saude-agora' },
+  fever_recurrent: { label: 'Diário de sintomas', href: '/sintomas' },
   pain_high: { label: 'Diário de sintomas', href: '/sintomas' },
 }
 

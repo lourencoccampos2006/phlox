@@ -875,7 +875,7 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
                     <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Código família</div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: '#2563eb', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>{familyCode}</div>
                   </div>
-                  <button onClick={() => { navigator.clipboard?.writeText(`Acompanhe ${patient?.name} no Phlox: ${typeof window !== 'undefined' ? window.location.origin : ''}/portal-familia · código ${familyCode}`); }}
+                  <button onClick={() => { navigator.clipboard?.writeText(`Acompanhe ${patient?.name} no Phlox: crie conta em ${typeof window !== 'undefined' ? window.location.origin : ''}/login?mode=family e ligue-se em "A minha família" com o código ${familyCode}`); }}
                     title="Copiar convite" style={{ padding: '7px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copiar convite</button>
                 </div>
               ) : (

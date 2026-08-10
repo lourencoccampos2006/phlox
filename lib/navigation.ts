@@ -29,29 +29,21 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/medicamento',  icon: '💡', label: 'O que é este medicamento?', desc: 'Escreva o nome → para que serve e cuidados' },
       { href: '/mymeds',       icon: '💊', label: 'Os meus comprimidos', desc: 'Lista, horários e lembretes' },
       { href: '/interactions', icon: '🔍', label: 'Dão-se bem juntos?',  desc: 'Ver se é seguro tomá-los ao mesmo tempo' },
-      { href: '/calendario-meds', icon: '⏰', label: 'A que horas devo tomar?', desc: 'O melhor horário de cada toma', badge: 'Novo' },
-      { href: '/optimizer',    icon: '⚡', label: 'Simplificar a medicação', desc: 'Genéricos e revisão (STOPP/START)', badge: 'Novo' },
     ],
   },
   {
     id: 'health', label: 'Saúde', color: '#e11d48',
     tools: [
-      { href: '/saude-agora', icon: '🚨', label: 'Não me sinto bem',     desc: 'Médico, urgências ou em casa? · 112' },
       { href: '/sintomas',  icon: '🌡', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
       { href: '/vault',     icon: '🔒', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
       { href: '/adherencia', icon: '📈', label: 'Adesão à medicação', desc: 'Padrões reais ao longo das semanas — que dias e horas falham mais' },
-      { href: '/preparar-consulta', icon: '🗒️', label: 'Preparar a consulta', desc: 'Transforma o que se passa numa folha organizada para levar ao médico', badge: 'Novo' },
       { href: '/timeline',  icon: '🗓', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
       { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
       { href: '/labs',      icon: '🧪', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
-      { href: '/preventivo', icon: '🛡️', label: 'Estou em dia com a minha saúde?', desc: 'Rastreios e vacinas em falta (normas DGS)' },
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
       { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
       { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
-      // CURADORIA 2026-07-22: só era alcançável a partir de /checkout/success
-      // (nunca mais depois disso) — auditoria de ferramentas apanhou-a órfã.
-      { href: '/strategy',  icon: '🧭', label: 'Simulador de estratégia', desc: 'Compara caminhos possíveis para a tua medicação', badge: 'Pro' },
       // CURADORIA 2026-07-21: eram 6 entradas Pro soltas aqui (rastreio visual,
       // vigia de ruturas, painel da condição, plano de recuperação, revisão da
       // medicação, exportar registo) — uma parede de itens parecidos, sem
@@ -168,7 +160,6 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/familia',      icon: '👨‍👩‍👧', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },
     { href: '/mymeds',       icon: '💊',   label: 'Medicação',  desc: 'Lista e lembretes' },
     { href: '/interactions', icon: '🔍',   label: 'Verificar',  desc: 'São seguros juntos?' },
-    { href: '/calendario-meds', icon: '⏰',   label: 'Horário de toma', desc: 'A que horas devo tomar cada medicamento' },
     { href: '/ai',           icon: '🤖',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
   ],
   clinical: [

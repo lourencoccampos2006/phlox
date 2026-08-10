@@ -97,7 +97,7 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     },
     starters: [
       { label: 'Painel da instituição', href: '/painel', icon: '📊' },
-      { label: 'AI Copilot (Pro)', href: '/copiloto', icon: '✨', desc: 'Ancorado no Decision Engine' },
+      { label: 'O que merece atenção', href: '/radar', icon: '📋' },
       { label: 'Trust Center', href: '/trust', icon: '🛡' },
     ],
     daily: [

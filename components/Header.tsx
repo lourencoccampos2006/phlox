@@ -464,9 +464,8 @@ export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
-  // Portal público do familiar — página standalone, sem header da app
-  const isFamilyPortal = pathname === '/portal-familia' || pathname.startsWith('/portal-familia/')
-    || pathname === '/hp' || pathname.startsWith('/hp/')
+  // Passe de saúde / token de visita — páginas standalone, sem header da app
+  const isFamilyPortal = pathname === '/hp' || pathname.startsWith('/hp/')
     || pathname === '/v' || pathname.startsWith('/v/')
   const mode: ExperienceMode = (user?.experience_mode as ExperienceMode) || 'personal'
   const modeMeta = MODE_META[mode] || MODE_META.personal

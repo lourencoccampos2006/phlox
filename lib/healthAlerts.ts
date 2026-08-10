@@ -43,17 +43,20 @@ const TREND_TO_LEVEL: Record<TrendSeverity, HealthAlert['level'] | null> = {
 }
 
 // CTA + ícone por tipo de sinal de tendência, na perspetiva da PRÓPRIA pessoa.
+// bp_crisis/spo2_low apontavam a /saude-agora (removida 2026-08-09) — a
+// própria página só mostrava mesmo um botão "Ligar 112" como ação principal
+// nestes casos, por isso ligar direto é mais direto que passar por uma página.
 const SELF_CTA: Record<string, { icon: string; href: string; cta: string }> = {
   bp_high: { icon: '🩸', href: '/timeline', cta: 'Ver histórico' },
-  bp_crisis: { icon: '🩸', href: '/saude-agora', cta: 'O que fazer' },
-  spo2_low: { icon: '🫁', href: '/saude-agora', cta: 'O que fazer' },
+  bp_crisis: { icon: '🩸', href: 'tel:112', cta: 'Ligar 112' },
+  spo2_low: { icon: '🫁', href: 'tel:112', cta: 'Ligar 112' },
   glucose_out: { icon: '🍬', href: '/vitals', cta: 'Ver vitais' },
   weight_loss: { icon: '⚖️', href: '/timeline', cta: 'Ver histórico' },
   vitals_stale: { icon: '📏', href: '/vitals', cta: 'Registar' },
   vitals_none: { icon: '📏', href: '/vitals', cta: 'Começar' },
   stock_out: { icon: '💊', href: '/mymeds', cta: 'Ver medicação' },
   stock_low: { icon: '💊', href: '/mymeds', cta: 'Ver medicação' },
-  fever_recurrent: { icon: '🌡️', href: '/saude-agora', cta: 'O que fazer' },
+  fever_recurrent: { icon: '🌡️', href: '/sintomas', cta: 'Diário' },
   pain_high: { icon: '🩹', href: '/sintomas', cta: 'Diário' },
 }
 

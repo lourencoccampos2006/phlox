@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
   if (!orgId) return NextResponse.json({ org: null })
   // tenta trazer os campos da página pública; se as colunas não existirem, recai no básico
   let org: any = null
-  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about, capacity, monthly_fee').eq('id', orgId).maybeSingle()
+  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about, capacity, monthly_fee, logo_url, accent_color').eq('id', orgId).maybeSingle()
   if (full.error) { const basic = await a.from('organizations').select('id, name, kind').eq('id', orgId).maybeSingle(); org = basic.data }
   else org = full.data
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).maybeSingle()
@@ -71,10 +71,21 @@ export async function POST(req: NextRequest) {
   const kind = KINDS.includes(body.kind) ? body.kind : 'day_care'
   if (!name) return NextResponse.json({ error: 'Indica o nome da instituição.' }, { status: 400 })
 
-  // Já é dono de alguma org? Reusa (idempotente).
-  const { data: existing } = await a.from('org_members')
-    .select('org_id, role').eq('user_id', user.id).eq('active', true).eq('role', 'owner').limit(1).maybeSingle()
-  let orgId = existing?.org_id || null
+  // Já tem uma org ATIVA (a mesma que o GET devolve, e que /painel-dono e
+  // /equipa mostram)? Reusa-a — idempotente. CORRIGIDO 2026-08-09: isto lia
+  // antes de org_members por "role=owner limit(1)", uma organização QUALQUER
+  // de que o utilizador seja dono — numa conta com mais do que uma instituição
+  // (existe pelo menos uma real), podia escolher uma DIFERENTE da que estava
+  // ativa/visível no ecrã, e o ramo de "já existe" (abaixo) faz UPDATE ao
+  // nome/tipo — ou seja, podia reescrever silenciosamente a instituição errada.
+  // Agora usa exatamente a mesma resolução do GET (active_org_id || org_id).
+  const { data: prof0 } = await a.from('profiles').select('active_org_id, org_id').eq('id', user.id).maybeSingle()
+  let orgId: string | null = prof0?.active_org_id || prof0?.org_id || null
+  if (orgId) {
+    // confirma que continua mesmo dono desta org (não confiar só no profiles)
+    const { data: membership } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).eq('active', true).maybeSingle()
+    if (membership?.role !== 'owner') orgId = null
+  }
 
   // BUG CRÍTICO corrigido 2026-07-28: esta rota dava plan='clinic' (Institucional,
   // €149/mês) de graça a QUALQUER conta autenticada, sem Stripe, sem aprovação —
@@ -116,6 +127,17 @@ export async function POST(req: NextRequest) {
     if (typeof body.about === 'string') patch.about = body.about.trim().slice(0, 600) || null
     if (body.capacity !== undefined) patch.capacity = body.capacity ? Math.max(0, parseInt(body.capacity)) : null
     if (body.monthlyFee !== undefined) patch.monthly_fee = body.monthlyFee ? Math.max(0, parseFloat(body.monthlyFee)) : null
+    // Marca (2026-08-09) — cabeçalho do Painel do Dono + página pública.
+    // Validado antes de gravar: um hex inválido ou um URL de outro esquema
+    // (javascript:, data:) nunca deve chegar à base de dados.
+    if (typeof body.logoUrl === 'string') {
+      const v = body.logoUrl.trim()
+      patch.logo_url = v ? (/^https:\/\//.test(v) ? v.slice(0, 500) : null) : null
+    }
+    if (typeof body.accentColor === 'string') {
+      const v = body.accentColor.trim()
+      patch.accent_color = v ? (/^#[0-9a-fA-F]{6}$/.test(v) ? v : null) : null
+    }
     const { error: upErr } = await a.from('organizations').update(patch).eq('id', orgId)
     if (upErr && /organizations_kind_check/.test(upErr.message)) {
       // check do kind desatualizado (falta sprint94): guarda tudo MENOS o kind
@@ -125,7 +147,7 @@ export async function POST(req: NextRequest) {
       await backfillOrg(a, user.id, orgId)
       return NextResponse.json({ ok: true, org_id: orgId, kind, kindConstraintOutdated: true })
     }
-    if (upErr && /slug|public|tagline|about|capacity|monthly_fee/.test(upErr.message)) {
+    if (upErr && /slug|public|tagline|about|capacity|monthly_fee|logo_url|accent_color/.test(upErr.message)) {
       // colunas da página pública ainda não existem (sprint93) → atualiza só nome/tipo
       const safe: any = { name }
       if (KINDS.includes(kind)) safe.kind = kind
@@ -135,6 +157,7 @@ export async function POST(req: NextRequest) {
     }
     if (upErr) { console.error('[phlox:org-setup] gravar org falhou:', upErr.message); return NextResponse.json({ error: 'Não foi possível guardar a configuração agora. Tente novamente.' }, { status: 400 }) }
   }
+  if (!orgId) return NextResponse.json({ error: 'Erro interno a resolver a instituição.' }, { status: 500 })
 
   await a.from('profiles').update({
     org_id: orgId, active_org_id: orgId, org_role: 'owner',

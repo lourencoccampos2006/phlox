@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const mStart = monthStart.toISOString().slice(0, 10)
   const last7 = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
 
-  const { data: org } = await safe(a.from('organizations').select('name, kind, capacity, monthly_fee').eq('id', orgId))
+  const { data: org } = await safe(a.from('organizations').select('name, kind, capacity, monthly_fee, logo_url, accent_color').eq('id', orgId))
     .then((r: any) => ({ data: r.data?.[0] || r.data || null })).catch(() => ({ data: null }))
 
   const [patients, members, careToday, marMonth, incOpen, family, careWeek, medsActive, incMonth, assessMonth, careMonth, vigil, finance, billing] = await Promise.all([
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
   const monthResult = feesReceivedMonth + otherIncomeMonth - expensesMonth
 
   return NextResponse.json({
-    org: { name: (org as any)?.name || 'A sua instituição', kind: (org as any)?.kind || 'day_care', capacity, monthlyFee },
+    org: { name: (org as any)?.name || 'A sua instituição', kind: (org as any)?.kind || 'day_care', capacity, monthlyFee, logoUrl: (org as any)?.logo_url || null, accentColor: (org as any)?.accent_color || null },
     kpis: {
       patients: nPatients,
       capacity,

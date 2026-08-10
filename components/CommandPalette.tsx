@@ -24,19 +24,15 @@ const TOOLS: Tool[] = [
   { href: '/relatorio', label: 'Relatório Semanal', desc: 'IA analisa a tua semana e dá recomendações', icon: '📋', category: 'Saúde' },
   { href: '/sintomas', label: 'Diário de Saúde', desc: 'Registo de sintomas e bem-estar diário', icon: '📝', category: 'Saúde' },
   { href: '/adherencia', label: 'Adesão à Medicação', desc: 'Padrões de toma e insights pessoais', icon: '✅', category: 'Saúde' },
-  { href: '/preparar-consulta', label: 'Preparar a Consulta', desc: 'Folha organizada para levar ao médico', icon: '🗒️', category: 'Saúde', badge: 'Novo' },
   // IA & Análise
   { href: '/ai', label: 'Phlox AI', desc: 'Co-piloto farmacológico com contexto clínico', icon: '🤖', category: 'IA & Análise' },
   { href: '/oracle', label: 'Oracle — Farmacêutico AI', desc: 'Consulta estruturada com plano de intervenção', icon: '🔮', category: 'IA & Análise' },
-  { href: '/calendario-meds', label: 'Horário Inteligente', desc: 'IA cria o horário perfeito para a tua medicação', icon: '⏰', category: 'IA & Análise' },
-  { href: '/optimizer', label: 'Otimizar Prescrição', desc: 'Genéricos mais baratos · STOPP/START · segurança', icon: '⚡', category: 'IA & Análise' },
   { href: '/scan', label: 'Tradutor de Bula', desc: 'Texto técnico em linguagem simples', icon: '📖', category: 'IA & Análise', badge: 'Grátis' },
   { href: '/labs', label: 'Perceber as Análises', desc: 'O que está fora do normal e o que fazer', icon: '🧬', category: 'IA & Análise' },
   // Documentos
   { href: '/passport', label: 'Passaporte de Saúde', desc: 'Cartão de emergência com QR code e PDF', icon: '🪪', category: 'Documentos' },
   { href: '/link', label: 'Phlox Link', desc: 'Partilha dados com médico ou farmacêutico', icon: '🔗', category: 'Documentos' },
   { href: '/prescription', label: 'Perceber a Receita', desc: 'Foto ou texto → explicação clara', icon: '📄', category: 'Documentos' },
-  { href: '/preventivo', label: 'Vacinas em Dia?', desc: 'Calendário PT · viagens · recomendações', icon: '💉', category: 'Documentos' },
   { href: '/integracoes', label: 'Importar Dados', desc: 'Apple Saúde · Garmin · Fitbit · MySNS', icon: '📥', category: 'Documentos' },
   // Clínico
   { href: '/turno', label: 'Turno', desc: 'Todos os doentes, doses e alertas num ecrã', icon: '🏥', category: 'Clínico' },

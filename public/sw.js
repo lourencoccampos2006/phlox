@@ -11,8 +11,8 @@ self.addEventListener('push', e => {
   const title = data.title || 'Phlox — Lembrete de toma'
   const options = {
     body: data.body || 'Hora de tomar a medicação.',
-    icon: '/icon-192.png',
-    badge: '/icon-72.png',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-72.png',
     tag: data.tag || 'phlox-reminder',
     renotify: true,
     data: { url: data.url || '/mymeds' },

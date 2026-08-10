@@ -18,13 +18,13 @@ const QUICK = [
   { label: 'Interpretar análises', route: '/study/lab', icon: '🧪' },
   { label: 'Treinar ECG', route: '/study/ecg', icon: '💓' },
   { label: 'As minhas notas', route: '/study/notas', icon: '📝' },
-  { label: 'Devo ir ao médico?', route: '/saude-agora', icon: '🩺' },
+  { label: 'Como me sinto hoje', route: '/sintomas', icon: '🩺' },
 ]
 
 const TOOL_LABEL: Record<string, string> = {
   interactions: 'Verificador de interações', medicamento: 'Informação de medicamento',
   bula: 'Bula', biblioteca: 'Biblioteca médica', labs: 'Interpretação de análises',
-  ecg: 'ECG', 'saude-agora': 'Triagem', calculadoras: 'Calculadoras', escalas: 'Escalas',
+  ecg: 'ECG', sintomas: 'Diário de sintomas', calculadoras: 'Calculadoras', escalas: 'Escalas',
   mymeds: 'A minha medicação', estudo: 'Estudo',
 }
 

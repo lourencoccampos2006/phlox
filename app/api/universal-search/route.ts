@@ -16,7 +16,7 @@ const TOOLS = `
 - biblioteca: pergunta clínica geral (como tratar/diagnosticar/doses). param: question. Ex: "como tratar DPOC", "abordagem do AVC isquémico".
 - labs: interpretar análises laboratoriais. param: text.
 - ecg: treinar/ver ECG. (sem param)
-- saude-agora: triagem de sintomas, "devo ir ao médico". param: complaint.
+- sintomas: registar sintomas pessoais no diário. param: complaint.
 - calculadoras: scores/doses (SCORE2, CKD-EPI, etc). (sem param)
 - escalas: escalas clínicas. (sem param)
 - mymeds: a minha medicação. (sem param)
@@ -31,7 +31,7 @@ const ROUTES: Record<string, (p: any) => string> = {
   biblioteca: p => `/study/biblioteca${p.question ? `?q=${encodeURIComponent(p.question)}` : ''}`,
   labs: p => `/study/lab${p.text ? `?q=${encodeURIComponent(p.text)}` : ''}`,
   ecg: () => `/study/ecg`,
-  'saude-agora': p => `/saude-agora${p.complaint ? `?q=${encodeURIComponent(p.complaint)}` : ''}`,
+  sintomas: () => `/sintomas`,
   calculadoras: () => `/calculos`,
   escalas: () => `/calculos`,
   mymeds: () => `/mymeds`,
@@ -61,7 +61,7 @@ Regras:
 - Se pergunta o que é/para que serve UM medicamento → medicamento (params.name).
 - Pergunta clínica (como tratar, diagnóstico, doses, protocolo) → biblioteca (params.question = a pergunta reformulada).
 - Valores de análises (números com unidades) → labs (params.text).
-- Sintomas pessoais / "devo ir ao médico" → saude-agora (params.complaint).
+- Sintomas pessoais / "devo ir ao médico" → sintomas (params.complaint).
 - Em dúvida entre medicamento e pergunta clínica, escolhe biblioteca.
 - Usa só ids da lista.`,
       },
