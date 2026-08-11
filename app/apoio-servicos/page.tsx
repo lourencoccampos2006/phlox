@@ -183,7 +183,7 @@ export default function ApoioServicosPage() {
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
         <div className="page-container">
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Serviços de apoio</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Transportes que se repetem toda a semana, roupa e outros pedidos.</p>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Transportes, roupa e serviços complementares que se repetem toda a semana, e outros pedidos.</p>
         </div>
       </div>
 
@@ -264,6 +264,14 @@ export default function ApoioServicosPage() {
           )}
         </div>
 
+        {/* ── Roupa recorrente + Serviços de fim de semana/noite (2026-08-11) ── */}
+        <RecurringServiceBoard title="Roupa recorrente" kinds={[{ id: 'roupa', label: 'Roupa' }]} icon="shirt" patients={patients} search={search} />
+        <RecurringServiceBoard title="Serviços de fim de semana / noite" kinds={[
+          { id: 'higiene_fds', label: 'Higiene · fim de semana' },
+          { id: 'alimentacao_fds', label: 'Alimentação · fim de semana' },
+          { id: 'reforco_noite', label: 'Reforço alimentar · noite (2ª-6ª)' },
+        ]} icon="clock" patients={patients} search={search} />
+
         {/* ── Roupa & outros (secundário) ── */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -326,6 +334,176 @@ export default function ApoioServicosPage() {
             })}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Quadro de serviço recorrente genérico ──────────────────────────────────
+// Novo 2026-08-11 — mesma forma que "Transportes recorrentes" acima (uma
+// coisa que se repete em certos dias, um toque marca feito), mas sobre a
+// tabela nova support_recurring_services/logs (sprint131) e parametrizável
+// por "kind" — serve tanto para roupa recorrente como para os serviços de
+// fim de semana/noite, sem duplicar a lógica três vezes.
+interface RecPatient { id: string; name: string; room_number?: string | null }
+interface RecSchedule { id: string; patient_id: string; kind: string; label: string | null; weekdays: number[] | null; time: string | null }
+interface RecLog { id: string; schedule_id: string; date: string; done: boolean }
+
+function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
+  title: string; kinds: { id: string; label: string }[]; icon: string; patients: RecPatient[]; search: string
+}) {
+  const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
+  const toast = useToast()
+  const today = new Date().toISOString().slice(0, 10)
+  const todayWeekday = new Date().getDay()
+  const kindIds = kinds.map(k => k.id)
+
+  const [schedules, setSchedules] = useState<RecSchedule[]>([])
+  const [logs, setLogs] = useState<RecLog[]>([])
+  const [needsSetup, setNeedsSetup] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [newFor, setNewFor] = useState<string | null>(null)
+  const [newKind, setNewKind] = useState(kindIds[0])
+  const [newLabel, setNewLabel] = useState('')
+  const [newTime, setNewTime] = useState('')
+  const [newDays, setNewDays] = useState<number[] | null>(kindIds[0] === 'roupa' ? null : [0, 6])
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    const [sch, lgs] = await Promise.all([
+      scope.filter(supabase.from('support_recurring_services').select('id,patient_id,kind,label,weekdays,time')).in('kind', kindIds).eq('active', true),
+      scope.filter(supabase.from('support_recurring_logs').select('id,schedule_id,date,done')).eq('date', today),
+    ])
+    if (sch.error && /does not exist|schema cache/i.test(sch.error.message)) { setNeedsSetup(true); setLoading(false); return }
+    setNeedsSetup(false)
+    setSchedules(sch.data || [])
+    setLogs(lgs.data || [])
+    setLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
+
+  useEffect(() => { load() }, [load])
+
+  function todaysFor(patientId: string) { return schedules.filter(s => s.patient_id === patientId && (!s.weekdays || s.weekdays.includes(todayWeekday))) }
+  function logFor(scheduleId: string) { return logs.find(l => l.schedule_id === scheduleId) }
+  function kindLabel(kind: string) { return kinds.find(k => k.id === kind)?.label || kind }
+
+  async function toggle(s: RecSchedule) {
+    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    const existing = logFor(s.id)
+    const nextDone = !existing?.done
+    const { data, error } = await supabase.from('support_recurring_logs').upsert({
+      schedule_id: s.id, patient_id: s.patient_id, date: today,
+      done: nextDone, done_by_id: nextDone ? user.id : null, done_at: nextDone ? new Date().toISOString() : null,
+    }, { onConflict: 'schedule_id,date' }).select().single()
+    if (error) { toast.error('Não foi possível atualizar', reportError('recurring-service-toggle', error, MSG.save)); return }
+    setLogs(p => { const rest = p.filter(l => l.schedule_id !== s.id); return data ? [...rest, data] : rest })
+  }
+
+  function openNew(patientId: string) { setNewFor(patientId); setNewKind(kindIds[0]); setNewLabel(''); setNewTime(''); setNewDays(kindIds[0] === 'roupa' ? null : [0, 6]) }
+  function toggleDay(d: number) { setNewDays(prev => { const base = prev || []; return base.includes(d) ? base.filter(x => x !== d) : [...base, d].sort() }) }
+
+  async function createSchedule() {
+    if (!newFor) return
+    setSaving(true)
+    const { error } = await supabase.from('support_recurring_services').insert(scope.stamp({
+      user_id: user.id, patient_id: newFor, kind: newKind, label: newLabel.trim().slice(0, 120) || null,
+      weekdays: newDays, time: newTime || null, active: true, recorded_by_id: user.id,
+    }))
+    setSaving(false)
+    if (error) { toast.error('Não foi possível criar', reportError('recurring-service-create', error, MSG.save)); return }
+    setNewFor(null); load()
+  }
+  async function removeSchedule(id: string) {
+    if (!confirm('Deixar de repetir este serviço?')) return
+    const { error } = await supabase.from('support_recurring_services').update({ active: false }).eq('id', id)
+    if (error) { toast.error('Não foi possível remover', reportError('recurring-service-remove', error, MSG.save)); return }
+    load()
+  }
+
+  const filtered = patients.filter(p => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
+  const anyScheduled = schedules.length > 0
+
+  if (needsSetup) {
+    return (
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+        Para ativar "{title}", aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint131_recurring_services.sql</code> no Supabase.
+      </div>
+    )
+  }
+
+  if (loading) return <div className="skeleton" style={{ height: 60, borderRadius: 10 }} />
+
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{title}</div>
+      {!anyScheduled && !newFor ? (
+        <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 12, padding: 20, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>
+          Nada agendado ainda. Escolha {kinds.length === 1 ? 'a pessoa' : 'a pessoa e o tipo'} abaixo.
+        </div>
+      ) : null}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {filtered.map(p => {
+          const todays = todaysFor(p.id)
+          const isNew = newFor === p.id
+          return (
+            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
+                <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{ padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {isNew ? 'Fechar' : '+ Adicionar'}
+                </button>
+              </div>
+              {todays.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                  {todays.map(s => {
+                    const done = !!logFor(s.id)?.done
+                    return (
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                        <input type="checkbox" checked={done} onChange={() => toggle(s)} style={{ width: 17, height: 17 }} />
+                        <Icon name={icon} size={14} color={done ? '#16a34a' : 'var(--ink-4)'} />
+                        <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
+                          {kindLabel(s.kind)}{s.label ? ` · ${s.label}` : ''}{s.time ? ` · ${s.time}` : ''}
+                        </span>
+                        <button onClick={() => removeSchedule(s.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15 }}>×</button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {isNew && (
+                <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {kinds.length > 1 && (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {kinds.map(k => (
+                        <button key={k.id} onClick={() => setNewKind(k.id)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newKind === k.id ? 'var(--ink)' : 'var(--border)'}`, background: newKind === k.id ? 'var(--ink)' : 'white', color: newKind === k.id ? 'white' : 'var(--ink-4)' }}>{k.label}</button>
+                      ))}
+                    </div>
+                  )}
+                  <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Nota (opcional)"
+                    style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                  <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} placeholder="Hora (opcional)"
+                    style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', width: 130 }} />
+                  <div>
+                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Quando</div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      <button onClick={() => setNewDays(null)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays === null ? 'var(--ink)' : 'var(--border)'}`, background: newDays === null ? 'var(--ink)' : 'white', color: newDays === null ? 'white' : 'var(--ink-4)' }}>Todos os dias</button>
+                      {WEEKDAY_LABELS.map((label, d) => (
+                        <button key={d} onClick={() => toggleDay(d)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays?.includes(d) ? 'var(--ink)' : 'var(--border)'}`, background: newDays?.includes(d) ? 'var(--ink)' : 'white', color: newDays?.includes(d) ? 'white' : 'var(--ink-4)' }}>{label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={createSchedule} disabled={saving} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving ? 'var(--bg-3)' : 'var(--ink)', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
+                    {saving ? 'A criar…' : 'Criar'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

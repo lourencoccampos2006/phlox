@@ -24,21 +24,39 @@ export default function NotifyFamilyButton({ patientId, defaultBody }: { patient
   const [sending, setSending] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState('')
+  // SMS/WhatsApp real, além da mensagem no fio — opcional, de propósito
+  // desligado por omissão (é a família a decidir se quer ficar no in-app ou
+  // não; nunca dispara sozinho). 2026-08-11.
+  const [alsoText, setAlsoText] = useState(false)
+  const [textNote, setTextNote] = useState('')
 
   async function send() {
     if (!user || !body.trim()) return
-    setSending(true); setErr('')
+    setSending(true); setErr(''); setTextNote('')
     const { error } = await supabase.from('family_thread_messages').insert(scope.stamp({
       user_id: user.id, patient_id: patientId, author_side: 'staff',
       author_name: user.name || 'Equipa', kind: 'update',
       content: body.trim().slice(0, 1000), read_by_family: false, read_by_staff: true,
     }))
     if (error) { setErr(reportError('notify-family', error, MSG.save)); setSending(false); return }
+    if (alsoText) {
+      try {
+        const { data: sd } = await supabase.auth.getSession()
+        const r = await fetch('/api/notify-family', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+          body: JSON.stringify({ patientId, body: body.trim() }),
+        })
+        const d = await r.json()
+        if (d.error === 'not_configured') setTextNote('Mensagem enviada na app. SMS/WhatsApp ainda não está ativado nesta conta.')
+        else if (d.ok) setTextNote('✓ Também enviado por SMS/WhatsApp.')
+        else setTextNote('Mensagem enviada na app; o SMS/WhatsApp falhou.')
+      } catch { setTextNote('Mensagem enviada na app; não foi possível confirmar o SMS/WhatsApp.') }
+    }
     setSending(false); setDone(true)
-    setTimeout(() => { setOpen(false); setDone(false) }, 1800)
+    setTimeout(() => { setOpen(false); setDone(false); setAlsoText(false) }, 2400)
   }
 
-  if (done) return <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>✓ Enviado à família</div>
+  if (done) return <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>✓ Enviado à família{textNote ? <div style={{ fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>{textNote}</div> : null}</div>
 
   if (!open) {
     return (
@@ -52,6 +70,9 @@ export default function NotifyFamilyButton({ patientId, defaultBody }: { patient
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: 10, marginTop: 6 }}>
       <textarea value={body} onChange={e => setBody(e.target.value)} rows={3}
         style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12.5, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical' }} />
+      <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--ink-3)', cursor: 'pointer' }}>
+        <input type="checkbox" checked={alsoText} onChange={e => setAlsoText(e.target.checked)} /> Enviar também por SMS/WhatsApp
+      </label>
       {err && <div style={{ fontSize: 11.5, color: '#dc2626' }}>{err}</div>}
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => setOpen(false)} style={{ flex: 1, padding: '7px', background: 'white', border: '1px solid var(--border)', color: 'var(--ink-3)', borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>

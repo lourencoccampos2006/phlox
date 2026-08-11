@@ -109,7 +109,7 @@ export default function IncidentsPage() {
   const [saveError, setSaveError] = useState('')
   // Comunicação à família de uma ocorrência grave: em vez de um confirm() cru,
   // um modal com a mensagem PRÉ-ESCRITA e EDITÁVEL, que se envia deliberadamente.
-  const [notify, setNotify] = useState<{ patientId: string; patientName: string; body: string; sending: boolean; done: boolean } | null>(null)
+  const [notify, setNotify] = useState<{ patientId: string; patientName: string; body: string; sending: boolean; done: boolean; alsoText: boolean; textNote: string } | null>(null)
   // Registo rápido (IA) — nota informal → tipo/gravidade/descrição propostos,
   // revistos no formulário completo antes de guardar (nunca grava sozinho).
   const [quickNote, setQuickNote] = useState('')
@@ -141,10 +141,14 @@ export default function IncidentsPage() {
     const patName = patients.find(p => p.id === patientId)?.name || `o/a ${personLower}`
     const sevLabel = SEV_STYLE[severity]?.label || severity
     const body = `Informamos que ocorreu ${TYPE_LABELS[type] ? `um(a) ${TYPE_LABELS[type].toLowerCase()}` : 'uma ocorrência'} (gravidade ${sevLabel.toLowerCase()}) com ${patName}. A equipa prestou de imediato a assistência necessária e ${patName.split(' ')[0]} está a ser acompanhado(a). Estamos disponíveis para esclarecer qualquer questão.`
-    setNotify({ patientId, patientName: patName, body, sending: false, done: false })
+    setNotify({ patientId, patientName: patName, body, sending: false, done: false, alsoText: severity === 'critical' || severity === 'major', textNote: '' })
   }
   // Envia a mensagem para o FIO da família (family_thread_messages — o que /family
   // e /familia mostram). Antes escrevia em family_messages e a família não via.
+  // 2026-08-11: soma SMS/WhatsApp real (opcional) — uma ocorrência é
+  // precisamente o tipo de aviso que não deve depender de a família abrir a
+  // app; pré-marcado para gravidade alta/crítica, mas sempre revisto e
+  // desmarcável antes de enviar.
   const sendNotify = async () => {
     if (!notify || !user) return
     setNotify(n => n ? { ...n, sending: true } : n)
@@ -154,8 +158,22 @@ export default function IncidentsPage() {
       content: notify.body, read_by_family: false, read_by_staff: true,
     }))
     if (error) { setNotify(n => n ? { ...n, sending: false } : n); setSaveError('Não foi possível comunicar à família: ' + error.message); return }
-    setNotify(n => n ? { ...n, sending: false, done: true } : n)
-    setTimeout(() => setNotify(null), 1800)
+    let textNote = ''
+    if (notify.alsoText) {
+      try {
+        const { data: sd } = await supabase.auth.getSession()
+        const r = await fetch('/api/notify-family', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+          body: JSON.stringify({ patientId: notify.patientId, body: notify.body }),
+        })
+        const d = await r.json()
+        if (d.error === 'not_configured') textNote = 'Mensagem enviada na app. SMS/WhatsApp ainda não está ativado nesta conta.'
+        else if (d.ok) textNote = '✓ Também enviado por SMS/WhatsApp.'
+        else textNote = 'Mensagem enviada na app; o SMS/WhatsApp falhou.'
+      } catch { textNote = 'Mensagem enviada na app; não foi possível confirmar o SMS/WhatsApp.' }
+    }
+    setNotify(n => n ? { ...n, sending: false, done: true, textNote } : n)
+    setTimeout(() => setNotify(null), 2400)
   }
 
   const save = async () => {
@@ -530,6 +548,7 @@ export default function IncidentsPage() {
                 <div style={{ textAlign: 'center', padding: '18px 0' }}>
                   <div style={{ fontSize: 34, marginBottom: 8 }}>✓</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120' }}>Família avisada</div>
+                  {notify.textNote && <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{notify.textNote}</div>}
                 </div>
               ) : (
                 <>
@@ -537,6 +556,9 @@ export default function IncidentsPage() {
                   <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>Ocorrência grave com <b>{notify.patientName}</b>. Reveja a mensagem antes de enviar.</div>
                   <textarea value={notify.body} onChange={e => setNotify(n => n ? { ...n, body: e.target.value } : n)} rows={5}
                     style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 13px', fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#475569', marginTop: 10, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={notify.alsoText} onChange={e => setNotify(n => n ? { ...n, alsoText: e.target.checked } : n)} /> Enviar também por SMS/WhatsApp
+                  </label>
                   <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                     <button onClick={() => setNotify(null)} disabled={notify.sending} style={{ flex: 1, padding: '11px', background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 9, fontSize: 13.5, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}>Não enviar</button>
                     <button onClick={sendNotify} disabled={notify.sending || !notify.body.trim()} style={{ flex: 2, padding: '11px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: notify.sending ? 'wait' : 'pointer' }}>{notify.sending ? 'A enviar…' : 'Enviar à família'}</button>
