@@ -23,11 +23,16 @@ interface Item {
 }
 
 const CATS: Record<string, { label: string; icon: string; color: string }> = {
-  medicamento: { label: 'Medicamento', icon: '💊', color: '#2563eb' },
-  consumivel:  { label: 'Consumível',  icon: '🧴', color: '#0d9488' },
-  epi:         { label: 'EPI',         icon: '🧤', color: '#7c3aed' },
-  limpeza:     { label: 'Limpeza',     icon: '🧹', color: '#0891b2' },
-  geral:       { label: 'Geral',       icon: '📦', color: '#64748b' },
+  medicamento:   { label: 'Medicamento',   icon: '💊', color: '#2563eb' },
+  // Categoria própria (2026-08-11) — fraldas/pensos/resguardos viviam
+  // indistinguíveis de qualquer outro "consumível" (luvas, compressas). Um
+  // lar que anuncia "stock de fraldas, pensos e resguardos" como serviço
+  // precisa de conseguir ver e repor isto à parte, não perdido no meio de tudo.
+  incontinencia: { label: 'Fraldas/Pensos', icon: '🩹', color: '#db2777' },
+  consumivel:    { label: 'Consumível',    icon: '🧴', color: '#0d9488' },
+  epi:           { label: 'EPI',           icon: '🧤', color: '#7c3aed' },
+  limpeza:       { label: 'Limpeza',       icon: '🧹', color: '#0891b2' },
+  geral:         { label: 'Geral',         icon: '📦', color: '#64748b' },
 }
 const CAT_KEYS = Object.keys(CATS)
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }

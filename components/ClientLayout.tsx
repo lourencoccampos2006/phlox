@@ -39,6 +39,7 @@ const CLINICAL_PREFIXES = [
   '/farmacia',
   '/aprender', '/study', '/estagio',
   '/refeicoes', '/apoio-servicos', '/tendencias',
+  '/preparacao-medicacao', '/apoio-psicossocial',
 ]
 
 function ScrollToTop() {

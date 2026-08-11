@@ -124,6 +124,8 @@ export const TOOLS: Tool[] = [
   { id: '/equipa?tab=escalas', label: 'Equipa & escalas',        desc: 'Membros, turnos, competências e tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/equipa?tab=cobertura', label: 'Cobertura de turnos',  desc: 'Publica vagas quando falta alguém; a equipa vê e cobre', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/apoio-servicos', label: 'Serviços de apoio',          desc: 'Roupa, transporte e outros pedidos — quem publica, quem trata', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/preparacao-medicacao', label: 'Preparação da medicação', desc: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  { id: '/apoio-psicossocial', label: 'Apoio psico-social',     desc: 'Notas de acompanhamento e encaminhamento a especialistas — só equipa', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/faturacao',    label: 'Faturação',                     desc: 'Emissão e exportação',             category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'clinic'], plan: 'pro' },
 
   // Qualidade & farmacovigilância

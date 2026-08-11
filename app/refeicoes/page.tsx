@@ -18,6 +18,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
+import { evaluateVital } from '@/lib/vitalRanges'
 
 interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string }
 interface NewDish { temp_id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string }
@@ -54,6 +55,7 @@ export default function RefeicoesPage() {
   const [needsSetup, setNeedsSetup] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLibrary, setShowLibrary] = useState(false)
+  const [showReinforcement, setShowReinforcement] = useState(false)
 
   // Novo prato
   const [newName, setNewName] = useState('')
@@ -194,18 +196,6 @@ export default function RefeicoesPage() {
     setApplying(false)
   }
 
-  if (needsSetup) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-        <div className="page-container page-body" style={{ maxWidth: 620 }}>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            Para ativar o planeamento de refeições, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint127_meal_planning.sql</code> no Supabase.
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
@@ -214,13 +204,25 @@ export default function RefeicoesPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Refeições</h1>
             <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Organiza o cardápio da semana para a cozinha — a IA ajuda, respeitando alergias e dietas.</p>
           </div>
-          <button onClick={() => setShowLibrary(v => !v)} style={{ padding: '9px 16px', background: showLibrary ? 'var(--ink)' : 'white', color: showLibrary ? 'white' : 'var(--ink-3)', border: '1.5px solid var(--ink)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-            {showLibrary ? 'Fechar biblioteca' : '📖 Biblioteca de pratos'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => setShowReinforcement(v => !v)} style={{ padding: '9px 16px', background: showReinforcement ? '#db2777' : 'white', color: showReinforcement ? 'white' : '#db2777', border: '1.5px solid #db2777', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              {showReinforcement ? 'Fechar reforço' : '🩸 Reforço diabético'}
+            </button>
+            <button onClick={() => setShowLibrary(v => !v)} style={{ padding: '9px 16px', background: showLibrary ? 'var(--ink)' : 'white', color: showLibrary ? 'white' : 'var(--ink-3)', border: '1.5px solid var(--ink)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              {showLibrary ? 'Fechar biblioteca' : '📖 Biblioteca de pratos'}
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="page-container page-body" style={{ maxWidth: 1100, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {showReinforcement && <DiabeticReinforcementSection />}
+
+        {needsSetup ? (
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+            Para ativar o planeamento de refeições, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint127_meal_planning.sql</code> no Supabase.
+          </div>
+        ) : <>
         {showLibrary && (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 12 }}>Biblioteca de pratos ({dishes.length})</div>
@@ -373,7 +375,128 @@ export default function RefeicoesPage() {
             </table>
           </div>
         )}
+        </>}
       </div>
+    </div>
+  )
+}
+
+// ─── Reforço alimentar a diabéticos ─────────────────────────────────────────
+// Novo 2026-08-11 — auditoria direta contra o serviço "reforço alimentar aos
+// idosos diabéticos" de um centro de dia real: /refeicoes só tinha uma tag de
+// dieta num PRATO, nada ao nível do RESIDENTE, nada a marcar se o reforço foi
+// de facto dado. Autónomo de propósito (própria fetch, própria tabela) — não
+// depende de meal_plan_entries/meal_dishes (sprint127, ainda por aplicar),
+// para não ficar bloqueado atrás de uma migração de outra funcionalidade.
+//
+// Deteção de diabetes reaproveita EXATAMENTE o mesmo critério que já existe
+// em lib/vitalRanges.ts (evaluateVital ajusta o limiar de glicemia quando
+// /diabet|dm2|dm1/i bate com patients.conditions) — o mesmo residente conta
+// como diabético aqui e em /vitals e /care-log, nunca dois critérios a mais.
+const DIABETIC_RE = /diabet|dm2|dm1/i
+const SHIFT_LABEL: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
+
+interface DiabPatient { id: string; name: string; conditions: string | null; age: number | null; room_number: string | null }
+interface LatestVital { glucose: number | null; recorded_at: string | null }
+interface ReinforcementRow { id: string; patient_id: string; shift: string; given: boolean }
+
+function DiabeticReinforcementSection() {
+  const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
+  const toast = useToast()
+  const today = new Date().toISOString().slice(0, 10)
+
+  const [patients, setPatients] = useState<DiabPatient[]>([])
+  const [vitals, setVitals] = useState<Record<string, LatestVital>>({})
+  const [rows, setRows] = useState<ReinforcementRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [needsSetup, setNeedsSetup] = useState(false)
+
+  const load = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+    const since = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10)
+    const [pats, cr, rf] = await Promise.all([
+      scope.filter(supabase.from('patients').select('id,name,conditions,age,room_number')).eq('active', true),
+      scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since).order('date', { ascending: false }),
+      scope.filter(supabase.from('dietary_reinforcements').select('id,patient_id,shift,given')).eq('date', today),
+    ])
+    if (rf.error && /does not exist|schema cache/i.test(rf.error.message)) { setNeedsSetup(true); setLoading(false); return }
+    setNeedsSetup(false)
+    const diabetic = ((pats.data || []) as DiabPatient[]).filter(p => DIABETIC_RE.test(p.conditions || ''))
+    setPatients(diabetic)
+    const latest: Record<string, LatestVital> = {}
+    ;((cr.data || []) as any[]).forEach(r => {
+      if (latest[r.patient_id]) return // já temos um mais recente (ordenado desc)
+      const g = r.vitals?.glucose
+      if (typeof g === 'number') latest[r.patient_id] = { glucose: g, recorded_at: r.date }
+    })
+    setVitals(latest)
+    setRows((rf.data || []) as ReinforcementRow[])
+    setLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId, today])
+
+  useEffect(() => { load() }, [load])
+
+  async function toggle(patientId: string, shift: string) {
+    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    const existing = rows.find(r => r.patient_id === patientId && r.shift === shift)
+    const nextGiven = !existing?.given
+    const { data, error } = await supabase.from('dietary_reinforcements').upsert(scope.stamp({
+      user_id: user.id, patient_id: patientId, date: today, shift, given: nextGiven, recorded_by_id: user.id,
+    }), { onConflict: 'patient_id,date,shift' }).select().single()
+    if (error) { toast.error('Não foi possível marcar', reportError('reforco-diabetico-toggle', error, MSG.save)); return }
+    setRows(prev => { const rest = prev.filter(r => !(r.patient_id === patientId && r.shift === shift)); return data ? [...rest, data] : rest })
+  }
+
+  if (needsSetup) {
+    return (
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+        Para ativar o reforço alimentar a diabéticos, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint130_diabetic_prep_psychosocial.sql</code> no Supabase.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ background: 'white', border: '1px solid #fbcfe8', borderRadius: 14, padding: 18 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#db2777', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Reforço alimentar · Diabéticos</div>
+      <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: '0 0 14px', lineHeight: 1.5 }}>Identificados a partir das condições registadas em cada ficha. Marque quando o reforço for dado — a glicemia mostrada é a última registada.</p>
+
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 50, borderRadius: 10 }} />)}</div>
+      ) : patients.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--ink-4)', padding: '10px 0' }}>Nenhum residente diabético identificado a partir das condições registadas em Doentes.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {patients.map(p => {
+            const v = vitals[p.id]
+            const reading = v?.glucose != null ? evaluateVital('glucose', v.glucose, { age: p.age, conditions: p.conditions }) : null
+            return (
+              <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{p.name}{p.room_number ? <span style={{ fontWeight: 500, color: 'var(--ink-4)' }}> · Q.{p.room_number}</span> : ''}</div>
+                  {reading && (
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: reading.level === 'normal' ? '#16a34a' : reading.level === 'warning' ? '#d97706' : '#dc2626' }}>
+                      Glicemia {v!.glucose} mg/dL{v!.recorded_at && v!.recorded_at !== today ? ` (${v!.recorded_at.slice(8, 10)}/${v!.recorded_at.slice(5, 7)})` : ''} · {reading.label}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {(['manha', 'tarde', 'noite'] as const).map(shift => {
+                    const given = !!rows.find(r => r.patient_id === p.id && r.shift === shift)?.given
+                    return (
+                      <button key={shift} onClick={() => toggle(p.id, shift)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${given ? '#db2777' : 'var(--border)'}`, background: given ? '#fdf2f8' : 'white', color: given ? '#db2777' : 'var(--ink-4)' }}>
+                        {given ? '✓' : ''} {SHIFT_LABEL[shift]}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
