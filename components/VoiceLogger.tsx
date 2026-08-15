@@ -16,6 +16,12 @@
 // gravação curta em sala ruidosa. Domínio ganhou sinais vitais e atividades
 // (medicação e ocorrências continuam de fora por serem as duas áreas mais
 // sensíveis a um erro de transcrição/interpretação).
+//
+// 2026-08-11 (a pedido de Fernando: "não quero checkboxes, quero IA de
+// verdade"): domínio ganhou preparação de medicação, serviços recorrentes
+// (transporte/roupa/complementar) e reforço alimentar — cada um só é
+// oferecido pela IA quando existe dado real que o justifique (medicação
+// ativa, agendamento de hoje, condição diabética), nunca por omissão.
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
@@ -26,7 +32,7 @@ import Icon from '@/components/Icon'
 
 interface Patient { id: string; name: string; room_number?: string | null }
 interface ProposedAction {
-  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity'
+  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity' | 'medication_prep' | 'recurring_service' | 'dietary_reinforcement' | 'transport_service'
   summary: string
   payload: Record<string, any>
   approved: boolean
@@ -35,12 +41,16 @@ interface ProposedAction {
 type Step = 'closed' | 'pick' | 'record' | 'transcribing' | 'transcript' | 'extracting' | 'actions' | 'saving' | 'done'
 
 const DOMAIN_META: Record<ProposedAction['domain'], { label: string; icon: string }> = {
-  nutrition:       { label: 'Refeição',            icon: 'meal' },
-  health_checkin:  { label: 'Saúde & Apoio',       icon: 'stethoscope' },
-  support_service: { label: 'Serviço de apoio',    icon: 'shirt' },
-  medication:      { label: 'Medicação',           icon: 'pill' },
-  vitals:          { label: 'Sinais vitais',       icon: 'heart' },
-  activity:        { label: 'Atividade',           icon: 'trophy' },
+  nutrition:             { label: 'Refeição',              icon: 'meal' },
+  health_checkin:        { label: 'Saúde & Apoio',         icon: 'stethoscope' },
+  support_service:       { label: 'Serviço de apoio',      icon: 'shirt' },
+  medication:            { label: 'Medicação',             icon: 'pill' },
+  vitals:                { label: 'Sinais vitais',         icon: 'heart' },
+  activity:              { label: 'Atividade',             icon: 'trophy' },
+  medication_prep:       { label: 'Preparação de medicação', icon: 'package' },
+  recurring_service:     { label: 'Serviço recorrente',    icon: 'refresh' },
+  dietary_reinforcement: { label: 'Reforço alimentar',     icon: 'meal' },
+  transport_service:     { label: 'Transporte',            icon: 'route' },
 }
 
 const MAX_RECORD_MS = 60_000

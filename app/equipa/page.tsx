@@ -338,6 +338,9 @@ export default function EquipaPage() {
                   )}
                 </div>
 
+                {/* Notificações externas — testar SMS/WhatsApp sem precisar de um utente real */}
+                <NotifyTestCard />
+
                 {/* Adicionar membro */}
                 <div style={{ ...card, marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 12 }}>Adicionar funcionário</div>
@@ -443,3 +446,68 @@ const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)', f
 const inp: React.CSSProperties = { width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '10px 13px', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
 const btn: React.CSSProperties = { width: '100%', padding: '12px', background: ACCENT, color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
 const btnSm: React.CSSProperties = { padding: '8px 14px', borderRadius: 8, border: 'none', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
+
+// ─── Testar SMS/WhatsApp ─────────────────────────────────────────────────
+// Novo 2026-08-11 — o Fernando ligou o Twilio mas está em trial (só pode
+// enviar para números QUE ELE PRÓPRIO verificou lá) e não tinha forma de
+// confirmar, dentro do Phlox, que o envio real funciona sem inventar um
+// utente/ocorrência a sério. Isto testa a ligação ponta-a-ponta.
+function NotifyTestCard() {
+  const { supabase } = useAuth() as any
+  const [status, setStatus] = useState<{ hasSms: boolean; hasWhatsapp: boolean } | null>(null)
+  const [to, setTo] = useState('')
+  const [channel, setChannel] = useState<'sms' | 'whatsapp'>('sms')
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/notify-family/test', { headers: { Authorization: `Bearer ${sd?.session?.access_token || ''}` } })
+      if (r.ok) setStatus(await r.json())
+    })()
+  }, [supabase])
+
+  async function sendTest() {
+    if (!to.trim()) return
+    setSending(true); setResult(null)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/notify-family/test', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ to: to.trim(), channel }),
+      })
+      const d = await r.json()
+      if (r.ok) setResult({ ok: true, msg: 'Enviado. Deve chegar em segundos.' })
+      else if (d.error === 'not_configured') setResult({ ok: false, msg: `${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} ainda não está configurado (faltam variáveis de ambiente no Vercel).` })
+      else setResult({ ok: false, msg: d.error || 'Não foi possível enviar.' })
+    } catch { setResult({ ok: false, msg: 'Erro de ligação.' }) }
+    setSending(false)
+  }
+
+  const card: React.CSSProperties = { background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '20px 22px', marginBottom: 16 }
+
+  return (
+    <div style={card}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Notificações externas (SMS/WhatsApp)</div>
+      <p style={{ fontSize: 12.5, color: '#94a3b8', margin: '0 0 4px', lineHeight: 1.5 }}>
+        SMS: <strong style={{ color: status?.hasSms ? '#16a34a' : '#94a3b8' }}>{status ? (status.hasSms ? 'ativo' : 'não configurado') : '…'}</strong>
+        {' · '}WhatsApp: <strong style={{ color: status?.hasWhatsapp ? '#16a34a' : '#94a3b8' }}>{status ? (status.hasWhatsapp ? 'ativo' : 'não configurado') : '…'}</strong>
+      </p>
+      <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 14px', lineHeight: 1.6 }}>
+        Em trial da Twilio, só chega a números que verificou lá (Console → Phone Numbers → Verified Caller IDs). Ponha o seu próprio número aqui para confirmar.
+      </p>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <button onClick={() => setChannel('sms')} style={{ padding: '7px 13px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${channel === 'sms' ? ACCENT : '#e2e8f0'}`, background: channel === 'sms' ? '#f0fdfa' : 'white', color: channel === 'sms' ? ACCENT : '#475569' }}>SMS</button>
+        <button onClick={() => setChannel('whatsapp')} style={{ padding: '7px 13px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${channel === 'whatsapp' ? ACCENT : '#e2e8f0'}`, background: channel === 'whatsapp' ? '#f0fdfa' : 'white', color: channel === 'whatsapp' ? ACCENT : '#475569' }}>WhatsApp</button>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={to} onChange={e => setTo(e.target.value)} placeholder="+351912345678" style={{ ...inp, flex: '1 1 200px' }} />
+        <button onClick={sendTest} disabled={sending || !to.trim()} style={{ padding: '10px 18px', background: sending || !to.trim() ? '#e2e8f0' : ACCENT, color: sending || !to.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: sending ? 'wait' : 'pointer', flexShrink: 0 }}>
+          {sending ? 'A enviar…' : 'Enviar teste'}
+        </button>
+      </div>
+      {result && <p style={{ fontSize: 12.5, color: result.ok ? '#16a34a' : '#dc2626', marginTop: 10, lineHeight: 1.5 }}>{result.ok ? '✓ ' : ''}{result.msg}</p>}
+    </div>
+  )
+}

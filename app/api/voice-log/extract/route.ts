@@ -33,7 +33,7 @@ import { aiJSON } from '@/lib/ai'
 export const runtime = 'nodejs'
 
 interface RawAction {
-  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity'
+  domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity' | 'medication_prep' | 'recurring_service' | 'dietary_reinforcement' | 'transport_service'
   summary: string
   payload: Record<string, any>
 }
@@ -69,6 +69,26 @@ const ACTIVITY_SYSTEM = `
 6. "activity" — participação numa atividade agendada para HOJE, da lista fornecida abaixo. Campos: activity_title (copia EXATAMENTE o título como aparece na lista — nunca inventes uma atividade que não esteja na lista), attended (true se participou, false se recusou/não foi), notes (opcional, curto). Se a atividade mencionada não corresponder claramente a nenhuma da lista de hoje, NÃO cries a ação.
    Exemplo: "Ele foi à ginástica e participou bem" → {domain:"activity",payload:{activity_title:"Ginástica",attended:true}}.`
 
+const PREP_SYSTEM = `
+
+7. "medication_prep" — preparação física da medicação da semana (pastilheiro/blister), DIFERENTE de dar/administrar. Só existe esta ação se a pessoa disser explicitamente que PREPAROU/ORGANIZOU a medicação da semana (não "dei"/"tomou" — isso é "medication"). Sem campos — só cria a ação.
+   Exemplos: "Já preparei a medicação semanal da Dona Maria" → {domain:"medication_prep",payload:{}}. "Organizei o pastilheiro dele para esta semana" → {domain:"medication_prep",payload:{}}.`
+
+const RECURRING_SYSTEM = `
+
+8. "recurring_service" — um serviço complementar agendado que se repete (roupa, higiene de fim de semana, alimentação de fim de semana, reforço noturno) foi CUMPRIDO hoje, da lista fornecida abaixo. Campo: kind (copia EXATAMENTE o kind da lista fornecida). Se não corresponder claramente a nenhum da lista, NÃO cries a ação.
+   Exemplo (com "roupa" na lista): "Já tratei da roupa dele" → {domain:"recurring_service",payload:{kind:"roupa"}}.`
+
+const REINFORCEMENT_SYSTEM = `
+
+9. "dietary_reinforcement" — reforço alimentar (diabéticos) dado agora. Sem campos — só cria a ação.
+   Exemplo: "Dei o reforço alimentar à Dona Maria" → {domain:"dietary_reinforcement",payload:{}}.`
+
+const TRANSPORT_SYSTEM = `
+
+10. "transport_service" — um transporte agendado que se repete foi CUMPRIDO hoje, da lista fornecida abaixo. Campo: transport_label (copia EXATAMENTE o texto como aparece na lista — nunca inventes um transporte que não esteja na lista). Se não corresponder claramente a nenhum da lista, NÃO cries a ação.
+   Exemplo (com "Transporte para fisioterapia" na lista): "Levei-a à fisioterapia" → {domain:"transport_service",payload:{transport_label:"Transporte para fisioterapia"}}.`
+
 export async function POST(req: NextRequest) {
   if (!checkRateLimit(getIP(req), 30, 60_000).allowed) return rateLimitResponse()
   const { userId, plan } = await getUserPlan(req)
@@ -85,25 +105,46 @@ export async function POST(req: NextRequest) {
   // tiver acesso a este utente, a linha simplesmente não aparece.
   const db = sb(req)
   const today = new Date().toISOString().slice(0, 10)
-  const [{ data: patient }, { data: meds }, { data: todaysActivities }] = await Promise.all([
-    db.from('patients').select('id,name').eq('id', patientId).maybeSingle(),
+  const todayWeekday = new Date().getDay()
+  const [{ data: patient }, { data: meds }, { data: todaysActivities }, { data: recSvcs }, { data: transportScheds }] = await Promise.all([
+    db.from('patients').select('id,name,conditions').eq('id', patientId).maybeSingle(),
     db.from('patient_meds').select('id,name,dose').eq('patient_id', patientId).eq('active', true),
     db.from('activities').select('id,title').eq('date', today),
+    db.from('support_recurring_services').select('id,kind,weekdays').eq('patient_id', patientId).eq('active', true).then((r: any) => r, () => ({ data: [] })),
+    db.from('support_transport_schedules').select('id,label,weekdays').eq('patient_id', patientId).eq('active', true).then((r: any) => r, () => ({ data: [] })),
   ])
   if (!patient) return NextResponse.json({ error: 'Sem acesso a esta pessoa.' }, { status: 403 })
 
   const activeMeds = meds || []
   const activities = todaysActivities || []
+  const KIND_LABEL: Record<string, string> = { roupa: 'Roupa', higiene_fds: 'Higiene de fim de semana', alimentacao_fds: 'Alimentação de fim de semana', reforco_noite: 'Reforço alimentar noturno' }
+  const todaysKinds = [...new Set(((recSvcs || []) as any[]).filter(s => !s.weekdays || s.weekdays.includes(todayWeekday)).map(s => s.kind))]
+  const todaysTransport = ((transportScheds || []) as any[]).filter(s => !s.weekdays || s.weekdays.includes(todayWeekday))
+  const isDiabetic = /diabet|dm2|dm1/i.test(patient.conditions || '')
 
   const domains = ['nutrition', 'health_checkin', 'support_service', 'vitals']
   let system = BASE_SYSTEM
   if (activeMeds.length > 0) {
     domains.push('medication')
     system += MED_SYSTEM + `\n\nMedicação ativa desta pessoa (usa o nome EXATAMENTE como aqui):\n` + activeMeds.map(m => `- ${m.name}${m.dose ? ` (${m.dose})` : ''}`).join('\n')
+    domains.push('medication_prep')
+    system += PREP_SYSTEM
   }
   if (activities.length > 0) {
     domains.push('activity')
     system += ACTIVITY_SYSTEM + `\n\nAtividades agendadas para hoje (usa o título EXATAMENTE como aqui):\n` + activities.map(a => `- ${a.title}`).join('\n')
+  }
+  if (todaysKinds.length > 0) {
+    domains.push('recurring_service')
+    system += RECURRING_SYSTEM + `\n\nServiços recorrentes agendados para hoje desta pessoa (usa o kind EXATAMENTE como aqui):\n` + todaysKinds.map(k => `- kind:"${k}" (${KIND_LABEL[k] || k})`).join('\n')
+  }
+  if (todaysTransport.length > 0) {
+    domains.push('transport_service')
+    system += TRANSPORT_SYSTEM + `\n\nTransportes agendados para hoje desta pessoa (usa o texto EXATAMENTE como aqui):\n` + todaysTransport.map((t: any) => `- ${t.label}`).join('\n')
+  }
+  if (isDiabetic) {
+    domains.push('dietary_reinforcement')
+    system += REINFORCEMENT_SYSTEM
   }
   system += `\n\nDevolve APENAS JSON: {"actions": [{"domain": "...", "summary": "frase curta em PT-PT para mostrar num cartão de confirmação, ex: 'Almoço: comeu bem (75%)'", "payload": {...}}]}`
 
@@ -135,6 +176,18 @@ export async function POST(req: NextRequest) {
           || activities.find(x => x.title.toLowerCase().includes(spoken) || spoken.includes(x.title.toLowerCase()))
         if (!match) return null
         return { ...a, payload: { activity_id: match.id, activity_title: match.title, attended: a.payload?.attended !== false, notes: a.payload?.notes ? String(a.payload.notes).slice(0, 300) : null } }
+      }
+      if (a.domain === 'recurring_service') {
+        const kind = String(a.payload?.kind || '')
+        if (!todaysKinds.includes(kind)) return null
+        return { ...a, payload: { kind } }
+      }
+      if (a.domain === 'transport_service') {
+        const spoken = String(a.payload?.transport_label || '').trim().toLowerCase()
+        const match = todaysTransport.find((t: any) => t.label.toLowerCase() === spoken)
+          || todaysTransport.find((t: any) => t.label.toLowerCase().includes(spoken) || spoken.includes(t.label.toLowerCase()))
+        if (!match) return null
+        return { ...a, payload: { schedule_id: match.id, transport_label: match.label } }
       }
       return a
     }).filter((a): a is RawAction => a !== null)

@@ -16,7 +16,12 @@ import { sb } from '@/lib/orgAuth'
 export const runtime = 'nodejs'
 
 type Shift = 'manha' | 'tarde' | 'noite'
-interface Action { domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity'; payload: Record<string, any> }
+interface Action { domain: 'nutrition' | 'health_checkin' | 'support_service' | 'medication' | 'vitals' | 'activity' | 'medication_prep' | 'recurring_service' | 'dietary_reinforcement' | 'transport_service'; payload: Record<string, any> }
+
+function startOfWeekStr(): string {
+  const d = new Date(); const day = d.getDay(); d.setDate(d.getDate() - day); d.setHours(0, 0, 0, 0)
+  return d.toISOString().slice(0, 10)
+}
 interface Result { domain: string; ok: boolean; error?: string }
 
 export async function POST(req: NextRequest) {
@@ -149,6 +154,76 @@ export async function POST(req: NextRequest) {
         requested_by_id: userId,
       })
       results.push({ domain: 'support_service', ok: !error, error: error?.message })
+      continue
+    }
+
+    // Preparação em unidoses — "já preparei a medicação da semana": marca a
+    // semana ATUAL inteira como preparada, para todos os turnos que esta
+    // pessoa realmente usa (mesma lógica de app/preparacao-medicacao/page.tsx
+    // shiftsFor) — é assim que se diz na sala, não "preparei terça de tarde".
+    if (action.domain === 'medication_prep') {
+      const { data: meds } = await db.from('patient_meds').select('shifts').eq('patient_id', patientId).eq('active', true)
+      const list = (meds || []) as any[]
+      const allShifts = ['manha', 'tarde', 'noite']
+      const shifts = list.some(m => !m.shifts || m.shifts.length === 0)
+        ? allShifts
+        : allShifts.filter(s => list.some(m => (m.shifts || []).includes(s)))
+      const weekStart = startOfWeekStr()
+      const rows: any[] = []
+      for (let wd = 0; wd < 7; wd++) for (const s of shifts) rows.push({
+        user_id: userId, org_id: patient.org_id || null, patient_id: patientId,
+        week_start: weekStart, weekday: wd, shift: s, packed: true, packed_by_id: userId, packed_at: new Date().toISOString(),
+      })
+      const { error } = rows.length
+        ? await db.from('medication_prep_logs').upsert(rows, { onConflict: 'patient_id,week_start,weekday,shift' })
+        : { error: null }
+      results.push({ domain: 'medication_prep', ok: !error, error: error?.message })
+      continue
+    }
+
+    // Serviço recorrente cumprido hoje (transporte/roupa/complementar) — o
+    // domínio já só chega aqui se o "kind" bateu com um agendamento ATIVO
+    // desta pessoa para hoje (confirmado em voice-log/extract); aqui volta a
+    // confirmar-se antes de gravar, nunca confia só no que veio do cliente.
+    if (action.domain === 'recurring_service') {
+      const kind = String(action.payload?.kind || '')
+      const todayWeekday = new Date().getDay()
+      const { data: scheds } = await db.from('support_recurring_services').select('id,weekdays').eq('patient_id', patientId).eq('kind', kind).eq('active', true)
+      const matches = ((scheds || []) as any[]).filter(s => !s.weekdays || s.weekdays.includes(todayWeekday))
+      if (!matches.length) { results.push({ domain: 'recurring_service', ok: false, error: 'Sem agendamento ativo para hoje.' }); continue }
+      const { error } = await db.from('support_recurring_logs').upsert(
+        matches.map(s => ({ schedule_id: s.id, patient_id: patientId, date, done: true, done_by_id: userId, done_at: new Date().toISOString() })),
+        { onConflict: 'schedule_id,date' }
+      )
+      results.push({ domain: 'recurring_service', ok: !error, error: error?.message })
+      continue
+    }
+
+    // Transporte agendado cumprido hoje — tabela própria (support_transport_
+    // schedules/logs, sprint126), separada de support_recurring_services por
+    // ser texto livre (label) em vez de um kind fixo. Mesma reconfirmação
+    // server-side: nunca confia só no schedule_id que veio do cliente.
+    if (action.domain === 'transport_service') {
+      const scheduleId = String(action.payload?.schedule_id || '')
+      const todayWeekday = new Date().getDay()
+      const { data: sched } = await db.from('support_transport_schedules').select('id,weekdays').eq('id', scheduleId).eq('patient_id', patientId).eq('active', true).maybeSingle()
+      if (!sched || (sched.weekdays && !sched.weekdays.includes(todayWeekday))) { results.push({ domain: 'transport_service', ok: false, error: 'Sem transporte agendado para hoje.' }); continue }
+      const { error } = await db.from('support_transport_logs').upsert({
+        user_id: userId, org_id: patient.org_id || null, schedule_id: scheduleId, patient_id: patientId,
+        date, done: true, done_by_id: userId, done_at: new Date().toISOString(), recorded_by_id: userId,
+      }, { onConflict: 'schedule_id,date' })
+      results.push({ domain: 'transport_service', ok: !error, error: error?.message })
+      continue
+    }
+
+    // Reforço alimentar (diabéticos) — turno atual, mesma heurística de hora
+    // usada no resto do site para decidir manhã/tarde/noite.
+    if (action.domain === 'dietary_reinforcement') {
+      const { error } = await db.from('dietary_reinforcements').upsert({
+        user_id: userId, org_id: patient.org_id || null, patient_id: patientId,
+        date, shift, given: true, recorded_by_id: userId,
+      }, { onConflict: 'patient_id,date,shift' })
+      results.push({ domain: 'dietary_reinforcement', ok: !error, error: error?.message })
       continue
     }
   }
