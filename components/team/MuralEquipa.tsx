@@ -31,7 +31,7 @@ export default function MuralEquipa() {
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const scope = useOrgScope()
-  const [medFlags, setMedFlags] = useState<{ patientName: string; medName: string; status: string; notes: string }[]>([])
+  const [medFlags, setMedFlags] = useState<{ patientId: string; patientName: string; medName: string; status: string; notes: string }[]>([])
   const [channel, setChannel] = useState<Channel>(() =>
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handover') === '1' ? 'avisos' : 'geral')
   const [msgs, setMsgs] = useState<Msg[]>([])
@@ -47,6 +47,9 @@ export default function MuralEquipa() {
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handover') === '1')
   const [handoverShift, setHandoverShift] = useState<'manha' | 'tarde' | 'noite'>('manha')
   const [handoverNotes, setHandoverNotes] = useState('')
+  const [aiSummary, setAiSummary] = useState<{ general_notes?: string; patients_summary?: { patient_id: string; patient_name: string; status: string; alerts?: string[]; action_needed?: string }[] } | null>(null)
+  const [generatingAI, setGeneratingAI] = useState(false)
+  const [aiError, setAiError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
   const auth = useCallback(async () => {
@@ -111,18 +114,58 @@ export default function MuralEquipa() {
     ])
     const pName: Record<string, string> = {}; (pats || []).forEach((p: any) => { pName[p.id] = p.name })
     const mName: Record<string, string> = {}; (meds || []).forEach((m: any) => { mName[m.id] = m.name })
-    setMedFlags(recs.map((r: any) => ({ patientName: pName[r.patient_id] || 'Utente', medName: mName[r.med_id] || 'Medicamento', status: r.status, notes: r.notes || '' })))
+    setMedFlags(recs.map((r: any) => ({ patientId: r.patient_id, patientName: pName[r.patient_id] || 'Utente', medName: mName[r.med_id] || 'Medicamento', status: r.status, notes: r.notes || '' })))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
   useEffect(() => { loadMedFlags() }, [loadMedFlags])
 
-  // Passagem de turno — publica um resumo estruturado no canal Avisos, com o que
-  // ficou em aberto (avisos e stock por resolver, medicação suspensa/recusada
-  // hoje) + notas de quem sai.
+  // Gera uma síntese por IA (reativa app/api/ward/handover, órfão desde que o
+  // Phlox Ward foi absorvido pelo /equipa — já fazia exatamente isto, só sem
+  // UI nenhuma a chamá-lo). Nunca inventa doente/medicamento: os únicos dados
+  // por utente que entram são as doses suspensas/recusadas que o MAR já tem
+  // (medFlags); avisos/stock/notas entram como contexto geral em texto. A IA
+  // só reescreve isto como "o que mudou e o que é urgente" — nunca é
+  // publicado sem se ver a pré-visualização primeiro.
+  async function generateAISummary() {
+    setGeneratingAI(true); setAiError(''); setAiSummary(null)
+    try {
+      const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
+      const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
+      const byPatient = new Map<string, { patient_id: string; patient_name: string; decisions: string[] }>()
+      medFlags.forEach(f => {
+        if (!byPatient.has(f.patientId)) byPatient.set(f.patientId, { patient_id: f.patientId, patient_name: f.patientName, decisions: [] })
+        byPatient.get(f.patientId)!.decisions.push(`${f.medName} — ${f.status === 'held' ? 'suspensa' : 'recusada'}${f.notes ? `: ${f.notes}` : ''}`)
+      })
+      const generalNotes = [
+        openAvisos.length ? `Avisos em aberto: ${openAvisos.map(m => m.body).join(' · ')}` : '',
+        openStock.length ? `Stock por resolver: ${openStock.map(m => m.body).join(' · ')}` : '',
+        handoverNotes.trim(),
+      ].filter(Boolean).join('\n')
+      const r = await fetch('/api/ward/handover', {
+        method: 'POST', headers: await auth(),
+        body: JSON.stringify({
+          shift: handoverShift, from_name: (user as any)?.name || user?.email || 'Equipa', from_role: 'profissional de saúde',
+          general_notes: generalNotes,
+          patients: [...byPatient.values()].map(p => ({ patient_id: p.patient_id, patient_name: p.patient_name, alerts: [], decisions: p.decisions, open_tasks: 0 })),
+        }),
+      }).then(r => r.json())
+      if (r.error) { setAiError(r.error); return }
+      setAiSummary(r)
+    } catch { setAiError('Não foi possível gerar. Tenta de novo ou publica o resumo automático.') }
+    setGeneratingAI(false)
+  }
+
+  // Passagem de turno — publica um resumo estruturado no canal Avisos. Se
+  // houver uma síntese IA já gerada (e revista), usa-a; senão, o resumo
+  // automático de sempre (concatenação do que está em aberto).
   async function publishHandover() {
     const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
     const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
-    const lines = [
+    const lines = aiSummary ? [
+      `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label} · resumo por IA`,
+      ...(aiSummary.patients_summary || []).map(p => `\n${p.patient_name}: ${p.status}${p.alerts?.length ? `\n  ⚠ ${p.alerts.join('; ')}` : ''}${p.action_needed ? `\n  → ${p.action_needed}` : ''}`),
+      aiSummary.general_notes ? `\nNotas gerais:\n${aiSummary.general_notes}` : '',
+    ].filter(Boolean).join('\n') : [
       `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label}`,
       medFlags.length ? `\nMedicação suspensa/recusada hoje (${medFlags.length}):\n` + medFlags.map(f => `• ${f.patientName} — ${f.medName} (${f.status === 'held' ? 'suspensa' : 'recusada'})${f.notes ? ': ' + f.notes : ''}`).join('\n') : '',
       openAvisos.length ? `\nAvisos em aberto (${openAvisos.length}):\n` + openAvisos.map(m => `• ${m.body}`).join('\n') : '',
@@ -133,7 +176,7 @@ export default function MuralEquipa() {
     const r = await fetch('/api/team-messages', { method: 'POST', headers: await auth(), body: JSON.stringify({ body: lines, channel: 'avisos', priority: 'importante' }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     setSending(false)
     if (r.error) { setErr(r.error); return }
-    setHandoverNotes(''); setShowHandover(false); setChannel('avisos'); load()
+    setHandoverNotes(''); setShowHandover(false); setChannel('avisos'); setAiSummary(null); load()
   }
 
   function printHandover() {
@@ -206,8 +249,28 @@ export default function MuralEquipa() {
               </div>
             </div>
           )}
-          <textarea value={handoverNotes} onChange={e => setHandoverNotes(e.target.value)} rows={2} placeholder="Notas de quem sai (opcional)…"
+          <textarea value={handoverNotes} onChange={e => { setHandoverNotes(e.target.value); setAiSummary(null) }} rows={2} placeholder="Notas de quem sai (opcional)…"
             style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', marginBottom: 10 }} />
+
+          <button onClick={generateAISummary} disabled={generatingAI} style={{ width: '100%', padding: '9px 14px', background: aiSummary ? '#f5f3ff' : 'white', border: '1.5px solid #c4b5fd', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: generatingAI ? 'wait' : 'pointer', color: '#6d28d9', marginBottom: 10 }}>
+            {generatingAI ? 'A escrever a síntese…' : aiSummary ? '✨ Gerar de novo' : '✨ Escrever síntese por IA'}
+          </button>
+          {aiError && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{aiError}</div>}
+          {aiSummary && (
+            <div style={{ background: '#faf5ff', border: '1.5px solid #ddd6fe', borderRadius: 9, padding: '10px 12px', marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Pré-visualização — revê antes de publicar</div>
+              {(aiSummary.patients_summary || []).map(p => (
+                <div key={p.patient_id} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>{p.patient_name}</div>
+                  <div style={{ fontSize: 12.5, color: '#475569' }}>{p.status}</div>
+                  {!!p.alerts?.length && <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 2 }}>⚠ {p.alerts.join('; ')}</div>}
+                  {p.action_needed && <div style={{ fontSize: 12, color: '#6d28d9', fontWeight: 600, marginTop: 2 }}>→ {p.action_needed}</div>}
+                </div>
+              ))}
+              {aiSummary.general_notes && <div style={{ fontSize: 12.5, color: '#475569', borderTop: (aiSummary.patients_summary || []).length ? '1px solid #ede9fe' : 'none', paddingTop: (aiSummary.patients_summary || []).length ? 8 : 0 }}>{aiSummary.general_notes}</div>}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={publishHandover} disabled={sending} style={{ flex: 1, padding: '9px 14px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Publicar em Avisos</button>
             <button onClick={printHandover} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: '#374151' }}>🖨 Imprimir</button>

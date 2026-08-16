@@ -21,9 +21,13 @@ import { institutionConfig } from '@/lib/institutionConfig'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
+import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
 
-interface Patient { id: string; name: string; room_number: string | null }
-interface Med { id: string; patient_id: string; name: string; dose: string | null; shifts: string[] | null; active: boolean }
+interface Patient {
+  id: string; name: string; room_number: string | null
+  age: number | null; egfr: number | null; conditions: string | null; allergies: string | null; last_review: string | null
+}
+interface Med { id: string; patient_id: string; name: string; dose: string | null; shifts: string[] | null; active: boolean; started_at: string | null }
 interface PrepLog { id: string; patient_id: string; weekday: number; shift: string; packed: boolean }
 
 const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -54,8 +58,8 @@ export default function PreparacaoMedicacaoPage() {
     if (!user) return
     setLoading(true)
     const [pats, mds, lgs] = await Promise.all([
-      scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
-      scope.filter(supabase.from('patient_meds').select('id,patient_id,name,dose,shifts')).eq('active', true),
+      scope.filter(supabase.from('patients').select('id,name,room_number,age,egfr,conditions,allergies,last_review')).eq('active', true).order('name'),
+      scope.filter(supabase.from('patient_meds').select('id,patient_id,name,dose,shifts,started_at')).eq('active', true),
       scope.filter(supabase.from('medication_prep_logs').select('id,patient_id,weekday,shift,packed')).eq('week_start', weekStart),
     ])
     if (lgs.error && /does not exist|schema cache/i.test(lgs.error.message)) { setNeedsSetup(true); setLoading(false); return }
@@ -80,6 +84,13 @@ export default function PreparacaoMedicacaoPage() {
     return SHIFTS.filter(s => used.has(s))
   }
   function logFor(patientId: string, weekday: number, shift: string) { return logs.find(l => l.patient_id === patientId && l.weekday === weekday && l.shift === shift) }
+  // Co-piloto clínico (Módulo 1): cruza a medicação ativa com o motor de
+  // regras (lib/decisionEngine, via lib/medPrepIntel) — nunca um checklist
+  // sem mais nada por trás. Só os achados major/critical aparecem por
+  // omissão (ver renderização); o resto fica disponível ao expandir.
+  function findingsFor(patient: Patient): Finding[] {
+    return clinicalFindingsFor(patient, medsFor(patient.id).map(m => ({ name: m.name, started_at: m.started_at })))
+  }
 
   async function toggle(patientId: string, weekday: number, shift: string) {
     if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
@@ -148,15 +159,22 @@ export default function PreparacaoMedicacaoPage() {
             const isOpen = open === p.id
             const ms = medsFor(p.id)
             const shifts = shiftsFor(p.id)
+            const findings = findingsFor(p)
+            const notable = findings.filter(f => f.severity === 'critical' || f.severity === 'major')
             const packedCount = WEEKDAY_LABELS.reduce((n, _, wd) => n + shifts.filter(s => logFor(p.id, wd, s)?.packed).length, 0)
             const totalCount = WEEKDAY_LABELS.length * shifts.length
             return (
-              <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div key={p.id} style={{ background: 'white', border: `1px solid ${notable.length ? '#fca5a5' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
                 <button onClick={() => setOpen(isOpen ? null : p.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                   <div>
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
                     {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
                     <span style={{ fontSize: 11.5, color: 'var(--ink-4)', marginLeft: 10 }}>{ms.length} medicamento{ms.length !== 1 ? 's' : ''}</span>
+                    {notable.length > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 99, padding: '2px 8px', marginLeft: 10 }}>
+                        <Icon name="alert" size={10} color="#b91c1c" /> {notable.length} alerta{notable.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 11.5, fontWeight: 700, color: packedCount === totalCount ? '#16a34a' : 'var(--ink-4)' }}>{packedCount}/{totalCount} preparado{packedCount !== 1 ? 's' : ''}</span>
@@ -166,6 +184,23 @@ export default function PreparacaoMedicacaoPage() {
 
                 {isOpen && (
                   <div style={{ borderTop: '1px solid var(--bg-3)', padding: '12px 16px 16px' }}>
+                    {findings.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                        {findings.map(f => {
+                          const meta = SEVERITY_META[f.severity]
+                          return (
+                            <div key={f.id} style={{ background: meta.bg, border: `1px solid ${meta.color}33`, borderRadius: 9, padding: '9px 12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 800, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{meta.label}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{f.title}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>{f.detail}</div>
+                              {f.action && <div style={{ fontSize: 11.5, color: meta.color, fontWeight: 600, marginTop: 4 }}>→ {f.action}</div>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                       {ms.map(m => <span key={m.id} style={{ fontSize: 11.5, color: 'var(--ink-3)', background: 'var(--bg-2)', borderRadius: 6, padding: '3px 9px' }}>{m.name}{m.dose ? ` · ${m.dose}` : ''}</span>)}
                     </div>

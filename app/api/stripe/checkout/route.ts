@@ -6,6 +6,16 @@ export async function POST(req: NextRequest) {
     if (!body) return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     const { priceId: priceKey } = body
 
+    // 2026-08-16: o plano Institucional deixou de ser self-serve — venda
+    // direta (Fernando fala com cada instituição e ativa o acesso à mão, ver
+    // app/api/org/setup institution_signup_approved). Bloqueado aqui também,
+    // não só na UI, para que ninguém consiga pagar via URL direta.
+    if (typeof priceKey === 'string' && priceKey.startsWith('clinic_')) {
+      return NextResponse.json({
+        error: 'O plano Institucional não está disponível para ativação automática. Fala connosco em suporte@phloxclinical.com.'
+      }, { status: 400 })
+    }
+
     // Get user from token
     const authHeader = req.headers.get('authorization') || ''
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
@@ -56,8 +66,7 @@ export async function POST(req: NextRequest) {
       student_annual:  { priceId: process.env.STRIPE_STUDENT_ANNUAL,  plan: 'student' },
       pro_monthly:     { priceId: process.env.STRIPE_PRO_MONTHLY,     plan: 'pro' },
       pro_annual:      { priceId: process.env.STRIPE_PRO_ANNUAL,      plan: 'pro' },
-      clinic_monthly:  { priceId: process.env.STRIPE_CLINIC_MONTHLY,  plan: 'clinic' },
-      clinic_annual:   { priceId: process.env.STRIPE_CLINIC_ANNUAL,   plan: 'clinic' },
+      // Institucional: sem entrada aqui de propósito — ver bloqueio explícito acima.
     }
 
     const priceEntry = PRICE_MAP[priceKey]

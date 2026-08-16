@@ -12,6 +12,7 @@ import { printDoc, type PrintRecord } from '@/lib/print'
 import ClinicalGate from '@/components/ClinicalGate'
 import Icon from '@/components/Icon'
 import Link from 'next/link'
+import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
 
 // Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
 function LocBadge({ loc }: { loc?: string | null }) {
@@ -22,9 +23,9 @@ function LocBadge({ loc }: { loc?: string | null }) {
 
 interface Patient {
   id: string; name: string; age: number | null; room_number: string | null
-  conditions: string | null; allergies: string | null
+  conditions: string | null; allergies: string | null; egfr?: number | null; last_review?: string | null
 }
-interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: 'centro' | 'casa' | 'ambos' | null }
+interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: 'centro' | 'casa' | 'ambos' | null; started_at?: string | null }
 type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held' | null
 interface AdminRecord {
@@ -186,6 +187,15 @@ export default function MARPage() {
 
   const selectedPatient = patients.find(p => p.id === selectedId) ?? null
 
+  // Co-piloto de unidoses (Módulo 1, 2026-08-16): a par do aviso pontual de
+  // interações/alergia já existente (allergyWarning/interactionWarnings, só
+  // 6 pares fixos), cruza TODA a medicação ativa com o motor de regras real
+  // (lib/decisionEngine, 26 regras — STOPP/START, carga anticolinérgica,
+  // polifarmácia, etc.), a mesma fonte já usada em /stopp-start e /vigia.
+  const regimenFindings: Finding[] = selectedPatient && meds.length
+    ? clinicalFindingsFor(selectedPatient, meds.map(m => ({ name: m.name, started_at: m.started_at })))
+    : []
+
   // printMARSheet via ref para o atalho de teclado usar sempre a versão fresca
   // (o handler é registado uma vez com deps []).
   const printRef = useRef<() => void>(() => {})
@@ -206,7 +216,7 @@ export default function MARPage() {
 
   useEffect(() => {
     if (!user || !isPro) return
-    scope.filter(supabase.from('patients').select('id, name, age, room_number, conditions, allergies')).order('name')
+    scope.filter(supabase.from('patients').select('id, name, age, room_number, conditions, allergies, egfr, last_review')).order('name')
       .then(({ data, error }: any) => { setLoadErr(error ? `Não foi possível carregar os ${cfg.personNounPlural.toLowerCase()}. Verifica a ligação e recarrega.` : ''); setPatients(data || []) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isPro, supabase, scope.orgId, scope.userId])
@@ -527,6 +537,25 @@ export default function MARPage() {
             </button>
           )}
         </div>
+
+        {/* Co-piloto clínico — achados do motor de regras para TODA a medicação ativa, não só a que está a ser dada agora. Informativo, não bloqueia nada (o bloqueio pontual continua a acontecer no momento de administrar). */}
+        {regimenFindings.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {regimenFindings.filter(f => f.severity === 'critical' || f.severity === 'major').map(f => {
+              const meta = SEVERITY_META[f.severity]
+              return (
+                <div key={f.id} style={{ background: meta.bg, border: `1px solid ${meta.color}33`, borderRadius: 9, padding: '9px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 800, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{meta.label}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>{f.title}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>{f.detail}</div>
+                  {f.action && <div style={{ fontSize: 11.5, color: meta.color, fontWeight: 600, marginTop: 4 }}>→ {f.action}</div>}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* MAR content */}
         {!selectedId ? (

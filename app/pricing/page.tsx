@@ -85,12 +85,12 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* Organização — bloco escuro sóbrio */}
+        {/* Organização — sem preço nem checkout: contacto direto, à medida de cada instituição */}
         <div style={{ background: INK, padding: 'clamp(24px,4vw,36px)', color: '#fff', marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between', borderTop: `3px solid ${GREEN}` }}>
           <div style={{ minWidth: 240, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 18, fontWeight: 800 }}>{org.name}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: '#7fc4a0', border: '1px solid rgba(127,196,160,0.4)', padding: '2px 8px', borderRadius: 2, letterSpacing: '0.06em' }}>ORGANIZAÇÕES</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: '#7fc4a0', border: '1px solid rgba(127,196,160,0.4)', padding: '2px 8px', borderRadius: 2, letterSpacing: '0.06em' }}>CENTROS DE DIA E LARES</span>
             </div>
             <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginBottom: 18, lineHeight: 1.5 }}>{org.tagline}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px 20px' }}>
@@ -102,12 +102,11 @@ export default function PricingPage() {
               ))}
             </div>
           </div>
-          <div style={{ flexShrink: 0, minWidth: 160 }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 38, lineHeight: 1, letterSpacing: '-0.02em' }}>{formatPrice(billing === 'monthly' ? org.price.monthly : org.price.annual)}<span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>/mês</span></div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.45)', margin: '6px 0 16px' }}>
-              por instituição · {billing === 'annual' ? `${formatPrice(org.price.annualTotal)}/ano` : `ou ${formatPrice(org.price.annualTotal)}/ano`}
+          <div style={{ flexShrink: 0, minWidth: 200 }}>
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 14, maxWidth: 220 }}>
+              Cada instituição é diferente. Falamos primeiro e configuramos o Phlox à medida da sua.
             </div>
-            <Link href={org.href} style={{ display: 'inline-block', padding: '12px 28px', background: '#fff', color: INK, textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{org.cta}</Link>
+            <a href={org.href} style={{ display: 'block', textAlign: 'center', padding: '12px 28px', background: '#fff', color: INK, textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{org.cta}</a>
             <a href="mailto:suporte@phloxclinical.com?subject=Agendar%20demo%20-%20Phlox%20Clinical&body=Ol%C3%A1%2C%0A%0AGostaria%20de%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20Phlox%20Clinical%20para%20a%20nossa%20institui%C3%A7%C3%A3o.%0A%0ANome%20da%20institui%C3%A7%C3%A3o%3A%20%0ANome%3A%20%0ATelefone%3A%20"
               style={{ display: 'block', textAlign: 'center', marginTop: 10, padding: '12px 28px', background: 'transparent', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2, border: '1.5px solid rgba(255,255,255,0.35)' }}>
               Agendar demo connosco →

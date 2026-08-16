@@ -107,11 +107,11 @@ export default function TrustCenterPage() {
         <div style={{ background: '#0b1120', color: 'white', borderRadius: 14, padding: '26px 28px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 400, letterSpacing: '-0.015em' }}>Pronto a avaliar?</div>
           <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.7)', maxWidth: 480, margin: '8px auto 16px', lineHeight: 1.55 }}>
-            Gera o contrato Art. 28.º RGPD com o NIF da tua instituição, ou ativa o plano Institucional para começar.
+            Gera o contrato Art. 28.º RGPD com o NIF da tua instituição, ou fala connosco para conhecer o plano Institucional.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Link href="/trust/dpa" style={{ padding: '12px 22px', background: 'white', color: '#0b1120', textDecoration: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 800 }}>Gerar DPA →</Link>
-            <Link href="/checkout?plan=clinic" style={{ padding: '12px 22px', background: '#16a34a', color: 'white', textDecoration: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 800 }}>Ativar Institucional</Link>
+            <Link href="/pricing" style={{ padding: '12px 22px', background: '#16a34a', color: 'white', textDecoration: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 800 }}>Ver plano Institucional</Link>
           </div>
         </div>
 

@@ -69,6 +69,28 @@ function CheckoutContent() {
 
   const current = billing === 'monthly' ? plan.monthly : plan.annual
 
+  // 2026-08-16: Institucional não é self-serve — quem chega aqui (link antigo,
+  // URL direta) vê contacto em vez de um checkout Stripe que a API rejeita.
+  if (planKey === 'clinic') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+        <div style={{ maxWidth: 420, textAlign: 'center' }}>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Institucional</div>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, marginBottom: 12, letterSpacing: '-0.01em' }}>
+            Falamos primeiro
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 22 }}>
+            O plano Institucional não se ativa por aqui. Cada centro de dia ou lar é configurado à medida — fala connosco e tratamos do resto.
+          </p>
+          <a href="mailto:suporte@phloxclinical.com?subject=Institui%C3%A7%C3%A3o%20-%20Phlox%20Clinical" style={{ display: 'inline-block', padding: '13px 26px', background: 'var(--ink)', color: 'white', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 8, marginBottom: 12 }}>
+            Falar connosco →
+          </a>
+          <div><Link href="/pricing" style={{ fontSize: 13, color: 'var(--ink-4)' }}>← Voltar aos planos</Link></div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
 

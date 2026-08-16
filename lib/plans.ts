@@ -65,8 +65,13 @@ export const PLANS: PlanDef[] = [
     ],
   },
   {
+    // 2026-08-16 (decisão do Fernando): institucional deixou de ser self-serve
+    // — venda direta, ele fala com cada lar/centro de dia e dá o acesso à
+    // medida. cta/href já não apontam para checkout/onboarding automático,
+    // só para contacto (ver app/pricing/page.tsx, app/comecar-instituicao,
+    // app/api/org/setup — criação de org exige institution_signup_approved).
     id: 'clinic', name: 'Institucional', tagline: 'Para centros de dia e lares', price: { monthly: 149, annual: 124.08, annualTotal: 1489 },
-    rank: 3, ads: false, color: '#1d4ed8', cta: 'Criar a minha instituição', href: '/onboarding', audience: 'organization',
+    rank: 3, ads: false, color: '#1d4ed8', cta: 'Falar connosco', href: 'mailto:suporte@phloxclinical.com?subject=Institui%C3%A7%C3%A3o%20-%20Phlox%20Clinical', audience: 'organization',
     features: [
       'Painel do dia montado de raiz para centro de dia ou lar',
       'Presenças, refeições, humor, atividades e medicação num só sítio',

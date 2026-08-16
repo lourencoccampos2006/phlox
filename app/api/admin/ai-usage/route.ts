@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { extractToken } from '@/lib/planGate'
+import { requireAdmin, adminDb } from '@/lib/adminAuth'
 
 // GET /api/admin/ai-usage — visibilidade de custo de IA (item D17/sugestão 7 da
 // auditoria 2026-07-17/21). Antes só 4 rotas Pro tinham contador agregado
@@ -9,19 +8,11 @@ import { extractToken } from '@/lib/planGate'
 // sprint88, para aplicar limites diários), nunca somadas nem mostradas. Não
 // bloqueia ninguém — é só visibilidade para o Fernando (só a conta admin lê isto).
 
-const ADMIN_EMAILS = ['lourencoccampos2006@gmail.com']
-
 export async function GET(req: NextRequest) {
-  const token = extractToken(req)
-  if (!token) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  const admin = await requireAdmin(req)
+  if (!admin) return NextResponse.json({ error: 'Acesso restrito' }, { status: 403 })
 
-  const authClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-  const { data: auth, error: authErr } = await authClient.auth.getUser(token)
-  if (authErr || !auth?.user || !ADMIN_EMAILS.includes(auth.user.email || '')) {
-    return NextResponse.json({ error: 'Acesso restrito' }, { status: 403 })
-  }
-
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const db = adminDb()
   const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
   const dayStr = monthStart.toISOString().slice(0, 10)
 

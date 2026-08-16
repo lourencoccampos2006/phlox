@@ -33,8 +33,11 @@ const has = (arr: string[] | undefined, kw: string | RegExp) => {
 }
 const list = (arr: string[] | undefined, kw: RegExp): string[] => (arr || []).filter(x => kw.test(norm(x)))
 
-// Classes farmacológicas → padrões (DCI comuns em PT)
-const RX = {
+// Classes farmacológicas → padrões (DCI comuns em PT). Exportado (2026-08-16)
+// para o co-piloto de unidoses (lib/medPrepIntel.ts) poder classificar
+// medicamentos individuais com o MESMO critério destas regras, em vez de
+// duplicar uma lista à parte que podia divergir com o tempo.
+export const RX = {
   anticoagulant_oral: /(varfarina|warfar|apixaban|edoxaban|rivaroxaban|dabigatran)/,
   antiplatelet:       /(clopidogrel|ticagrelor|prasugrel|aspirina|acido acetilsalicilico|aas)/,
   nsaid:              /(ibuprofeno|naproxeno|diclofenac|cetoprofeno|nimesulida|piroxicam|aceclofenac|etoricoxib|celecoxib|indometacina)/,

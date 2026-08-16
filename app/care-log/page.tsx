@@ -12,6 +12,7 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
+import { vitalTrendSignals, type TrendVital } from '@/lib/healthTrends'
 
 // O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
 // feridas + atividades, adaptadas por instituição). O formulário de registo em si
@@ -237,6 +238,16 @@ export function CareLogTool() {
     { age: pat?.age, conditions: pat?.conditions }
   )
 
+  // Tendência ao longo do tempo (Módulo 7) — a mesma função já usada em modo
+  // pessoal/família (lib/healthTrends), nunca antes ligada ao institucional.
+  // flagReading acima só olha para o valor que se está a escrever agora; isto
+  // olha para o histórico da pessoa (patientRecords, já carregado) — deteta
+  // "3ª leitura elevada seguida" mesmo que cada valor isolado pareça normal.
+  const vitalTrends = patientId ? vitalTrendSignals(
+    patientRecords.filter(r => r.vitals && Object.values(r.vitals).some(v => v != null)).map((r): TrendVital => ({ recorded_at: r.created_at || r.date, ...r.vitals })),
+    true,
+  ) : []
+
   // ── Registo de cuidados profissional (A4) — documento do processo ────────────
   // Imprime os registos do dia selecionado para o utente escolhido, por turno.
   function recordToPrint(r: CareRecord): PrintRecord {
@@ -432,6 +443,23 @@ export function CareLogTool() {
                   )
                 })}
                 <div style={{ fontSize: 10.5, color: '#94a3b8', lineHeight: 1.4 }}>Sinal a partir de intervalos de referência — não é diagnóstico. A avaliação é do profissional.</div>
+              </div>
+            )}
+            {vitalTrends.length > 0 && (
+              <div style={{ marginTop: vitalFlags.length > 0 ? 8 : 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tendência ({personLower})</div>
+                {vitalTrends.map(t => {
+                  const c = t.severity === 'critical' || t.severity === 'major' ? { bg: '#fef2f2', border: '#fca5a5', color: '#b91c1c' }
+                    : t.severity === 'moderate' ? { bg: '#fffbeb', border: '#fde68a', color: '#b45309' }
+                    : { bg: '#f8fafc', border: '#e2e8f0', color: '#64748b' }
+                  return (
+                    <div key={t.kind} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '8px 12px' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: c.color }}>{t.title}</div>
+                      <div style={{ fontSize: 11.5, color: '#475569', marginTop: 2, lineHeight: 1.45 }}>{t.detail}</div>
+                      {t.action && <div style={{ fontSize: 11.5, color: c.color, fontWeight: 600, marginTop: 3 }}>→ {t.action}</div>}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

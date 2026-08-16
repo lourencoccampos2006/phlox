@@ -20,10 +20,11 @@ import { useLiveData } from '@/lib/useLiveData'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { setActiveProfile } from '@/lib/profileContext'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
+import { vitalTrendSignals, type TrendVital } from '@/lib/healthTrends'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { useToast } from '@/components/Toast'
 
-interface LifeStory { profession?: string; family?: string; hobbies?: string; music?: string; notes?: string }
+interface LifeStory { profession?: string; family?: string; hobbies?: string; music?: string; notes?: string; sensitivities?: string }
 interface Patient {
   id: string; name: string; age: number | null; sex: string | null
   weight: number | null; height: number | null; creatinine: number | null
@@ -362,6 +363,69 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     finally { setReportBusy(false) }
   }
 
+  // Briefing clínico para consulta/exame externo (Módulo 6, 2026-08-16) —
+  // medicação atual + alergias + tendência REAL de sinais vitais (lib/
+  // healthTrends, a mesma função já ligada ao /care-log) + red flags/perguntas
+  // sugeridas por IA (reutiliza app/api/briefing, já existente, usado até
+  // agora só com medicação colada à mão — aqui alimentado com os dados reais
+  // desta pessoa). A IA nunca inventa medicação: recebe só a lista real.
+  const [briefingBusy, setBriefingBusy] = useState(false)
+  async function printConsultBriefing() {
+    if (!patient || !pid) return
+    setBriefingBusy(true)
+    try {
+      const since = new Date(); since.setDate(since.getDate() - 90)
+      const { data: recs } = await supabase.from('care_records').select('date,created_at,vitals').eq('patient_id', pid).gte('date', since.toISOString().slice(0, 10)).order('date')
+      const trendVitals: TrendVital[] = ((recs || []) as any[])
+        .filter(r => r.vitals && Object.values(r.vitals).some((v: any) => v != null))
+        .map(r => ({ recorded_at: r.created_at || r.date, ...r.vitals }))
+      const trends = vitalTrendSignals(trendVitals, true)
+
+      const medications = meds.map(m => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` — ${m.frequency}` : ''}`).join('\n') || 'Sem medicação ativa registada'
+      const context = [
+        patient.age ? `Idade: ${patient.age} anos` : '',
+        `Alergias: ${patient.allergies || 'nenhuma conhecida'}`,
+        patient.conditions ? `Diagnósticos: ${patient.conditions}` : '',
+        trends.length ? `Tendências recentes de sinais vitais: ${trends.map(t => `${t.title} — ${t.detail}`).join('; ')}` : 'Sem tendências relevantes nos sinais vitais recentes',
+      ].filter(Boolean).join('. ')
+
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/briefing', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
+        body: JSON.stringify({ medications, chief_complaint: `Consulta/exame agendado. ${context}` }),
+      })
+      const b = await r.json()
+      if (!r.ok) throw new Error(b.error || 'Não foi possível gerar o briefing.')
+
+      const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string))
+      const w = window.open('', '_blank'); if (!w) { setBriefingBusy(false); return }
+      w.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Briefing de consulta — ${esc(patient.name)}</title>
+        <style>body{font-family:Arial,sans-serif;padding:32px;color:#111;font-size:13.5px;line-height:1.55;max-width:720px;margin:0 auto}
+        h1{font-size:22px;font-family:Georgia,serif;margin:0 0 4px}.meta{color:#555;margin:0 0 18px;font-size:13px}
+        .warn{background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:14px 16px;margin:0 0 14px}
+        .warn .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#991b1b;font-weight:700;margin-bottom:4px}
+        .box{border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin:0 0 14px}
+        .box .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#666;margin-bottom:8px;font-weight:700}
+        .flag{border-left:3px solid #d97706;padding:6px 0 6px 12px;margin-bottom:8px}
+        .flag.IMEDIATA{border-color:#dc2626}.flag .urg{font-size:10px;font-weight:800;text-transform:uppercase;color:#92400e}
+        .flag.IMEDIATA .urg{color:#991b1b}
+        ul{margin:0;padding-left:20px}li{margin-bottom:4px}</style></head><body>
+        <h1>Briefing de consulta — ${esc(patient.name)}</h1>
+        <div class="meta">${[patient.age ? patient.age + ' anos' : '', patient.room_number ? cfg.roomLabel + ' ' + patient.room_number : ''].filter(Boolean).join(' · ')} · Gerado em ${new Date().toLocaleString('pt-PT')}</div>
+        <div class="warn"><div class="lbl">⚠ Alergias</div>${patient.allergies ? esc(patient.allergies) : 'Nenhuma conhecida'}</div>
+        <div class="box"><div class="lbl">Medicação atual (${meds.length})</div><ul>${meds.map(m => `<li>${esc(m.name)}${m.dose ? ` — ${esc(m.dose)}` : ''}${m.frequency ? ` (${esc(m.frequency)})` : ''}</li>`).join('') || '<li>Sem medicação registada</li>'}</ul></div>
+        ${trends.length ? `<div class="box"><div class="lbl">Tendências recentes de sinais vitais</div><ul>${trends.map(t => `<li><strong>${esc(t.title)}</strong> — ${esc(t.detail)}</li>`).join('')}</ul></div>` : ''}
+        ${b.clinical_note ? `<div class="box"><div class="lbl">Síntese clínica</div>${esc(b.clinical_note)}</div>` : ''}
+        ${(b.red_flags || []).length ? `<div class="box"><div class="lbl">Pontos de atenção</div>${b.red_flags.map((f: any) => `<div class="flag${f.urgency === 'IMEDIATA' ? ' IMEDIATA' : ''}"><span class="urg">${esc(f.urgency)}</span><br>${esc(f.flag)}${f.reason ? ` — ${esc(f.reason)}` : ''}</div>`).join('')}</div>` : ''}
+        ${(b.questions_to_ask || []).length ? `<div class="box"><div class="lbl">Perguntas sugeridas ao médico</div><ul>${b.questions_to_ask.map((q: string) => `<li>${esc(q)}</li>`).join('')}</ul></div>` : ''}
+        ${(b.what_to_monitor || []).length ? `<div class="box"><div class="lbl">A monitorizar</div><ul>${b.what_to_monitor.map((m: any) => `<li><strong>${esc(m.parameter)}</strong>${m.target ? ` — alvo ${esc(m.target)}` : ''}${m.reason ? ` (${esc(m.reason)})` : ''}</li>`).join('')}</ul></div>` : ''}
+        <p style="margin-top:24px;color:#999;font-size:11px">Phlox Clinical · Apoio à consulta, não substitui avaliação clínica · ${esc(cfg.unitNoun)}</p>
+        </body></html>`)
+      w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
+    } catch (e: any) { toast.error('Não foi possível gerar o briefing', reportError('consult-briefing', e, 'Tenta de novo.')) }
+    finally { setBriefingBusy(false) }
+  }
+
   // Dossier mensal — formal, para a direção mostrar a uma família ou numa
   // inspeção: presenças, atividades, adesão à medicação, ocorrências. Diferente
   // do "Relatório mensal" acima (narrativa calorosa) e do dossier institucional
@@ -479,6 +543,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <button onClick={printChart} style={btnGhost(accent)} title="Imprimir ficha clínica">🖨 Ficha</button>
           <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">🚨 Cartão de emergência</button>
           <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '…' : '📄 Relatório'}</button>
+          <button onClick={printConsultBriefing} disabled={briefingBusy} style={btnGhost(accent)} title="Medicação, tendências e perguntas sugeridas para uma consulta/exame externo">{briefingBusy ? '…' : '🩺 Preparar consulta'}</button>
           <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal: presenças, atividades, medicação, ocorrências">{dossierBusy ? '…' : '🗂 Dossier mensal'}</button>
           {scope.canEdit && (
             <button onClick={archiveThisPatient} style={{ ...btnGhost(accent), borderColor: '#e2e8f0', color: '#94a3b8' }}
@@ -495,6 +560,28 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <span style={{ fontSize: 12, fontWeight: 800, color: '#991b1b' }}>⚠ ALERGIAS: </span>
           <span style={{ fontSize: 13.5, color: '#7f1d1d' }}>{patient.allergies}</span>
         </div>
+      )}
+
+      {/* Preferências e sensibilidades — sempre visível, mesmo tratamento que
+          alergias (Módulo 9): quem substitui a pessoa habitual não deve ter de
+          ler a página toda até ao fim para saber "não gosta de duche, prefere
+          banho" ou uma prática religiosa a respeitar. Vive dentro do mesmo
+          life_story jsonb da História de vida, campo à parte (essa continua
+          mais abaixo, para conversar; isto é o que importa AO CUIDAR). */}
+      {patient.life_story?.sensitivities ? (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #d97706', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+          <div>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#92400e' }}>PREFERÊNCIAS E SENSIBILIDADES: </span>
+            <span style={{ fontSize: 13.5, color: '#78350f' }}>{patient.life_story.sensitivities}</span>
+          </div>
+          <button onClick={() => { setEditingLife(true); document.getElementById('historia-vida-anexo')?.scrollIntoView({ behavior: 'smooth' }) }}
+            style={{ background: 'none', border: 'none', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, textDecoration: 'underline' }}>Editar</button>
+        </div>
+      ) : (
+        <button onClick={() => { setEditingLife(true); document.getElementById('historia-vida-anexo')?.scrollIntoView({ behavior: 'smooth' }) }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', background: '#fffbeb', border: '1px dashed #fde68a', borderRadius: 10, padding: '10px 16px', marginBottom: 14, fontSize: 12.5, color: '#92400e', cursor: 'pointer', fontFamily: 'inherit' }}>
+          + Registar preferências e sensibilidades (ex: "prefere duche a banho de imersão", "gosta de ser tratada por Dona Maria")
+        </button>
       )}
 
       {/* AÇÕES RÁPIDAS — a ficha vira um hub: dar medicação, registar o dia */}
@@ -558,6 +645,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
       {/* HISTÓRIA DE VIDA — para a equipa conversar com sentido (essencial em
           demência); a família pode ajudar a preencher. */}
+      <div id="historia-vida-anexo" />
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <CardTitle noMargin>História de vida</CardTitle>
@@ -565,6 +653,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         </div>
         {editingLife ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <textarea value={lifeForm.sensitivities || ''} onChange={e => setLifeForm(f => ({ ...f, sensitivities: e.target.value }))} placeholder="Preferências e sensibilidades (ex: prefere duche a banho de imersão, não gosta que lhe toquem no braço esquerdo, prática religiosa a respeitar)" rows={2} style={{ ...inp, resize: 'vertical', borderColor: '#fde68a', background: '#fffbeb' }} />
             <input value={lifeForm.profession || ''} onChange={e => setLifeForm(f => ({ ...f, profession: e.target.value }))} placeholder="Profissão (ex: Professora primária, 32 anos)" style={inp} />
             <input value={lifeForm.family || ''} onChange={e => setLifeForm(f => ({ ...f, family: e.target.value }))} placeholder="Família (ex: 3 filhos, 7 netos, viúva desde 2015)" style={inp} />
             <input value={lifeForm.hobbies || ''} onChange={e => setLifeForm(f => ({ ...f, hobbies: e.target.value }))} placeholder="Hobbies (ex: jardinagem, tricô, jogar às cartas)" style={inp} />

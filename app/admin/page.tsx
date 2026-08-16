@@ -31,6 +31,23 @@ interface RecentUser {
   searches_count?: number
 }
 
+interface OrgRow {
+  id: string; name: string; kind: string; created_at: string
+  member_count: number; owner_email: string | null; owner_name: string | null
+}
+
+interface Revenue {
+  configured: boolean; mrr_total: number; subscriber_count: number
+  by_plan: Record<string, { subscribers: number; mrr: number }>
+  error?: string
+}
+
+interface CostRow { id: string; label: string; amount_monthly: number; note: string | null }
+interface Costs {
+  twilio: { configured: boolean; spend_month: number; currency: string }
+  fixed_costs: CostRow[]; fixed_total: number; total_estimated: number
+}
+
 // Admin emails — only these can access
 const ADMIN_EMAILS = ['lourencoccampos2006@gmail.com']
 
@@ -44,9 +61,25 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<RecentUser[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'users' | 'searches' | 'ia'>('overview')
+  const [tab, setTab] = useState<'overview' | 'users' | 'instituicoes' | 'financeiro' | 'searches' | 'ia'>('overview')
   const [aiUsage, setAiUsage] = useState<{ month: string; free_tier: { key: string; count: number }[]; pro_tier: { key: string; count: number }[]; total_calls: number } | null>(null)
   const [aiUsageLoading, setAiUsageLoading] = useState(false)
+
+  const [orgs, setOrgs] = useState<OrgRow[] | null>(null)
+  const [orgsLoading, setOrgsLoading] = useState(false)
+  const [accessEmail, setAccessEmail] = useState('')
+  const [accessMsg, setAccessMsg] = useState('')
+  const [accessBusy, setAccessBusy] = useState(false)
+  const [newOrgName, setNewOrgName] = useState('')
+  const [newOrgKind, setNewOrgKind] = useState<'nursing_home' | 'day_care'>('nursing_home')
+
+  const [revenue, setRevenue] = useState<Revenue | null>(null)
+  const [costs, setCosts] = useState<Costs | null>(null)
+  const [financeLoading, setFinanceLoading] = useState(false)
+  const [costLabel, setCostLabel] = useState('')
+  const [costAmount, setCostAmount] = useState('')
+  const [costNote, setCostNote] = useState('')
+  const [costBusy, setCostBusy] = useState(false)
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email || '')
 
@@ -126,6 +159,77 @@ export default function AdminPage() {
 
   useEffect(() => { if (tab === 'ia' && !aiUsage) loadAiUsage() }, [tab])
 
+  const authHeader = async () => {
+    const { data: sd } = await supabase.auth.getSession()
+    return { Authorization: `Bearer ${sd?.session?.access_token || ''}` }
+  }
+
+  const loadOrgs = async () => {
+    setOrgsLoading(true)
+    try {
+      const res = await fetch('/api/admin/organizations', { headers: await authHeader() })
+      const j = await res.json()
+      if (res.ok) setOrgs(j.organizations)
+    } catch (e) { console.error(e) }
+    setOrgsLoading(false)
+  }
+  useEffect(() => { if (tab === 'instituicoes' && !orgs) loadOrgs() }, [tab])
+
+  const approveAccess = async () => {
+    if (!accessEmail.trim() || accessBusy) return
+    setAccessBusy(true); setAccessMsg('')
+    try {
+      const res = await fetch('/api/admin/institution-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ email: accessEmail.trim() }) })
+      const j = await res.json()
+      setAccessMsg(res.ok ? `✓ Acesso aprovado para ${j.profile.email}. Já pode entrar em /comecar-instituicao.` : (j.error || 'Erro.'))
+    } catch (e: any) { setAccessMsg(e.message || 'Erro.') }
+    setAccessBusy(false)
+  }
+
+  const createInstitution = async () => {
+    if (!accessEmail.trim() || !newOrgName.trim() || accessBusy) return
+    setAccessBusy(true); setAccessMsg('')
+    try {
+      const res = await fetch('/api/admin/institution-create', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ email: accessEmail.trim(), name: newOrgName.trim(), kind: newOrgKind }) })
+      const j = await res.json()
+      if (res.ok) { setAccessMsg(`✓ Instituição "${newOrgName.trim()}" criada e ligada a ${accessEmail.trim()}.`); setNewOrgName(''); loadOrgs() }
+      else setAccessMsg(j.error || 'Erro.')
+    } catch (e: any) { setAccessMsg(e.message || 'Erro.') }
+    setAccessBusy(false)
+  }
+
+  const loadFinance = async () => {
+    setFinanceLoading(true)
+    try {
+      const headers = await authHeader()
+      const [revRes, costRes] = await Promise.all([
+        fetch('/api/admin/revenue', { headers }), fetch('/api/admin/costs', { headers }),
+      ])
+      const [revJ, costJ] = await Promise.all([revRes.json(), costRes.json()])
+      if (revRes.ok) setRevenue(revJ)
+      if (costRes.ok) setCosts(costJ)
+    } catch (e) { console.error(e) }
+    setFinanceLoading(false)
+  }
+  useEffect(() => { if (tab === 'financeiro' && !revenue) loadFinance() }, [tab])
+
+  const saveCost = async () => {
+    if (!costLabel.trim() || !costAmount || costBusy) return
+    setCostBusy(true)
+    try {
+      const res = await fetch('/api/admin/costs', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ action: 'upsert', label: costLabel.trim(), amount_monthly: parseFloat(costAmount), note: costNote.trim() || null }) })
+      if (res.ok) { setCostLabel(''); setCostAmount(''); setCostNote(''); loadFinance() }
+    } catch (e) { console.error(e) }
+    setCostBusy(false)
+  }
+
+  const deleteCost = async (id: string) => {
+    try {
+      await fetch('/api/admin/costs', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ action: 'delete', id }) })
+      loadFinance()
+    } catch (e) { console.error(e) }
+  }
+
   const upgradeUser = async (userId: string, plan: string) => {
     await supabase.from('profiles').update({ plan }).eq('id', userId)
     setUsers(p => p.map(u => u.id === userId ? { ...u, plan } : u))
@@ -157,10 +261,10 @@ export default function AdminPage() {
             <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>ADMIN</span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
-            {(['overview', 'users', 'searches', 'ia'] as const).map(t => (
+            {(['overview', 'users', 'instituicoes', 'financeiro', 'searches', 'ia'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 style={{ padding: '6px 12px', background: tab === t ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, color: tab === t ? 'white' : 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : t === 'searches' ? 'Pesquisas' : 'IA'}
+                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : t === 'instituicoes' ? 'Instituições' : t === 'financeiro' ? 'Financeiro' : t === 'searches' ? 'Pesquisas' : 'IA'}
               </button>
             ))}
             <button onClick={loadData} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>↻ Refresh</button>
@@ -287,6 +391,164 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── INSTITUIÇÕES ──────────────────────────────────── */}
+        {tab === 'instituicoes' && (
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Dar acesso a uma instituição</h2>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 18, maxWidth: 560 }}>
+              A pessoa precisa de ter conta grátis primeiro. Aprovas o acesso (para ela criar a instituição em /comecar-instituicao), ou crias já a instituição por ela.
+            </p>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 24, maxWidth: 480 }}>
+              <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Email da pessoa</label>
+              <input value={accessEmail} onChange={e => setAccessEmail(e.target.value)} placeholder="dono@lar-exemplo.pt"
+                style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 14 }} />
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <button onClick={approveAccess} disabled={accessBusy || !accessEmail.trim()}
+                  style={{ flex: 1, padding: '10px', background: 'var(--bg-2)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', cursor: accessBusy ? 'wait' : 'pointer' }}>
+                  Só aprovar acesso
+                </button>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ou criar já a instituição</label>
+                <input value={newOrgName} onChange={e => setNewOrgName(e.target.value)} placeholder="Nome da instituição"
+                  style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 8 }} />
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  {([['nursing_home', 'Lar / ERPI'], ['day_care', 'Centro de Dia']] as const).map(([id, label]) => (
+                    <button key={id} onClick={() => setNewOrgKind(id)}
+                      style={{ flex: 1, padding: '9px', borderRadius: 8, border: `1.5px solid ${newOrgKind === id ? 'var(--green)' : 'var(--border)'}`, background: newOrgKind === id ? '#f0fdf5' : 'white', color: newOrgKind === id ? 'var(--green)' : 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={createInstitution} disabled={accessBusy || !accessEmail.trim() || !newOrgName.trim()}
+                  style={{ width: '100%', padding: '11px', background: 'var(--green)', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 700, color: 'white', cursor: accessBusy ? 'wait' : 'pointer' }}>
+                  {accessBusy ? 'A processar…' : 'Criar instituição e dar acesso'}
+                </button>
+              </div>
+              {accessMsg && <div style={{ marginTop: 12, fontSize: 12.5, color: accessMsg.startsWith('✓') ? '#15803d' : '#dc2626' }}>{accessMsg}</div>}
+            </div>
+
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 14, letterSpacing: '-0.01em' }}>Instituições existentes {orgs ? `(${orgs.length})` : ''}</h2>
+            {orgsLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>A carregar…</div>}
+            {orgs && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 150px', padding: '10px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
+                  {['Instituição', 'Tipo', 'Equipa', 'Dono'].map(h => <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>)}
+                </div>
+                {orgs.length === 0 && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink-4)', textAlign: 'center' }}>Ainda sem instituições.</div>}
+                {orgs.map((o, i) => (
+                  <div key={o.id} style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 150px', padding: '12px 16px', borderBottom: i < orgs.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{o.name}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>{o.kind === 'nursing_home' ? 'Lar / ERPI' : o.kind === 'day_care' ? 'Centro de Dia' : o.kind}</div>
+                    <div style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{o.member_count}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.owner_email || '—'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── FINANCEIRO ────────────────────────────────────── */}
+        {tab === 'financeiro' && (
+          <div>
+            {financeLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>A carregar…</div>}
+
+            {revenue && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Receita — real, do Stripe</div>
+                {!revenue.configured ? (
+                  <div style={{ fontSize: 13, color: 'var(--ink-4)', background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>STRIPE_SECRET_KEY não está configurada — sem dados de receita real.</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
+                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>MRR real</div>
+                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--green)', letterSpacing: '-0.02em' }}>{revenue.mrr_total.toFixed(2)}€</div>
+                      </div>
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
+                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Subscrições ativas</div>
+                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{revenue.subscriber_count}</div>
+                      </div>
+                    </div>
+                    {Object.keys(revenue.by_plan).length > 0 && (
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 20px' }}>
+                        {Object.entries(revenue.by_plan).map(([plan, v]) => (
+                          <div key={plan} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--bg-3)' }}>
+                            <span style={{ fontSize: 13, color: 'var(--ink)' }}>{plan} · {v.subscribers} assinante{v.subscribers !== 1 ? 's' : ''}</span>
+                            <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{v.mrr.toFixed(2)}€/mês</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {costs && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Custos</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Twilio — real, este mês</div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                      {costs.twilio.configured ? `${costs.twilio.spend_month.toFixed(2)}${costs.twilio.currency === 'usd' ? '$' : costs.twilio.currency}` : '—'}
+                    </div>
+                    {!costs.twilio.configured && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>Não configurado</div>}
+                  </div>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
+                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Custos fixos — introduzidos à mão</div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{costs.fixed_total.toFixed(2)}€</div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 14 }}>
+                  {costs.fixed_costs.length === 0 && <div style={{ padding: 16, fontSize: 13, color: 'var(--ink-4)', textAlign: 'center' }}>Sem custos fixos registados (hosting, Supabase, domínio…).</div>}
+                  {costs.fixed_costs.map((c, i) => (
+                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: i < costs.fixed_costs.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>{c.label}</div>
+                        {c.note && <div style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>{c.note}</div>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{Number(c.amount_monthly).toFixed(2)}€/mês</span>
+                        <button onClick={() => deleteCost(c.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 12 }}>Remover</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <input value={costLabel} onChange={e => setCostLabel(e.target.value)} placeholder="Ex: Vercel, Supabase Pro, domínio…"
+                    style={{ flex: '1 1 200px', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                  <input value={costAmount} onChange={e => setCostAmount(e.target.value)} placeholder="€/mês" type="number" step="0.01"
+                    style={{ width: 100, padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                  <input value={costNote} onChange={e => setCostNote(e.target.value)} placeholder="Nota (opcional)"
+                    style={{ flex: '1 1 160px', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                  <button onClick={saveCost} disabled={costBusy || !costLabel.trim() || !costAmount} style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: costBusy ? 'wait' : 'pointer' }}>
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {revenue && costs && revenue.configured && (
+              <div style={{ background: 'var(--ink)', borderRadius: 10, padding: '20px 24px', color: 'white' }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Margem estimada / mês</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 34, letterSpacing: '-0.02em' }}>
+                  {(revenue.mrr_total - costs.total_estimated).toFixed(2)}€
+                </div>
+                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                  {revenue.mrr_total.toFixed(2)}€ receita − {costs.total_estimated.toFixed(2)}€ custos (Twilio real + fixos à mão — IA não incluída, ver separador IA para volume de chamadas)
+                </div>
+              </div>
+            )}
           </div>
         )}
 

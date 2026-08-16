@@ -175,6 +175,28 @@ export default function FamilyPage() {
     ? enrichedContacts.filter(c => c.patient_id === compose.patient_id)
     : []
 
+  // Carta semanal por IA (Módulo 3, 2026-08-16) — junta dados reais da semana
+  // (app/api/carta-semanal) e PREENCHE o formulário já existente, exatamente
+  // como um modelo rápido; nunca envia sozinha. A pessoa revê/edita o texto
+  // no mesmo textarea de sempre antes de tocar em "Registar Mensagem".
+  const [generatingLetter, setGeneratingLetter] = useState(false)
+  async function generateWeeklyLetter() {
+    if (!compose.patient_id || generatingLetter) return
+    setGeneratingLetter(true)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/carta-semanal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ patient_id: compose.patient_id }),
+      })
+      const j = await r.json()
+      if (!r.ok) { toast.error('Não foi possível gerar a carta', j.error || 'Tenta de novo.'); return }
+      setCompose(p => ({ ...p, subject: j.subject, body: j.body, type: 'report' }))
+    } catch (e) {
+      toast.error('Não foi possível gerar a carta', reportError('carta-semanal', e, 'Tenta de novo.'))
+    } finally { setGeneratingLetter(false) }
+  }
+
   function applyTemplate(tpl: typeof TEMPLATES[0]) {
     const patName = patients.find(p => p.id === compose.patient_id)?.name || '{nome}'
     setCompose(prev => ({
@@ -493,6 +515,12 @@ export default function FamilyPage() {
                   </select>
                 </div>
               </div>
+
+              <button onClick={generateWeeklyLetter} disabled={!compose.patient_id || generatingLetter}
+                title={!compose.patient_id ? `Escolhe primeiro ${personLower}` : undefined}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px 14px', borderRadius: 8, border: '1.5px solid #ddd6fe', background: compose.patient_id ? '#faf5ff' : '#f9fafb', color: compose.patient_id ? '#6d28d9' : '#c4b5fd', fontSize: 13, fontWeight: 700, cursor: compose.patient_id && !generatingLetter ? 'pointer' : 'not-allowed' }}>
+                {generatingLetter ? 'A escrever a carta semanal…' : '✨ Gerar carta semanal com IA'}
+              </button>
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Tipo</label>
