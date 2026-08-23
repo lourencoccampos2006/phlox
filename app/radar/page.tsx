@@ -13,25 +13,21 @@ import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
-import { institutionConfig } from '@/lib/institutionConfig'
+import { institutionConfig, currentShiftFor } from '@/lib/institutionConfig'
 import { useLiveData } from '@/lib/useLiveData'
-import { SEVERITY_STYLE, type Severity } from '@/lib/residentSignals'
-import { summariseResident, rankByAttention, CARE_DISCLAIMER, type CareResult } from '@/lib/careSignals'
-import { buildResidentTrend, TREND_WINDOW_DAYS, INCIDENT_WINDOW_DAYS, ASSESSMENT_WINDOW_DAYS, type ResidentTrend } from '@/lib/trendSignals'
+import { SEVERITY_STYLE } from '@/lib/residentSignals'
+import { CARE_DISCLAIMER, type CareResult } from '@/lib/careSignals'
+import type { ResidentTrend } from '@/lib/trendSignals'
+import { loadSentinel, combinedLevel, combinedScore, SEV_ORDER, SENTINEL_LIVE_TABLES } from '@/lib/sentinel'
 import { printDoc } from '@/lib/print'
 import { usePhloxContext } from '@/lib/copilotContext'
 
 // Consolidação do Sentinel (Fase 2, 2026-08-16): /radar (hoje) e /tendencias
 // (2-3 semanas) eram dois motores e duas páginas separadas — um utente com
 // uma quebra lenta (só visível em tendência) nunca aparecia aqui, no sítio
-// que a equipa vê todos os dias. Agora o /radar traz também os flags de
-// tendência (lib/trendSignals, motor intacto, só mais uma chamada) e passa a
-// ser o único ponto de entrada diário; /tendencias continua a existir para
-// quem quiser o detalhe (sparklines por métrica), sem alterações.
-const ORD: Record<Severity, number> = { critical: 0, warning: 1, info: 2, good: 3 }
-const worseLevel = (a: Severity, b: Severity): Severity => ORD[a] <= ORD[b] ? a : b
-
-const today = () => new Date().toISOString().slice(0, 10)
+// que a equipa vê todos os dias. Agora ambos vêm de lib/sentinel (a mesma
+// fonte que o /guardiao usa); /tendencias continua a existir para quem quiser
+// o detalhe (sparklines por métrica), sem alterações.
 
 export default function RadarPage() {
   const { user, supabase } = useAuth() as any
@@ -47,114 +43,16 @@ export default function RadarPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true); setErr('')
-    const d = today()
-    const since30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
-    const since365 = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10)
-    const since1 = new Date(); since1.setHours(0, 0, 0, 0)
-
-    const safe = async (q: any) => { try { const r = await q; return r.error ? { data: [] } : r } catch { return { data: [] } } }
-
-    const sinceTrend = new Date(Date.now() - (TREND_WINDOW_DAYS - 1) * 86400000).toISOString().slice(0, 10)
-    const sinceIncTrend = new Date(Date.now() - (INCIDENT_WINDOW_DAYS - 1) * 86400000).toISOString().slice(0, 10)
-    const sinceAssessTrend = new Date(Date.now() - (ASSESSMENT_WINDOW_DAYS - 1) * 86400000).toISOString().slice(0, 10)
-
-    const [p, careToday, careHist, mar, meds, inc, wounds, assess, hyd, reqs, careTrend, marTrend, incTrend, assessTrend, actTrend] = await Promise.all([
-      scope.filter(supabase.from('patients').select('id,name,age,conditions,allergies,room_number')).eq('active', true).order('name'),
-      safe(scope.filter(supabase.from('care_records').select('patient_id,date,shift,mood,nutrition,notes')).eq('date', d)),
-      safe(scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since365)),
-      safe(scope.filter(supabase.from('mar_records').select('patient_id,date,shift,status')).eq('date', d)),
-      safe(scope.filter(supabase.from('patient_meds').select('patient_id,name'))),
-      safe(scope.filter(supabase.from('incidents').select('patient_id,type,severity,status')).neq('status', 'closed')),
-      safe(scope.filter(supabase.from('wounds').select('patient_id,status,stage'))),
-      safe(scope.filter(supabase.from('assessments').select('patient_id,scale,date')).gte('date', since30)),
-      safe(scope.filter(supabase.from('hydration_logs').select('patient_id,at,fluid_ml')).gte('at', since1.toISOString())),
-      safe(scope.filter(supabase.from('resident_requests').select('patient_id,kind,content,status,created_at')).neq('status', 'resolvido')),
-      // Tendência (lib/trendSignals) — mesmas janelas que /tendencias usa.
-      safe(scope.filter(supabase.from('care_records').select('patient_id,date,mood,nutrition')).gte('date', sinceTrend)),
-      safe(scope.filter(supabase.from('mar_records').select('patient_id,date,status')).gte('date', sinceTrend)),
-      safe(scope.filter(supabase.from('incidents').select('patient_id,date,severity')).gte('date', sinceIncTrend)),
-      safe(scope.filter(supabase.from('assessments').select('patient_id,scale,date,score')).gte('date', sinceAssessTrend)),
-      safe(scope.filter(supabase.from('activities').select('id,date')).gte('date', sinceTrend)),
-    ])
-    if (p.error) { setErr('Não foi possível carregar. Verifica a ligação.'); setLoading(false); return }
-
-    const patients = p.data || []
-    // Indexa por utente para alimentar o motor organizacional.
-    const by = <T,>(rows: T[], key: (r: T) => string): Record<string, T[]> => {
-      const m: Record<string, T[]> = {}; rows.forEach(r => { (m[key(r)] ||= []).push(r) }); return m
-    }
-    const medsBy = by(meds.data || [], (r: any) => r.patient_id)
-    const careTodayBy = by(careToday.data || [], (r: any) => r.patient_id)
-    const careHistBy = by(careHist.data || [], (r: any) => r.patient_id)
-    const marBy = by(mar.data || [], (r: any) => r.patient_id)
-    const incBy = by(inc.data || [], (r: any) => r.patient_id)
-    const woundsBy = by(wounds.data || [], (r: any) => r.patient_id)
-    const assessBy = by(assess.data || [], (r: any) => r.patient_id)
-    const hydBy = by(hyd.data || [], (r: any) => r.patient_id)
-    const reqsBy = by(reqs.data || [], (r: any) => r.patient_id)
-
-    // Peso a partir do jsonb vitals dos care_records.
-    const weightsBy: Record<string, { patient_id: string; date: string; weight: number }[]> = {}
-    ;(careHist.data || []).forEach((r: any) => {
-      const w = r.vitals && (r.vitals.weight ?? r.vitals.peso)
-      if (w != null && !isNaN(Number(w))) (weightsBy[r.patient_id] ||= []).push({ patient_id: r.patient_id, date: r.date, weight: Number(w) })
-    })
-
-    const out = patients.map((pt: any) => summariseResident({
-      patient: pt,
-      meds: (medsBy[pt.id] || []).map((m: any) => m.name),
-      careToday: careTodayBy[pt.id] || [],
-      careHistory: careHistBy[pt.id] || [],
-      mar: marBy[pt.id] || [],
-      marExpectedToday: (medsBy[pt.id] || []).length || undefined,
-      incidents: incBy[pt.id] || [],
-      wounds: woundsBy[pt.id] || [],
-      assessments: assessBy[pt.id] || [],
-      weights: weightsBy[pt.id] || [],
-      hydrationToday: hydBy[pt.id] || [],
-      residentRequests: reqsBy[pt.id] || [],
-    }))
-    setResults(rankByAttention(out))
-
-    // Tendência (2-3 semanas) — mesmo padrão de join de app/tendencias/page.tsx
-    // (activity_participations não tem date própria, vive em activities).
-    const careTrendBy = by(careTrend.data || [], (r: any) => r.patient_id)
-    const marTrendBy = by(marTrend.data || [], (r: any) => r.patient_id)
-    const incTrendBy = by(incTrend.data || [], (r: any) => r.patient_id)
-    const assessTrendBy = by(assessTrend.data || [], (r: any) => r.patient_id)
-    const actDateById: Record<string, string> = {}
-    ;(actTrend.data || []).forEach((a: any) => { actDateById[a.id] = a.date })
-    const actIds = (actTrend.data || []).map((a: any) => a.id)
-    const partsRes = actIds.length
-      ? await safe(supabase.from('activity_participations').select('patient_id,activity_id,attended').in('activity_id', actIds).eq('attended', true))
-      : { data: [] }
-    const activityTrendBy: Record<string, { patient_id: string; date: string }[]> = {}
-    ;(partsRes.data || []).forEach((r: any) => {
-      const date = actDateById[r.activity_id]
-      if (!date) return
-      ;(activityTrendBy[r.patient_id] ||= []).push({ patient_id: r.patient_id, date })
-    })
-
-    const trendMap: Record<string, ResidentTrend> = {}
-    patients.forEach((pt: any) => {
-      const t = buildResidentTrend({
-        patient: pt,
-        care: careTrendBy[pt.id] || [],
-        mar: marTrendBy[pt.id] || [],
-        incidents: incTrendBy[pt.id] || [],
-        assessments: assessTrendBy[pt.id] || [],
-        activities: activityTrendBy[pt.id] || [],
-      })
-      if (t.flags.length) trendMap[pt.id] = t
-    })
-    setTrends(trendMap)
-
+    const s = await loadSentinel(supabase, scope)
+    if (s.error) { setErr(s.error); setLoading(false); return }
+    setResults(s.results)
+    setTrends(s.trends)
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load, table: ['patients', 'care_records', 'mar_records', 'incidents', 'wounds', 'assessments', 'patient_meds', 'hydration_logs', 'resident_requests', 'activities', 'activity_participations'] })
+  useLiveData({ supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load, table: SENTINEL_LIVE_TABLES })
 
   // Combina hoje (careSignals) + tendência (trendSignals): um utente com só
   // uma quebra lenta (sem nada fora do padrão hoje) também tem de aparecer —
@@ -162,11 +60,10 @@ export default function RadarPage() {
   const needAttention = useMemo(() => {
     const withTrend = results.filter(r => r.outOfPattern.length > 0 || r.openItems.length > 0 || !!trends[r.patientId])
     return [...withTrend].sort((a, b) => {
-      const la = worseLevel(a.level, trends[a.patientId]?.level || 'good')
-      const lb = worseLevel(b.level, trends[b.patientId]?.level || 'good')
-      if (ORD[la] !== ORD[lb]) return ORD[la] - ORD[lb]
-      const sa = a.score + (trends[a.patientId]?.score || 0), sb = b.score + (trends[b.patientId]?.score || 0)
-      return sb - sa
+      const la = combinedLevel(a, trends[a.patientId])
+      const lb = combinedLevel(b, trends[b.patientId])
+      if (SEV_ORDER[la] !== SEV_ORDER[lb]) return SEV_ORDER[la] - SEV_ORDER[lb]
+      return combinedScore(b, trends[b.patientId]) - combinedScore(a, trends[a.patientId])
     })
   }, [results, trends])
   const calm = results.length - needAttention.length
@@ -176,6 +73,17 @@ export default function RadarPage() {
     results.length ? 'Briefing do que pode merecer atenção' : '',
     results.length ? { com_sinais: needAttention.slice(0, 8).map(r => `${r.name}: ${[...r.outOfPattern, ...r.openItems, ...(trends[r.patientId]?.flags || [])].map(i => i.title).join(', ')}`) } : null as any
   )
+
+  // Fim de semana / turno da noite — o contexto em que o Guardião é útil.
+  const guardiaoContext = useMemo(() => {
+    const day = new Date().getDay()
+    const weekend = day === 0 || day === 6
+    const night = currentShiftFor(institution) === 'noite'
+    if (weekend && night) return 'É fim de semana e turno da noite'
+    if (weekend) return 'É fim de semana'
+    if (night) return 'É turno da noite'
+    return null
+  }, [institution])
 
   function toggle(id: string) { setOpen(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }) }
 
@@ -205,6 +113,19 @@ export default function RadarPage() {
         <p style={{ fontSize: 14.5, color: '#475569', margin: '0 0 14px', lineHeight: 1.55 }}>
           Reúne tudo o que a equipa registou — hoje e nas últimas 2-3 semanas — e destaca o que saiu do padrão habitual, ficou por confirmar, ou tem vindo a piorar aos poucos. Para a equipa não deixar escapar nada.
         </p>
+
+        {/* Ponte para o Modo Guardião — é ao fim de semana e à noite que ele
+            serve, e é exatamente quando ninguém tem tempo de o ir procurar no
+            menu. Só no lar: um centro de dia não tem turno da noite. */}
+        {institution === 'nursing_home' && guardiaoContext && needAttention.length > 0 && (
+          <Link href="/guardiao" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 14px', marginBottom: 14, textDecoration: 'none' }}>
+            <Icon name="shield" size={16} color="#b45309" />
+            <span style={{ flex: 1, fontSize: 13, color: '#78350f', lineHeight: 1.45 }}>
+              <strong>{guardiaoContext}.</strong> O Modo Guardião mostra só quem precisa de atenção agora.
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#b45309', flexShrink: 0 }}>Abrir →</span>
+          </Link>
+        )}
 
         {/* Disclaimer regulatório bem visível */}
         <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#475569', lineHeight: 1.5, marginBottom: 18 }}>
@@ -244,8 +165,8 @@ export default function RadarPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {needAttention.map(r => {
               const trend = trends[r.patientId]
-              const level = trend ? worseLevel(r.level, trend.level) : r.level
-              const score = r.score + (trend?.score || 0)
+              const level = combinedLevel(r, trend)
+              const score = combinedScore(r, trend)
               const st = SEVERITY_STYLE[level]
               const isOpen = open.has(r.patientId)
               const allItems = [...r.outOfPattern, ...r.openItems, ...(trend?.flags || [])]

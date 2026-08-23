@@ -30,7 +30,12 @@ function Dor({ emoji, titulo, texto }: { emoji: string; titulo: string; texto: s
 
 export default function CentroDeDiaLanding() {
   return (
-    <div style={{ background: '#fff', color: INK, fontFamily: 'var(--font-sans)', overflowX: 'hidden' }}>
+    // overflowX 'clip' e não 'hidden': 'hidden' força o overflow-y a computar
+    // 'auto' e transforma este invólucro num contentor de scroll próprio — foi
+    // exatamente isso que partiu o scroll da homepage (ver app/page.tsx .lp).
+    // Aqui ainda não se notava só porque o conteúdo cabia certo na caixa; bastava
+    // crescer uns pixels para congelar igual. 'clip' corta sem criar scroll.
+    <div style={{ background: '#fff', color: INK, fontFamily: 'var(--font-sans)', overflowX: 'clip' }}>
 
       {/* HERO */}
       <section style={{ padding: 'clamp(40px,7vw,72px) 0', background: 'linear-gradient(180deg, #f0fdfa 0%, #fff 100%)' }}>

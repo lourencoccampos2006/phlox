@@ -14,8 +14,16 @@
 // Sinal automático (não é IA, é aritmética simples sobre care_records.mood.level,
 // já registado em cada turno): destaca quem teve humor baixo persistente nos
 // últimos 14 dias — uma SUGESTÃO de rever, nunca uma nota criada sozinha.
+//
+// ÍNDICE DE EROSÃO (Módulo 5, 2026-08-16): ao limiar estático acima juntou-se
+// deteção de QUEDA DE PADRÃO (lib/trendSignals psychosocialErosion) — humor,
+// apetite e participação em atividades comparados com o próprio hábito da
+// pessoa (baseline 14 dias vs. últimos 7). Os dois apanham coisas diferentes
+// e por isso coexistem: o limiar apanha quem está sempre em baixo; a erosão
+// apanha quem ESTÁ A CAIR mas ainda não chegou lá (ex.: ia a todas as
+// atividades, passou a ir a uma) — esse era invisível até agora.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -23,6 +31,9 @@ import { institutionConfig } from '@/lib/institutionConfig'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
+import { loadTrends } from '@/lib/sentinel'
+import { psychosocialErosion, type ResidentTrend, type ErosionResult } from '@/lib/trendSignals'
+import { SEVERITY_STYLE } from '@/lib/residentSignals'
 
 interface Patient { id: string; name: string; room_number: string | null }
 interface Note {
@@ -49,6 +60,7 @@ export default function ApoioPsicossocialPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [moodFlags, setMoodFlags] = useState<Set<string>>(new Set())
+  const [trends, setTrends] = useState<Record<string, ResidentTrend>>({})
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
   const [search, setSearch] = useState('')
@@ -85,11 +97,24 @@ export default function ApoioPsicossocialPage() {
       if (levels.length >= 4 && levels.reduce((a, b) => a + b, 0) / levels.length <= 2) flags.add(pid)
     })
     setMoodFlags(flags)
+
+    // Índice de erosão — mesma fonte de tendência que o /radar e o /tendencias
+    // usam (lib/sentinel loadTrends), aqui lido só na parte psico-social.
+    setTrends(await loadTrends(supabase, scope, (pats.data || []) as Patient[]))
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
+
+  const erosionBy = useMemo(() => {
+    const out: Record<string, ErosionResult> = {}
+    Object.entries(trends).forEach(([pid, t]) => {
+      const e = psychosocialErosion(t)
+      if (e.flags.length) out[pid] = e
+    })
+    return out
+  }, [trends])
 
   function notesFor(patientId: string) { return notes.filter(n => n.patient_id === patientId) }
   function openNoteEditor(patientId: string) { setOpenFor(patientId); setNewNote(''); setNewReferTo(''); setNewReferStatus(''); setNewReferDate('') }
@@ -121,7 +146,15 @@ export default function ApoioPsicossocialPage() {
   }
 
   const filtered = patients.filter(p => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
-  const flaggedFirst = [...filtered].sort((a, b) => (moodFlags.has(b.id) ? 1 : 0) - (moodFlags.has(a.id) ? 1 : 0))
+  // Quem está a cair primeiro, depois quem está persistentemente em baixo.
+  const SEV_RANK: Record<string, number> = { critical: 0, warning: 1, info: 2, good: 3 }
+  const rank = (id: string) => {
+    const e = erosionBy[id]
+    if (e) return SEV_RANK[e.level] ?? 3
+    return moodFlags.has(id) ? 2.5 : 9
+  }
+  const flaggedFirst = [...filtered].sort((a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name))
+  const erodingCount = Object.keys(erosionBy).length
 
   if (needsSetup) {
     return (
@@ -141,6 +174,20 @@ export default function ApoioPsicossocialPage() {
         <div className="page-container">
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Apoio psico-social</h1>
           <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Notas de acompanhamento e encaminhamento a especialistas — só visível à equipa.</p>
+          {!loading && (erodingCount > 0 || moodFlags.size > 0) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {erodingCount > 0 && (
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 20, padding: '4px 12px' }}>
+                  {erodingCount} a cair face ao próprio hábito
+                </span>
+              )}
+              {moodFlags.size > 0 && (
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#6d28d9', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 20, padding: '4px 12px' }}>
+                  {moodFlags.size} com humor persistentemente baixo
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -157,9 +204,13 @@ export default function ApoioPsicossocialPage() {
             {flaggedFirst.map(p => {
               const pNotes = notesFor(p.id)
               const flagged = moodFlags.has(p.id)
+              const erosion = erosionBy[p.id]
               const isOpen = openFor === p.id
+              const borderColor = erosion
+                ? (erosion.level === 'critical' ? '#fca5a5' : '#fde68a')
+                : (flagged ? '#c4b5fd' : 'var(--border)')
               return (
-                <div key={p.id} style={{ background: 'white', border: `1px solid ${flagged ? '#c4b5fd' : 'var(--border)'}`, borderRadius: 12, padding: '13px 16px' }}>
+                <div key={p.id} style={{ background: 'white', border: `1px solid ${borderColor}`, borderRadius: 12, padding: '13px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <div>
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
@@ -171,6 +222,26 @@ export default function ApoioPsicossocialPage() {
                     </button>
                   </div>
 
+                  {/* Erosão: está A CAIR face ao próprio hábito (2-3 semanas) */}
+                  {erosion && (
+                    <div style={{ marginTop: 8, padding: '9px 12px', background: erosion.level === 'critical' ? '#fef2f2' : '#fffbeb', border: `1px solid ${erosion.level === 'critical' ? '#fca5a5' : '#fde68a'}`, borderRadius: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: erosion.flags.length ? 6 : 0 }}>
+                        <Icon name="chart" size={13} color={erosion.level === 'critical' ? '#b91c1c' : '#b45309'} />
+                        <span style={{ fontSize: 12, fontWeight: 800, color: erosion.level === 'critical' ? '#b91c1c' : '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Erosão psico-social{erosion.declining.length >= 2 ? ` · ${erosion.declining.length} áreas a cair` : ''}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {erosion.flags.map((f, i) => (
+                          <div key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                            <strong style={{ color: SEVERITY_STYLE[f.severity].color }}>{f.title}</strong> — {f.detail}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Limiar estático: está SEMPRE em baixo (não precisa de estar a cair) */}
                   {flagged && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, padding: '7px 11px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8 }}>
                       <Icon name="alert" size={13} color="#7c3aed" />

@@ -59,6 +59,7 @@ export default function StockPage() {
   const [preview, setPreview] = useState<{ products: ImportedProduct[]; cols: string[] } | null>(null)
   const [importBusy, setImportBusy] = useState(false)
   const [importMsg, setImportMsg] = useState('')
+  const [patients, setPatients] = useState<{ id: string; name: string }[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -109,10 +110,14 @@ export default function StockPage() {
     if (!user) return
     setLoading(true); setErr('')
     const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString()
-    const [itemsRes, consRes] = await Promise.all([
+    const [itemsRes, consRes, patsRes] = await Promise.all([
       scope.filter(supabase.from('stock_items').select('*')).order('name'),
       scope.filter(supabase.from('stock_consumption').select('item_id,qty,created_at')).gte('created_at', since),
+      // Para atribuir consumo de incontinência a uma pessoa (Módulo 11).
+      scope.filter(supabase.from('patients').select('id,name')).eq('active', true).order('name')
+        .then((r: any) => r, () => ({ data: [] })),
     ])
+    setPatients((patsRes.data || []) as { id: string; name: string }[])
     if (itemsRes.error) { if (/relation .*stock_items.* does not exist/i.test(itemsRes.error.message)) setMissing(true); setItems([]) }
     else {
       setMissing(false); setItems(itemsRes.data || [])
@@ -182,11 +187,11 @@ export default function StockPage() {
     const { data } = await supabase.auth.getSession()
     return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
   }, [supabase])
-  async function consume(it: Item, qty = 1) {
+  async function consume(it: Item, qty = 1, patientId?: string) {
     if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
     const prev = it.quantity
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: Math.max(0, prev - qty) } : x))
-    const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, qty }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, qty, patient_id: patientId || null }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     if (r.error) { setErr(reportError('stock-consume', r.error, 'Não foi possível registar o consumo agora. Tenta de novo.')); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)); return }
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: r.quantity, reorder_status: r.alerted ? 'requested' : x.reorder_status } : x))
   }
@@ -326,7 +331,7 @@ export default function StockPage() {
                   <div style={{ marginBottom: rest.length > 0 ? 22 : 0 }}>
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Precisa de atenção ({attention.length})</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                      {attention.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} />)}
+                      {attention.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} patients={patients} />)}
                     </div>
                   </div>
                 )}
@@ -339,7 +344,7 @@ export default function StockPage() {
                     )}
                     {(showRest || attention.length === 0) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {rest.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} />)}
+                        {rest.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} patients={patients} />)}
                       </div>
                     )}
                   </div>
@@ -439,13 +444,19 @@ export default function StockPage() {
 // Extraído de dentro do map original (2026-08-07) para poder ser reutilizado
 // nas duas secções ("Precisa de atenção" + "Resto do inventário") sem
 // duplicar a marcação — mesmo comportamento de sempre, só reorganizado.
-function StockItemCard({ it, card, scope, consume, adjust, del, reorder, daysLeft }: {
+function StockItemCard({ it, card, scope, consume, adjust, del, reorder, daysLeft, patients }: {
   it: Item; card: React.CSSProperties; scope: ReturnType<typeof useOrgScope>
-  consume: (it: Item, qty?: number) => void; adjust: (it: Item, delta: number) => void
+  consume: (it: Item, qty?: number, patientId?: string) => void; adjust: (it: Item, delta: number) => void
   del: (id: string) => void; reorder: (it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) => void
   daysLeft?: number
+  patients: { id: string; name: string }[]
 }) {
   const cat = CATS[it.category] || CATS.geral
+  // Módulo 11: só na categoria de incontinência é que saber PARA QUEM tem
+  // valor clínico (variação de consumo por pessoa é o sinal). Nas outras, o
+  // "Usar 1" fica exatamente como estava — um toque, sem perguntas.
+  const [pickFor, setPickFor] = useState(false)
+  const attributable = it.category === 'incontinencia' && patients.length > 0
   const isLow = it.min_quantity > 0 && it.quantity <= it.min_quantity
   const d = expiryDays(it.expiry_date)
   const expColor = d === null ? null : d < 0 ? '#dc2626' : d <= 30 ? '#d97706' : '#16a34a'
@@ -470,13 +481,34 @@ function StockItemCard({ it, card, scope, consume, adjust, del, reorder, daysLef
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {/* USAR 1 — o toque frequente (uma luva, uma fralda): grande e rápido. */}
-          <button onClick={() => consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
+          <button onClick={() => attributable ? setPickFor(v => !v) : consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
           <button aria-label="Diminuir" className="stock-adjust-btn" onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
           <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: isLow ? '#dc2626' : '#0b1120' }}>{it.quantity}{it.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: '#9ca3af' }}> {it.unit}</span> : ''}</span>
           <button aria-label="Aumentar" className="stock-adjust-btn" onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
           <button aria-label="Eliminar" onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>
         </div>
       </div>
+
+      {/* Para quem? (só incontinência) — atribuir é o que permite ler a
+          variação por pessoa como sinal. "Sem atribuir" existe sempre: a
+          equipa nunca fica bloqueada por não saber ou não querer dizer. */}
+      {pickFor && attributable && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 7 }}>Para quem foi?</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {patients.map(p => (
+              <button key={p.id} onClick={() => { consume(it, 1, p.id); setPickFor(false) }}
+                style={{ padding: '6px 11px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'var(--font-sans)' }}>
+                {p.name}
+              </button>
+            ))}
+            <button onClick={() => { consume(it, 1); setPickFor(false) }}
+              style={{ padding: '6px 11px', borderRadius: 8, border: '1.5px dashed var(--border)', background: 'white', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>
+              Sem atribuir
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
       {(isLow || runsOutSoon || (it.reorder_status && it.reorder_status !== 'ok')) && (

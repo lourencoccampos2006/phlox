@@ -18,15 +18,13 @@ import { useLiveData } from '@/lib/useLiveData'
 import { printDoc } from '@/lib/print'
 import { usePhloxContext } from '@/lib/copilotContext'
 import {
-  buildResidentTrend, rankByTrendAttention, TREND_DISCLAIMER,
-  TREND_WINDOW_DAYS, INCIDENT_WINDOW_DAYS, ASSESSMENT_WINDOW_DAYS,
-  type ResidentTrend, type MetricTrend, type SparkPoint, type TrendActivityRow,
+  rankByTrendAttention, TREND_DISCLAIMER,
+  type ResidentTrend, type MetricTrend, type SparkPoint,
 } from '@/lib/trendSignals'
+import { loadTrends, SENTINEL_LIVE_TABLES } from '@/lib/sentinel'
 
 const ACCENT = '#0f766e'
 const ACCENT_BG = '#f0fdfa'
-
-const daysAgoISO = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10) }
 
 interface PatientLite { id: string; name: string; room_number?: string | null }
 
@@ -48,55 +46,19 @@ export default function TendenciasPage() {
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [filter, setFilter] = useState<'attention' | 'all'>('attention')
 
+  // 2026-08-16: passou a usar lib/sentinel loadTrends — a MESMA função que o
+  // /radar, o /guardiao e o /apoio-psicossocial usam. Antes esta página tinha
+  // a sua própria cópia do carregamento, o que a deixou de fora da correção
+  // da métrica de atividades (dias sem participação a contar como 0, ver
+  // buildResidentTrend): mostrava uma deteção mais fraca que as outras.
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true); setErr('')
-    const safe = async (q: any) => { try { const r = await q; return r.error ? { data: [] } : r } catch { return { data: [] } } }
-
-    const [p, care, mar, inc, assess, acts] = await Promise.all([
-      scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
-      safe(scope.filter(supabase.from('care_records').select('patient_id,date,mood,nutrition')).gte('date', daysAgoISO(TREND_WINDOW_DAYS - 1))),
-      safe(scope.filter(supabase.from('mar_records').select('patient_id,date,status')).gte('date', daysAgoISO(TREND_WINDOW_DAYS - 1))),
-      safe(scope.filter(supabase.from('incidents').select('patient_id,date,severity')).gte('date', daysAgoISO(INCIDENT_WINDOW_DAYS - 1))),
-      safe(scope.filter(supabase.from('assessments').select('patient_id,scale,date,score')).gte('date', daysAgoISO(ASSESSMENT_WINDOW_DAYS - 1))),
-      safe(scope.filter(supabase.from('activities').select('id,date')).gte('date', daysAgoISO(TREND_WINDOW_DAYS - 1))),
-    ])
+    const p = await scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name')
     if (p.error) { setErr('Não foi possível carregar. Verifica a ligação.'); setLoading(false); return }
-
     const patients: PatientLite[] = p.data || []
-    const by = <T,>(rows: T[], key: (r: T) => string): Record<string, T[]> => {
-      const m: Record<string, T[]> = {}; rows.forEach(r => { (m[key(r)] ||= []).push(r) }); return m
-    }
-    const careBy = by(care.data || [], (r: any) => r.patient_id)
-    const marBy = by(mar.data || [], (r: any) => r.patient_id)
-    const incBy = by(inc.data || [], (r: any) => r.patient_id)
-    const assessBy = by(assess.data || [], (r: any) => r.patient_id)
-
-    // Participação em atividades — activity_participations não tem `date`
-    // própria (vive em `activities`); busca-se as atividades da janela e
-    // depois quem participou nelas, e junta-se pelo activity_id.
-    const actIds = (acts.data || []).map((a: any) => a.id)
-    const actDateById: Record<string, string> = {}
-    ;(acts.data || []).forEach((a: any) => { actDateById[a.id] = a.date })
-    const partsRes = actIds.length
-      ? await safe(supabase.from('activity_participations').select('patient_id,activity_id,attended').in('activity_id', actIds).eq('attended', true))
-      : { data: [] }
-    const activityBy: Record<string, TrendActivityRow[]> = {}
-    ;(partsRes.data || []).forEach((r: any) => {
-      const date = actDateById[r.activity_id]
-      if (!date) return
-      ;(activityBy[r.patient_id] ||= []).push({ patient_id: r.patient_id, date })
-    })
-
-    const out = patients.map(pt => buildResidentTrend({
-      patient: pt,
-      care: careBy[pt.id] || [],
-      mar: marBy[pt.id] || [],
-      incidents: incBy[pt.id] || [],
-      assessments: assessBy[pt.id] || [],
-      activities: activityBy[pt.id] || [],
-    }))
-    setResults(rankByTrendAttention(out))
+    const trendMap = await loadTrends(supabase, scope, patients)
+    setResults(rankByTrendAttention(patients.map(pt => trendMap[pt.id]).filter(Boolean)))
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
@@ -104,7 +66,7 @@ export default function TendenciasPage() {
   useEffect(() => { load() }, [load])
   useLiveData({
     supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load,
-    table: ['patients', 'care_records', 'mar_records', 'incidents', 'assessments', 'activity_participations'],
+    table: SENTINEL_LIVE_TABLES,
   })
 
   const needAttention = useMemo(() => results.filter(r => r.level === 'critical' || r.level === 'warning'), [results])

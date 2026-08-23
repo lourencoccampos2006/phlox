@@ -9,8 +9,19 @@ import { aiJSON, aiComplete } from '@/lib/ai'
 import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { sb } from '@/lib/orgAuth'
+import { clinicalFindingsFor, type Finding } from '@/lib/medPrepIntel'
 
 export const maxDuration = 60
+
+// Consolidação do Sentinel (Fase 2, 2026-08-16) — ver comentário longo em
+// app/api/vigilancia/cron/route.ts. Existiam aqui 8 regras locais por regex
+// (stoppFlags) em paralelo com o motor real de 26 regras (lib/decisionEngine),
+// já usado em /stopp-start, /med-review, /preparacao-medicacao e /mar. Agora
+// os dois caminhos da vigilância (este, interativo, e o cron noturno) usam a
+// MESMA fonte, com a severidade real de cada achado a pesar na pontuação.
+const FINDING_WEIGHT: Record<Finding['severity'], number> = {
+  critical: 25, major: 12, moderate: 6, minor: 2, info: 0,
+}
 
 // Resolve o âmbito: se o utilizador pertence a uma organização (equipa), a
 // vigilância vê os residentes da ORG (org_id); senão, os próprios (user_id).
@@ -23,24 +34,6 @@ async function resolveScope(db: any, userId: string): Promise<{ col: 'org_id' | 
     if (orgId) return { col: 'org_id', val: orgId }
   } catch { /* profiles pode não ter as colunas → cai para user_id */ }
   return { col: 'user_id', val: userId }
-}
-
-// STOPP/Beers simplificado — deteção local determinística (sem IA, instantâneo)
-function stoppFlags(p: any, meds: any[]): string[] {
-  const flags: string[] = []
-  const names = meds.map(m => (m.name || '').toLowerCase()).join(' ')
-  const age = p.age || 0
-  const has = (re: RegExp) => re.test(names)
-  if (meds.length >= 5) flags.push('Polimedicação (≥5 fármacos)')
-  if (age >= 75) {
-    if (has(/diazepam|lorazepam|alprazolam|bromazepam|clonazepam|benzodiaz/)) flags.push('Benzodiazepina em idoso (risco de queda/confusão)')
-    if (has(/amitriptilina|clomipramina|imipramina|doxepina/)) flags.push('Antidepressivo tricíclico em idoso (anticolinérgico)')
-    if (has(/diclofenac|ibuprofeno|naproxeno|cetorolac|aine/)) flags.push('AINE em idoso (risco GI/renal/HTA)')
-    if (has(/haloperidol|risperidona|olanzapina|quetiapina|antipsic/)) flags.push('Antipsicótico em idoso (rever indicação, risco AVC)')
-  }
-  if (has(/varfarina|apixaban|rivaroxaban|edoxaban|dabigatran/) && has(/diclofenac|ibuprofeno|naproxeno|aine|aspirina|ácido acetilsalic/)) flags.push('Anticoagulante + AINE/AAS (risco hemorrágico)')
-  if (has(/digoxina/) && age >= 75) flags.push('Digoxina em idoso (vigiar dose/toxicidade)')
-  return flags
 }
 
 export async function GET(req: NextRequest) {
@@ -87,8 +80,11 @@ export async function POST(req: NextRequest) {
     let analysed = 0
 
     for (const p of batch) {
-      const { data: meds } = await db.from('patient_meds').select('name, dose, frequency, indication').eq('patient_id', p.id)
-      const flags = stoppFlags(p, meds || [])
+      // started_at: necessário para a regra combinada IBP prolongado + carga
+      // anticolinérgica (lib/medPrepIntel), que mede duração real.
+      const { data: meds } = await db.from('patient_meds').select('name, dose, frequency, indication, started_at').eq('patient_id', p.id).eq('active', true)
+      const findings = clinicalFindingsFor(p, (meds || []).map((m: any) => ({ name: m.name, started_at: m.started_at })))
+      const flags = findings.map(f => f.title)
       let alerts: any[] = []
       let summary = ''
       if ((meds || []).length >= 2) {
@@ -103,7 +99,8 @@ export async function POST(req: NextRequest) {
       }
       const critical = alerts.filter(a => a.severity === 'grave').length
       const moderate = alerts.filter(a => a.severity === 'moderada').length
-      const riskScore = Math.min(100, critical * 30 + moderate * 15 + flags.length * 8 + Math.min(20, (meds || []).length * 2))
+      const findingScore = findings.reduce((s, f) => s + FINDING_WEIGHT[f.severity], 0)
+      const riskScore = Math.min(100, critical * 30 + moderate * 15 + findingScore + Math.min(20, (meds || []).length * 2))
       await db.from('patient_vigilance').upsert({
         user_id: userId, patient_id: p.id, risk_score: riskScore,
         alerts, flags, summary, analysed_at: new Date().toISOString(),

@@ -70,7 +70,15 @@ export async function POST(req: NextRequest) {
   const qty = Number(body.qty) > 0 ? Number(body.qty) : 1
   const newQty = Math.max(0, Number(item.quantity || 0) - qty)
   await db.from('stock_items').update({ quantity: newQty, updated_at: new Date().toISOString() }).eq('id', itemId)
-  await db.from('stock_consumption').insert(stamp({ user_id: c.user.id, item_id: itemId, qty, by_name: c.name })).then(() => {}, () => {})
+  // patient_id (Módulo 11, sprint133): atribuir o consumo a uma pessoa é o
+  // que torna possível ler variações como sinal clínico. Opcional — muito
+  // consumo é de uso geral, e a equipa nunca pode ficar bloqueada. Se a
+  // coluna ainda não existir (migração por aplicar), tenta outra vez sem ela
+  // para o consumo continuar a ser registado.
+  const patientId = typeof body.patient_id === 'string' && body.patient_id ? body.patient_id : null
+  const consRow: any = stamp({ user_id: c.user.id, item_id: itemId, qty, by_name: c.name })
+  const ins = await db.from('stock_consumption').insert(patientId ? { ...consRow, patient_id: patientId } : consRow)
+  if (ins.error && patientId) await db.from('stock_consumption').insert(consRow).then(() => {}, () => {})
 
   // Se atingiu o limiar e ainda não há pedido em curso → avisa a equipa 1 vez.
   let alerted = false

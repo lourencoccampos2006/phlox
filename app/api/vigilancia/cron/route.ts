@@ -11,24 +11,25 @@ import { computeSelfRiskScore } from '@/lib/healthAlerts'
 import { RISK_LEVEL_META, type RiskLevel } from '@/lib/riskIndex'
 import { sendPushNotification } from '@/lib/webPush'
 import { sendEmail, caregiverWatchEmail } from '@/lib/email'
+import { clinicalFindingsFor, type Finding } from '@/lib/medPrepIntel'
 
 export const maxDuration = 60
 
-// STOPP/Beers local (igual ao /api/vigilancia — determinístico, sem IA)
-function stoppFlags(p: any, meds: any[]): string[] {
-  const flags: string[] = []
-  const names = meds.map(m => (m.name || '').toLowerCase()).join(' ')
-  const age = p.age || 0
-  const has = (re: RegExp) => re.test(names)
-  if (meds.length >= 5) flags.push('Polimedicação (≥5 fármacos)')
-  if (age >= 75) {
-    if (has(/diazepam|lorazepam|alprazolam|bromazepam|clonazepam|benzodiaz/)) flags.push('Benzodiazepina em idoso')
-    if (has(/amitriptilina|clomipramina|imipramina|doxepina/)) flags.push('Tricíclico em idoso')
-    if (has(/diclofenac|ibuprofeno|naproxeno|cetorolac|aine/)) flags.push('AINE em idoso')
-    if (has(/haloperidol|risperidona|olanzapina|quetiapina|antipsic/)) flags.push('Antipsicótico em idoso')
-  }
-  if (has(/varfarina|apixaban|rivaroxaban|edoxaban|dabigatran/) && has(/diclofenac|ibuprofeno|naproxeno|aine|aspirina|ácido acetilsalic/)) flags.push('Anticoagulante + AINE/AAS')
-  return flags
+// Consolidação do Sentinel (Fase 2, 2026-08-16): existia aqui um stoppFlags()
+// local — 7 regras cruas por regex (polimedicação, BZD/tricíclico/AINE/
+// antipsicótico em ≥75, anticoagulante+AINE) — enquanto o motor REAL
+// (lib/decisionEngine, 26 regras com evidência citada) já era usado em
+// /stopp-start, /polypharmacy, /med-review e, desde a Fase 1, também em
+// /preparacao-medicacao e /mar. Era o mesmo padrão de duplicação que o /mar
+// tinha. Agora usa clinicalFindingsFor (lib/medPrepIntel), a MESMA fonte —
+// ganha carga anticolinérgica, IECA+ARA, QT, macrólido+estatina, função
+// renal, a regra combinada IBP+anticolinérgico, etc.
+//
+// A coluna `flags` continua a ser string[] (o /vigia mostra-as como chips,
+// sem alterações) — guardamos o título de cada achado. A severidade real de
+// cada achado passa a pesar na pontuação, em vez de todos valerem 8 pontos.
+const FINDING_WEIGHT: Record<Finding['severity'], number> = {
+  critical: 25, major: 12, moderate: 6, minor: 2, info: 0,
 }
 
 export async function GET(req: NextRequest) {
@@ -50,11 +51,17 @@ export async function GET(req: NextRequest) {
   const userLimit = Math.min(Number(req.nextUrl.searchParams.get('users') || 20), 50)
 
   for (const prof of (profiles || []).slice(0, userLimit)) {
-    const { data: patients } = await db.from('patients').select('*').eq('user_id', prof.id)
+    // 2026-08-21: faltava .eq('active', true) — o cron varria também utentes
+    // arquivados/com alta, gastando uma chamada de IA por cada um e enchendo
+    // patient_vigilance de linhas de gente que já lá não está.
+    const { data: patients } = await db.from('patients').select('*').eq('user_id', prof.id).eq('active', true)
     if (!patients?.length) continue
     for (const p of patients.slice(0, 30)) {  // teto por utilizador (custo/tempo)
-      const { data: meds } = await db.from('patient_meds').select('name, dose, frequency').eq('patient_id', p.id)
-      const flags = stoppFlags(p, meds || [])
+      // started_at: necessário para a regra combinada IBP prolongado +
+      // carga anticolinérgica (lib/medPrepIntel), que mede duração real.
+      const { data: meds } = await db.from('patient_meds').select('name, dose, frequency, started_at').eq('patient_id', p.id).eq('active', true)
+      const findings = clinicalFindingsFor(p, (meds || []).map((m: any) => ({ name: m.name, started_at: m.started_at })))
+      const flags = findings.map(f => f.title)
       let alerts: any[] = [], summary = ''
       if ((meds || []).length >= 2) {
         try {
@@ -67,7 +74,8 @@ export async function GET(req: NextRequest) {
       }
       const critical = alerts.filter(a => a.severity === 'grave').length
       const moderate = alerts.filter(a => a.severity === 'moderada').length
-      const riskScore = Math.min(100, critical * 30 + moderate * 15 + flags.length * 8 + Math.min(20, (meds || []).length * 2))
+      const findingScore = findings.reduce((s, f) => s + FINDING_WEIGHT[f.severity], 0)
+      const riskScore = Math.min(100, critical * 30 + moderate * 15 + findingScore + Math.min(20, (meds || []).length * 2))
 
       // lê risco anterior para detetar piora
       const { data: prev } = await db.from('patient_vigilance').select('risk_score').eq('user_id', prof.id).eq('patient_id', p.id).maybeSingle()

@@ -102,6 +102,9 @@ const T = {
   // Novos 2026-08-11 — auditoria contra a lista de serviços de um centro de dia real.
   prep:     { href: '/preparacao-medicacao', label: 'Preparação da medicação', hint: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', icon: '🗂️' },
   psicossocial: { href: '/apoio-psicossocial', label: 'Apoio psico-social', hint: 'Notas de acompanhamento e encaminhamento a especialistas', icon: '🫂' },
+  guardiao: { href: '/guardiao', label: 'Modo Guardião', hint: 'Turnos com pouca gente: só quem precisa de atenção, por ordem de urgência', icon: '🌙' },
+  carga:    { href: '/carga', label: 'Pessoal e carga', hint: 'Onde a escala pode apertar: turnos sem gente ou abaixo do habitual desta casa', icon: '⚖️' },
+  autonomia: { href: '/autonomia', label: 'Autonomia', hint: 'Três perguntas rápidas, de vez em quando — nota quem está a precisar de mais ajuda', icon: '🚶' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -132,7 +135,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     // "Gestão & qualidade" (T.staff) já leva a /painel-dono, cuja aba "Qualidade"
     // era antes um item de menu à parte (T.quality) para o mesmo destino — fundidos
     // num só, para não duplicar entradas que vão ter ao mesmo sítio.
-    extraTools: [ T.incidents, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.meds_check, T.calc ],
+    extraTools: [ T.carga, T.autonomia, T.incidents, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.meds_check, T.calc ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -155,7 +158,9 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.refeicoes, T.ronda, T.radar, T.assessments, T.wounds, T.family, T.mural,
     ],
-    extraTools: [ T.incidents, T.activities, T.trends, T.vigia, T.stock, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.meds_check, T.calc ],
+    // Guardião só no lar: um centro de dia não tem turno da noite nem serviço
+    // ao fim de semana, por isso a ferramenta não se aplica lá.
+    extraTools: [ T.guardiao, T.carga, T.autonomia, T.incidents, T.activities, T.trends, T.vigia, T.stock, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.meds_check, T.calc ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.

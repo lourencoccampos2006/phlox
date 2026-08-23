@@ -239,7 +239,20 @@ export default function HomePage() {
       </Reveal>
 
       <style>{`
-        .lp { background:var(--bg); color:var(--ink); font-family:var(--font-sans); overflow-x:hidden; }
+        /* BUG DO SCROLL DA HOMEPAGE — corrigido 2026-08-23 (reincidente).
+           Isto tinha 'overflow-x:hidden'. Num elemento normal, overflow-x:hidden
+           força o overflow-y a computar 'auto' → o .lp passava a ser um
+           CONTENTOR DE SCROLL PRÓPRIO. Como a sua altura ficava a 18px do
+           conteúdo (3928 vs 3910), a roda scrollava esses 18px DENTRO da div,
+           chegava ao fim, e o 'overscroll-behavior-y:none' do body travava a
+           passagem do scroll para a janela. Resultado: a página mexia um
+           bocadinho e congelava, e o window.scrollY ficava sempre a 0 (por isso
+           nenhum teste com scrollTo() apanhava isto — scrollTo atua direto no
+           scrollingElement).
+           'overflow-x: clip' corta na horizontal SEM criar contentor de scroll
+           e deixa o overflow-y em 'visible'. (Nota: clip é seguro aqui, numa
+           div; no <html> é que parte a propagação — ver globals.css.) */
+        .lp { background:var(--bg); color:var(--ink); font-family:var(--font-sans); overflow-x:clip; }
         .lp-wrap { max-width:1080px; margin:0 auto; padding:0 clamp(20px,5vw,40px); position:relative; }
         .lp em { font-style:italic; color:var(--green); }
 
