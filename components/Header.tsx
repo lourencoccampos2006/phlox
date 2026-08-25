@@ -511,9 +511,10 @@ export default function Header() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 2px 6px -2px rgba(13,110,66,0.35)',
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 3v18M3 12h18"/>
-              </svg>
+              {/* A flor de Phlox, recortada da mesma geometria do logótipo 3D
+                  (scripts/logo-2d.mjs). 4KB, não os 238KB da versão grande. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/flor-64.png" alt="" width={20} height={20} style={{ display: 'block' }} />
             </div>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: '#0b1120', letterSpacing: '-0.015em' }}>
               Phlox

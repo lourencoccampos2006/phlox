@@ -5,6 +5,7 @@
 // discretas. (Aparece só em páginas públicas — ver ClientLayout.)
 
 import Link from 'next/link'
+import PhloxLogo3D from '@/components/PhloxLogo3D'
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -17,11 +18,11 @@ export default function Footer() {
 
           {/* Marca + uma linha do que é */}
           <div style={{ maxWidth: 300 }}>
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', marginBottom: 10 }}>
-              <span style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
-              </span>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em' }}>Phlox</span>
+            {/* O logótipo 3D já é a palavra + a flor no lugar do "o" — dispensa
+                a marca separada e o texto que aqui estavam. Carrega-se sozinho
+                quando chega ao ecrã; ver components/PhloxLogo3D.tsx. */}
+            <Link href="/" style={{ display: 'inline-block', textDecoration: 'none', marginBottom: 10, marginLeft: -6 }} aria-label="Phlox — início">
+              <PhloxLogo3D largura={158} />
             </Link>
             <p style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>
               A sua saúde, e a de quem cuida, num só sítio. Feito em português, para Portugal.

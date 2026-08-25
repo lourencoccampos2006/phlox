@@ -7,6 +7,8 @@
     "dev": "next dev",
     "start": "next start",
     "lint": "eslint",
+    "qa": "node scripts/qa-agents/run.mjs --mode publico --label local && node scripts/qa-agents/report.mjs",
+    "qa:completo": "node scripts/qa-agents/run.mjs --mode completo --label local && node scripts/qa-agents/report.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
@@ -20,9 +22,11 @@
     "next": "^16.2.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "three": "^0.185.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

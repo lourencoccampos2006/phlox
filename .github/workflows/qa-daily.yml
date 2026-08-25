@@ -1,0 +1,164 @@
+name: QA diário
+
+# A equipa de agentes de QA. Duas camadas, com custos muito diferentes:
+#
+#   CAMADA GRATUITA (a maior parte). Puro Node + Playwright, zero tokens:
+#     Sentinela ...... estados HTTP, erros de consola, exceções, pedidos falhados
+#     Scroll ......... roda do rato em cada rota (nunca scrollTo — ver run.mjs)
+#     Transbordo ..... conteúdo mais largo que o ecrã, com o elemento culpado
+#     Regressão visual capturas comparadas com as referências do repositório
+#     Links .......... visita cada link interno à procura de becos sem saída
+#     Acessibilidade . axe-core, só violações graves e críticas
+#     Metadados ...... título, descrição, og:image, h1, lang, alt das imagens
+#     Segurança ...... HSTS, Referrer-Policy, X-Content-Type-Options (só em produção)
+#
+#   CAMADA POR SUBSCRIÇÃO (pequena). A claude-code-action olha para as capturas
+#   e procura o que nenhuma regra exprime: "isto parece partido a um humano?".
+#   Autentica com CLAUDE_CODE_OAUTH_TOKEN — sai da tua subscrição Claude, NÃO
+#   de créditos de API.
+#
+# ── O QUE TENS DE FAZER UMA VEZ ─────────────────────────────────────────────
+#   1. Correr `claude setup-token` no teu computador.
+#   2. Guardar o resultado em Definições → Secrets and variables → Actions,
+#      com o nome CLAUDE_CODE_OAUTH_TOKEN.
+#   3. Correr este workflow à mão com "atualizar_referencias" ligado, uma vez,
+#      para criar as referências visuais NO LINUX do CI (as geradas no Windows
+#      não servem — o desenho das letras é diferente e daria alarme todos os dias).
+#
+# Sem o segredo continua a correr: sai a camada gratuita, que já é a que apanha
+# as regressões que partem o site.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC — 07:00 em Portugal no verão
+  workflow_dispatch:
+    inputs:
+      atualizar_referencias:
+        description: 'Regenerar as referências visuais e commitá-las'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+  id-token: write
+
+jobs:
+  producao:
+    name: Produção (só leitura)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Agentes contra produção
+        run: node scripts/qa-agents/run.mjs --base-url https://phloxclinical.com --mode publico --label producao
+      - uses: actions/upload-artifact@v4
+        with: { name: qa-producao, path: qa-out/, retention-days: 14 }
+
+  completo:
+    name: Build local (com sessão)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Limpar referências (só quando pedido à mão)
+        if: inputs.atualizar_referencias
+        run: rm -rf tests/baselines
+
+      - run: npm run build
+      - run: npm start &
+      - run: npx wait-on http://localhost:3000 --timeout 90000
+      - name: Agentes com sessão iniciada
+        run: node scripts/qa-agents/run.mjs --base-url http://localhost:3000 --mode completo --label completo
+
+      - name: Commitar as referências novas
+        if: inputs.atualizar_referencias
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/baselines
+          git diff --staged --quiet || git commit -m "QA: atualizar referências visuais"
+          git push
+
+      - uses: actions/upload-artifact@v4
+        with: { name: qa-completo, path: qa-out/, retention-days: 14 }
+
+  relatorio:
+    name: Relatório
+    needs: [producao, completo]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - uses: actions/download-artifact@v4
+        with: { name: qa-producao, path: qa-out/ }
+        continue-on-error: true
+      - uses: actions/download-artifact@v4
+        with: { name: qa-completo, path: qa-out/ }
+        continue-on-error: true
+
+      # Camada gratuita: o relatório determinístico. Corre sempre.
+      - name: Escrever o relatório
+        run: node scripts/qa-agents/report.mjs
+
+      # O contexto `secrets` não se pode usar à vontade num `if` de passo, por
+      # isso passa primeiro por um output.
+      - id: token
+        run: echo "existe=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      # Camada por subscrição: revisão visual + abertura do issue.
+      - name: Revisão visual e issue
+        if: steps.token.outputs.existe == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--max-turns 12 --allowedTools "Read,Glob,Bash(gh issue create:*)"'
+          prompt: |
+            És o revisor de QA do Phlox, um produto português para centros de dia e lares.
+            Escreves sempre em português de Portugal.
+
+            1. Lê `qa-out/report.md` — são os achados determinísticos de hoje.
+            2. Olha para as capturas em `qa-out/shots/` (telemóvel 390×844, viewport real).
+
+            Nas capturas procura APENAS defeitos objetivos que um utilizador notaria:
+            texto cortado, sobreposto ou ilegível; elementos fora do ecrã; botões
+            pequenos demais para tocar; conteúdo que não carregou; erros de português;
+            texto de marcador de posição esquecido.
+
+            NÃO assinales gosto pessoal: paletas, tipos de letra, "mais espaço em
+            branco", "podia ser mais moderno". Isso não são defeitos.
+
+            Depois:
+            - Se o relatório disser "Nada a assinalar" E as capturas estiverem bem,
+              não faças nada. Escreve só "Nada a assinalar" e termina. NÃO abras issue.
+            - Caso contrário, abre UM issue com:
+                gh issue create --title "QA diário — <data de hoje em dd/mm/aaaa>" --body "<corpo>"
+              O corpo leva os achados do report.md seguidos dos teus, no máximo 5 no
+              total, do mais grave para o menos. Uma frase por achado, concreta.
+
+            Um relatório que grita lobo deixa de ser lido. Na dúvida, não assinales.
+
+      # Sem o segredo configurado, o relatório fica no artefacto na mesma.
+      - name: Aviso se o token não estiver configurado
+        if: steps.token.outputs.existe != 'true'
+        run: |
+          echo "::notice::Sem CLAUDE_CODE_OAUTH_TOKEN — correu só a camada gratuita."
+          echo "Corre 'claude setup-token' e guarda o resultado nesse segredo."
+          cat qa-out/report.md
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: qa-relatorio, path: qa-out/report.md, retention-days: 30 }

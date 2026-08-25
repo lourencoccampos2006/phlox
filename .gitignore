@@ -64,3 +64,11 @@ next-env.d.ts
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
 .superpowers/
+
+# Saída dos agentes de QA (capturas + JSON bruto) — artefactos, não código.
+qa-out/
+
+# NOTA: tests/baselines/ é versionado DE PROPÓSITO — são as referências da
+# regressão visual e sem elas no repositório não há com que comparar. Têm de
+# nascer no Linux do CI (o Windows desenha as letras de outra maneira):
+# workflow 'QA diário' → Run workflow → atualizar_referencias.
