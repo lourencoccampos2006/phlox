@@ -27,6 +27,8 @@ declare global {
         'flower-scale'?: string
         env?: string
         static?: string
+        'sempre-a-rodar'?: string
+        'sem-interacao'?: string
       }
     }
   }
@@ -90,12 +92,21 @@ export default function PhloxLogo3D({
       className={className}
       role="img"
       aria-label="Phlox"
-      style={{ width: w, aspectRatio: String(PROPORCAO), position: 'relative' }}
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
+      style={{
+        width: w, aspectRatio: String(PROPORCAO), position: 'relative',
+        // Tocar não faz nada: sem seleção, sem arrastar, sem menu de imagem.
+        userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
+      }}
     >
       {montado ? (
         <phlox-logo
           color={color === 'var(--ink)' ? '#16181d' : color}
           env={env}
+          // Roda sempre e não reage ao toque — ver phlox-logo-element.js.
+          sempre-a-rodar=""
+          sem-interacao=""
           {...(estatico ? { static: '' } : {})}
           style={{ width: '100%', height: '100%', display: 'block' }}
         />

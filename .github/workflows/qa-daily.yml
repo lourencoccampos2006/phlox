@@ -18,10 +18,13 @@ name: QA diário
 #   de créditos de API.
 #
 # ── O QUE TENS DE FAZER UMA VEZ ─────────────────────────────────────────────
-#   1. Correr `claude setup-token` no teu computador.
-#   2. Guardar o resultado em Definições → Secrets and variables → Actions,
+#   1. INSTALAR A APP DO GITHUB: https://github.com/apps/claude
+#      Sem isto a ação recusa-se a correr, mesmo com o token certo — foi o erro
+#      "Claude Code is not installed on this repository" da primeira corrida.
+#   2. Correr `claude setup-token` no teu computador.
+#   3. Guardar o resultado em Definições → Secrets and variables → Actions,
 #      com o nome CLAUDE_CODE_OAUTH_TOKEN.
-#   3. Correr este workflow à mão com "atualizar_referencias" ligado, uma vez,
+#   4. Correr este workflow à mão com "atualizar_referencias" ligado, uma vez,
 #      para criar as referências visuais NO LINUX do CI (as geradas no Windows
 #      não servem — o desenho das letras é diferente e daria alarme todos os dias).
 #
@@ -49,14 +52,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Agentes contra produção
         run: node scripts/qa-agents/run.mjs --base-url https://phloxclinical.com --mode publico --label producao
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
+        if: always()   # sem isto, um job que falha leva os dados com ele
         with: { name: qa-producao, path: qa-out/, retention-days: 14 }
 
   completo:
@@ -64,9 +68,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
 
@@ -89,7 +93,8 @@ jobs:
           git diff --staged --quiet || git commit -m "QA: atualizar referências visuais"
           git push
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
+        if: always()   # sem isto, um job que falha leva os dados com ele
         with: { name: qa-completo, path: qa-out/, retention-days: 14 }
 
   relatorio:
@@ -99,14 +104,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24 }
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with: { name: qa-producao, path: qa-out/ }
         continue-on-error: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with: { name: qa-completo, path: qa-out/ }
         continue-on-error: true
 
@@ -121,7 +126,9 @@ jobs:
 
       # Camada por subscrição: revisão visual + abertura do issue.
       - name: Revisão visual e issue
+        id: claude
         if: steps.token.outputs.existe == 'true'
+        continue-on-error: true   # app por instalar ou quota no limite não pode partir o relatório
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -151,14 +158,39 @@ jobs:
 
             Um relatório que grita lobo deixa de ser lido. Na dúvida, não assinales.
 
-      # Sem o segredo configurado, o relatório fica no artefacto na mesma.
-      - name: Aviso se o token não estiver configurado
-        if: steps.token.outputs.existe != 'true'
+      # REDE DE SEGURANÇA. Se o Claude não correu — app do GitHub por instalar,
+      # segredo em falta, quota no limite — o relatório determinístico abre o
+      # issue sozinho. O QA nunca fica em silêncio por causa da camada de IA.
+      - name: Abrir issue sem o Claude
+        if: steps.claude.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "::notice::Sem CLAUDE_CODE_OAUTH_TOKEN — correu só a camada gratuita."
-          echo "Corre 'claude setup-token' e guarda o resultado nesse segredo."
+          if [ "${{ steps.token.outputs.existe }}" != "true" ]; then
+            echo "::notice::Sem CLAUDE_CODE_OAUTH_TOKEN — correu só a camada gratuita."
+          else
+            echo "::warning::A revisão visual não correu. A app do GitHub do Claude está instalada? https://github.com/apps/claude"
+          fi
           cat qa-out/report.md
+          if [ "$(cat qa-out/tem-achados)" = "1" ]; then
+            gh issue create \
+              --title "QA diário — $(date +%d/%m/%Y)" \
+              --body-file qa-out/report.md
+          else
+            echo "Nada a assinalar — sem issue."
+          fi
 
-      - uses: actions/upload-artifact@v4
+      # O histórico da tendência tem de sobreviver de um dia para o outro,
+      # senão o relatório nunca consegue dizer "isto já cá anda há uma semana".
+      - name: Guardar o histórico
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add qa-history || true
+          git diff --staged --quiet || git commit -m "QA: histórico de $(date +%d/%m/%Y)"
+          git push || echo "sem push (sem alterações ou sem permissão)"
+
+      - uses: actions/upload-artifact@v5
         if: always()
         with: { name: qa-relatorio, path: qa-out/report.md, retention-days: 30 }

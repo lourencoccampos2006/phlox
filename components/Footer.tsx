@@ -21,7 +21,12 @@ export default function Footer() {
             {/* O logótipo 3D já é a palavra + a flor no lugar do "o" — dispensa
                 a marca separada e o texto que aqui estavam. Carrega-se sozinho
                 quando chega ao ecrã; ver components/PhloxLogo3D.tsx. */}
-            <Link href="/" style={{ display: 'inline-block', textDecoration: 'none', marginBottom: 10, marginLeft: -6 }} aria-label="Phlox — início">
+            <Link
+              href="/"
+              draggable={false}
+              aria-label="Phlox — início"
+              style={{ display: 'inline-block', textDecoration: 'none', marginBottom: 10, marginLeft: -6, WebkitUserSelect: 'none', userSelect: 'none' }}
+            >
               <PhloxLogo3D largura={158} />
             </Link>
             <p style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>

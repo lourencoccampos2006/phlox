@@ -1,0 +1,15 @@
+{
+  "data": "2026-08-25",
+  "contagem": {
+    "critico": 0,
+    "grave": 0,
+    "medio": 2,
+    "menor": 2
+  },
+  "titulos": [
+    "Texto a rever",
+    "Página lenta",
+    "Problemas de acessibilidade",
+    "Metadados incompletos"
+  ]
+}

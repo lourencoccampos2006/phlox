@@ -10,7 +10,7 @@
 // "encontra problemas" encontra sempre alguma coisa — e ao quarto dia de ruído
 // deixa-se de ler o relatório. Um relatório que não é lido não vale nada.
 
-import { readFileSync, writeFileSync, readdirSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
 const SAIDA = process.env.QA_OUT || 'qa-out'
@@ -42,7 +42,7 @@ for (const b of brutos) {
     else if (r.estado && r.estado >= 400) add(1, `Página devolveu ${r.estado}`, '', onde)
 
     if (r.scroll?.aplicavel && !r.scroll.ok) {
-      add(0, 'Scroll partido', `A roda do rato move a página só ${r.scroll.scrollY}px numa página de ${r.scroll.alturaPagina}px. É o bug do overflow-x — ver scripts/check-scroll.mjs.`, onde)
+      add(0, 'Scroll partido', `A roda moveu ${r.scroll.scrollY}px, quando a página dava para ${r.scroll.maximo}px (esperava-se pelo menos ${Math.round(r.scroll.esperado * 0.8)}px). É o bug do overflow-x — ver scripts/check-scroll.mjs.`, onde)
     }
     if (r.excecoes?.length) {
       add(0, 'Exceção não apanhada', r.excecoes[0], onde)
@@ -72,8 +72,18 @@ for (const b of brutos) {
         onde)
     }
 
+    if (r.problemasDesempenho?.length) {
+      // Uma página lenta não "parte" nada, mas perde-se gente pelo caminho.
+      add(2, 'Página lenta', r.problemasDesempenho.join(' · '), onde)
+    }
+    if (r.problemasTexto?.length) {
+      add(2, 'Texto a rever', r.problemasTexto.join(' · '), onde)
+    }
     if (r.problemasMeta?.length) {
       add(3, 'Metadados incompletos', r.problemasMeta.join(' · '), onde)
+    }
+    if (r.exameFalhou) {
+      add(2, 'Um exame rebentou', `${r.exameFalhou} — a cobertura desta página ficou incompleta.`, onde)
     }
     if (r.cabecalhosEmFalta?.length) {
       add(2, 'Cabeçalhos de segurança em falta', r.cabecalhosEmFalta.join(' · '), onde)
@@ -87,7 +97,9 @@ for (const b of brutos) {
       alvo)
   }
   if (b.modo === 'completo' && b.sessaoIniciada === false) {
-    add(0, 'Login da conta de QA falhou', 'As rotas privadas não foram verificadas — a cobertura de hoje está incompleta.', alvo)
+    add(0, 'Login da conta de QA falhou',
+      `${b.porqueSessaoFalhou || 'sem detalhe'}. As rotas privadas não foram verificadas — a cobertura de hoje está incompleta.`,
+      alvo)
   }
 }
 
@@ -130,6 +142,41 @@ if (!agregados.length) {
   if (escondidos > 0) md += `_Mais ${escondidos} ponto(s) de menor gravidade em \`bruto-*.json\`._\n\n`
 }
 
+
+/* ─── Tendência ───────────────────────────────────────────────────────────
+ * Um instantâneo não diz se estamos a melhorar. Guarda-se a contagem por
+ * gravidade e compara-se com a corrida anterior — assim vê-se "isto já cá anda
+ * há uma semana" ou "apareceram três coisas novas de repente".
+ * O histórico vive em qa-history/ e é commitado pelo workflow.
+ * ─────────────────────────────────────────────────────────────────────── */
+const HIST = 'qa-history'
+const contagem = { critico: 0, grave: 0, medio: 0, menor: 0 }
+const chaves = ['critico', 'grave', 'medio', 'menor']
+agregados.forEach((a) => { contagem[chaves[a.gravidade]]++ })
+
+const hojeISO = new Date().toISOString().slice(0, 10)
+const resumo = { data: hojeISO, contagem, titulos: agregados.map(a => a.titulo) }
+
+let anterior = null
+try { anterior = JSON.parse(readFileSync(join(HIST, 'ultimo.json'), 'utf8')) } catch { /* primeira vez */ }
+
+if (anterior && anterior.data !== hojeISO) {
+  const antes = anterior.contagem
+  const delta = chaves.map(k => contagem[k] - (antes[k] || 0))
+  const piorou = delta.some(d => d > 0)
+  const melhorou = delta.some(d => d < 0)
+  const novos = agregados.map(a => a.titulo).filter(t => !(anterior.titulos || []).includes(t))
+  const resolvidos = (anterior.titulos || []).filter(t => !agregados.some(a => a.titulo === t))
+
+  md += `\n---\n\n## Face a ${anterior.data}\n\n`
+  if (!piorou && !melhorou) md += 'Igual — os mesmos pontos, nem mais nem menos.\n'
+  if (novos.length) md += `**Novo:** ${novos.join(' · ')}\n\n`
+  if (resolvidos.length) md += `**Resolvido:** ${resolvidos.join(' · ')}\n\n`
+}
+
+mkdirSync(HIST, { recursive: true })
+writeFileSync(join(HIST, 'ultimo.json'), JSON.stringify(resumo, null, 2))
+writeFileSync(join(HIST, `${hojeISO}.json`), JSON.stringify(resumo, null, 2))
 
 writeFileSync(join(SAIDA, 'report.md'), md)
 writeFileSync(join(SAIDA, 'tem-achados'), agregados.length ? '1' : '0')
