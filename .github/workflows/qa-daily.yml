@@ -67,22 +67,86 @@ jobs:
     name: Build local (com sessão)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+
+    # O `producao` ataca o site já publicado e não precisa de nada. Este constrói
+    # a app de raiz, e uma app sem Supabase não é a app: 81 sítios no código
+    # fazem createClient(NEXT_PUBLIC_SUPABASE_URL!, ...), que rebenta com
+    # "supabaseUrl is required" quando isso vem vazio. E sem sessão não há rotas
+    # privadas — que são a única razão de este job existir ao lado do outro.
+    #
+    # De propósito NÃO passa aqui a SUPABASE_SERVICE_ROLE_KEY: essa chave ignora
+    # todo o RLS, e um segredo em Actions fica ao alcance de qualquer workflow do
+    # repositório. O QA navega como um utilizador normal — a chave anónima chega.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      QA_EMAIL: ${{ secrets.QA_EMAIL }}
+      QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: 24, cache: npm }
+
+      # Avisa, não parte. Testado em 27/08/2026: o build passa sem estas
+      # variáveis — o que falha é o login, e essa falta já sai no relatório como
+      # CRÍTICO ("Login da conta de QA falhou … a cobertura de hoje está
+      # incompleta"). Vale mais correr as rotas públicas e dizer o que ficou por
+      # ver, do que pintar o job de vermelho e não verificar nada.
+      - name: Confirmar que os segredos existem
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::warning::Sem NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY nos segredos do repositório: o login não vai funcionar e as rotas privadas ficam por verificar. Cria-os em Definições → Secrets and variables → Actions, com os mesmos valores do .env.local (são públicos por natureza — vão no JavaScript do site — mas o CI não os adivinha)."
+          else
+            echo "segredos presentes"
+          fi
+
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+
+      # Criar já a pasta: assim o artefacto sobe sempre com alguma coisa, mesmo
+      # que tudo rebente a seguir. Sem isto ficámos sem diagnóstico nenhum —
+      # "No files were found with the provided path: qa-out/".
+      - run: mkdir -p qa-out
 
       - name: Limpar referências (só quando pedido à mão)
         if: inputs.atualizar_referencias
         run: rm -rf tests/baselines
 
-      - run: npm run build
-      - run: npm start &
-      - run: npx wait-on http://localhost:3000 --timeout 90000
-      - name: Agentes com sessão iniciada
-        run: node scripts/qa-agents/run.mjs --base-url http://localhost:3000 --mode completo --label completo
+      - name: Build de produção
+        run: npm run build 2>&1 | tee qa-out/build.log
+
+      # TUDO NUM SÓ SHELL. Cada `run:` é um processo separado, por isso um
+      # `npm start &` num passo e o `wait-on` noutro deixava o servidor morrer
+      # com o shell que o lançou — o wait-on esperava 90s por nada e o job caía
+      # antes de os agentes arrancarem.
+      - name: Arrancar servidor e correr os agentes
+        run: |
+          set -o pipefail
+          npm start > qa-out/servidor.log 2>&1 &
+          SERVIDOR=$!
+          echo "servidor no pid $SERVIDOR"
+
+          if ! npx wait-on http://localhost:3000 --timeout 120000; then
+            echo "::error::O servidor não subiu em 120s. Registo:"
+            tail -60 qa-out/servidor.log
+            exit 1
+          fi
+          echo "servidor de pé"
+
+          node scripts/qa-agents/run.mjs --base-url http://localhost:3000 --mode completo --label completo
+          CODIGO=$?
+
+          kill $SERVIDOR 2>/dev/null || true
+          exit $CODIGO
+
+      - name: Registo do servidor em caso de falha
+        if: failure()
+        run: |
+          echo "──── últimas 80 linhas do servidor ────"
+          tail -80 qa-out/servidor.log || echo "(sem registo)"
+          echo "──── últimas 40 do build ────"
+          tail -40 qa-out/build.log || echo "(sem registo)"
 
       - name: Commitar as referências novas
         if: inputs.atualizar_referencias
@@ -132,7 +196,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: '--max-turns 12 --allowedTools "Read,Glob,Bash(gh issue create:*)"'
+          claude_args: '--max-turns 40 --allowedTools "Read,Glob,Bash(gh issue create:*)"'
           prompt: |
             És o revisor de QA do Phlox, um produto português para centros de dia e lares.
             Escreves sempre em português de Portugal.
@@ -169,7 +233,7 @@ jobs:
           if [ "${{ steps.token.outputs.existe }}" != "true" ]; then
             echo "::notice::Sem CLAUDE_CODE_OAUTH_TOKEN — correu só a camada gratuita."
           else
-            echo "::warning::A revisão visual não correu. A app do GitHub do Claude está instalada? https://github.com/apps/claude"
+            echo "::warning::A revisão visual não terminou bem — ver o passo 'Revisão visual e issue' acima para a razão. Causas comuns: a app https://github.com/apps/claude por instalar, o limite de passos, ou a quota da subscrição."
           fi
           cat qa-out/report.md
           if [ "$(cat qa-out/tem-achados)" = "1" ]; then
