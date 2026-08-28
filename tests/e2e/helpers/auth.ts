@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { irPara } from './nav'
 
 // Conta de QA dedicada (sem dados reais de utentes) — a mesma usada em todas
 // as rondas de QA manuais deste projeto. O anon key é uma chave PÚBLICA por
@@ -23,7 +24,7 @@ async function getAuth(page: Page) {
 
 /** Inicia sessão com a conta de QA e espera aterrar em /inicio ou /painel. */
 export async function login(page: Page) {
-  await page.goto('/login', { waitUntil: 'networkidle' })
+  await irPara(page, '/login')
   await page.fill('input[type="email"]', QA_EMAIL)
   await page.fill('input[type="password"]', QA_PASSWORD)
   await page.click('button[type="submit"]')
@@ -59,7 +60,3 @@ export async function loginAs(page: Page, mode: ExperienceMode, institution?: In
   if (institution) await setInstitution(page, institution)
 }
 
-/** Fecha o banner de cookies se aparecer (não falha se não aparecer). */
-export async function dismissCookieBanner(page: Page) {
-  await page.locator('button', { hasText: /^Aceitar$/ }).first().click({ timeout: 1500 }).catch(() => {})
-}

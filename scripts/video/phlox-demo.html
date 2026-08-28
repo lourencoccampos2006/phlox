@@ -15,13 +15,21 @@
     --mono:'JetBrains Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0b0b0c;display:grid;place-items:center;min-height:100vh;
-       font-family:var(--sans);overflow:hidden}
+  body{background:#0b0b0c;height:100vh;font-family:var(--sans);overflow:hidden}
 
-  /* O palco: 1920×1080 escalado para caber. Fixar a resolução aqui é o que
-     faz a captura sair sempre igual, em vez de depender da janela. */
-  #palco{width:1920px;height:1080px;position:relative;overflow:hidden;
-         background:var(--papel);transform-origin:center center;flex:none}
+  /* O palco: 1920×1080 sempre, escalado para caber. Fixar a resolução aqui é o
+     que faz a captura sair sempre igual, em vez de depender da janela.
+     ── PORQUÊ `position:fixed` E NÃO UMA GRELHA CENTRADA ──────────────────
+     Estava `display:grid; place-items:center` no body. Não funciona: o
+     `transform: scale()` encolhe o que se vê mas NÃO muda o espaço que o
+     elemento ocupa no layout. A grelha continuava a arrumar uma caixa de
+     1080px de altura dentro de uma janela mais baixa, o excesso saía por cima
+     e por baixo, e o `overflow:hidden` cortava-o — a peça aparecia empurrada
+     para baixo e truncada. Fixo no centro com translate(-50%,-50%), o
+     resultado é o mesmo em qualquer tamanho de janela. */
+  #palco{width:1920px;height:1080px;position:fixed;top:50%;left:50%;
+         overflow:hidden;background:var(--papel);transform-origin:center center;
+         transform:translate(-50%,-50%)}
 
   .cena{position:absolute;inset:0;opacity:0;pointer-events:none}
   .cena.viva{opacity:1}
@@ -380,6 +388,7 @@ $('#tocar').onclick = () => {
    diferença entre 60fps garantidos e o que o computador conseguir no
    momento. Ver scripts/video/exportar.mjs. */
 window.irPara = (ms) => {
+  ajustar()                       // o exportador liga o modo de gravação por JS
   t = Math.max(0, Math.min(FIM, ms))
   aCorrer = false
   $('#tocar').textContent = 'Reproduzir'
@@ -392,13 +401,19 @@ $('#trilho').onclick = e => {
 }
 addEventListener('keydown', e => {
   if(e.key === ' '){ e.preventDefault(); $('#tocar').click() }
-  if(e.key.toLowerCase() === 'r'){ document.body.classList.toggle('gravar') }
+  if(e.key.toLowerCase() === 'r'){ document.body.classList.toggle('gravar'); ajustar() }
 })
 
-/* ── Ajustar o palco de 1920×1080 à janela ─────────────────────────────── */
+/* ── Ajustar o palco de 1920×1080 à janela ───────────────────────────────
+   A margem de 4% é só para os comandos não taparem o fundo da peça enquanto
+   se vê. Ao gravar não há margem nenhuma: a escala tem de dar exatamente 1
+   num viewport de 1920×1080, senão o vídeo saía com o palco encolhido dentro
+   do fotograma. */
 function ajustar(){
-  const e = Math.min(innerWidth/1920, innerHeight/1080)
-  $('#palco').style.transform = `scale(${e})`
+  const aGravar = document.body.classList.contains('gravar')
+  const margem = aGravar ? 1 : 0.96
+  const e = Math.min(innerWidth/1920, innerHeight/1080) * margem
+  $('#palco').style.transform = `translate(-50%,-50%) scale(${e})`
 }
 addEventListener('resize', ajustar); ajustar()
 </script>

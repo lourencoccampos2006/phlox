@@ -1,13 +1,96 @@
-# Phlox
+<p align="center">
+  <img src="public/icons/icon-192.png" width="88" alt="Phlox">
+</p>
 
-Plataforma de saúde portuguesa. Serve dois públicos a partir da mesma base:
+<h1 align="center">Phlox</h1>
 
-- **Instituições** — lares e centros de dia. Medicação, presenças, sinais vitais,
-  ocorrências, comunicação com as famílias, faturação.
-- **Pessoas** — quem gere a sua própria saúde ou a de um familiar, e estudantes
-  da área da saúde.
+<p align="center">
+  Software português para lares e centros de dia — e para quem gere a sua
+  medicação, ou a de alguém.<br>
+  <sub>Next.js 16 · Supabase · português de Portugal · dados na União Europeia</sub>
+</p>
 
-Feito em português de Portugal, com os dados alojados na União Europeia.
+---
+
+São 7h30 num centro de dia em Portugal. Chegam trinta e quatro pessoas. Cada uma
+com a sua medicação, os seus horários, e uma família que vai telefonar a meio da
+tarde para saber como correu o dia.
+
+O que existe hoje para gerir isto é papel, folhas de Excel, e cadernos que ficam
+no gabinete. O Phlox põe a mesma coisa num sítio só: a auxiliar regista a toma no
+telemóvel quando a dá, e a filha vê no dela ao fim do dia.
+
+## O que faz
+
+**Para a instituição** — medicação e horários, presenças, sinais vitais,
+refeições, atividades, ocorrências. Rondas por turno, stock, faturação e os
+relatórios de qualidade que a tutela pede.
+
+**Para as famílias** — um portal onde veem o dia do seu familiar sem terem de
+telefonar. O que comeu, se tomou os comprimidos, como esteve.
+
+**Para pessoas** — a mesma base, virada para quem organiza a sua própria
+medicação ou a de um pai. Lembretes que tocam, verificação de interações,
+registo de sinais vitais, e um relatório em PDF para levar ao médico.
+
+O Phlox é uma ferramenta de organização e apoio. Não é um dispositivo médico e
+não substitui uma consulta.
+
+---
+
+## Três decisões que moldaram o código
+
+### Um lar e um centro de dia não são a mesma coisa
+
+Um lar tem quartos e camas, e quem lá vive é residente. Num centro de dia as
+pessoas vão para casa ao fim do dia, não há quartos, e chamar-lhes residentes é
+sinal de que quem fez o software nunca lá pôs os pés.
+
+Isto podia ter sido resolvido com dois produtos, ou com condicionais espalhadas
+pelo código. Em vez disso há um blueprint declarativo — [`lib/institutionBlueprint.ts`](lib/institutionBlueprint.ts)
+— que diz, por tipo de instituição, que ferramentas existem e como se chamam as
+coisas. Nenhum ecrã escreve "quarto" à mão. Um linter próprio
+([`scripts/check-vocab.mjs`](scripts/check-vocab.mjs)) recusa o build se alguém o tentar.
+
+A mesma lógica levou a uma decisão de produto: um centro de dia muitas vezes não
+tem profissionais de saúde a tempo inteiro, por isso nada no produto impõe
+cadência diária nem linguagem clínica a quem não a tem.
+
+### Uma equipa de agentes que examina o site todos os dias
+
+Todas as manhãs, cinco workflows correm sozinhos. A maior parte do trabalho é
+determinística e não gasta um único token: estados HTTP, erros de consola, scroll
+com a roda do rato em cada rota, transbordo horizontal, regressão visual por
+comparação de píxeis, links partidos, acessibilidade com o axe, Core Web Vitals,
+armadilhas de português.
+
+Por cima disso corre uma camada pequena de IA — só para o que nenhuma regra
+exprime — que olha para as capturas e responde à pergunta que uma regra não sabe
+fazer: *isto parece partido a um humano?* Depois abre um Pull Request com o que
+der para corrigir.
+
+A regra que faz isto valer alguma coisa está escrita no código: **o relatório tem
+de poder dizer "nada a assinalar", e nunca passa de cinco pontos.** Um agente a
+quem se pede "encontra problemas" encontra sempre alguma coisa, e ao quarto dia
+de ruído deixa-se de ler o relatório.
+
+E o corretor automático está proibido de editar `scripts/qa-agents/`, `tests/` e
+as referências visuais. Um agente que pode mexer nas regras que o avaliam acaba a
+"corrigir" um achado desligando a regra que o apanhou.
+
+### O logótipo é um objeto 3D, e tudo o resto deriva dele
+
+A marca é uma flor de phlox modelada em 3D. No rodapé roda continuamente, em
+WebGL, carregada só quando chega ao ecrã. Todos os outros formatos — o ícone da
+aplicação, o favicon, a versão para fundos escuros, a versão maskable para
+Android — são renderizados a partir da mesma geometria por
+[`scripts/logo-2d.mjs`](scripts/logo-2d.mjs). Não há um ficheiro editado à mão em
+lado nenhum, o que quer dizer que não podem divergir uns dos outros.
+
+A tipografia do logótipo era carregada com o `TTFLoader` do three.js, que vai
+buscar o opentype.js a um CDN em tempo de execução. Num produto de saúde que diz
+alojar tudo na União Europeia, isso não entra: o tipo de letra foi convertido
+para um subconjunto de cinco glifos, 216KB → 6KB, sem terceiros.
 
 ---
 
@@ -18,162 +101,72 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-Precisa de um `.env.local` com, no mínimo:
+`.env.local` precisa de, no mínimo:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...      # só no servidor, nunca no cliente
+SUPABASE_SERVICE_ROLE_KEY=...      # só no servidor
 CRON_SECRET=...                    # igual ao que está na Vercel
 ```
 
 As duas primeiras são públicas por natureza — vão no JavaScript que o browser
-descarrega. A `SUPABASE_SERVICE_ROLE_KEY` ignora todo o RLS: nunca a importes
-num ficheiro que chegue ao browser.
+descarrega. A terceira ignora todo o RLS: nunca a importes num ficheiro que
+chegue ao cliente.
 
-## Comandos
-
-| Comando | O que faz |
+| Comando | |
 |---|---|
-| `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | build de produção |
-| `npm run lint` | ESLint |
-| `npm run test:e2e` | testes Playwright (precisa do servidor de pé) |
-| `npm run qa` | agentes de QA contra as rotas públicas locais |
-| `npm run qa:completo` | o mesmo, com sessão iniciada e rotas privadas |
+| `npm run test:e2e` | Playwright: scroll, layout no telemóvel, segurança, fluxo clínico |
+| `npm run qa` | os agentes de QA contra as rotas públicas locais |
+| `npm run qa:completo` | o mesmo, com sessão iniciada |
+| `node scripts/check-scroll.mjs` | o guarda do bug do `overflow-x` |
+| `node scripts/check-vocab.mjs` | vocabulário certo por tipo de instituição |
+| `node scripts/qa-agents/dependencias.mjs` | vulnerabilidades e chaves expostas |
 
-Verificações que valem a pena correr antes de um commit grande:
-
-```bash
-npx tsc --noEmit                     # tipos
-node scripts/check-scroll.mjs        # o bug do overflow-x (ver abaixo)
-node scripts/check-vocab.mjs         # vocabulário certo por tipo de instituição
-node scripts/qa-agents/dependencias.mjs   # vulnerabilidades e chaves expostas
-```
-
----
-
-## Como está organizado
+## Estrutura
 
 ```
-app/            rotas (App Router). ~250 page.tsx, das quais ~20 são conteúdo público
+app/            rotas (App Router). ~250 páginas, das quais ~25 são conteúdo público
 components/     componentes partilhados
-lib/            lógica de negócio, clientes de dados, motores de regras
-  institutionBlueprint.ts   o que cada tipo de instituição vê e como se chamam as coisas
-  ptTime.ts                 datas e horas de Portugal — ver "Datas" abaixo
-supabase/       143 migrações SQL, por ordem (sprintNN_descricao.sql)
-scripts/        ferramentas de linha de comandos e os agentes de QA
-tests/e2e/      Playwright: scroll, layout no telemóvel, segurança, fluxo clínico
-tests/baselines/  referências visuais do QA — GERADAS NO LINUX DO CI, não localmente
+lib/
+  institutionBlueprint.ts   o que cada tipo de instituição vê, e como se chama
+  interactionsEngine.ts     interações medicamentosas (RxNorm/NIH)
+  ptTime.ts                 datas e horas de Portugal
+  seoRoutes.ts              o que o Google pode ver — fonte única
+scripts/
+  qa-agents/    a equipa de QA
+  video/        a peça animada e o exportador para .mp4
+supabase/       143 migrações SQL, por ordem, aplicadas à mão
+tests/e2e/      Playwright
 ```
 
-### Vocabulário por tipo de instituição
+## Se fores mexer nisto
 
-Um centro de dia não tem quartos nem camas, e quem lá vai não é "residente".
-Um lar tem. Nada disto pode estar escrito à mão no código: sai sempre de
-`lib/institutionBlueprint.ts`. O `scripts/check-vocab.mjs` faz cumprir.
+Quatro coisas que já partiram este projeto mais do que uma vez:
 
-Um centro de dia também **não é um ambiente clínico diário** — muitos não têm
-profissionais de saúde a tempo inteiro. Não impor cadência diária nem linguagem
-clínica em fluxos institucionais.
+**`overflow-x: hidden` congela o scroll da página.** Num elemento normal, força o
+`overflow-y` a ser calculado como `auto` — o elemento passa a ser um contentor de
+scroll, e com `overscroll-behavior-y: none` o scroll deixa de chegar à janela.
+Usar `overflow-x: clip`. Ao testar, usar `mouse.wheel` e nunca `page.scrollTo()`,
+que funciona mesmo com a página partida e mascara o bug.
 
----
+**O servidor corre em UTC, os horários são de Portugal.** Usar `ptDate()` e
+`ptHHMM()` de [`lib/ptTime.ts`](lib/ptTime.ts). Com `toISOString()` os lembretes
+batem uma hora ao lado no verão.
 
-## Coisas que já partiram isto, e como não voltar a partir
+**Toda a query a uma tabela partilhada filtra por `org_id`.** Uma instituição a
+ver dados de outra é o pior que pode acontecer aqui, e já aconteceu em oito
+ferramentas ao mesmo tempo. Políticas de `UPDATE` precisam de `USING` **e**
+`WITH CHECK`; sem o segundo, um utilizador reatribui a linha a outro.
 
-### `overflow-x: hidden` congela o scroll da página
-
-Num elemento normal, `overflow-x: hidden` obriga o `overflow-y` a ser calculado
-como `auto` — o elemento passa a ser um contentor de scroll. Se ainda por cima
-houver `overscroll-behavior-y: none`, o scroll deixa de chegar à janela e a
-página fica congelada. **Usar `overflow-x: clip`**, que não tem este efeito.
-
-Este bug voltou três vezes. O `scripts/check-scroll.mjs` corre no CI para o
-apanhar.
-
-**Ao testar scroll, usar `mouse.wheel`, nunca `page.scrollTo()`.** O `scrollTo`
-funciona mesmo com a página partida, portanto mascara exatamente o bug que se
-está a tentar apanhar.
-
-### `position: sticky` não funciona neste site
-
-Há `overflow-x: hidden` no `body` em todo o lado, o que quebra o `sticky` em
-qualquer página. Usar `fixed`/`absolute` com JavaScript.
-
-### Datas
-
-O servidor corre em UTC; os horários que os utilizadores escolhem são hora de
-Portugal. Usar `ptDate()` e `ptHHMM()` de `lib/ptTime.ts` para datas de
-calendário — nunca `toISOString()`, que falha por uma hora no verão e faz os
-lembretes bater ao lado.
-
-### Org-scoping e RLS
-
-Todas as queries a tabelas partilhadas têm de filtrar por `org_id`. Uma
-instituição a ver dados de outra é o pior que pode acontecer aqui, e já
-aconteceu em oito ferramentas ao mesmo tempo. Políticas de `UPDATE` precisam de
-`USING` **e** `WITH CHECK` — sem o segundo, um utilizador reatribui a linha a
-outro. Nenhuma conta se pode auto-atribuir `plan`, `org_id` ou papel `clinical`.
-
-### QA visual
-
-Verificar em **viewport real de telemóvel**, nunca com `fullPage` — uma captura
-de página inteira esconde exatamente os defeitos de layout que interessam.
-
----
-
-## Automação
-
-Cinco workflows em `.github/workflows/`:
-
-| Workflow | Quando | O que faz |
-|---|---|---|
-| `qa-daily.yml` | 06:00 diário | agentes contra produção e contra um build local; relatório; abre issue; e um corretor que abre PR com o que der para corrigir |
-| `revisao-pr.yml` | cada PR | três especialistas — segurança, português e voz de marca, design no telemóvel |
-| `dependencias.yml` | segundas | `npm audit` + procura de chaves em ficheiros versionados. Zero tokens |
-| `e2e-tests.yml` | cada push | a suite Playwright |
-| `push-cron.yml` | 15 em 15 min | dispara os lembretes de medicação |
-
-A maior parte do trabalho é determinística e não gasta tokens. A camada de IA
-autentica-se com `CLAUDE_CODE_OAUTH_TOKEN` — sai da subscrição, não de créditos
-de API — e só é chamada para o que nenhuma regra exprime.
-
-**O corretor automático está proibido de editar `scripts/qa-agents/`, `tests/`,
-`.github/workflows/` e as referências visuais.** Um agente que pode mexer nas
-regras que o avaliam acaba a "corrigir" um achado desligando a regra que o
-apanhou, e a partir daí o relatório fica sempre verde.
-
-### Segredos que o repositório precisa
-
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `CRON_SECRET`,
-`CLAUDE_CODE_OAUTH_TOKEN` (de `claude setup-token`). A `SUPABASE_SERVICE_ROLE_KEY`
-**não** está aqui de propósito: ignora todo o RLS e um segredo em Actions fica ao
-alcance de qualquer workflow do repositório.
-
-### Referências visuais
-
-Estão em `tests/baselines/` e são versionadas de propósito. Têm de ser geradas
-no Linux do CI — corre o `qa-daily` à mão com a opção "Regenerar as referências
-visuais". As geradas em Windows dão alarme falso todos os dias, porque o desenho
-das letras é diferente.
-
----
-
-## Base de dados
-
-143 migrações em `supabase/`, aplicadas por ordem e à mão. Não há migrações
-automáticas: cria-se o ficheiro `sprintNN_descricao.sql` e corre-se no painel do
-Supabase.
-
-Toda a tabela em `public` tem de ter RLS ativo. Uma tabela nova sem RLS é uma
-tabela aberta ao mundo assim que a Data API a expuser.
-
----
+**QA visual em viewport real de telemóvel, nunca `fullPage`.** Uma captura de
+página inteira esconde exatamente os defeitos de layout que interessam.
 
 ## Convenções
 
-- Português de Portugal em tudo o que o utilizador vê, e nos comentários.
-- Ícones do conjunto próprio em `components/Icon.tsx`. Nunca emoji na interface.
-- Voz de marca em `.claude/skills/phlox-brand-voice/SKILL.md`.
-- Zero dados falsos. Sem testemunhos inventados, sem números de exemplo que
-  pareçam reais.
+Português de Portugal em tudo o que o utilizador vê, e nos comentários. Ícones do
+conjunto próprio em [`components/Icon.tsx`](components/Icon.tsx) — nunca emoji na
+interface. Zero dados falsos: sem testemunhos inventados, sem estatísticas sem
+medição por trás. A voz de marca está em
+[`.claude/skills/phlox-brand-voice/SKILL.md`](.claude/skills/phlox-brand-voice/SKILL.md).

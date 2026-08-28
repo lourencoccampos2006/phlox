@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Syne, Lora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
-import CookieBanner from '@/components/CookieBanner'
 import ClientLayout from '@/components/ClientLayout'
 import { ToastProvider } from '@/components/Toast'
 
@@ -83,7 +82,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ClientLayout>
               {children}
             </ClientLayout>
-            <CookieBanner />
           </ToastProvider>
         </AuthProvider>
       </body>

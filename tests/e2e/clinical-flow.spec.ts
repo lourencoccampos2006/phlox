@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { loginAs, setMode, dismissCookieBanner } from './helpers/auth'
+import { loginAs, setMode } from './helpers/auth'
+import { irPara } from './helpers/nav'
 
 // Guião do dia do centro de dia, ponta-a-ponta — é literalmente o que a
 // equipa faz ao vivo num demo. Se isto passar, o caminho de ouro funciona.
@@ -13,16 +14,14 @@ test.describe('fluxo clínico — centro de dia', () => {
   test('cockpit mostra a barra "O dia de hoje" sem erros', async ({ page }) => {
     const errs: string[] = []
     page.on('pageerror', (e) => errs.push(e.message))
-    await page.goto('/painel', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/painel')
     await expect(page.getByText('O DIA DE HOJE')).toBeVisible()
     expect(errs).toHaveLength(0)
   })
 
   test('registar um sinal vital grava e PERSISTE após reload', async ({ page }) => {
     const marker = String(100 + Math.floor(Math.random() * 20)) // valor distintivo por corrida
-    await page.goto('/care-log', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/care-log')
     await page.locator('select').first().selectOption({ index: 1 })
     await page.waitForTimeout(500)
     // Fixa o turno explicitamente (Manhã) em vez de confiar no turno
@@ -41,7 +40,7 @@ test.describe('fluxo clínico — centro de dia', () => {
     // innerText (não textContent!) — textContent inclui o texto bruto de
     // <script> (payload de hidratação do Next.js), dando falsos negativos.
     // innerText reflete só o que fica visível/renderizado, como um utilizador vê.
-    await page.goto('/care-log', { waitUntil: 'networkidle' })
+    await irPara(page, '/care-log')
     await page.locator('select').first().selectOption({ index: 1 })
     await page.waitForTimeout(1500)
     const rendered = await page.locator('body').innerText()
@@ -49,8 +48,7 @@ test.describe('fluxo clínico — centro de dia', () => {
   })
 
   test('medicação a dar mostra ação de administração', async ({ page }) => {
-    await page.goto('/mar', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/mar')
     await page.locator('select').first().selectOption({ index: 1 })
     await page.waitForTimeout(800)
     const body = await page.textContent('body')
@@ -58,8 +56,7 @@ test.describe('fluxo clínico — centro de dia', () => {
   })
 
   test('famílias está operável e sem fuga técnica', async ({ page }) => {
-    await page.goto('/family', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/family')
     const body = (await page.textContent('body')) || ''
     expect(/Nova Mensagem|Foto do dia|Conversa/i.test(body)).toBe(true)
     expect(TECH_LEAK.test(body)).toBe(false)
@@ -69,7 +66,7 @@ test.describe('fluxo clínico — centro de dia', () => {
     // beforeEach já iniciou sessão — só mudamos o modo, sem voltar a /login
     // (a app redireciona quem já tem sessão para fora do formulário de login).
     await setMode(page, 'personal')
-    await page.goto('/painel', { waitUntil: 'networkidle' })
+    await irPara(page, '/painel')
     await expect(page).toHaveURL(/\/inicio/)
   })
 })

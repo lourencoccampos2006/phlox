@@ -12,6 +12,10 @@ import { defineConfig, devices } from '@playwright/test'
 // especificamente para nunca mais deixar isto passar despercebido.
 export default defineConfig({
   testDir: './tests/e2e',
+  // Aquece o servidor antes do primeiro teste. Sem isto, o primeiro teste de
+  // cada corrida falhava sozinho no CI — a porta responde muito antes de a app
+  // estar realmente pronta. Ver tests/e2e/global-setup.ts.
+  globalSetup: './tests/e2e/global-setup.ts',
   timeout: 30_000,
   expect: { timeout: 8_000 },
   // Todos os testes partilham a MESMA conta de QA (um só perfil na base de

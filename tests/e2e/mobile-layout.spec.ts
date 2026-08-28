@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { loginAs, dismissCookieBanner } from './helpers/auth'
+import { loginAs } from './helpers/auth'
+import { irPara } from './helpers/nav'
 
 // Guarda de regressão para o bug de layout mobile de 2026-07-27: ferramentas
 // construídas desktop-first renderizavam SEM padding lateral (coladas às
@@ -14,8 +15,7 @@ test.describe('layout mobile — sem overflow horizontal, sem conteúdo colado �
   for (const route of ROUTES) {
     test(`${route} sem overflow horizontal`, async ({ page }) => {
       await loginAs(page, 'clinical', 'day_care')
-      await page.goto(route, { waitUntil: 'networkidle' })
-      await dismissCookieBanner(page)
+      await irPara(page, route)
       await page.waitForTimeout(600)
       const overflow = await page.evaluate(() => {
         const de = document.documentElement
@@ -27,8 +27,7 @@ test.describe('layout mobile — sem overflow horizontal, sem conteúdo colado �
 
   test('/care-log: conteúdo principal tem padding lateral (não está colado à margem)', async ({ page }) => {
     await loginAs(page, 'clinical', 'day_care')
-    await page.goto('/care-log', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/care-log')
     // O container é full-width por desenho (boundingClientRect.left = 0 é
     // normal) — o que importa é o padding-left COMPUTADO, que dá o respiro
     // real ao conteúdo lá dentro.

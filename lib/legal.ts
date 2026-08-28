@@ -51,16 +51,14 @@ export const SUBPROCESSORS: Subprocessor[] = [
   { name: 'Google LLC (Gemini API)', purpose: 'Modelos de IA (texto e visão)', location: 'EUA / UE', transfer: 'CCT + Data Privacy Framework', policyUrl: 'https://policies.google.com/privacy', category: 'ai' },
   { name: 'Groq, Inc.', purpose: 'Inferência rápida de modelos de IA', location: 'EUA', transfer: 'Cláusulas Contratuais-Tipo (CCT)', policyUrl: 'https://groq.com/privacy-policy/', category: 'ai' },
   { name: 'OpenAI, L.L.C.', purpose: 'Modelos de IA (alternativa de redundância)', location: 'EUA', transfer: 'CCT — sem retenção para treino (API)', policyUrl: 'https://openai.com/policies/privacy-policy', category: 'ai' },
-  { name: 'Google LLC (AdSense)', purpose: 'Publicidade (apenas com o seu consentimento)', location: 'EUA / UE', transfer: 'CCT + Data Privacy Framework', policyUrl: 'https://policies.google.com/technologies/ads', category: 'ads' },
   { name: 'Sketchfab (Epic Games)', purpose: 'Visualização de modelos anatómicos 3D (ferramenta de estudo)', location: 'EUA / UE', policyUrl: 'https://sketchfab.com/privacy', category: 'media' },
 ]
 
-// Cookies por categoria — para a página de cookies.
-export const COOKIE_CATEGORIES = [
-  { id: 'essential', name: 'Essenciais', always: true, desc: 'Necessários para iniciar sessão, manter a sessão segura e o funcionamento básico. Não podem ser desligados.', examples: 'Autenticação (Supabase), preferências de interface.' },
-  { id: 'ads', name: 'Publicidade', always: false, desc: 'Usados pelo Google AdSense para mostrar anúncios e medir o seu desempenho. Só são ativados se aceitar.', examples: 'Google AdSense.' },
-  { id: 'push', name: 'Notificações', always: false, desc: 'Se ativar lembretes, guardamos a sua subscrição de notificações push para lhe avisar às horas certas.', examples: 'Web Push (VAPID).' },
-] as const
+// As categorias de cookies foram removidas em 2026-08-28 com a publicidade.
+// Medido nessa data: o site não põe um único cookie, e depois de iniciar sessão
+// guarda duas entradas de localStorage estritamente necessárias. Não havendo
+// categorias a consentir, uma tabela de categorias só confundia. Ver
+// app/cookies/page.tsx.
 
 // ─── Statement canónico de DISPOSITIVO MÉDICO (posição: NÃO é dispositivo) ───
 // Usado pelo componente MedicalDisclaimer e pela página /dispositivo-medico.

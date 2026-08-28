@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { loginAs, dismissCookieBanner } from './helpers/auth'
+import { loginAs } from './helpers/auth'
+import { irPara } from './helpers/nav'
 
 // ── Guarda de regressão para o bug de 2026-07-27 ────────────────────────────
 // `html { overflow-x: clip }` desligou o scroll REAL (roda do rato) em TODO o
@@ -27,38 +28,34 @@ async function realWheelScrolls(page: import('@playwright/test').Page): Promise<
 
 test.describe('scroll real (roda do rato) — nunca scrollTo()', () => {
   test('homepage pública dá scroll', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/')
     const r = await realWheelScrolls(page)
     expect(r.moved).toBe(true)
   })
 
   test('/login dá scroll', async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'networkidle' })
+    await irPara(page, '/login')
     const r = await realWheelScrolls(page)
     expect(r.moved).toBe(true)
   })
 
   test('/inicio (modo pessoal) dá scroll', async ({ page }) => {
     await loginAs(page, 'personal')
-    await page.goto('/inicio', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/inicio')
     const r = await realWheelScrolls(page)
     expect(r.moved).toBe(true)
   })
 
   test('/painel (modo clínico, centro de dia) dá scroll', async ({ page }) => {
     await loginAs(page, 'clinical', 'day_care')
-    await page.goto('/painel', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/painel')
     const r = await realWheelScrolls(page)
     expect(r.moved).toBe(true)
   })
 
   test('/care-log (formulário longo) dá scroll', async ({ page }) => {
     await loginAs(page, 'clinical', 'day_care')
-    await page.goto('/care-log', { waitUntil: 'networkidle' })
-    await dismissCookieBanner(page)
+    await irPara(page, '/care-log')
     const r = await realWheelScrolls(page)
     expect(r.moved).toBe(true)
   })
