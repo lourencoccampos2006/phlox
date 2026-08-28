@@ -1,0 +1,241 @@
+name: Revisão de PR
+
+# A equipa de especialistas. Corre em cada Pull Request — incluindo os que o
+# corretor de QA abre sozinho, portanto o trabalho automático também é revisto.
+#
+#   Segurança ....... lê o diff à procura de RLS em falta, org-scoping esquecido,
+#                     auto-atribuição de papéis, service-role key exposta. É a
+#                     classe de bug que mais vezes mordeu este projeto e a única
+#                     que regra nenhuma apanha.
+#   Voz de marca .... português de Portugal e a skill phlox-brand-voice.
+#   Design .......... só olha as páginas que a comparação de píxeis (gratuita,
+#                     determinística) marcou como mudadas. Não gasta um token a
+#                     olhar para páginas que não mexeram.
+#
+# Todos COMENTAM, nenhum bloqueia o merge. Um revisor que trava PRs por falso
+# positivo é desligado à terceira vez, e aí deixa de rever seja o que for.
+#
+# Precisa de CLAUDE_CODE_OAUTH_TOKEN (subscrição, não créditos de API) e, para o
+# job de design, dos dois segredos do Supabase.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  # Que tipo de ficheiros mexeram? Serve para não acordar especialistas que não
+  # têm nada que fazer neste PR. Feito com git, sem ações de terceiros.
+  contexto:
+    name: O que mudou
+    runs-on: ubuntu-latest
+    outputs:
+      codigo: ${{ steps.ver.outputs.codigo }}
+      interface: ${{ steps.ver.outputs.interface }}
+      token: ${{ steps.ver.outputs.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - id: ver
+        run: |
+          BASE="origin/${{ github.base_ref || 'main' }}"
+          FICHEIROS=$(git diff --name-only "$BASE"...HEAD)
+          echo "$FICHEIROS"
+
+          if echo "$FICHEIROS" | grep -qE '\.(ts|tsx|mjs|js|sql)$'; then
+            echo "codigo=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "codigo=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$FICHEIROS" | grep -qE '^(app|components)/.*\.(tsx|css)$'; then
+            echo "interface=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "interface=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "token=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+  seguranca:
+    name: Especialista · Segurança
+    needs: contexto
+    if: needs.contexto.outputs.codigo == 'true' && needs.contexto.outputs.token == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--max-turns 40 --allowedTools "Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(gh pr comment:*)"'
+          prompt: |
+            És o revisor de segurança do Phlox — uma plataforma de saúde
+            portuguesa para lares e centros de dia, sobre Next.js e Supabase.
+            Escreves sempre em português de Portugal.
+
+            Lê o diff deste PR:
+              git diff origin/${{ github.base_ref }}...HEAD
+
+            ── PROCURA ISTO, POR ESTA ORDEM DE IMPORTÂNCIA ──────────────────
+            Este projeto já foi mordido por cada um destes. Não são hipóteses
+            académicas, são reincidências:
+
+            1. ORG-SCOPING EM FALTA. Uma query a uma tabela partilhada sem
+               filtrar por `org_id`. Uma instituição a ver dados de outra é o
+               pior que pode acontecer aqui.
+            2. AUTO-ATRIBUIÇÃO DE PAPEL OU PLANO. Escrita a `profiles` que
+               deixe uma conta pôr-se a si própria em `clinical`, mudar de
+               `plan`, ou atribuir-se um `org_id`. Já aconteceu em 4 sítios.
+            3. RLS EM FALTA OU LARGA DEMAIS. Tabela nova sem RLS. Política com
+               `TO authenticated` mas sem predicado de posse. UPDATE sem
+               `WITH CHECK` (deixa reatribuir a linha a outro utilizador).
+               UPDATE sem política de SELECT (falha em silêncio, 0 linhas).
+            4. SERVICE-ROLE KEY DO LADO DO CLIENTE. `SUPABASE_SERVICE_ROLE_KEY`
+               em qualquer ficheiro que chegue ao browser, ou passada para um
+               componente marcado `'use client'`.
+            5. ROTA DE API SEM VERIFICAÇÃO. Handler novo em `app/api/` que não
+               confirma sessão nem segredo de cron. Nos crons, o guard tem de
+               ser `!process.env.CRON_SECRET || secret !== …` — sem a primeira
+               metade, um pedido sem cabeçalho nenhum passa.
+            6. SEGREDO EM TEXTO no código, ou PII em logs.
+
+            ── COMO REPORTAR ────────────────────────────────────────────────
+            Só assinalas o que este PR INTRODUZ. Problemas que já lá estavam
+            não são deste PR.
+
+            Só assinalas o que tens mais de 80% de certeza que é explorável.
+            Nada de "podia ser boa prática". Para cada achado: ficheiro, linha,
+            o que acontece na prática se ninguém corrigir, e a correção.
+
+            Se não houver nada, comenta exatamente "Segurança: nada a assinalar"
+            e termina. Dizer isso é um resultado válido e é o mais comum.
+
+              gh pr comment ${{ github.event.pull_request.number }} --body "<corpo>"
+
+  voz:
+    name: Especialista · Português e voz de marca
+    needs: contexto
+    if: needs.contexto.outputs.interface == 'true' && needs.contexto.outputs.token == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--max-turns 30 --allowedTools "Read,Glob,Grep,Bash(git diff:*),Bash(node scripts/check-vocab.mjs),Bash(gh pr comment:*)"'
+          prompt: |
+            És o revisor de texto do Phlox. Escreves em português de Portugal.
+
+            Lê primeiro `.claude/skills/phlox-brand-voice/SKILL.md` — é a regra
+            da casa e ganha a qualquer opinião tua.
+
+            Depois lê o texto novo deste PR:
+              git diff origin/${{ github.base_ref }}...HEAD
+
+            Assinala só texto que o utilizador vê, e só isto:
+            - português do Brasil onde tem de ser de Portugal
+            - vocabulário errado para o tipo de instituição (um centro de dia
+              não tem "quartos" nem "camas"; o utente de um centro de dia não é
+              "residente"). Corre `node scripts/check-vocab.mjs` para confirmar.
+            - clichés de IA que a skill proíbe: "não é X — é Y", "a sua X, Y.",
+              metáforas de jornada, "simplificamos" sem prova, três adjetivos
+              em fila
+            - vocabulário clínico ou cadência diária imposta a um centro de dia,
+              que muitas vezes não tem profissionais a tempo inteiro
+            - texto de marcador de posição esquecido
+
+            NÃO assinales gosto pessoal nem reescrevas o que já está correto.
+            Se não houver nada, comenta "Texto: nada a assinalar" e termina.
+
+              gh pr comment ${{ github.event.pull_request.number }} --body "<corpo>"
+
+  design:
+    name: Especialista · Design e UX no telemóvel
+    needs: contexto
+    if: needs.contexto.outputs.interface == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: npm }
+
+      - name: Confirmar que os segredos existem
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::warning::Sem os segredos do Supabase o build não passa — revisão de design saltada."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: mkdir -p qa-out
+      - run: npm run build
+
+      # A camada gratuita faz o trabalho pesado: compara cada página com a
+      # referência guardada e diz quais mudaram. Só essas chegam ao agente.
+      - name: Capturar e comparar com as referências
+        run: |
+          set -o pipefail
+          npm start > qa-out/servidor.log 2>&1 &
+          SERVIDOR=$!
+          if ! npx wait-on http://localhost:3000 --timeout 120000; then
+            echo "::error::O servidor não subiu. Registo:"; tail -60 qa-out/servidor.log; exit 1
+          fi
+          node scripts/qa-agents/run.mjs --base-url http://localhost:3000 --mode publico --label completo
+          CODIGO=$?
+          kill $SERVIDOR 2>/dev/null || true
+          exit $CODIGO
+
+      # `needs.contexto.outputs.token` e não `secrets.…`: o contexto `secrets`
+      # não existe num `if:` de passo, e a condição avaliaria sempre a falso.
+      - uses: anthropics/claude-code-action@v1
+        if: needs.contexto.outputs.token == 'true'
+        continue-on-error: true
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--max-turns 30 --allowedTools "Read,Glob,Grep,Bash(gh pr comment:*)"'
+          prompt: |
+            És o revisor de design do Phlox. Escreves em português de Portugal.
+
+            Em `qa-out/bruto-completo.json` está o resultado das capturas. O
+            campo `visual.percentagem` de cada rota diz quantos píxeis mudaram
+            face à referência guardada.
+
+            OLHA APENAS para as capturas em `qa-out/shots/` das rotas cuja
+            `visual.percentagem` seja maior que 1.5, ou que tenham `transbordo`
+            com `ok: false`. As outras não mexeram neste PR — ignora-as. Se
+            nenhuma passar deste critério, comenta "Design: nada mudou
+            visualmente" e termina.
+
+            As capturas são de telemóvel, 390×844, em viewport real. Procura só
+            defeitos objetivos que um utilizador notaria:
+            - texto cortado, sobreposto ou ilegível
+            - elementos a sair do ecrã pela lateral
+            - conteúdo colado à margem, sem respiro
+            - botões pequenos demais para um dedo (menos de 44px)
+            - conteúdo que claramente não carregou
+            - o layout a saltar
+
+            NÃO assinales gosto pessoal: paletas, tipos de letra, "mais espaço
+            em branco", "podia ser mais moderno". Isso não são defeitos, e um
+            revisor que os levanta deixa de ser lido.
+
+              gh pr comment ${{ github.event.pull_request.number }} --body "<corpo>"
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with: { name: revisao-design, path: qa-out/, retention-days: 7 }

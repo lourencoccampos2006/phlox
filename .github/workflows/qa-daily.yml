@@ -258,3 +258,110 @@ jobs:
       - uses: actions/upload-artifact@v5
         if: always()
         with: { name: qa-relatorio, path: qa-out/report.md, retention-days: 30 }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # O CORRETOR. Lê os achados do dia e abre UM Pull Request com o que der para
+  # corrigir sem julgamento de produto. Nunca toca no main — o merge é sempre
+  # decisão humana.
+  #
+  # A guarda que faz isto ser seguro: o agente está PROIBIDO de mexer no próprio
+  # QA. Um agente que pode editar as regras que o avaliam acaba, mais cedo ou
+  # mais tarde, a "corrigir" um achado desligando a regra que o apanhou — e a
+  # partir daí o relatório fica verde e deixa de valer nada.
+  # ─────────────────────────────────────────────────────────────────────────
+  correcao:
+    name: Corrigir o que der
+    needs: relatorio
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 24 }
+
+      - uses: actions/download-artifact@v5
+        with: { name: qa-producao, path: qa-out/ }
+        continue-on-error: true
+      - uses: actions/download-artifact@v5
+        with: { name: qa-completo, path: qa-out/ }
+        continue-on-error: true
+
+      # Regenerar o relatório aqui, em vez de o passar entre jobs: é
+      # determinístico e custa milissegundos.
+      - id: relatorio
+        run: |
+          node scripts/qa-agents/report.mjs || true
+          echo "achados=$(cat qa-out/tem-achados 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+
+      - id: token
+        run: echo "existe=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Preparar o ramo
+        if: steps.relatorio.outputs.achados == '1' && steps.token.outputs.existe == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "qa/correcao-$(date +%Y-%m-%d)-${{ github.run_id }}"
+
+      - name: Corrigir e abrir PR
+        if: steps.relatorio.outputs.achados == '1' && steps.token.outputs.existe == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        env:
+          RAMO: qa/correcao-${{ github.run_id }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--max-turns 60 --allowedTools "Read,Glob,Grep,Edit,Write,Bash(git:*),Bash(gh pr create:*),Bash(npx tsc:*),Bash(node scripts/check-scroll.mjs),Bash(node scripts/check-vocab.mjs)"'
+          prompt: |
+            És o corretor de QA do Phlox. Escreves sempre em português de Portugal.
+            Já estás num ramo próprio, criado a partir do main.
+
+            Lê `qa-out/report.md` — são os achados de hoje.
+
+            ── O QUE PODES CORRIGIR ─────────────────────────────────────────
+            Só defeitos objetivos, com uma correção evidente e de baixo risco:
+            - meta-descrições longas de mais ou em falta
+            - títulos longos de mais
+            - imagens sem `alt`, imagens sem largura/altura a causar CLS
+            - contraste de cor abaixo do mínimo, ajustando o token de cor
+            - erros de português de Portugal e texto de marcador esquecido
+            - `<h1>` em falta ou repetido
+
+            ── O QUE NÃO PODES FAZER, EM CIRCUNSTÂNCIA NENHUMA ──────────────
+            1. NÃO edites nada dentro de `scripts/qa-agents/`, `tests/`,
+               `.github/workflows/` ou `qa-history/`. Se um achado te parecer um
+               falso positivo, NÃO mexas na regra: escreve-o no corpo do PR e
+               deixa a decisão ao Fernando.
+            2. NÃO apagues nem regeneres nada em `tests/baselines/`.
+            3. NÃO faças push para o `main`. NÃO faças merge.
+            4. NÃO mudes texto de marketing por gosto, nem refactorizes código
+               que ninguém te pediu, nem "aproveitas para arrumar" outra coisa.
+            5. Se um achado precisar de uma decisão de produto ou de desenho,
+               deixa-o em paz e explica porquê.
+
+            ── DEPOIS DE CORRIGIR ───────────────────────────────────────────
+            Corre `npx tsc --noEmit` e `node scripts/check-scroll.mjs`. Se algum
+            falhar por causa do que mexeste, desfaz essa alteração.
+
+            Se no fim não houver nada seguro para corrigir, não faças commit nem
+            abras PR. Escreve só "Nada seguro para corrigir hoje" e termina.
+
+            Caso contrário:
+              git add -A
+              git commit -m "QA: <resumo curto do que corrigiste>"
+              git push -u origin HEAD
+              gh pr create --title "QA — correções de <data em dd/mm/aaaa>" --body "<corpo>"
+
+            O corpo do PR leva, por esta ordem: o que corrigiste e porquê (uma
+            linha por correção), e depois o que deixaste por corrigir e a razão.
+            Sê concreto: ficheiro e linha. Quem lê isto quer decidir em 30
+            segundos se faz merge.
+
+      - name: Aviso se o corretor não correu
+        if: steps.relatorio.outputs.achados == '1' && steps.token.outputs.existe != 'true'
+        run: echo "::notice::Há achados mas não há CLAUDE_CODE_OAUTH_TOKEN — nenhum PR de correção foi aberto."

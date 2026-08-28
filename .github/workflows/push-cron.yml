@@ -23,21 +23,34 @@ jobs:
       - name: Call Phlox push cron
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          APP_URL: ${{ secrets.APP_URL || 'https://phlox-pi.vercel.app' }}
+          APP_URL: ${{ secrets.APP_URL || 'https://phloxclinical.com' }}
         run: |
-          echo "Running cron at $(date -u)"
-          HTTP_STATUS=$(curl -sf -o /tmp/cron_response.json -w "%{http_code}" \
-            -X GET \
-            -H "x-cron-secret: ${CRON_SECRET}" \
-            --max-time 25 \
-            "${APP_URL}/api/push/cron")
+          echo "A correr o cron às $(date -u)"
 
-          echo "HTTP status: ${HTTP_STATUS}"
-          cat /tmp/cron_response.json 2>/dev/null || true
-
-          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
-            echo "Cron endpoint returned error status: ${HTTP_STATUS}"
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Falta o segredo CRON_SECRET. Cria-o em Definições → Secrets and variables → Actions com o MESMO valor que está na Vercel (Settings → Environment Variables → CRON_SECRET). Sem ele o endpoint responde 401 e nenhuma notificação de medicação é enviada."
             exit 1
           fi
 
-          echo "Cron completed successfully"
+          # Sem o -f do curl. Com ele, um 401 fazia o curl sair com o código 22,
+          # e como isto é uma atribuição `X=$(...)` sob `bash -e`, o passo morria
+          # aqui mesmo — todo o tratamento de erro em baixo nunca corria, e o
+          # registo mostrava só "Process completed with exit code 22", sem dizer
+          # o que se passou. Agora o estado é capturado e explicado.
+          HTTP_STATUS=$(curl -s -o /tmp/cron_response.json -w "%{http_code}" \
+            -X GET \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            --max-time 25 \
+            "${APP_URL}/api/push/cron") || HTTP_STATUS="sem-resposta"
+
+          echo "Estado HTTP: ${HTTP_STATUS}"
+          cat /tmp/cron_response.json 2>/dev/null || true
+          echo
+
+          case "$HTTP_STATUS" in
+            2??) echo "Cron concluído."; exit 0 ;;
+            401) echo "::error::401 em ${APP_URL}. O CRON_SECRET do GitHub não coincide com o que está na Vercel. Confirma que são exatamente iguais (sem espaços nem quebras de linha)."; exit 1 ;;
+            404) echo "::error::404 em ${APP_URL}/api/push/cron. O endereço está errado — define o segredo APP_URL como https://phloxclinical.com"; exit 1 ;;
+            sem-resposta) echo "::error::O servidor não respondeu em 25s a ${APP_URL}."; exit 1 ;;
+            *) echo "::error::Estado inesperado ${HTTP_STATUS} de ${APP_URL}/api/push/cron."; exit 1 ;;
+          esac

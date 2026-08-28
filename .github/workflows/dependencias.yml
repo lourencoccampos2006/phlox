@@ -1,0 +1,55 @@
+name: Dependências e segredos
+
+# O quarto especialista, e o mais barato: não gasta um único token. Corre à
+# segunda-feira de manhã e abre issue só se tiver alguma coisa para dizer.
+#
+#   npm audit ....... vulnerabilidades conhecidas, só high/critical, separando o
+#                     que tem correção do que não tem
+#   segredos ........ chaves a sério dentro de ficheiros VERSIONADOS (o
+#                     .env.local está no .gitignore e é o sítio certo para elas)
+#
+# A lógica toda vive em scripts/qa-agents/dependencias.mjs, para poder ser
+# corrida à mão com `node scripts/qa-agents/dependencias.mjs`.
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # segunda-feira, 08:00 em Portugal no verão
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verificar:
+    name: Verificar
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: npm }
+
+      # `npm ci` sem os scripts de instalação: este job examina dependências,
+      # incluindo as que ainda não foram vistas por ninguém. Não há razão para
+      # lhes correr código de postinstall só para as poder auditar.
+      - run: npm ci --ignore-scripts
+
+      - name: Correr o especialista
+        run: node scripts/qa-agents/dependencias.mjs
+
+      - name: Abrir issue se houver achados
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(cat qa-out/dependencias-tem-achados)" = "1" ]; then
+            gh issue create \
+              --title "Dependências e segredos — $(date +%d/%m/%Y)" \
+              --body-file qa-out/dependencias.md
+          else
+            echo "Nada a assinalar — sem issue."
+          fi
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with: { name: dependencias, path: qa-out/dependencias.md, retention-days: 30 }

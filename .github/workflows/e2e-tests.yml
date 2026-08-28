@@ -2,9 +2,16 @@ name: E2E Tests
 
 # Corre a suite Playwright (tests/e2e/) contra o servidor de produção local em
 # CADA push/PR — o guarda de regressão para os bugs de scroll/layout mobile de
-# 2026-07-27 (ver tests/e2e/README.md). A conta de QA usada é dedicada a testes
-# (sem dados reais) e a anon key do Supabase é pública por desenho — nenhum
-# GitHub Secret é necessário para este workflow.
+# 2026-07-27 (ver tests/e2e/README.md).
+#
+# A conta de QA usada é dedicada a testes (sem dados reais) e a anon key do
+# Supabase é pública por desenho — mas isso NÃO quer dizer que o CI as adivinhe.
+# O comentário que aqui estava dizia "nenhum GitHub Secret é necessário" e estava
+# errado: o `next build` renderiza /farmacia/compras à partida, esse módulo chama
+# createClient(NEXT_PUBLIC_SUPABASE_URL!, …) e rebenta com "supabaseUrl is
+# required". Localmente isso não aparece porque o .next/cache reaproveita a
+# renderização anterior; no CI o build é sempre a frio. Precisa dos dois
+# segredos, iguais aos do workflow de QA diário.
 
 on:
   push:
@@ -17,13 +24,25 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
+
+      - name: Confirmar que os segredos existem
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Faltam NEXT_PUBLIC_SUPABASE_URL e/ou NEXT_PUBLIC_SUPABASE_ANON_KEY nos segredos do repositório. Sem eles o build morre a renderizar /farmacia/compras com 'supabaseUrl is required'. Cria-os em Definições → Secrets and variables → Actions com os valores do .env.local."
+            exit 1
+          fi
 
       - name: Instalar dependências
         run: npm ci
@@ -34,18 +53,35 @@ jobs:
       - name: Build de produção
         run: npm run build
 
-      - name: Arrancar servidor de produção
-        run: npm start &
+      # TUDO NUM SÓ SHELL. Cada `run:` é um processo separado: com `npm start &`
+      # num passo e o `wait-on` noutro, o servidor morre com o shell que o lançou
+      # e o wait-on espera pelo tempo todo por nada. Mesmo problema que o QA
+      # diário tinha.
+      - name: Arrancar servidor e correr os testes
+        run: |
+          set -o pipefail
+          npm start > servidor.log 2>&1 &
+          SERVIDOR=$!
 
-      - name: Esperar o servidor ficar de pé
-        run: npx wait-on http://localhost:3000 --timeout 60000
+          if ! npx wait-on http://localhost:3000 --timeout 120000; then
+            echo "::error::O servidor não subiu em 120s. Registo:"
+            tail -60 servidor.log
+            exit 1
+          fi
 
-      - name: Correr os testes E2E
-        run: npm run test:e2e
+          npm run test:e2e
+          CODIGO=$?
+
+          kill $SERVIDOR 2>/dev/null || true
+          exit $CODIGO
+
+      - name: Registo do servidor em caso de falha
+        if: failure()
+        run: tail -80 servidor.log || echo "(sem registo)"
 
       - name: Guardar relatório em caso de falha
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report
           path: playwright-report/
