@@ -4,10 +4,19 @@
 //
 // Categorias:
 //   • essenciais — sempre (autenticação, segurança). Não precisam de consentimento.
-//   • publicidade/analytics — SÓ com consentimento explícito do utilizador.
+//   • não-essenciais — SÓ com consentimento explícito do utilizador.
 //
-// O AdSense (e qualquer cookie não-essencial) só pode carregar quando o estado for
-// 'accepted'. Por defeito é 'unset' → tratado como NEGADO até o utilizador decidir.
+// NOTA (2026-08-28): a publicidade foi removida do produto inteiro, e com ela o
+// único terceiro que punha cookies. A analítica que resta é PRÓPRIA — rota
+// própria, base de dados própria, ligada ao utilizador autenticado por token —
+// e não põe cookie nenhum.
+//
+// Ou seja: neste momento o site pode já não ter cookies não-essenciais
+// nenhuns, e o banner de consentimento pode ser dispensável. Isso é uma
+// decisão legal, não técnica, por isso este módulo fica de pé e o banner
+// também. Se se confirmar, apagar os dois é uma simplificação real.
+//
+// Por defeito o estado é 'unset' → tratado como NEGADO até o utilizador decidir.
 // Retirar o consentimento é tão fácil como dá-lo (mudar em /cookies).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -26,11 +35,11 @@ export function getConsent(): ConsentState {
 }
 
 /** true só quando o utilizador aceitou explicitamente cookies não-essenciais. */
-export function adsAllowed(): boolean {
+export function naoEssenciaisPermitidos(): boolean {
   return getConsent() === 'accepted'
 }
 
-/** Grava a escolha e avisa a app (o AdScript reage a este evento). */
+/** Grava a escolha e avisa a app. */
 export function setConsent(state: 'accepted' | 'declined'): void {
   if (typeof localStorage === 'undefined') return
   try {
@@ -41,7 +50,7 @@ export function setConsent(state: 'accepted' | 'declined'): void {
 
 // Hook React para componentes reagirem à mudança de consentimento.
 import { useEffect, useState } from 'react'
-export function useConsent(): { consent: ConsentState; ads: boolean } {
+export function useConsent(): { consent: ConsentState; permitido: boolean } {
   const [consent, setState] = useState<ConsentState>('unset')
   useEffect(() => {
     const refresh = () => setState(getConsent())
@@ -49,5 +58,5 @@ export function useConsent(): { consent: ConsentState; ads: boolean } {
     window.addEventListener(CONSENT_EVENT, refresh)
     return () => window.removeEventListener(CONSENT_EVENT, refresh)
   }, [])
-  return { consent, ads: consent === 'accepted' }
+  return { consent, permitido: consent === 'accepted' }
 }

@@ -12,9 +12,16 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'portrait-primary',
     categories: ['health', 'medical', 'education'],
     lang: 'pt-PT',
+    // Dois conjuntos, de propósito. O `any` é o ícone como ele é, usado onde
+    // nada o recorta. O `maskable` tem a flor mais pequena porque o Android
+    // corta o ícone com uma máscara que muda de fabricante para fabricante e só
+    // garante o círculo central de 80% — com a flor a 78%, as pontas das
+    // pétalas ficavam cortadas. Ver scripts/logo-maskable.mjs.
     icons: [
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     screenshots: [],
     shortcuts: [

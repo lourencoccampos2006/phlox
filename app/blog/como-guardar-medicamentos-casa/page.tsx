@@ -2,6 +2,8 @@
 // Conteúdo — "como guardar/conservar medicamentos em casa". SSR + schema.
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS, EDITOR } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Como Guardar Medicamentos em Casa (e Quando Deitar Fora)',
@@ -20,10 +22,10 @@ const P: React.CSSProperties = { marginBottom: 18 }
 
 function Schema() {
   const schema = {
-    '@context': 'https://schema.org', '@type': 'Article',
+    '@context': 'https://schema.org', '@type': 'MedicalWebPage',
     headline: 'Como Guardar Medicamentos em Casa (e Quando Deitar Fora)',
     description: 'Onde guardar os medicamentos, o que precisa de frio, validade depois de aberto e como deitar fora com segurança.',
-    author: { '@type': 'Organization', name: 'Phlox Clinical' },
+    author: { '@type': 'Person', name: EDITOR.nome, jobTitle: EDITOR.papel, url: EDITOR.url },
     publisher: { '@type': 'Organization', name: 'Phlox Clinical', url: 'https://phloxclinical.com' },
     datePublished: '2026-06-16', dateModified: '2026-06-16',
     url: 'https://phloxclinical.com/blog/como-guardar-medicamentos-casa',
@@ -103,7 +105,9 @@ export default function PostGuardarMeds() {
               Artigo informativo. Em caso de dúvida sobre a conservação de um medicamento específico, consulte a bula ou pergunte na farmácia. Base: INFARMED, VALORMED, DGS.
             </p>
           </div>
-        </article>
+        
+        <ArtigoCredibilidade revistoEm="2026-06-16" fontes={FONTES_MEDICAMENTOS} />
+      </article>
       </div>
     </>
   )

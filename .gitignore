@@ -72,3 +72,8 @@ qa-out/
 # regressão visual e sem elas no repositório não há com que comparar. Têm de
 # nascer no Linux do CI (o Windows desenha as letras de outra maneira):
 # workflow 'QA diário' → Run workflow → atualizar_referencias.
+
+# Vídeo exportado a partir de scripts/video/phlox-demo.html.
+# A FONTE é o HTML, que é versionado; o .mp4 tem dezenas de MB e regenera-se
+# com `node scripts/video/exportar.mjs`. Não vale a pena guardá-lo no git.
+scripts/video/*.mp4

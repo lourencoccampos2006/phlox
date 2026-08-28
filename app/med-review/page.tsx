@@ -185,7 +185,7 @@ function exportToPDF(review: MedReview, medNames: string[]) {
 <div class="header">
   <div>
     <div class="logo">Phlox Clinical</div>
-    <div style="font-size:13px;color:#666;margin-top:4px;">Plataforma Farmacológica Clínica · phlox.health</div>
+    <div style="font-size:13px;color:#666;margin-top:4px;">Plataforma Farmacológica Clínica · phloxclinical.com</div>
   </div>
   <div class="meta">
     <div>Revisão de Medicação</div>
@@ -243,7 +243,7 @@ ${review.positives.map(p => `<div class="positive">✓ ${p}</div>`).join('')}` :
 <p style="font-size:13px;color:#374151;margin-top:16px;"><strong>Próximo follow-up:</strong> ${review.follow_up}</p>
 
 <div class="disclaimer">
-⚕ Este relatório foi gerado pela plataforma Phlox Clinical (phlox.health) com recurso a inteligência artificial e bases de dados farmacológicas (RxNorm/NIH, OpenFDA). Destina-se a fins educativos e de apoio à decisão clínica. Não substitui a consulta com um médico ou farmacêutico. Partilhe este relatório com o seu profissional de saúde antes de tomar qualquer decisão clínica.
+⚕ Este relatório foi gerado pela plataforma Phlox Clinical (phloxclinical.com) com recurso a inteligência artificial e bases de dados farmacológicas (RxNorm/NIH, OpenFDA). Destina-se a fins educativos e de apoio à decisão clínica. Não substitui a consulta com um médico ou farmacêutico. Partilhe este relatório com o seu profissional de saúde antes de tomar qualquer decisão clínica.
 </div>
 </body>
 </html>`

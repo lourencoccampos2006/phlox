@@ -2,6 +2,8 @@
 // Conteúdo — "medicamentos sem receita / automedicação cuidados". SSR + schema.
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS, EDITOR } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar',
@@ -20,10 +22,10 @@ const P: React.CSSProperties = { marginBottom: 18 }
 
 function Schema() {
   const schema = {
-    '@context': 'https://schema.org', '@type': 'Article',
+    '@context': 'https://schema.org', '@type': 'MedicalWebPage',
     headline: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar',
     description: 'Guia de automedicação segura: paracetamol, ibuprofeno, antiácidos e xaropes — o que combinar e o que evitar.',
-    author: { '@type': 'Organization', name: 'Phlox Clinical' },
+    author: { '@type': 'Person', name: EDITOR.nome, jobTitle: EDITOR.papel, url: EDITOR.url },
     publisher: { '@type': 'Organization', name: 'Phlox Clinical', url: 'https://phloxclinical.com' },
     datePublished: '2026-06-18', dateModified: '2026-06-18',
     url: 'https://phloxclinical.com/blog/medicamentos-sem-receita-cuidados',
@@ -99,7 +101,9 @@ export default function PostMNSRM() {
               Artigo informativo e educativo. Não substitui o aconselhamento de um profissional de saúde. Em caso de dúvida, fale com o seu farmacêutico ou médico. Base: INFARMED, EMA, DGS.
             </p>
           </div>
-        </article>
+        
+        <ArtigoCredibilidade revistoEm="2026-06-18" fontes={FONTES_MEDICAMENTOS} />
+      </article>
       </div>
     </>
   )

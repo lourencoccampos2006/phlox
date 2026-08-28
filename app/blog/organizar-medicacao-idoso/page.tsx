@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Como organizar a medicação de um idoso em casa',
@@ -20,7 +22,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostOrganizarMedicacao() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="organizar-medicacao-idoso" headline="Como organizar a medicação de um idoso em casa" description="Um sistema simples para cuidadores nunca falhar nem trocar tomas: caixa semanal, gatilhos e lembretes." datePublished="2026-06-15" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="organizar-medicacao-idoso" headline="Como organizar a medicação de um idoso em casa" description="Um sistema simples para cuidadores nunca falhar nem trocar tomas: caixa semanal, gatilhos e lembretes." datePublished="2026-06-15" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>
@@ -79,6 +81,8 @@ export default function PostOrganizarMedicacao() {
             Conteúdo educativo para cuidadores. Não substitui o aconselhamento do médico ou farmacêutico. Qualquer alteração à medicação deve ser confirmada com um profissional.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-06-15" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

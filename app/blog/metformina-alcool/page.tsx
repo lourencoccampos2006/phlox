@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Metformina e álcool — o que realmente acontece',
@@ -20,7 +22,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostMetforminaAlcool() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="metformina-alcool" headline="Metformina e álcool — o que realmente acontece" description="O risco real de juntar metformina e bebida: acidose láctica e hipoglicemia, quanto é demasiado, e o que dizer ao médico." datePublished="2026-02-01" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="metformina-alcool" headline="Metformina e álcool — o que realmente acontece" description="O risco real de juntar metformina e bebida: acidose láctica e hipoglicemia, quanto é demasiado, e o que dizer ao médico." datePublished="2026-02-01" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>
@@ -85,6 +87,8 @@ export default function PostMetforminaAlcool() {
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento de um profissional de saúde. Confirma sempre a tua situação com o teu médico ou farmacêutico. Base: EMA, ADA, NIH.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-02-01" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

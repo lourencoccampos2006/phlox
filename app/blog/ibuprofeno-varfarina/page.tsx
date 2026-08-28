@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
-import AdBanner from '@/components/AdBanner'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Posso tomar ibuprofeno com varfarina?',
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 export default function PostIbuprofenWarfarin() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="ibuprofeno-varfarina" headline="Posso tomar ibuprofeno com varfarina?" description="Ibuprofeno e varfarina juntos podem causar hemorragia grave. Mecanismo, risco real e alternativas seguras." datePublished="2025-11-22" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="ibuprofeno-varfarina" headline="Posso tomar ibuprofeno com varfarina?" description="Ibuprofeno e varfarina juntos podem causar hemorragia grave. Mecanismo, risco real e alternativas seguras." datePublished="2025-11-22" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
 
         {/* Breadcrumb */}
@@ -131,6 +132,8 @@ export default function PostIbuprofenWarfarin() {
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento de um profissional de saúde. Confirma sempre a tua medicação com o teu médico ou farmacêutico. Dados baseados em FDA, RxNorm e NIH.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2025-11-22" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

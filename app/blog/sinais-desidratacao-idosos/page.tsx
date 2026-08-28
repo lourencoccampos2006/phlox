@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Sinais de desidratação em idosos — o que vigiar',
@@ -20,7 +22,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostDesidratacao() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="sinais-desidratacao-idosos" headline="Sinais de desidratação em idosos — o que vigiar" description="Como reconhecer a desidratação num idoso: sinais precoces, sinais de alarme, quanto deve beber por dia e quando é urgente." datePublished="2026-06-15" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="sinais-desidratacao-idosos" headline="Sinais de desidratação em idosos — o que vigiar" description="Como reconhecer a desidratação num idoso: sinais precoces, sinais de alarme, quanto deve beber por dia e quando é urgente." datePublished="2026-06-15" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>
@@ -91,6 +93,8 @@ export default function PostDesidratacao() {
             Conteúdo educativo. Não substitui avaliação médica. Em caso de sinais de alarme, contactar o 112 ou ir à urgência.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-06-15" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

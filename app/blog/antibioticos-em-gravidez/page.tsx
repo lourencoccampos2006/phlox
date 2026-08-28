@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Antibióticos na gravidez — guia por categoria',
@@ -20,7 +22,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostAntibioticosGravidez() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="antibioticos-em-gravidez" headline="Antibióticos na gravidez — guia por categoria" description="Que antibióticos são seguros na gravidez e quais evitar, por trimestre: penicilinas, cefalosporinas, macrólidos vs. tetraciclinas e quinolonas." datePublished="2026-02-15" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="antibioticos-em-gravidez" headline="Antibióticos na gravidez — guia por categoria" description="Que antibióticos são seguros na gravidez e quais evitar, por trimestre: penicilinas, cefalosporinas, macrólidos vs. tetraciclinas e quinolonas." datePublished="2026-02-15" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>
@@ -91,6 +93,8 @@ export default function PostAntibioticosGravidez() {
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento médico. Na gravidez, nenhum antibiótico deve ser tomado sem prescrição. Base: EMA, FDA, NIH.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-02-15" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

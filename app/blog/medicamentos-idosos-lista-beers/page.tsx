@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Medicamentos a evitar em idosos — critérios Beers',
@@ -20,7 +22,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostBeers() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="medicamentos-idosos-lista-beers" headline="Medicamentos a evitar em idosos — critérios Beers" description="A lista dos medicamentos potencialmente inapropriados depois dos 65 anos (Beers/STOPP): benzodiazepinas, anticolinérgicos, AINEs e alternativas." datePublished="2026-03-01" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="medicamentos-idosos-lista-beers" headline="Medicamentos a evitar em idosos — critérios Beers" description="A lista dos medicamentos potencialmente inapropriados depois dos 65 anos (Beers/STOPP): benzodiazepinas, anticolinérgicos, AINEs e alternativas." datePublished="2026-03-01" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>
@@ -85,6 +87,8 @@ export default function PostBeers() {
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento médico nem é uma ordem para parar medicação. Qualquer alteração deve ser feita com o médico. Base: Beers 2023, STOPP/START v3.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-03-01" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

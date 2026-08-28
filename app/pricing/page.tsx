@@ -35,8 +35,9 @@ export default function PricingPage() {
             Comece grátis.<br />Cresça quando precisar.
           </h1>
           <p style={{ fontSize: 'clamp(15px,1.7vw,17px)', color: INK_3, lineHeight: 1.62, marginTop: 18, maxWidth: '52ch' }}>
-            O plano Base é grátis (com anúncios). Qualquer upgrade remove os anúncios, aumenta os
-            limites e desbloqueia mais ferramentas. Sem fidelização.
+            O plano Base é grátis e serve uma pessoa. Quem paga tem lembretes que tocam no
+            telemóvel, um segundo perfil para quem cuida consigo, e o relatório que se leva ao
+            médico. Sem anúncios em plano nenhum e sem fidelização.
           </p>
         </div>
 

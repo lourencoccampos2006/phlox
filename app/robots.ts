@@ -1,78 +1,57 @@
 import { MetadataRoute } from 'next'
+import { PRIVADAS, DOMINIO } from '@/lib/seoRoutes'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://phloxclinical.com'
-
-// IMPORTANTE: este é o ÚNICO robots do site. Não criar public/robots.txt
-// (o ficheiro estático ganharia a este e os dois entram em conflito).
+// IMPORTANTE: este é o ÚNICO robots do site. Não criar public/robots.txt — o
+// ficheiro estático ganharia a este e os dois entrariam em conflito.
 //
-// Estratégia: o phlox tem ~250 rotas, mas só ~20 são CONTEÚDO público real.
-// As restantes são a aplicação (ferramentas atrás de login, dashboards,
-// redirects), que ao Googlebot aparecem vazias. Deixar o Google rastrear tudo
-// faz com que veja um mar de páginas finas → "Low value content" no AdSense.
-// Por isso bloqueamos a app e deixamos rastrear só o conteúdo.
+// ── PORQUE É QUE ISTO BLOQUEIA TÃO POUCA COISA AGORA ──────────────────────
+// A versão anterior bloqueava ~230 rotas de aplicação, para o Google não ver um
+// mar de páginas finas. A intenção estava certa, o mecanismo estava errado:
+//
+//   `Disallow` diz "não rastreies". NÃO diz "tira do índice".
+//
+// As páginas que já estavam indexadas ficaram lá — e como o Google deixou de as
+// poder rastrear, nunca mais lá voltou para descobrir que deviam sair. O site
+// ficou com o pior dos dois mundos: as páginas finas continuaram no índice, e as
+// páginas boas (as ferramentas) deixaram de poder entrar.
+//
+// Agora a aplicação é rastreável e serve `X-Robots-Tag: noindex` (ver os
+// cabeçalhos em next.config.ts, gerados da mesma lista em lib/seoRoutes.ts).
+// O Google volta lá, lê a instrução, e remove-as de vez.
+//
+// Aqui ficam só as coisas que nunca foram páginas: endpoints, autenticação,
+// administração.
 
-// Conteúdo público que QUEREMOS indexado (espelha o sitemap).
-// SÓ páginas com texto real renderizado no servidor — as ferramentas 'use client'
-// (/interactions, /ai, /calculators, /aprender, /study) aparecem vazias ao crawler
-// e foram retiradas daqui para não diluírem a qualidade média (causa do "low value
-// content" no AdSense). Continuam acessíveis a quem entra; só não as indexamos.
-const ALLOW = [
-  '/',
-  '/blog',
-  '/guias',
-  '/centro-de-dia',
-  '/about',
-  '/sobre',
-  '/pricing',
-  '/privacy',
-  '/terms',
-]
-
-// App / ferramentas / redirects / áreas privadas — NÃO indexar.
-const DISALLOW = [
-  '/api/',
-  '/auth/',
-  '/admin',
-  // ferramentas 'use client' (vazias p/ o crawler) + páginas institucionais
-  // que não são "conteúdo" e antes diluíam a qualidade média
-  '/interactions', '/ai', '/calculators', '/aprender', '/study',
-  '/trust', '/seguranca', '/status', '/changelog', '/login', '/auditoria',
-  '/dashboard',
-  '/dashboard-institucional',
-  '/checkout',
-  '/onboarding',
-  '/settings',
-  '/partilhar/',     // stubs de redirect só p/ gerar imagem partilhável
-  '/r/',
-  '/v/',
-  '/link',
-  '/share',
-  '/shared',
-  // áreas de aplicação / clínicas (atrás de login, vazias p/ o crawler)
-  '/mymeds', '/vitals', '/perfil', '/patients', '/rounds',
-  '/turno', '/mar', '/arena', '/painel', '/cockpit', '/cockpit-legacy',
-  '/familia', '/familia360', '/saude360', '/clinico360',
-  '/study360', '/care-log', '/care-plans', '/residentes', '/census',
-  '/scan', '/labs', '/health-import', '/passport',
-  '/prescription', '/prescription-queue', '/receita', '/reconciliacao',
-  '/handover', '/nota-clinica', '/soap', '/triagem', '/telemed',
-  '/telemedicina', '/agenda', '/calendario',
-  '/faturacao', '/faturacao-config', '/crm', '/stock', '/gestao',
-  '/organizacao', '/equipa', '/team', '/teams', '/sso', '/sso-config',
-  '/api-keys', '/webhooks', '/integracoes', '/automacoes', '/exportar-dados',
-  '/importar', '/migrar', '/connect', '/vault', '/guardados',
-]
+// ── OS ROBÔS DE IA ────────────────────────────────────────────────────────
+// Cada vez mais gente pergunta "que software há para gerir medicação num centro
+// de dia?" ao ChatGPT ou ao Perplexity em vez de ao Google. Ser citado nessas
+// respostas traz visitas de quem já tem o problema — é o tráfego mais
+// qualificado que há.
+//
+// Estes são os robôs de PESQUISA: vão buscar a página quando alguém faz uma
+// pergunta, e citam a fonte. Ficam explicitamente autorizados no conteúdo.
+//
+// Os robôs de TREINO (GPTBot, ClaudeBot, CCBot) são outra conversa: alimentam
+// modelos, não devolvem visitas, e a decisão de os deixar entrar é do Fernando.
+// Não estão listados aqui, o que quer dizer que caem na regra `*` — ou seja,
+// entram. Para os barrar, acrescentar uma regra própria com `disallow: '/'`.
+const ROBOS_DE_PESQUISA = ['OAI-SearchBot', 'ChatGPT-User', 'PerplexityBot', 'Claude-User']
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
-        allow: ALLOW,
-        disallow: DISALLOW,
+        allow: '/',
+        disallow: PRIVADAS,
       },
+      ...ROBOS_DE_PESQUISA.map((robo) => ({
+        userAgent: robo,
+        allow: '/',
+        disallow: PRIVADAS,
+      })),
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
+    sitemap: `${DOMINIO}/sitemap.xml`,
+    host: DOMINIO,
   }
 }

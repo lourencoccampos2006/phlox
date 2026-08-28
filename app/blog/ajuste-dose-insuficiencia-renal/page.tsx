@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
 import ArticleSchema from '@/components/ArticleSchema'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Ajustar a dose na insuficiência renal — guia prático',
@@ -20,7 +22,7 @@ const P: React.CSSProperties = { marginBottom: 20 }
 export default function PostAjusteRenal() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <ArticleSchema slug="ajuste-dose-insuficiencia-renal" headline="Ajustar a dose na insuficiência renal — guia prático" description="Como ajustar fármacos à função renal: Cockcroft-Gault vs CKD-EPI, os medicamentos que mais exigem ajuste, e como calcular." datePublished="2026-02-20" />
+      <ArticleSchema fontes={FONTES_MEDICAMENTOS} slug="ajuste-dose-insuficiencia-renal" headline="Ajustar a dose na insuficiência renal — guia prático" description="Como ajustar fármacos à função renal: Cockcroft-Gault vs CKD-EPI, os medicamentos que mais exigem ajuste, e como calcular." datePublished="2026-02-20" />
       <article style={{ maxWidth: 680, margin: '0 auto', padding: '52px 24px 80px' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 28, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
           <Link href="/blog" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Blog</Link>
@@ -83,6 +85,8 @@ export default function PostAjusteRenal() {
             Conteúdo educativo para profissionais e estudantes. O doseamento final deve seguir o RCM do medicamento (INFARMED) e o julgamento clínico. Base: KDIGO, INFARMED, literatura de referência renal.
           </p>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-02-20" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

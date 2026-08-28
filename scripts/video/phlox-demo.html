@@ -1,0 +1,404 @@
+<title>Phlox — peça animada</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  /* ── Sistema ────────────────────────────────────────────────────────────
+     Verde da marca como chão das aberturas; quase-branco quente para as cenas
+     de produto; o malva da própria flor como ÚNICO acento. Nada de segundo
+     acento a competir. */
+  :root{
+    --verde:#0d6e42; --verde-fundo:#0a3d27; --verde-claro:#128a52;
+    --papel:#faf9f6; --tinta:#16181d; --tinta-3:#4a4f57; --tinta-4:#767c86;
+    --malva:#b08699; --linha:#e3e1db;
+    --serif:'Lora',Georgia,serif;
+    --sans:'Syne','Segoe UI',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0b0b0c;display:grid;place-items:center;min-height:100vh;
+       font-family:var(--sans);overflow:hidden}
+
+  /* O palco: 1920×1080 escalado para caber. Fixar a resolução aqui é o que
+     faz a captura sair sempre igual, em vez de depender da janela. */
+  #palco{width:1920px;height:1080px;position:relative;overflow:hidden;
+         background:var(--papel);transform-origin:center center;flex:none}
+
+  .cena{position:absolute;inset:0;opacity:0;pointer-events:none}
+  .cena.viva{opacity:1}
+
+  /* ── Cena 0 e 5: marca ─────────────────────────────────────────────── */
+  .fundo-verde{background:radial-gradient(120% 100% at 50% 0%,var(--verde-claro) 0%,var(--verde-fundo) 78%)}
+  .marca{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:34px}
+  .flor{width:250px;height:250px;object-fit:contain}
+  .palavra{font-family:var(--serif);font-style:italic;font-size:104px;color:#fff;
+           letter-spacing:-.02em;line-height:1}
+  .assinatura{font-family:var(--mono);font-size:19px;letter-spacing:.34em;
+              text-transform:uppercase;color:rgba(255,255,255,.62)}
+
+  /* ── Cenas de texto ────────────────────────────────────────────────── */
+  .declaracao{position:absolute;inset:0;display:grid;align-content:center;
+              padding:0 180px;gap:22px}
+  .declaracao .linha{font-family:var(--serif);font-size:78px;line-height:1.12;
+                     color:var(--tinta);letter-spacing:-.022em;max-width:20ch}
+  .declaracao .linha em{font-style:italic;color:var(--verde)}
+  .etiqueta{font-family:var(--mono);font-size:15px;letter-spacing:.28em;
+            text-transform:uppercase;color:var(--tinta-4);margin-bottom:14px}
+
+  /* ── Cena 2: a volta da medicação ──────────────────────────────────── */
+  .quadro{position:absolute;inset:0;display:grid;grid-template-columns:1fr 760px;
+          align-items:center;gap:90px;padding:0 140px}
+  .painel{background:#fff;border:1px solid var(--linha);border-radius:6px;
+          box-shadow:0 24px 70px rgba(15,22,30,.13);overflow:hidden}
+  .painel-topo{display:flex;align-items:center;justify-content:space-between;
+               padding:20px 26px;border-bottom:1px solid var(--linha)}
+  .painel-titulo{font-size:19px;font-weight:700;color:var(--tinta)}
+  .painel-hora{font-family:var(--mono);font-size:15px;color:var(--tinta-4)}
+  .linha-med{display:grid;grid-template-columns:1fr 150px 60px;align-items:center;
+             gap:18px;padding:17px 26px;border-bottom:1px solid #f2f0ec}
+  .linha-med:last-child{border-bottom:0}
+  .nome{font-size:19px;color:var(--tinta)}
+  .dose{font-family:var(--mono);font-size:15px;color:var(--tinta-4)}
+  /* Sem `transition` nenhuma, de propósito: uma transição do CSS corre em tempo
+     real e não em tempo de linha, por isso ao exportar fotograma a fotograma o
+     mesmo instante dava imagens diferentes conforme a velocidade da máquina.
+     Todo o estado destes vistos é calculado a partir do relógio, em desenhar(). */
+  .visto{width:30px;height:30px;border-radius:50%;border:2px solid var(--linha);
+         display:grid;place-items:center}
+  .visto svg{width:16px;height:16px;stroke:#fff;stroke-width:3;fill:none;
+             stroke-linecap:round;stroke-linejoin:round;
+             stroke-dasharray:22;stroke-dashoffset:22}
+
+  .contador{font-family:var(--mono);font-size:132px;color:var(--verde);
+            line-height:1;font-weight:700;letter-spacing:-.04em}
+  .contador-nota{font-size:25px;color:var(--tinta-3);margin-top:12px;max-width:15ch;line-height:1.4}
+
+  /* ── Cena 3: as famílias ───────────────────────────────────────────── */
+  .telemovel{width:394px;height:806px;border-radius:46px;background:#fff;
+             border:11px solid #17181b;box-shadow:0 34px 90px rgba(15,22,30,.24);
+             overflow:hidden;position:relative}
+  .tel-topo{background:var(--verde);color:#fff;padding:34px 24px 20px}
+  .tel-topo .quem{font-size:22px;font-weight:700}
+  .tel-topo .quando{font-family:var(--mono);font-size:13px;opacity:.72;margin-top:5px}
+  .bolha{margin:16px 20px;padding:15px 18px;background:#f4f2ee;border-radius:14px;
+         font-size:17px;line-height:1.5;color:var(--tinta);opacity:0;
+         transform:translateY(16px)}
+  .bolha .hora{display:block;font-family:var(--mono);font-size:12px;
+               color:var(--tinta-4);margin-top:8px}
+
+  /* ── Cena 4: o que fica registado ──────────────────────────────────── */
+  .grelha-num{position:absolute;inset:0;display:grid;
+              grid-template-columns:repeat(3,1fr);align-content:center;
+              gap:64px 64px;padding:150px 150px 0}
+  .cabeca-cena{position:absolute;top:150px;left:150px;right:150px}
+  .cabeca-cena .t{font-family:var(--serif);font-size:60px;color:var(--tinta);
+                  letter-spacing:-.022em;line-height:1.1;margin-top:14px}
+  .num{opacity:0;transform:translateY(22px)}
+  .num .v{font-size:31px;font-weight:700;color:var(--tinta);line-height:1.2;
+          letter-spacing:-.015em}
+  .num .r{font-size:19px;color:var(--tinta-3);margin-top:10px;line-height:1.5;max-width:26ch}
+  .num .barra{height:3px;background:var(--malva);margin-bottom:20px;width:0}
+
+  /* ── Comandos (escondidos ao gravar) ───────────────────────────────── */
+  #comandos{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+            display:flex;align-items:center;gap:16px;background:rgba(20,20,22,.9);
+            border:1px solid #2c2d31;border-radius:100px;padding:11px 20px;z-index:9;
+            font-family:var(--mono);font-size:12px;color:#c9cbd0}
+  #comandos button{background:#fff;color:#111;border:0;border-radius:100px;
+                   padding:7px 17px;font-family:inherit;font-size:12px;font-weight:700;
+                   cursor:pointer}
+  #trilho{width:280px;height:3px;background:#3a3b40;border-radius:2px;overflow:hidden}
+  #progresso{height:100%;width:0;background:var(--verde-claro)}
+  body.gravar #comandos{display:none}
+  body.gravar{background:#000}
+
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important}}
+</style>
+
+<div id="palco">
+  <!-- 0 · abertura -->
+  <section class="cena fundo-verde" data-cena="0">
+    <div class="marca">
+      <img class="flor" id="flor0" src="../../public/flor.png" alt="">
+      <div class="palavra" id="palavra0">phlox</div>
+    </div>
+  </section>
+
+  <!-- 1 · a declaração -->
+  <section class="cena" data-cena="1">
+    <div class="declaracao">
+      <div class="etiqueta" data-ent>07:30 · Centro de dia</div>
+      <div class="linha" data-ent>Chegam trinta e quatro pessoas.</div>
+      <div class="linha" data-ent>Cada uma com a sua medicação, os seus horários,<br>e uma família que quer saber como correu o dia.</div>
+    </div>
+  </section>
+
+  <!-- 2 · a volta da medicação -->
+  <section class="cena" data-cena="2">
+    <div class="quadro">
+      <div>
+        <div class="etiqueta">A volta da manhã</div>
+        <div class="contador"><span id="contagem">0</span>/8</div>
+        <div class="contador-nota">Registado no momento, não à noite de memória.</div>
+      </div>
+      <div class="painel">
+        <div class="painel-topo">
+          <span class="painel-titulo">Medicação · manhã</span>
+          <span class="painel-hora">08:00</span>
+        </div>
+        <div id="listaMed"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · as famílias -->
+  <section class="cena" data-cena="3">
+    <div class="quadro" style="grid-template-columns:1fr 394px">
+      <div>
+        <div class="etiqueta">Portal da família</div>
+        <div class="linha" style="font-family:var(--serif);font-size:66px;line-height:1.14;color:var(--tinta);letter-spacing:-.022em;max-width:17ch">
+          A filha vê o dia<br>sem ter de telefonar.
+        </div>
+        <div style="font-size:23px;color:var(--tinta-3);margin-top:26px;max-width:26ch;line-height:1.5">
+          Vê no telemóvel o que a mãe comeu, se tomou os comprimidos, e como esteve.
+        </div>
+      </div>
+      <div class="telemovel">
+        <div class="tel-topo">
+          <div class="quem">Maria A.</div>
+          <div class="quando">Hoje, 18:40</div>
+        </div>
+        <div id="bolhas"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · o que fica registado -->
+  <section class="cena" data-cena="4">
+    <div class="cabeca-cena">
+      <div class="etiqueta">Num só sítio</div>
+      <div class="t">O dia inteiro fica registado.</div>
+    </div>
+    <div class="grelha-num" id="numeros" style="align-content:end;padding-bottom:225px"></div>
+  </section>
+
+  <!-- 5 · fecho -->
+  <section class="cena fundo-verde" data-cena="5">
+    <div class="marca">
+      <img class="flor" src="../../public/flor.png" alt="" style="width:170px;height:170px">
+      <div class="palavra" style="font-size:82px">phlox</div>
+      <div class="assinatura" id="fecho">phloxclinical.com</div>
+    </div>
+  </section>
+</div>
+
+<div id="comandos">
+  <button id="tocar">Reproduzir</button>
+  <div id="trilho"><div id="progresso"></div></div>
+  <span id="relogio">0.0s</span>
+  <span style="opacity:.5">·</span>
+  <span>R = modo de gravação</span>
+</div>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────────
+   O MOTOR
+   Uma linha de tempo em milissegundos, avaliada a cada frame. Nada de
+   animações CSS a correr por sua conta: com keyframes soltos, pausar e
+   retomar desincroniza tudo, e uma captura frame a frame apanha estados a
+   meio. Aqui há um só relógio, e todo o movimento é função dele — o que
+   também permite arrastar a barra e ver qualquer instante exato.
+   ──────────────────────────────────────────────────────────────────────── */
+
+const facil    = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2   // easeInOutCubic
+const saida    = t => 1-Math.pow(1-t,3)                          // easeOutCubic
+const fatia    = (t,a,b) => Math.max(0,Math.min(1,(t-a)/(b-a)))  // 0..1 entre a e b
+
+const CENAS = [
+  { i:0, entra:0,     sai:4200  },
+  { i:1, entra:4200,  sai:11500 },
+  { i:2, entra:11500, sai:23000 },
+  { i:3, entra:23000, sai:33500 },
+  { i:4, entra:33500, sai:43000 },
+  { i:5, entra:43000, sai:50000 },
+]
+const FIM = 50000
+const TRANSICAO = 700   // sobreposição entre cenas
+
+/* ── Conteúdo ──────────────────────────────────────────────────────────── */
+const MEDICAMENTOS = [
+  ['Metformina',      '850 mg'],
+  ['Lisinopril',      '10 mg'],
+  ['Atorvastatina',   '20 mg'],
+  ['Levotiroxina',    '75 µg'],
+  ['Omeprazol',       '20 mg'],
+  ['Furosemida',      '40 mg'],
+  ['Bisoprolol',      '2,5 mg'],
+  ['Vitamina D',      '1000 UI'],
+]
+const MENSAGENS = [
+  ['Tomou a medicação da manhã, às 8h05.', '08:05'],
+  ['Almoçou tudo. Sopa, peixe e fruta.', '12:40'],
+  ['Esteve na oficina de música a tarde inteira. Bem-disposta.', '16:20'],
+  ['Tensão 128/76. Dentro do habitual.', '17:10'],
+]
+/* ── NADA DE ESTATÍSTICAS INVENTADAS ───────────────────────────────────
+   Aqui estavam números como "96% das tomas registadas na hora certa" e
+   "12 min de papelada em vez de duas horas". Soavam bem e eram falsos: não
+   há medição nenhuma por trás deles. Um diretor de lar já ouviu essa frase
+   a cinco fornecedores, e basta perguntar "de onde vem esse número?" para
+   o vídeo inteiro perder credibilidade.
+   O que fica são coisas verificáveis: o que o produto regista. */
+const CAPACIDADES = [
+  ['Medicação',    'Prescrição, horários, e quem deu o quê a que horas'],
+  ['Presenças',    'Quem veio, quem faltou, quem chegou mais tarde'],
+  ['Sinais vitais','Tensão, pulso, glicemia, peso — com o histórico ao lado'],
+  ['Refeições',    'O que comeu, e quanto, sem ser de memória à noite'],
+  ['Atividades',   'O que fez durante o dia, e como esteve'],
+  ['Ocorrências',  'Quedas, recusas e episódios, com o registo que a lei pede'],
+]
+
+/* ── Construir o que é repetitivo ──────────────────────────────────────── */
+const VISTO = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+document.getElementById('listaMed').innerHTML = MEDICAMENTOS.map(([n,d]) =>
+  `<div class="linha-med"><span class="nome">${n}</span><span class="dose">${d}</span>
+   <span class="visto">${VISTO}</span></div>`).join('')
+document.getElementById('bolhas').innerHTML = MENSAGENS.map(([t,h]) =>
+  `<div class="bolha">${t}<span class="hora">${h}</span></div>`).join('')
+document.getElementById('numeros').innerHTML = CAPACIDADES.map(([titulo,desc]) =>
+  `<div class="num"><div class="barra"></div>
+   <div class="v">${titulo}</div><div class="r">${desc}</div></div>`).join('')
+
+const $   = s => document.querySelector(s)
+const $$  = s => [...document.querySelectorAll(s)]
+const cena = i => $(`[data-cena="${i}"]`)
+
+/* ── O desenho de cada frame ───────────────────────────────────────────── */
+function desenhar(t){
+  // Visibilidade e encadeado entre cenas
+  for(const c of CENAS){
+    const el = cena(c.i)
+    const dentro = t >= c.entra - TRANSICAO && t < c.sai
+    el.classList.toggle('viva', dentro)
+    if(!dentro){ el.style.opacity = 0; continue }
+    const aparece  = fatia(t, c.entra - TRANSICAO, c.entra + 200)
+    const desvanece= 1 - fatia(t, c.sai - TRANSICAO, c.sai)
+    el.style.opacity = Math.min(aparece, desvanece)
+  }
+
+  // 0 · a flor cresce e a palavra sobe
+  {
+    const p = fatia(t, 200, 2200)
+    const f = $('#flor0')
+    f.style.transform = `scale(${.72 + .28*facil(p)}) rotate(${-14 + 14*facil(p)}deg)`
+    f.style.opacity = saida(fatia(t,200,1400))
+    const w = $('#palavra0'), q = fatia(t, 900, 2600)
+    w.style.transform = `translateY(${26 - 26*facil(q)}px)`
+    w.style.opacity = q
+  }
+
+  // 1 · as linhas entram escalonadas
+  $$('[data-cena="1"] [data-ent]').forEach((el,i)=>{
+    const p = fatia(t, 4500 + i*520, 5500 + i*520)
+    el.style.opacity = p
+    el.style.transform = `translateY(${20 - 20*saida(p)}px)`
+  })
+
+  // 2 · a volta: uma linha de cada vez, e o contador a acompanhar
+  {
+    const inicio = 12600, passo = 780
+    let dadas = 0
+    $$('.linha-med').forEach((el,i)=>{
+      // entrada da linha
+      const p = fatia(t, 11900 + i*90, 12500 + i*90)
+      el.style.opacity = p
+      el.style.transform = `translateX(${18 - 18*saida(p)}px)`
+
+      // o visto a preencher: círculo primeiro, traço a desenhar-se depois
+      const q = fatia(t, inicio + i*passo, inicio + i*passo + 340)
+      const circulo = el.querySelector('.visto')
+      const traco = el.querySelector('.visto svg')
+      const e = facil(q)
+      circulo.style.background  = `rgba(13,110,66,${e})`
+      circulo.style.borderColor = q > 0 ? `rgb(${Math.round(227-214*e)},${Math.round(225-115*e)},${Math.round(219-153*e)})` : ''
+      traco.style.strokeDashoffset = 22 * (1 - saida(fatia(t, inicio + i*passo + 90, inicio + i*passo + 400)))
+
+      if(q >= 1) dadas++
+    })
+    $('#contagem').textContent = dadas
+  }
+
+  // 3 · as mensagens caem uma a uma
+  $$('.bolha').forEach((el,i)=>{
+    const p = fatia(t, 24200 + i*950, 25000 + i*950)
+    el.style.opacity = p
+    el.style.transform = `translateY(${16 - 16*saida(p)}px)`
+  })
+
+  // 4 · o cabeçalho primeiro, depois os cartões em cascata
+  {
+    const c = $('[data-cena="4"] .cabeca-cena')
+    const p = fatia(t, 33900, 35000)
+    c.style.opacity = p
+    c.style.transform = `translateY(${18 - 18*saida(p)}px)`
+  }
+  $$('.num').forEach((el,i)=>{
+    const p = fatia(t, 34900 + i*300, 35800 + i*300)
+    el.style.opacity = p
+    el.style.transform = `translateY(${22 - 22*saida(p)}px)`
+    el.querySelector('.barra').style.width = `${42*saida(fatia(t, 35100+i*300, 36200+i*300))}%`
+  })
+
+  // 5 · o endereço aparece por fim
+  $('#fecho').style.opacity = fatia(t, 45200, 46400)
+}
+
+/* ── Relógio ───────────────────────────────────────────────────────────── */
+let t = 0, aCorrer = false, ultimo = 0
+
+function frame(agora){
+  if(aCorrer){
+    t += agora - ultimo
+    if(t >= FIM){ t = FIM; aCorrer = false; $('#tocar').textContent = 'Repetir' }
+  }
+  ultimo = agora
+  desenhar(t)
+  $('#progresso').style.width = (t/FIM*100) + '%'
+  $('#relogio').textContent = (t/1000).toFixed(1) + 's'
+  requestAnimationFrame(frame)
+}
+requestAnimationFrame(a => { ultimo = a; requestAnimationFrame(frame) })
+
+$('#tocar').onclick = () => {
+  if(t >= FIM) t = 0
+  aCorrer = !aCorrer
+  $('#tocar').textContent = aCorrer ? 'Pausa' : 'Reproduzir'
+}
+
+/* ── API para exportar fotogramas ──────────────────────────────────────
+   Saltar para um instante exato e parar. É isto que permite gravar a peça
+   fotograma a fotograma, em vez de capturar o ecrã em tempo real — a
+   diferença entre 60fps garantidos e o que o computador conseguir no
+   momento. Ver scripts/video/exportar.mjs. */
+window.irPara = (ms) => {
+  t = Math.max(0, Math.min(FIM, ms))
+  aCorrer = false
+  $('#tocar').textContent = 'Reproduzir'
+  desenhar(t)
+}
+window.DURACAO = FIM
+$('#trilho').onclick = e => {
+  const r = e.currentTarget.getBoundingClientRect()
+  t = Math.max(0, Math.min(FIM, (e.clientX - r.left)/r.width * FIM))
+}
+addEventListener('keydown', e => {
+  if(e.key === ' '){ e.preventDefault(); $('#tocar').click() }
+  if(e.key.toLowerCase() === 'r'){ document.body.classList.toggle('gravar') }
+})
+
+/* ── Ajustar o palco de 1920×1080 à janela ─────────────────────────────── */
+function ajustar(){
+  const e = Math.min(innerWidth/1920, innerHeight/1080)
+  $('#palco').style.transform = `scale(${e})`
+}
+addEventListener('resize', ajustar); ajustar()
+</script>

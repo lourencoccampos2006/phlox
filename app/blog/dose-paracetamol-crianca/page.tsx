@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS, EDITOR } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Dose de Paracetamol para Crianças — Calculadora por Peso (2026)',
@@ -25,10 +27,10 @@ const DOSE_TABLE = [
 function Schema() {
   const schema = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "MedicalWebPage",
     "headline": "Dose de Paracetamol para Crianças por Peso",
     "description": "Guia completo com tabela de doses de paracetamol por peso para crianças, calculadora gratuita e alertas de segurança.",
-    "author": { "@type": "Organization", "name": "Phlox Clinical" },
+    author: { '@type': 'Person', name: EDITOR.nome, jobTitle: EDITOR.papel, url: EDITOR.url },
     "publisher": { "@type": "Organization", "name": "Phlox Clinical" },
     "datePublished": "2026-01-10",
     "dateModified": "2026-05-01",
@@ -222,6 +224,8 @@ export default function BlogDoseParacetamolCrianca() {
             ))}
           </div>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2025-12-10" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </div>
   )

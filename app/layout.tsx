@@ -3,7 +3,6 @@ import { Syne, Lora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthContext'
 import CookieBanner from '@/components/CookieBanner'
-import AdScript from '@/components/AdScript'
 import ClientLayout from '@/components/ClientLayout'
 import { ToastProvider } from '@/components/Toast'
 
@@ -78,12 +77,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-PT" className={`${syne.variable} ${lora.variable} ${jetbrainsMono.variable}`}>
-      <head>
-        {/* Google AdSense — apenas a meta de verificação do site (não define cookies).
-            O SCRIPT de anúncios é carregado por <AdScript/> SÓ depois de o utilizador
-            consentir cookies de publicidade (RGPD/ePrivacy). */}
-        <meta name="google-adsense-account" content="ca-pub-3416387560941562" />
-      </head>
       <body>
         <AuthProvider>
           <ToastProvider>
@@ -91,7 +84,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </ClientLayout>
             <CookieBanner />
-            <AdScript />
           </ToastProvider>
         </AuthProvider>
       </body>

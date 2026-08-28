@@ -3,6 +3,8 @@
 // SSR, texto rico, schema JSON-LD. Conteúdo único e específico de Portugal.
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS, EDITOR } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'Como Ler uma Receita Médica em Portugal (Guia Completo 2026)',
@@ -22,10 +24,10 @@ const P: React.CSSProperties = { marginBottom: 18 }
 function Schema() {
   const schema = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'MedicalWebPage',
     headline: 'Como Ler uma Receita Médica em Portugal',
     description: 'Guia para entender a receita eletrónica do SNS: DCI, posologia, código de dispensa e comparticipação.',
-    author: { '@type': 'Organization', name: 'Phlox Clinical' },
+    author: { '@type': 'Person', name: EDITOR.nome, jobTitle: EDITOR.papel, url: EDITOR.url },
     publisher: { '@type': 'Organization', name: 'Phlox Clinical', url: 'https://phloxclinical.com' },
     datePublished: '2026-06-20',
     dateModified: '2026-06-20',
@@ -116,7 +118,9 @@ export default function PostLerReceita() {
               Artigo informativo. Não substitui o aconselhamento do seu médico ou farmacêutico. Em caso de dúvida sobre uma receita, fale com a farmácia onde a levanta. Base: SNS, INFARMED, SPMS.
             </p>
           </div>
-        </article>
+        
+        <ArtigoCredibilidade revistoEm="2026-06-20" fontes={FONTES_MEDICAMENTOS} />
+      </article>
       </div>
     </>
   )

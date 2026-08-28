@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 const CAT_LABEL: Record<string, string> = {
-  infra: 'Infraestrutura', payments: 'Pagamentos', email: 'Email', ai: 'Inteligência artificial', ads: 'Publicidade', media: 'Conteúdo / media',
+  infra: 'Infraestrutura', payments: 'Pagamentos', email: 'Email', ai: 'Inteligência artificial', media: 'Conteúdo / media',
 }
 
 export default function SubprocessadoresPage() {
@@ -21,7 +21,7 @@ export default function SubprocessadoresPage() {
 
         <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 28 }}>
           Estes são os fornecedores que tratam dados em nome da Phlox Clinical, ao abrigo de contratos
-          conformes com o RGPD. Não vendemos dados pessoais. Os cookies de publicidade só são ativados
+          conformes com o RGPD. Não vendemos dados pessoais. Os cookies não-essenciais só são ativados
           com o seu <Link href="/cookies" style={{ color: 'var(--green-2)', fontWeight: 600, textDecoration: 'none' }}>consentimento</Link>.
         </p>
 

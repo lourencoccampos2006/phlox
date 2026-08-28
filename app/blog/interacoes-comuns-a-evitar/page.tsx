@@ -2,6 +2,8 @@
 // Artigo SEO de alto volume — "interações medicamentosas comuns portugal"
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import ArtigoCredibilidade from '@/components/ArtigoCredibilidade'
+import { FONTES_MEDICAMENTOS, EDITOR } from '@/lib/autoria'
 
 export const metadata: Metadata = {
   title: 'As 10 Interações Medicamentosas Mais Comuns em Portugal (2026)',
@@ -131,10 +133,10 @@ const INTERACTIONS = [
 function Schema() {
   const articleSchema = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "MedicalWebPage",
     "headline": "As 10 Interações Medicamentosas Mais Comuns em Portugal",
     "description": "Varfarina, estatinas, antibióticos, antidepressivos — as combinações perigosas mais frequentes em Portugal com mecanismo, risco e alternativas.",
-    "author": { "@type": "Organization", "name": "Phlox Clinical" },
+    author: { '@type': 'Person', name: EDITOR.nome, jobTitle: EDITOR.papel, url: EDITOR.url },
     "publisher": { "@type": "Organization", "name": "Phlox Clinical", "url": "https://phloxclinical.com" },
     "datePublished": "2026-01-15",
     "dateModified": "2026-01-15",
@@ -235,6 +237,8 @@ export default function BlogInteracoesPage() {
             </div>
           </div>
         </div>
+      
+        <ArtigoCredibilidade revistoEm="2026-01-15" fontes={FONTES_MEDICAMENTOS} />
       </article>
     </>
   )
