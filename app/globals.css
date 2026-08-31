@@ -56,6 +56,26 @@
   --shadow-lg: 0 2px 6px rgba(22,24,29,0.05), 0 10px 28px rgba(22,24,29,0.08);
   --shadow-xl: 0 4px 12px rgba(22,24,29,0.06), 0 18px 48px rgba(22,24,29,0.11);
 
+  /* Escala de espaçamento — vinda do sistema de design partilhado com o
+     Claude Design (ver docs/designs/). Não é linear de propósito: aperta no
+     início, onde a diferença entre 4 e 6px conta, e abre no fim, onde já não.
+     Usar estes valores em vez de números à mão é o que faz duas páginas
+     desenhadas em alturas diferentes parecerem da mesma casa. */
+  --space-1:  4px;   --space-2:  6px;   --space-3:  8px;   --space-4: 10px;
+  --space-5: 12px;   --space-6: 14px;   --space-7: 16px;   --space-8: 18px;
+  --space-9: 20px;   --space-10: 24px;  --space-11: 28px;  --space-12: 32px;
+  --space-13: 36px;  --space-14: 40px;  --space-15: 48px;  --space-16: 52px;
+  --space-17: 64px;  --space-18: 80px;
+
+  /* Etiquetas de estado. Cada uma tem fundo, contorno e cor de texto, para o
+     contraste do texto ser sempre calculado contra o fundo certo — e não
+     herdado de um cinzento qualquer que passa em claro e falha em escuro. */
+  --badge-green-bg:  #d1fae5;  --badge-green-border:  #a7f3d0;  --badge-green-fg:  #065f46;
+  --badge-amber-bg:  #fef3c7;  --badge-amber-border:  #fde68a;  --badge-amber-fg:  #92400e;
+  --badge-red-bg:    #fee2e2;  --badge-red-border:    #fca5a5;  --badge-red-fg:    #991b1b;
+  --badge-blue-bg:   #dbeafe;  --badge-blue-border:   #bfdbfe;  --badge-blue-fg:   #1e40af;
+  --badge-purple-bg: #ede9fe;  --badge-purple-border: #ddd6fe;  --badge-purple-fg: #5b21b6;
+
   /* Áreas de toque e safe-areas (iOS notch / barra inferior) */
   --tap-min: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);

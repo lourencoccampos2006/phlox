@@ -244,7 +244,6 @@ function ClinicalHub({ name }: { name: string }) {
   // (isso agora vive só em /painel, que absorveu o catálogo completo) — em vez
   // disso mostra "widgets úteis": info que interessa a QUALQUER funcionário
   // (nunca restrita a admin), não atalhos para abrir ferramentas.
-  const [attention, setAttention] = useState<{ id: string; name: string; reason: string }[]>([])
   const [todayActivities, setTodayActivities] = useState<{ title: string; start_time: string | null }[]>([])
 
   const load = useCallback(async () => {
@@ -261,18 +260,12 @@ function ClinicalHub({ name }: { name: string }) {
     const logged = loggedIds.size
     const doses = (mar.data || []).filter((m: any) => m.status === 'administered' || m.status === 'taken' || m.status === 'given').length
     setSnap({ people: p.count || 0, logged, doses, alerts: (inc as any).count || 0 })
-    // "A vigiar hoje" — junta ocorrências abertas (nome real do utente) com
-    // utentes ainda sem registo do dia, até 3 no total. Não é pontuação de
-    // risco (isso é o /radar) — é só um lembrete rápido, para todos verem.
-    const patientName: Record<string, string> = {}
-    ;(unlogged.data || []).forEach((p2: any) => { patientName[p2.id] = p2.name })
-    const incItems = ((inc.data || []) as any[]).slice(0, 3).map(i => ({ id: i.id, name: patientName[i.patient_id] || 'Utente', reason: 'ocorrência em aberto' }))
-    const stillNeeded = 3 - incItems.length
-    const unloggedItems = stillNeeded > 0
-      ? ((unlogged.data || []) as any[]).filter(p2 => !loggedIds.has(p2.id)).slice(0, stillNeeded).map(p2 => ({ id: p2.id, name: p2.name, reason: 'sem registo hoje' }))
-      : []
-    setAttention([...incItems, ...unloggedItems])
-    setTodayActivities(((acts.data || []) as any[]).slice(0, 3))
+    // O "A vigiar hoje" com três nomes foi removido (2026-08-31). Numa casa
+    // com trinta e quatro utentes, mostrar três pelo nome não é uma amostra —
+    // é um recorte pela ordem da consulta, que dá a impressão errada de que
+    // aqueles são OS casos. Quem lista pessoa a pessoa é o /painel, que mostra
+    // todas as pendências e ordena por urgência a sério.
+    setTodayActivities(((acts.data || []) as any[]).slice(0, 4))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
 
@@ -286,71 +279,135 @@ function ClinicalHub({ name }: { name: string }) {
     { n: snap.people, l: cfg.personNounPlural },
     { n: snap.logged, l: 'com registo hoje' },
     { n: snap.doses, l: 'tomas dadas' },
-    { n: snap.alerts, l: 'a vigiar', alert: snap.alerts > 0 },
+    // Diz o que conta mesmo. Estava "a vigiar", mas o número só conta
+    // ocorrências em aberto, enquanto a lista "A vigiar hoje" logo abaixo
+    // junta-lhes os utentes sem registo do dia. Dava a contradição de mostrar
+    // "0 a vigiar" com pessoas listadas a seguir.
+    { n: snap.alerts, l: snap.alerts === 1 ? 'ocorrência em aberto' : 'ocorrências em aberto', alert: snap.alerts > 0 },
   ] : []
+
+  // ── Widgets, e nenhum nome de utente ──────────────────────────────────
+  // Mostrava "A vigiar hoje" com três pessoas pelo nome. Numa casa com 34
+  // utentes, três nomes não é uma amostra — é um recorte arbitrário que faz
+  // parecer que aqueles são os casos, quando são só os primeiros da consulta.
+  // O painel é que lista pessoa a pessoa; aqui fica a forma do dia.
+  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null)
+  const conclusao = snap ? pct(snap.doses + snap.logged, snap.people * 2) : null
+
+  const Bloco = ({ etiqueta, children, href, largo }: {
+    etiqueta: string; children: React.ReactNode; href?: string; largo?: boolean
+  }) => {
+    const inner = (
+      <div style={{
+        background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+        padding: 'var(--space-9) var(--space-10)', height: '100%',
+        display: 'flex', flexDirection: 'column', gap: 'var(--space-5)',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700,
+        }}>{etiqueta}</div>
+        {children}
+      </div>
+    )
+    return (
+      <div style={{ gridColumn: largo ? 'span 2' : 'auto', minWidth: 0 }}>
+        {href ? <Link href={href} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>{inner}</Link> : inner}
+      </div>
+    )
+  }
+
+  const Grande = ({ v, de, cor }: { v: number; de?: number; cor?: string }) => (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 38, lineHeight: 1, color: cor || 'var(--ink)', letterSpacing: '-0.025em' }}>{v}</span>
+      {de != null && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'var(--ink-5)' }}>/{de}</span>}
+    </div>
+  )
+
+  const Nota = ({ children }: { children: React.ReactNode }) => (
+    <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5, marginTop: 'auto' }}>{children}</div>
+  )
 
   return (
     <div style={{ minHeight: '100vh', background: t.pageBg, fontFamily: 'var(--font-sans)', color: t.ink }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '30px 18px 48px' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: bp.accent, fontWeight: 700, marginBottom: 8 }}>{bp.productName}</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(26px,4.5vw,32px)', margin: '0 0 6px', letterSpacing: '-0.01em', color: t.ink }}>{greetLead}</h1>
-        <p style={{ color: t.inkSoft, fontSize: 14, marginBottom: 24 }}>{bp.tagline}</p>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '30px clamp(16px,3vw,24px) 64px' }}>
 
-        {/* Resumo do dia — ao vivo */}
-        <Link href="/painel" style={{ display: 'block', textDecoration: 'none', marginBottom: 8 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>O dia de hoje</div>
-          {!snap ? (
-            <div style={{ color: t.inkFaint, fontSize: 13 }}>A carregar…</div>
-          ) : (
-            <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-              {stats.map(s => (
-                <div key={s.l}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 700, lineHeight: 1, color: (s as any).alert ? '#dc2626' : t.ink }}>{s.n}</div>
-                  <div style={{ fontSize: 11.5, color: t.inkFaint, marginTop: 5, fontWeight: 600 }}>{s.l}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Link>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: bp.accent, fontWeight: 700, marginBottom: 'var(--space-4)' }}>{bp.productName}</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(27px,4.6vw,36px)', margin: '0 0 var(--space-3)', letterSpacing: '-0.02em', color: t.ink }}>{greetLead}</h1>
+        <p style={{ color: t.inkSoft, fontSize: 14.5, marginBottom: 'var(--space-12)' }}>{bp.tagline}</p>
 
-        {/* "A vigiar hoje" — lembrete rápido para todos, não é o /radar completo */}
-        {attention.length > 0 && (
-          <div style={{ marginTop: 30 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>A vigiar hoje</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {attention.map((a, i) => (
-                <div key={a.id + i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626', flexShrink: 0 }} />
-                  <span style={{ color: t.ink, fontWeight: 600 }}>{a.name}</span>
-                  <span style={{ color: t.inkFaint }}>— {a.reason}</span>
+        {!snap ? (
+          <div style={{ color: t.inkFaint, fontSize: 13 }}>A carregar o dia…</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(196px,1fr))', gap: 'var(--space-6)' }}>
+
+            <Bloco etiqueta="Como vai o dia" href="/painel" largo>
+              {conclusao == null ? (
+                <Nota>Ainda sem nada registado hoje.</Nota>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-6)' }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 44, lineHeight: 1, color: bp.accent, letterSpacing: '-0.03em' }}>{conclusao}%</span>
+                    <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>do que o dia pede já está feito</span>
+                  </div>
+                  <div style={{ height: 5, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, conclusao)}%`, background: bp.accent, borderRadius: 3, transition: 'width .5s' }} />
+                  </div>
+                  <Nota>Conta as tomas dadas e os registos do dia, sobre o que estava previsto.</Nota>
+                </>
+              )}
+            </Bloco>
+
+            <Bloco etiqueta={cfg.personNounPlural} href="/patients">
+              <Grande v={snap.people} />
+              <Nota>{snap.people === 1 ? 'pessoa ativa' : 'pessoas ativas'} na casa</Nota>
+            </Bloco>
+
+            <Bloco etiqueta="Tomas dadas" href="/mar">
+              <Grande v={snap.doses} />
+              <Nota>hoje, registadas pela equipa</Nota>
+            </Bloco>
+
+            <Bloco etiqueta="Registos do dia" href="/care-log">
+              <Grande v={snap.logged} de={snap.people} />
+              <Nota>{snap.people - snap.logged > 0 ? `${snap.people - snap.logged} por fazer` : 'todos feitos'}</Nota>
+            </Bloco>
+
+            <Bloco etiqueta="Ocorrências em aberto" href="/incidents">
+              <Grande v={snap.alerts} cor={snap.alerts > 0 ? '#b91c1c' : undefined} />
+              <Nota>{snap.alerts > 0 ? 'com seguimento por fazer' : 'nada em aberto'}</Nota>
+            </Bloco>
+
+            <Bloco etiqueta="Atividades de hoje" href="/activities" largo>
+              {todayActivities.length === 0 ? (
+                <Nota>Sem atividades marcadas. Num centro de dia, são elas que fazem o dia.</Nota>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  {todayActivities.slice(0, 4).map((a: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-6)', fontSize: 14 }}>
+                      {a.start_time && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink-5)', minWidth: 40 }}>{String(a.start_time).slice(0, 5)}</span>}
+                      <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{a.title}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </Bloco>
+
           </div>
         )}
 
-        {/* Atividades de hoje — útil a qualquer funcionário, não só a quem gere */}
-        {todayActivities.length > 0 && (
-          <div style={{ marginTop: 26 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>Atividades de hoje</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {todayActivities.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
-                  {a.start_time && <span style={{ fontFamily: 'var(--font-mono)', color: t.inkFaint, fontSize: 12, minWidth: 42 }}>{a.start_time.slice(0, 5)}</span>}
-                  <span style={{ color: t.ink, fontWeight: 600 }}>{a.title}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Link href="/painel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 32, padding: '13px', borderRadius: 10, background: t.accent, color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 14.5 }}>
+        <Link href="/painel" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          marginTop: 'var(--space-12)', padding: 'var(--space-7)', borderRadius: 'var(--r-md)',
+          background: t.accent, color: 'white', textDecoration: 'none', fontWeight: 700, fontSize: 14.5,
+        }}>
           <Icon name="grid" size={17} color="white" /> Abrir o painel
         </Link>
       </div>
     </div>
   )
 }
+
 
 // Mapeia o emoji do blueprint para um ícone do nosso set (fallback p/ grid).
 // Exportada: /painel também usa isto para desenhar o catálogo de ferramentas.

@@ -7,10 +7,13 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import PainelCockpit from './PainelCockpit'
+import PainelHoje from './PainelHoje'
 
 export default function PainelPage() {
   const { user, loading } = useAuth() as any
+  const { institution } = useClinicPrefs()
   const router = useRouter()
   const mode = user?.experience_mode
 
@@ -21,5 +24,12 @@ export default function PainelPage() {
   useEffect(() => { if (wrongMode) router.replace('/inicio') }, [wrongMode, router])
 
   if (wrongMode) return null
-  return <PainelCockpit />
+
+  // O painel novo (docs/designs/Painel Phlox.html) é para o mercado real: lares
+  // e centros de dia. Os outros tipos que ainda vivem no blueprint (farmácia,
+  // clínica) continuam no cockpit antigo — não foram redesenhados, e mandá-los
+  // para um painel pensado para outra coisa dava-lhes um ecrã pior do que o que
+  // já tinham.
+  const novoPainel = institution === 'day_care' || institution === 'nursing_home'
+  return novoPainel ? <PainelHoje /> : <PainelCockpit />
 }

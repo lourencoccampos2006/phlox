@@ -50,6 +50,14 @@ export interface ToolEntry {
   icon: string
 }
 
+/** Uma pasta de ferramentas no painel. */
+export interface ToolFolder {
+  id: string
+  label: string        // "Cuidado diário", "Gestão"…
+  hint: string         // o que se vai lá fazer, numa linha
+  tools: ToolEntry[]
+}
+
 export interface InstitutionBlueprint {
   // Identidade
   productName: string          // como o produto se chama PARA ESTE tipo
@@ -64,6 +72,20 @@ export interface InstitutionBlueprint {
   // Ferramentas: núcleo curado (sempre visível) + extras opcionais
   coreTools: ToolEntry[]
   extraTools: ToolEntry[]
+  /**
+   * As extraTools arrumadas por assunto, para aparecerem como pastas no
+   * painel em vez de uma lista corrida no menu.
+   *
+   * PORQUÊ: o menu lateral tinha 24 entradas. Vinte e quatro escolhas de cada
+   * vez que alguém olha para o lado não é riqueza, é paragem — e ao fim de uma
+   * semana a equipa usa cinco e ignora o resto, sem saber o que ignorou.
+   *
+   * As oito do núcleo ficam no menu, porque são o que se usa todos os dias. As
+   * restantes passam a viver em pastas no corpo do painel: continuam todas
+   * acessíveis, mas deixam de competir pela atenção de quem só quer marcar uma
+   * toma. Ver docs/designs/.
+   */
+  toolFolders?: ToolFolder[]
 }
 
 // Helpers de ferramentas (nomes CLAROS, reutilizáveis) ────────────────────────
@@ -136,6 +158,21 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     // era antes um item de menu à parte (T.quality) para o mesmo destino — fundidos
     // num só, para não duplicar entradas que vão ter ao mesmo sítio.
     extraTools: [ T.carga, T.autonomia, T.incidents, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.meds_check, T.calc ],
+    // As mesmas ferramentas, arrumadas por assunto. Um centro de dia serve
+    // pessoas que dormem em casa: o peso está no dia — refeições, atividades,
+    // companhia — e não na enfermagem. A ordem das pastas segue isso.
+    toolFolders: [
+      { id: 'dia', label: 'O dia', hint: 'O que acontece entre a chegada e a saída',
+        tools: [T.activities, T.prep, T.apoio, T.incidents] },
+      { id: 'pessoas', label: 'Pessoas e famílias', hint: 'Acompanhamento de quem cá anda e de quem os espera em casa',
+        tools: [T.psicossocial, T.autonomia, T.trends, T.assessments] },
+      { id: 'clinico', label: 'Apoio clínico', hint: 'Para quando é preciso ir ao detalhe da medicação',
+        tools: [T.meds_check, T.wounds, T.calc] },
+      { id: 'equipa', label: 'Equipa', hint: 'Quem está, quando, e com que carga',
+        tools: [T.team, T.carga] },
+      { id: 'casa', label: 'A casa', hint: 'Gestão, stock e o que a inspeção pede',
+        tools: [T.staff, T.stock, T.documents] },
+    ],
   },
 
   // ── LAR / ERPI — cuidado 24h. Tom acolhedor mas com mais peso clínico.
@@ -161,6 +198,20 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     // Guardião só no lar: um centro de dia não tem turno da noite nem serviço
     // ao fim de semana, por isso a ferramenta não se aplica lá.
     extraTools: [ T.guardiao, T.carga, T.autonomia, T.incidents, T.activities, T.trends, T.vigia, T.stock, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.meds_check, T.calc ],
+    // Num lar o peso desloca-se: há enfermagem, há noite, e há um corpo
+    // clínico que num centro de dia não existe. A pasta clínica vem à frente.
+    toolFolders: [
+      { id: 'clinico', label: 'Clínico', hint: 'Medicação, risco e o que precisa de olho de profissional',
+        tools: [T.vigia, T.meds_check, T.trends, T.autonomia, T.calc] },
+      { id: 'dia', label: 'O dia e a noite', hint: 'Da manhã ao turno da noite',
+        tools: [T.guardiao, T.activities, T.prep, T.incidents, T.apoio] },
+      { id: 'pessoas', label: 'Pessoas e famílias', hint: 'Acompanhamento de quem cá vive',
+        tools: [T.psicossocial] },
+      { id: 'equipa', label: 'Equipa', hint: 'Quem está, quando, e com que carga',
+        tools: [T.team, T.carga] },
+      { id: 'casa', label: 'A casa', hint: 'Gestão, stock e o que a inspeção pede',
+        tools: [T.staff, T.stock, T.documents] },
+    ],
   },
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.

@@ -5,8 +5,9 @@
 // pilha (sem abas confusas): Resumo · Medicação · Sinais vitais · Contactos.
 // Mantém o essencial que importa e funciona, sem a confusão antiga.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import FichaUtente from './FichaUtente'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -56,6 +57,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const accentSoft = warm ? '#f0fdfa' : '#eff6ff'
 
   const [pid, setPid] = useState<string | null>(null)
+  // A ficha nova diz-nos como recarregar os SEUS dados. Os formularios desta
+  // página chamam isto depois de gravar - sem ele, adicionar um medicamento
+  // gravava e a lista em cima não mexia.
+  const recarregarFicha = useRef<() => void>(() => {})
   const [patient, setPatient] = useState<Patient | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -363,68 +368,6 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     finally { setReportBusy(false) }
   }
 
-  // Briefing clínico para consulta/exame externo (Módulo 6, 2026-08-16) —
-  // medicação atual + alergias + tendência REAL de sinais vitais (lib/
-  // healthTrends, a mesma função já ligada ao /care-log) + red flags/perguntas
-  // sugeridas por IA (reutiliza app/api/briefing, já existente, usado até
-  // agora só com medicação colada à mão — aqui alimentado com os dados reais
-  // desta pessoa). A IA nunca inventa medicação: recebe só a lista real.
-  const [briefingBusy, setBriefingBusy] = useState(false)
-  async function printConsultBriefing() {
-    if (!patient || !pid) return
-    setBriefingBusy(true)
-    try {
-      const since = new Date(); since.setDate(since.getDate() - 90)
-      const { data: recs } = await supabase.from('care_records').select('date,created_at,vitals').eq('patient_id', pid).gte('date', since.toISOString().slice(0, 10)).order('date')
-      const trendVitals: TrendVital[] = ((recs || []) as any[])
-        .filter(r => r.vitals && Object.values(r.vitals).some((v: any) => v != null))
-        .map(r => ({ recorded_at: r.created_at || r.date, ...r.vitals }))
-      const trends = vitalTrendSignals(trendVitals, true)
-
-      const medications = meds.map(m => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` — ${m.frequency}` : ''}`).join('\n') || 'Sem medicação ativa registada'
-      const context = [
-        patient.age ? `Idade: ${patient.age} anos` : '',
-        `Alergias: ${patient.allergies || 'nenhuma conhecida'}`,
-        patient.conditions ? `Diagnósticos: ${patient.conditions}` : '',
-        trends.length ? `Tendências recentes de sinais vitais: ${trends.map(t => `${t.title} — ${t.detail}`).join('; ')}` : 'Sem tendências relevantes nos sinais vitais recentes',
-      ].filter(Boolean).join('. ')
-
-      const { data: sd } = await supabase.auth.getSession()
-      const r = await fetch('/api/briefing', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
-        body: JSON.stringify({ medications, chief_complaint: `Consulta/exame agendado. ${context}` }),
-      })
-      const b = await r.json()
-      if (!r.ok) throw new Error(b.error || 'Não foi possível gerar o briefing.')
-
-      const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string))
-      const w = window.open('', '_blank'); if (!w) { setBriefingBusy(false); return }
-      w.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Briefing de consulta — ${esc(patient.name)}</title>
-        <style>body{font-family:Arial,sans-serif;padding:32px;color:#111;font-size:13.5px;line-height:1.55;max-width:720px;margin:0 auto}
-        h1{font-size:22px;font-family:Georgia,serif;margin:0 0 4px}.meta{color:#555;margin:0 0 18px;font-size:13px}
-        .warn{background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:14px 16px;margin:0 0 14px}
-        .warn .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#991b1b;font-weight:700;margin-bottom:4px}
-        .box{border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin:0 0 14px}
-        .box .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#666;margin-bottom:8px;font-weight:700}
-        .flag{border-left:3px solid #d97706;padding:6px 0 6px 12px;margin-bottom:8px}
-        .flag.IMEDIATA{border-color:#dc2626}.flag .urg{font-size:10px;font-weight:800;text-transform:uppercase;color:#92400e}
-        .flag.IMEDIATA .urg{color:#991b1b}
-        ul{margin:0;padding-left:20px}li{margin-bottom:4px}</style></head><body>
-        <h1>Briefing de consulta — ${esc(patient.name)}</h1>
-        <div class="meta">${[patient.age ? patient.age + ' anos' : '', patient.room_number ? cfg.roomLabel + ' ' + patient.room_number : ''].filter(Boolean).join(' · ')} · Gerado em ${new Date().toLocaleString('pt-PT')}</div>
-        <div class="warn"><div class="lbl">⚠ Alergias</div>${patient.allergies ? esc(patient.allergies) : 'Nenhuma conhecida'}</div>
-        <div class="box"><div class="lbl">Medicação atual (${meds.length})</div><ul>${meds.map(m => `<li>${esc(m.name)}${m.dose ? ` — ${esc(m.dose)}` : ''}${m.frequency ? ` (${esc(m.frequency)})` : ''}</li>`).join('') || '<li>Sem medicação registada</li>'}</ul></div>
-        ${trends.length ? `<div class="box"><div class="lbl">Tendências recentes de sinais vitais</div><ul>${trends.map(t => `<li><strong>${esc(t.title)}</strong> — ${esc(t.detail)}</li>`).join('')}</ul></div>` : ''}
-        ${b.clinical_note ? `<div class="box"><div class="lbl">Síntese clínica</div>${esc(b.clinical_note)}</div>` : ''}
-        ${(b.red_flags || []).length ? `<div class="box"><div class="lbl">Pontos de atenção</div>${b.red_flags.map((f: any) => `<div class="flag${f.urgency === 'IMEDIATA' ? ' IMEDIATA' : ''}"><span class="urg">${esc(f.urgency)}</span><br>${esc(f.flag)}${f.reason ? ` — ${esc(f.reason)}` : ''}</div>`).join('')}</div>` : ''}
-        ${(b.questions_to_ask || []).length ? `<div class="box"><div class="lbl">Perguntas sugeridas ao médico</div><ul>${b.questions_to_ask.map((q: string) => `<li>${esc(q)}</li>`).join('')}</ul></div>` : ''}
-        ${(b.what_to_monitor || []).length ? `<div class="box"><div class="lbl">A monitorizar</div><ul>${b.what_to_monitor.map((m: any) => `<li><strong>${esc(m.parameter)}</strong>${m.target ? ` — alvo ${esc(m.target)}` : ''}${m.reason ? ` (${esc(m.reason)})` : ''}</li>`).join('')}</ul></div>` : ''}
-        <p style="margin-top:24px;color:#999;font-size:11px">Phlox Clinical · Apoio à consulta, não substitui avaliação clínica · ${esc(cfg.unitNoun)}</p>
-        </body></html>`)
-      w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
-    } catch (e: any) { toast.error('Não foi possível gerar o briefing', reportError('consult-briefing', e, 'Tenta de novo.')) }
-    finally { setBriefingBusy(false) }
-  }
 
   // Dossier mensal — formal, para a direção mostrar a uma família ou numa
   // inspeção: presenças, atividades, adesão à medicação, ocorrências. Diferente
@@ -450,9 +393,17 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       const incs = (incRes.data || []) as { date: string; type: string; severity: string; description: string; action_taken?: string; follow_up_required?: boolean }[]
 
       const presentDays = att.filter(a => a.status === 'present').length
-      const attendanceRate = att.length ? Math.round((presentDays / att.length) * 100) : null
       const dosesGiven = doses.filter(d => d.status === 'administered' || d.status === 'given' || d.status === 'taken').length
-      const adherence = doses.length ? Math.round((dosesGiven / doses.length) * 100) : null
+
+      // ── SEM PERCENTAGENS AQUI ──────────────────────────────────────────
+      // Estava `adherence = dosesGiven / doses.length`, com `doses` = as linhas
+      // de mar_records do mês. Não é adesão: é "das tomas que alguém se lembrou
+      // de registar, quantas ficaram marcadas como dadas". O denominador só
+      // cresce quando se regista, por isso dava quase sempre 100% — uma utente
+      // com UM dia registado aparecia com 100% a 29 de agosto.
+      // A percentagem certa exigia as doses DEVIDAS, e essas não existem deste
+      // lado: patient_meds.frequency é texto livre. A presença tinha o mesmo
+      // defeito. Este documento vai para famílias e inspeções: ficam contagens.
       const TYPE_LABELS: Record<string, string> = { fall: 'Queda', medication_error: 'Erro de Medicação', pressure_ulcer: 'Úlcera de Pressão', behavioral: 'Incidente Comportamental', choking: 'Engasgamento', infection: 'Infeção', other: 'Outro' }
       const SEV_LABELS: Record<string, string> = { minor: 'Ligeiro', moderate: 'Moderado', major: 'Grave', critical: 'Crítico' }
 
@@ -473,8 +424,11 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         : [{ title: 'Sem participação em atividades registada este mês' }]
 
       const medRecords: PrintRecord[] = doses.length ? [{
-        title: `${dosesGiven} de ${doses.length} tomas dadas`,
-        fields: [{ label: 'Adesão', value: adherence != null ? `${adherence}%` : '—' }],
+        title: `${dosesGiven} de ${doses.length} tomas registadas foram dadas`,
+        fields: [
+          { label: 'Suspensas ou recusadas', value: String(doses.length - dosesGiven) },
+          { label: 'Nota', value: 'Contagem sobre as tomas registadas no sistema. Não representa a totalidade das doses prescritas no período.' },
+        ],
       }] : [{ title: 'Sem tomas registadas este mês', fields: [] }]
 
       const incidentRecords: PrintRecord[] = incs.length
@@ -494,9 +448,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         docSubtitle: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
         institution: cfg.unitNoun,
         meta: [
-          { label: 'presença', value: attendanceRate != null ? `${attendanceRate}%` : '—' },
+          { label: 'dias presente', value: att.length ? `${presentDays} de ${att.length} marcados` : '—' },
           { label: 'atividades', value: String(parts.length) },
-          { label: 'adesão à medicação', value: adherence != null ? `${adherence}%` : '—' },
+          { label: 'tomas dadas', value: doses.length ? `${dosesGiven} de ${doses.length} registadas` : '—' },
           { label: 'ocorrências', value: String(incs.length) },
         ],
         sections: [
@@ -521,172 +475,60 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const centreMeds = meds.filter(m => m.take_location !== 'casa')
 
   return (
-    <Shell warm={warm}>
-      {/* Voltar */}
-      <Link href="/patients" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: accent, textDecoration: 'none', fontWeight: 600, marginBottom: 14 }}>← {cfg.personNounPlural}</Link>
+    <FichaUtente
+      pid={pid!}
+      aoMudar={fn => { recarregarFicha.current = fn }}
 
-      {/* Cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-        {patient.photo_url ? (
-          <img src={patient.photo_url} alt={patient.name} style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-        ) : (
-          <div style={{ width: 54, height: 54, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, flexShrink: 0 }}>{patient.name.charAt(0).toUpperCase()}</div>
+      acoes={<>
+        <button onClick={() => setEditing(true)} style={btnGhost(accent)}>Editar</button>
+        <button onClick={printChart} style={btnGhost(accent)} title="Imprimir ficha clínica">Ficha clínica</button>
+        <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">Cartão de emergência</button>
+        <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '\…' : 'Relatório do mês'}</button>
+        <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal">{dossierBusy ? '\…' : 'Dossier mensal'}</button>
+        {scope.canEdit && (
+          <button onClick={archiveThisPatient} style={{ ...btnGhost(accent), borderColor: '#e2e8f0', color: '#94a3b8' }}>Arquivar</button>
         )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: 'clamp(22px,5vw,28px)', fontWeight: warm ? 500 : 800, color: '#0b1120', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{patient.name}</h1>
-          <div style={{ fontSize: 13, color: '#64748b', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-            {[patient.age ? `${patient.age} anos` : null, patient.sex === 'F' ? 'Feminino' : patient.sex === 'M' ? 'Masculino' : null, patient.room_number ? `${cfg.roomLabel} ${patient.room_number}` : null].filter(Boolean).join(' · ') || `Ficha de ${noun}`}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-          <button onClick={() => setEditing(true)} style={btnGhost(accent)}>Editar</button>
-          <button onClick={printChart} style={btnGhost(accent)} title="Imprimir ficha clínica">🖨 Ficha</button>
-          <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">🚨 Cartão de emergência</button>
-          <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '…' : '📄 Relatório'}</button>
-          <button onClick={printConsultBriefing} disabled={briefingBusy} style={btnGhost(accent)} title="Medicação, tendências e perguntas sugeridas para uma consulta/exame externo">{briefingBusy ? '…' : '🩺 Preparar consulta'}</button>
-          <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal: presenças, atividades, medicação, ocorrências">{dossierBusy ? '…' : '🗂 Dossier mensal'}</button>
-          {scope.canEdit && (
-            <button onClick={archiveThisPatient} style={{ ...btnGhost(accent), borderColor: '#e2e8f0', color: '#94a3b8' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.color = '#dc2626' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#94a3b8' }}
-              title={`Arquivar ${noun} — sai das listas ativas, histórico fica guardado`}>🗄 Arquivar</button>
-          )}
-        </div>
-      </div>
+      </>}
 
-      {/* Alergia — sempre visível, é segurança */}
-      {patient.allergies && (
-        <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderLeft: '4px solid #dc2626', borderRadius: 10, padding: '12px 16px', marginBottom: 14 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#991b1b' }}>⚠ ALERGIAS: </span>
-          <span style={{ fontSize: 13.5, color: '#7f1d1d' }}>{patient.allergies}</span>
-        </div>
-      )}
-
-      {/* Preferências e sensibilidades — sempre visível, mesmo tratamento que
-          alergias (Módulo 9): quem substitui a pessoa habitual não deve ter de
-          ler a página toda até ao fim para saber "não gosta de duche, prefere
-          banho" ou uma prática religiosa a respeitar. Vive dentro do mesmo
-          life_story jsonb da História de vida, campo à parte (essa continua
-          mais abaixo, para conversar; isto é o que importa AO CUIDAR). */}
-      {patient.life_story?.sensitivities ? (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #d97706', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
-          <div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#92400e' }}>PREFERÊNCIAS E SENSIBILIDADES: </span>
-            <span style={{ fontSize: 13.5, color: '#78350f' }}>{patient.life_story.sensitivities}</span>
-          </div>
-          <button onClick={() => { setEditingLife(true); document.getElementById('historia-vida-anexo')?.scrollIntoView({ behavior: 'smooth' }) }}
-            style={{ background: 'none', border: 'none', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, textDecoration: 'underline' }}>Editar</button>
-        </div>
-      ) : (
-        <button onClick={() => { setEditingLife(true); document.getElementById('historia-vida-anexo')?.scrollIntoView({ behavior: 'smooth' }) }}
-          style={{ display: 'block', width: '100%', textAlign: 'left', background: '#fffbeb', border: '1px dashed #fde68a', borderRadius: 10, padding: '10px 16px', marginBottom: 14, fontSize: 12.5, color: '#92400e', cursor: 'pointer', fontFamily: 'inherit' }}>
-          + Registar preferências e sensibilidades (ex: "prefere duche a banho de imersão", "gosta de ser tratada por Dona Maria")
-        </button>
-      )}
-
-      {/* AÇÕES RÁPIDAS — a ficha vira um hub: dar medicação, registar o dia */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-        <Link href={`/mar?patient=${patient.id}`} style={{ ...btnSolid(accent), flex: '1 1 140px', textAlign: 'center', textDecoration: 'none' }}>💊 Dar medicação</Link>
-        <Link href={`/care-log?patient=${patient.id}`} style={{ ...btnGhost(accent), flex: '1 1 140px', textAlign: 'center', textDecoration: 'none' }}>📝 Registar o dia</Link>
-      </div>
-
-      {/* RESUMO */}
-      <Card>
-        <CardTitle>Resumo</CardTitle>
-        {/* Estado em linha — só o que tem dados (sem "0" vazios) */}
-        {(crCl != null || patient.weight || todayMar.length > 0 || meds.length > 0) && (
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: patient.conditions ? 14 : 0 }}>
-            {meds.length > 0 && <Mini label="Medicamentos" value={String(meds.length)} accent={accent} />}
-            {crCl != null && <Mini label="Função renal" value={`CrCl ${crCl}`} alert={crCl < 30} warn={crCl < 60} />}
-            {patient.weight && <Mini label="Peso" value={`${patient.weight} kg`} />}
-            {todayMar.length > 0 && <Mini label="Tomas hoje" value={String(todayMar.filter(m => m.status === 'administered' || m.status === 'given' || m.status === 'taken').length)} accent={accent} />}
-          </div>
+      revisaoMedicacao={<div style={{ paddingTop: 'var(--space-9)' }}>
+        {!summary && !sumLoading && (
+          meds.length > 0 || patient.conditions
+            ? <button onClick={genSummary} style={btnGhost(accent)}>Analisar a medicação</button>
+            : <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Adiciona medicação ou diagnósticos para poder analisar.</div>
         )}
-        {patient.conditions && (
-          <div>
-            <Label>Diagnósticos</Label>
-            <div style={{ fontSize: 14, color: '#334155', lineHeight: 1.6 }}>{patient.conditions}</div>
-          </div>
-        )}
-        {patient.address && <div style={{ marginTop: 12 }}><Label>{isDayCare ? 'Morada (recolha)' : 'Morada'}</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>📍 {patient.address}</div></div>}
-        {patient.notes && <div style={{ marginTop: 12 }}><Label>Notas</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.notes}</div></div>}
-
-        {/* Resumo clínico IA — só quando há matéria para analisar */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
-          {!summary && !sumLoading && (
-            meds.length > 0 || patient.conditions
-              ? <button onClick={genSummary} style={{ ...btnGhost(accent), width: '100%' }}>✨ Gerar resumo clínico (IA)</button>
-              : <div style={{ fontSize: 12.5, color: '#94a3b8', textAlign: 'center' }}>Adicione medicação ou diagnósticos para gerar um resumo clínico.</div>
-          )}
-          {sumLoading && <div style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: 8 }}>A analisar a ficha…</div>}
-          {sumErr && <div style={{ fontSize: 13, color: '#dc2626' }}>{sumErr}</div>}
-          {summary && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {summary.overview && <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.65, margin: 0 }}>{summary.overview}</p>}
-              {(summary.watch_for || []).length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {summary.watch_for!.map((w, i) => {
-                    const s = SEV[w.level] || SEV.baixa
-                    return <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}><span style={{ fontSize: 9.5, fontWeight: 800, color: s.c, background: s.b, borderRadius: 4, padding: '2px 7px', flexShrink: 0, textTransform: 'uppercase', marginTop: 1 }}>{w.level}</span><span style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>{w.text}</span></div>
-                  })}
-                </div>
-              )}
-              {(summary.interactions || []).length > 0 && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#92400e', marginBottom: 5 }}>Interações a confirmar</div>
-                  {summary.interactions!.map((it, i) => <div key={i} style={{ fontSize: 12.5, color: '#78350f', lineHeight: 1.5 }}>• {it}</div>)}
-                </div>
-              )}
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Orientação de apoio — confirma sempre clinicamente. <button onClick={genSummary} style={{ background: 'none', border: 'none', color: accent, fontWeight: 700, cursor: 'pointer', fontSize: 11 }}>Atualizar</button></div>
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* HISTÓRIA DE VIDA — para a equipa conversar com sentido (essencial em
-          demência); a família pode ajudar a preencher. */}
-      <div id="historia-vida-anexo" />
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <CardTitle noMargin>História de vida</CardTitle>
-          {!editingLife && <button onClick={() => setEditingLife(true)} style={btnGhost(accent)}>{patient.life_story ? 'Editar' : '+ Adicionar'}</button>}
-        </div>
-        {editingLife ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <textarea value={lifeForm.sensitivities || ''} onChange={e => setLifeForm(f => ({ ...f, sensitivities: e.target.value }))} placeholder="Preferências e sensibilidades (ex: prefere duche a banho de imersão, não gosta que lhe toquem no braço esquerdo, prática religiosa a respeitar)" rows={2} style={{ ...inp, resize: 'vertical', borderColor: '#fde68a', background: '#fffbeb' }} />
-            <input value={lifeForm.profession || ''} onChange={e => setLifeForm(f => ({ ...f, profession: e.target.value }))} placeholder="Profissão (ex: Professora primária, 32 anos)" style={inp} />
-            <input value={lifeForm.family || ''} onChange={e => setLifeForm(f => ({ ...f, family: e.target.value }))} placeholder="Família (ex: 3 filhos, 7 netos, viúva desde 2015)" style={inp} />
-            <input value={lifeForm.hobbies || ''} onChange={e => setLifeForm(f => ({ ...f, hobbies: e.target.value }))} placeholder="Hobbies (ex: jardinagem, tricô, jogar às cartas)" style={inp} />
-            <input value={lifeForm.music || ''} onChange={e => setLifeForm(f => ({ ...f, music: e.target.value }))} placeholder="Música/artistas preferidos (ex: fado, Amália Rodrigues)" style={inp} />
-            <textarea value={lifeForm.notes || ''} onChange={e => setLifeForm(f => ({ ...f, notes: e.target.value }))} placeholder="Outras notas (histórias, o que a acalma, o que evitar)" rows={2} style={{ ...inp, resize: 'vertical' }} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={saveLifeStory} disabled={savingLife} style={{ ...btnSolid(accent), flex: 1 }}>{savingLife ? 'A guardar…' : 'Guardar'}</button>
-              <button onClick={() => { setLifeForm(patient.life_story || {}); setEditingLife(false) }} style={btnGhost(accent)}>Cancelar</button>
+        {sumLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>A analisar…</div>}
+        {sumErr && <div style={{ fontSize: 13, color: '#b91c1c' }}>{sumErr}</div>}
+        {summary && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-7)' }}>
+            {summary.overview && <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{summary.overview}</p>}
+            {(summary.watch_for || []).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {summary.watch_for!.map((w, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'flex-start' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: '#92400e', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-sm)', padding: '2px 7px', flexShrink: 0 }}>{w.level}</span>
+                    <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{w.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(summary.interactions || []).length > 0 && (
+              <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: 'var(--space-7)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, color: '#92400e', marginBottom: 'var(--space-4)' }}>Interações a confirmar</div>
+                {summary.interactions!.map((it, i) => <div key={i} style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.55 }}>{it}</div>)}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>
+              Orientação de apoio — confirma sempre clinicamente. <button onClick={genSummary} style={{ background: 'none', border: 'none', color: accent, fontWeight: 700, cursor: 'pointer', fontSize: 11.5, fontFamily: 'inherit', padding: 0 }}>Atualizar</button>
             </div>
           </div>
-        ) : patient.life_story && Object.values(patient.life_story).some(Boolean) ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {patient.life_story.profession && <div><Label>Profissão</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.profession}</div></div>}
-            {patient.life_story.family && <div><Label>Família</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.family}</div></div>}
-            {patient.life_story.hobbies && <div><Label>Hobbies</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.hobbies}</div></div>}
-            {patient.life_story.music && <div><Label>Música</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.music}</div></div>}
-            {patient.life_story.notes && <div><Label>Notas</Label><div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{patient.life_story.notes}</div></div>}
-          </div>
-        ) : (
-          <div style={{ fontSize: 12.5, color: '#94a3b8' }}>Ainda sem história de vida registada. Adicionar ajuda a equipa a conversar com {noun.toLowerCase()} de forma mais próxima.</div>
         )}
-      </Card>
+      </div>}
 
-      {/* MEDICAÇÃO */}
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <CardTitle noMargin>Medicação ({meds.length})</CardTitle>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {meds.length >= 2 && <Link href={`/interactions?meds=${encodeURIComponent(meds.map(m => m.name).join(','))}`} style={{ fontSize: 12.5, color: accent, textDecoration: 'none', fontWeight: 700 }}>Verificar interações</Link>}
-            <button onClick={() => setShowAddMed(s => !s)} style={btnSolid(accent)}>+ Medicamento</button>
-          </div>
+      acoesMedicacao={<div style={{ width: '100%' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          {meds.length >= 2 && <Link href={`/interactions?meds=${encodeURIComponent(meds.map(m => m.name).join(','))}`} style={btnGhost(accent)}>Verificar interações</Link>}
+          <button onClick={() => setShowAddMed(s => !s)} style={btnSolid(accent)}>+ Medicamento</button>
         </div>
-
         {showAddMed && (
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 12 }}>
             <div style={{ position: 'relative' }}>
@@ -723,83 +565,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         )}
+      </div>}
 
-        {meds.length === 0 ? <Empty msg="Sem medicação registada." />
-          : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {meds.map(m => {
-                const givenToday = todayMar.some(r => r.med_id === m.id && (r.status === 'administered' || r.status === 'given' || r.status === 'taken'))
-                const homeRec = todayMar.find(r => r.med_id === m.id && r.source === 'home')
-                return (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: '1px solid #f1f5f9', borderRadius: 10, padding: '11px 13px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0b1120' }}>{m.name}{m.dose ? <span style={{ fontWeight: 500, color: '#64748b' }}> · {m.dose}</span> : ''}</div>
-                      <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 2 }}>
-                        {[m.frequency, m.indication, (m.shifts || []).map(s => SHIFTS.find(x => x.v === s)?.l).filter(Boolean).join('/')].filter(Boolean).join(' · ') || '—'}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
-                        {isDayCare && m.take_location && <Tag color={m.take_location === 'casa' ? '#b45309' : accent} bg={m.take_location === 'casa' ? '#fffbeb' : accentSoft}>{m.take_location === 'casa' ? '🏠 Em casa' : m.take_location === 'ambos' ? 'Casa + centro' : '☀️ No centro'}</Tag>}
-                        {givenToday && <Tag color="#15803d" bg="#f0fdf4">{homeRec ? `✓ dado em casa${homeRec.home_by ? ` (${homeRec.home_by})` : ''}` : '✓ dado hoje'}</Tag>}
-                      </div>
-                    </div>
-                    <button aria-label="Eliminar" onClick={() => removeMed(m.id)} style={{ background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontWeight: 700, flexShrink: 0 }} onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')} onMouseLeave={e => (e.currentTarget.style.color = '#cbd5e1')}>×</button>                  </div>
-                )
-              })}
-            </div>}
-
-        {isDayCare && homeMeds.length > 0 && (
-          <div style={{ marginTop: 12, fontSize: 12, color: '#64748b', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px' }}>
-            🏠 {homeMeds.length} {homeMeds.length === 1 ? 'medicamento é dado' : 'medicamentos são dados'} em casa — a família vê-os e marca a toma. {centreMeds.length} no centro.
-          </div>
-        )}
-      </Card>
-
-      {/* SINAIS VITAIS (últimos) — avaliados contra o intervalo seguro para esta
-          pessoa (idade/condições), não só números soltos. */}
-      {vitals && Object.values(vitals).some(v => v != null) && (() => {
-        const flags = flagReading(
-          { bp_sys: vitals.bp_sys, bp_dia: vitals.bp_dia, hr: vitals.hr, temp: vitals.temp, spo2: vitals.spo2, glucose: vitals.glucose },
-          { age: patient.age, conditions: patient.conditions }
-        )
-        const flagFor = (field: string) => flags.find(f => f.field === field)?.reading
-        return (
-        <Card>
-          <CardTitle>Sinais vitais <span style={{ fontWeight: 500, color: '#94a3b8', fontSize: 12 }}>· último registo</span></CardTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
-            {[
-              vitals.bp_sys ? { l: 'T.A.', v: `${vitals.bp_sys}/${vitals.bp_dia ?? '—'}`, f: flagFor('bp_sys') || flagFor('bp_dia') } : null,
-              vitals.hr ? { l: 'F.C.', v: `${vitals.hr}`, f: flagFor('hr') } : null,
-              vitals.temp ? { l: 'Temp.', v: `${vitals.temp}°`, f: flagFor('temp') } : null,
-              vitals.spo2 ? { l: 'SpO₂', v: `${vitals.spo2}%`, f: flagFor('spo2') } : null,
-              vitals.glucose ? { l: 'Glicemia', v: `${vitals.glucose}`, f: flagFor('glucose') } : null,
-              vitals.weight ? { l: 'Peso', v: `${vitals.weight} kg` } : null,
-            ].filter(Boolean).map((x: any) => <Mini key={x.l} label={x.l} value={x.v} alert={x.f?.level === 'critical'} warn={x.f?.level === 'warning'} />)}
-          </div>
-          {flags.length > 0 && (
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {flags.map(({ field, reading }) => {
-                const c = VITAL_LEVEL_COLOR[reading.level]
-                return (
-                  <div key={field} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '7px 11px' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{reading.level === 'critical' ? '🔴' : '🟠'} {VITAL_LABEL[field]}: {reading.label}</div>
-                    {reading.watch && <div style={{ fontSize: 11, color: '#475569', marginTop: 2, lineHeight: 1.4 }}>{reading.watch}</div>}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          <Link href={`/care-log?patient=${patient.id}`} style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, color: accent, textDecoration: 'none', fontWeight: 700 }}>Registar o dia →</Link>
-        </Card>
-        )
-      })()}
-
-      {/* CONTACTOS */}
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
-          <CardTitle noMargin>Contactos da família</CardTitle>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={openInvite} style={btnGhost(accent)}>👨‍👩‍👧 Convidar família</button>
-            <button onClick={() => setShowAddContact(s => !s)} style={btnSolid(accent)}>+ Contacto</button>
-          </div>
+      acoesContactos={<div style={{ width: '100%' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <button onClick={openInvite} style={btnGhost(accent)}>Convidar família</button>
+          <button onClick={() => setShowAddContact(s => !s)} style={btnSolid(accent)}>+ Contacto</button>
         </div>
         {showAddContact && (
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 12 }}>
@@ -817,40 +588,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         )}
-        {contacts.length === 0 ? <Empty msg="Sem contactos registados." />
-          : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {contacts.map(c => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 11, border: '1px solid #f1f5f9', borderRadius: 10, padding: '10px 13px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{c.name} {c.is_emergency && <span style={{ fontSize: 9.5, fontWeight: 800, color: '#991b1b', background: '#fee2e2', borderRadius: 4, padding: '1px 6px', marginLeft: 4 }}>SOS</span>}</div>
-                    <div style={{ fontSize: 12.5, color: '#94a3b8' }}>{[c.relationship, c.phone].filter(Boolean).join(' · ') || '—'}</div>
-                  </div>
-                  {c.phone && <a href={`tel:${c.phone}`} style={{ fontSize: 13, color: accent, textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}>Ligar</a>}
-                </div>
-              ))}
-            </div>}
-        <Link href={`/family`} style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, color: accent, textDecoration: 'none', fontWeight: 700 }}>Abrir portal das famílias →</Link>
-      </Card>
+      </div>}
 
-      {/* PEDIDOS & OBSERVAÇÕES DO UTENTE (lar / centro de dia) */}
-      {warm && pid && (
-        <Card>
-          <CardTitle>Pedidos &amp; observações</CardTitle>
-          <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>O que {noun} pede ou diz — para toda a equipa saber e poder intervir.</p>
-          <ResidentRequests patientId={pid} supabase={supabase} scope={scope} accent={accent} />
-        </Card>
-      )}
-
-      {/* LINHA DO TEMPO — funde tudo o que se registou sobre a pessoa (Ronda 12) */}
-      {pid && (
-        <Card>
-          <CardTitle>Linha do tempo</CardTitle>
-          <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>Tudo o que se registou — medicação, cuidados, vitais, ocorrências, consultas — por ordem, num só sítio.</p>
-          <PatientTimeline patientId={pid} supabase={supabase} scope={scope} patientName={patient?.name} accent={accent} />
-        </Card>
-      )}
-
-      {/* MODAL CONVIDAR FAMÍLIA */}
+      pedidos={<div style={{ paddingTop: 'var(--space-9)' }}>
+        <ResidentRequests patientId={pid!} supabase={supabase} scope={scope} accent={accent} />
+      </div>}
+    >
       {inviteOpen && (
         <div onClick={e => { if (e.target === e.currentTarget) setInviteOpen(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440 }}>
@@ -879,8 +622,6 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       )}
-
-      {/* MODAL EDITAR */}
       {editing && (
         <div onClick={e => { if (e.target === e.currentTarget) setEditing(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 520, maxHeight: '88vh', overflow: 'auto' }}>
@@ -926,7 +667,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       )}
-    </Shell>
+    </FichaUtente>
   )
 }
 

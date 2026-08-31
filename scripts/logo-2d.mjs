@@ -51,7 +51,7 @@ function ambiente(renderer, scene) {
   scene.environmentIntensity = 1; p.dispose(); tex.dispose();
 }
 
-window.renderizar = async (qual, largura, altura) => {
+window.renderizar = async (qual, largura, altura, florEscura) => {
   const canvas = document.createElement('canvas');
   document.body.appendChild(canvas);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
@@ -79,6 +79,27 @@ window.renderizar = async (qual, largura, altura) => {
     const l = await buildPhloxLogotype({ font:'lora', letterColor:0x16181d, punch:0.24, flowerScale:0.94 });
     if (l.update) l.update(6);
     obj = l.object;
+    // ── VARIANTE PARA FUNDOS CLAROS ────────────────────────────────────
+    // A flor é rosa muito pálido e desaparece em branco. Escurecê-la depois,
+    // no PNG, não funciona: as pétalas mais claras têm o mesmo croma que os
+    // brilhos das letras (medido: letras nunca passam de croma 12, e há
+    // pétalas abaixo disso), por isso nenhuma regra por píxel as separa.
+    //
+    // Aqui é trivial: o material da pétala tem vertexColors com color base
+    // branca, e a cor base MULTIPLICA as cores dos vértices. Baixá-la escurece
+    // a flor toda por igual, mantendo sombreado e relevo — e sem tocar nas
+    // letras, que são outro material.
+    if (florEscura) {
+      obj.traverse((n) => {
+        const m = n.material;
+        if (!m) return;
+        for (const mm of (Array.isArray(m) ? m : [m])) {
+          if (mm?.name === 'petala') mm.color.setRGB(0.52, 0.36, 0.42);
+          if (mm?.name === 'garganta') mm.color.multiplyScalar(0.72);
+          if (mm?.name === 'estame') mm.color.multiplyScalar(0.80);
+        }
+      });
+    }
   }
   scene.add(obj);
 
@@ -153,14 +174,15 @@ try {
   await page.waitForFunction(() => window.__pronto, { timeout: 30_000 })
   await page.waitForTimeout(1200)   // deixar as fontes/PMREM assentar
 
-  const render = async (qual, w, h) => {
-    const url = await page.evaluate(([q, a, b]) => window.renderizar(q, a, b), [qual, w, h])
+  const render = async (qual, w, h, escura) => {
+    const url = await page.evaluate(([q, a, b, e]) => window.renderizar(q, a, b, e), [qual, w, h, escura])
     if (!url || url.length < 5000) throw new Error(`render de "${qual}" saiu vazio`)
     return url
   }
 
   const flor = await render('flor', 1024, 1024)
   const logotipo = await render('logotipo', 1560, 648)
+  const logotipoEscuro = await render('logotipo', 1560, 648, true)
 
   if (!INSTALAR) {
     guardar(join(DEST, 'marca.png'), await render('marca', 1024, 1024))
@@ -187,6 +209,7 @@ try {
     guardar('public/flor-64.png', await page.evaluate(([f, l]) => window.reduzir(f, l), [flor, 64]))
     // O logótipo completo, transparente — og-image, e-mail, apresentações
     guardar('public/logotipo.png', logotipo)
+    guardar('public/logotipo-escuro.png', logotipoEscuro)
 
     // favicon.ico com PNG embutido (formato Vista+), sem dependências
     const png32 = Buffer.from((await icone(32)).split(',')[1], 'base64')

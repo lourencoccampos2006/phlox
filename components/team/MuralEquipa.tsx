@@ -47,7 +47,7 @@ export default function MuralEquipa() {
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handover') === '1')
   const [handoverShift, setHandoverShift] = useState<'manha' | 'tarde' | 'noite'>('manha')
   const [handoverNotes, setHandoverNotes] = useState('')
-  const [aiSummary, setAiSummary] = useState<{ general_notes?: string; patients_summary?: { patient_id: string; patient_name: string; status: string; alerts?: string[]; action_needed?: string }[] } | null>(null)
+  const [aiSummary, setAiSummary] = useState<{ general_notes?: string; sem_dados?: boolean; patients_summary?: { patient_id: string; patient_name: string; registado: string; action_needed?: string }[] } | null>(null)
   const [generatingAI, setGeneratingAI] = useState(false)
   const [aiError, setAiError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
@@ -146,7 +146,7 @@ export default function MuralEquipa() {
         body: JSON.stringify({
           shift: handoverShift, from_name: (user as any)?.name || user?.email || 'Equipa', from_role: 'profissional de saúde',
           general_notes: generalNotes,
-          patients: [...byPatient.values()].map(p => ({ patient_id: p.patient_id, patient_name: p.patient_name, alerts: [], decisions: p.decisions, open_tasks: 0 })),
+          patients: [...byPatient.values()].map(p => ({ patient_id: p.patient_id, patient_name: p.patient_name, decisions: p.decisions, open_tasks: 0 })),
         }),
       }).then(r => r.json())
       if (r.error) { setAiError(r.error); return }
@@ -163,7 +163,7 @@ export default function MuralEquipa() {
     const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
     const lines = aiSummary ? [
       `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label} · resumo por IA`,
-      ...(aiSummary.patients_summary || []).map(p => `\n${p.patient_name}: ${p.status}${p.alerts?.length ? `\n  ⚠ ${p.alerts.join('; ')}` : ''}${p.action_needed ? `\n  → ${p.action_needed}` : ''}`),
+      ...(aiSummary.patients_summary || []).map(p => `\n${p.patient_name}: ${p.registado}${p.action_needed ? `\n  → ${p.action_needed}` : ''}`),
       aiSummary.general_notes ? `\nNotas gerais:\n${aiSummary.general_notes}` : '',
     ].filter(Boolean).join('\n') : [
       `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label}`,
@@ -262,8 +262,7 @@ export default function MuralEquipa() {
               {(aiSummary.patients_summary || []).map(p => (
                 <div key={p.patient_id} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>{p.patient_name}</div>
-                  <div style={{ fontSize: 12.5, color: '#475569' }}>{p.status}</div>
-                  {!!p.alerts?.length && <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 2 }}>⚠ {p.alerts.join('; ')}</div>}
+                  <div style={{ fontSize: 12.5, color: '#475569' }}>{p.registado}</div>
                   {p.action_needed && <div style={{ fontSize: 12, color: '#6d28d9', fontWeight: 600, marginTop: 2 }}>→ {p.action_needed}</div>}
                 </div>
               ))}
