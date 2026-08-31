@@ -24,7 +24,7 @@
 //    deixou é de competir com o que se usa todos os dias.
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -35,15 +35,20 @@ import NotificationBell from '@/components/NotificationBell'
 import { useOrgName } from '@/lib/useOrgName'
 import TurnoResumo from '@/components/institution/TurnoResumo'
 
-/** Os separadores de topo. `corresponde` diz que rotas acendem cada um — sem
- *  isto, estar no /care-log deixava a barra toda apagada e a pessoa sem saber
- *  onde estava. */
-const SEPARADORES = [
-  { label: 'Hoje',     href: '/painel',      corresponde: ['/painel'] },
-  { label: 'Cuidados', href: '/care-log',    corresponde: ['/care-log', '/mar', '/refeicoes', '/ronda-guiada', '/incidents'] },
-  { label: 'Pessoas',  href: '/patients',    corresponde: ['/patients', '/radar', '/family'] },
-  { label: 'Equipa',   href: '/equipa',      corresponde: ['/equipa', '/carga'] },
-  { label: 'Gestão',   href: '/painel-dono', corresponde: ['/painel-dono', '/stock', '/documentos'] },
+/** Os separadores de topo. São VISTAS DO PAINEL, não atalhos para ferramentas:
+ *  trocam o que o painel mostra (?aba=…) e nunca saltam para outra página.
+ *
+ *  Estavam a apontar para /care-log, /patients, /equipa e /painel-dono — cinco
+ *  destinos diferentes com o nome de um separador. Isso fazia da barra um
+ *  segundo menu: quem carregava em "Cuidados" à espera de ver como está a casa
+ *  aterrava num formulário de registo. As ferramentas têm o seu lugar (a barra
+ *  lateral e as pastas do painel); esta barra é para ver dados. */
+const SEPARADORES: { label: string; aba: string }[] = [
+  { label: 'Hoje', aba: 'hoje' },
+  { label: 'Cuidados', aba: 'cuidados' },
+  { label: 'Pessoas', aba: 'pessoas' },
+  { label: 'Equipa', aba: 'equipa' },
+  { label: 'Gestão', aba: 'gestao' },
 ]
 
 /** Turno atual pela hora de Portugal. */
@@ -56,6 +61,7 @@ function turnoAgora(d: Date): { nome: string; hora: string } {
 
 export default function InstitutionShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { user } = useAuth() as any
   const { institution } = useClinicPrefs()
   const bp = blueprintFor(institution)
@@ -127,7 +133,7 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
       {/* As restantes ferramentas não desapareceram: estão em pastas no painel.
           Dizê-lo aqui evita que alguém que as conhecia ache que sumiram. */}
       {(bp.toolFolders?.length ?? 0) > 0 && (
-        <Link href="/painel#ferramentas"
+        <Link href="/painel"
           style={{
             display: 'block', marginTop: 'var(--space-5)', paddingTop: 'var(--space-5)',
             borderTop: '1px solid var(--border)', padding: 'var(--space-5) var(--space-5) 0',
@@ -205,18 +211,17 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         </div>
       </header>
 
-      {/* Separadores — a segunda camada de navegação do design. Agrupa por
-          ASSUNTO em vez de por ferramenta: quem quer "as pessoas" não tem de
-          saber que a página se chama /patients. */}
+      {/* Separadores — as cinco vistas do painel. Fora do painel nenhum acende:
+          é a forma honesta de dizer "estás numa ferramenta, não numa vista". */}
       <nav className="ish-tabs" style={{
         display: 'flex', gap: 'var(--space-2)', alignItems: 'center',
         padding: '0 clamp(14px,2.5vw,24px)', borderBottom: '1px solid var(--border)',
         background: 'var(--bg)', overflowX: 'auto',
       }}>
         {SEPARADORES.map(sep => {
-          const activo = sep.corresponde.some(h => isActive(h))
+          const activo = pathname === '/painel' && (searchParams.get('aba') || 'hoje') === sep.aba
           return (
-            <Link key={sep.href} href={sep.href} style={{
+            <Link key={sep.aba} href={sep.aba === 'hoje' ? '/painel' : `/painel?aba=${sep.aba}`} style={{
               padding: 'var(--space-6) var(--space-5) var(--space-5)',
               fontSize: 13.5, fontWeight: activo ? 700 : 600, whiteSpace: 'nowrap',
               color: activo ? 'var(--ink)' : 'var(--ink-4)', textDecoration: 'none',

@@ -8,7 +8,7 @@ import PaymentIssueBanner from '@/components/PaymentIssueBanner'
 import { planForRoute } from '@/lib/planRoutes'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 
 // Overlays que só aparecem quando o utilizador os abre (Copilot, ⌘K, paleta).
@@ -93,7 +93,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return (
       <>
         <PaymentIssueBanner />
-        <InstitutionShell>{gated(children)}</InstitutionShell>
+        {/* Suspense: o shell lê ?aba= para acender o separador certo do painel,
+            e o Next exige uma fronteira à volta de quem usa useSearchParams. */}
+        <Suspense fallback={null}>
+          <InstitutionShell>{gated(children)}</InstitutionShell>
+        </Suspense>
         <ClinicalCommandPalette />
         <PhloxCopilot />
         <VoiceLogger />

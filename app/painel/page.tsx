@@ -4,7 +4,7 @@
 // Monta-se a partir do blueprint do tipo de instituição. O /cockpit antigo fica
 // preservado no git mas passa a redirecionar para cá.
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -31,5 +31,11 @@ export default function PainelPage() {
   // para um painel pensado para outra coisa dava-lhes um ecrã pior do que o que
   // já tinham.
   const novoPainel = institution === 'day_care' || institution === 'nursing_home'
-  return novoPainel ? <PainelHoje /> : <PainelCockpit />
+  if (!novoPainel) return <PainelCockpit />
+  // O painel lê ?aba= para saber que vista mostrar; o Next exige a fronteira.
+  return (
+    <Suspense fallback={<div style={{ padding: 'var(--space-14)', color: 'var(--ink-4)', fontSize: 14 }}>A carregar o dia…</div>}>
+      <PainelHoje />
+    </Suspense>
+  )
 }
