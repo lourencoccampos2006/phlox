@@ -105,12 +105,7 @@ const T = {
   meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: '🔍' },
   calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: '🧮' },
   reconcile: { href: '/reconciliacao', label: 'Conferir medicação', hint: 'Compara a medicação de casa com a do centro', icon: '🔄' },
-  balcao:  { href: '/balcao', label: 'Balcão', hint: 'Indicação, vendas, fila e aconselhamento', icon: '🏪' },
-  counsel: { href: '/counseling', label: 'Aconselhamento', hint: 'Apoio ao utente no balcão', icon: '🗣️' },
   stock:   { href: '/stock', label: 'Stock e validades', hint: 'Existências, lotes e prazos', icon: '📦' },
-  sales:   { href: '/vendas', label: 'Vendas', hint: 'Caixa e dispensa ao balcão', icon: '🛒' },
-  queue:   { href: '/prescription-queue', label: 'Validar receitas', hint: 'Fila de prescrições a validar', icon: '📬' },
-  rounds:  { href: '/rounds', label: 'Ronda clínica', hint: 'Intervenções farmacêuticas e seguimento', icon: '🩺' },
   appts:   { href: '/agenda', label: 'Agenda', hint: 'Marcações e consultas', icon: '📅' },
   screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: '🧪' },
   wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: '🩹' },
@@ -214,6 +209,15 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
   },
 
+  // ── FARMÁCIA / CLÍNICA / CENTRO DE SAÚDE ────────────────────────────────
+  // Estes três tipos JÁ NÃO SE PODEM ESCOLHER: o onboarding só oferece Centro
+  // de Dia e Lar (decisão de posicionamento). As ferramentas exclusivas deles
+  // — balcão, vendas, aconselhamento, fila de receitas, sala de espera, ronda
+  // farmacêutica — foram apagadas a 2026-09-02 por não terem forma de serem
+  // alcançadas. Os tipos ficam na união porque pode haver contas antigas na
+  // base de dados com estes valores, e `blueprintFor` tem de devolver algo que
+  // não aponte para páginas que já não existem.
+
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
   pharmacy_community: {
     productName: 'A sua Farmácia',
@@ -230,9 +234,9 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Utentes', 'Clientes com ficha e medicação'),
-      T.balcao, T.stock, T.meds_check, T.screenings,
+      T.stock, T.meds_check, T.screenings, T.appts,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.reconcile, T.sales, T.billing ],
+    extraTools: [ T.team, T.quality, T.calc, T.reconcile, T.billing ],
   },
 
   // ── CLÍNICA — consultas. Tom sóbrio.
@@ -251,7 +255,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     coreTools: [
       T.people('Doentes', 'Fichas e medicação dos doentes'),
-      T.appts, T.meds_check, T.reconcile, T.rounds,
+      T.appts, T.meds_check, T.reconcile, T.assessments,
     ],
     extraTools: [ T.team, T.quality, T.calc, T.screenings, T.incidents ],
   },
@@ -273,7 +277,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       T.people('Utentes', 'Fichas e medicação dos utentes'),
       T.appts, T.screenings, T.meds_check, T.reconcile,
     ],
-    extraTools: [ T.team, T.quality, T.calc, T.rounds ],
+    extraTools: [ T.team, T.quality, T.calc, T.documents ],
   },
 
 }

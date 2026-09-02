@@ -78,7 +78,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/stopp-start',        icon: '🛑', label: 'STOPP/START',         desc: 'v3 2023 + Beers', badge: 'Pro' },
       { href: '/tpn',                icon: '🧪', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
       { href: '/adr-report',         icon: '⚠️', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
-      { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intelligence',   desc: 'Formulário · DDD · Ruturas · Custos' },
       { href: '/equipa',                 icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
     ],
   },
@@ -165,7 +164,6 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   clinical: [
     { href: '/painel',             icon: '🎛️', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
     { href: '/mar',                icon: '📝', label: 'MAR',           desc: 'Registo de administração' },
-    { href: '/drug-intelligence',  icon: '🧬', label: 'Drug Intel',    desc: 'Formulário · DDD · Ruturas · Custos' },
     { href: '/equipa',                 icon: '👥', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
     { href: '/calculos',           icon: '🧮', label: 'Calculadoras',  desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
     { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',    desc: 'Vancomicina AUC · Aminoglicosídeos' },

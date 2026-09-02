@@ -130,7 +130,6 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
   const kpis: { label: string; value: string | number; sub: string; color: string; href: string }[] = []
   kpis.push({ label: cfg.personNounPlural, value: patients.length, sub: 'em ficha', color: '#0b1120', href: '/patients' })
   if (cfg.revenue !== 'internal') kpis.push({ label: cfg.revenue === 'pos_sales' ? 'Caixa hoje' : 'Faturado hoje', value: euro(revToday), sub: `${txToday} mov.`, color: '#0d6e42', href: '/faturacao' })
-  if (cfg.hasWaitingRoom) kpis.push({ label: 'Na sala de espera', value: (waitingNow ?? 0), sub: inService != null && inService > 0 ? `${inService} a atender` : 'fila', color: (waitingNow || 0) > 0 ? '#2563eb' : '#16a34a', href: '/sala-espera' })
   if (cfg.hasAppointments) kpis.push({ label: 'Marcações hoje', value: (apptToday ?? 0), sub: 'agenda', color: '#7c3aed', href: '/agenda' })
   kpis.push({ label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? '#dc2626' : '#16a34a', href: '/incidents' })
   if (compPct !== null) kpis.push({ label: 'Conformidade', value: `${compPct}%`, sub: compPending ? `${compPending} pendentes` : 'pronto', color: compPct >= 90 ? '#16a34a' : compPct >= 60 ? '#d97706' : '#dc2626', href: '/conformidade' })
@@ -202,7 +201,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
           {/* Fluxo de atendimento (sala de espera / agenda / atendimentos) */}
           {(cfg.hasWaitingRoom || cfg.hasAppointments || cfg.hasWalkins) && (
             <div style={card}>
-              {secTitle('Fluxo de atendimento · hoje', cfg.hasWaitingRoom ? '/sala-espera' : '/agenda')}
+              {secTitle('Fluxo de atendimento · hoje', cfg.hasWaitingRoom ? undefined : '/agenda')}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {cfg.hasWaitingRoom && <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#2563eb', lineHeight: 1 }}>{loading ? '—' : (waitingNow ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>A aguardar</div></div>}
                 {cfg.hasWaitingRoom && <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#16a34a', lineHeight: 1 }}>{loading ? '—' : (servedToday ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Atendidos hoje</div></div>}
@@ -226,7 +225,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
           {/* Doentes a vigiar — motor de risco */}
           {patients.length > 0 && (
             <div style={{ ...card, gridColumn: attention.length > 4 ? '1 / -1' : 'auto' }}>
-              {secTitle(`${cfg.personNounPlural} a vigiar${attention.length ? ` · ${attention.length}` : ''}`, '/rounds')}
+              {secTitle(`${cfg.personNounPlural} a vigiar${attention.length ? ` · ${attention.length}` : ''}`, '/radar')}
               {loading ? <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>A analisar…</div>
                 : attention.length === 0 ? <div style={{ fontSize: 12, color: '#16a34a' }}>Sem sinais de alerta de momento.</div>
                 : (

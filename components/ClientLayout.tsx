@@ -14,30 +14,32 @@ import dynamic from 'next/dynamic'
 // Overlays que só aparecem quando o utilizador os abre (Copilot, ⌘K, paleta).
 // Carregam à parte, depois da página estar interativa — não pesam no bundle
 // inicial de TODAS as páginas. ssr:false porque só fazem sentido no cliente.
+//
+// O VoiceLogger ("Regista falando", botão flutuante sitewide) foi removido a
+// 2026-09-01 por decisão do Fernando: controlo por voz não é o caminho. O
+// ditado dentro do chat do /ai (components/MicButton) é outra coisa e ficou.
 const PhloxCopilot = dynamic(() => import('@/components/PhloxCopilot'), { ssr: false })
 const UniversalSearch = dynamic(() => import('@/components/UniversalSearch'), { ssr: false })
 const ClinicalCommandPalette = dynamic(() => import('@/components/ClinicalCommandPalette'), { ssr: false })
 const BottomNav = dynamic(() => import('@/components/BottomNav'), { ssr: false })
-const VoiceLogger = dynamic(() => import('@/components/VoiceLogger'), { ssr: false })
 
 // Rotas que correm DENTRO do shell institucional (sidebar do blueprint).
 // Tem de cobrir TODAS as ferramentas que o blueprint referencia (core + extra),
 // senão essas páginas abrem sem a navegação do produto. Mantido em sincronia com
 // lib/institutionBlueprint.ts.
 const CLINICAL_PREFIXES = [
-  '/cockpit', '/patients', '/rounds', '/mar', '/team', '/turno', '/hoje', '/painel', '/ronda-guiada',
-  '/connect', '/drug-intelligence', '/quality', '/prescription-queue',
+  '/cockpit', '/patients', '/mar', '/team', '/turno', '/hoje', '/painel', '/ronda-guiada',
+  '/connect', '/quality',
   '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
   '/census', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos', '/radar', '/guardiao', '/carga', '/autonomia', '/vigia', '/comecar-instituicao', '/vitals',
-  '/indicacao', '/soap', '/rastreios', '/atendimentos',
+  '/indicacao', '/soap', '/rastreios',
   // ferramentas do blueprint que faltavam (abriam sem sidebar institucional)
-  '/reconciliacao', '/interactions', '/calculos', '/balcao', '/counseling',
-  '/sala-espera', '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/vendas', '/faturacao-config', '/webhooks', '/auditoria', '/api-keys', '/sso-config',
+  '/reconciliacao', '/interactions', '/calculos',
+  '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/faturacao-config', '/webhooks', '/auditoria', '/api-keys', '/sso-config',
   '/reach', '/calc', '/codes', '/relatorio',
   '/guardados', '/calendario',
   '/equipa', '/painel-dono', '/activities',
-  '/farmacia',
-  '/aprender', '/study', '/estagio',
+  '/study', '/estagio',
   '/refeicoes', '/apoio-servicos', '/tendencias',
   '/preparacao-medicacao', '/apoio-psicossocial',
 ]
@@ -100,7 +102,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </Suspense>
         <ClinicalCommandPalette />
         <PhloxCopilot />
-        <VoiceLogger />
         <UniversalSearch />
         <ScrollToTop />
       </>

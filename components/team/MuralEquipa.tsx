@@ -126,7 +126,9 @@ export default function MuralEquipa() {
   // (medFlags); avisos/stock/notas entram como contexto geral em texto. A IA
   // só reescreve isto como "o que mudou e o que é urgente" — nunca é
   // publicado sem se ver a pré-visualização primeiro.
-  async function generateAISummary() {
+  type Sintese = NonNullable<typeof aiSummary>
+
+  async function generateAISummary(): Promise<Sintese | null> {
     setGeneratingAI(true); setAiError(''); setAiSummary(null)
     try {
       const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
@@ -149,22 +151,33 @@ export default function MuralEquipa() {
           patients: [...byPatient.values()].map(p => ({ patient_id: p.patient_id, patient_name: p.patient_name, decisions: p.decisions, open_tasks: 0 })),
         }),
       }).then(r => r.json())
-      if (r.error) { setAiError(r.error); return }
+      if (r.error) { setAiError(r.error); return null }
       setAiSummary(r)
-    } catch { setAiError('Não foi possível gerar. Tenta de novo ou publica o resumo automático.') }
-    setGeneratingAI(false)
+      return r as Sintese
+    } catch {
+      setAiError('A síntese por IA não saiu. Vai o resumo dos registos, que é o mesmo conteúdo sem reescrita.')
+      return null
+    } finally { setGeneratingAI(false) }
   }
 
-  // Passagem de turno — publica um resumo estruturado no canal Avisos. Se
-  // houver uma síntese IA já gerada (e revista), usa-a; senão, o resumo
-  // automático de sempre (concatenação do que está em aberto).
+  // Passagem de turno — o relatório da IA é escrito e publicado no mural pela
+  // própria passagem, sem passo manual: quem sai do turno carrega uma vez.
+  //
+  // Se a IA falhar (sem chave, sem rede, limite atingido) a passagem publica na
+  // mesma o resumo dos registos — a passagem de turno nunca fica por fazer por
+  // causa da IA, e o aviso do erro fica à vista para se saber qual dos dois é.
+  //
+  // A IA não inventa gente nem medicamentos: só recebe o que o MAR já registou
+  // (doses suspensas e recusadas de hoje) mais o texto dos avisos em aberto.
   async function publishHandover() {
+    setSending(true)
+    const sintese = aiSummary ?? await generateAISummary()
     const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
     const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
-    const lines = aiSummary ? [
-      `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label} · resumo por IA`,
-      ...(aiSummary.patients_summary || []).map(p => `\n${p.patient_name}: ${p.registado}${p.action_needed ? `\n  → ${p.action_needed}` : ''}`),
-      aiSummary.general_notes ? `\nNotas gerais:\n${aiSummary.general_notes}` : '',
+    const lines = sintese ? [
+      `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label} · relatório por IA`,
+      ...(sintese.patients_summary || []).map(p => `\n${p.patient_name}: ${p.registado}${p.action_needed ? `\n  → ${p.action_needed}` : ''}`),
+      sintese.general_notes ? `\nNotas gerais:\n${sintese.general_notes}` : '',
     ].filter(Boolean).join('\n') : [
       `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label}`,
       medFlags.length ? `\nMedicação suspensa/recusada hoje (${medFlags.length}):\n` + medFlags.map(f => `• ${f.patientName} — ${f.medName} (${f.status === 'held' ? 'suspensa' : 'recusada'})${f.notes ? ': ' + f.notes : ''}`).join('\n') : '',
@@ -172,7 +185,6 @@ export default function MuralEquipa() {
       openStock.length ? `\nStock por resolver (${openStock.length}):\n` + openStock.map(m => `• ${m.body}`).join('\n') : '',
       handoverNotes.trim() ? `\nNotas de quem sai:\n${handoverNotes.trim()}` : '',
     ].filter(Boolean).join('\n')
-    setSending(true)
     const r = await fetch('/api/team-messages', { method: 'POST', headers: await auth(), body: JSON.stringify({ body: lines, channel: 'avisos', priority: 'importante' }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     setSending(false)
     if (r.error) { setErr(r.error); return }
@@ -228,7 +240,8 @@ export default function MuralEquipa() {
 
       {showHandover && (
         <div style={{ background: 'white', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#1d4ed8', marginBottom: 10 }}>Gerar passagem de turno</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#1d4ed8', marginBottom: 2 }}>Passagem de turno</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>Ao publicar, a IA escreve o relatório do turno a partir dos registos de hoje e envia-o para o mural.</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             {(['manha', 'tarde', 'noite'] as const).map(s => (
               <button key={s} onClick={() => setHandoverShift(s)}
@@ -252,13 +265,15 @@ export default function MuralEquipa() {
           <textarea value={handoverNotes} onChange={e => { setHandoverNotes(e.target.value); setAiSummary(null) }} rows={2} placeholder="Notas de quem sai (opcional)…"
             style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', marginBottom: 10 }} />
 
-          <button onClick={generateAISummary} disabled={generatingAI} style={{ width: '100%', padding: '9px 14px', background: aiSummary ? '#f5f3ff' : 'white', border: '1.5px solid #c4b5fd', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: generatingAI ? 'wait' : 'pointer', color: '#6d28d9', marginBottom: 10 }}>
-            {generatingAI ? 'A escrever a síntese…' : aiSummary ? '✨ Gerar de novo' : '✨ Escrever síntese por IA'}
+          {/* A IA já corre sozinha ao publicar. Este botão é só para quem quer
+              ler o relatório antes de ele ir para o mural. */}
+          <button onClick={() => { generateAISummary() }} disabled={generatingAI || sending} style={{ width: '100%', padding: '9px 14px', background: aiSummary ? '#f5f3ff' : 'white', border: '1.5px solid #c4b5fd', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: generatingAI ? 'wait' : 'pointer', color: '#6d28d9', marginBottom: 10 }}>
+            {generatingAI ? 'A escrever o relatório…' : aiSummary ? '✨ Escrever de novo' : '👁 Ver o relatório antes de publicar'}
           </button>
           {aiError && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{aiError}</div>}
           {aiSummary && (
             <div style={{ background: '#faf5ff', border: '1.5px solid #ddd6fe', borderRadius: 9, padding: '10px 12px', marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Pré-visualização — revê antes de publicar</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Relatório por IA — é este que vai para o mural</div>
               {(aiSummary.patients_summary || []).map(p => (
                 <div key={p.patient_id} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>{p.patient_name}</div>
@@ -271,7 +286,9 @@ export default function MuralEquipa() {
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={publishHandover} disabled={sending} style={{ flex: 1, padding: '9px 14px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Publicar em Avisos</button>
+            <button onClick={publishHandover} disabled={sending || generatingAI} style={{ flex: 1, padding: '9px 14px', background: sending || generatingAI ? '#93a8e8' : '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: sending || generatingAI ? 'wait' : 'pointer' }}>
+              {sending ? (aiSummary ? 'A publicar…' : 'A escrever o relatório e a publicar…') : '✨ Publicar no mural'}
+            </button>
             <button onClick={printHandover} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: '#374151' }}>🖨 Imprimir</button>
           </div>
         </div>

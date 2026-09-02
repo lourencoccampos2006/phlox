@@ -46,14 +46,13 @@ export const APP = [
   '/scan', '/labs', '/health-import', '/passport', '/comecar',
   // estudo
   '/study', '/study360', '/arena', '/osce', '/exam', '/modo-exame', '/decisao',
-  '/aprender', '/calculators',
-  // institucional / clínico
+    // institucional / clínico
   '/painel', '/painel-dono', '/cockpit', '/cockpit-legacy', '/patients',
-  '/residentes', '/census', '/rounds', '/turno', '/mar', '/care-log',
-  '/care-plans', '/prescription', '/prescription-queue', '/receita',
+  '/residentes', '/census', '/turno', '/mar', '/care-log',
+  '/care-plans', '/prescription', '/receita',
   '/reconciliacao', '/handover', '/nota-clinica', '/soap', '/triagem',
   '/quality', '/incidents', '/radar', '/vigia', '/guardiao', '/carga',
-  '/autonomia', '/tendencias', '/adherencia', '/atendimentos', '/auditoria',
+  '/autonomia', '/tendencias', '/adherencia', '/auditoria',
   '/agenda', '/calendario', '/schedule', '/equipa', '/team', '/teams',
   '/faturacao', '/faturacao-config', '/crm', '/stock', '/gestao',
   '/organizacao', '/dashboard', '/dashboard-institucional',

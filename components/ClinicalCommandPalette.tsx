@@ -7,11 +7,11 @@ import { useAuth } from '@/components/AuthContext'
 interface Dest { label: string; href: string; group: string; keywords?: string }
 
 const DESTINATIONS: Dest[] = [
-  { label: 'Cockpit',                    href: '/cockpit',     group: 'Hoje',       keywords: 'painel dashboard inicio home' },
-  { label: 'Centro de Turno',            href: '/turno',       group: 'Hoje',       keywords: 'tarefas inbox pendentes ronda guiada passagem turno worklist' },
+  { label: 'Cockpit',                    href: '/painel',     group: 'Hoje',       keywords: 'painel dashboard inicio home' },
+  { label: 'Centro de Turno',            href: '/ronda-guiada',       group: 'Hoje',       keywords: 'tarefas inbox pendentes ronda guiada passagem turno worklist' },
   { label: 'Registos Diários',           href: '/care-log',    group: 'Hoje',       keywords: 'cuidados diario notas' },
   { label: 'MAR — Administração',        href: '/mar',         group: 'Hoje',       keywords: 'medicacao toma administrar' },
-  { label: 'Passagem de Turno',          href: '/handover',    group: 'Hoje',       keywords: 'turno passa shift' },
+  { label: 'Passagem de Turno',          href: '/ronda-guiada',    group: 'Hoje',       keywords: 'turno passa shift' },
   { label: 'Residentes',                 href: '/patients',    group: 'Residentes', keywords: 'doentes utentes clientes pacientes' },
   { label: 'Avaliações',                 href: '/assessments', group: 'Residentes', keywords: 'barthel morse braden escalas' },
   { label: 'Planos de Cuidado',          href: '/care-plans',  group: 'Residentes', keywords: 'cuidados plano' },
@@ -30,13 +30,11 @@ const DESTINATIONS: Dest[] = [
   { label: 'Gestão de Feridas',          href: '/feridas',     group: 'Clínico',    keywords: 'feridas ulceras pressao escaras pele penso npuap braden fotos' },
   { label: 'Peso & Nutrição',            href: '/nutricao',    group: 'Clínico',    keywords: 'peso nutricao desnutricao imc perda mna alimentacao' },
   { label: 'Hidratação & Eliminação',    href: '/hidratacao',  group: 'Clínico',    keywords: 'hidratacao agua liquidos dejecao bristol obstipacao desidratacao eliminacao' },
-  { label: 'Ronda Clínica',              href: '/rounds',      group: 'Clínico',    keywords: 'ronda visita risco' },
-  { label: 'Qualidade',                  href: '/quality',     group: 'Clínico',    keywords: 'indicadores kpi' },
+  { label: 'Qualidade',                  href: '/painel-dono?tab=qualidade',     group: 'Clínico',    keywords: 'indicadores kpi' },
   { label: 'Indicação Farmacêutica',     href: '/indicacao',   group: 'Clínico',    keywords: 'indicacao farmacia balcao otc automedicacao aconselhamento sintoma queixa farmaceutico comunitaria' },
   { label: 'Nota Clínica SOAP',          href: '/soap',        group: 'Clínico',    keywords: 'soap nota consulta clinica medico subjetivo objetivo avaliacao plano processo registo' },
   { label: 'Gestão de Rastreios',        href: '/rastreios',   group: 'Clínico',    keywords: 'rastreios vacinas dgs mama colo utero colon psof mamografia citologia prevencao centro saude usf' },
   { label: 'Connect',                    href: '/connect',     group: 'Clínico',    keywords: 'rede profissionais consulta' },
-  { label: 'Ponto de Venda (POS)',       href: '/vendas',      group: 'Operações',  keywords: 'vendas pos caixa balcao codigo barras leitor scanner recibo fatura preco dispensa venda registadora' },
   { label: 'Webhooks & Integrações',      href: '/webhooks',    group: 'Operações',  keywords: 'webhooks integracao api zapier make n8n erp eventos hmac sincronizar export' },
   { label: 'Audit Trail',                 href: '/auditoria',   group: 'Legal',      keywords: 'audit trail auditoria registo eventos hash cadeia seguranca rgpd quem fez o que' },
   { label: 'Decision Engine (Pro)',       href: '/assessments?tab=motor-clinico', group: 'Clínico', keywords: 'motor regras stopp beers interacoes anticolinergico carga qtc renal score auditavel deterministic' },
@@ -53,9 +51,8 @@ const DESTINATIONS: Dest[] = [
   { label: 'Phlox Reach — convidar amigos', href: '/reach',     group: 'Conta',      keywords: 'reach convites referrals partilhar codigo amigos premio meses gratis' },
   { label: 'Brief diário (pessoal)',        href: '/relatorio?tab=diario', group: 'Conta', keywords: 'brief sumario diario dashboard pessoal hoje atividade alertas tarefas' },
   { label: 'AI Briefing — caso clínico',    href: '/relatorio?tab=consulta', group: 'Clínico', keywords: 'briefing consulta caso ai analise prepara apresentacao internato urgencia farmacia profissional' },
-  { label: 'Calculadoras essenciais',       href: '/calc',      group: 'Clínico',    keywords: 'calc essenciais crcl egfr ckdepi imc bsa cha2ds2 hasbled qsofa news2 wells meld glasgow centor abcd2 padua osm fena maddrey light bishop' },
+  { label: 'Calculadoras essenciais',       href: '/calculos',      group: 'Clínico',    keywords: 'calc essenciais crcl egfr ckdepi imc bsa cha2ds2 hasbled qsofa news2 wells meld glasgow centor abcd2 padua osm fena maddrey light bishop' },
   { label: 'Calculadoras farmacocinéticas', href: '/calculos',  group: 'Clínico',    keywords: 'pk farmacocinetica vd clearance dose loading manutencao child-pugh interval ajuste' },
-  { label: 'Sala de Espera',             href: '/sala-espera', group: 'Operações',  keywords: 'sala espera fila check-in chegada recepcao secretaria walk-in atendimento sem conta' },
   { label: 'Tarefas da Equipa',          href: '/tarefas-equipa', group: 'Operações', keywords: 'tarefas equipa limpeza manutencao cozinha secretaria quadro kanban afazeres' },
   { label: 'Stock & Validades',          href: '/stock',       group: 'Operações',  keywords: 'stock existencias validades prazos rutura encomendas epi consumiveis inventario' },
   { label: 'Conformidade & Auditoria',   href: '/conformidade', group: 'Legal',     keywords: 'conformidade auditoria rgpd legal licenciamento checklist seguranca obrigacoes' },
@@ -64,7 +61,7 @@ const DESTINATIONS: Dest[] = [
 ]
 
 const QUICK_ACTIONS: Dest[] = [
-  { label: 'Abrir Centro de Turno', href: '/turno',     group: 'Ações', keywords: 'ronda tarefas passagem' },
+  { label: 'Abrir Centro de Turno', href: '/ronda-guiada',     group: 'Ações', keywords: 'ronda tarefas passagem' },
   { label: 'Novo registo diário', href: '/care-log',    group: 'Ações', keywords: 'criar adicionar' },
   { label: 'Registar ocorrência', href: '/incidents',   group: 'Ações', keywords: 'criar nova queda' },
   { label: 'Nova avaliação',      href: '/assessments', group: 'Ações', keywords: 'criar barthel' },

@@ -19,6 +19,7 @@
 // que uma frase a dizer que ainda não há nada.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/Icon'
 
@@ -502,6 +503,124 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
             ))}
           </div>
         </div>
+      )}
+    </Cartao>
+  )
+}
+
+/* ── Presenças ───────────────────────────────────────────────────────────── */
+// A única peça do painel que escreve na base de dados. Está aqui porque marcar
+// quem chegou é a primeira coisa que se faz de manhã, e obrigar a sair do
+// painel para outra ferramenta só para isso é o que torna um painel decorativo.
+//
+// Enquanto houver gente por marcar, o cartão está aberto com a lista toda. Mal
+// esteja tudo marcado encolhe para uma linha: deixa de ocupar espaço quando já
+// não há nada a fazer, e volta a abrir no "Rever".
+
+export type PessoaPresenca = {
+  id: string
+  nome: string
+  quarto: string | null
+  estado: 'present' | 'absent' | 'left' | null
+}
+
+const botaoPresenca: React.CSSProperties = {
+  flex: 1, minHeight: 44, background: 'var(--bg)', border: '1px solid var(--border-2)',
+  borderRadius: 7, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+  color: 'var(--ink-3)', cursor: 'pointer', padding: '0 8px',
+}
+
+const ligacaoPresenca: React.CSSProperties = {
+  minHeight: 28, background: 'none', border: 'none', padding: 0, fontFamily: 'inherit',
+  fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', cursor: 'pointer', textDecoration: 'underline',
+}
+
+export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, span = 12 }: {
+  pessoas: PessoaPresenca[]
+  marcar: (id: string, estado: 'present' | 'absent' | 'left') => void
+  aGuardar: Set<string>
+  cor: string
+  podeEditar: boolean
+  span?: number
+}) {
+  const [aberto, setAberto] = useState(false)
+
+  if (!pessoas.length) return null
+
+  const porMarcar = pessoas.filter(p => !p.estado).length
+  const presentes = pessoas.filter(p => p.estado === 'present').length
+  const ausentes = pessoas.filter(p => p.estado === 'absent').length
+  const saidas = pessoas.filter(p => p.estado === 'left').length
+  const tudoMarcado = porMarcar === 0
+
+  const resumo = [
+    presentes ? `${presentes} ${presentes === 1 ? 'presente' : 'presentes'}` : '',
+    ausentes ? `${ausentes} ${ausentes === 1 ? 'ausente' : 'ausentes'}` : '',
+    saidas ? `${saidas} ${saidas === 1 ? 'saiu' : 'saíram'} antes` : '',
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <Cartao span={span} padding="18px 20px 16px">
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <span style={MONO_ETIQUETA}>Presenças de hoje</span>
+        <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>
+          {tudoMarcado ? resumo : `${porMarcar} por marcar de ${pessoas.length}`}
+        </span>
+      </div>
+
+      {!podeEditar ? (
+        <Vazio>A sua conta é só de leitura — vê as presenças, mas não as pode marcar.</Vazio>
+      ) : tudoMarcado && !aberto ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+            {pessoas.length === 1 ? 'Já está marcada.' : 'Está tudo marcado.'} {resumo}.
+          </span>
+          <button onClick={() => setAberto(true)} style={{
+            minHeight: 44, background: 'none', border: '1px solid var(--border-2)', borderRadius: 7,
+            padding: '0 13px', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+          }}>Rever</button>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 10, marginTop: 16 }}>
+            {pessoas.map(p => {
+              const guardando = aGuardar.has(p.id)
+              return (
+                <div key={p.id} style={{
+                  border: `1px solid ${p.estado ? 'var(--bg-3)' : 'var(--border-2)'}`,
+                  borderRadius: 'var(--r-lg)', padding: '11px 12px 10px', minWidth: 0,
+                  opacity: guardando ? 0.55 : 1,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
+                    {p.quarto && <span style={{ ...MONO_MINI, flexShrink: 0 }}>{p.quarto}</span>}
+                  </div>
+
+                  {p.estado ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 9, flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.estado === 'present' ? cor : 'var(--ink-5)' }} />
+                        {p.estado === 'present' ? 'Presente' : p.estado === 'absent' ? 'Ausente' : 'Saiu antes'}
+                      </span>
+                      {/* Sair antes só faz sentido depois de ter chegado. */}
+                      {p.estado === 'present'
+                        ? <button onClick={() => marcar(p.id, 'left')} disabled={guardando} style={ligacaoPresenca}>marcar saída</button>
+                        : <button onClick={() => marcar(p.id, 'present')} disabled={guardando} style={ligacaoPresenca}>corrigir</button>}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
+                      <button onClick={() => marcar(p.id, 'present')} disabled={guardando} style={{ ...botaoPresenca, borderColor: cor, color: cor }}>Presente</button>
+                      <button onClick={() => marcar(p.id, 'absent')} disabled={guardando} style={botaoPresenca}>Ausente</button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 14 }}>
+            Fica registado com a hora de agora e entra no dossier mensal de cada pessoa.
+          </div>
+        </>
       )}
     </Cartao>
   )

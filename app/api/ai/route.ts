@@ -138,7 +138,7 @@ FORMATO:
       actions.push({ label: 'Verificar no verificador de interações', href: '/interactions' })
     }
     if (response.toLowerCase().includes('dose renal') || response.toLowerCase().includes('insuficiência renal')) {
-      actions.push({ label: 'Calcular ajuste de dose renal', href: '/calculators' })
+      actions.push({ label: 'Calcular ajuste de dose renal', href: '/calculos' })
     }
     if (rl.includes('compatibilidade') || rl.includes('soro')) {
       actions.push({ label: 'Verificar compatibilidade IV', href: '/iv-compatibility' })

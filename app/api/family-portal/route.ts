@@ -20,13 +20,38 @@ function codeErrorResponse(errorCode: string) {
 // diagnostica: só conta, em linguagem simples, o que ficou registado. Isto é o
 // que torna o cuidado visível à família — e o argumento de venda do lar.
 interface DaySummary { date: string; lines: string[]; mood?: number; attention: boolean; photoUrl?: string | null }
+interface AttRow { date: string; status: string; arrived_at?: string | null; left_at?: string | null }
 
 const MEAL_WORD = (pct: number) => pct >= 75 ? 'comeu bem' : pct >= 40 ? 'comeu razoavelmente' : pct > 0 ? 'comeu pouco' : 'quase não comeu'
 const MOOD_WORD = ['', 'esteve em baixo', 'esteve menos bem-disposta', 'esteve calma', 'esteve bem-disposta', 'esteve muito animada']
 
-function summariseDay(date: string, recs: any[], marToday: any[], firstName: string, isToday: boolean): DaySummary {
+function summariseDay(date: string, recs: any[], marToday: any[], firstName: string, isToday: boolean, att?: AttRow | null): DaySummary {
   const lines: string[] = []
   let attention = false
+
+  // ── Presença ─────────────────────────────────────────────────────────────
+  // É a marcação mais feita da casa e a que a família mais quer: chegou?
+  // Estava a ser guardada e nunca devolvida a ninguém. Vem primeiro porque é
+  // a primeira coisa que se pergunta ao fim do dia.
+  if (att) {
+    const hora = (t?: string | null) => {
+      if (!t) return null
+      const d = new Date(t); if (isNaN(d.getTime())) return null
+      return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' })
+    }
+    const chegada = hora(att.arrived_at)
+    const saida = hora(att.left_at)
+    if (att.status === 'present') {
+      lines.push(chegada ? `${firstName} chegou às ${chegada}.` : `${firstName} esteve presente.`)
+    } else if (att.status === 'left') {
+      lines.push(saida
+        ? `${firstName} ${chegada ? `chegou às ${chegada} e ` : ''}saiu mais cedo, às ${saida}.`
+        : `${firstName} saiu mais cedo.`)
+    } else if (att.status === 'absent') {
+      // Não é motivo de alarme — pode ser combinado. Diz-se e fica-se por aí.
+      lines.push(`${firstName} não veio hoje.`)
+    }
+  }
   // Refeições (média do dia a partir dos turnos)
   const meals: number[] = []
   let moodLevel = 0, moodCount = 0
@@ -80,11 +105,16 @@ function summariseDay(date: string, recs: any[], marToday: any[], firstName: str
 async function buildDailySummaries(patientId: string, days = 30): Promise<DaySummary[]> {
   const sb = admin()
   const since = new Date(Date.now() - (days - 1) * 86400000).toISOString().slice(0, 10)
-  const [{ data: cr }, { data: mar }, { data: pat }] = await Promise.all([
+  const [{ data: cr }, { data: mar }, { data: pat }, attRes] = await Promise.all([
     sb.from('care_records').select('date, nutrition, mood, notes').eq('patient_id', patientId).gte('date', since),
     sb.from('mar_records').select('date, status').eq('patient_id', patientId).gte('date', since),
     sb.from('patients').select('name').eq('id', patientId).maybeSingle(),
+    // Tolerante: sem a tabela de presenças, o resumo continua a sair como antes.
+    sb.from('attendance').select('date, status, arrived_at, left_at').eq('patient_id', patientId).gte('date', since)
+      .then((r: any) => r, () => ({ data: [] })),
   ])
+  const attByDate = new Map<string, AttRow>()
+  ;(((attRes as any)?.data || []) as AttRow[]).forEach(a => attByDate.set(a.date, a))
   const firstName = (pat?.name || 'O residente').split(' ')[0]
   const todayStr = new Date().toISOString().slice(0, 10)
   const out: DaySummary[] = []
@@ -92,8 +122,11 @@ async function buildDailySummaries(patientId: string, days = 30): Promise<DaySum
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
     const recs = (cr || []).filter((r: any) => r.date === d)
     const marDay = (mar || []).filter((m: any) => m.date === d)
-    if (!recs.length && !marDay.length) continue // sem registos nesse dia → não mostra
-    out.push(summariseDay(d, recs, marDay, firstName, d === todayStr))
+    const attDay = attByDate.get(d) || null
+    // Um dia em que só há presença marcada também conta: para a família, "hoje
+    // não veio" é informação, e antes desaparecia por não haver mais nada.
+    if (!recs.length && !marDay.length && !attDay) continue
+    out.push(summariseDay(d, recs, marDay, firstName, d === todayStr, attDay))
   }
   return out
 }

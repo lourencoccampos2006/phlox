@@ -605,9 +605,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
             <Stat n={ctx.patients.length} l={noun} light />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <CtaPill href="/balcao" label="Abrir balcão" />
-            <CtaPill href="/vendas" label="Vender" />
-            {q.pending > 0 && <CtaPill href="/prescription-queue" label={`Validar (${q.pending})`} />}
+            <CtaPill href="/stock" label="Ver stock" />
           </div>
         </div>
       )
@@ -617,13 +615,12 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       return (
         <div style={card}>
           <div style={blkTitle}><Icon name="cart" size={16} color={bp.accent} /> Vendas de hoje</div>
-          {count === 0 ? <Empty msg="Ainda não há vendas registadas hoje." href="/vendas" cta="Abrir caixa" />
+          {count === 0 ? <Empty msg="Ainda não há vendas registadas hoje." />
           : <>
               <div style={{ fontSize: 30, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>
                 {total.toFixed(2).replace('.', ',')}<span style={{ fontSize: 15, color: '#94a3b8', fontWeight: 700 }}> €</span>
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{count} {count === 1 ? 'venda' : 'vendas'} · ticket médio {(total / count).toFixed(2).replace('.', ',')} €</div>
-              <Link href="/vendas" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>Ver caixa →</Link>
             </>}
         </div>
       )
@@ -634,7 +631,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
         <div style={card}>
           <div style={blkTitle}><Icon name="inbox" size={16} color={bp.accent} /> Receitas a validar {q.pending > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{q.pending}</span>}</div>
           {q.pending === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Fila limpa — nada por validar. ✓</div>
-          : <div style={{ fontSize: 13, color: '#334155' }}><b style={{ color: '#b45309' }}>{q.pending}</b> à espera de validação · <Link href="/prescription-queue" style={{ color: bp.accent, fontWeight: 700 }}>abrir fila</Link></div>}
+          : <div style={{ fontSize: 13, color: '#334155' }}><b style={{ color: '#b45309' }}>{q.pending}</b> à espera de validação</div>}
         </div>
       )
     }
@@ -692,8 +689,8 @@ function Chip({ label, tone }: { label: string; tone: 'ok' | 'pending' }) {
   const s = tone === 'ok' ? { bg: '#f0fdf4', bd: '#bbf7d0', c: '#15803d' } : { bg: '#fffbeb', bd: '#fde68a', c: '#b45309' }
   return <span style={{ fontSize: 12, fontWeight: 600, color: s.c, background: s.bg, border: `1px solid ${s.bd}`, padding: '3px 9px', borderRadius: 99 }}>{label}</span>
 }
-function Empty({ msg, href, cta }: { msg: string; href: string; cta: string }) {
-  return <div style={{ textAlign: 'center', padding: '14px 0' }}><div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>{msg}</div><Link href={href} style={{ fontSize: 12.5, fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}>{cta} →</Link></div>
+function Empty({ msg, href, cta }: { msg: string; href?: string; cta?: string }) {
+  return <div style={{ textAlign: 'center', padding: '14px 0' }}><div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>{msg}</div>{href && cta && <Link href={href} style={{ fontSize: 12.5, fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}>{cta} →</Link>}</div>
 }
 // Botão claro sobre fundo de acento (usado no bloco "balcão" da farmácia).
 function CtaPill({ href, label }: { href: string; label: string }) {

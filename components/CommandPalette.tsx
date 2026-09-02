@@ -36,10 +36,9 @@ const TOOLS: Tool[] = [
   { href: '/integracoes', label: 'Importar Dados', desc: 'Apple Saúde · Garmin · Fitbit · MySNS', icon: '📥', category: 'Documentos' },
   // Clínico
   { href: '/turno', label: 'Turno', desc: 'Todos os doentes, doses e alertas num ecrã', icon: '🏥', category: 'Clínico' },
-  { href: '/rounds', label: 'Ronda Farmacêutica', desc: 'Intervenções PCNE · pendentes · métricas', icon: '👨‍⚕️', category: 'Clínico' },
   { href: '/mar', label: 'Administração (MAR)', desc: 'Registo de tomas por turno · alertas', icon: '📋', category: 'Clínico' },
   { href: '/patients', label: 'Doentes & Utentes', desc: 'Fichas, medicação, alertas e notas clínicas', icon: '🗂️', category: 'Clínico' },
-  { href: '/calculators', label: 'Calculadoras Clínicas', desc: 'SCORE2 · CKD-EPI · Vancomicina · 15+', icon: '🧮', category: 'Clínico' },
+  { href: '/calculos', label: 'Calculadoras Clínicas', desc: 'SCORE2 · CKD-EPI · Vancomicina · 15+', icon: '🧮', category: 'Clínico' },
   { href: '/protocolos', label: 'Protocolos', desc: 'ESC · ADA · NICE · DGS', icon: '📚', category: 'Clínico' },
   { href: '/med-review', label: 'Revisão de Medicação', desc: 'Análise clínica completa do esquema', icon: '🔬', category: 'Clínico' },
   // Estudantes

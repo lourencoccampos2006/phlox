@@ -24,7 +24,7 @@ export function quickActions(mode: string): QuickAction[] {
     { href: '/arena', icon: 'trophy', label: 'Treinar casos', sub: 'Arena' },
     { href: '/study', icon: 'cards', label: 'Flashcards', sub: 'Rever' },
     { href: '/tutor', icon: 'spark', label: 'Tutor', sub: 'Tirar dúvidas' },
-    { href: '/aprender', icon: 'book', label: 'Tudo para estudar', sub: 'O meu progresso' },
+    { href: '/study', icon: 'book', label: 'Tudo para estudar', sub: 'O meu progresso' },
   ]
   if (mode === 'caregiver') return [
     { href: '/familia', icon: 'family', label: 'A minha família', sub: 'Cada pessoa' },

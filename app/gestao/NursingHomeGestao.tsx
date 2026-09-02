@@ -178,7 +178,7 @@ export default function NursingHomeGestao() {
   // ── Consolidated alerts feed ──
   interface Alert { id: string; prio: number; color: string; cat: string; text: string; href: string }
   const alerts: Alert[] = []
-  if (criticalCount > 0) alerts.push({ id: 'risk-crit', prio: 0, color: '#dc2626', cat: 'Risco clínico crítico', text: `${criticalCount} residente${criticalCount !== 1 ? 's' : ''} a precisar de atenção prioritária`, href: '/rounds' })
+  if (criticalCount > 0) alerts.push({ id: 'risk-crit', prio: 0, color: '#dc2626', cat: 'Risco clínico crítico', text: `${criticalCount} residente${criticalCount !== 1 ? 's' : ''} a precisar de atenção prioritária`, href: '/radar' })
   openInc.filter(i => i.severity === 'critical' || i.severity === 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 0, color: '#dc2626', cat: 'Ocorrência grave', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)} ${roomOf(i.patient_id)}`, href: '/incidents' }))
   severeWounds.forEach(w => alerts.push({ id: `w${w.id}`, prio: 1, color: '#991b1b', cat: `Ferida Cat. ${w.stage}`, text: `${nameOf(w.patient_id)} ${roomOf(w.patient_id)}`, href: '/feridas' }))
   openInc.filter(i => i.severity !== 'critical' && i.severity !== 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 2, color: '#d97706', cat: 'Ocorrência aberta', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)}`, href: '/incidents' }))
@@ -227,7 +227,7 @@ export default function NursingHomeGestao() {
           {[
             { label: 'Ocupação', value: `${occupied}/${totalBeds}`, sub: `${occupancyPct}%`, color: occupancyPct >= 90 ? '#dc2626' : '#0d6e42', href: '/census' },
             { label: 'Equipa em serviço', value: onShift, sub: `de ${team.length}`, color: '#2563eb', href: '/equipa?tab=escalas' },
-            { label: 'Risco crítico', value: criticalCount, sub: warningCount ? `+${warningCount} a vigiar` : 'residentes', color: criticalCount ? '#dc2626' : warningCount ? '#d97706' : '#16a34a', href: '/rounds' },
+            { label: 'Risco crítico', value: criticalCount, sub: warningCount ? `+${warningCount} a vigiar` : 'residentes', color: criticalCount ? '#dc2626' : warningCount ? '#d97706' : '#16a34a', href: '/radar' },
             { label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? '#dc2626' : '#16a34a', href: '/incidents' },
             { label: 'Feridas ativas', value: activeWounds.length, sub: severeWounds.length ? `${severeWounds.length} cat. III/IV` : 'acompanhamento', color: severeWounds.length ? '#991b1b' : '#d97706', href: '/feridas' },
           ].map(k => (
@@ -256,7 +256,7 @@ export default function NursingHomeGestao() {
 
           {/* Residentes de maior risco — motor de ecossistema */}
           <div style={{ ...card, gridColumn: '1 / -1' }}>
-            {secTitle(`Residentes de maior risco${criticalCount + warningCount ? ` · ${criticalCount + warningCount}` : ''}`, '/rounds')}
+            {secTitle(`Residentes de maior risco${criticalCount + warningCount ? ` · ${criticalCount + warningCount}` : ''}`, '/radar')}
             {loading ? (
               <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>A analisar…</div>
             ) : ranked.filter(r => r.level === 'critical' || r.level === 'warning').length === 0 ? (

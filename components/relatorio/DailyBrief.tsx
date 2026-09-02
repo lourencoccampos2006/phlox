@@ -59,7 +59,7 @@ export default function DailyBrief() {
 
     const signals: Brief['signals'] = []
     if (sales.length > 0) signals.push({ label: 'Caixa hoje', value: eur(revenue), color: '#0d6e42', href: '/faturacao' })
-    if (waiting.length > 0) signals.push({ label: 'Em espera', value: waitingNow, color: '#2563eb', href: '/sala-espera' })
+    if (waiting.length > 0) signals.push({ label: 'Em espera', value: waitingNow, color: '#2563eb', href: '/agenda' })
     if (tasks.length > 0) signals.push({ label: 'Tarefas abertas', value: tasks.length, color: overdueT > 0 ? '#d97706' : '#0b1120', href: '/tarefas-equipa' })
     if (incidents.length > 0) signals.push({ label: 'Ocorrências', value: incidents.length, color: '#dc2626', href: '/incidents' })
     signals.push({ label: 'Modo', value: user?.experience_mode === 'clinical' ? 'Clínico' : user?.experience_mode === 'caregiver' ? 'Cuidador' : user?.experience_mode === 'student' ? 'Estudo' : 'Pessoal', color: '#7c3aed' })
@@ -72,7 +72,7 @@ export default function DailyBrief() {
       open_items.push({ title: t.title, href: '/tarefas-equipa', tag: 'em atraso', tagColor: '#d97706' })
     )
     waiting.filter((w: any) => w.priority === 'urgente' && w.status === 'waiting').slice(0, 3).forEach((w: any) =>
-      open_items.push({ title: `${w.name} — ${w.reason || 'urgente'}`, href: '/sala-espera', tag: 'urgente', tagColor: '#dc2626' })
+      open_items.push({ title: `${w.name} — ${w.reason || 'urgente'}`, href: '/agenda', tag: 'urgente', tagColor: '#dc2626' })
     )
 
     const labels: Record<string, string> = {

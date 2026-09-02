@@ -23,6 +23,7 @@ import { setActiveProfile } from '@/lib/profileContext'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
 import { vitalTrendSignals, type TrendVital } from '@/lib/healthTrends'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import { ptDate } from '@/lib/ptTime'
 import { useToast } from '@/components/Toast'
 
 interface LifeStory { profession?: string; family?: string; hobbies?: string; music?: string; notes?: string; sensitivities?: string }
@@ -333,7 +334,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setReportBusy(true)
     try {
       const now = new Date()
-      const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+      // Dia 1 do mês em hora de Portugal. Com toISOString() isto dava o ÚLTIMO
+      // dia do mês anterior no horário de verão (meia-noite local = 23h UTC do dia
+      // antes), e o período do relatório começava um dia cedo demais.
+      const first = ptDate(now).slice(0, 7) + '-01'
       const { data: recs } = await supabase.from('care_records').select('date,shift,nutrition,mood,vitals').eq('patient_id', pid).gte('date', first).order('date')
       const { data: doses } = await supabase.from('mar_records').select('status,date').eq('patient_id', pid).gte('date', first)
       const days = new Set((recs || []).map((r: any) => r.date)).size
@@ -379,31 +383,67 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setDossierBusy(true)
     try {
       const now = new Date()
-      const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+      // Dia 1 do mês em hora de Portugal. Com toISOString() isto dava o ÚLTIMO
+      // dia do mês anterior no horário de verão (meia-noite local = 23h UTC do dia
+      // antes), e o período do relatório começava um dia cedo demais.
+      const first = ptDate(now).slice(0, 7) + '-01'
       const monthLabel = now.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
-      const [attRes, partsRes, dosesRes, incRes] = await Promise.all([
+      const [attRes, partsRes, dosesRes, incRes, medsRes] = await Promise.all([
         supabase.from('attendance').select('date,status').eq('patient_id', pid).gte('date', first).order('date').then((r: any) => r, () => ({ data: [] })),
         supabase.from('activity_participations').select('attended,activities(title,date,type)').eq('patient_id', pid).eq('attended', true).then((r: any) => r, () => ({ data: [] })),
         supabase.from('mar_records').select('status,date').eq('patient_id', pid).gte('date', first).then((r: any) => r, () => ({ data: [] })),
         supabase.from('incidents').select('date,type,severity,description,action_taken,follow_up_required').eq('patient_id', pid).gte('date', first).order('date').then((r: any) => r, () => ({ data: [] })),
+        supabase.from('patient_meds').select('id,name,shifts,active,started_at,stopped_at').eq('patient_id', pid).then((r: any) => r, () => ({ data: [] })),
       ])
       const att = (attRes.data || []) as { date: string; status: string }[]
       const parts = ((partsRes.data || []) as any[]).filter(p => p.activities && p.activities.date >= first)
       const doses = (dosesRes.data || []) as { status: string; date: string }[]
       const incs = (incRes.data || []) as { date: string; type: string; severity: string; description: string; action_taken?: string; follow_up_required?: boolean }[]
+      const meds = (medsRes.data || []) as { id: string; name: string; shifts: string[] | null; active: boolean | null; started_at: string | null; stopped_at: string | null }[]
 
       const presentDays = att.filter(a => a.status === 'present').length
-      const dosesGiven = doses.filter(d => d.status === 'administered' || d.status === 'given' || d.status === 'taken').length
 
-      // ── SEM PERCENTAGENS AQUI ──────────────────────────────────────────
-      // Estava `adherence = dosesGiven / doses.length`, com `doses` = as linhas
-      // de mar_records do mês. Não é adesão: é "das tomas que alguém se lembrou
-      // de registar, quantas ficaram marcadas como dadas". O denominador só
-      // cresce quando se regista, por isso dava quase sempre 100% — uma utente
-      // com UM dia registado aparecia com 100% a 29 de agosto.
-      // A percentagem certa exigia as doses DEVIDAS, e essas não existem deste
-      // lado: patient_meds.frequency é texto livre. A presença tinha o mesmo
-      // defeito. Este documento vai para famílias e inspeções: ficam contagens.
+      // ── ADESÃO REAL: DADAS SOBRE PRESCRITAS ────────────────────────────
+      // O denominador certo são as doses que ESTAVAM PREVISTAS no período, não
+      // as linhas que alguém se lembrou de registar (isso dava quase sempre
+      // 100%: quem regista uma toma regista-a como dada).
+      //
+      // As previstas saem de patient_meds.shifts — a lista de turnos de cada
+      // medicamento, que é estruturada. (patient_meds.frequency é texto livre e
+      // não serve para contar.) Para cada medicamento contam-se os dias em que
+      // esteve ativo dentro do mês, do dia 1 até HOJE — o resto do mês ainda não
+      // é devido — vezes o número de turnos por dia.
+      //
+      // Um medicamento sem turnos marcados conta como uma dose por dia; um
+      // medicamento desativado sem data de fim fica de fora, porque não se sabe
+      // até quando esteve a ser dado e um palpite aqui inventava doses.
+      const todayISO = ptDate()
+      const dayCount = (from: string, to: string) => {
+        const a = new Date(from + 'T12:00:00').getTime(), b = new Date(to + 'T12:00:00').getTime()
+        return b < a ? 0 : Math.round((b - a) / 86400000) + 1
+      }
+      let dosesDue = 0
+      let medsSemHorario = 0
+      let medsIgnorados = 0
+      meds.forEach(m => {
+        const fim = m.stopped_at ? m.stopped_at.slice(0, 10) : m.active === false ? null : todayISO
+        if (!fim) { medsIgnorados++; return }
+        const inicio = m.started_at && m.started_at.slice(0, 10) > first ? m.started_at.slice(0, 10) : first
+        const dias = dayCount(inicio, fim > todayISO ? todayISO : fim)
+        const porDia = Array.isArray(m.shifts) && m.shifts.length ? m.shifts.length : 1
+        if (!Array.isArray(m.shifts) || !m.shifts.length) medsSemHorario++
+        dosesDue += dias * porDia
+      })
+
+      const dosesGiven = doses.filter(d => d.status === 'administered' || d.status === 'given' || d.status === 'taken').length
+      const dosesRefused = doses.filter(d => d.status === 'refused').length
+      const dosesHeld = doses.filter(d => d.status === 'held').length
+      const dosesUnrecorded = Math.max(0, dosesDue - dosesGiven - dosesRefused - dosesHeld)
+      // Se houver SOS/em-SOS dados fora do horário, as dadas podem passar as
+      // previstas. A percentagem não passa dos 100%, mas as contagens ficam
+      // ambas à vista para se perceber porquê.
+      const adherence = dosesDue > 0 ? Math.round((Math.min(dosesGiven, dosesDue) / dosesDue) * 100) : null
+
       const TYPE_LABELS: Record<string, string> = { fall: 'Queda', medication_error: 'Erro de Medicação', pressure_ulcer: 'Úlcera de Pressão', behavioral: 'Incidente Comportamental', choking: 'Engasgamento', infection: 'Infeção', other: 'Outro' }
       const SEV_LABELS: Record<string, string> = { minor: 'Ligeiro', moderate: 'Moderado', major: 'Grave', critical: 'Crítico' }
 
@@ -423,13 +463,22 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           }))
         : [{ title: 'Sem participação em atividades registada este mês' }]
 
-      const medRecords: PrintRecord[] = doses.length ? [{
-        title: `${dosesGiven} de ${doses.length} tomas registadas foram dadas`,
-        fields: [
-          { label: 'Suspensas ou recusadas', value: String(doses.length - dosesGiven) },
-          { label: 'Nota', value: 'Contagem sobre as tomas registadas no sistema. Não representa a totalidade das doses prescritas no período.' },
-        ],
-      }] : [{ title: 'Sem tomas registadas este mês', fields: [] }]
+      const medRecords: PrintRecord[] = dosesDue > 0
+        ? [{
+            title: `${adherence}% de adesão — ${dosesGiven} de ${dosesDue} doses prescritas foram dadas`,
+            fields: [
+              { label: 'Doses prescritas no período', value: `${dosesDue} (do dia 1 até hoje)` },
+              { label: 'Dadas', value: String(dosesGiven) },
+              { label: 'Recusadas pela pessoa', value: String(dosesRefused) },
+              { label: 'Suspensas pela equipa', value: String(dosesHeld) },
+              { label: 'Sem registo', value: String(dosesUnrecorded) },
+              ...(medsSemHorario ? [{ label: 'Nota', value: `${medsSemHorario} ${medsSemHorario === 1 ? 'medicamento não tem' : 'medicamentos não têm'} turnos marcados — ${medsSemHorario === 1 ? 'contou' : 'contaram'} como uma dose por dia.` }] : []),
+              ...(medsIgnorados ? [{ label: 'Fora da conta', value: `${medsIgnorados} ${medsIgnorados === 1 ? 'medicamento desativado sem data de fim' : 'medicamentos desativados sem data de fim'} — não entra${medsIgnorados === 1 ? '' : 'm'} no total prescrito.` }] : []),
+            ],
+          }]
+        : meds.length
+          ? [{ title: 'Sem medicação com horário definido este mês', fields: [{ label: 'Registos de toma', value: `${dosesGiven} ${dosesGiven === 1 ? 'dada' : 'dadas'}, ${dosesRefused} ${dosesRefused === 1 ? 'recusada' : 'recusadas'}` }] }]
+          : [{ title: 'Sem medicação prescrita este mês', fields: [] }]
 
       const incidentRecords: PrintRecord[] = incs.length
         ? incs.map(i => ({
@@ -450,7 +499,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         meta: [
           { label: 'dias presente', value: att.length ? `${presentDays} de ${att.length} marcados` : '—' },
           { label: 'atividades', value: String(parts.length) },
-          { label: 'tomas dadas', value: doses.length ? `${dosesGiven} de ${doses.length} registadas` : '—' },
+          { label: 'adesão à medicação', value: adherence == null ? '—' : `${adherence}% (${dosesGiven}/${dosesDue})` },
           { label: 'ocorrências', value: String(incs.length) },
         ],
         sections: [

@@ -213,7 +213,6 @@ export default function FaturacaoConfigPage() {
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <button onClick={save} style={{ padding: '11px 20px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Guardar</button>
-              <Link href="/vendas" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>← Voltar ao POS</Link>
               {saved && <span style={{ fontSize: 13, fontWeight: 600, color: saved.includes('✓') ? '#16a34a' : '#dc2626' }}>{saved}</span>}
             </div>
           </div>

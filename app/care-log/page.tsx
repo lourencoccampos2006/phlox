@@ -135,6 +135,9 @@ export function CareLogTool() {
 
   // Notes
   const [notes, setNotes] = useState('')
+  // Atalho "está tudo como ontem?" — ver o bloco na UI. Fica aberto até a
+  // pessoa responder ou tocar no formulário.
+  const [atalhoUsado, setAtalhoUsado] = useState(false)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -185,6 +188,36 @@ export function CareLogTool() {
     setMood(m.level ?? null); setActivities(m.activities || ''); setBehavior(m.behavior || '')
     setSkin(s.integrity || ''); setSkinNotes(s.description || '')
     // notas NÃO se copiam — cada turno tem as suas
+  }
+
+  /** "Sim — registar igual": grava DIRETO a partir do último registo.
+   *  Não passa pelo estado do formulário de propósito: um prefill seguido de
+   *  save() no mesmo tique gravaria os valores antigos do render anterior, ou
+   *  seja, um registo em branco. As notas não se copiam — cada turno tem as
+   *  suas — e a hora fica a de agora. */
+  async function registarIgual() {
+    if (!user || !patientId || !lastRecord) return
+    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
+    setSaving(true)
+    try {
+      const r = lastRecord
+      const { error } = await supabase.from('care_records').upsert(scope.stamp({
+        user_id: user.id, patient_id: patientId, date, shift,
+        recorded_by: recordedBy || null,
+        vitals: r.vitals || {},
+        nutrition: r.nutrition || {},
+        continence: r.continence || {},
+        mood: r.mood || {},
+        skin: r.skin || {},
+        notes: null,
+      }), { onConflict: 'patient_id,date,shift' })
+      if (error) { toast.error('Não foi possível guardar', reportError('care-log-igual', error, 'Tenta de novo.')); return }
+      toast.success('Registado', `${pat?.name || 'Registo'} — igual ao último.`)
+      setSaved(true); setTimeout(() => setSaved(false), 2500)
+      resetForm(); setAtalhoUsado(false); load()
+    } catch (e) {
+      toast.error('Não foi possível guardar', reportError('care-log-igual', e, 'Verifica a ligação e tenta de novo.'))
+    } finally { setSaving(false) }
   }
 
   async function save() {
@@ -333,7 +366,7 @@ export function CareLogTool() {
             <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12, marginBottom: 12 }}>
               <div style={{ minWidth: 0 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cfg.personNoun} *</label>
-                <select value={patientId} onChange={e => setPatientId(e.target.value)} style={{ ...inp(), maxWidth: '100%' }}>
+                <select value={patientId} onChange={e => { setPatientId(e.target.value); setAtalhoUsado(false) }} style={{ ...inp(), maxWidth: '100%' }}>
                   <option value="">{`Selecionar ${personLower}...`}</option>
                   {patients.map(p => <option key={p.id} value={p.id}>{p.name}{cfg.hasBeds && p.room_number ? ` — ${cfg.roomLabel[0]}.${p.room_number}` : ''}</option>)}
                 </select>
@@ -343,11 +376,33 @@ export function CareLogTool() {
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp()} />
               </div>
             </div>
-            {patientId && lastRecord && (
-              <button onClick={prefillFromLast} type="button"
-                style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 8, border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                ⤵ Copiar do último registo <span style={{ fontWeight: 400, color: '#6b7280' }}>({lastRecord.date}{lastRecord.shift ? ` · ${SHIFTS[lastRecord.shift as Shift]?.label || lastRecord.shift}` : ''})</span>
-              </button>
+            {/* ── "Está tudo como da última vez?" ──────────────────────────
+                Na esmagadora maioria dos dias, está. Obrigar a equipa a
+                repetir seis respostas iguais às de ontem sobre toda a gente é
+                o que faz um registo virar burocracia — e é como se perde a
+                atenção para o dia em que alguma coisa MUDOU mesmo.
+                Quem responde "sim" grava num toque; quem responde "não"
+                preenche o formulário completo, com o último registo já lá
+                posto para só ter de mexer no que mudou. */}
+            {patientId && lastRecord && !atalhoUsado && (
+              <div style={{ marginBottom: 14, background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 10, padding: '13px 15px' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#14532d' }}>Está tudo como da última vez?</div>
+                <div style={{ fontSize: 12, color: '#3f6212', marginTop: 3 }}>
+                  Último registo: {lastRecord.date}{lastRecord.shift ? ` · ${SHIFTS[lastRecord.shift as Shift]?.label || lastRecord.shift}` : ''}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 11, flexWrap: 'wrap' }}>
+                  <button type="button" disabled={saving}
+                    onClick={registarIgual}
+                    style={{ minHeight: 44, padding: '0 18px', borderRadius: 8, border: 'none', background: '#15803d', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Sim — registar igual
+                  </button>
+                  <button type="button"
+                    onClick={() => { prefillFromLast(); setAtalhoUsado(true) }}
+                    style={{ minHeight: 44, padding: '0 16px', borderRadius: 8, border: '1.5px solid #bbf7d0', background: 'white', color: '#15803d', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    Mudou alguma coisa
+                  </button>
+                </div>
+              </div>
             )}
             <div className="cl-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 12 }}>
               {/* Só os turnos desta instituição (o centro de dia não tem noite). */}

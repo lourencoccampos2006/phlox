@@ -149,7 +149,13 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
   const since1 = new Date(); since1.setHours(0, 0, 0, 0)
   const safe = safeQ
 
-  const [p, careToday, careHist, mar, meds, inc, wounds, assess, hyd, reqs] = await Promise.all([
+  // Semana corrente da grelha de preparação (/preparacao-medicacao arranca a
+  // semana ao domingo — mesma convenção, senão as duas páginas discordam).
+  const inicioSemana = (() => { const x = new Date(); x.setDate(x.getDate() - x.getDay()); x.setHours(0,0,0,0); return x.toISOString().slice(0,10) })()
+  const diaSemana = new Date().getDay()
+
+  const [p, careToday, careHist, mar, meds, inc, wounds, assess, hyd, reqs,
+         presencas, prep, transportes, transporteLogs, detalhe7] = await Promise.all([
     scope.filter(supabase.from('patients').select('id,name,age,conditions,allergies,room_number')).eq('active', true).order('name'),
     safe(scope.filter(supabase.from('care_records').select('patient_id,date,shift,mood,nutrition,notes')).eq('date', d)),
     safe(scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since365)),
@@ -159,7 +165,7 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
     // esperadas hoje — alguém com 4 fármacos atuais e 8 parados aparecia como
     // polimedicação crítica. Falso positivo herdado do /radar original; agora
     // corrigido de uma vez para as 4 páginas que usam o Sentinel.
-    safe(scope.filter(supabase.from('patient_meds').select('patient_id,name')).eq('active', true)),
+    safe(scope.filter(supabase.from('patient_meds').select('patient_id,name,shifts')).eq('active', true)),
     safe(scope.filter(supabase.from('incidents').select('patient_id,type,severity,status')).neq('status', 'closed')),
     safe(scope.filter(supabase.from('wounds').select('patient_id,status,stage'))),
     // BUG CORRIGIDO 2026-08-21: buscava-se 30 dias, mas a regra que consome
@@ -171,6 +177,22 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
     safe(scope.filter(supabase.from('assessments').select('patient_id,scale,date')).gte('date', daysAgoStr(120))),
     safe(scope.filter(supabase.from('hydration_logs').select('patient_id,at,fluid_ml')).gte('at', since1.toISOString())),
     safe(scope.filter(supabase.from('resident_requests').select('patient_id,kind,content,status,created_at')).neq('status', 'resolvido')),
+
+    // ── As três fontes que ninguém lia (2026-09-02) ───────────────────────
+    // Presenças, preparação do pastilheiro e transportes recorrentes eram
+    // escritas e nunca mais consultadas. Agora entram no mesmo motor que
+    // decide a quem ir ver primeiro. safeQ como o resto: sem a tabela, o
+    // sinal simplesmente não existe.
+    safe(scope.filter(supabase.from('attendance').select('patient_id,date,status')).gte('date', daysAgoStr(14)).order('date')),
+    safe(scope.filter(supabase.from('medication_prep_logs').select('patient_id,packed')).eq('week_start', inicioSemana).eq('packed', true)),
+    safe(scope.filter(supabase.from('support_transport_schedules').select('id,patient_id,label,time,weekdays,active')).eq('active', true)),
+    safe(scope.filter(supabase.from('support_transport_logs').select('schedule_id,done')).eq('date', d)),
+
+    // Apetite, continência e pele dos últimos dias. O careHist só traz vitais
+    // (365 dias) — estes campos precisam de uma janela curta e de outras
+    // colunas, e alargar o histórico inteiro seria puxar um ano de jsonb por
+    // causa de uma regra de três dias.
+    safe(scope.filter(supabase.from('care_records').select('patient_id,date,nutrition,continence,skin')).gte('date', daysAgoStr(7)).order('date')),
   ])
   if (p.error) return { results: [], trends: {}, error: 'Não foi possível carregar. Verifica a ligação.' }
 
@@ -187,6 +209,42 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
   const assessBy = by(assess.data || [], (r: any) => r.patient_id)
   const hydBy = by(hyd.data || [], (r: any) => r.patient_id)
   const reqsBy = by(reqs.data || [], (r: any) => r.patient_id)
+  const presencasBy = by(presencas.data || [], (r: any) => r.patient_id)
+
+  const detalheBy: Record<string, { date: string; appetite?: string | null; urinary?: string | null; bowel?: string | null; skin?: string | null }[]> = {}
+  ;((detalhe7.data || []) as any[]).forEach(r => {
+    ;(detalheBy[r.patient_id] ||= []).push({
+      date: r.date,
+      appetite: r.nutrition?.appetite ?? null,
+      urinary: r.continence?.urinary ?? null,
+      bowel: r.continence?.bowel ?? null,
+      skin: r.skin?.integrity ?? null,
+    })
+  })
+  const comFeridaAberta = new Set(((wounds.data || []) as any[]).filter(w => w.status !== 'healed' && w.status !== 'closed').map(w => w.patient_id))
+
+  // Preparação: só avisa quem tem medicação com horário E não tem uma única
+  // marca esta semana — e só se a CASA usar mesmo a ferramenta. Sem esta
+  // segunda guarda, uma casa que nunca abriu a página levava um aviso por
+  // pessoa por causa de algo que não conhece.
+  const preparados = new Set(((prep.data || []) as any[]).map(r => r.patient_id))
+  const casaUsaPreparacao = preparados.size > 0
+  const comHorario = new Set(((meds.data || []) as any[]).filter(m => Array.isArray(m.shifts) && m.shifts.length).map((m: any) => m.patient_id))
+
+  // Transporte: só os de hoje, e só passada mais de uma hora da hora combinada
+  // (antes disso não está atrasado, está a acontecer).
+  const feitos = new Set(((transporteLogs.data || []) as any[]).filter(l => l.done).map(l => l.schedule_id))
+  const agoraMin = new Date().getHours() * 60 + new Date().getMinutes()
+  const transportesBy: Record<string, { label: string; time: string | null; done: boolean }[]> = {}
+  ;((transportes.data || []) as any[]).forEach(t => {
+    if (Array.isArray(t.weekdays) && t.weekdays.length && !t.weekdays.includes(diaSemana)) return
+    if (!t.patient_id) return
+    if (t.time) {
+      const [hh, mm] = String(t.time).split(':').map(Number)
+      if (agoraMin < (hh * 60 + (mm || 0)) + 60) return
+    }
+    ;(transportesBy[t.patient_id] ||= []).push({ label: t.label, time: t.time, done: feitos.has(t.id) })
+  })
 
   // Peso a partir do jsonb vitals dos care_records.
   const weightsBy: Record<string, { patient_id: string; date: string; weight: number }[]> = {}
@@ -208,6 +266,11 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
     weights: weightsBy[pt.id] || [],
     hydrationToday: hydBy[pt.id] || [],
     residentRequests: reqsBy[pt.id] || [],
+    attendanceRecent: presencasBy[pt.id] || [],
+    prepPendingThisWeek: casaUsaPreparacao && comHorario.has(pt.id) && !preparados.has(pt.id),
+    transportsToday: transportesBy[pt.id] || [],
+    dailyDetail: detalheBy[pt.id] || [],
+    hasOpenWound: comFeridaAberta.has(pt.id),
   })))
 
   // Tendência (2-3 semanas) — mesma função que o /apoio-psicossocial usa.
@@ -223,4 +286,5 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
 export const SENTINEL_LIVE_TABLES = [
   'patients', 'care_records', 'mar_records', 'incidents', 'wounds', 'assessments',
   'patient_meds', 'hydration_logs', 'resident_requests', 'activities', 'activity_participations',
+  'attendance', 'medication_prep_logs', 'support_transport_logs',
 ]

@@ -34,8 +34,10 @@ import { blueprintFor } from '@/lib/institutionBlueprint'
 import { iconForHref } from '@/lib/clinicalIcons'
 import { ptDate, ptGreeting } from '@/lib/ptTime'
 import { ultimosDias } from '@/lib/painelDados'
+import { reportError } from '@/lib/clientError'
 import {
-  FaixaKpi, CartaoLinha, CartaoBarras, CartaoRosca, CartaoTabela, CartaoLista, CartaoPastas, type Pasta,
+  FaixaKpi, CartaoLinha, CartaoBarras, CartaoRosca, CartaoTabela, CartaoLista, CartaoPastas, CartaoPresencas,
+  type Pasta, type PessoaPresenca,
 } from './painelPecas'
 import {
   ABAS, abaHoje, abaCuidados, abaPessoas, abaEquipa, abaGestao,
@@ -210,6 +212,48 @@ export default function PainelHoje() {
     }
   }, [aba, base, cuidados, pessoas, equipa, gestao, casa, primeiroNome, nomes])
 
+  /* ── Presenças: a única coisa que o painel escreve ─────────────────────── */
+  // Marcar quem chegou é o primeiro gesto do dia. Escreve otimista (a rosca e o
+  // número no topo mexem-se logo) e repõe o estado anterior se a gravação
+  // falhar — nunca fica a mostrar uma presença que não ficou registada.
+  const [aGuardar, setAGuardar] = useState<Set<string>>(new Set())
+
+  const pessoasPresenca: PessoaPresenca[] = useMemo(() => {
+    if (!base) return []
+    const estado = new Map(base.presencas.map(a => [a.patient_id, a.status]))
+    return base.utentes.map(u => {
+      const e = estado.get(u.id)
+      return {
+        id: u.id, nome: u.name, quarto: u.room_number ? `Q ${u.room_number}` : null,
+        estado: e === 'present' || e === 'absent' || e === 'left' ? e : null,
+      }
+    })
+  }, [base])
+
+  const marcarPresenca = useCallback(async (patientId: string, status: 'present' | 'absent' | 'left') => {
+    if (!user || !base) return
+    const antes = base.presencas
+    const agora = new Date().toISOString()
+    setAGuardar(prev => new Set(prev).add(patientId))
+    setBase(b => b && ({
+      ...b,
+      presencas: [...b.presencas.filter(a => a.patient_id !== patientId), { patient_id: patientId, status }],
+    }))
+    const linha = scope.stamp({
+      patient_id: patientId, date: ptDate(), status,
+      arrived_at: status === 'absent' ? null : agora,
+      left_at: status === 'left' ? agora : null,
+      recorded_by_id: user.id,
+    })
+    const { error } = await supabase.from('attendance').upsert(linha, { onConflict: 'patient_id,date' })
+    setAGuardar(prev => { const n = new Set(prev); n.delete(patientId); return n })
+    if (error) {
+      setBase(b => b && ({ ...b, presencas: antes }))
+      alert(reportError('painel-presencas', error, 'Não foi possível guardar a presença. Tenta de novo.'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, base, supabase, scope.orgId, scope.userId])
+
   const pastas: Pasta[] = useMemo(() => (bp.toolFolders || []).map(f => ({
     id: f.id, nome: f.label, hint: f.hint,
     mini: f.tools.slice(0, 4).map(t => iconForHref(t.href)),
@@ -275,6 +319,15 @@ export default function PainelHoje() {
         </div>
 
         {!!vista.kpis.length && <FaixaKpi kpis={vista.kpis} cor={bp.accent} />}
+
+        {/* Marcar presenças fica no "Hoje" e em mais lado nenhum: nos outros
+            separadores não é a pergunta que se está a fazer. */}
+        {aba === 'hoje' && (
+          <CartaoPresencas
+            pessoas={pessoasPresenca} marcar={marcarPresenca} aGuardar={aGuardar}
+            cor={bp.accent} podeEditar={scope.canEdit} span={12}
+          />
+        )}
 
         {/* A grelha de doze colunas do desenho */}
         <div className="pn-grid" style={{
