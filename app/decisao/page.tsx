@@ -481,7 +481,8 @@ export default function DecisaoPage() {
         )}
 
         {/* Difficulty filter */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+        {/* flexWrap: quatro pastilhas não cabem em 390px — passavam 6px. */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: 'Todos' },
             { id: 'intern', label: 'Interno' },
@@ -640,7 +641,7 @@ export default function DecisaoPage() {
         </div>
 
         {/* Main layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', flex: 1, overflow: 'hidden', height: 'calc(100vh - 120px)' }} className="ward-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0,1fr)', flex: 1, overflow: 'hidden', height: 'calc(100vh - 120px)' }} className="ward-grid">
 
           {/* Left: Patient state */}
           <div style={{ background: 'white', borderRight: '1px solid var(--border)', overflowY: 'auto', padding: '16px' }}>
@@ -735,7 +736,7 @@ export default function DecisaoPage() {
             </div>
           </div>
         </div>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}} @media(max-width:768px){.ward-grid{grid-template-columns:1fr!important;height:auto!important}}`}</style>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}} @media(max-width:768px){.ward-grid{grid-template-columns:minmax(0,1fr)!important;height:auto!important}}`}</style>
       </div>
     )
   }

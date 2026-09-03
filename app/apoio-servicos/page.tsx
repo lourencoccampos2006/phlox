@@ -82,7 +82,11 @@ export default function ApoioServicosPage() {
       scope.filter(supabase.from('support_transport_logs').select('id,schedule_id,date,done')).eq('date', today),
       scope.filter(supabase.from('support_services').select('*')).in('kind', ['roupa', 'outro']).neq('status', 'concluido').order('created_at', { ascending: false }),
     ])
-    if (sch.error && /does not exist|schema cache/i.test(sch.error.message)) { setNeedsSetup(true); setLoading(false); return }
+    // As duas tabelas do par, não só a primeira: uma migração aplicada pela
+    // metade deixava a outra a falhar em silêncio a cada visita (foi o caso
+    // do par support_recurring_* aqui em baixo).
+    const emFalta = (e: any) => !!e && /does not exist|schema cache/i.test(e.message || '')
+    if (emFalta(sch.error) || emFalta(lgs.error)) { setNeedsSetup(true); setLoading(false); return }
     setNeedsSetup(false)
     setPatients(pats.data || [])
     setSchedules(sch.data || [])
@@ -373,11 +377,20 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [sch, lgs] = await Promise.all([
-      scope.filter(supabase.from('support_recurring_services').select('id,patient_id,kind,label,weekdays,time')).in('kind', kindIds).eq('active', true),
-      scope.filter(supabase.from('support_recurring_logs').select('id,schedule_id,date,done')).eq('date', today),
-    ])
-    if (sch.error && /does not exist|schema cache/i.test(sch.error.message)) { setNeedsSetup(true); setLoading(false); return }
+    // Em série e não em paralelo de propósito: se a primeira tabela não existe,
+    // a segunda também não vale a pena — disparar as duas ao mesmo tempo só
+    // garante um 400 extra na consola a cada carregamento, ruído que esconde os
+    // erros a sério de quem anda a procurar problemas.
+    //
+    // E as DUAS têm de ser verificadas: a migração pode ter sido aplicada só
+    // pela metade (foi o que aconteceu — support_recurring_services existia e
+    // support_recurring_logs não), e a guarda que só olhava para a primeira
+    // deixava a segunda falhar em silêncio a cada visita.
+    const emFalta = (e: any) => !!e && /does not exist|schema cache/i.test(e.message || '')
+    const sch = await scope.filter(supabase.from('support_recurring_services').select('id,patient_id,kind,label,weekdays,time')).in('kind', kindIds).eq('active', true)
+    if (emFalta(sch.error)) { setNeedsSetup(true); setLoading(false); return }
+    const lgs = await scope.filter(supabase.from('support_recurring_logs').select('id,schedule_id,date,done')).eq('date', today)
+    if (emFalta(lgs.error)) { setNeedsSetup(true); setLoading(false); return }
     setNeedsSetup(false)
     setSchedules(sch.data || [])
     setLogs(lgs.data || [])

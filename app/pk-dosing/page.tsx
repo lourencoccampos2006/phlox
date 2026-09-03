@@ -439,11 +439,12 @@ export default function PKDosing() {
             </div>
           </div>
 
-          {/* Drug tabs */}
-          <div style={{ display: 'flex', gap: 2 }}>
+          {/* Drug tabs — desliza na horizontal em vez de empurrar a página
+              inteira para fora do ecrã (transbordava 181px a 390px). */}
+          <div style={{ display: 'flex', gap: 2, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)} style={{
-                padding: '10px 18px', borderRadius: '8px 8px 0 0', border: 'none',
+                padding: '10px 18px', borderRadius: '8px 8px 0 0', border: 'none', flexShrink: 0, whiteSpace: 'nowrap',
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                 background: tab === t.id ? 'white' : 'transparent',
                 color: tab === t.id ? '#0f172a' : '#64748b',
@@ -462,7 +463,10 @@ export default function PKDosing() {
       </div>
 
       <div style={{ maxWidth: 1140, margin: '0 auto', padding: '24px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20 }}>
+        {/* className="pk-grid": a regra que colapsa isto em telemóvel já
+            existia no <style> lá em baixo, mas a classe nunca foi posta no
+            elemento — a página transbordava 181px a 390px. */}
+        <div className="pk-grid" style={{ display: 'grid', gridTemplateColumns: '340px minmax(0,1fr)', gap: 20 }}>
 
           {/* ── Left: Patient + Drug Inputs ─────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -445,7 +445,7 @@ export default function TPN() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20 }}>
+        <div className="tpn-grid" style={{ display: 'grid', gridTemplateColumns: '340px minmax(0,1fr)', gap: 20 }}>
 
           {/* ── Left: Inputs ─────────────────────────────────────────── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -676,6 +676,9 @@ export default function TPN() {
 
       <style>{`
         input:focus, select:focus { border-color:#0d9488 !important; box-shadow:0 0 0 3px rgba(13,148,136,0.1); }
+        /* Coluna fixa de 340px + conteúdo: a 390px não cabe (transbordava
+           147px). Em ecrã estreito passa a uma coluna. */
+        @media (max-width: 900px) { .tpn-grid { grid-template-columns: minmax(0,1fr) !important; } }
         @media print {
           .no-print { display:none !important; }
           body { background:white !important; }

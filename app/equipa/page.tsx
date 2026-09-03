@@ -50,6 +50,8 @@ export default function EquipaPage() {
 
   const [loading, setLoading] = useState(true)
   const [noKey, setNoKey] = useState(false)
+  // Aviso para o dev: uma vez por montagem, e como info. Não é uma avaria.
+  useEffect(() => { if (noKey) console.info('[phlox:equipa] sem chave de serviço — criação de contas de equipa desligada') }, [noKey])
   const [org, setOrg] = useState<{ id: string; name: string; kind: string } | null>(null)
   const [myRole, setMyRole] = useState<string | null>(null)
   const [team, setTeam] = useState<Member[]>([])
@@ -221,8 +223,11 @@ export default function EquipaPage() {
         {loading && <div style={{ ...card, color: '#94a3b8' }}>A carregar…</div>}
 
         {/* Criação de contas de equipa ainda não ativa nesta conta (config do
-            servidor). Mensagem calma para o cliente; o detalhe é para o dev. */}
-        {!loading && noKey && (() => { console.error('[phlox:equipa] service key missing — team account creation disabled'); return (
+            servidor). Mensagem calma para o cliente; o detalhe é para o dev,
+            uma vez só e como info — isto estava aqui como console.error DENTRO
+            do render, a disparar a cada pintura e a enterrar os erros a sério
+            na consola de quem anda a procurar problemas. */}
+        {!loading && noKey && (
           <div style={{ ...card, background: '#fffbeb', border: '1px solid #fde68a' }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>Contas de equipa a caminho</div>
             <p style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6, margin: 0 }}>
@@ -230,7 +235,7 @@ export default function EquipaPage() {
               ativamos num instante — entretanto, podes continuar a usar o Phlox normalmente.
             </p>
           </div>
-        ) })()}
+        )}
 
         {/* ── Sem organização → criar ── */}
         {!loading && !org && !noKey && (

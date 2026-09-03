@@ -86,7 +86,10 @@ export default function RefeicoesPage() {
       scope.filter(supabase.from('patients').select('id,allergies')).eq('active', true),
       scope.filter(supabase.from('care_plans').select('patient_id,diet_type,diet_texture')),
     ])
-    if (dsh.error && /does not exist|schema cache/i.test(dsh.error.message)) { setNeedsSetup(true); setLoading(false); return }
+    // As duas tabelas do sprint127, não só a primeira: uma migração aplicada
+    // pela metade deixava meal_plan_entries a falhar em silêncio a cada visita.
+    const emFalta = (e: any) => !!e && /does not exist|schema cache/i.test(e.message || '')
+    if (emFalta(dsh.error) || emFalta(ent.error)) { setNeedsSetup(true); setLoading(false); return }
     setNeedsSetup(false)
     setDishes(dsh.data || [])
     setEntries(ent.data || [])

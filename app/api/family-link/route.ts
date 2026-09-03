@@ -8,7 +8,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
-import { admin, resolveCode, codeErrorResponse as codeErrorInfo, verifyFamily } from '@/lib/familyPortal'
+import { admin, resolveCode, codeErrorResponse as codeErrorInfo, verifyFamily, HAS_SERVICE_KEY } from '@/lib/familyPortal'
+
+// Sem chave de serviço não há como ler nem escrever ligações de família: o
+// admin() nasce com a chave a undefined e todas as consultas falham. Isso saía
+// como 500 ("Não foi possível carregar as ligações"), e o /familia parecia
+// avariado quando na verdade era configuração em falta. Era a única rota do
+// projeto fora do padrão — as outras devolvem 503 com explicação.
+const semChave = () => NextResponse.json(
+  { error: 'Esta parte ainda não está disponível nesta conta.' }, { status: 503 })
 
 async function authedUser(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '') || ''
@@ -20,6 +28,7 @@ async function authedUser(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  if (!HAS_SERVICE_KEY) return semChave()
   if (!checkRateLimit(getIP(req), 30, 60_000).allowed) return rateLimitResponse()
   const user = await authedUser(req)
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
@@ -30,6 +39,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!HAS_SERVICE_KEY) return semChave()
   if (!checkRateLimit(getIP(req), 10, 60_000).allowed) return rateLimitResponse()
   const user = await authedUser(req)
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
@@ -90,6 +100,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!HAS_SERVICE_KEY) return semChave()
   if (!checkRateLimit(getIP(req), 10, 60_000).allowed) return rateLimitResponse()
   const user = await authedUser(req)
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })

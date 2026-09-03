@@ -188,7 +188,7 @@ export default function PartilhadoComigoPage() {
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Tens um código de convite?</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Ex: A1B2C3D4"
-              style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none', boxSizing: 'border-box' }} />
+              style={{ flex: 1, minWidth: 0, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none', boxSizing: 'border-box' }} />
             <button onClick={redeem} disabled={redeeming} style={{ padding: '9px 18px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: redeeming ? 'wait' : 'pointer' }}>
               {redeeming ? '…' : 'Resgatar'}
             </button>
@@ -338,7 +338,7 @@ export default function PartilhadoComigoPage() {
                               ))}
                             </div>
                             <input value={symptomForm.symptoms} onChange={e => setSymptomForm(f => ({ ...f, symptoms: e.target.value }))} placeholder="Sintomas, separados por vírgula" style={inputStyle} />
-                            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 6 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '100px minmax(0,1fr)', gap: 6 }}>
                               <input value={symptomForm.pain} onChange={e => setSymptomForm(f => ({ ...f, pain: e.target.value.replace(/\D/g, '') }))} placeholder="Dor 0-10" inputMode="numeric" style={inputStyle} />
                               <input value={symptomForm.notes} onChange={e => setSymptomForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas (opcional)" style={inputStyle} />
                             </div>
