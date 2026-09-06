@@ -61,7 +61,38 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<RecentUser[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'overview' | 'users' | 'instituicoes' | 'financeiro' | 'searches' | 'ia'>('overview')
+  const [tab, setTab] = useState<'overview' | 'users' | 'instituicoes' | 'instalacao' | 'financeiro' | 'searches' | 'ia'>('overview')
+
+  // ── Estado da instalação ─────────────────────────────────────────────────
+  // Quando um cliente manda um código PHX-*, é aqui que se confirma o que
+  // falta. Só verifica se as TABELAS existem — nunca lê dados de instituição
+  // nenhuma. Ver a nota em app/api/admin/instalacao/route.ts.
+  const [instalacao, setInstalacao] = useState<any>(null)
+  const [instalacaoBusy, setInstalacaoBusy] = useState(false)
+  const carregarInstalacao = async () => {
+    setInstalacaoBusy(true)
+    try {
+      const res = await fetch('/api/admin/instalacao', { headers: await authHeader() })
+      setInstalacao(await res.json())
+    } catch { setInstalacao({ error: 'Não foi possível verificar.' }) }
+    setInstalacaoBusy(false)
+  }
+
+  // Mudar o tipo de uma instituição (saiu das /settings — só aqui).
+  const [tipoBusy, setTipoBusy] = useState<string>('')
+  const mudarTipo = async (orgId: string, tipo: string) => {
+    if (!confirm(`Mudar o tipo desta instituição para ${tipo === 'day_care' ? 'Centro de Dia' : 'Lar / ERPI'}?\n\nMuda o vocabulário e as ferramentas para toda a equipa dela.`)) return
+    setTipoBusy(orgId)
+    try {
+      const res = await fetch('/api/admin/org-tipo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({ orgId, tipo }),
+      })
+      const j = await res.json()
+      if (res.ok) loadOrgs(); else alert(j.error || 'Não foi possível mudar.')
+    } catch { alert('Não foi possível mudar.') }
+    setTipoBusy('')
+  }
   const [aiUsage, setAiUsage] = useState<{ month: string; free_tier: { key: string; count: number }[]; pro_tier: { key: string; count: number }[]; total_calls: number } | null>(null)
   const [aiUsageLoading, setAiUsageLoading] = useState(false)
 
@@ -174,6 +205,7 @@ export default function AdminPage() {
     setOrgsLoading(false)
   }
   useEffect(() => { if (tab === 'instituicoes' && !orgs) loadOrgs() }, [tab])
+  useEffect(() => { if (tab === 'instalacao' && !instalacao) carregarInstalacao() }, [tab])
 
   const approveAccess = async () => {
     if (!accessEmail.trim() || accessBusy) return
@@ -261,10 +293,10 @@ export default function AdminPage() {
             <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>ADMIN</span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
-            {(['overview', 'users', 'instituicoes', 'financeiro', 'searches', 'ia'] as const).map(t => (
+            {(['overview', 'users', 'instituicoes', 'instalacao', 'financeiro', 'searches', 'ia'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 style={{ padding: '6px 12px', background: tab === t ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, color: tab === t ? 'white' : 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : t === 'instituicoes' ? 'Instituições' : t === 'financeiro' ? 'Financeiro' : t === 'searches' ? 'Pesquisas' : 'IA'}
+                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : t === 'instituicoes' ? 'Instituições' : t === 'instalacao' ? 'Instalação' : t === 'financeiro' ? 'Financeiro' : t === 'searches' ? 'Pesquisas' : 'IA'}
               </button>
             ))}
             <button onClick={loadData} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>↻ Refresh</button>
@@ -395,6 +427,59 @@ export default function AdminPage() {
         )}
 
         {/* ── INSTITUIÇÕES ──────────────────────────────────── */}
+        {tab === 'instalacao' && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 600, color: 'white', margin: 0 }}>Estado da instalação</h2>
+              <button onClick={carregarInstalacao} disabled={instalacaoBusy}
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-sans)' }}>
+                {instalacaoBusy ? 'a verificar…' : 'verificar de novo'}
+              </button>
+            </div>
+            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '0 0 18px', lineHeight: 1.55, maxWidth: '62ch' }}>
+              Quando um cliente enviar um código <code style={{ color: 'rgba(255,255,255,0.75)' }}>PHX-…</code>, procura-o aqui.
+              Só verifica se cada tabela existe — não lê dados de instituição nenhuma.
+            </p>
+
+            {instalacao?.error && (
+              <div style={{ fontSize: 13, color: '#fca5a5', marginBottom: 14 }}>{instalacao.error}</div>
+            )}
+            {instalacao?.codigos?.length > 0 && (
+              <>
+                <div style={{ fontSize: 13, color: instalacao.porAplicar ? '#fbbf24' : '#4ade80', marginBottom: 14, fontWeight: 600 }}>
+                  {instalacao.porAplicar
+                    ? `${instalacao.porAplicar} por aplicar.`
+                    : 'Tudo aplicado.'}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {instalacao.codigos.map((c: any) => (
+                    <div key={c.codigo} style={{
+                      display: 'grid', gridTemplateColumns: '78px 1fr auto', gap: 12, alignItems: 'baseline',
+                      padding: '10px 12px', background: c.ok ? 'transparent' : 'rgba(251,191,36,0.07)',
+                      borderRadius: 6, borderLeft: `2px solid ${c.ok ? 'rgba(74,222,128,0.35)' : '#fbbf24'}`,
+                    }}>
+                      <code style={{ fontSize: 12, color: c.ok ? 'rgba(255,255,255,0.5)' : '#fbbf24', fontWeight: 700 }}>{c.codigo}</code>
+                      <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45, minWidth: 0 }}>{c.detalhe}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                        {c.ok ? '✓' : c.sobre}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div style={{ marginTop: 26, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>O que fica de fora daqui</div>
+              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: 0, lineHeight: 1.6, maxWidth: '64ch' }}>
+                O livro de registos de cada instituição — quem cuidou de quem, quando — não é visível nesta
+                página nem em nenhuma outra do Phlox. Pertence à casa que o gerou. Esta secção só confirma
+                que a tabela existe, nunca o que lá está dentro.
+              </p>
+            </div>
+          </div>
+        )}
+
         {tab === 'instituicoes' && (
           <div>
             <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Dar acesso a uma instituição</h2>
@@ -444,7 +529,23 @@ export default function AdminPage() {
                 {orgs.map((o, i) => (
                   <div key={o.id} style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 150px', padding: '12px 16px', borderBottom: i < orgs.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{o.name}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>{o.kind === 'nursing_home' ? 'Lar / ERPI' : o.kind === 'day_care' ? 'Centro de Dia' : o.kind}</div>
+                    {/* O tipo só se muda aqui — saiu das /settings porque
+                        muda o produto para a equipa toda da casa. */}
+                    <div>
+                      <select
+                        value={o.kind === 'day_care' || o.kind === 'nursing_home' ? o.kind : ''}
+                        disabled={tipoBusy === o.id}
+                        onChange={e => e.target.value && mudarTipo(o.id, e.target.value)}
+                        style={{
+                          background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6,
+                          padding: '4px 7px', fontSize: 12, color: 'rgba(255,255,255,0.8)',
+                          fontFamily: 'var(--font-sans)', cursor: tipoBusy === o.id ? 'wait' : 'pointer', maxWidth: 122,
+                        }}>
+                        {!['day_care', 'nursing_home'].includes(o.kind) && <option value="">{o.kind || '—'}</option>}
+                        <option value="day_care">Centro de Dia</option>
+                        <option value="nursing_home">Lar / ERPI</option>
+                      </select>
+                    </div>
                     <div style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{o.member_count}</div>
                     <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.owner_email || '—'}</div>
                   </div>

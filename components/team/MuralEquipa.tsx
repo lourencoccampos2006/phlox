@@ -11,6 +11,7 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useOrgScope } from '@/lib/orgScope'
 import MuralPedidos from './MuralPedidos'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 const ACCENT = '#0d9488'
 type Channel = 'geral' | 'doentes' | 'pedidos' | 'stock' | 'avisos'
@@ -216,7 +217,7 @@ export default function MuralEquipa() {
 
   return (
     <div>
-      {needsSetup && <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 15px', fontSize: 13, color: '#92400e', marginBottom: 14 }}>Corre o <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint105_team_comms.sql</code> no Supabase para ativar o mural.</div>}
+      {needsSetup && <AvisoDeSetup codigo="PHX-D6" oQue="O mural da equipa ainda não está disponível nesta conta." />}
       {err && !needsSetup && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14 }}>{err}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>

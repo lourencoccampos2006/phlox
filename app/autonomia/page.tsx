@@ -29,6 +29,7 @@ import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import { ADL_TASKS, ADL_LEVELS, ADL_MAX, adlScore, adlLabel, adlTrend, type AdlReview, type AdlTask } from '@/lib/adl'
 import { ptDate } from '@/lib/ptTime'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 const ACCENT = '#0d9488'
 interface Patient { id: string; name: string; room_number: string | null }
@@ -125,9 +126,7 @@ export default function AutonomiaPage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
         <div className="page-container page-body" style={{ maxWidth: 620 }}>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            Para ativar o acompanhamento de autonomia, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint134_adl_reviews.sql</code> no Supabase.
-          </div>
+          <AvisoDeSetup codigo="PHX-M4" oQue="As revisões de autonomia ainda não estão disponíveis nesta conta." />
         </div>
       </div>
     )

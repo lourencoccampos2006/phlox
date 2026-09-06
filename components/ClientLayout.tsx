@@ -37,7 +37,7 @@ const CLINICAL_PREFIXES = [
   '/reconciliacao', '/interactions', '/calculos',
   '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/faturacao-config', '/webhooks', '/auditoria', '/api-keys', '/sso-config',
   '/reach', '/calc', '/codes', '/relatorio',
-  '/guardados', '/calendario',
+  '/guardados', '/calendario', '/historico',
   '/equipa', '/painel-dono', '/activities',
   '/study', '/estagio',
   '/refeicoes', '/apoio-servicos', '/tendencias',

@@ -21,6 +21,7 @@ const BY_HREF: Record<string, string> = {
   '/guardiao': 'shield',
   '/carga': 'scale',
   '/autonomia': 'route',
+  '/historico': 'clipboard',
   '/documentos': 'note',
   '/interactions': 'search',
   '/calculos': 'calculator',

@@ -34,6 +34,7 @@ import Icon from '@/components/Icon'
 import { loadTrends } from '@/lib/sentinel'
 import { psychosocialErosion, type ResidentTrend, type ErosionResult } from '@/lib/trendSignals'
 import { SEVERITY_STYLE } from '@/lib/residentSignals'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 interface Patient { id: string; name: string; room_number: string | null }
 interface Note {
@@ -213,9 +214,7 @@ export default function ApoioPsicossocialPage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
         <div className="page-container page-body" style={{ maxWidth: 620 }}>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            Para ativar o apoio psico-social, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint130_diabetic_prep_psychosocial.sql</code> no Supabase.
-          </div>
+          <AvisoDeSetup codigo="PHX-K7" oQue="O apoio psico-social ainda não está disponível nesta conta." />
         </div>
       </div>
     )

@@ -24,6 +24,8 @@ import ListaDePicking from '@/components/institution/ListaDePicking'
 import { blueprintFor } from '@/lib/institutionBlueprint'
 import Icon from '@/components/Icon'
 import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
+import { registar, ACOES } from '@/lib/registo'
 
 interface Patient {
   id: string; name: string; room_number: string | null
@@ -117,6 +119,15 @@ export default function PreparacaoMedicacaoPage() {
       packed: nextPacked, packed_by_id: nextPacked ? user.id : null, packed_at: nextPacked ? new Date().toISOString() : null,
     }, { onConflict: 'patient_id,week_start,weekday,shift' }).select().single()
     if (error) { toast.error('Não foi possível marcar', reportError('prep-toggle', error, MSG.save)); return }
+    const quem = patients.find(x => x.id === patientId)
+    const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
+    registar({ supabase, scope, user }, {
+      ...(nextPacked
+        ? ACOES.pastilheiroPreparado(quem?.name || 'utente', DIAS[weekday] || String(weekday), SHIFT_LABEL[shift] || shift)
+        : ACOES.pastilheiroDesfeito(quem?.name || 'utente', DIAS[weekday] || String(weekday), SHIFT_LABEL[shift] || shift)),
+      subjectId: patientId, subjectName: quem?.name || null, entityId: patientId,
+      meta: { semana: weekStart, dia: weekday, turno: shift },
+    })
     setLogs(prev => { const rest = prev.filter(l => !(l.patient_id === patientId && l.weekday === weekday && l.shift === shift)); return data ? [...rest, data] : rest })
   }
 
@@ -136,9 +147,7 @@ export default function PreparacaoMedicacaoPage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
         <div className="page-container page-body" style={{ maxWidth: 620 }}>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            Para ativar a preparação em unidoses, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint130_diabetic_prep_psychosocial.sql</code> no Supabase.
-          </div>
+          <AvisoDeSetup codigo="PHX-K7" oQue="A preparação da medicação ainda não está disponível nesta conta." />
         </div>
       </div>
     )

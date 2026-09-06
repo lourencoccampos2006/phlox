@@ -149,7 +149,7 @@ export default function SecuritySettings() {
       {/* ── Sessões ─────────────────────────────────────────────────────── */}
       <Card title="Sessões ativas" subtitle="Dispositivos onde estás autenticado(a). Revoga qualquer um que não reconheças.">
         {sessions.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: 'var(--ink-5)', textAlign: 'center', padding: 14 }}>Sem sessões registadas ainda. Esta funcionalidade requer aplicar sprint53_sessions_mfa.sql.</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-5)', textAlign: 'center', padding: 14 }}>Sem sessões registadas ainda.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sessions.map(s => (

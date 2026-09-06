@@ -2,21 +2,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // A rota de transporte do dia, montada a partir dos horários recorrentes.
 //
-// ── PORQUE NÃO É UM MAPA GEOGRÁFICO ────────────────────────────────────────
-// Não temos coordenadas de ninguém — só `patients.address`, texto livre. Um
-// mapa a sério exigia geocodificação, e desenhar pontos aproximados num mapa
-// seria inventar posições que não sabemos. Num produto onde a regra é não
-// fabricar dados, isso está fora de questão.
+// Devolve a sequência do dia: quem, a que horas, em que ordem, onde.
 //
-// O que se desenha é um DIAGRAMA DE LINHA, no espírito de um mapa de metro: a
-// ordem das paragens, as horas, os intervalos e as zonas. Para quem conduz é
-// mais útil do que um mapa — o motorista conhece as ruas, o que ele precisa é
-// da ordem e do relógio. E é honesto: tudo o que a linha mostra é coisa que
-// está mesmo registada.
+// As coordenadas vêm de app/api/geocode (OpenStreetMap), convertidas UMA vez
+// por morada e guardadas na ficha — o mapa em components/institution/
+// MapaDaRota.tsx desenha-as. Quem não tem morada localizável fica sem ponto:
+// não se aproxima, porque um ponto errado manda a carrinha ao sítio errado.
 //
 // As zonas saem do código postal (os quatro primeiros dígitos) ou, quando não
-// há, da última parte da morada. É agrupamento por texto, não por geografia —
-// e o cartão diz isso a quem lê.
+// há, da última parte da morada — servem para agrupar em texto, no papel do
+// motorista, e são independentes das coordenadas.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface HorarioTransporte {
@@ -32,6 +27,8 @@ export interface PessoaRota {
   name: string
   address?: string | null
   photo_url?: string | null
+  lat?: number | null
+  lon?: number | null
 }
 
 export interface Paragem {
@@ -47,6 +44,9 @@ export interface Paragem {
   intervalo: number | null
   /** primeira paragem desta zona: é aqui que a linha muda de faixa */
   abreZona: boolean
+  /** coordenadas reais, quando a morada já foi convertida — nunca aproximadas */
+  lat: number | null
+  lon: number | null
 }
 
 export interface Rota {
@@ -105,6 +105,8 @@ export function montarRota(
         nome: p?.name || 'Utente', label: h.label || 'Transporte',
         hora, morada: p?.address || null,
         zona: zonaDaMorada(p?.address),
+        lat: typeof p?.lat === 'number' ? p.lat : null,
+        lon: typeof p?.lon === 'number' ? p.lon : null,
         feito: feitos.has(h.id),
       }
     })

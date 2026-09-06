@@ -13,6 +13,7 @@ import { institutionConfig, shiftsFor, currentShiftFor } from '@/lib/institution
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { flagReading, VITAL_LEVEL_COLOR, VITAL_LABEL } from '@/lib/vitalRanges'
 import { vitalTrendSignals, type TrendVital } from '@/lib/healthTrends'
+import { registar, ACOES } from '@/lib/registo'
 
 // O /care-log é agora a fusão "Registo do dia" (abas: registo + hidratação +
 // feridas + atividades, adaptadas por instituição). O formulário de registo em si
@@ -213,6 +214,8 @@ export function CareLogTool() {
       }), { onConflict: 'patient_id,date,shift' })
       if (error) { toast.error('Não foi possível guardar', reportError('care-log-igual', error, 'Tenta de novo.')); return }
       toast.success('Registado', `${pat?.name || 'Registo'} — igual ao último.`)
+      registar({ supabase, scope, user }, { ...ACOES.registoIgual(pat?.name || 'utente'),
+        subjectId: patientId, subjectName: pat?.name || null, entityId: patientId, meta: { turno: shift } })
       setSaved(true); setTimeout(() => setSaved(false), 2500)
       resetForm(); setAtalhoUsado(false); load()
     } catch (e) {
@@ -248,6 +251,8 @@ export function CareLogTool() {
     }), { onConflict: 'patient_id,date,shift' })
 
     if (error) { toast.error('Não foi possível guardar', reportError('care-log-save', error, 'Tenta de novo.')); return }
+    registar({ supabase, scope, user }, { ...ACOES.registoDoDia(pat?.name || 'utente', SHIFTS[shift]?.label || shift),
+      subjectId: patientId, subjectName: pat?.name || null, entityId: patientId, meta: { turno: shift, data: date } })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
     resetForm()

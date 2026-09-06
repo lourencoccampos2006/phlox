@@ -21,6 +21,7 @@ import { reportError, MSG } from '@/lib/clientError'
 import { evaluateVital } from '@/lib/vitalRanges'
 import { useOrgName } from '@/lib/useOrgName'
 import { imprimirDia, imprimirSemana, imprimirMes, type LinhaEmenta } from './imprimirEmenta'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
 interface NewDish { temp_id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
@@ -230,7 +231,16 @@ export default function RefeicoesPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
         body: JSON.stringify({ dishes, avoidAllergens: needs.allergens, neededTextures: needs.textures, neededDietTags: needs.diets, budgetHint: instructions }),
       })
-      const d = await r.json()
+      // Ler como texto primeiro: quando o pedido rebenta ANTES de chegar à
+      // rota (tempo limite, erro da plataforma), o que volta é uma página HTML
+      // e o r.json() rebentava com "Unexpected token 'A'" — uma mensagem que
+      // não diz nada a quem está a usar.
+      const bruto = await r.text()
+      let d: any = null
+      try { d = JSON.parse(bruto) } catch { /* não é JSON */ }
+      if (!d) throw new Error(r.ok
+        ? 'A resposta veio incompleta. Tenta outra vez.'
+        : `O pedido não chegou ao fim (${r.status}). Se acontecer sempre, é sinal de que a semana é grande demais de uma vez — tenta com menos instruções.`)
       if (!r.ok) throw new Error(d.error || 'Não foi possível sugerir agora.')
       const map: Record<string, { dishId: string | null; newDishTempId: string | null }> = {}
       ;(d.assignments || []).forEach((a: any) => {
@@ -311,9 +321,7 @@ export default function RefeicoesPage() {
         {showReinforcement && <DiabeticReinforcementSection />}
 
         {needsSetup ? (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            Para ativar o planeamento de refeições, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint127_meal_planning.sql</code> no Supabase.
-          </div>
+          <AvisoDeSetup codigo="PHX-J9" oQue="O planeamento de ementas ainda não está disponível nesta conta." />
         ) : <>
         {showLibrary && (
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
@@ -566,9 +574,7 @@ function DiabeticReinforcementSection() {
 
   if (needsSetup) {
     return (
-      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-        Para ativar o reforço alimentar a diabéticos, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint130_diabetic_prep_psychosocial.sql</code> no Supabase.
-      </div>
+      <AvisoDeSetup codigo="PHX-K7" oQue="O reforço alimentar a diabéticos ainda não está disponível nesta conta." compacto />
     )
   }
 

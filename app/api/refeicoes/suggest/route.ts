@@ -22,6 +22,13 @@ import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
 
+// Uma ementa de sete dias × quatro refeições × até três momentos é o pedido de
+// IA mais pesado do produto. Com o limite normal a função era cortada a meio e
+// devolvia uma página de erro em HTML — que do lado do cliente aparecia como
+// "Unexpected token 'A', "An error o"... is not valid JSON".
+export const runtime = 'nodejs'
+export const maxDuration = 300
+
 const MEAL_TYPES = ['pequeno_almoco', 'almoco', 'lanche', 'jantar']
 const COURSES = ['sopa', 'prato', 'sobremesa']
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]

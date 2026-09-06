@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { ptDate } from './ptTime'
+import { registar, ACOES } from './registo'
 
 export type EstadoPresenca = 'present' | 'absent' | 'left' | null
 
@@ -101,6 +102,7 @@ export async function marcarPresenca(
     const anteriores = await recadosDeHoje(c, alvo.id)
     const { error } = await c.supabase.from('attendance').delete().eq('patient_id', alvo.id).eq('date', hoje)
     if (error) return { erro: 'Não foi possível retirar a presença. Tenta de novo.' }
+    registar(c, { ...ACOES.presencaRetirada(alvo.name), subjectId: alvo.id, subjectName: alvo.name, entityId: alvo.id })
     // A família já leu o recado da chegada. Retirar em silêncio deixava-a a
     // pensar que a pessoa está no centro quando não está.
     if (c.avisaFamilia && anteriores.length) {
@@ -125,6 +127,14 @@ export async function marcarPresenca(
   }
   const { error } = await c.supabase.from('attendance').upsert(linha, { onConflict: 'patient_id,date' })
   if (error) return { erro: 'Não foi possível guardar a presença. Tenta de novo.' }
+
+  registar(c, {
+    ...(estado === 'present' ? ACOES.presencaChegada(alvo.name)
+      : estado === 'left' ? ACOES.presencaSaida(alvo.name)
+      : ACOES.presencaFalta(alvo.name)),
+    subjectId: alvo.id, subjectName: alvo.name, entityId: alvo.id,
+    meta: { hora: agora },
+  })
 
   if (!c.avisaFamilia) return {}
 

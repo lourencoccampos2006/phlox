@@ -10,6 +10,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 interface Req { id: string; patient_id: string; kind: string; content: string; status: string; created_at: string }
 
@@ -58,9 +59,7 @@ export default function MuralPedidos() {
   }
 
   if (missing) return (
-    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-      Para ver pedidos e observações aqui, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint98_resident_requests.sql</code> no Supabase.
-    </div>
+    <AvisoDeSetup codigo="PHX-C4" oQue="Os pedidos e observações ainda não estão disponíveis nesta conta." compacto />
   )
 
   const shown = items.filter(i => showResolved ? i.status === 'resolvido' : i.status !== 'resolvido')

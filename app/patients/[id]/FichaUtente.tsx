@@ -23,6 +23,7 @@ import { blueprintFor } from '@/lib/institutionBlueprint'
 import { ptDate } from '@/lib/ptTime'
 import { useLiveData } from '@/lib/useLiveData'
 import { marcarPresenca, type EstadoPresenca } from '@/lib/presenca'
+import LivroDeRegistos from '@/components/institution/LivroDeRegistos'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -563,6 +564,10 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       )}
 
       {children}
+    <div style={{ marginTop: 'var(--space-12)', paddingTop: 'var(--space-9)', borderTop: '1px solid var(--border)' }}>
+        <LivroDeRegistos subjectId={pid} limite={25} titulo="Tudo o que ficou registado" />
+      </div>
+
     </div>
   )
 }

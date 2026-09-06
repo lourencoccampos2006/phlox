@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc, type PrintRecord } from '@/lib/print'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 type Cat = 'medicamento' | 'penso' | 'material' | 'suplemento' | 'outro'
 interface Item {
@@ -116,10 +117,7 @@ export default function StockSection() {
   }
 
   if (tableMissing) {
-    return <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Stock por configurar</div>
-      <div style={{ fontSize: 13, color: '#92400e' }}>Corre <strong>supabase/sprint21_stock.sql</strong> no Supabase para ativar o stock.</div>
-    </div>
+    return <AvisoDeSetup codigo="PHX-B2" oQue="As existências ainda não estão disponíveis nesta conta." />
   }
 
   return (

@@ -28,11 +28,13 @@ import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
 
-import LinhaDeRota from '@/components/institution/LinhaDeRota'
+import MapaDaRota from '@/components/institution/MapaDaRota'
 import { montarRota, folhaDoMotorista } from '@/lib/rotaTransporte'
 import { useOrgName } from '@/lib/useOrgName'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
+import { registar, ACOES } from '@/lib/registo'
 
-interface Patient { id: string; name: string; room_number?: string | null; address?: string | null; photo_url?: string | null }
+interface Patient { id: string; name: string; room_number?: string | null; address?: string | null; photo_url?: string | null; lat?: number | null; lon?: number | null }
 interface Schedule { id: string; patient_id: string; label: string; weekdays: number[] | null; time: string | null; notes: string | null }
 interface ScheduleLog { id: string; schedule_id: string; date: string; done: boolean }
 interface Service {
@@ -83,7 +85,7 @@ export default function ApoioServicosPage() {
     if (!user) return
     setLoading(true)
     const [pats, sch, lgs, svcs] = await Promise.all([
-      scope.filter(supabase.from('patients').select('id,name,room_number,address,photo_url')).eq('active', true).order('name'),
+      scope.filter(supabase.from('patients').select('id,name,room_number,address,photo_url,lat,lon')).eq('active', true).order('name'),
       scope.filter(supabase.from('support_transport_schedules').select('*')).eq('active', true),
       scope.filter(supabase.from('support_transport_logs').select('id,schedule_id,date,done')).eq('date', today),
       scope.filter(supabase.from('support_services').select('*')).in('kind', ['roupa', 'outro']).neq('status', 'concluido').order('created_at', { ascending: false }),
@@ -113,9 +115,51 @@ export default function ApoioServicosPage() {
   // pessoa, a sequência real do carro. Ver lib/rotaTransporte para a razão de
   // ser um diagrama de linha e não um mapa.
   const nomeCasa = useOrgName()
+  const [casaGeo, setCasaGeo] = useState<{ lat: number; lon: number; nome: string } | null>(null)
+  const [aGeocodificar, setAGeocodificar] = useState(false)
+
+  // A casa é a origem e o fim do percurso no mapa. Sem coordenadas dela, o
+  // mapa desenha só as paragens — não se inventa um ponto de partida.
+  useEffect(() => {
+    if (!scope.orgId || !supabase) return
+    supabase.from('organizations').select('name,lat,lon').eq('id', scope.orgId).maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.lat != null && data?.lon != null) setCasaGeo({ lat: data.lat, lon: data.lon, nome: data.name || 'A casa' })
+      }, () => {})
+  }, [supabase, scope.orgId])
+
+  // Converter moradas em coordenadas — uma vez por morada, e só de quem
+  // aparece na rota de hoje. O Nominatim aceita um pedido por segundo, por
+  // isso isto corre em segundo plano e a página não espera por ele.
+  const converterMoradas = useCallback(async (ids: string[]) => {
+    if (!ids.length || aGeocodificar) return
+    setAGeocodificar(true)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ ids }),
+      })
+      if (r.ok) load()
+    } catch { /* sem coordenadas o mapa degrada, não rebenta */ }
+    setAGeocodificar(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, aGeocodificar])
+
   const rota = useMemo(
     () => montarRota(schedules, patients, new Set(logs.filter(l => l.done).map(l => l.schedule_id)), todayWeekday),
     [schedules, patients, logs, todayWeekday])
+
+  // Quem está na rota de hoje, tem morada, e ainda não foi convertido.
+  useEffect(() => {
+    const porConverter = rota.paragens
+      .filter(p => p.lat == null && p.morada)
+      .map(p => p.patientId)
+      .filter(id => { const q = patients.find(x => x.id === id); return q && (q as any).lat == null })
+    if (porConverter.length) converterMoradas([...new Set(porConverter)].slice(0, 12))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rota.paragens.length])
   function logFor(scheduleId: string) { return logs.find(l => l.schedule_id === scheduleId) }
   function nameOf(patientId: string | null) { return patients.find(p => p.id === patientId)?.name || null }
 
@@ -129,6 +173,11 @@ export default function ApoioServicosPage() {
     }), { onConflict: 'schedule_id,date' }).select().single()
     if (error) { toast.error('Não foi possível atualizar', reportError('support-transport-toggle', error, MSG.save)); return }
     setLogs(p => { const rest = p.filter(l => l.schedule_id !== s.id); return data ? [...rest, data] : rest })
+    const quem = patients.find(x => x.id === s.patient_id)
+    registar({ supabase, scope, user }, {
+      ...(nextDone ? ACOES.transporteFeito(quem?.name || 'utente', s.label) : ACOES.transporteAberto(quem?.name || 'utente', s.label)),
+      subjectId: s.patient_id, subjectName: quem?.name || null, entityId: s.id,
+    })
   }
 
   function openNew(patientId: string) { setNewFor(patientId); setNewLabel(''); setNewTime(''); setNewDays(null); setErr('') }
@@ -189,9 +238,7 @@ export default function ApoioServicosPage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
         <div className="page-container page-body" style={{ maxWidth: 620 }}>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            Para ativar os transportes recorrentes, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint126_support_transport_schedules.sql</code> no Supabase.
-          </div>
+          <AvisoDeSetup codigo="PHX-H5" oQue="Os transportes recorrentes ainda não estão disponíveis nesta conta." />
         </div>
       </div>
     )
@@ -228,11 +275,11 @@ export default function ApoioServicosPage() {
               )}
             </div>
             <div style={{ marginTop: 14 }}>
-              <LinhaDeRota
+              <MapaDaRota
                 rota={rota}
+                casa={casaGeo}
                 cor={ACCENT}
                 marcar={id => { const s = schedules.find(x => x.id === id); if (s) toggle(s) }}
-                aGuardar={new Set<string>()}
                 podeEditar={scope.canEdit}
               />
             </div>
@@ -489,9 +536,7 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
 
   if (needsSetup) {
     return (
-      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-        Para ativar "{title}", aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint131_recurring_services.sql</code> no Supabase.
-      </div>
+      <AvisoDeSetup codigo="PHX-L2" oQue="Esta parte dos serviços recorrentes ainda não está disponível nesta conta." />
     )
   }
 

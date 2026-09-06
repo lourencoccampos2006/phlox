@@ -8,6 +8,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
+import { registar, ACOES } from '@/lib/registo'
+import { useOrgScope } from '@/lib/orgScope'
 
 // Fundido em /equipa (aba "Escalas & Turnos" → sub-aba "Tarefas", TarefasTool
 // reutilizado). A rota /tarefas-equipa redireciona p/ não partir links antigos.
@@ -46,6 +48,7 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 
 export function TarefasTool() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
@@ -77,20 +80,83 @@ export function TarefasTool() {
       user_id: user.id, title: form.title.trim(), area: form.area, assignee: form.assignee.trim() || null,
       priority: form.priority, due_date: form.due_date || null, recurring: form.recurring.trim() || null, status: 'todo',
     }).select().single()
-    if (!error && data) { setTasks(p => [data, ...p]); setShowForm(false); setForm(blank) }
+    if (!error && data) {
+      setTasks(p => [data, ...p]); setShowForm(false); setForm(blank)
+      registar({ supabase, scope, user }, { ...ACOES.tarefaCriada(data.title), entityId: data.id,
+        meta: { area: data.area, responsavel: data.assignee || null, frequencia: data.recurring || null } })
+    }
     else setErr(error?.message || 'Erro')
     setSaving(false)
   }
+  /** Quantos dias até à próxima vez, a partir do texto da frequência.
+   *  O campo é livre desde sempre, por isso lê-se o que lá está em vez de
+   *  obrigar a equipa a escolher de uma lista. Não reconhecer devolve null —
+   *  e uma tarefa que não se percebe simplesmente não se repete sozinha. */
+  function diasDaFrequencia(txt?: string | null): number | null {
+    const t = String(txt || '').toLowerCase().trim()
+    if (!t) return null
+    const n = parseInt((t.match(/\d+/) || [])[0] || '', 10)
+    if (/di[áa]ri|todos os dias|cada dia/.test(t)) return 1
+    if (/quinzenal|de 15 em 15|15 dias/.test(t)) return 14
+    if (/semanal|toda a semana|cada semana/.test(t)) return 7
+    if (/mensal|todo o m[êe]s|cada m[êe]s/.test(t)) return 30
+    if (/trimestral/.test(t)) return 90
+    if (/anual|todo o ano/.test(t)) return 365
+    if (!isNaN(n) && /dia/.test(t)) return n
+    if (!isNaN(n) && /semana/.test(t)) return n * 7
+    if (!isNaN(n) && /m[êe]s|mes/.test(t)) return n * 30
+    return null
+  }
+
   async function move(t: Task, status: Task['status']) {
     const patch: any = { status }
     if (status === 'done') { patch.done_at = new Date().toISOString(); patch.done_by = user?.name || null }
     else { patch.done_at = null; patch.done_by = null }
     await supabase.from('team_tasks').update(patch).eq('id', t.id)
     setTasks(p => p.map(x => x.id === t.id ? { ...x, ...patch } : x))
+    registar({ supabase, scope, user }, {
+      ...(status === 'done' ? ACOES.tarefaConcluida(t.title)
+        : status === 'doing' ? ACOES.tarefaAssumida(t.title, user?.name || 'Alguém')
+        : ACOES.tarefaReaberta(t.title)),
+      entityId: t.id, meta: { area: t.area, estado: status },
+    })
+
+    // ── Tarefa recorrente: ao concluir, nasce a próxima ────────────────────
+    // Antes, uma tarefa "semanal" concluída ficava concluída e mais nada: para
+    // a fazer outra vez era preciso criar uma nova, ou desmarcar a da semana
+    // passada — que apaga o registo de quem a fez e quando. Ficava sem
+    // histórico, que é o contrário do que a recorrência serve.
+    // Agora a concluída FICA concluída, com quem e quando, e a seguinte é
+    // criada com a data certa.
+    if (status !== 'done') return
+    const dias = diasDaFrequencia(t.recurring)
+    if (!dias) return
+    // Conta a partir da data prevista (não da de hoje): uma tarefa semanal
+    // feita com dois dias de atraso continua a cair no dia certo da semana.
+    const base = t.due_date ? new Date(t.due_date + 'T12:00:00') : new Date()
+    const prox = new Date(base); prox.setDate(prox.getDate() + dias)
+    const hoje = new Date(); hoje.setHours(12, 0, 0, 0)
+    while (prox < hoje) prox.setDate(prox.getDate() + dias)   // apanha atrasos longos
+    const proxData = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, '0')}-${String(prox.getDate()).padStart(2, '0')}`
+
+    // Já existe uma por fazer para essa data? Não duplicar.
+    if (tasks.some(x => x.id !== t.id && x.title === t.title && x.status !== 'done' && x.due_date === proxData)) return
+
+    const { data: nova } = await supabase.from('team_tasks').insert({
+      user_id: user.id, title: t.title, area: t.area, assignee: t.assignee || null,
+      priority: t.priority, due_date: proxData, recurring: t.recurring, status: 'todo',
+    }).select().single()
+    if (nova) {
+      setTasks(p => [nova, ...p])
+      registar({ supabase, scope, user }, { ...ACOES.tarefaRepetida(t.title, prox.toLocaleDateString('pt-PT')), entityId: nova.id })
+      setErr('')
+    }
   }
   async function del(id: string) {
+    const t = tasks.find(x => x.id === id)
     await supabase.from('team_tasks').delete().eq('id', id)
     setTasks(p => p.filter(x => x.id !== id))
+    if (t) registar({ supabase, scope, user }, { ...ACOES.tarefaApagada(t.title), entityId: id })
   }
 
   const shown = filter === 'all' ? tasks : tasks.filter(t => t.area === filter)

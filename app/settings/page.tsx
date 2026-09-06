@@ -301,21 +301,26 @@ function SettingsPage() {
                 viam este cartão sem nenhum motivo, confuso (não é um risco de
                 segurança — changeInstType só grava uma preferência local de
                 pré-visualização, nunca escreve na base de dados). */}
+            {/* ── Tipo de instituição: já NÃO se escolhe aqui ─────────────
+                Decisão do Fernando (2026-09-06): o tipo é atribuído por ele no
+                /admin, ao dar o primeiro acesso à instituição. Não é uma
+                preferência de quem usa — muda o vocabulário, as ferramentas, o
+                cockpit e os relatórios da casa inteira. Um funcionário a
+                carregar aqui sem querer mudava o produto debaixo dos colegas.
+                Fica só a dizer o que é, sem forma de trocar. */}
             {form.experience_mode === 'clinical' && (
               <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Tipo de instituição</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>O Phlox monta-se à volta do tipo que escolheres — o painel, o menu e as ferramentas certas para a tua instituição. Sem configurar nada.</div>
-                <div className="inst-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {INSTITUTION_OPTIONS.map(o => {
-                    const active = instType === o.value
-                    return (
-                      <button key={o.value} onClick={() => changeInstType(o.value)}
-                        style={{ padding: '11px 14px', border: `1.5px solid ${active ? '#1d4ed8' : 'var(--border)'}`, borderRadius: 8, background: active ? '#eff6ff' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#1d4ed8' : 'var(--ink)', marginBottom: 2 }}>{o.label}</div>
-                        <div style={{ fontSize: 10, color: active ? '#3b82f6' : 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{o.sub}</div>
-                      </button>
-                    )
-                  })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: 13.5, fontWeight: 700, color: 'var(--ink)',
+                    background: 'var(--bg-2)', border: '1px solid var(--border-2)',
+                    borderRadius: 8, padding: '7px 13px',
+                  }}>{INSTITUTION_OPTIONS.find(o => o.value === instType)?.label || 'Instituição'}</span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 220px' }}>
+                    Definido pelo Phlox quando a instituição foi criada. Para mudar, fala connosco —
+                    muda o vocabulário e as ferramentas de toda a casa.
+                  </span>
                 </div>
               </div>
             )}

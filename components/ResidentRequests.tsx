@@ -9,6 +9,7 @@
 // sem ter de abrir perfil a perfil.
 
 import { useEffect, useState, useCallback } from 'react'
+import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 interface Req { id: string; kind: string; content: string; status: string; created_at: string; recorded_by_id?: string }
 
@@ -51,9 +52,7 @@ export default function ResidentRequests({ patientId, supabase, scope, accent = 
   }
 
   if (missing) return (
-    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: 14, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-      Para registar pedidos e observações do utente, aplique <code style={{ background: '#fef3c7', padding: '1px 5px', borderRadius: 4 }}>sprint98_resident_requests.sql</code> no Supabase.
-    </div>
+    <AvisoDeSetup codigo="PHX-C4" oQue="Os pedidos e observações ainda não estão disponíveis nesta conta." />
   )
 
   const open = items.filter(i => i.status !== 'resolvido')
