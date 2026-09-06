@@ -24,4 +24,4 @@ alter table family_profile_shares
 do $$ begin
   alter table family_profile_shares
     add constraint family_profile_shares_role_check check (role in ('viewer','editor'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;

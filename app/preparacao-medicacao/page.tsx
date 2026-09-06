@@ -20,6 +20,8 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
+import ListaDePicking from '@/components/institution/ListaDePicking'
+import { blueprintFor } from '@/lib/institutionBlueprint'
 import Icon from '@/components/Icon'
 import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
 
@@ -53,20 +55,26 @@ export default function PreparacaoMedicacaoPage() {
   const [needsSetup, setNeedsSetup] = useState(false)
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  const [stock, setStock] = useState<any[]>([])
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [pats, mds, lgs] = await Promise.all([
+    const [pats, mds, lgs, stk] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,room_number,age,egfr,conditions,allergies,last_review')).eq('active', true).order('name'),
       scope.filter(supabase.from('patient_meds').select('id,patient_id,name,dose,shifts,started_at')).eq('active', true),
       scope.filter(supabase.from('medication_prep_logs').select('id,patient_id,weekday,shift,packed')).eq('week_start', weekStart),
+      // Para a lista de picking saber o que há. Tolerante: sem stock, a lista
+      // sai à mesma, só sem a coluna de existências.
+      scope.filter(supabase.from('stock_items').select('name,quantity,unit,min_quantity')).eq('category', 'medicamento')
+        .then((r: any) => r, () => ({ data: [] })),
     ])
     if (lgs.error && /does not exist|schema cache/i.test(lgs.error.message)) { setNeedsSetup(true); setLoading(false); return }
     setNeedsSetup(false)
     setPatients(pats.data || [])
     setMeds(mds.data || [])
     setLogs(lgs.data || [])
+    setStock((stk as any)?.data || [])
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId, weekStart])
@@ -96,10 +104,18 @@ export default function PreparacaoMedicacaoPage() {
     if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
     const existing = logFor(patientId, weekday, shift)
     const nextPacked = !existing?.packed
-    const { data, error } = await supabase.from('medication_prep_logs').upsert(scope.stamp({
+    // NÃO usa scope.stamp aqui, de propósito. O stamp acrescenta sempre
+    // `recorded_by_id` quando a conta pertence a uma organização — e esta
+    // tabela não tem essa coluna (tem `packed_by_id`, que diz o mesmo e é a
+    // certa). O PostgREST rejeita o pedido inteiro por causa da coluna que não
+    // existe, e a marcação falhava com "Não foi possível marcar" para TODAS as
+    // contas institucionais, enquanto funcionava em contas individuais — que é
+    // exatamente onde isto tinha sido testado. Mesmo bug do sprint124.
+    const { data, error } = await supabase.from('medication_prep_logs').upsert({
+      ...(scope.orgId ? { org_id: scope.orgId } : {}),
       user_id: user.id, patient_id: patientId, week_start: weekStart, weekday, shift,
       packed: nextPacked, packed_by_id: nextPacked ? user.id : null, packed_at: nextPacked ? new Date().toISOString() : null,
-    }), { onConflict: 'patient_id,week_start,weekday,shift' }).select().single()
+    }, { onConflict: 'patient_id,week_start,weekday,shift' }).select().single()
     if (error) { toast.error('Não foi possível marcar', reportError('prep-toggle', error, MSG.save)); return }
     setLogs(prev => { const rest = prev.filter(l => !(l.patient_id === patientId && l.weekday === weekday && l.shift === shift)); return data ? [...rest, data] : rest })
   }
@@ -145,6 +161,15 @@ export default function PreparacaoMedicacaoPage() {
       </div>
 
       <div className="page-container page-body" style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+        {/* O que é preciso ter em cima da mesa ANTES de começar a preparar.
+            A grelha em baixo diz o que já se fez; isto diz o que falta. */}
+        {!loading && (
+          <div style={{ marginBottom: 6 }}>
+            <ListaDePicking meds={meds} stock={stock} dias={7} cor={blueprintFor(institution).accent} />
+          </div>
+        )}
+
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
           style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', maxWidth: 280 }} />
 

@@ -61,6 +61,7 @@ export default function ApoioPsicossocialPage() {
   const [notes, setNotes] = useState<Note[]>([])
   const [moodFlags, setMoodFlags] = useState<Set<string>>(new Set())
   const [trends, setTrends] = useState<Record<string, ResidentTrend>>({})
+  const [ultimoContacto, setUltimoContacto] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
   const [search, setSearch] = useState('')
@@ -76,15 +77,38 @@ export default function ApoioPsicossocialPage() {
     if (!user) return
     setLoading(true)
     const since14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10)
-    const [pats, nts, cr] = await Promise.all([
+    const [pats, nts, cr, fam, vis] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
       scope.filter(supabase.from('psychosocial_notes').select('*')).order('date', { ascending: false }),
       scope.filter(supabase.from('care_records').select('patient_id,mood')).gte('date', since14),
+      // ── Isolamento: há quanto tempo ninguém contacta esta pessoa ────────
+      // O que faltava aqui não era mais um sítio para escrever uma nota — era
+      // saber A QUEM ir falar. Duas fontes reais: a última conversa com a
+      // família no fio, e a última visita marcada. Tolerantes as duas.
+      scope.filter(supabase.from('family_thread_messages').select('patient_id,created_at'))
+        .order('created_at', { ascending: false }).limit(600)
+        .then((r: any) => r, () => ({ data: [] })),
+      scope.filter(supabase.from('visit_requests').select('patient_id,requested_date,status'))
+        .then((r: any) => r, () => ({ data: [] })),
     ])
     if (nts.error && /does not exist|schema cache/i.test(nts.error.message)) { setNeedsSetup(true); setLoading(false); return }
     setNeedsSetup(false)
     setPatients(pats.data || [])
     setNotes((nts.data || []) as Note[])
+
+    // Último sinal de contacto por pessoa: a nota mais recente da equipa, a
+    // última mensagem no fio da família, ou a última visita. O que for mais
+    // recente dos três é o que conta.
+    const ultimo: Record<string, string> = {}
+    const marcar = (pid: string, quando?: string | null) => {
+      if (!pid || !quando) return
+      const d = String(quando).slice(0, 10)
+      if (!ultimo[pid] || d > ultimo[pid]) ultimo[pid] = d
+    }
+    ;((nts.data || []) as any[]).forEach(n => marcar(n.patient_id, n.date))
+    ;(((fam as any)?.data || []) as any[]).forEach(m => marcar(m.patient_id, m.created_at))
+    ;(((vis as any)?.data || []) as any[]).forEach(v => { if (v.status !== 'cancelled') marcar(v.patient_id, v.requested_date) })
+    setUltimoContacto(ultimo)
 
     // Humor baixo persistente: pelo menos 4 registos nos últimos 14 dias, média <= 2 (de 5).
     const byPatient: Record<string, number[]> = {}
@@ -153,7 +177,36 @@ export default function ApoioPsicossocialPage() {
     if (e) return SEV_RANK[e.level] ?? 3
     return moodFlags.has(id) ? 2.5 : 9
   }
-  const flaggedFirst = [...filtered].sort((a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name))
+
+  // ── Dias desde o último contacto ─────────────────────────────────────────
+  // Nunca contactado devolve null (não zero, nem um número gigante inventado):
+  // "nunca" e "há muito tempo" são coisas diferentes e a página di-lo.
+  const HOJE = new Date().toISOString().slice(0, 10)
+  const diasSem = (id: string): number | null => {
+    const d = ultimoContacto[id]
+    if (!d) return null
+    return Math.max(0, Math.round((new Date(HOJE + 'T12:00:00').getTime() - new Date(d + 'T12:00:00').getTime()) / 86400000))
+  }
+  // Silêncio a partir de duas semanas. Não é uma dívida — é uma sugestão de
+  // por onde começar (ver a nota sobre um centro de dia não ser um ambiente
+  // clínico diário: nada aqui diz "em atraso").
+  const SILENCIO_DIAS = 14
+  const emSilencio = (id: string) => { const d = diasSem(id); return d === null || d >= SILENCIO_DIAS }
+
+  // A ordem passa a ser: quem está a cair primeiro; a seguir quem está em
+  // silêncio há mais tempo; e dentro disso, o mais esquecido à frente.
+  const flaggedFirst = [...filtered].sort((a, b) => {
+    const ra = rank(a.id), rb = rank(b.id)
+    if (ra !== rb) return ra - rb
+    const sa = emSilencio(a.id) ? 0 : 1, sb = emSilencio(b.id) ? 0 : 1
+    if (sa !== sb) return sa - sb
+    const da = diasSem(a.id), db = diasSem(b.id)
+    if (da === null && db !== null) return -1
+    if (db === null && da !== null) return 1
+    if (da !== null && db !== null && da !== db) return db - da
+    return a.name.localeCompare(b.name)
+  })
+  const calados = filtered.filter(p => emSilencio(p.id))
   const erodingCount = Object.keys(erosionBy).length
 
   if (needsSetup) {
@@ -174,11 +227,16 @@ export default function ApoioPsicossocialPage() {
         <div className="page-container">
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Apoio psico-social</h1>
           <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Notas de acompanhamento e encaminhamento a especialistas — só visível à equipa.</p>
-          {!loading && (erodingCount > 0 || moodFlags.size > 0) && (
+          {!loading && (erodingCount > 0 || moodFlags.size > 0 || calados.length > 0) && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
               {erodingCount > 0 && (
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 20, padding: '4px 12px' }}>
                   {erodingCount} a cair face ao próprio hábito
+                </span>
+              )}
+              {calados.length > 0 && (
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 20, padding: '4px 12px' }}>
+                  {calados.length} sem ninguém falar {calados.length === 1 ? 'consigo' : 'com elas'} há {SILENCIO_DIAS}+ dias
                 </span>
               )}
               {moodFlags.size > 0 && (
@@ -217,6 +275,24 @@ export default function ApoioPsicossocialPage() {
                       {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
                       {pNotes.length > 0 && <span style={{ fontSize: 11.5, color: 'var(--ink-4)', marginLeft: 10 }}>{pNotes.length} nota{pNotes.length !== 1 ? 's' : ''}</span>}
                     </div>
+                    {/* Há quanto tempo ninguém fala com esta pessoa. É este
+                        número que decide a ordem da lista — a página deixou de
+                        ser "onde se escrevem notas" e passou a ser "a quem ir
+                        falar". */}
+                    {(() => {
+                      const d = diasSem(p.id)
+                      if (d !== null && d < SILENCIO_DIAS) return null
+                      return (
+                        <span style={{
+                          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+                          letterSpacing: '0.1em', textTransform: 'uppercase',
+                          color: d === null ? '#b45309' : 'var(--ink-3)',
+                          background: d === null ? '#fffbeb' : 'var(--bg-2)',
+                          border: `1px solid ${d === null ? '#fde68a' : 'var(--border-2)'}`,
+                          borderRadius: 20, padding: '3px 10px', marginLeft: 'auto', marginRight: 8, whiteSpace: 'nowrap',
+                        }}>{d === null ? 'nunca contactado' : `${d} dias sem contacto`}</span>
+                      )
+                    })()}
                     <button onClick={() => isOpen ? setOpenFor(null) : openNoteEditor(p.id)} style={{ padding: '6px 12px', background: isOpen ? 'var(--bg-3)' : 'var(--ink)', color: isOpen ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       {isOpen ? 'Fechar' : '+ Nota'}
                     </button>

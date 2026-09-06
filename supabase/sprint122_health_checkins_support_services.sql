@@ -38,7 +38,7 @@ create index if not exists health_checkins_org_idx on health_checkins (org_id);
 
 do $$ begin
   alter table health_checkins add constraint health_checkins_kind_check check (kind in ('enfermagem', 'acompanhamento'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 
 alter table health_checkins enable row level security;
 
@@ -89,10 +89,10 @@ create index if not exists support_services_org_idx on support_services (org_id,
 
 do $$ begin
   alter table support_services add constraint support_services_kind_check check (kind in ('roupa', 'transporte', 'outro'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 do $$ begin
   alter table support_services add constraint support_services_status_check check (status in ('pedido', 'em_curso', 'concluido'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 
 alter table support_services enable row level security;
 

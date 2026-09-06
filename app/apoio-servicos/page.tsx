@@ -18,16 +18,21 @@
 // Tabelas novas: support_transport_schedules + support_transport_logs
 // (supabase/sprint126_support_transport_schedules.sql — por aplicar).
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import { blueprintFor } from '@/lib/institutionBlueprint'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
 
-interface Patient { id: string; name: string; room_number?: string | null }
+import LinhaDeRota from '@/components/institution/LinhaDeRota'
+import { montarRota, folhaDoMotorista } from '@/lib/rotaTransporte'
+import { useOrgName } from '@/lib/useOrgName'
+
+interface Patient { id: string; name: string; room_number?: string | null; address?: string | null; photo_url?: string | null }
 interface Schedule { id: string; patient_id: string; label: string; weekdays: number[] | null; time: string | null; notes: string | null }
 interface ScheduleLog { id: string; schedule_id: string; date: string; done: boolean }
 interface Service {
@@ -48,6 +53,7 @@ export default function ApoioServicosPage() {
   const scope = useOrgScope()
   const toast = useToast()
   const cfg = institutionConfig(institution)
+  const ACCENT = blueprintFor(institution).accent
 
   const today = new Date().toISOString().slice(0, 10)
   const todayWeekday = new Date().getDay()
@@ -77,7 +83,7 @@ export default function ApoioServicosPage() {
     if (!user) return
     setLoading(true)
     const [pats, sch, lgs, svcs] = await Promise.all([
-      scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
+      scope.filter(supabase.from('patients').select('id,name,room_number,address,photo_url')).eq('active', true).order('name'),
       scope.filter(supabase.from('support_transport_schedules').select('*')).eq('active', true),
       scope.filter(supabase.from('support_transport_logs').select('id,schedule_id,date,done')).eq('date', today),
       scope.filter(supabase.from('support_services').select('*')).in('kind', ['roupa', 'outro']).neq('status', 'concluido').order('created_at', { ascending: false }),
@@ -101,6 +107,15 @@ export default function ApoioServicosPage() {
   function todaysFor(patientId: string) {
     return schedules.filter(s => s.patient_id === patientId && (!s.weekdays || s.weekdays.includes(todayWeekday)))
   }
+
+  // ── A rota do dia ────────────────────────────────────────────────────────
+  // O mesmo dado, lido de outra maneira: em vez de uma lista de checkboxes por
+  // pessoa, a sequência real do carro. Ver lib/rotaTransporte para a razão de
+  // ser um diagrama de linha e não um mapa.
+  const nomeCasa = useOrgName()
+  const rota = useMemo(
+    () => montarRota(schedules, patients, new Set(logs.filter(l => l.done).map(l => l.schedule_id)), todayWeekday),
+    [schedules, patients, logs, todayWeekday])
   function logFor(scheduleId: string) { return logs.find(l => l.schedule_id === scheduleId) }
   function nameOf(patientId: string | null) { return patients.find(p => p.id === patientId)?.name || null }
 
@@ -192,6 +207,38 @@ export default function ApoioServicosPage() {
       </div>
 
       <div className="page-container page-body" style={{ maxWidth: 860, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+        {/* ── A rota de hoje ──────────────────────────────────────────────
+            Isto é o que a página passou a ser. A lista por pessoa continua
+            em baixo, para criar e apagar horários; mas quem abre esta página
+            de manhã quer saber a ordem do carro, não uma grelha de
+            quadradinhos. */}
+        {!loading && (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                Rota de hoje
+              </span>
+              {rota.paragens.length > 0 && (
+                <button onClick={() => folhaDoMotorista(nomeCasa || 'Transportes', today, rota)} style={{
+                  minHeight: 36, padding: '0 13px', borderRadius: 8, border: '1px solid var(--border-2)',
+                  background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>Folha do motorista</button>
+              )}
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <LinhaDeRota
+                rota={rota}
+                cor={ACCENT}
+                marcar={id => { const s = schedules.find(x => x.id === id); if (s) toggle(s) }}
+                aGuardar={new Set<string>()}
+                podeEditar={scope.canEdit}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ── Transportes recorrentes ── */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>

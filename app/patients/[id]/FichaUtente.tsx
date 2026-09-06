@@ -21,6 +21,8 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { blueprintFor } from '@/lib/institutionBlueprint'
 import { ptDate } from '@/lib/ptTime'
+import { useLiveData } from '@/lib/useLiveData'
+import { marcarPresenca, type EstadoPresenca } from '@/lib/presenca'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -109,6 +111,8 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
   const [presenca, setPresenca] = useState<any | null>(null)
   const [contactos, setContactos] = useState<any[]>([])
   const [ocorrencias, setOcorrencias] = useState<any[]>([])
+  const [aMarcar, setAMarcar] = useState(false)
+  const [avisoFamilia, setAvisoFamilia] = useState('')
 
   const carregar = useCallback(async () => {
     if (!user || !pid) { setCarregando(false); return }
@@ -135,6 +139,15 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
   }, [user, supabase, pid])
 
   useEffect(() => { carregar() }, [carregar])
+
+  // O painel e a ficha marcam a MESMA coisa. Sem isto, quem tem a ficha
+  // aberta continuava a ver "por marcar" depois de alguém tocar no painel.
+  useLiveData({
+    supabase, userId: user?.id, table: ['attendance'],
+    filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue,
+    onChange: carregar,
+  })
+
   // Dá à página dona uma forma de mandar recarregar depois de gravar num modal.
   useEffect(() => { aoMudar?.(carregar) }, [aoMudar, carregar])
 
@@ -220,6 +233,31 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     )
   }
 
+  const estadoPresenca: EstadoPresenca =
+    presenca?.status === 'present' || presenca?.status === 'absent' || presenca?.status === 'left'
+      ? presenca.status : null
+
+  async function mudarPresenca(novo: EstadoPresenca) {
+    if (!utente || !user) return
+    setAMarcar(true); setAvisoFamilia('')
+    const r = await marcarPresenca(
+      { supabase, scope, user, avisaFamilia: institution === 'day_care' },
+      { id: utente.id, name: utente.name, photo_url: utente.photo_url, room_number: utente.room_number },
+      novo,
+    )
+    setAMarcar(false)
+    if (r.erro) { alert(r.erro); return }
+    if (r.avisouFamilia) {
+      setAvisoFamilia(novo === null
+        ? 'A família foi avisada de que o registo de hoje foi anulado.'
+        : novo === 'absent'
+          ? 'A família foi avisada da correção.'
+          : `A família recebeu o recado ${novo === 'present' ? 'da chegada' : 'da saída'}.`)
+      setTimeout(() => setAvisoFamilia(''), 6000)
+    }
+    carregar()
+  }
+
   const chegada = presenca?.arrived_at
     ? new Date(presenca.arrived_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
     : null
@@ -254,6 +292,66 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           fontSize: 13.5, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
         }}>Registar o dia</Link>
       </div>
+
+      {/* ── Presenças ──────────────────────────────────────────────────────
+          Aqui, ao contrário do painel, há tudo: ausente, e retirar a marca.
+          O painel é para a chegada em massa (um toque numa cara); a ficha é
+          onde se corrige um engano com calma — e num centro de dia isso
+          significa também desfazer o recado que já foi para a família. */}
+      {scope.canEdit && (
+        <div style={{
+          marginTop: 'var(--space-9)', border: '1px solid var(--border)',
+          borderRadius: 'var(--r-lg)', padding: '14px 16px', background: 'var(--bg)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span style={MONO}>Presença de hoje</span>
+            {presenca && (
+              <button onClick={() => mudarPresenca(null)} disabled={aMarcar} style={{
+                background: 'none', border: 'none', padding: 0, fontFamily: 'inherit',
+                fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)',
+                cursor: aMarcar ? 'wait' : 'pointer', textDecoration: 'underline',
+              }}>retirar a marca</button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 11, flexWrap: 'wrap' }}>
+            {([
+              ['present', institution === 'day_care' ? 'Chegou' : 'Presente'],
+              ['left', 'Saiu'],
+              ['absent', institution === 'day_care' ? 'Não veio' : 'Ausente'],
+            ] as [Exclude<EstadoPresenca, null>, string][]).map(([v, rotulo]) => {
+              const on = estadoPresenca === v
+              return (
+                <button key={v} onClick={() => mudarPresenca(on ? null : v)} disabled={aMarcar} style={{
+                  minHeight: 44, padding: '0 16px', borderRadius: 'var(--r-md)',
+                  border: `1px solid ${on ? cor : 'var(--border-2)'}`,
+                  background: on ? cor : 'var(--bg)', color: on ? 'white' : 'var(--ink-3)',
+                  fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                  cursor: aMarcar ? 'wait' : 'pointer', opacity: aMarcar ? 0.6 : 1,
+                }}>{rotulo}</button>
+              )
+            })}
+          </div>
+          {(presenca?.arrived_at || presenca?.left_at) && (
+            <div style={{ ...MONO, marginTop: 10 }}>
+              {[
+                presenca.arrived_at ? `chegou ${new Date(presenca.arrived_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : '',
+                presenca.left_at ? `saiu ${new Date(presenca.left_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}` : '',
+              ].filter(Boolean).join(' · ')}
+            </div>
+          )}
+          {avisoFamilia && (
+            <div style={{
+              marginTop: 10, fontSize: 12.5, color: 'var(--ink-2)',
+              background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px',
+            }}>{avisoFamilia}</div>
+          )}
+          {institution === 'day_care' && !presenca && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 9 }}>
+              A família recebe um recado automático quando marcares a chegada e a saída.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* A nota da equipa. Só aparece se alguém a escreveu. */}
       {nota && (

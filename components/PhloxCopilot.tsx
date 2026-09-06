@@ -11,6 +11,9 @@ import { useOrgScope } from '@/lib/orgScope'
 import { getPhloxContext, subscribePhloxContext, serializeContext } from '@/lib/copilotContext'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { save } from '@/lib/saves'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { marcarPresenca } from '@/lib/presenca'
+import { ptDate } from '@/lib/ptTime'
 
 // Páginas PÚBLICAS/marketing onde o Copilot nunca deve aparecer — nem sequer a
 // um utilizador com sessão iniciada (senão o ✦ fica por cima da landing page
@@ -24,13 +27,17 @@ const PUBLIC_PREFIXES = [
 const isPublicPath = (pathname: string) =>
   pathname === '/' || PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
 
-interface ProposedAction { type: 'save_summary' | 'log_resident_request'; label: string; content: string }
+interface ProposedAction {
+  type: 'save_summary' | 'log_resident_request' | 'marcar_presenca' | 'registar_ocorrencia' | 'recado_familia' | 'nota_no_mural'
+  label: string; content: string; args?: Record<string, any>
+}
 interface Msg { role: 'user' | 'assistant'; content: string; usedTool?: string | null; proposedAction?: ProposedAction | null; actionDone?: boolean; actionError?: string }
 
 const TOOL_BADGE: Record<string, string> = {
   check_interactions: '🔎 Verificado com interações reais',
   patient_data: '🧠 Consultado o registo atual',
   patient_data_interactions: '🧠🔎 Registo atual + interações reais verificadas',
+  estado_da_casa: '🏠 Leu o estado real da casa hoje',
 }
 
 // Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver e a quem acompanha.
@@ -61,6 +68,7 @@ function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfi
 
 export default function PhloxCopilot() {
   const { user, supabase } = useAuth() as any
+  const { institution } = useClinicPrefs()
   const scope = useOrgScope()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -175,13 +183,57 @@ export default function PhloxCopilot() {
         if (!ap || ap.type !== 'patient') throw new Error('Sem utente em foco')
         const { error } = await supabase.from('resident_requests').insert(scope.stamp({ patient_id: ap.id, kind: 'observacao', content: action.content }))
         if (error) throw error
+
+      // ── Ações novas (2026-09-05) ────────────────────────────────────────
+      // O Copilot deixou de ser só uma caixa de respostas: quando a mensagem
+      // pede que se FAÇA alguma coisa, ele propõe a ação já preenchida. A
+      // execução continua a ser um toque da pessoa — isto escreve no registo
+      // de alguém e não pode acontecer só porque a IA percebeu bem a frase.
+      } else if (action.type === 'marcar_presenca') {
+        if (!ap || ap.type !== 'patient') throw new Error('Sem utente em foco')
+        const estado = (action.args?.estado === 'left' || action.args?.estado === 'absent') ? action.args!.estado : 'present'
+        const r = await marcarPresenca(
+          { supabase, scope, user, avisaFamilia: institution === 'day_care' },
+          { id: ap.id, name: ap.name }, estado,
+        )
+        if (r.erro) throw new Error(r.erro)
+
+      } else if (action.type === 'registar_ocorrencia') {
+        if (!ap || ap.type !== 'patient') throw new Error('Sem utente em foco')
+        const tipos = ['fall', 'medication_error', 'pressure_ulcer', 'behavioral', 'choking', 'infection', 'other']
+        const gravidades = ['minor', 'moderate', 'major', 'critical']
+        const { error } = await supabase.from('incidents').insert(scope.stamp({
+          user_id: user.id, patient_id: ap.id, date: ptDate(),
+          type: tipos.includes(action.args?.tipo) ? action.args!.tipo : 'other',
+          severity: gravidades.includes(action.args?.gravidade) ? action.args!.gravidade : 'minor',
+          description: action.content.slice(0, 1000), status: 'open',
+        }))
+        if (error) throw error
+
+      } else if (action.type === 'recado_familia') {
+        if (!ap || ap.type !== 'patient') throw new Error('Sem utente em foco')
+        const { error } = await supabase.from('family_thread_messages').insert(scope.stamp({
+          user_id: user.id, patient_id: ap.id, author_side: 'staff',
+          author_name: user?.name || 'Equipa', kind: 'message',
+          content: action.content.slice(0, 1000), read_by_family: false, read_by_staff: true,
+        }))
+        if (error) throw error
+
+      } else if (action.type === 'nota_no_mural') {
+        const { data: sd } = await supabase.auth.getSession()
+        const r = await fetch('/api/team-messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+          body: JSON.stringify({ body: action.content.slice(0, 1000), channel: 'avisos', priority: 'normal' }),
+        }).then(x => x.json()).catch(() => ({ error: 'falhou' }))
+        if (r?.error) throw new Error(r.error)
       }
       setMsgs(m => m.map((msg, i) => i === idx ? { ...msg, actionDone: true } : msg))
     } catch {
       setMsgs(m => m.map((msg, i) => i === idx ? { ...msg, actionError: 'Não foi possível concluir.' } : msg))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, supabase, scope.orgId, scope.userId])
+  }, [pathname, supabase, scope.orgId, scope.userId, user, institution])
 
   if (!isPro || isPublic) return null
 

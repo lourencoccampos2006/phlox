@@ -20,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react'
+import { iniciais, corDaPessoa } from '@/lib/presenca'
 import Link from 'next/link'
 import Icon from '@/components/Icon'
 
@@ -513,31 +514,25 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
 // quem chegou é a primeira coisa que se faz de manhã, e obrigar a sair do
 // painel para outra ferramenta só para isso é o que torna um painel decorativo.
 //
-// Enquanto houver gente por marcar, o cartão está aberto com a lista toda. Mal
-// esteja tudo marcado encolhe para uma linha: deixa de ocupar espaço quando já
-// não há nada a fazer, e volta a abrir no "Rever".
+// REFEITA 2026-09-05. A primeira versão era uma lista com o nome completo e
+// dois botões por pessoa: numa casa de sessenta utentes ocupava o painel todo.
+// Agora é uma grelha de caras — fotografia, ou as iniciais num círculo com uma
+// cor estável por pessoa. Um toque marca a chegada, outro marca a saída. Não há
+// forma de apagar aqui, de propósito: um engano corrige-se na ficha da pessoa,
+// onde há espaço para dizer o que se passou e avisar a família.
 
 export type PessoaPresenca = {
   id: string
   nome: string
   quarto: string | null
+  foto: string | null
   estado: 'present' | 'absent' | 'left' | null
-}
-
-const botaoPresenca: React.CSSProperties = {
-  flex: 1, minHeight: 44, background: 'var(--bg)', border: '1px solid var(--border-2)',
-  borderRadius: 7, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-  color: 'var(--ink-3)', cursor: 'pointer', padding: '0 8px',
-}
-
-const ligacaoPresenca: React.CSSProperties = {
-  minHeight: 28, background: 'none', border: 'none', padding: 0, fontFamily: 'inherit',
-  fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', cursor: 'pointer', textDecoration: 'underline',
+  hora: string | null       // chegada ou saída, já formatada
 }
 
 export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, span = 12 }: {
   pessoas: PessoaPresenca[]
-  marcar: (id: string, estado: 'present' | 'absent' | 'left') => void
+  marcar: (id: string) => void
   aGuardar: Set<string>
   cor: string
   podeEditar: boolean
@@ -549,14 +544,14 @@ export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, sp
 
   const porMarcar = pessoas.filter(p => !p.estado).length
   const presentes = pessoas.filter(p => p.estado === 'present').length
-  const ausentes = pessoas.filter(p => p.estado === 'absent').length
   const saidas = pessoas.filter(p => p.estado === 'left').length
+  const ausentes = pessoas.filter(p => p.estado === 'absent').length
   const tudoMarcado = porMarcar === 0
 
   const resumo = [
     presentes ? `${presentes} ${presentes === 1 ? 'presente' : 'presentes'}` : '',
+    saidas ? `${saidas} ${saidas === 1 ? 'saiu' : 'saíram'}` : '',
     ausentes ? `${ausentes} ${ausentes === 1 ? 'ausente' : 'ausentes'}` : '',
-    saidas ? `${saidas} ${saidas === 1 ? 'saiu' : 'saíram'} antes` : '',
   ].filter(Boolean).join(' · ')
 
   return (
@@ -572,9 +567,7 @@ export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, sp
         <Vazio>A sua conta é só de leitura — vê as presenças, mas não as pode marcar.</Vazio>
       ) : tudoMarcado && !aberto ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-            {pessoas.length === 1 ? 'Já está marcada.' : 'Está tudo marcado.'} {resumo}.
-          </span>
+          <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Está tudo marcado. {resumo}.</span>
           <button onClick={() => setAberto(true)} style={{
             minHeight: 44, background: 'none', border: '1px solid var(--border-2)', borderRadius: 7,
             padding: '0 13px', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
@@ -582,46 +575,74 @@ export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, sp
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 10, marginTop: 16 }}>
-            {pessoas.map(p => {
-              const guardando = aGuardar.has(p.id)
-              return (
-                <div key={p.id} style={{
-                  border: `1px solid ${p.estado ? 'var(--bg-3)' : 'var(--border-2)'}`,
-                  borderRadius: 'var(--r-lg)', padding: '11px 12px 10px', minWidth: 0,
-                  opacity: guardando ? 0.55 : 1,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
-                    {p.quarto && <span style={{ ...MONO_MINI, flexShrink: 0 }}>{p.quarto}</span>}
-                  </div>
-
-                  {p.estado ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 9, flexWrap: 'wrap' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.estado === 'present' ? cor : 'var(--ink-5)' }} />
-                        {p.estado === 'present' ? 'Presente' : p.estado === 'absent' ? 'Ausente' : 'Saiu antes'}
-                      </span>
-                      {/* Sair antes só faz sentido depois de ter chegado. */}
-                      {p.estado === 'present'
-                        ? <button onClick={() => marcar(p.id, 'left')} disabled={guardando} style={ligacaoPresenca}>marcar saída</button>
-                        : <button onClick={() => marcar(p.id, 'present')} disabled={guardando} style={ligacaoPresenca}>corrigir</button>}
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
-                      <button onClick={() => marcar(p.id, 'present')} disabled={guardando} style={{ ...botaoPresenca, borderColor: cor, color: cor }}>Presente</button>
-                      <button onClick={() => marcar(p.id, 'absent')} disabled={guardando} style={botaoPresenca}>Ausente</button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(72px,1fr))', gap: 10, marginTop: 16 }}>
+            {pessoas.map(p => <Cara key={p.id} p={p} cor={cor} guardando={aGuardar.has(p.id)} marcar={marcar} />)}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 14 }}>
-            Fica registado com a hora de agora e entra no dossier mensal de cada pessoa.
+          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 14, textWrap: 'pretty' as any }}>
+            Um toque marca a chegada, outro marca a saída. Para corrigir um engano, abre a ficha da pessoa.
           </div>
         </>
       )}
     </Cartao>
+  )
+}
+
+function Cara({ p, cor, guardando, marcar }: {
+  p: PessoaPresenca; cor: string; guardando: boolean; marcar: (id: string) => void
+}) {
+  const marcado = p.estado === 'present' || p.estado === 'left'
+  const fechado = p.estado === 'left' || p.estado === 'absent'
+  const anel = p.estado === 'present' ? cor
+    : p.estado === 'left' ? 'var(--ink-4)'
+    : p.estado === 'absent' ? 'var(--bg-4)' : 'var(--border-2)'
+
+  return (
+    <button
+      onClick={() => marcar(p.id)}
+      disabled={guardando || fechado}
+      title={`${p.nome}${p.quarto ? ` · ${p.quarto}` : ''}${p.hora ? ` · ${p.hora}` : ''}`}
+      aria-label={`${p.nome}${p.estado === 'present' ? ' — presente, tocar para marcar a saída'
+        : p.estado === 'left' ? ' — já saiu'
+        : p.estado === 'absent' ? ' — ausente' : ' — tocar para marcar a chegada'}`}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+        background: 'none', border: 'none', padding: '4px 2px', minWidth: 0,
+        cursor: guardando || fechado ? 'default' : 'pointer', fontFamily: 'inherit',
+        opacity: guardando ? 0.45 : p.estado === 'absent' ? 0.55 : 1,
+      }}>
+      <span style={{ position: 'relative', display: 'block' }}>
+        <span style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 52, height: 52, borderRadius: '50%', overflow: 'hidden',
+          border: `2px ${p.estado ? 'solid' : 'dashed'} ${anel}`,
+          background: p.foto ? 'var(--bg-2)' : corDaPessoa(p.id),
+          color: 'white', fontSize: 16, fontWeight: 700,
+          filter: p.estado === 'absent' ? 'grayscale(1)' : 'none',
+        }}>
+          {p.foto
+            ? <img src={p.foto} alt="" width={52} height={52} style={{ width: 52, height: 52, objectFit: 'cover' }} />
+            : iniciais(p.nome)}
+        </span>
+        {/* Um selo, para o estado não depender só da cor. */}
+        {marcado && (
+          <span style={{
+            position: 'absolute', right: -2, bottom: -2, width: 18, height: 18, borderRadius: '50%',
+            background: p.estado === 'present' ? cor : 'var(--ink-4)', color: 'white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, fontWeight: 700, border: '2px solid var(--bg)',
+          }}>{p.estado === 'present' ? '✓' : '→'}</span>
+        )}
+      </span>
+      <span style={{
+        fontSize: 11, fontWeight: 600, color: p.estado ? 'var(--ink)' : 'var(--ink-4)',
+        maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        textDecoration: p.estado === 'absent' ? 'line-through' : 'none',
+      }}>{p.nome.split(' ')[0]}</span>
+      <span style={{ ...MONO_MINI, fontSize: 9, lineHeight: 1.2, textAlign: 'center' }}>
+        {p.estado === 'present' ? (p.hora || 'presente')
+          : p.estado === 'left' ? `saiu ${p.hora || ''}`.trim()
+          : p.estado === 'absent' ? 'faltou' : ''}
+      </span>
+    </button>
   )
 }

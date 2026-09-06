@@ -70,7 +70,7 @@ create index if not exists family_profile_events_profile_idx on family_profile_e
 
 do $$ begin
   alter table family_profile_events add constraint family_profile_events_kind_check check (kind in ('appointment', 'coverage'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 
 alter table family_profile_events enable row level security;
 do $$ begin

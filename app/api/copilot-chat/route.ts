@@ -11,7 +11,8 @@ import { aiComplete, aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse, isPlanSufficient, extractToken } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { TOOLS, type ToolMode } from '@/lib/toolRegistry'
-import { checkInteractionsTool, patientDataTool } from '@/lib/copilotTools'
+import { checkInteractionsTool, patientDataTool, estadoDaCasaTool } from '@/lib/copilotTools'
+import { ptDate } from '@/lib/ptTime'
 
 // Diretório CONCISO de todas as ferramentas do Phlox — usado SÓ para encaminhar
 // quando o utilizador pede explicitamente uma funcionalidade ("onde faço X").
@@ -55,10 +56,13 @@ const MODE_CTX: Record<string, string> = {
 interface CopilotDecision {
   mode: 'answer' | 'tool'
   answer?: string | null
-  tool?: 'check_interactions' | 'patient_data' | null
+  tool?: 'check_interactions' | 'patient_data' | 'estado_da_casa' | null
   args?: { drugs?: string[] } & Record<string, any>
   remember?: string | null
-  proposedAction?: { type: 'save_summary' | 'log_resident_request'; label: string; content: string } | null
+  proposedAction?: {
+    type: 'save_summary' | 'log_resident_request' | 'marcar_presenca' | 'registar_ocorrencia' | 'recado_familia' | 'nota_no_mural'
+    label: string; content: string; args?: Record<string, any>
+  } | null
 }
 
 function buildContextBlock(opts: {
@@ -135,6 +139,7 @@ Regras (importantes, não as quebres):
 
 FERRAMENTAS INTERNAS que podes pedir para fundamentar a resposta (o SERVIDOR executa-as a sério, não adivinhes o resultado):
 - check_interactions: verificação REAL (RxNorm + farmacologia clínica) de interações entre fármacos. SÓ uses isto se já souberes os NOMES EXATOS de pelo menos 2 fármacos (da pergunta, do CONTEXTO ATUAL, ou do histórico da conversa). args: {"drugs": ["nome1","nome2",...]}. Se NÃO souberes os nomes (ex.: "há interações na medicação dele?" sem saberes quais são), usa patient_data em vez disto — o servidor encadeia automaticamente a verificação de interações a seguir, com os nomes reais encontrados no registo.
+- estado_da_casa: o retrato de HOJE da casa toda — quantos estão presentes e quantos faltam marcar, tomas dadas contra previstas, quem ainda não tem registo do dia, ocorrências em aberto. Usa isto sempre que a pergunta for sobre o dia, sobre a casa, sobre prioridades ou sobre "o que falta" — em vez de responderes de cor.
 - patient_data: consulta o registo ATUAL e completo (medicação ativa, condições, alergias, vitais) da pessoa em foco — mais completo que o resumo em CONTEXTO ATUAL. Usa sempre que precises de dados que não estão no contexto, incluindo para saber que fármacos a pessoa toma antes de veres se há interações.${hasProfile ? '' : ' (Sem pessoa em foco agora — não uses nenhum destes dois tools.)'}
 
 Podes também PROPOR uma ação concreta (no máximo uma), só quando fizer sentido real na conversa — nunca por rotina:
@@ -145,11 +150,26 @@ Responde APENAS com JSON válido, sem markdown:
 {
   "mode": "answer" | "tool",
   "answer": "resposta completa e direta, PT-PT, SE mode=answer; caso contrário null",
-  "tool": "check_interactions" | "patient_data" | null,
+  "tool": "check_interactions" | "patient_data" | "estado_da_casa" | null,
   "args": { "drugs": ["..."] } ou {},
   "remember": "facto curto e NOVO e durável a lembrar (ex: alergia confirmada, preferência) — ou null se nada digno de memória. Não repitas o que já está em O QUE JÁ SEI.",
-  "proposedAction": { "type": "save_summary"|"log_resident_request", "label": "texto curto do botão de confirmação", "content": "o texto a guardar/registar" } ou null
-}`
+  "proposedAction": { "type": "save_summary"|"log_resident_request"|"marcar_presenca"|"registar_ocorrencia"|"recado_familia"|"nota_no_mural", "label": "texto curto do botão de confirmação", "content": "o texto a guardar/enviar", "args": {} } ou null
+}
+
+AÇÕES QUE PODES PROPOR (2026-09-05 — o Copilot deixou de ser só uma caixa de
+respostas). Propõe UMA quando a mensagem pede claramente que se faça algo, sem
+esperar que te peçam "regista isso". Nunca executas nada tu: o botão de
+confirmação é sempre da pessoa, porque isto escreve no registo de alguém.
+- marcar_presenca — quando dizem que alguém chegou, saiu ou não veio.
+  args: {"estado":"present"|"left"|"absent"}. Precisa de pessoa em foco.
+- registar_ocorrencia — quando contam uma queda, recusa, engano de medicação ou
+  outro evento. args: {"tipo":"fall"|"medication_error"|"behavioral"|"choking"|"other","gravidade":"minor"|"moderate"|"major"}. "content" é a descrição.
+- recado_familia — quando pedem para avisar a família de alguma coisa.
+  "content" é o recado, escrito com calma e sem jargão clínico.
+- nota_no_mural — recado para a equipa (turno seguinte, avisos, stock).
+- log_resident_request — algo que o utente pediu, disse ou de que se queixou.
+- save_summary — guardar a resposta como nota.
+Se a mensagem for só uma pergunta, "proposedAction" é null.`
 
   let decision: CopilotDecision | null = null
   try {
@@ -169,6 +189,17 @@ Responde APENAS com JSON válido, sem markdown:
       let toolResult = ''
       if (decision.tool === 'check_interactions') {
         toolResult = await checkInteractionsTool(Array.isArray(decision.args?.drugs) ? decision.args!.drugs : [])
+      } else if (decision.tool === 'estado_da_casa') {
+        toolResult = authedSupabase
+          ? await (async () => {
+              // O âmbito é o mesmo que o useOrgScope do lado do cliente: a
+              // organização quando existe, senão a própria conta. A RLS já o
+              // garantiria, mas filtrar aqui evita puxar linhas a mais.
+              const { data: perfil } = await authedSupabase.from('profiles').select('active_org_id, org_id').eq('id', userId).maybeSingle()
+              const org = (perfil as any)?.active_org_id || (perfil as any)?.org_id || null
+              return estadoDaCasaTool(authedSupabase, { filter: (q: any) => org ? q.eq('org_id', org) : q.eq('user_id', userId) }, ptDate())
+            })()
+          : 'Sem sessão para ler o estado da casa.'
       } else if (decision.tool === 'patient_data') {
         if (authedSupabase) {
           const pd = await patientDataTool(authedSupabase, hasProfile ? { id: body.profileId!, type: body.profileType! } : null)

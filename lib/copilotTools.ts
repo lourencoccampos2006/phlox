@@ -75,3 +75,69 @@ export async function patientDataTool(supabase: SupabaseClient, profile: ActiveP
     return { text: 'A consulta ao registo falhou tecnicamente.', meds: [] }
   }
 }
+
+/* ── Estado da casa ─────────────────────────────────────────────────────────
+ * 2026-09-05. O Copilot sabia responder sobre UMA pessoa (patient_data) e sobre
+ * fármacos (check_interactions), mas não fazia ideia do que se estava a passar
+ * na casa naquele momento — e é isso que quem pergunta quer saber. Perguntas
+ * como "como está o dia?", "quem falta marcar?", "a quem devo ir primeiro?"
+ * eram respondidas de cor.
+ *
+ * Lê exatamente as mesmas fontes que o /painel e o /radar: nada aqui é um
+ * segundo motor a divergir com o tempo.
+ */
+export async function estadoDaCasaTool(
+  supabase: SupabaseClient,
+  scope: { filter: <T>(q: T) => T },
+  hoje: string,
+): Promise<string> {
+  const tol = async (q: any) => { try { const r = await q; return r?.error ? { data: [] } : r } catch { return { data: [] } } }
+  try {
+    const [pts, att, mar, meds, care, inc] = await Promise.all([
+      tol(scope.filter(supabase.from('patients').select('id,name')).eq('active', true)),
+      tol(scope.filter(supabase.from('attendance').select('patient_id,status')).eq('date', hoje)),
+      tol(scope.filter(supabase.from('mar_records').select('patient_id,status')).eq('date', hoje)),
+      tol(scope.filter(supabase.from('patient_meds').select('patient_id,shifts,active'))),
+      tol(scope.filter(supabase.from('care_records').select('patient_id')).eq('date', hoje)),
+      tol(scope.filter(supabase.from('incidents').select('id,patient_id,type,severity')).eq('status', 'open')),
+    ])
+    const utentes = (pts as any).data || []
+    if (!utentes.length) return 'Não há utentes ativos registados nesta casa.'
+    const nomePor = new Map<string, string>(utentes.map((p: any) => [p.id, p.name]))
+
+    const presencas = (att as any).data || []
+    const presentes = presencas.filter((a: any) => a.status === 'present').length
+    const ausentes = presencas.filter((a: any) => a.status === 'absent').length
+    const saidas = presencas.filter((a: any) => a.status === 'left').length
+    const porMarcar = utentes.length - presencas.length
+
+    const ativos = ((meds as any).data || []).filter((m: any) => m.active !== false)
+    const devidas = ativos.reduce((s: number, m: any) => s + (Array.isArray(m.shifts) && m.shifts.length ? m.shifts.length : 1), 0)
+    const DADA = (t: any) => ['administered', 'given', 'taken'].includes(t.status)
+    const dadas = ((mar as any).data || []).filter(DADA).length
+
+    const comRegisto = new Set(((care as any).data || []).map((r: any) => r.patient_id)).size
+    const semRegisto = utentes
+      .filter((p: any) => !new Set(((care as any).data || []).map((r: any) => r.patient_id)).has(p.id))
+      .map((p: any) => p.name).slice(0, 8)
+
+    const ocorrencias = (inc as any).data || []
+    const graves = ocorrencias.filter((i: any) => i.severity === 'major' || i.severity === 'critical')
+
+    return [
+      `Estado da casa hoje (${hoje}), a partir dos registos reais:`,
+      `- ${utentes.length} pessoas ativas.`,
+      `- Presenças: ${presentes} presentes, ${saidas} já saíram, ${ausentes} ausentes, ${porMarcar} por marcar.`,
+      devidas > 0
+        ? `- Medicação: ${dadas} tomas dadas de ${devidas} previstas pelo horário atual.`
+        : '- Medicação: não há medicação com horário definido.',
+      `- Registo do dia feito a ${comRegisto} de ${utentes.length}.`,
+      semRegisto.length ? `  Ainda sem registo: ${semRegisto.join(', ')}${utentes.length - comRegisto > semRegisto.length ? ' e outros' : ''}.` : '',
+      ocorrencias.length
+        ? `- Ocorrências em aberto: ${ocorrencias.length}${graves.length ? ` (${graves.length} grave(s): ${graves.slice(0, 3).map((i: any) => `${nomePor.get(i.patient_id) || 'utente'} — ${i.type}`).join('; ')})` : ''}.`
+        : '- Sem ocorrências em aberto.',
+    ].filter(Boolean).join('\n')
+  } catch {
+    return 'Não foi possível ler o estado da casa agora.'
+  }
+}

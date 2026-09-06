@@ -33,7 +33,7 @@ create table if not exists support_recurring_services (
 do $$ begin
   alter table support_recurring_services add constraint support_recurring_services_kind_check
     check (kind in ('roupa', 'higiene_fds', 'alimentacao_fds', 'reforco_noite'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 create index if not exists support_recurring_services_patient_idx on support_recurring_services (patient_id, active);
 create index if not exists support_recurring_services_org_idx on support_recurring_services (org_id, kind);
 
@@ -49,7 +49,7 @@ create table if not exists support_recurring_logs (
 );
 do $$ begin
   alter table support_recurring_logs add constraint support_recurring_logs_unique unique (schedule_id, date);
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 create index if not exists support_recurring_logs_date_idx on support_recurring_logs (patient_id, date desc);
 
 alter table support_recurring_services enable row level security;

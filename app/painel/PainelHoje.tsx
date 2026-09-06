@@ -34,7 +34,8 @@ import { blueprintFor } from '@/lib/institutionBlueprint'
 import { iconForHref } from '@/lib/clinicalIcons'
 import { ptDate, ptGreeting } from '@/lib/ptTime'
 import { ultimosDias } from '@/lib/painelDados'
-import { reportError } from '@/lib/clientError'
+import { marcarPresenca, proximoNoPainel } from '@/lib/presenca'
+import { useLiveData } from '@/lib/useLiveData'
 import {
   FaixaKpi, CartaoLinha, CartaoBarras, CartaoRosca, CartaoTabela, CartaoLista, CartaoPastas, CartaoPresencas,
   type Pasta, type PessoaPresenca,
@@ -84,11 +85,11 @@ export default function PainelHoje() {
     const desde7 = ultimosDias(7)[0]
     try {
       const [p, cr, mar, md, att, ac, inc, fam, h1, h2, h3] = await Promise.all([
-        scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
+        scope.filter(supabase.from('patients').select('id,name,room_number,photo_url')).eq('active', true).order('name'),
         tol(scope.filter(supabase.from('care_records').select('patient_id,created_at,nutrition,shift')).eq('date', d)),
         tol(scope.filter(supabase.from('mar_records').select('patient_id,med_id,status,shift,recorded_at')).eq('date', d)),
         tol(scope.filter(supabase.from('patient_meds').select('id,patient_id,name,shifts,active'))),
-        tol(scope.filter(supabase.from('attendance').select('patient_id,status')).eq('date', d)),
+        tol(scope.filter(supabase.from('attendance').select('patient_id,status,arrived_at,left_at')).eq('date', d)),
         tol(scope.filter(supabase.from('activities').select('id,title,start_time,type')).eq('date', d).order('start_time')),
         tol(scope.filter(supabase.from('incidents').select('id,patient_id,type,severity,date')).eq('status', 'open')),
         tol(scope.filter(supabase.from('family_thread_messages').select('id,patient_id,author_side,created_at')).order('created_at', { ascending: false }).limit(60)),
@@ -116,6 +117,15 @@ export default function PainelHoje() {
   }, [user, supabase, scope.orgId, scope.userId, tol])
 
   useEffect(() => { carregarBase() }, [carregarBase])
+
+  // As presenças marcam-se em dois sítios (aqui e na ficha de cada pessoa) e
+  // muitas vezes por duas pessoas ao mesmo tempo, à porta. Sem tempo real, uma
+  // marcava e a outra continuava a ver a cara por marcar — e marcava outra vez.
+  useLiveData({
+    supabase, userId: user?.id, table: ['attendance'],
+    filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue,
+    onChange: carregarBase,
+  })
 
   /* ── Os outros quatro, só quando abertos ───────────────────────────────── */
   useEffect(() => {
@@ -213,46 +223,70 @@ export default function PainelHoje() {
   }, [aba, base, cuidados, pessoas, equipa, gestao, casa, primeiroNome, nomes])
 
   /* ── Presenças: a única coisa que o painel escreve ─────────────────────── */
-  // Marcar quem chegou é o primeiro gesto do dia. Escreve otimista (a rosca e o
-  // número no topo mexem-se logo) e repõe o estado anterior se a gravação
-  // falhar — nunca fica a mostrar uma presença que não ficou registada.
+  // Um toque marca a chegada, outro marca a saída (lib/presenca decide o quê).
+  // Escreve otimista — a rosca e o número no topo mexem-se logo — e repõe o
+  // estado anterior se a gravação falhar: nunca fica a mostrar uma presença
+  // que não ficou registada.
   const [aGuardar, setAGuardar] = useState<Set<string>>(new Set())
+
+  // Num centro de dia a família recebe recado da chegada e da saída; num lar
+  // a pessoa vive lá e isso não faz sentido nenhum.
+  const avisaFamilia = institution === 'day_care'
 
   const pessoasPresenca: PessoaPresenca[] = useMemo(() => {
     if (!base) return []
-    const estado = new Map(base.presencas.map(a => [a.patient_id, a.status]))
+    const porId = new Map(base.presencas.map(a => [a.patient_id, a]))
+    const hora = (iso?: string | null) => {
+      if (!iso) return null
+      const d = new Date(iso)
+      return isNaN(d.getTime()) ? null : d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' })
+    }
     return base.utentes.map(u => {
-      const e = estado.get(u.id)
+      const a = porId.get(u.id)
+      const e = a?.status
+      const estado = e === 'present' || e === 'absent' || e === 'left' ? e : null
       return {
         id: u.id, nome: u.name, quarto: u.room_number ? `Q ${u.room_number}` : null,
-        estado: e === 'present' || e === 'absent' || e === 'left' ? e : null,
+        foto: (u as any).photo_url || null, estado,
+        hora: estado === 'left' ? hora((a as any)?.left_at) : estado === 'present' ? hora((a as any)?.arrived_at) : null,
       }
     })
   }, [base])
 
-  const marcarPresenca = useCallback(async (patientId: string, status: 'present' | 'absent' | 'left') => {
+  const tocarPresenca = useCallback(async (patientId: string) => {
     if (!user || !base) return
+    const pessoa = base.utentes.find(u => u.id === patientId)
+    if (!pessoa) return
+    const atual = pessoasPresenca.find(p => p.id === patientId)?.estado ?? null
+    const seguinte = proximoNoPainel(atual)
+    if (seguinte === 'nada') return
+
     const antes = base.presencas
     const agora = new Date().toISOString()
     setAGuardar(prev => new Set(prev).add(patientId))
     setBase(b => b && ({
       ...b,
-      presencas: [...b.presencas.filter(a => a.patient_id !== patientId), { patient_id: patientId, status }],
+      presencas: [
+        ...b.presencas.filter(a => a.patient_id !== patientId),
+        {
+          patient_id: patientId, status: seguinte,
+          arrived_at: seguinte === 'left' ? (antes.find(a => a.patient_id === patientId) as any)?.arrived_at ?? agora : agora,
+          left_at: seguinte === 'left' ? agora : null,
+        } as any,
+      ],
     }))
-    const linha = scope.stamp({
-      patient_id: patientId, date: ptDate(), status,
-      arrived_at: status === 'absent' ? null : agora,
-      left_at: status === 'left' ? agora : null,
-      recorded_by_id: user.id,
-    })
-    const { error } = await supabase.from('attendance').upsert(linha, { onConflict: 'patient_id,date' })
+    const { erro } = await marcarPresenca(
+      { supabase, scope, user, avisaFamilia },
+      { id: pessoa.id, name: pessoa.name, photo_url: (pessoa as any).photo_url, room_number: pessoa.room_number },
+      seguinte,
+    )
     setAGuardar(prev => { const n = new Set(prev); n.delete(patientId); return n })
-    if (error) {
+    if (erro) {
       setBase(b => b && ({ ...b, presencas: antes }))
-      alert(reportError('painel-presencas', error, 'Não foi possível guardar a presença. Tenta de novo.'))
+      alert(erro)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, base, supabase, scope.orgId, scope.userId])
+  }, [user, base, pessoasPresenca, supabase, scope.orgId, scope.userId, avisaFamilia])
 
   const pastas: Pasta[] = useMemo(() => (bp.toolFolders || []).map(f => ({
     id: f.id, nome: f.label, hint: f.hint,
@@ -324,7 +358,7 @@ export default function PainelHoje() {
             separadores não é a pergunta que se está a fazer. */}
         {aba === 'hoje' && (
           <CartaoPresencas
-            pessoas={pessoasPresenca} marcar={marcarPresenca} aGuardar={aGuardar}
+            pessoas={pessoasPresenca} marcar={tocarPresenca} aGuardar={aGuardar}
             cor={bp.accent} podeEditar={scope.canEdit} span={12}
           />
         )}

@@ -33,10 +33,10 @@ create table if not exists dietary_reinforcements (
 );
 do $$ begin
   alter table dietary_reinforcements add constraint dietary_reinforcements_shift_check check (shift in ('manha', 'tarde', 'noite'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 do $$ begin
   alter table dietary_reinforcements add constraint dietary_reinforcements_unique unique (patient_id, date, shift);
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 create index if not exists dietary_reinforcements_patient_idx on dietary_reinforcements (patient_id, date desc);
 create index if not exists dietary_reinforcements_org_idx on dietary_reinforcements (org_id, date);
 
@@ -81,13 +81,13 @@ create table if not exists medication_prep_logs (
 );
 do $$ begin
   alter table medication_prep_logs add constraint medication_prep_logs_weekday_check check (weekday between 0 and 6);
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 do $$ begin
   alter table medication_prep_logs add constraint medication_prep_logs_shift_check check (shift in ('manha', 'tarde', 'noite'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 do $$ begin
   alter table medication_prep_logs add constraint medication_prep_logs_unique unique (patient_id, week_start, weekday, shift);
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 create index if not exists medication_prep_logs_week_idx on medication_prep_logs (patient_id, week_start);
 create index if not exists medication_prep_logs_org_idx on medication_prep_logs (org_id, week_start);
 
@@ -132,7 +132,7 @@ create table if not exists psychosocial_notes (
 );
 do $$ begin
   alter table psychosocial_notes add constraint psychosocial_notes_referral_status_check check (referral_status is null or referral_status in ('sugerido', 'agendado', 'em_curso', 'concluido'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 create index if not exists psychosocial_notes_patient_idx on psychosocial_notes (patient_id, date desc);
 create index if not exists psychosocial_notes_org_idx on psychosocial_notes (org_id, date desc);
 

@@ -36,7 +36,7 @@ create table if not exists adl_reviews (
 -- Uma revisão por pessoa por dia (voltar a gravar no mesmo dia corrige).
 do $$ begin
   alter table adl_reviews add constraint adl_reviews_unique unique (patient_id, date);
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;
 
 create index if not exists adl_reviews_patient_idx on adl_reviews (patient_id, date desc);
 create index if not exists adl_reviews_org_idx on adl_reviews (org_id, date desc);

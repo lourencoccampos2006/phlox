@@ -44,4 +44,4 @@ alter table skin_lesion_tracks
 
 do $$ begin
   alter table skin_lesion_tracks add constraint skin_lesion_tracks_mode_check check (mode in ('screening', 'condition'));
-exception when duplicate_object then null; end $$;
+exception when duplicate_object or duplicate_table then null; end $$;

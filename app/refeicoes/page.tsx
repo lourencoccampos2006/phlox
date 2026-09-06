@@ -19,10 +19,12 @@ import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import { evaluateVital } from '@/lib/vitalRanges'
+import { useOrgName } from '@/lib/useOrgName'
+import { imprimirDia, imprimirSemana, imprimirMes, type LinhaEmenta } from './imprimirEmenta'
 
-interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string }
-interface NewDish { temp_id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string }
-interface Entry { id: string; date: string; meal_type: string; dish_id: string | null; dish_name_free: string | null }
+interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
+interface NewDish { temp_id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
+interface Entry { id: string; date: string; meal_type: string; course: string; dish_id: string | null; dish_name_free: string | null }
 interface CarePlan { patient_id: string; diet_type?: string | null; diet_texture?: string | null }
 interface Patient { id: string; allergies: string | null }
 
@@ -33,6 +35,20 @@ const MEAL_TYPES: { id: string; label: string }[] = [
   { id: 'jantar', label: 'Jantar' },
 ]
 const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
+// Uma refeição tem momentos. Um lanche não leva sopa, e um almoço sem sopa
+// não é como as ementas cá se escrevem.
+const COURSES: { id: string; label: string; curto: string }[] = [
+  { id: 'sopa', label: 'Sopa', curto: 'Sopa' },
+  { id: 'prato', label: 'Prato principal', curto: 'Prato' },
+  { id: 'sobremesa', label: 'Sobremesa', curto: 'Sobremesa' },
+]
+const MOMENTOS: Record<string, string[]> = {
+  pequeno_almoco: ['prato'],
+  almoco: ['sopa', 'prato', 'sobremesa'],
+  lanche: ['prato'],
+  jantar: ['sopa', 'prato', 'sobremesa'],
+}
 const TEXTURES = ['Normal', 'Mole', 'Triturada', 'Liquidificada', 'Pastosa', 'Picada']
 const DIET_TAGS = ['Normal', 'Hipossódica', 'Hipoglicídica', 'Hipoproteica', 'Hipercalórica', 'Vegetariana', 'Diabética']
 const COST_TIERS: { id: string; label: string }[] = [{ id: 'baixo', label: '€ Baixo' }, { id: 'medio', label: '€€ Médio' }, { id: 'alto', label: '€€€ Alto' }]
@@ -76,6 +92,45 @@ export default function RefeicoesPage() {
   const [proposedNewDishes, setProposedNewDishes] = useState<NewDish[]>([])
   const [applying, setApplying] = useState(false)
 
+  // ── Imprimir a ementa ────────────────────────────────────────────────────
+  // O papel que fica afixado na sala e que as famílias leem à porta. A semana
+  // já está carregada; o dia sai dela, e o mês vai buscar o mês inteiro.
+  const nomeCasa = useOrgName()
+  const [aImprimir, setAImprimir] = useState('')
+
+  const nomeDoPrato = useCallback((e: Entry) =>
+    e.dish_name_free || dishes.find(d => d.id === e.dish_id)?.name || '', [dishes])
+
+  const linhasDaSemana = useCallback((): LinhaEmenta[] => entries
+    .map(e => ({ date: e.date, meal_type: e.meal_type, course: e.course || 'prato', nome: nomeDoPrato(e) }))
+    .filter(l => l.nome), [entries, nomeDoPrato])
+
+  async function imprimir(alcance: 'dia' | 'semana' | 'mes') {
+    setAImprimir(alcance)
+    try {
+      const casa = nomeCasa || 'Ementa'
+      if (alcance === 'semana') { imprimirSemana(casa, weekDates.map(fmtDate), linhasDaSemana()); return }
+      if (alcance === 'dia') {
+        const hojeStr = fmtDate(new Date())
+        const alvo = weekDates.some(d => fmtDate(d) === hojeStr) ? hojeStr : fmtDate(weekDates[0])
+        imprimirDia(casa, alvo, linhasDaSemana()); return
+      }
+      // O mês não está em memória — vai buscá-lo agora.
+      const base = weekDates[3] || new Date()
+      const ano = base.getFullYear(), mes = base.getMonth()
+      const de = `${ano}-${String(mes + 1).padStart(2, '0')}-01`
+      const ate = fmtDate(new Date(ano, mes + 1, 0))
+      const { data, error } = await scope.filter(
+        supabase.from('meal_plan_entries').select('date,meal_type,course,dish_id,dish_name_free')
+      ).gte('date', de).lte('date', ate)
+      if (error) { toast.error('Não foi possível carregar o mês', reportError('refeicoes-imprimir-mes', error, MSG.load)); return }
+      const linhas: LinhaEmenta[] = (data || [])
+        .map((e: any) => ({ date: e.date, meal_type: e.meal_type, course: e.course || 'prato', nome: nomeDoPrato(e) }))
+        .filter((l: LinhaEmenta) => l.nome)
+      imprimirMes(casa, ano, mes, linhas)
+    } finally { setAImprimir('') }
+  }
+
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
@@ -115,15 +170,36 @@ export default function RefeicoesPage() {
     return { allergens: [...allergenTokens], textures: [...textures], diets: [...diets] }
   }, [patients, carePlans])
 
-  function entryFor(date: string, mealType: string) { return entries.find(e => e.date === date && e.meal_type === mealType) }
+  function entryFor(date: string, mealType: string, course: string) { return entries.find(e => e.date === date && e.meal_type === mealType && (e.course || 'prato') === course) }
 
-  async function assignDish(date: string, mealType: string, dishId: string) {
+  async function assignDish(date: string, mealType: string, course: string, dishId: string) {
     if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
     const { data, error } = await supabase.from('meal_plan_entries').upsert(scope.stamp({
-      user_id: user.id, date, meal_type: mealType, dish_id: dishId || null, dish_name_free: null,
-    }), { onConflict: 'org_id,user_id,date,meal_type' }).select().single()
+      user_id: user.id, date, meal_type: mealType, course, dish_id: dishId || null, dish_name_free: null,
+    }), { onConflict: 'org_id,user_id,date,meal_type,course' }).select().single()
     if (error) { toast.error('Não foi possível guardar', reportError('refeicoes-assign', error, MSG.save)); return }
-    setEntries(prev => { const rest = prev.filter(e => !(e.date === date && e.meal_type === mealType)); return data ? [...rest, data] : rest })
+    setEntries(prev => { const rest = prev.filter(e => !(e.date === date && e.meal_type === mealType && (e.course || 'prato') === course)); return data ? [...rest, data] : rest })
+  }
+
+  /** Guarda na biblioteca um prato que a IA propôs, sem ter de aplicar a semana toda. */
+  async function guardarPropostoNaBiblioteca(d: NewDish) {
+    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    const { data, error } = await supabase.from('meal_dishes').insert(scope.stamp({
+      user_id: user.id, name: d.name, course: d.course || 'prato', meal_types: d.meal_types,
+      allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true,
+    })).select().single()
+    if (error) { toast.error('Não foi possível guardar o prato', reportError('refeicoes-guardar-proposto', error, MSG.save)); return }
+    // Passa a ser um prato real: sai da lista de propostas e entra na biblioteca,
+    // e os lugares que o referenciavam passam a apontar para o id verdadeiro.
+    setDishes(prev => [...prev, data].sort((a: any, b: any) => a.name.localeCompare(b.name)))
+    setProposedNewDishes(prev => prev.filter(x => x.temp_id !== d.temp_id))
+    setProposal(prev => {
+      if (!prev) return prev
+      const out = { ...prev }
+      Object.keys(out).forEach(k => { if (out[k].newDishTempId === d.temp_id) out[k] = { dishId: data.id, newDishTempId: null } })
+      return out
+    })
+    toast.success('Prato guardado', `"${d.name}" entrou na biblioteca.`)
   }
 
   async function createDish() {
@@ -159,10 +235,17 @@ export default function RefeicoesPage() {
       const map: Record<string, { dishId: string | null; newDishTempId: string | null }> = {}
       ;(d.assignments || []).forEach((a: any) => {
         const date = fmtDate(weekDates[a.weekday])
-        map[`${date}|${a.meal_type}`] = { dishId: a.dish_id || null, newDishTempId: a.new_dish_temp_id || null }
+        map[`${date}|${a.meal_type}|${a.course || 'prato'}`] = { dishId: a.dish_id || null, newDishTempId: a.new_dish_temp_id || null }
       })
       setProposal(map)
       setProposedNewDishes(d.newDishes || [])
+      // A IA já cortou respostas a meio por falta de espaço; se voltar a
+      // acontecer, é melhor dizê-lo do que deixar a semana meio vazia sem
+      // explicação nenhuma.
+      const preenchidos = Object.keys(map).length
+      if (d.esperados && preenchidos < d.esperados * 0.8) {
+        setSuggestErr(`A IA só conseguiu preencher ${preenchidos} de ${d.esperados} lugares. Podes aplicar assim e completar à mão, ou pedir outra vez.`)
+      }
     } catch (e: any) { setSuggestErr(e.message) }
     setSuggesting(false)
   }
@@ -178,18 +261,18 @@ export default function RefeicoesPage() {
       const tempIdToRealId: Record<string, string> = {}
       if (toCreate.length) {
         const { data: created, error: createErr } = await supabase.from('meal_dishes').insert(
-          toCreate.map(d => scope.stamp({ user_id: user.id, name: d.name, meal_types: d.meal_types, allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true }))
+          toCreate.map(d => scope.stamp({ user_id: user.id, name: d.name, course: d.course || 'prato', meal_types: d.meal_types, allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true }))
         ).select()
         if (createErr) throw new Error(createErr.message)
         ;(created || []).forEach((row: any, i: number) => { tempIdToRealId[toCreate[i].temp_id] = row.id })
       }
       const rows = Object.entries(proposal).map(([key, v]) => {
-        const [date, mealType] = key.split('|')
+        const [date, mealType, course] = key.split('|')
         const dishId = v.dishId || (v.newDishTempId ? tempIdToRealId[v.newDishTempId] : null)
-        return dishId ? scope.stamp({ user_id: user.id, date, meal_type: mealType, dish_id: dishId, dish_name_free: null }) : null
+        return dishId ? scope.stamp({ user_id: user.id, date, meal_type: mealType, course: course || 'prato', dish_id: dishId, dish_name_free: null }) : null
       }).filter(Boolean) as any[]
       if (rows.length) {
-        const { error } = await supabase.from('meal_plan_entries').upsert(rows, { onConflict: 'org_id,user_id,date,meal_type' })
+        const { error } = await supabase.from('meal_plan_entries').upsert(rows, { onConflict: 'org_id,user_id,date,meal_type,course' })
         if (error) throw new Error(error.message)
       }
       setProposal(null); setProposedNewDishes([]); load()
@@ -211,6 +294,12 @@ export default function RefeicoesPage() {
             <button onClick={() => setShowReinforcement(v => !v)} style={{ padding: '9px 16px', background: showReinforcement ? '#db2777' : 'white', color: showReinforcement ? 'white' : '#db2777', border: '1.5px solid #db2777', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {showReinforcement ? 'Fechar reforço' : '🩸 Reforço diabético'}
             </button>
+            {(['dia', 'semana', 'mes'] as const).map(a => (
+              <button key={a} onClick={() => imprimir(a)} disabled={!!aImprimir} title={`Imprimir a ementa d${a === 'mes' ? 'o mês' : a === 'dia' ? 'o dia' : 'a semana'}`}
+                style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600, cursor: aImprimir ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                {aImprimir === a ? '…' : a === 'dia' ? 'Imprimir dia' : a === 'semana' ? 'Imprimir semana' : 'Imprimir mês'}
+              </button>
+            ))}
             <button onClick={() => setShowLibrary(v => !v)} style={{ padding: '9px 16px', background: showLibrary ? 'var(--ink)' : 'white', color: showLibrary ? 'white' : 'var(--ink-3)', border: '1.5px solid var(--ink)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {showLibrary ? 'Fechar biblioteca' : '📖 Biblioteca de pratos'}
             </button>
@@ -302,6 +391,15 @@ export default function RefeicoesPage() {
                     <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>
                     {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 10, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '1px 6px' }}>⚠ {d.allergens.join(', ')}</span>}
                     {d.texture && d.texture !== 'Normal' && <span style={{ fontSize: 10, color: '#1d4ed8', background: '#eff6ff', borderRadius: 5, padding: '1px 6px' }}>{d.texture}</span>}
+                    {d.course && <span style={{ fontSize: 10, color: '#5b21b6', background: '#f5f3ff', borderRadius: 5, padding: '1px 6px' }}>{COURSES.find(c => c.id === d.course)?.curto || d.course}</span>}
+                    {/* Guardar SÓ este prato, sem ter de aplicar a semana toda:
+                        um bom prato proposto vale por si, mesmo que o resto da
+                        ementa se descarte. */}
+                    <button onClick={() => guardarPropostoNaBiblioteca(d)} style={{
+                      marginLeft: 'auto', background: 'none', border: '1px solid #ddd6fe', borderRadius: 6,
+                      padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#5b21b6',
+                      cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                    }}>+ biblioteca</button>
                   </div>
                 ))}
               </div>
@@ -340,13 +438,21 @@ export default function RefeicoesPage() {
                 </tr>
               </thead>
               <tbody>
-                {MEAL_TYPES.map(mt => (
-                  <tr key={mt.id}>
-                    <td style={{ padding: '10px 12px', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', borderBottom: '1px solid var(--border)', verticalAlign: 'top' }}>{mt.label}</td>
+                {MEAL_TYPES.flatMap(mt => (MOMENTOS[mt.id] || ['prato']).map((cs, ci) => (
+                  <tr key={`${mt.id}|${cs}`}>
+                    <td style={{ padding: '10px 12px', fontSize: 12.5, borderBottom: '1px solid var(--border)', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                      {ci === 0 && <div style={{ fontWeight: 700, color: 'var(--ink-3)' }}>{mt.label}</div>}
+                      {(MOMENTOS[mt.id] || []).length > 1 && (
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', marginTop: ci === 0 ? 2 : 0 }}>
+                          {COURSES.find(c => c.id === cs)?.curto}
+                        </div>
+                      )}
+                    </td>
                     {weekDates.map((d, i) => {
+                      const mtId = mt.id
                       const date = fmtDate(d)
-                      const entry = entryFor(date, mt.id)
-                      const cellProposal = proposal?.[`${date}|${mt.id}`]
+                      const entry = entryFor(date, mtId, cs)
+                      const cellProposal = proposal?.[`${date}|${mtId}|${cs}`]
                       const showProposed = !!proposal && cellProposal !== undefined
                       const currentDishId = entry?.dish_id || ''
                       // prato NOVO proposto: ainda não tem id real, não dá para ser opção do <select>
@@ -363,17 +469,22 @@ export default function RefeicoesPage() {
                       return (
                         <td key={i} style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: showProposed ? '#faf5ff' : undefined }}>
                           <select value={showProposed ? (proposedDishId || '') : currentDishId}
-                            onChange={e => assignDish(date, mt.id, e.target.value)}
+                            onChange={e => assignDish(date, mtId, cs, e.target.value)}
                             style={{ width: '100%', border: `1.5px solid ${showProposed ? '#ddd6fe' : 'var(--border)'}`, borderRadius: 7, padding: '6px 8px', fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'white', color: showProposed && !entry ? '#7c3aed' : 'var(--ink)' }}>
                             <option value="">—</option>
-                            {dishes.map(dh => <option key={dh.id} value={dh.id}>{dh.name}</option>)}
+                            {dishes.filter(dh => !dh.course || dh.course === cs).map(dh => <option key={dh.id} value={dh.id}>{dh.name}</option>)}
+                            {dishes.some(dh => dh.course && dh.course !== cs) && (
+                              <optgroup label="Outros momentos">
+                                {dishes.filter(dh => dh.course && dh.course !== cs).map(dh => <option key={dh.id} value={dh.id}>{dh.name}</option>)}
+                              </optgroup>
+                            )}
                           </select>
                           {showProposed && !entry && proposedDishId && <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>proposta da IA</div>}
                         </td>
                       )
                     })}
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
