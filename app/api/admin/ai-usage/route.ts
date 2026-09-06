@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   const [{ data: counters }, { data: proUsage }] = await Promise.all([
     db.from('usage_counters').select('tool_key, count, day').gte('day', dayStr),
-    db.from('ai_usage_log').select('feature, created_at').gte('created_at', monthStart.toISOString()),
+    db.from('ai_usage_log').select('feature, created_at, provider, model, tokens_in, tokens_out, cost_usd, ok').gte('created_at', monthStart.toISOString()),
   ])
 
   // Ferramentas gratuitas/limitadas (usage_counters) — soma por tool_key este mês.
@@ -33,5 +33,34 @@ export async function GET(req: NextRequest) {
   const proTier = Object.entries(byFeature).sort((a, b) => b[1] - a[1]).map(([key, count]) => ({ key, count }))
   const totalCalls = freeTier.reduce((s, x) => s + x.count, 0) + proTier.reduce((s, x) => s + x.count, 0)
 
-  return NextResponse.json({ month: dayStr.slice(0, 7), free_tier: freeTier, pro_tier: proTier, total_calls: totalCalls })
+  // ── Custo real ───────────────────────────────────────────────────────────
+  // Passou a haver: lib/ai.ts regista TODAS as chamadas com modelo e tokens,
+  // e lib/aiCusto.ts sabe o preço de cada modelo. Antes isto era 0 € porque
+  // só quatro rotas em 101 registavam alguma coisa.
+  const porModelo: Record<string, { chamadas: number; usd: number; tokens: number; semPreco: boolean }> = {}
+  let custoUsdTotal = 0, semPreco = 0, falhas = 0
+  ;(proUsage || []).forEach((u: any) => {
+    const m = u.model || 'desconhecido'
+    porModelo[m] ||= { chamadas: 0, usd: 0, tokens: 0, semPreco: false }
+    porModelo[m].chamadas++
+    porModelo[m].tokens += (u.tokens_in || 0) + (u.tokens_out || 0)
+    if (u.cost_usd == null) { porModelo[m].semPreco = true; semPreco++ }
+    else { porModelo[m].usd += Number(u.cost_usd); custoUsdTotal += Number(u.cost_usd) }
+    if (u.ok === false) falhas++
+  })
+
+  return NextResponse.json({
+    month: dayStr.slice(0, 7),
+    free_tier: freeTier, pro_tier: proTier, total_calls: totalCalls,
+    custo: {
+      usd: Number(custoUsdTotal.toFixed(4)),
+      // Taxa fixa e assumida: isto é uma ordem de grandeza para decidir, não
+      // contabilidade. O valor exato vem da fatura de cada fornecedor.
+      eur: Number((custoUsdTotal * 0.92).toFixed(4)),
+      chamadas: (proUsage || []).length,
+      semPreco, falhas,
+      porModelo: Object.entries(porModelo).sort((a, b) => b[1].usd - a[1].usd)
+        .map(([modelo, v]) => ({ modelo, ...v, usd: Number(v.usd.toFixed(4)) })),
+    },
+  })
 }

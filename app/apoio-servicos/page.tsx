@@ -18,7 +18,7 @@
 // Tabelas novas: support_transport_schedules + support_transport_logs
 // (supabase/sprint126_support_transport_schedules.sql — por aplicar).
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -28,7 +28,7 @@ import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
 
-import MapaDaRota from '@/components/institution/MapaDaRota'
+import MapaDaRota, { type RotaCalculada } from '@/components/institution/MapaDaRota'
 import { montarRota, folhaDoMotorista } from '@/lib/rotaTransporte'
 import { useOrgName } from '@/lib/useOrgName'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
@@ -117,6 +117,9 @@ export default function ApoioServicosPage() {
   const nomeCasa = useOrgName()
   const [casaGeo, setCasaGeo] = useState<{ lat: number; lon: number; nome: string } | null>(null)
   const [aGeocodificar, setAGeocodificar] = useState(false)
+  const [calculada, setCalculada] = useState<RotaCalculada | null>(null)
+  const [aCalcular, setACalcular] = useState(false)
+  const [semMoradaCasa, setSemMoradaCasa] = useState(false)
 
   // A casa é a origem e o fim do percurso no mapa. Sem coordenadas dela, o
   // mapa desenha só as paragens — não se inventa um ponto de partida.
@@ -125,6 +128,7 @@ export default function ApoioServicosPage() {
     supabase.from('organizations').select('name,lat,lon').eq('id', scope.orgId).maybeSingle()
       .then(({ data }: any) => {
         if (data?.lat != null && data?.lon != null) setCasaGeo({ lat: data.lat, lon: data.lon, nome: data.name || 'A casa' })
+        else setSemMoradaCasa(true)
       }, () => {})
   }, [supabase, scope.orgId])
 
@@ -147,9 +151,44 @@ export default function ApoioServicosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, aGeocodificar])
 
+  /** Tempos reais de estrada e, se `otimizar`, a ordem que faz menos quilómetros. */
+  const calcularRota = useCallback(async (otimizar: boolean) => {
+    const pontos = rotaRef.current.paragens
+      .filter(p => p.lat != null && p.lon != null)
+      .map(p => ({ id: p.scheduleId, lat: p.lat as number, lon: p.lon as number }))
+    if (pontos.length < 1) return
+    setACalcular(true)
+    try {
+      const r = await fetch('/api/rota-otimizada', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ casa: casaGeo ? { lat: casaGeo.lat, lon: casaGeo.lon } : null, paragens: pontos, otimizar }),
+      })
+      const d = await r.json()
+      if (r.ok) setCalculada(d)
+    } catch { /* sem rota calculada o mapa continua a desenhar-se */ }
+    setACalcular(false)
+  }, [casaGeo])
+
   const rota = useMemo(
     () => montarRota(schedules, patients, new Set(logs.filter(l => l.done).map(l => l.schedule_id)), todayWeekday),
     [schedules, patients, logs, todayWeekday])
+  const rotaRef = useRef(rota); rotaRef.current = rota
+
+  // Tempos assim que houver coordenadas. A ordem ótima é sempre a pedido —
+  // trocar a ordem por baixo de quem já leu a lista seria confuso.
+  useEffect(() => {
+    const n = rota.paragens.filter(p => p.lat != null).length
+    if (n >= 1 && !calculada && !aCalcular) calcularRota(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rota.paragens.filter(p => p.lat != null).length, casaGeo])
+
+  // Com a ordem ótima calculada, a lista e o mapa passam a segui-la.
+  const rotaFinal = useMemo(() => {
+    if (!calculada?.otimizada || !calculada.ordem?.length) return rota
+    const pos = new Map(calculada.ordem.map((id, i) => [id, i]))
+    return { ...rota, paragens: [...rota.paragens].sort((a, b) =>
+      (pos.get(a.scheduleId) ?? 999) - (pos.get(b.scheduleId) ?? 999)) }
+  }, [rota, calculada])
 
   // Quem está na rota de hoje, tem morada, e ainda não foi convertido.
   useEffect(() => {
@@ -274,13 +313,22 @@ export default function ApoioServicosPage() {
                 }}>Folha do motorista</button>
               )}
             </div>
+            {semMoradaCasa && (
+              <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>
+                A morada da instituição não está definida — sem ela, a rota não começa nem acaba na casa,
+                e os tempos são só entre paragens. Define-a em <a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 600 }}>Equipa → Definições</a>.
+              </div>
+            )}
             <div style={{ marginTop: 14 }}>
               <MapaDaRota
-                rota={rota}
+                rota={rotaFinal}
                 casa={casaGeo}
                 cor={ACCENT}
                 marcar={id => { const s = schedules.find(x => x.id === id); if (s) toggle(s) }}
                 podeEditar={scope.canEdit}
+                calculada={calculada}
+                aCalcular={aCalcular}
+                otimizar={() => calcularRota(true)}
               />
             </div>
           </div>
@@ -483,7 +531,13 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
     const emFalta = (e: any) => !!e && /does not exist|schema cache/i.test(e.message || '')
     const sch = await scope.filter(supabase.from('support_recurring_services').select('id,patient_id,kind,label,weekdays,time')).in('kind', kindIds).eq('active', true)
     if (emFalta(sch.error)) { setNeedsSetup(true); setLoading(false); return }
-    const lgs = await scope.filter(supabase.from('support_recurring_logs').select('id,schedule_id,date,done')).eq('date', today)
+    // SEM scope.filter aqui, de propósito: esta tabela não tem coluna
+    // `org_id` (o acesso herda-se pelo join ao serviço — ver sprint131), e o
+    // scope.filter acrescentava `org_id = …` a uma coluna que não existe. O
+    // PostgREST devolvia "column does not exist", o código lia isso como
+    // migração em falta e a página mostrava o código PHX-L2 com o sprint131
+    // já aplicado. A RLS já garante que só voltam as linhas desta casa.
+    const lgs = await supabase.from('support_recurring_logs').select('id,schedule_id,date,done').eq('date', today)
     if (emFalta(lgs.error)) { setNeedsSetup(true); setLoading(false); return }
     setNeedsSetup(false)
     setSchedules(sch.data || [])

@@ -29,11 +29,13 @@ interface RecentUser {
   plan: string
   created_at: string
   searches_count?: number
+  blocked?: boolean
 }
 
 interface OrgRow {
   id: string; name: string; kind: string; created_at: string
   member_count: number; owner_email: string | null; owner_name: string | null
+  suspended?: boolean
 }
 
 interface Revenue {
@@ -80,6 +82,30 @@ export default function AdminPage() {
 
   // Mudar o tipo de uma instituição (saiu das /settings — só aqui).
   const [tipoBusy, setTipoBusy] = useState<string>('')
+
+  // ── Ações sobre contas e instituições ────────────────────────────────────
+  // Mexem em ACESSO e FATURAÇÃO, nunca em conteúdo de instituição nenhuma
+  // (ver a nota em app/api/admin/acoes/route.ts).
+  const [acaoBusy, setAcaoBusy] = useState('')
+  const executarAcao = async (corpo: Record<string, any>, aviso?: string) => {
+    if (aviso && !confirm(aviso)) return
+    setAcaoBusy(corpo.userId || corpo.orgId || 'x')
+    try {
+      const res = await fetch('/api/admin/acoes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify(corpo),
+      })
+      const j = await res.json()
+      if (!res.ok) { alert(j.error || 'Não foi possível.'); return }
+      loadData(); if (orgs) loadOrgs()
+    } catch { alert('Não foi possível.') }
+    setAcaoBusy('')
+  }
+  const apagarConta = async (u: any) => {
+    const escrito = prompt(`Apagar DEFINITIVAMENTE a conta de ${u.name || u.email}?\n\nIsto não se desfaz. Escreve o email para confirmar:`)
+    if (!escrito) return
+    await executarAcao({ acao: 'apagar-conta', userId: u.id, confirmacao: escrito })
+  }
   const mudarTipo = async (orgId: string, tipo: string) => {
     if (!confirm(`Mudar o tipo desta instituição para ${tipo === 'day_care' ? 'Centro de Dia' : 'Lar / ERPI'}?\n\nMuda o vocabulário e as ferramentas para toda a equipa dela.`)) return
     setTipoBusy(orgId)
@@ -93,7 +119,7 @@ export default function AdminPage() {
     } catch { alert('Não foi possível mudar.') }
     setTipoBusy('')
   }
-  const [aiUsage, setAiUsage] = useState<{ month: string; free_tier: { key: string; count: number }[]; pro_tier: { key: string; count: number }[]; total_calls: number } | null>(null)
+  const [aiUsage, setAiUsage] = useState<{ month: string; free_tier: { key: string; count: number }[]; pro_tier: { key: string; count: number }[]; total_calls: number; custo?: any } | null>(null)
   const [aiUsageLoading, setAiUsageLoading] = useState(false)
 
   const [orgs, setOrgs] = useState<OrgRow[] | null>(null)
@@ -124,7 +150,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const [usersRes, searchesRes, analyticsRes] = await Promise.allSettled([
-        supabase.from('profiles').select('id, email, name, plan, created_at').order('created_at', { ascending: false }).limit(100),
+        supabase.from('profiles').select('id, email, name, plan, created_at, blocked').order('created_at', { ascending: false }).limit(100),
         supabase.from('search_history').select('query, type, result_severity, created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('analytics_events').select('event_type, drug_names, result_severity, country_code, created_at').order('created_at', { ascending: false }).limit(1000),
       ])
@@ -410,7 +436,22 @@ export default function AdminPage() {
                   <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                     {new Date(u.created_at).toLocaleDateString('pt-PT')}
                   </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {u.blocked && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 4, padding: '2px 5px' }}>BLOQUEADA</span>}
+                    <button
+                      onClick={() => executarAcao(
+                        { acao: u.blocked ? 'desbloquear' : 'bloquear', userId: u.id },
+                        u.blocked ? undefined : `Bloquear ${u.email}?\n\nA sessão cai e a conta deixa de poder entrar. Reversível.`)}
+                      disabled={acaoBusy === u.id}
+                      title={u.blocked ? 'Desbloquear' : 'Bloquear o acesso'}
+                      style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, color: u.blocked ? '#15803d' : '#b45309', fontFamily: 'var(--font-mono)' }}>
+                      {u.blocked ? 'reabrir' : 'bloquear'}
+                    </button>
+                    <button onClick={() => apagarConta(u)} disabled={acaoBusy === u.id}
+                      title="Apagar definitivamente"
+                      style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, color: '#b91c1c', fontFamily: 'var(--font-mono)' }}>
+                      apagar
+                    </button>
                     {['free', 'student', 'pro'].filter(p => p !== (u.plan || 'free')).map(p => (
                       <button key={p} onClick={() => upgradeUser(u.id, p)}
                         style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', transition: 'all 0.12s' }}
@@ -430,23 +471,23 @@ export default function AdminPage() {
         {tab === 'instalacao' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 600, color: 'white', margin: 0 }}>Estado da instalação</h2>
+              <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Estado da instalação</h2>
               <button onClick={carregarInstalacao} disabled={instalacaoBusy}
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
                 {instalacaoBusy ? 'a verificar…' : 'verificar de novo'}
               </button>
             </div>
-            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: '0 0 18px', lineHeight: 1.55, maxWidth: '62ch' }}>
-              Quando um cliente enviar um código <code style={{ color: 'rgba(255,255,255,0.75)' }}>PHX-…</code>, procura-o aqui.
+            <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: '0 0 18px', lineHeight: 1.55, maxWidth: '62ch' }}>
+              Quando um cliente enviar um código <code style={{ color: 'var(--ink-2)' }}>PHX-…</code>, procura-o aqui.
               Só verifica se cada tabela existe — não lê dados de instituição nenhuma.
             </p>
 
             {instalacao?.error && (
-              <div style={{ fontSize: 13, color: '#fca5a5', marginBottom: 14 }}>{instalacao.error}</div>
+              <div style={{ fontSize: 13, color: '#b91c1c', marginBottom: 14 }}>{instalacao.error}</div>
             )}
             {instalacao?.codigos?.length > 0 && (
               <>
-                <div style={{ fontSize: 13, color: instalacao.porAplicar ? '#fbbf24' : '#4ade80', marginBottom: 14, fontWeight: 600 }}>
+                <div style={{ fontSize: 13, color: instalacao.porAplicar ? '#b45309' : '#15803d', marginBottom: 14, fontWeight: 600 }}>
                   {instalacao.porAplicar
                     ? `${instalacao.porAplicar} por aplicar.`
                     : 'Tudo aplicado.'}
@@ -455,12 +496,12 @@ export default function AdminPage() {
                   {instalacao.codigos.map((c: any) => (
                     <div key={c.codigo} style={{
                       display: 'grid', gridTemplateColumns: '78px 1fr auto', gap: 12, alignItems: 'baseline',
-                      padding: '10px 12px', background: c.ok ? 'transparent' : 'rgba(251,191,36,0.07)',
-                      borderRadius: 6, borderLeft: `2px solid ${c.ok ? 'rgba(74,222,128,0.35)' : '#fbbf24'}`,
+                      padding: '10px 12px', background: c.ok ? 'transparent' : '#fffbeb',
+                      borderRadius: 6, borderLeft: `2px solid ${c.ok ? '#86efac' : '#b45309'}`,
                     }}>
-                      <code style={{ fontSize: 12, color: c.ok ? 'rgba(255,255,255,0.5)' : '#fbbf24', fontWeight: 700 }}>{c.codigo}</code>
-                      <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45, minWidth: 0 }}>{c.detalhe}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                      <code style={{ fontSize: 12, color: c.ok ? 'var(--ink-4)' : '#b45309', fontWeight: 700 }}>{c.codigo}</code>
+                      <span style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.45, minWidth: 0 }}>{c.detalhe}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
                         {c.ok ? '✓' : c.sobre}
                       </span>
                     </div>
@@ -469,9 +510,9 @@ export default function AdminPage() {
               </>
             )}
 
-            <div style={{ marginTop: 26, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>O que fica de fora daqui</div>
-              <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: 0, lineHeight: 1.6, maxWidth: '64ch' }}>
+            <div style={{ marginTop: 26, padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>O que fica de fora daqui</div>
+              <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: 0, lineHeight: 1.6, maxWidth: '64ch' }}>
                 O livro de registos de cada instituição — quem cuidou de quem, quando — não é visível nesta
                 página nem em nenhuma outra do Phlox. Pertence à casa que o gerou. Esta secção só confirma
                 que a tabela existe, nunca o que lá está dentro.
@@ -546,7 +587,17 @@ export default function AdminPage() {
                         <option value="nursing_home">Lar / ERPI</option>
                       </select>
                     </div>
-                    <div style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{o.member_count}</div>
+                    <div style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {o.member_count}
+                      <button
+                        onClick={() => executarAcao(
+                          { acao: o.suspended ? 'reativar-org' : 'suspender-org', orgId: o.id },
+                          o.suspended ? undefined : `Suspender ${o.name}?\n\nToda a equipa desce a plano free e perde o acesso institucional. Ninguém é apagado e é reversível.`)}
+                        disabled={acaoBusy === o.id}
+                        style={{ padding: '3px 7px', background: 'transparent', border: '1px solid var(--border-2)', borderRadius: 5, cursor: 'pointer', fontSize: 10.5, color: o.suspended ? '#15803d' : '#b45309', fontFamily: 'var(--font-mono)' }}>
+                        {o.suspended ? 'reativar' : 'suspender'}
+                      </button>
+                    </div>
                     <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.owner_email || '—'}</div>
                   </div>
                 ))}
@@ -675,6 +726,49 @@ export default function AdminPage() {
         {tab === 'ia' && (
           <div>
             <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Uso de IA este mês{aiUsage ? ` · ${aiUsage.month}` : ''}</h2>
+
+            {/* Custo real. Antes isto não existia e a página dava a entender
+                que a IA era grátis: das 101 rotas que a chamam, só quatro
+                registavam. Agora regista-se em lib/ai.ts, no sítio por onde
+                todas passam. */}
+            {aiUsage?.custo && (
+              <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', marginBottom: 18 }}>
+                <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', alignItems: 'baseline' }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', lineHeight: 1 }}>
+                      {aiUsage.custo.eur.toFixed(2).replace('.', ',')} €
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>este mês · {aiUsage.custo.usd.toFixed(2)} USD</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', lineHeight: 1 }}>{aiUsage.custo.chamadas}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>chamadas registadas</div>
+                  </div>
+                  {aiUsage.custo.falhas > 0 && (
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#b91c1c', lineHeight: 1 }}>{aiUsage.custo.falhas}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>falhadas</div>
+                    </div>
+                  )}
+                </div>
+                {aiUsage.custo.porModelo?.length > 0 && (
+                  <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                    {aiUsage.custo.porModelo.map((m: any) => (
+                      <div key={m.modelo} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', fontSize: 12.5 }}>
+                        <span style={{ color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.modelo}</span>
+                        <span style={{ color: 'var(--ink-4)', whiteSpace: 'nowrap' }}>
+                          {m.chamadas}× · {(m.tokens / 1000).toFixed(0)}k tokens · {m.semPreco ? 'preço por definir' : `${(m.usd * 0.92).toFixed(3)} €`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>
+                  Tokens estimados por caracteres (os fornecedores não os devolvem todos da mesma forma) e câmbio fixo a 0,92.
+                  É ordem de grandeza para decidir, não contabilidade — o valor exato vem da fatura de cada fornecedor.
+                </div>
+              </div>
+            )}
             <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 18 }}>
               Não bloqueia ninguém — é só visibilidade de quanto está a ser usado, antes de doer.
             </div>

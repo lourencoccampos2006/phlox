@@ -205,7 +205,10 @@ export function FeridasTool() {
     setPatients(p.data || [])
     if (w.error) { setTableMissing(true); setWounds([]) }
     else { setTableMissing(false); setWounds(w.data || []) }
-    const { data: a } = await scope.filter(supabase.from('wound_assessments').select('*')).order('date', { ascending: true })
+    const { data: a } = await // Sem scope.filter: wound_assessments não tem org_id (herda pelo join à
+      // ferida). O filtro acrescentava `org_id = …` a uma coluna inexistente e
+      // a consulta rebentava em contas com organização. A RLS já protege.
+      (supabase.from('wound_assessments').select('*')).order('date', { ascending: true })
     setAssessments(a || [])
     setLoading(false)
   }, [user, supabase])

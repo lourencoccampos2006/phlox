@@ -66,6 +66,7 @@ export default function EquipaPage() {
   // editar a instituição existente (renomear / mudar tipo)
   const [editName, setEditName] = useState('')
   const [editKind, setEditKind] = useState('day_care')
+  const [editAddress, setEditAddress] = useState('')
   const [editSlug, setEditSlug] = useState('')
   const [editTagline, setEditTagline] = useState('')
   const [editPublic, setEditPublic] = useState(false)
@@ -98,7 +99,7 @@ export default function EquipaPage() {
       const s = await fetch('/api/org/setup', { headers: h }).then(r => r.json())
       setNoKey(!!s.noServiceKey)
       setOrg(s.org || null); setMyRole(s.role || null)
-      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public); setEditCapacity(s.org.capacity != null ? String(s.org.capacity) : ''); setEditFee(s.org.monthly_fee != null ? String(s.org.monthly_fee) : ''); setEditLogoUrl(s.org.logo_url || ''); setEditAccentColor(s.org.accent_color || '') }
+      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditAddress(s.org.address || ''); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public); setEditCapacity(s.org.capacity != null ? String(s.org.capacity) : ''); setEditFee(s.org.monthly_fee != null ? String(s.org.monthly_fee) : ''); setEditLogoUrl(s.org.logo_url || ''); setEditAccentColor(s.org.accent_color || '') }
       if (s.org) {
         const t = await fetch('/api/org/team', { headers: h }).then(r => r.json())
         if (t.error) setErr(t.error)
@@ -131,7 +132,7 @@ export default function EquipaPage() {
     if (!editName.trim()) return
     setSavingOrg(true); setErr('')
     try {
-      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, slug: editSlug, tagline: editTagline, public: editPublic, capacity: editCapacity, monthlyFee: editFee, logoUrl: editLogoUrl.trim(), accentColor: editAccentColor.trim() }) })
+      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, address: editAddress.trim(), slug: editSlug, tagline: editTagline, public: editPublic, capacity: editCapacity, monthlyFee: editFee, logoUrl: editLogoUrl.trim(), accentColor: editAccentColor.trim() }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error)
       try { localStorage.setItem('phlox-clinic-institution', editKind) } catch {}
@@ -288,14 +289,29 @@ export default function EquipaPage() {
                     <div style={{ marginTop: 14 }}>
                       <label htmlFor="org-name-edit" style={lbl}>Nome da instituição</label>
                       <input id="org-name-edit" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da instituição" style={inp} />
+                      {/* O TIPO já não se muda aqui (2026-09-06). Muda o
+                          vocabulário, as ferramentas e os relatórios de toda a
+                          casa — passou a ser um ato do dono do Phlox, no
+                          /admin. Aqui só se lê. */}
                       <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                        {OFFERED_INSTITUTIONS.map(k => (
-                          <button key={k} onClick={() => setEditKind(k)} style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${editKind === k ? ACCENT : '#e2e8f0'}`, background: editKind === k ? '#f0fdfa' : 'white', color: editKind === k ? ACCENT : '#475569', fontSize: 13, fontWeight: editKind === k ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' }}>
-                            {INST_META[k].icon} {INST_META[k].label}
-                          </button>
-                        ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                        <span style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg-2)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                          {INST_META[editKind as keyof typeof INST_META]?.icon} {INST_META[editKind as keyof typeof INST_META]?.label || editKind}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 200px' }}>
+                          Definido quando a instituição foi criada. Para mudar, fala connosco.
+                        </span>
                       </div>
+                      {/* Morada — é daqui que parte a rota de transportes. */}
+                      <label htmlFor="org-address" style={{ ...lbl, marginTop: 4 }}>Morada da instituição</label>
+                      <input id="org-address" value={editAddress} onChange={e => setEditAddress(e.target.value)}
+                        placeholder="Rua, número, código postal e localidade"
+                        style={{ ...inp, marginBottom: 4 }} />
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 14, lineHeight: 1.45 }}>
+                        É daqui que parte e para aqui volta a rota de transportes. Ao guardar, é convertida em
+                        coordenadas automaticamente.
+                      </div>
+
                       {/* Negócio — lotação e mensalidade (alimentam o painel do dono) */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                         <div><label htmlFor="org-capacity" style={lbl}>Lotação (lugares)</label><input id="org-capacity" value={editCapacity} onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 30" inputMode="numeric" style={inp} /></div>

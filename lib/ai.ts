@@ -1,3 +1,4 @@
+import { registarUso, estimarTokens } from './aiCusto'
 // lib/ai.ts
 // Cliente de IA com fallback automático entre MUITOS providers + modelos.
 //
@@ -173,12 +174,26 @@ async function tryProvider(
   model: string,
   retries = 1,
   backoff = [500],
+  messagesTexto = '',
 ): Promise<AIResponse> {
   let lastErr: any = null
   for (let attempt = 0; attempt <= retries; attempt++) {
+    const t0 = Date.now()
     try {
       const text = await fn()
-      if (text?.trim()) return { text, provider, model }
+      if (text?.trim()) {
+        // ── Registo de consumo ────────────────────────────────────────────
+        // Aqui, e não em cada rota: das 101 rotas que chamam a IA só quatro
+        // registavam, e por isso o /admin mostrava 0 €. Os fornecedores não
+        // devolvem contagem de tokens de forma uniforme, por isso estima-se
+        // por caracteres — aproximado e assumido como tal, mas é uma ordem de
+        // grandeza real em vez de um zero.
+        registarUso({
+          provider, model, ms: Date.now() - t0, ok: true,
+          tokensIn: estimarTokens(messagesTexto), tokensOut: estimarTokens(text),
+        })
+        return { text, provider, model }
+      }
       // resposta vazia — não vale a pena retry, salta para próximo
       throw new Error('Resposta vazia')
     } catch (err: any) {
@@ -240,7 +255,7 @@ export async function aiComplete(
 
   for (const step of sequence) {
     try {
-      return await tryProvider(step.fn, step.name, step.model)
+      return await tryProvider(step.fn, step.name, step.model, 1, [500], messages.map(m => m.content).join(' '))
     } catch (err: any) {
       lastError = err
       const msg = (err?.message || '').toLowerCase()

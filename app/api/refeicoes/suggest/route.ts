@@ -35,6 +35,7 @@ const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
 const TEXTURES = ['Normal', 'Mole', 'Triturada', 'Liquidificada', 'Pastosa', 'Picada']
 const DIET_TAGS = ['Normal', 'Hipossódica', 'Hipoglicídica', 'Hipoproteica', 'Hipercalórica', 'Vegetariana', 'Diabética']
 const COST_TIERS = ['baixo', 'medio', 'alto']
+const CATEGORIAS = ['carne', 'peixe', 'vegetariano', 'sopa', 'doce', 'fruta', 'outro']
 
 /** Que momentos fazem sentido em cada refeição. Um lanche não leva sopa. */
 const MOMENTOS: Record<string, string[]> = {
@@ -45,7 +46,7 @@ const MOMENTOS: Record<string, string[]> = {
 }
 
 interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
-interface NewDish { temp_id: string; name: string; meal_types?: string[] | null; allergens?: string[] | null; texture?: string | null; diet_tags?: string[] | null; cost_tier?: string; course?: string | null }
+interface NewDish { temp_id: string; name: string; category?: string | null; meal_types?: string[] | null; allergens?: string[] | null; texture?: string | null; diet_tags?: string[] | null; cost_tier?: string; course?: string | null }
 
 // Formato compacto de saída: `d` dia, `m` refeição, `c` momento, `i` id da
 // biblioteca, `n` temp_id de prato novo. Cabe em muito menos tokens do que
@@ -107,13 +108,13 @@ RESTRIÇÕES DA CASA (obrigatórias):
 - Texturas necessárias: ${body.neededTextures?.length ? body.neededTextures.join(', ') : 'sem restrição'}
 - Dietas necessárias: ${body.neededDietTags?.length ? body.neededDietTags.join(', ') : 'sem restrição'}
 
-Em pratos novos: "texture" só de [${TEXTURES.join(', ')}]; "diet_tags" só de [${DIET_TAGS.join(', ')}]; "cost_tier" só de [${COST_TIERS.join(', ')}]; "course" só de [${COURSES.join(', ')}].
+Em pratos novos: "category" só de [${CATEGORIAS.join(', ')}] — é o que arruma a biblioteca, preenche-a SEMPRE; "texture" só de [${TEXTURES.join(', ')}]; "diet_tags" só de [${DIET_TAGS.join(', ')}]; "cost_tier" só de [${COST_TIERS.join(', ')}]; "course" só de [${COURSES.join(', ')}].
 
 BIBLIOTECA (id|nome|momento|refeições|alergénios|textura|dieta|custo):
 ${dishList}
 
 RESPONDE SÓ COM JSON, neste formato compacto:
-{"newDishes":[{"temp_id":"n1","name":"Sopa de nabiças","course":"sopa","meal_types":["almoco","jantar"],"allergens":[],"texture":"Normal","diet_tags":[],"cost_tier":"baixo"}],
+{"newDishes":[{"temp_id":"n1","name":"Sopa de nabiças","course":"sopa","category":"sopa","meal_types":["almoco","jantar"],"allergens":[],"texture":"Normal","diet_tags":[],"cost_tier":"baixo"}],
  "slots":[{"d":0,"m":"almoco","c":"sopa","i":null,"n":"n1"}]}
 d = dia (0=domingo … 6=sábado). m = refeição. c = momento.`,
       },
@@ -138,6 +139,7 @@ d = dia (0=domingo … 6=sábado). m = refeição. c = momento.`,
         temp_id: d.temp_id,
         name: d.name.trim().slice(0, 120),
         course: d.course && COURSES.includes(d.course) ? d.course : 'prato',
+        category: (d as any).category && CATEGORIAS.includes((d as any).category) ? (d as any).category : null,
         meal_types: Array.isArray(d.meal_types) ? d.meal_types.filter(m => MEAL_TYPES.includes(m)) : null,
         allergens: Array.isArray(d.allergens) ? d.allergens.filter(a => typeof a === 'string' && a.trim()).map(a => a.trim()) : null,
         texture: d.texture && TEXTURES.includes(d.texture) ? d.texture : 'Normal',
@@ -151,7 +153,13 @@ d = dia (0=domingo … 6=sábado). m = refeição. c = momento.`,
     // ── Rede de segurança dos lugares ─────────────────────────────────────
     // O id tem de existir mesmo na biblioteca enviada; o temp_id tem de
     // referenciar um prato novo que sobreviveu à validação acima.
-    const safeSlots = (out.slots || [])
+    const brutos: Slot[] = Array.isArray(out.slots) ? out.slots
+      : Array.isArray((out as any).assignments) ? (out as any).assignments.map((a: any) => ({
+          d: a.weekday ?? a.d, m: a.meal_type ?? a.m, c: a.course ?? a.c ?? 'prato',
+          i: a.dish_id ?? a.i, n: a.new_dish_temp_id ?? a.n,
+        }))
+      : []
+    const safeSlots = brutos
       .filter(s => s && WEEKDAYS.includes(s.d) && MEAL_TYPES.includes(s.m) && (MOMENTOS[s.m] || []).includes(s.c))
       .map(s => {
         if (s.i && dishById.has(s.i)) return { weekday: s.d, meal_type: s.m, course: s.c, dish_id: s.i, new_dish_temp_id: null }
@@ -163,6 +171,50 @@ d = dia (0=domingo … 6=sábado). m = refeição. c = momento.`,
     // Um lugar por combinação: se a IA repetir, fica o primeiro.
     const unico = new Map<string, typeof safeSlots[number]>()
     safeSlots.forEach(s => { const k = `${s.weekday}|${s.meal_type}|${s.course}`; if (!unico.has(k)) unico.set(k, s) })
+
+    // ── Segunda passagem ───────────────────────────────────────────────────
+    // Acontece o modelo gastar a resposta toda a inventar pratos e ficar sem
+    // espaço (ou sem atenção) para a grelha — devolvia os pratos e ZERO
+    // lugares, que é o pior resultado possível: dá trabalho e não resolve
+    // nada. Quando isso acontece, faz-se um segundo pedido curto, SÓ com a
+    // grelha, já com a lista de pratos fechada. É um pedido pequeno e barato
+    // porque não tem de descrever prato nenhum.
+    if (unico.size < totalSlots * 0.5) {
+      const catalogo = [
+        ...dishes.map(d => `${d.id}|${d.name}|${d.course || 'prato'}`),
+        ...safeNewDishes.map(d => `${d.temp_id}|${d.name}|${d.course}`),
+      ]
+      const idsNovos = new Set(safeNewDishes.map(d => d.temp_id))
+      try {
+        const seg = await aiJSON<{ slots: Slot[] }>([
+          { role: 'system', content: `Preenches uma grelha de ementa. Nada mais.
+
+PRATOS DISPONÍVEIS (id|nome|momento):
+${catalogo.join('\n')}
+
+Devolve UM lugar por cada combinação de dia (0=domingo…6=sábado) e momento:
+- pequeno_almoco → prato
+- almoco → sopa, prato, sobremesa
+- lanche → prato
+- jantar → sopa, prato, sobremesa
+São ${totalSlots} lugares. Usa só ids da lista, e respeita o momento de cada prato.
+Não repitas o mesmo prato em dias seguidos.
+
+SÓ JSON: {"slots":[{"d":0,"m":"almoco","c":"sopa","i":"<id>"}]}` },
+          { role: 'user', content: pedido ? `Preenche a grelha. ${pedido}` : 'Preenche a grelha.' },
+        ], { maxTokens: 6000, temperature: 0.4 })
+
+        ;(seg.slots || []).forEach(sl => {
+          if (!sl || !WEEKDAYS.includes(sl.d) || !MEAL_TYPES.includes(sl.m)) return
+          if (!(MOMENTOS[sl.m] || []).includes(sl.c)) return
+          const k = `${sl.d}|${sl.m}|${sl.c}`
+          if (unico.has(k)) return
+          const id = String(sl.i || sl.n || '')
+          if (dishById.has(id)) unico.set(k, { weekday: sl.d, meal_type: sl.m, course: sl.c, dish_id: id, new_dish_temp_id: null })
+          else if (idsNovos.has(id)) unico.set(k, { weekday: sl.d, meal_type: sl.m, course: sl.c, dish_id: null, new_dish_temp_id: id })
+        })
+      } catch { /* fica o que a primeira passagem deu */ }
+    }
 
     return NextResponse.json({
       assignments: [...unico.values()],

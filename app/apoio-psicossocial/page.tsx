@@ -35,6 +35,8 @@ import { loadTrends } from '@/lib/sentinel'
 import { psychosocialErosion, type ResidentTrend, type ErosionResult } from '@/lib/trendSignals'
 import { SEVERITY_STYLE } from '@/lib/residentSignals'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
+import { registar } from '@/lib/registo'
+import { iniciais, corDaPessoa } from '@/lib/presenca'
 
 interface Patient { id: string; name: string; room_number: string | null }
 interface Note {
@@ -63,6 +65,30 @@ export default function ApoioPsicossocialPage() {
   const [moodFlags, setMoodFlags] = useState<Set<string>>(new Set())
   const [trends, setTrends] = useState<Record<string, ResidentTrend>>({})
   const [ultimoContacto, setUltimoContacto] = useState<Record<string, string>>({})
+  const [aRegistar, setARegistar] = useState('')
+
+  /** "Falei com esta pessoa hoje" — um toque. Grava uma nota curta e o relógio
+   *  do silêncio volta a zero. Sem isto, a única forma de dizer que se falou
+   *  com alguém era escrever uma nota inteira, e por isso ninguém dizia. */
+  async function registarContacto(pid: string, nome: string) {
+    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    setARegistar(pid)
+    const hoje = new Date().toISOString().slice(0, 10)
+    const { error } = await supabase.from('psychosocial_notes').insert(scope.stamp({
+      user_id: user.id, patient_id: pid, date: hoje,
+      kind: 'acompanhamento',
+      content: 'Contacto de acompanhamento — conversa registada sem nota detalhada.',
+    }))
+    setARegistar('')
+    if (error) { alert('Não foi possível registar agora.'); return }
+    setUltimoContacto(u => ({ ...u, [pid]: hoje }))
+    registar({ supabase, scope, user }, {
+      action: 'psicossocial.contacto', entity: 'patient',
+      summary: `Falou com ${nome} (acompanhamento psico-social).`,
+      subjectId: pid, subjectName: nome, entityId: pid,
+    })
+    load()
+  }
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
   const [search, setSearch] = useState('')
@@ -251,6 +277,67 @@ export default function ApoioPsicossocialPage() {
       <div className="page-container page-body" style={{ maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
           style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', maxWidth: 280 }} />
+
+        {/* ── A quem ir falar hoje ─────────────────────────────────────────
+            Esta página era um sítio para escrever notas. A pergunta que ela
+            devia responder é outra: com quem é que ninguém fala há mais tempo?
+            Aqui ficam os três primeiros, com um toque para dizer que se falou —
+            se registar um contacto der trabalho, ninguém regista, e o número
+            de dias deixa de querer dizer alguma coisa. */}
+        {!loading && flaggedFirst.length > 0 && (() => {
+          const fila = flaggedFirst.filter(p => emSilencio(p.id)).slice(0, 3)
+          if (!fila.length) return (
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 14, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+              Ninguém está há mais de {SILENCIO_DIAS} dias sem contacto. A lista abaixo continua ordenada por quem
+              precisa de mais atenção.
+            </div>
+          )
+          return (
+            <div style={{ background: 'white', border: '1px solid var(--border-2)', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 12 }}>
+                A quem ir falar hoje
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {fila.map(p => {
+                  const d = diasSem(p.id)
+                  const porque = [
+                    erosionBy[p.id] ? 'está a cair face ao próprio hábito' : '',
+                    moodFlags.has(p.id) ? 'humor em baixa há dias' : '',
+                    d === null ? 'nunca foi contactado' : `${d} dias sem contacto`,
+                  ].filter(Boolean)
+                  return (
+                    <div key={p.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                      border: '1px solid var(--bg-3)', borderRadius: 10, padding: '11px 13px',
+                    }}>
+                      <span style={{
+                        flexShrink: 0, width: 34, height: 34, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: corDaPessoa(p.id), color: 'white', fontSize: 12, fontWeight: 700,
+                      }}>{iniciais(p.name)}</span>
+                      <span style={{ minWidth: 0, flex: '1 1 180px' }}>
+                        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
+                        <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.4 }}>
+                          {porque.join(' · ')}
+                        </span>
+                      </span>
+                      <div style={{ display: 'flex', gap: 7, flexShrink: 0 }}>
+                        <button onClick={() => registarContacto(p.id, p.name)} disabled={aRegistar === p.id}
+                          style={{ minHeight: 38, padding: '0 14px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: 'white', fontSize: 12.5, fontWeight: 600, cursor: aRegistar === p.id ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                          {aRegistar === p.id ? '…' : 'Falei com ele/ela'}
+                        </button>
+                        <button onClick={() => openNoteEditor(p.id)}
+                          style={{ minHeight: 38, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          + Nota
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 10 }} />)}</div>

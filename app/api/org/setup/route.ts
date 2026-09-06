@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
   if (!orgId) return NextResponse.json({ org: null })
   // tenta trazer os campos da página pública; se as colunas não existirem, recai no básico
   let org: any = null
-  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about, capacity, monthly_fee, logo_url, accent_color').eq('id', orgId).maybeSingle()
+  const full = await a.from('organizations').select('id, name, kind, slug, public, tagline, about, capacity, monthly_fee, logo_url, accent_color, address, lat, lon').eq('id', orgId).maybeSingle()
   if (full.error) { const basic = await a.from('organizations').select('id, name, kind').eq('id', orgId).maybeSingle(); org = basic.data }
   else org = full.data
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).maybeSingle()
@@ -126,6 +126,26 @@ export async function POST(req: NextRequest) {
     if (typeof body.tagline === 'string') patch.tagline = body.tagline.trim().slice(0, 160) || null
     if (typeof body.about === 'string') patch.about = body.about.trim().slice(0, 600) || null
     if (body.capacity !== undefined) patch.capacity = body.capacity ? Math.max(0, parseInt(body.capacity)) : null
+    // Morada da instituição: é a origem e o fim da rota de transportes. Ao
+    // gravar, converte-se em coordenadas na hora (uma vez só — se a morada
+    // mudar, converte de novo). Sem morada não se inventa um ponto de partida.
+    if (typeof body.address === 'string') {
+      const morada = body.address.trim().slice(0, 200)
+      patch.address = morada || null
+      if (!morada) { patch.lat = null; patch.lon = null }
+      else {
+        try {
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(morada)}&countrycodes=pt&format=json&limit=1`,
+            { headers: { 'User-Agent': 'PhloxClinical/1.0 (suporte@phloxclinical.com)', 'Accept-Language': 'pt-PT' } })
+          const j = r.ok ? await r.json() : null
+          const pt = Array.isArray(j) ? j[0] : null
+          const la = Number(pt?.lat), lo = Number(pt?.lon)
+          if (!isNaN(la) && !isNaN(lo) && la > 30 && la < 43 && lo > -32 && lo < -6) { patch.lat = la; patch.lon = lo }
+          else { patch.lat = null; patch.lon = null }
+        } catch { patch.lat = null; patch.lon = null }
+      }
+    }
     if (body.monthlyFee !== undefined) patch.monthly_fee = body.monthlyFee ? Math.max(0, parseFloat(body.monthlyFee)) : null
     // Marca (2026-08-09) — cabeçalho do Painel do Dono + página pública.
     // Validado antes de gravar: um hex inválido ou um URL de outro esquema

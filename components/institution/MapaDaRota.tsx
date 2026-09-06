@@ -10,15 +10,16 @@
 // latitude, por isso à latitude de Portugal um quilómetro para norte e um para
 // leste medem o mesmo no ecrã.
 //
-// O que NÃO é: um mapa de azulejos. Sem estradas, sem rótulos de terceiros,
-// sem logótipo de ninguém. Um mapa de tiles é uma imagem de outra pessoa
-// colada no meio do produto — quebra a paleta, quebra a tipografia, e enche o
-// ecrã de informação que quem conduz já conhece de cor.
+// As ESTRADAS são reais: a geometria vem do OSRM (app/api/rota-otimizada) em
+// GeoJSON e é desenhada tal como é — o percurso que a carrinha faz mesmo, não
+// uma linha reta entre pontos. Também de lá vêm os tempos de viagem e, quando
+// se pede, a ordem que faz menos quilómetros.
 //
-// O que fica é a planta: a casa no centro, cada paragem no seu sítio real, o
-// caminho pela ordem das horas, e uma escala em quilómetros para se perceber
-// a distância. Desenhado com as mesmas linhas finas e a mesma paleta do resto
-// do painel — e legível a preto e branco, porque acaba impresso.
+// O que NÃO é: um mapa de azulejos. Um tile é uma imagem de outra pessoa
+// colada no meio do produto — quebra a paleta, quebra a tipografia, e enche o
+// ecrã de rótulos que quem conduz já conhece de cor. Aqui a geografia é
+// verdadeira e o desenho é nosso: linhas finas, a nossa cor, escala em
+// quilómetros, norte. Legível a preto e branco, porque acaba impresso.
 //
 // Regra da casa: quem não tem coordenadas NÃO aparece no mapa. Fica listado
 // por baixo, com o motivo. Um ponto aproximado manda uma carrinha para o
@@ -46,13 +47,27 @@ function km(a: { lat: number; lon: number }, b: { lat: number; lon: number }): n
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar }: {
+export interface RotaCalculada {
+  ordem: string[]
+  minutosTotal: number
+  kmTotal: number
+  pernas: number[]
+  geometria: [number, number][]   // [lon, lat] das estradas reais
+  otimizada: boolean
+}
+
+export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar, calculada, aCalcular, otimizar }: {
   rota: Rota
   /** a instituição, quando tem coordenadas — é a origem e o fim do percurso */
   casa: PontoCasa | null
   cor: string
   marcar: (scheduleId: string) => void
   podeEditar: boolean
+  /** tempos e estradas reais (app/api/rota-otimizada) */
+  calculada?: RotaCalculada | null
+  aCalcular?: boolean
+  /** pede a ordem ótima em vez da ordem das horas */
+  otimizar?: () => void
 }) {
   const [sobre, setSobre] = useState<string | null>(null)
 
@@ -61,7 +76,8 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar }: {
 
   const plano = useMemo(() => {
     if (!comGeo.length) return null
-    const pontos = casa ? [...comGeo, casa as any] : comGeo
+    const geo = (calculada?.geometria || []).map(([lo, la]) => ({ lat: la, lon: lo }))
+    const pontos = [...(casa ? [...comGeo, casa as any] : comGeo), ...geo]
     const lats = pontos.map(p => p.lat), lons = pontos.map(p => p.lon)
     const latC = (Math.min(...lats) + Math.max(...lats)) / 2
     // À latitude de Portugal, um grau de longitude é ~0,73 de um grau de
@@ -92,7 +108,7 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar }: {
     const barraPx = passo / kmPorPx
 
     return { proj, barraPx, passoKm: passo }
-  }, [comGeo, casa])
+  }, [comGeo, casa, calculada])
 
   if (!rota.paragens.length) {
     return (
@@ -116,9 +132,37 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar }: {
       <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'baseline', marginBottom: 16 }}>
         <Num v={String(rota.paragens.length)} l={rota.paragens.length === 1 ? 'paragem' : 'paragens'} />
         {rota.primeira && <Num v={`${rota.primeira}–${rota.ultima}`} l="janela" mono />}
-        {distanciaTotal != null && <Num v={`${distanciaTotal.toFixed(1)} km`} l={casa ? 'ida e volta à casa' : 'entre paragens'} />}
+        {calculada ? (
+          <>
+            <Num v={calculada.minutosTotal >= 60
+              ? `${Math.floor(calculada.minutosTotal / 60)}h${String(calculada.minutosTotal % 60).padStart(2, '0')}`
+              : `${calculada.minutosTotal} min`} l="ao volante" c={cor} />
+            <Num v={`${calculada.kmTotal} km`} l="de estrada" />
+          </>
+        ) : distanciaTotal != null ? (
+          <Num v={`${distanciaTotal.toFixed(1)} km`} l="em linha reta" />
+        ) : null}
         <Num v={`${rota.feitas}/${rota.paragens.length}`} l="já feitas" c={rota.feitas === rota.paragens.length ? cor : undefined} />
       </div>
+
+      {/* Otimizar: com cinco pessoas a ordem óbvia costuma estar certa; com
+          trinta, não está, e a diferença são dezenas de minutos por dia. */}
+      {(otimizar || aCalcular) && comGeo.length >= 2 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+          <button onClick={otimizar} disabled={aCalcular} style={{
+            minHeight: 36, padding: '0 14px', borderRadius: 8,
+            border: `1px solid ${calculada?.otimizada ? cor : 'var(--border-2)'}`,
+            background: calculada?.otimizada ? cor : 'var(--bg)',
+            color: calculada?.otimizada ? 'white' : 'var(--ink-3)',
+            fontSize: 12.5, fontWeight: 600, cursor: aCalcular ? 'wait' : 'pointer', fontFamily: 'inherit',
+          }}>{aCalcular ? 'a calcular…' : calculada?.otimizada ? '✓ ordem otimizada' : 'Otimizar a ordem'}</button>
+          <span style={{ fontSize: 11.5, color: 'var(--ink-5)', lineHeight: 1.45, flex: '1 1 220px' }}>
+            {calculada?.otimizada
+              ? 'A ordem acima é a que faz menos quilómetros, não a das horas combinadas.'
+              : 'Calcula a ordem que faz menos estrada, a partir da instituição e de volta a ela.'}
+          </span>
+        </div>
+      )}
 
       {plano ? (
         <div style={{
@@ -149,8 +193,21 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar }: {
               )
             })()}
 
-            {/* O percurso, pela ordem das horas */}
-            {traco && <polyline points={traco} fill="none" stroke={cor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.85" />}
+            {/* O percurso. Quando o OSRM devolve a geometria, são as ESTRADAS
+                verdadeiras — não uma linha reta entre pontos. Desenhadas com o
+                nosso traço e a nossa cor: mapa a sério, desenho nosso. */}
+            {calculada?.geometria?.length ? (
+              <>
+                <polyline
+                  points={calculada.geometria.map(([lo, la]) => { const q = plano.proj(la, lo); return `${q.x.toFixed(1)},${q.y.toFixed(1)}` }).join(' ')}
+                  fill="none" stroke={cor} strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" opacity="0.14" />
+                <polyline
+                  points={calculada.geometria.map(([lo, la]) => { const q = plano.proj(la, lo); return `${q.x.toFixed(1)},${q.y.toFixed(1)}` }).join(' ')}
+                  fill="none" stroke={cor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+              </>
+            ) : traco ? (
+              <polyline points={traco} fill="none" stroke={cor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="5 4" opacity="0.7" />
+            ) : null}
 
             {/* A casa */}
             {casa && (() => {
@@ -239,6 +296,7 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar }: {
               </span>
               <span style={{ ...MONO, display: 'block', marginTop: 2, fontSize: 9 }}>
                 {p.lat != null ? p.zona : 'sem coordenadas'}
+                {calculada?.pernas?.[i] != null && p.lat != null ? ` · ${calculada.pernas[i]} min de viagem` : ''}
               </span>
             </span>
           </button>

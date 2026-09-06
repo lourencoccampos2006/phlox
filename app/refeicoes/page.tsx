@@ -19,12 +19,13 @@ import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import { evaluateVital } from '@/lib/vitalRanges'
+import EscolherPrato from './EscolherPrato'
 import { useOrgName } from '@/lib/useOrgName'
 import { imprimirDia, imprimirSemana, imprimirMes, type LinhaEmenta } from './imprimirEmenta'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
 
-interface Dish { id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
-interface NewDish { temp_id: string; name: string; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
+interface Dish { id: string; name: string; category?: string | null; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
+interface NewDish { temp_id: string; name: string; category?: string | null; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
 interface Entry { id: string; date: string; meal_type: string; course: string; dish_id: string | null; dish_name_free: string | null }
 interface CarePlan { patient_id: string; diet_type?: string | null; diet_texture?: string | null }
 interface Patient { id: string; allergies: string | null }
@@ -186,7 +187,7 @@ export default function RefeicoesPage() {
   async function guardarPropostoNaBiblioteca(d: NewDish) {
     if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
     const { data, error } = await supabase.from('meal_dishes').insert(scope.stamp({
-      user_id: user.id, name: d.name, course: d.course || 'prato', meal_types: d.meal_types,
+      user_id: user.id, name: d.name, course: d.course || 'prato', category: d.category || null, meal_types: d.meal_types,
       allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true,
     })).select().single()
     if (error) { toast.error('Não foi possível guardar o prato', reportError('refeicoes-guardar-proposto', error, MSG.save)); return }
@@ -271,7 +272,7 @@ export default function RefeicoesPage() {
       const tempIdToRealId: Record<string, string> = {}
       if (toCreate.length) {
         const { data: created, error: createErr } = await supabase.from('meal_dishes').insert(
-          toCreate.map(d => scope.stamp({ user_id: user.id, name: d.name, course: d.course || 'prato', meal_types: d.meal_types, allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true }))
+          toCreate.map(d => scope.stamp({ user_id: user.id, name: d.name, course: d.course || 'prato', category: d.category || null, meal_types: d.meal_types, allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true }))
         ).select()
         if (createErr) throw new Error(createErr.message)
         ;(created || []).forEach((row: any, i: number) => { tempIdToRealId[toCreate[i].temp_id] = row.id })
@@ -476,17 +477,17 @@ export default function RefeicoesPage() {
                       const proposedDishId = cellProposal?.dishId
                       return (
                         <td key={i} style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: showProposed ? '#faf5ff' : undefined }}>
-                          <select value={showProposed ? (proposedDishId || '') : currentDishId}
-                            onChange={e => assignDish(date, mtId, cs, e.target.value)}
-                            style={{ width: '100%', border: `1.5px solid ${showProposed ? '#ddd6fe' : 'var(--border)'}`, borderRadius: 7, padding: '6px 8px', fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'white', color: showProposed && !entry ? '#7c3aed' : 'var(--ink)' }}>
-                            <option value="">—</option>
-                            {dishes.filter(dh => !dh.course || dh.course === cs).map(dh => <option key={dh.id} value={dh.id}>{dh.name}</option>)}
-                            {dishes.some(dh => dh.course && dh.course !== cs) && (
-                              <optgroup label="Outros momentos">
-                                {dishes.filter(dh => dh.course && dh.course !== cs).map(dh => <option key={dh.id} value={dh.id}>{dh.name}</option>)}
-                              </optgroup>
-                            )}
-                          </select>
+                          {/* Seletor com pesquisa: um <select> nativo com cem
+                              pratos por ordem alfabética era o que tornava
+                              fazer a ementa à mão insuportável. */}
+                          <EscolherPrato
+                            pratos={dishes}
+                            valor={showProposed ? (proposedDishId || '') : currentDishId}
+                            momento={cs}
+                            destaque={showProposed}
+                            compacto
+                            aoEscolher={id => assignDish(date, mtId, cs, id)}
+                          />
                           {showProposed && !entry && proposedDishId && <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>proposta da IA</div>}
                         </td>
                       )

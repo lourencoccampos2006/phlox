@@ -74,3 +74,44 @@ if (maus.length) {
   process.exit(1)
 }
 console.log(`✓ As ${verificadas} tabelas escritas com scope.stamp() têm todas recorded_by_id.`)
+
+// ── Segunda verificação: scope.filter() em tabelas sem org_id ──────────────
+// Mesma família de bug. `scope.filter()` acrescenta `org_id = …` a contas com
+// organização; numa tabela que não tenha essa coluna, o PostgREST responde
+// "column does not exist" — e o código costuma ler isso como "migração em
+// falta" e mostra um aviso de setup com a migração já aplicada. Foi o que
+// aconteceu com support_recurring_logs (código PHX-L2 a aparecer sem razão).
+const filtradas = new Map()
+for (const f of ['app', 'components', 'lib'].flatMap(d => ficheiros(d))) {
+  const linhas = readFileSync(f, 'utf8').split('\n')
+  linhas.forEach((l, i) => {
+    const m = l.match(/scope\.filter\(\s*supabase\.from\('([a-z_]+)'\)/)
+    if (!m) return
+    if (!filtradas.has(m[1])) filtradas.set(m[1], new Set())
+    filtradas.get(m[1]).add(`${f}:${i + 1}`)
+  })
+}
+const semOrg = []
+for (const [t, sitios] of filtradas) {
+  if (!criada(t)) continue
+  const cria = sql.match(new RegExp(`create table (?:if not exists )?${esc(t)}\\s*\\(([\\s\\S]*?)\\n\\);`))
+  // O org_id pode vir de três sítios: da criação da tabela, de um ALTER
+  // direto, ou do ciclo em massa do sprint91 — que faz o ALTER por `execute
+  // format(...)` sobre uma lista de nomes de tabela. Sem reconhecer esse
+  // terceiro caso, este teste dava 20 falsos positivos.
+  const emMassa = new RegExp(`'${esc(t)}'`).test(sql)
+    && /add column if not exists org_id/.test(sql)
+    && /execute format/.test(sql)
+  const temOrg = (cria && cria[1].includes('org_id'))
+    || new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)} add column if not exists org_id`).test(sql)
+    || emMassa
+  if (!temOrg) semOrg.push([t, [...sitios]])
+}
+if (semOrg.length) {
+  console.error(`\n✗ ${semOrg.length} tabela(s) filtradas com scope.filter() sem coluna org_id.`)
+  console.error('  Em contas COM organização a consulta rebenta com "column does not exist".')
+  console.error('  Filtra à mão (a RLS já protege) ou acrescenta a coluna.\n')
+  for (const [t, sitios] of semOrg) console.error(`  ${t}\n    ${sitios.join('\n    ')}`)
+  process.exit(1)
+}
+console.log(`✓ As ${filtradas.size} tabelas usadas com scope.filter() têm todas org_id.`)

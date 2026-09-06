@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   const db = adminDb()
   const [{ data: orgs, error: orgsErr }, { data: members }] = await Promise.all([
-    db.from('organizations').select('id, name, kind, created_at').order('created_at', { ascending: false }),
+    db.from('organizations').select('id, name, kind, created_at, suspended').order('created_at', { ascending: false }),
     db.from('org_members').select('org_id, user_id, role, active'),
   ])
   if (orgsErr) return NextResponse.json({ error: orgsErr.message }, { status: 500 })
