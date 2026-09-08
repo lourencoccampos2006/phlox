@@ -39,6 +39,8 @@ type User = {
   org_id: string | null
   org_role: 'owner' | 'admin' | 'member' | null
   active_org_id: string | null
+  /** tipo da instituição — fonte de verdade do produto institucional */
+  institution_type?: string | null
 }
 
 // Plano EFETIVO na app. Um funcionário convidado fica no plano free (faturação),
@@ -168,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           org_id: null,
           org_role: null,
           active_org_id: null,
+          institution_type: null,
           created_at: new Date().toISOString(),
         }
         const { error: insertError } = await supabase.from('profiles').insert(newProfile)
@@ -200,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           org_id: data.org_id || null,
           org_role: data.org_role || null,
           active_org_id: data.active_org_id || data.org_id || null,
+          institution_type: data.institution_type || null,
         })
         // Coerência perfil-ativo ↔ modo: um doente da instituição não deve
         // aparecer em modo pessoal/cuidador/estudante (bug do doente "Rosa").

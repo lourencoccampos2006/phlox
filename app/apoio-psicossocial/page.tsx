@@ -75,9 +75,10 @@ export default function ApoioPsicossocialPage() {
     setARegistar(pid)
     const hoje = new Date().toISOString().slice(0, 10)
     const { error } = await supabase.from('psychosocial_notes').insert(scope.stamp({
+      // A coluna chama-se `note` (não `content`), e não existe `kind` nesta
+      // tabela — ver sprint130. Era isto que fazia o botão dar erro.
       user_id: user.id, patient_id: pid, date: hoje,
-      kind: 'acompanhamento',
-      content: 'Contacto de acompanhamento — conversa registada sem nota detalhada.',
+      note: 'Contacto de acompanhamento — conversa registada sem nota detalhada.',
     }))
     setARegistar('')
     if (error) { alert('Não foi possível registar agora.'); return }

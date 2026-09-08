@@ -17,6 +17,7 @@ import AlertPrefsList from '@/components/AlertPrefsList'
 import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 import { activatePush as activatePushShared, needsHomeScreenForPush } from '@/lib/pushActivation'
 import InstallInstructions from '@/components/InstallInstructions'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
 
 // O modo institucional NÃO está aqui de propósito: nunca é auto-selecionável.
 // Fica só disponível a quem é membro ativo de uma organização (dono ou
@@ -108,7 +109,9 @@ function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [saveErr, setSaveErr] = useState('')
   const [exporting, setExporting] = useState(false)
-  const [instType, setInstType] = useState('nursing_home')
+  // Mesma fonte que todo o resto (lib/useClinicPrefs → perfil/organização).
+  // Antes isto lia o localStorage por sua conta e dizia outra coisa que o /equipa.
+  const { institution: instType } = useClinicPrefs()
   const [deleteStep, setDeleteStep] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -135,17 +138,11 @@ function SettingsPage() {
     setDeleting(false)
   }
 
-  useEffect(() => {
-    const stored = localStorage.getItem(INST_KEY)
-    if (stored) setInstType(stored)
-  }, [])
+  // O tipo já não se muda daqui (é do dono do Phlox, no /admin) nem se lê do
+  // localStorage por conta própria — vem do useClinicPrefs, que é a fonte
+  // única. As duas coisas que estavam aqui davam respostas diferentes das do
+  // /equipa sobre a mesma instituição.
 
-  const changeInstType = (v: string) => {
-    setInstType(v)
-    localStorage.setItem(INST_KEY, v)
-    // Notify nav/cockpit in this tab (storage event only fires cross-tab)
-    window.dispatchEvent(new StorageEvent('storage', { key: INST_KEY, newValue: v }))
-  }
 
   // Adaptive tool visibility (personal/caregiver/student/clinical)
   // 2026-06-01: clínico agora customiza por instituição selecionada.

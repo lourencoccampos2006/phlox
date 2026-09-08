@@ -89,10 +89,16 @@ export default function PainelDonoPage() {
 
   const load = useCallback(async () => {
     if (!user) return
+    // Sem organização estas duas rotas respondem sempre 400 (e com razão).
+    // Não vale a pena pedir — só enchia a consola de erros que não são erros.
+    if (!scope.orgId) { setLoading(false); return }
     setLoading(true); setErr('')
     try {
       const { data: sd } = await supabase.auth.getSession()
       const h = { Authorization: `Bearer ${sd?.session?.access_token}` }
+      // Sem organização estes dois respondem sempre 400 (e com razão). Não
+      // vale a pena pedir — só enchia a consola de erros que não são erros.
+
       const [auditR, bizR] = await Promise.all([
         fetch(`/api/org/audit?from=${expFrom}&to=${expTo}`, { headers: h }).then(r => r.json()),
         fetch(`/api/org/dashboard`, { headers: h }).then(r => r.json()).catch(() => null),

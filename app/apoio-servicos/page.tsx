@@ -120,6 +120,34 @@ export default function ApoioServicosPage() {
   const [calculada, setCalculada] = useState<RotaCalculada | null>(null)
   const [aCalcular, setACalcular] = useState(false)
   const [semMoradaCasa, setSemMoradaCasa] = useState(false)
+  const [aConverterCasa, setAConverterCasa] = useState(false)
+
+  /** Reconverte a morada da instituição. Necessário para as que foram
+   *  gravadas antes de a conversão automática existir. */
+  const converterCasa = useCallback(async () => {
+    if (!scope.orgId) return
+    setAConverterCasa(true)
+    try {
+      const { data: org } = await supabase.from('organizations').select('name,address').eq('id', scope.orgId).maybeSingle()
+      const morada = (org as any)?.address?.trim()
+      if (!morada) { alert('A instituição ainda não tem morada. Define-a em Equipa → Definições.'); setAConverterCasa(false); return }
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ org: scope.orgId }),
+      })
+      const d = await r.json()
+      if (d?.casa?.lat != null) {
+        setCasaGeo({ lat: d.casa.lat, lon: d.casa.lon, nome: (org as any)?.name || 'A casa' })
+        setSemMoradaCasa(false); setCalculada(null)
+      } else {
+        alert('Não foi possível localizar essa morada. Tenta acrescentar o código postal e a localidade.')
+      }
+    } catch { alert('Não foi possível converter agora.') }
+    setAConverterCasa(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, scope.orgId])
 
   // A casa é a origem e o fim do percurso no mapa. Sem coordenadas dela, o
   // mapa desenha só as paragens — não se inventa um ponto de partida.
@@ -314,9 +342,18 @@ export default function ApoioServicosPage() {
               )}
             </div>
             {semMoradaCasa && (
-              <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>
-                A morada da instituição não está definida — sem ela, a rota não começa nem acaba na casa,
-                e os tempos são só entre paragens. Define-a em <a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 600 }}>Equipa → Definições</a>.
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 240px' }}>
+                  A instituição ainda não tem coordenadas — sem elas a rota não começa nem acaba na casa.
+                  {' '}<a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 600 }}>Confirma a morada</a>, ou converte-a agora.
+                </span>
+                {/* Uma morada gravada antes de isto existir ficou sem
+                    coordenadas. Este botão converte-a sem ter de a reescrever. */}
+                <button onClick={converterCasa} disabled={aConverterCasa} style={{
+                  minHeight: 34, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-2)',
+                  background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600,
+                  cursor: aConverterCasa ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                }}>{aConverterCasa ? 'a converter…' : 'Converter a morada da casa'}</button>
               </div>
             )}
             <div style={{ marginTop: 14 }}>

@@ -35,25 +35,52 @@ async function autenticar(req: NextRequest) {
   return { sb, user: data.user }
 }
 
-/** Uma morada → coordenadas. Portugal fixo: evita cair numa rua homónima no Brasil. */
-async function geocodificar(morada: string): Promise<{ lat: number; lon: number } | null> {
-  const q = encodeURIComponent(morada.trim().slice(0, 200))
-  const url = `https://nominatim.openstreetmap.org/search?q=${q}&countrycodes=pt&format=json&limit=1`
-  try {
-    const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'pt-PT' } })
-    if (!r.ok) return null
-    const j = await r.json()
-    const p = Array.isArray(j) ? j[0] : null
-    if (!p?.lat || !p?.lon) return null
-    const lat = Number(p.lat), lon = Number(p.lon)
-    if (isNaN(lat) || isNaN(lon)) return null
-    // Sanidade: Portugal continental + ilhas. Fora disto, é engano.
-    if (lat < 30 || lat > 43 || lon < -32 || lon > -6) return null
-    return { lat, lon }
-  } catch { return null }
-}
-
 const esperar = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/** Uma morada → coordenadas, tentando do mais preciso para o mais grosseiro.
+ *  Moradas portuguesas escritas à mão falham muito no Nominatim quando vão
+ *  inteiras ("R. das Flores 12, 2745-123 Queluz"); o código postal e a
+ *  localidade quase sempre acertam. Devolve também a precisão, para o mapa
+ *  poder dizer se aquilo é a porta ou a zona. */
+async function geocodificar(morada: string): Promise<{ lat: number; lon: number; precisao: string } | null> {
+  const bruto = morada.trim().slice(0, 200)
+  if (!bruto) return null
+
+  const cp = bruto.match(/\b\d{4}-\d{3}\b/)?.[0] || bruto.match(/\b\d{4}\b/)?.[0] || ''
+  // Tudo o que vem depois do código postal costuma ser a localidade.
+  const localidade = cp
+    ? bruto.slice(bruto.indexOf(cp) + cp.length).replace(/^[\s,.-]+/, '').split(/[,\n]/)[0].trim()
+    : bruto.split(',').map(x => x.trim()).filter(Boolean).pop() || ''
+
+  const tentativas: { q: string; precisao: string }[] = [
+    { q: bruto, precisao: 'morada' },
+    // sem o número de porta, que é onde falha mais
+    { q: bruto.replace(/\b(n\.?º?|no\.?)?\s*\d{1,4}\s*(,|$)/i, ' '), precisao: 'rua' },
+    ...(cp && localidade ? [{ q: `${cp} ${localidade}`, precisao: 'código postal' }] : []),
+    ...(cp ? [{ q: cp, precisao: 'código postal' }] : []),
+    ...(localidade ? [{ q: localidade, precisao: 'localidade' }] : []),
+  ]
+
+  for (const t of tentativas) {
+    const q = t.q.trim()
+    if (q.length < 3) continue
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&countrycodes=pt&format=json&limit=1&addressdetails=0`
+      const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'pt-PT' } })
+      if (r.ok) {
+        const j = await r.json()
+        const p = Array.isArray(j) ? j[0] : null
+        const lat = Number(p?.lat), lon = Number(p?.lon)
+        // Portugal continental + ilhas. Fora disto é engano, não resultado.
+        if (!isNaN(lat) && !isNaN(lon) && lat > 30 && lat < 43 && lon > -32 && lon < -6) {
+          return { lat, lon, precisao: t.precisao }
+        }
+      }
+    } catch { /* tenta a etapa seguinte */ }
+    await esperar(1100)   // política do Nominatim: 1 pedido por segundo
+  }
+  return null
+}
 
 export async function POST(req: NextRequest) {
   if (!checkRateLimit(getIP(req), 6, 60_000).allowed) return rateLimitResponse()
@@ -61,7 +88,20 @@ export async function POST(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   const { sb } = auth
 
-  const body = await req.json().catch(() => null) as { ids?: string[] } | null
+  const body = await req.json().catch(() => null) as { ids?: string[]; org?: string } | null
+
+  // Converter a INSTITUIÇÃO. Serve para as moradas gravadas antes de a
+  // conversão automática existir — sem ter de as reescrever.
+  if (body?.org) {
+    const { data: org } = await sb.from('organizations').select('id, address').eq('id', body.org).maybeSingle()
+    const morada = String((org as any)?.address || '').trim()
+    if (!morada) return NextResponse.json({ error: 'A instituição não tem morada.' }, { status: 400 })
+    const r = await geocodificar(morada)
+    if (!r) return NextResponse.json({ casa: null, erro: 'nao_encontrado' })
+    await sb.from('organizations').update({ lat: r.lat, lon: r.lon }).eq('id', body.org)
+    return NextResponse.json({ casa: r })
+  }
+
   const ids = (body?.ids || []).filter(x => typeof x === 'string').slice(0, MAX_POR_PEDIDO)
   if (!ids.length) return NextResponse.json({ error: 'Nada para converter.' }, { status: 400 })
 
@@ -82,7 +122,7 @@ export async function POST(req: NextRequest) {
     const r = await geocodificar(morada)
     if (r) {
       await sb.from('patients').update({
-        lat: r.lat, lon: r.lon, geo_source: 'nominatim',
+        lat: r.lat, lon: r.lon, geo_source: r.precisao,
         geo_at: new Date().toISOString(), geo_address: morada,
       }).eq('id', p.id)
       feitos.push({ id: p.id, ...r })

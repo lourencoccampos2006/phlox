@@ -74,40 +74,65 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar, calcul
   const comGeo = rota.paragens.filter(p => p.lat != null && p.lon != null) as (Paragem & { lat: number; lon: number })[]
   const semGeo = rota.paragens.filter(p => p.lat == null || p.lon == null)
 
+  // ── Projeção Web Mercator ────────────────────────────────────────────────
+  // Mudou de uma projeção própria para Mercator (2026-09-07) por uma razão
+  // prática: é a projeção dos azulejos do OpenStreetMap. Com ela, o mapa real
+  // por baixo e os nossos pontos por cima assentam exatamente; com a anterior
+  // ficavam desalinhados uns metros, que num mapa de ruas é tudo.
   const plano = useMemo(() => {
     if (!comGeo.length) return null
     const geo = (calculada?.geometria || []).map(([lo, la]) => ({ lat: la, lon: lo }))
     const pontos = [...(casa ? [...comGeo, casa as any] : comGeo), ...geo]
-    const lats = pontos.map(p => p.lat), lons = pontos.map(p => p.lon)
-    const latC = (Math.min(...lats) + Math.max(...lats)) / 2
-    // À latitude de Portugal, um grau de longitude é ~0,73 de um grau de
-    // latitude em metros. Sem esta correção o mapa sai esticado na horizontal.
-    const kx = Math.cos(latC * Math.PI / 180)
 
-    const xs = lons.map(v => v * kx), ys = lats.map(v => v)
+    const mx = (lon: number) => (lon + 180) / 360
+    const my = (lat: number) => {
+      const r = Math.max(-85.05, Math.min(85.05, lat)) * Math.PI / 180
+      return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2
+    }
+    const xs = pontos.map(p => mx(p.lon)), ys = pontos.map(p => my(p.lat))
     let x0 = Math.min(...xs), x1 = Math.max(...xs)
     let y0 = Math.min(...ys), y1 = Math.max(...ys)
-    // Com um ponto só (ou todos no mesmo sítio) não há extensão: dá-se-lhe uma.
-    const MIN = 0.004
+    // Com um ponto só não há extensão nenhuma: dá-se-lhe uma (~1,5 km).
+    const MIN = 0.00002
     if (x1 - x0 < MIN) { const c = (x0 + x1) / 2; x0 = c - MIN / 2; x1 = c + MIN / 2 }
     if (y1 - y0 < MIN) { const c = (y0 + y1) / 2; y0 = c - MIN / 2; y1 = c + MIN / 2 }
 
     // Mesma escala nos dois eixos — senão as distâncias mentem.
     const escala = Math.min((L - PAD * 2) / (x1 - x0), (A - PAD * 2) / (y1 - y0))
-    const cxDes = (x0 + x1) / 2, cyDes = (y0 + y1) / 2
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
     const proj = (lat: number, lon: number) => ({
-      x: L / 2 + (lon * kx - cxDes) * escala,
-      y: A / 2 - (lat - cyDes) * escala,      // norte para cima
+      x: L / 2 + (mx(lon) - cx) * escala,
+      y: A / 2 + (my(lat) - cy) * escala,
     })
 
-    // Escala em km: escolhe um valor redondo que caiba bem no desenho.
-    const grausPorPx = 1 / escala
-    const kmPorPx = grausPorPx * 111.32
-    const alvo = 150 * kmPorPx
-    const passo = [0.2, 0.5, 1, 2, 5, 10, 20, 50].find(v => v >= alvo) ?? 100
+    // Nível de zoom cujos azulejos (256px) dão a resolução mais próxima.
+    const z = Math.max(3, Math.min(18, Math.floor(Math.log2(escala / 256))))
+    const n = 2 ** z
+    const tamanho = (256 / escala) // largura de um azulejo em unidades Mercator
+    const azulejos: { x: number; y: number; z: number; px: number; py: number; s: number }[] = []
+    const tx0 = Math.floor((cx - (L / 2) / escala) * n), tx1 = Math.ceil((cx + (L / 2) / escala) * n)
+    const ty0 = Math.floor((cy - (A / 2) / escala) * n), ty1 = Math.ceil((cy + (A / 2) / escala) * n)
+    const sPx = escala / n   // lado de um azulejo em píxeis do desenho
+    for (let tx = tx0; tx <= tx1; tx++) {
+      for (let ty = ty0; ty <= ty1; ty++) {
+        if (tx < 0 || ty < 0 || tx >= n || ty >= n) continue
+        azulejos.push({
+          x: tx, y: ty, z,
+          px: L / 2 + (tx / n - cx) * escala,
+          py: A / 2 + (ty / n - cy) * escala,
+          s: sPx,
+        })
+      }
+    }
+
+    // Escala em km.
+    const metrosPorUnidade = 40075016.686   // circunferência da Terra
+    const kmPorPx = (metrosPorUnidade * Math.cos(pontos[0].lat * Math.PI / 180) / escala) / 1000
+    const alvo = 120 * kmPorPx
+    const passo = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].find(v => v >= alvo) ?? 100
     const barraPx = passo / kmPorPx
 
-    return { proj, barraPx, passoKm: passo }
+    return { proj, barraPx, passoKm: passo, azulejos: azulejos.slice(0, 90) }
   }, [comGeo, casa, calculada])
 
   if (!rota.paragens.length) {
@@ -177,7 +202,19 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar, calcul
                 <path d="M36 0H0V36" fill="none" stroke="var(--bg-3)" strokeWidth="1" />
               </pattern>
             </defs>
-            <rect width={L} height={A} fill="url(#mrGrelha)" />
+            {/* O mapa a sério, por baixo. Azulejos do OpenStreetMap, esbatidos
+                para o percurso e os nomes se lerem por cima — é um mapa de
+                trabalho, não uma fotografia. */}
+            <rect width={L} height={A} fill="var(--bg-2)" />
+            <g opacity="0.55">
+              {plano.azulejos.map(t => (
+                <image key={`${t.z}/${t.x}/${t.y}`}
+                  href={`https://tile.openstreetmap.org/${t.z}/${t.x}/${t.y}.png`}
+                  x={t.px} y={t.py} width={t.s + 0.5} height={t.s + 0.5}
+                  preserveAspectRatio="none" />
+              ))}
+            </g>
+            <rect width={L} height={A} fill="var(--bg)" opacity="0.12" />
 
             {/* Ligação casa → primeira e última → casa, a tracejado: é o
                 trajeto que a carrinha faz mas que não tem paragem. */}
@@ -253,6 +290,8 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar, calcul
               <text x={plano.barraPx / 2} y="-9" textAnchor="middle" fontSize="9.5" fill="var(--ink-4)"
                 fontFamily="var(--font-mono)" letterSpacing="0.1em">{plano.passoKm < 1 ? `${plano.passoKm * 1000} M` : `${plano.passoKm} KM`}</text>
             </g>
+            <text x={L - 6} y={A - 6} textAnchor="end" fontSize="8.5" fill="var(--ink-4)"
+              fontFamily="var(--font-mono)">© OpenStreetMap</text>
             <g transform={`translate(${L - PAD + 6} ${PAD - 20})`}>
               <line x1="0" y1="16" x2="0" y2="-4" stroke="var(--ink-3)" strokeWidth="1.5" />
               <path d="M0 -9 L4 -1 L-4 -1 Z" fill="var(--ink-3)" />

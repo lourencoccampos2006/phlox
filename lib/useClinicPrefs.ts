@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/components/AuthContext'
 
 export type ClinicalRole =
   | 'pharmacist'
@@ -46,6 +47,15 @@ export const OFFERED_INSTITUTIONS: InstitutionType[] = ['day_care', 'nursing_hom
 const ROLE_KEY = 'phlox-clinic-role'
 const INST_KEY = 'phlox-clinic-institution'
 
+// ── DE ONDE VEM O TIPO DE INSTITUIÇÃO ─────────────────────────────────────
+// Até 2026-09-07 vinha SÓ do localStorage. Consequência: o /settings lia o
+// localStorage e dizia "Lar", o /equipa lia `organizations.kind` do servidor e
+// dizia "Centro de Dia", e o /admin escrevia na base de dados sem que nada no
+// ecrã mudasse. Três respostas diferentes para a mesma pergunta.
+//
+// Agora a FONTE DE VERDADE é o servidor: `profiles.institution_type` (e, para
+// quem pertence a uma organização, o `organizations.kind` manda sobre esse).
+// O localStorage passa a ser só uma cache para a primeira pintura não piscar.
 export function useClinicPrefs() {
   const [role, setRoleState] = useState<ClinicalRole>('pharmacist')
   const [institution, setInstState] = useState<InstitutionType>('nursing_home')
@@ -54,8 +64,32 @@ export function useClinicPrefs() {
     const r = localStorage.getItem(ROLE_KEY) as ClinicalRole | null
     const i = localStorage.getItem(INST_KEY) as InstitutionType | null
     if (r && r in ROLE_META) setRoleState(r)
-    if (i && i in INST_META) setInstState(i)
+    if (i && i in INST_META) setInstState(i)   // cache: evita o pisca inicial
   }, [])
+
+  // A verdade vem do perfil (AuthContext já o carrega — nenhuma consulta
+  // extra) e, para quem pertence a uma organização, do `organizations.kind`
+  // dessa casa, que é o que o dono do Phlox muda no /admin.
+  const { user, supabase } = useAuth() as any
+  useEffect(() => {
+    if (!user) return
+    let vivo = true
+    ;(async () => {
+      let tipo: string | null = user.institution_type || null
+      const org = user.active_org_id || user.org_id
+      if (org && supabase) {
+        try {
+          const { data } = await supabase.from('organizations').select('kind').eq('id', org).maybeSingle()
+          if (data?.kind) tipo = data.kind
+        } catch { /* fica o do perfil */ }
+      }
+      if (vivo && tipo && tipo in INST_META) {
+        setInstState(tipo as InstitutionType)
+        try { localStorage.setItem(INST_KEY, tipo) } catch {}
+      }
+    })()
+    return () => { vivo = false }
+  }, [user?.institution_type, user?.active_org_id, user?.org_id, supabase])
 
   const setRole = (r: ClinicalRole) => {
     setRoleState(r)
