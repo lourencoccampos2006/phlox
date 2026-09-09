@@ -38,6 +38,20 @@ const MEAL_TYPES: { id: string; label: string }[] = [
 ]
 const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
+const CAT_LABEL: Record<string, string> = {
+  sopa: 'Sopas', carne: 'Carne', peixe: 'Peixe', vegetariano: 'Vegetariano',
+  doce: 'Doces', fruta: 'Fruta', outro: 'Outros',
+}
+/** Uma sopa é sempre entrada, uma sobremesa é sempre doce ou fruta. */
+const COURSE_DE_CAT: Record<string, string> = { sopa: 'sopa', doce: 'sobremesa', fruta: 'sobremesa' }
+
+const chipCat = (on: boolean): React.CSSProperties => ({
+  minHeight: 28, padding: '0 10px', borderRadius: 20,
+  border: `1px solid ${on ? 'var(--ink)' : 'var(--border-2)'}`,
+  background: on ? 'var(--ink)' : 'var(--bg)', color: on ? 'var(--bg)' : 'var(--ink-4)',
+  fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+})
+
 // Uma refeição tem momentos. Um lanche não leva sopa, e um almoço sem sopa
 // não é como as ementas cá se escrevem.
 const COURSES: { id: string; label: string; curto: string }[] = [
@@ -73,6 +87,12 @@ export default function RefeicoesPage() {
   const [needsSetup, setNeedsSetup] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLibrary, setShowLibrary] = useState(false)
+  // A biblioteca era uma lista corrida por ordem de criação. Com cem pratos,
+  // encontrar um era impossível e ninguém sabia o que já lá estava — o que
+  // levava a criar duplicados. Agora tem pesquisa e agrupa por categoria.
+  const [buscaLib, setBuscaLib] = useState('')
+  const [filtroCat, setFiltroCat] = useState('')
+  const [aArrumar, setAArrumar] = useState(false)
   const [showReinforcement, setShowReinforcement] = useState(false)
 
   // Novo prato
@@ -202,6 +222,40 @@ export default function RefeicoesPage() {
       return out
     })
     toast.success('Prato guardado', `"${d.name}" entrou na biblioteca.`)
+  }
+
+  /** Pede à IA para classificar os pratos que ainda não têm categoria.
+   *  Uma biblioteca que cresce sem arrumação volta a ser uma lista de cem
+   *  nomes — e é isso que faz alguém criar um prato que já lá estava. */
+  async function arrumarBiblioteca() {
+    const porArrumar = dishes.filter(d => !d.category)
+    if (!porArrumar.length) return
+    setAArrumar(true)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/refeicoes/arrumar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token}` },
+        body: JSON.stringify({ pratos: porArrumar.map(d => ({ id: d.id, name: d.name })) }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Não foi possível arrumar.')
+      // Grava em bloco, uma escrita por categoria.
+      const porCat = new Map<string, string[]>()
+      ;(d.classificados || []).forEach((c: any) => {
+        if (!c?.id || !c?.category) return
+        if (!porCat.has(c.category)) porCat.set(c.category, [])
+        porCat.get(c.category)!.push(c.id)
+      })
+      for (const [cat, ids] of porCat) {
+        await supabase.from('meal_dishes').update({ category: cat, course: COURSE_DE_CAT[cat] || undefined }).in('id', ids)
+      }
+      toast.success('Biblioteca arrumada', `${(d.classificados || []).length} pratos por categoria.`)
+      load()
+    } catch (e: any) {
+      toast.error('Não foi possível arrumar', e?.message || MSG.generic)
+    }
+    setAArrumar(false)
   }
 
   async function createDish() {
@@ -357,9 +411,66 @@ export default function RefeicoesPage() {
                 {savingDish ? 'A guardar…' : '+ Adicionar à biblioteca'}
               </button>
             </div>
-            {dishes.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {dishes.map(d => (
+            {dishes.length > 0 && (() => {
+              const semAcento = (t: string) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              const q = semAcento(buscaLib.trim())
+              const visiveis = dishes.filter(d =>
+                (!q || semAcento(d.name).includes(q) || semAcento(d.category || '').includes(q)) &&
+                (!filtroCat || (d.category || 'outro') === filtroCat))
+              const porCat = new Map<string, typeof dishes>()
+              visiveis.forEach(d => {
+                const c = d.category || 'outro'
+                if (!porCat.has(c)) porCat.set(c, [])
+                porCat.get(c)!.push(d)
+              })
+              const ordem = ['sopa', 'carne', 'peixe', 'vegetariano', 'doce', 'fruta', 'outro']
+              const grupos = [...porCat.entries()].sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]))
+              const catsExistentes = [...new Set(dishes.map(d => d.category || 'outro'))].sort((a, b) => ordem.indexOf(a) - ordem.indexOf(b))
+              const semCategoria = dishes.filter(d => !d.category).length
+
+              return (
+              <div>
+                {/* Pesquisa e filtro */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+                  <input value={buscaLib} onChange={e => setBuscaLib(e.target.value)}
+                    placeholder={`Procurar entre ${dishes.length} pratos…`}
+                    style={{ flex: '1 1 190px', border: '1.5px solid var(--border)', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} />
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    <button onClick={() => setFiltroCat('')} style={chipCat(!filtroCat)}>Tudo</button>
+                    {catsExistentes.map(c => (
+                      <button key={c} onClick={() => setFiltroCat(filtroCat === c ? '' : c)} style={chipCat(filtroCat === c)}>
+                        {CAT_LABEL[c] || c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Arrumar com IA: classifica os que ficaram por classificar */}
+                {semCategoria > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 9, padding: '9px 12px', marginBottom: 12 }}>
+                    <span style={{ fontSize: 12.5, color: '#5b21b6', flex: '1 1 200px', lineHeight: 1.45 }}>
+                      {semCategoria} {semCategoria === 1 ? 'prato ainda não está arrumado' : 'pratos ainda não estão arrumados'} por categoria.
+                    </span>
+                    <button onClick={arrumarBiblioteca} disabled={aArrumar} style={{
+                      minHeight: 32, padding: '0 12px', borderRadius: 7, border: 'none', background: '#5b21b6',
+                      color: 'white', fontSize: 12, fontWeight: 700, cursor: aArrumar ? 'wait' : 'pointer', fontFamily: 'inherit',
+                    }}>{aArrumar ? 'a arrumar…' : '✨ Arrumar com IA'}</button>
+                  </div>
+                )}
+
+                {!visiveis.length && (
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-4)', padding: '10px 0' }}>
+                    Nada com “{buscaLib}”. Escreve o nome em baixo para acrescentar à biblioteca.
+                  </div>
+                )}
+
+                {grupos.map(([cat, lista]) => (
+                  <div key={cat} style={{ marginBottom: 14 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 7 }}>
+                      {CAT_LABEL[cat] || cat} · {lista.length}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {lista.map(d => (
                   <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', borderRadius: 8, padding: '8px 12px' }}>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>
                     {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 10.5, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '1px 7px' }}>⚠ {d.allergens.join(', ')}</span>}
@@ -367,8 +478,12 @@ export default function RefeicoesPage() {
                     <button onClick={() => removeDish(d.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16 }}>×</button>
                   </div>
                 ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+              )
+            })()}
           </div>
         )}
 

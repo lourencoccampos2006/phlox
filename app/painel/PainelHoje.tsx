@@ -36,6 +36,7 @@ import { ptDate, ptGreeting } from '@/lib/ptTime'
 import { ultimosDias } from '@/lib/painelDados'
 import { marcarPresenca, proximoNoPainel } from '@/lib/presenca'
 import { useLiveData } from '@/lib/useLiveData'
+import TurnoEmCurso from '@/components/institution/TurnoEmCurso'
 import {
   FaixaKpi, CartaoLinha, CartaoBarras, CartaoRosca, CartaoTabela, CartaoLista, CartaoPastas, CartaoPresencas,
   type Pasta, type PessoaPresenca,
@@ -351,6 +352,10 @@ export default function PainelHoje() {
             ))}
           </div>
         </div>
+
+        {/* Quem está de serviço agora. Primeiro gesto de quem chega — antes
+            mesmo das presenças dos utentes. */}
+        {aba === 'hoje' && <TurnoEmCurso cor={bp.accent} />}
 
         {!!vista.kpis.length && <FaixaKpi kpis={vista.kpis} cor={bp.accent} />}
 

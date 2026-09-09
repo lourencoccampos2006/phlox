@@ -158,11 +158,11 @@ export function caregiverWatchEmail(items: { who: string; title: string; detail:
   const n = items.length
   return {
     subject: n === 1
-      ? `Phlox — ${items[0].who} precisa de atenção`
+      ? `Phlox — ${escapeHtml(items[0].who)} precisa de atenção`
       : `Phlox — ${n} coisas a precisar de atenção na sua família`,
     html: emailLayout({
       preheader: 'O Phlox detetou algo a precisar da sua atenção.',
-      heading: n === 1 ? `${items[0].who} precisa de atenção.` : 'A sua família precisa de atenção.',
+      heading: n === 1 ? `${escapeHtml(items[0].who)} precisa de atenção.` : 'A sua família precisa de atenção.',
       body: `<p style="margin:0 0 14px">O Phlox acompanhou os seus familiares e encontrou ${n === 1 ? 'um ponto' : `${n} pontos`} a precisar da sua atenção:</p>
              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
              <p style="margin:14px 0 0;font-size:13px;color:#71717a">O Phlox organiza e avisa, mas não substitui o médico. Em emergência, ligue 112.</p>`,
@@ -179,6 +179,107 @@ export function paymentFailedEmail(): { subject: string; html: string } {
       heading: 'Pagamento não processado.',
       body: `<p style="margin:0 0 12px">Tentámos renovar a tua subscrição mas o pagamento não foi aceite. O teu acesso mantém-se por agora, mas precisas de atualizar o método de pagamento para não perderes o plano.</p>`,
       cta: { label: 'Atualizar pagamento', url: 'https://phloxclinical.com/settings' },
+    }),
+  }
+}
+
+/* ── Emails acrescentados a 2026-09-08 ──────────────────────────────────────
+ * O produto tinha quatro emails. Um lar que nos confia o cuidado de trinta
+ * pessoas espera saber das coisas por email — não só ao abrir a aplicação.
+ * Todos usam o mesmo emailLayout, todos são best-effort (nunca fazem falhar a
+ * operação que os originou) e nenhum leva dados clínicos no assunto.
+ */
+
+/** A instituição foi criada e esta pessoa é a dona. É o primeiro contacto. */
+export function institutionCreatedEmail(nomeCasa: string, tipo: string): { subject: string; html: string } {
+  const tipoLabel = tipo === 'day_care' ? 'centro de dia' : 'lar'
+  return {
+    subject: `O Phlox do ${escapeHtml(nomeCasa)} está pronto`,
+    html: emailLayout({
+      heading: `Bem-vindo ao Phlox, ${escapeHtml(nomeCasa)}`,
+      body: `
+        <p>Criámos o Phlox do vosso ${escapeHtml(tipoLabel)}. A partir de agora, entra com este email e
+        encontra a casa já montada — o vocabulário, as ferramentas e os relatórios são os
+        de um ${escapeHtml(tipoLabel)}, não de um hospital.</p>
+        <p><strong>Por onde começar:</strong></p>
+        <ol>
+          <li>Acrescentar as pessoas que frequentam a casa (dá para importar de uma folha de cálculo).</li>
+          <li>Convidar a equipa, em <em>Equipa &rsaquo; Contas e acessos</em>.</li>
+          <li>Marcar as presenças de hoje no painel — é o primeiro gesto do dia.</li>
+        </ol>
+        <p>Não é preciso configurar regras nem alertas: o Phlox começa a avisar sozinho
+        mal haja registos para ler.</p>
+        <p>Qualquer dúvida, responda a este email. Falamos consigo.</p>`,
+      cta: { label: 'Entrar no Phlox', url: '/painel' },
+    }),
+  }
+}
+
+/** Alguém foi convidado para a equipa de uma casa. */
+export function teamInviteEmail(nomeCasa: string, quemConvidou: string): { subject: string; html: string } {
+  return {
+    subject: `${escapeHtml(quemConvidou)} convidou-o para a equipa do ${escapeHtml(nomeCasa)}`,
+    html: emailLayout({
+      heading: `Faz parte da equipa do ${escapeHtml(nomeCasa)}`,
+      body: `
+        <p>${escapeHtml(quemConvidou)} deu-lhe acesso ao Phlox do ${escapeHtml(nomeCasa)}.</p>
+        <p>Entra com este email e vê o dia da casa: quem chegou, a medicação por dar,
+        o que ficou registado e o que merece atenção.</p>`,
+      cta: { label: 'Entrar', url: '/painel' },
+    }),
+  }
+}
+
+/** Resumo do dia para a família (centro de dia). Sem dados clínicos no assunto. */
+export function familyDailyEmail(primeiroNome: string, linhas: string[]): { subject: string; html: string } {
+  return {
+    subject: `Como correu o dia — ${escapeHtml(primeiroNome)}`,
+    html: emailLayout({
+      heading: `O dia de ${escapeHtml(primeiroNome)}`,
+      body: `<p>${linhas.map(escapeHtml).join('</p><p>')}</p>
+        <p style="color:#6b7280;font-size:13px">Escrito a partir do que a equipa registou hoje.</p>`,
+      cta: { label: 'Ver o diário completo', url: '/familia' },
+    }),
+  }
+}
+
+/** Uma família escreveu e ninguém respondeu. */
+export function familyWaitingEmail(quantas: number): { subject: string; html: string } {
+  return {
+    subject: quantas === 1 ? 'Uma família está à espera de resposta' : `${quantas} famílias à espera de resposta`,
+    html: emailLayout({
+      heading: 'Há famílias à espera',
+      body: `<p>${quantas === 1 ? 'Uma família escreveu' : `${quantas} famílias escreveram`} e a última
+        mensagem da conversa ainda é delas. Não demora nada a responder — e para quem está do outro
+        lado faz muita diferença.</p>`,
+      cta: { label: 'Ver as conversas', url: '/family' },
+    }),
+  }
+}
+
+/** O que merece atenção hoje, para quem gere a casa. */
+export function attentionDigestEmail(nomeCasa: string, itens: { quem: string; porque: string }[]): { subject: string; html: string } {
+  return {
+    subject: `${itens.length} ${itens.length === 1 ? 'pessoa merece' : 'pessoas merecem'} atenção hoje — ${escapeHtml(nomeCasa)}`,
+    html: emailLayout({
+      heading: 'O que merece atenção hoje',
+      body: `<ul>${itens.slice(0, 10).map(i =>
+        `<li><strong>${escapeHtml(i.quem)}</strong> — ${escapeHtml(i.porque)}</li>`).join('')}</ul>
+        <p style="color:#6b7280;font-size:13px">Sai do que a equipa registou. Não é um
+        diagnóstico — a avaliação é sempre de quem cuida.</p>`,
+      cta: { label: 'Abrir o que merece atenção', url: '/radar' },
+    }),
+  }
+}
+
+/** Stock abaixo do mínimo. */
+export function stockLowEmail(itens: { nome: string; quantidade: string }[]): { subject: string; html: string } {
+  return {
+    subject: `${itens.length} ${itens.length === 1 ? 'artigo' : 'artigos'} a precisar de encomenda`,
+    html: emailLayout({
+      heading: 'Stock a acabar',
+      body: `<ul>${itens.slice(0, 15).map(i => `<li><strong>${escapeHtml(i.nome)}</strong> — ${escapeHtml(i.quantidade)}</li>`).join('')}</ul>`,
+      cta: { label: 'Ver o stock', url: '/stock' },
     }),
   }
 }

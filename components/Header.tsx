@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
-import NotificationBell from '@/components/NotificationBell'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { MODE_QUICK_ACTIONS, getAllToolsForMode } from '@/lib/navigation'
 import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
@@ -555,7 +554,6 @@ export default function Header() {
                   )
                 })()}
 
-                <NotificationBell />
 
                 <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} /></span>
 

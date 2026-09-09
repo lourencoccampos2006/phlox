@@ -195,6 +195,7 @@ function SettingsPage() {
   const [form, setForm] = useState({
     display_name: '',
     experience_mode: 'personal',
+    daily_case_email: false,
   })
 
   useEffect(() => {
@@ -204,12 +205,13 @@ function SettingsPage() {
     if (authLoading) return
     if (!user) { router.push('/login'); return }
     supabase.from('profiles')
-      .select('display_name, experience_mode')
+      .select('display_name, experience_mode, daily_case_email')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (data) setForm({
           display_name:      data.display_name || user.name || '',
           experience_mode:   data.experience_mode || 'personal',
+          daily_case_email:  !!(data as any).daily_case_email,
         })
       })
   }, [user, authLoading, supabase, router])
@@ -224,6 +226,7 @@ function SettingsPage() {
     const { error } = await supabase.from('profiles').update({
       display_name:      form.display_name || null,
       experience_mode:   form.experience_mode,
+      daily_case_email:  form.daily_case_email,
     }).eq('id', user.id)
     if (error) { setSaving(false); setSaveErr(reportError('settings-save', error, MSG.save)); return }
     // Atualiza o utilizador em memória (sem precisar de refresh do browser — essencial
@@ -319,6 +322,24 @@ function SettingsPage() {
                     muda o vocabulário e as ferramentas de toda a casa.
                   </span>
                 </div>
+              </div>
+            )}
+
+            {/* Caso do dia — só para quem o pedir. Um email diário manda-se a
+                quem o quer, nunca por omissão. */}
+            {form.experience_mode === 'student' && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Caso clínico do dia</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 12, lineHeight: 1.55 }}>
+                  Um caso curto por email, de manhã, de segunda a sexta. A resposta não vem no email —
+                  resolve-se aqui.
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5 }}>
+                  <input type="checkbox" checked={!!form.daily_case_email}
+                    onChange={e => setForm(f => ({ ...f, daily_case_email: e.target.checked }))}
+                    style={{ width: 17, height: 17, cursor: 'pointer' }} />
+                  Receber o caso do dia
+                </label>
               </div>
             )}
 

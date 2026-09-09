@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   // Find all personal_meds with a reminder_time that matches ±10min of now
   const { data: medsWithReminders } = await supabase
     .from('personal_meds')
-    .select('id, user_id, name, dose, reminder_times')
+    .select('id, user_id, name, dose, reminder_times, shifts, units_left, units_per_dose, low_notified_at')
     .not('reminder_times', 'is', null)
 
   const dueReminders = (medsWithReminders || []).filter((med: any) => {
@@ -64,6 +64,38 @@ export async function GET(req: NextRequest) {
 
     for (const med of dueReminders) {
       if (alreadyLogged.has(med.id)) continue
+
+      // ── A caixa está a acabar? ────────────────────────────────────────
+      // O Phlox já sabe quantas doses são precisas por dia; com as unidades
+      // que restam, sabe quantos dias faltam. Avisar com uma semana de folga
+      // é a diferença entre passar na farmácia a caminho de casa e dar por si
+      // ao domingo à noite com a caixa vazia. Um aviso por medicamento e por
+      // semana — não é um alarme, é um recado.
+      const restam = Number((med as any).units_left)
+      const porDose = Number((med as any).units_per_dose) || 1
+      if (!isNaN(restam) && restam > 0 && porDose > 0) {
+        const dosesPorDia = Array.isArray((med as any).shifts) && (med as any).shifts.length ? (med as any).shifts.length : 1
+        const diasQueFaltam = Math.floor(restam / (porDose * dosesPorDia))
+        const jaAvisado = (med as any).low_notified_at
+        const avisadoHaPouco = jaAvisado && (Date.now() - new Date(jaAvisado + 'T12:00:00').getTime()) < 7 * 86400000
+        if (diasQueFaltam <= 7 && !avisadoHaPouco) {
+          const { data: subsBaixo } = await supabase
+            .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', med.user_id)
+          for (const sub of subsBaixo || []) {
+            await sendPushNotification(sub, {
+              title: `${med.name} está a acabar`,
+              body: diasQueFaltam <= 0
+                ? 'Já não há unidades suficientes para a próxima toma.'
+                : `Chega para mais ${diasQueFaltam} ${diasQueFaltam === 1 ? 'dia' : 'dias'}. Vale a pena passar na farmácia.`,
+              url: '/mymeds',
+              tag: `low-${med.id}`,
+            }).catch(() => {})
+          }
+          await supabase.from('personal_meds')
+            .update({ low_notified_at: new Date().toISOString().slice(0, 10) })
+            .eq('id', med.id)
+        }
+      }
 
       const { data: subs } = await supabase
         .from('push_subscriptions')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminDb } from '@/lib/adminAuth'
+import { sendEmail, institutionCreatedEmail } from '@/lib/email'
 
 // POST /api/admin/institution-create { email, name, kind } — atalho para o
 // Fernando criar a instituição diretamente, em vez de esperar que a pessoa
@@ -71,6 +72,14 @@ export async function POST(req: NextRequest) {
   }).eq('id', target.id)
 
   await backfillOrg(db, target.id, orgId!)
+
+  // O dono da casa recebe o primeiro contacto por email. Best-effort: se o
+  // Resend não estiver pronto, a instituição fica criada na mesma — nunca se
+  // desfaz uma criação por causa de um email.
+  try {
+    const { subject, html } = institutionCreatedEmail(name || 'a sua instituição', kind)
+    await sendEmail({ to: target.email, subject, html })
+  } catch { /* o email é um extra */ }
 
   return NextResponse.json({ ok: true, org_id: orgId, kind })
 }

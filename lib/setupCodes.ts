@@ -27,6 +27,7 @@ export const SETUP_CODES = {
   'PHX-P1': 'sprint53_sessions_mfa.sql — sessões e autenticação em dois passos',
   'PHX-S3': 'sprint137_activity_log.sql — livro de registos (activity_log)',
   'PHX-T5': 'sprint136_geo.sql — coordenadas para o mapa de transportes',
+  'PHX-V7': 'sprint141_daily_case_and_shift.sql — caso do dia + turnos em curso (shift_checkins)',
   'PHX-R6': 'chave de serviço em falta no ambiente (SUPABASE_SERVICE_ROLE_KEY)',
 } as const
 

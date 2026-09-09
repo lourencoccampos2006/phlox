@@ -460,6 +460,20 @@ export default function MyMedsPage() {
       return
     }
     if (data) setTodayLogs(prev => prev.map(l => l.id === optimistic.id ? (data as DoseLog) : l))
+
+    // Desconta da caixa. Só quando a dose foi mesmo tomada — uma dose saltada
+    // não gasta comprimido nenhum. Best-effort: se falhar, a toma fica na
+    // mesma registada, que é o que interessa.
+    if (status === 'taken') {
+      const med = (meds as any[]).find(m => m.id === medId)
+      const restam = Number(med?.units_left)
+      if (!isNaN(restam) && restam > 0) {
+        const gasto = Number(med?.units_per_dose) || 1
+        supabase.from('personal_meds')
+          .update({ units_left: Math.max(0, restam - gasto) }).eq('id', medId)
+          .then(() => {}, () => {})
+      }
+    }
   }
 
   // ─── Auto-check ───────────────────────────────────────────────────────────────

@@ -57,11 +57,16 @@ export default function EscolherPrato({ pratos, valor, momento, aoEscolher, dest
       ? pratos.filter(p => norm(p.name).includes(t) || norm(p.category || '').includes(t) || (p.diet_tags || []).some(d => norm(d).includes(t)))
       : pratos
     // Do momento certo primeiro; dentro disso, por nome.
+    const ORDEM = ['sopa', 'carne', 'peixe', 'vegetariano', 'doce', 'fruta', 'outro']
     return [...filtrados].sort((a, b) => {
+      // Primeiro os do momento certo; depois por categoria; depois por nome.
       const ca = (a.course || 'prato') === momento ? 0 : 1
       const cb = (b.course || 'prato') === momento ? 0 : 1
-      return ca - cb || a.name.localeCompare(b.name)
-    }).slice(0, 60)
+      if (ca !== cb) return ca - cb
+      const ka = ORDEM.indexOf(a.category || 'outro'), kb = ORDEM.indexOf(b.category || 'outro')
+      if (ka !== kb) return ka - kb
+      return a.name.localeCompare(b.name)
+    }).slice(0, 80)
   }, [pratos, q, momento])
 
   useEffect(() => { setI(0) }, [q])
@@ -126,8 +131,18 @@ export default function EscolherPrato({ pratos, valor, momento, aoEscolher, dest
             )}
             {lista.map((p, k) => {
               const doMomento = (p.course || 'prato') === momento
+              const catAnterior = k > 0 ? (lista[k - 1].category || 'outro') : null
+              const cat = p.category || 'outro'
               return (
-                <Linha key={p.id} onClick={() => escolher(p.id)} activo={k === i} onHover={() => setI(k)}>
+                <div key={p.id}>
+                {/* Cabeçalho de categoria: com cinquenta pratos, saber onde
+                    começam os peixes vale mais do que a ordem alfabética. */}
+                {!q.trim() && cat !== catAnterior && (
+                  <div style={{ ...MONO, padding: '8px 12px 3px', fontSize: 8.5 }}>
+                    {({ sopa: 'Sopas', carne: 'Carne', peixe: 'Peixe', vegetariano: 'Vegetariano', doce: 'Doces', fruta: 'Fruta', outro: 'Outros' } as Record<string, string>)[cat] || cat}
+                  </div>
+                )}
+                <Linha onClick={() => escolher(p.id)} activo={k === i} onHover={() => setI(k)}>
                   <span style={{ minWidth: 0 }}>
                     <span style={{
                       display: 'block', fontSize: 13, color: 'var(--ink)',
@@ -142,6 +157,7 @@ export default function EscolherPrato({ pratos, valor, momento, aoEscolher, dest
                     </span>
                   </span>
                 </Linha>
+                </div>
               )
             })}
           </div>

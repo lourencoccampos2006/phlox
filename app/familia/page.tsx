@@ -17,6 +17,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { analyzeFamilyMember, WATCH_LEVEL_META } from '@/lib/caregiverWatch'
+import { carregarEntradaCuidador, sinaisLongitudinais, adesaoEm, type EntradaCuidador } from '@/lib/caregiverSentinel'
+import LinhaDoTempo, { type EventoLinha } from '@/components/cuidador/LinhaDoTempo'
+import { ptDate } from '@/lib/ptTime'
 import PushNudge from '@/components/PushNudge'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -95,6 +98,63 @@ export default function FamiliaPage() {
     </div>
   )
 
+  // ── A leitura longitudinal ───────────────────────────────────────────────
+  // O analyzeFamilyMember lê o INSTANTE (medicação atual, última tensão). Isto
+  // lê as SEMANAS: adesão real, silêncio, e o que está a piorar face ao
+  // próprio hábito da pessoa. Ver lib/caregiverSentinel.
+  const [longit, setLongit] = useState<Record<string, { sinais: any[]; entrada: EntradaCuidador }>>({})
+  const [aberto, setAberto] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user || !profiles.length) return
+    let vivo = true
+    const hoje = ptDate()
+    ;(async () => {
+      const out: Record<string, { sinais: any[]; entrada: EntradaCuidador }> = {}
+      for (const p of profiles) {
+        if (links[p.id]) continue   // ligado a uma instituição: quem regista é o lar
+        try {
+          const entrada = await carregarEntradaCuidador(supabase, p.id, hoje)
+          out[p.id] = { entrada, sinais: sinaisLongitudinais(entrada, p.name, p.id, hoje) }
+        } catch { /* sem dados, sem sinais */ }
+      }
+      if (vivo) setLongit(out)
+    })()
+    return () => { vivo = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, profiles.length, Object.keys(links).length])
+
+  /** Tudo o que ficou registado sobre uma pessoa, por dia. */
+  function eventosDe(perfilId: string): EventoLinha[] {
+    const e = longit[perfilId]?.entrada
+    if (!e) return []
+    const nomeMed = new Map(e.meds.map(m => [m.id, m.name]))
+    const ev: EventoLinha[] = []
+    const DADA = new Set(['taken', 'given', 'administered'])
+    // Doses agrupadas por dia: "3 tomas marcadas" diz mais do que três linhas.
+    const porDia = new Map<string, { dadas: number; falhadas: string[] }>()
+    e.doses.forEach(d => {
+      const k = String(d.date).slice(0, 10)
+      if (!porDia.has(k)) porDia.set(k, { dadas: 0, falhadas: [] })
+      if (DADA.has(d.status)) porDia.get(k)!.dadas++
+      else porDia.get(k)!.falhadas.push(nomeMed.get(d.med_id) || 'medicamento')
+    })
+    porDia.forEach((v, k) => {
+      if (v.dadas) ev.push({ data: k, tipo: 'dose', texto: `${v.dadas} ${v.dadas === 1 ? 'toma marcada' : 'tomas marcadas'}` })
+      if (v.falhadas.length) ev.push({ data: k, tipo: 'dose', alerta: true,
+        texto: `${v.falhadas.length} ${v.falhadas.length === 1 ? 'dose não tomada' : 'doses não tomadas'}`,
+        detalhe: [...new Set(v.falhadas)].slice(0, 3).join(', ') })
+    })
+    e.vitals.forEach(v => {
+      if (v.weight != null) ev.push({ data: String(v.recorded_at).slice(0, 10), tipo: 'vital', texto: `Peso: ${v.weight} kg` })
+    })
+    e.sintomas.forEach(sy => {
+      const d = String((sy as any).at || (sy as any).created_at || '').slice(0, 10)
+      if (d) ev.push({ data: d, tipo: 'sintoma', alerta: Number((sy as any).severity) >= 7, texto: 'Queixa registada' })
+    })
+    return ev
+  }
+
   const watched = profiles.map(p => {
     const linked = !!links[p.id]
     if (linked) return { p, level: 'linked' as const, signals: [] as any[] }
@@ -104,6 +164,10 @@ export default function FamiliaPage() {
       vitals: vitals.filter(v => v.profile_id === p.id),
       symptoms: syms.filter(s => s.profile_id === p.id),
     })
+    // Os dois motores respondem a perguntas diferentes sobre a mesma pessoa;
+    // quem lê não tem de saber de onde veio cada sinal.
+    const extra = longit[p.id]?.sinais || []
+    if (extra.length) result.signals = [...extra, ...result.signals]
     return { p, level: result.level, signals: result.signals }
   })
 
@@ -163,7 +227,8 @@ export default function FamiliaPage() {
                 const linked = level === 'linked'
                 const meta = !linked ? WATCH_LEVEL_META[level as Exclude<typeof level, 'linked'>] : null
                 return (
-                  <Link key={p.id} href={`/perfil/${p.id}`} style={{
+                  <div key={p.id}>
+                  <Link href={`/perfil/${p.id}`} style={{
                     display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', textDecoration: 'none',
                     background: 'white', border: `1px solid ${!linked && level === 'critical' ? '#fca5a5' : '#e9eaec'}`, borderRadius: 14,
                   }}>
@@ -181,6 +246,47 @@ export default function FamiliaPage() {
                     </div>
                     <span style={{ fontSize: 18, color: '#cbd5e1', flexShrink: 0 }}>›</span>
                   </Link>
+
+                  {/* ── Como tem estado ─────────────────────────────────────
+                      A pergunta que se faz mesmo sobre alguém de quem se
+                      cuida. Estava espalhada por três páginas (medicação,
+                      vitais, sintomas) e por isso ninguém a respondia. Aqui é
+                      uma linha do tempo só, com os buracos à vista. */}
+                  {!linked && (
+                    <div style={{ marginTop: -4, marginBottom: 4 }}>
+                      <button onClick={() => setAberto(aberto === p.id ? null : p.id)}
+                        style={{
+                          width: '100%', textAlign: 'left', background: 'white',
+                          border: '1px solid #e9eaec', borderTop: 'none',
+                          borderRadius: '0 0 12px 12px', padding: '9px 16px',
+                          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+                          color: '#64748b', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        }}>
+                        <span>
+                          Como tem estado
+                          {(() => {
+                            const a = longit[p.id] ? adesaoEm(longit[p.id].entrada, 14, ptDate()) : null
+                            return a ? ` · ${a.pct}% da medicação marcada em 14 dias` : ''
+                          })()}
+                        </span>
+                        <span style={{ fontSize: 15, color: '#cbd5e1' }}>{aberto === p.id ? '−' : '+'}</span>
+                      </button>
+                      {aberto === p.id && (
+                        <div style={{
+                          background: 'white', border: '1px solid #e9eaec', borderTop: 'none',
+                          borderRadius: '0 0 12px 12px', padding: '16px 18px 14px', marginTop: -1,
+                        }}>
+                          <LinhaDoTempo
+                            eventos={eventosDe(p.id)}
+                            dias={30}
+                            vazioTexto={`Ainda não há nada registado sobre ${p.name.split(' ')[0]}. A linha do tempo enche-se à medida que fores marcando as tomas e as medições — e é o que se leva para a consulta.`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  </div>
                 )
               })}
 

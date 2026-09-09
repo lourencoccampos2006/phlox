@@ -1,8 +1,12 @@
 'use client'
 
 // PhloxCopilot — assistente contextual flutuante (Pro).
-// Atalho: Cmd/Ctrl+K abre. Sabe a página atual e qualquer texto selecionado.
 // Só aparece para plano Pro (e nunca em páginas públicas).
+//
+// 2026-09-08: o atalho Cmd/Ctrl+K saiu (abria-se sem querer, e num tablet de
+// sala não serve para nada), o foco passou a ser escolha de quem escreve em
+// vez de imposição, e o campo ganhou ditado por voz — numa sala de cuidados
+// escreve-se de pé e com uma mão só.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
@@ -14,6 +18,7 @@ import { save } from '@/lib/saves'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { marcarPresenca } from '@/lib/presenca'
 import { ptDate } from '@/lib/ptTime'
+import MicButton from '@/components/MicButton'
 
 // Páginas PÚBLICAS/marketing onde o Copilot nunca deve aparecer — nem sequer a
 // um utilizador com sessão iniciada (senão o ✦ fica por cima da landing page
@@ -41,6 +46,11 @@ const TOOL_BADGE: Record<string, string> = {
 }
 
 // Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver e a quem acompanha.
+const chipVolta: React.CSSProperties = {
+  border: '1px dashed #d6d8dc', background: 'none', borderRadius: 20,
+  padding: '3px 10px', fontSize: 11, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit',
+}
+
 function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfile | null): string[] {
   const l = (ctxLabel || '').toLowerCase()
   // Se há um doente/familiar em foco, oferece ações sobre ESSA pessoa primeiro.
@@ -93,15 +103,28 @@ export default function PhloxCopilot() {
   const hasBottomNav = !!user && (user.experience_mode || 'personal') !== 'clinical'
     && !(pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
 
-  // Acompanha o contexto publicado pelas ferramentas
+  // ── FOCO: agora é uma escolha, não uma imposição ─────────────────────────
+  // Antes o Copilot agarrava sozinho a página em que estavas e a pessoa que
+  // tinhas aberta, e mantinha isso agarrado. Quando a conversa mudava de
+  // assunto, ele continuava a responder sobre a pessoa anterior — parecia
+  // avariado. Agora sugere o foco, mas quem manda é quem escreve: dá para
+  // largar a pessoa e dá para largar "o que estou a ver".
+  const [usarPerfil, setUsarPerfil] = useState(true)
+  const [usarPagina, setUsarPagina] = useState(true)
+
   useEffect(() => {
     const update = () => setCtxLabel(getPhloxContext()?.label || '')
     update()
     return subscribePhloxContext(update)
   }, [])
 
-  // Sincroniza o perfil/doente ativo sempre que o painel abre (e à entrada).
   useEffect(() => { if (open) setActiveProf(getActiveProfile()) }, [open])
+
+  /** Recomeçar do zero — conversa, foco e memória do painel. */
+  const limparConversa = useCallback(() => {
+    setMsgs([]); setSelection(''); setUsarPerfil(true); setUsarPagina(true)
+    setTimeout(() => inputRef.current?.focus(), 30)
+  }, [])
 
   // Posição inicial e persistência do botão — limitada ao ecrã ATUAL. Sem
   // isto, uma posição guardada num ecrã maior (ex: desktop) podia cair fora
@@ -116,18 +139,12 @@ export default function PhloxCopilot() {
     } catch {}
   }, [])
 
-  // Atalho de teclado Cmd/Ctrl+K
+  // O Ctrl/Cmd+K saiu (2026-09-08, decisão do Fernando): abria-se sem querer,
+  // e num tablet de sala um atalho de teclado não serve para nada. Fica o
+  // Escape para fechar, que é o que qualquer pessoa espera.
   useEffect(() => {
     if (!isPro || isPublic) return
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        const sel = window.getSelection()?.toString() || ''
-        setSelection(sel.slice(0, 1500))
-        setOpen(o => !o)
-      }
-      if (e.key === 'Escape') setOpen(false)
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [isPro, isPublic])
@@ -143,8 +160,8 @@ export default function PhloxCopilot() {
     setMsgs(newMsgs); setBusy(true)
     try {
       const { data: sd } = await supabase.auth.getSession()
-      const pageContext = serializeContext(getPhloxContext())
-      const ap = getActiveProfile()
+      const pageContext = usarPagina ? serializeContext(getPhloxContext()) : ''
+      const ap = usarPerfil ? getActiveProfile() : null
       const profileCtx = ap
         ? (ap.type === 'self' ? 'O utilizador está a trabalhar no SEU próprio perfil.'
             : `O utilizador tem o perfil "${ap.name}" ativo${ap.type === 'patient' ? ' (um doente/utente que acompanha)' : ' (um familiar)'}.${ap.age ? ` ${ap.age} anos.` : ''}${ap.sex ? ` Sexo ${ap.sex}.` : ''}${ap.conditions ? ` Condições: ${ap.conditions}.` : ''}${ap.allergies ? ` Alergias: ${ap.allergies}.` : ''}`)
@@ -298,20 +315,45 @@ export default function PhloxCopilot() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: '#0d6e42', fontSize: 16 }}>✦</span>
               <span style={{ fontWeight: 700, fontSize: 14 }}>Phlox Copilot</span>
-              <span style={{ fontSize: 10, color: '#8b8f99', fontFamily: 'monospace' }}>⌘K</span>
             </div>
-            <button aria-label="Fechar" onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#8b8f99' }}>×</button>          </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+              {msgs.length > 0 && (
+                <button onClick={limparConversa} title="Começar uma conversa nova"
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11.5, color: '#6b7280', fontFamily: 'inherit', padding: '4px 8px' }}>
+                  Limpar
+                </button>
+              )}
+            <button aria-label="Fechar" onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#8b8f99' }}>×</button>
+            </div>
+          </div>
 
           {/* Mensagens */}
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {ctxLabel && (
+            {ctxLabel && usarPagina && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#0d6e42', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 10px' }}>
                 <span>👁</span> Estou a ver: <b>{ctxLabel}</b>
+                <button onClick={() => setUsarPagina(false)} aria-label="Deixar de usar o que estou a ver"
+                  title="Deixar de usar o que estou a ver"
+                  style={{ marginLeft: 'auto', border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.6, fontSize: 13, lineHeight: 1, padding: '0 2px' }}>×</button>
               </div>
             )}
-            {activeProf && activeProf.type !== 'self' && (
+            {activeProf && activeProf.type !== 'self' && usarPerfil && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: activeProf.type === 'patient' ? '#1e40af' : '#7c3aed', background: activeProf.type === 'patient' ? '#eff6ff' : '#faf5ff', border: `1px solid ${activeProf.type === 'patient' ? '#bfdbfe' : '#e9d5ff'}`, borderRadius: 8, padding: '6px 10px' }}>
                 <span>{activeProf.type === 'patient' ? '🧑‍⚕️' : '👥'}</span> Em foco: <b>{activeProf.name}</b>
+                <button onClick={() => setUsarPerfil(false)} aria-label="Largar esta pessoa"
+                  title="Largar esta pessoa — a conversa deixa de ser sobre ela"
+                  style={{ marginLeft: 'auto', border: 'none', background: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.6, fontSize: 13, lineHeight: 1, padding: '0 2px' }}>×</button>
+              </div>
+            )}
+            {/* Largado por engano? Volta a pegar. */}
+            {((!usarPagina && ctxLabel) || (!usarPerfil && activeProf && activeProf.type !== 'self')) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {!usarPagina && ctxLabel && (
+                  <button onClick={() => setUsarPagina(true)} style={chipVolta}>+ usar o que estou a ver</button>
+                )}
+                {!usarPerfil && activeProf && activeProf.type !== 'self' && (
+                  <button onClick={() => setUsarPerfil(true)} style={chipVolta}>+ falar de {activeProf.name.split(' ')[0]}</button>
+                )}
               </div>
             )}
             {msgs.length === 0 && (
@@ -357,6 +399,11 @@ export default function PhloxCopilot() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder="Pergunta…" rows={1}
                 style={{ flex: 1, resize: 'none', padding: '9px 11px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', maxHeight: 100, boxSizing: 'border-box' }} />
+              {/* Ditar em vez de escrever. Numa sala de cuidados escreve-se de
+                  pé, com uma mão e o telemóvel na outra — falar é mais rápido
+                  e mais provável de acontecer. O texto ditado fica no campo
+                  para se poder corrigir antes de enviar; nunca envia sozinho. */}
+              <MicButton size={36} onTranscript={t => setInput(v => (v ? v.trim() + ' ' : '') + t)} />
               <button onClick={() => send()} disabled={busy || !input.trim()} style={{
                 padding: '9px 14px', background: '#16181d', color: 'white', border: 'none', borderRadius: 8,
                 cursor: 'pointer', fontWeight: 600, fontSize: 13, opacity: busy || !input.trim() ? 0.5 : 1,

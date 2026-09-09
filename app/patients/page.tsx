@@ -22,7 +22,6 @@ import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { reportError } from '@/lib/clientError'
-import * as XLSX from 'xlsx'
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 function parseCSV(text: string): string[][] {
@@ -204,9 +203,13 @@ export default function PatientsPage() {
     const isExcel = /\.xlsx?$/i.test(file.name)
     if (isExcel) {
       const reader = new FileReader()
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
           const buf = ev.target?.result as ArrayBuffer
+          // Importada só agora, quando alguém escolhe mesmo um ficheiro: a
+          // biblioteca são 370 KB e vinha em TODAS as páginas que ligam a
+          // /utentes, por causa do prefetch dos links do Next.
+          const XLSX = await import('xlsx')
           const wb = XLSX.read(buf, { type: 'array' })
           const ws = wb.Sheets[wb.SheetNames[0]]
           const rows = (XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' }) as unknown[][])

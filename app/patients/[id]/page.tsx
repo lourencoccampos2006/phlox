@@ -90,6 +90,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [savingEdit, setSavingEdit] = useState(false)
   const [editErr, setEditErr] = useState('')
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  // Estado da conversão da morada em coordenadas, para se ver o resultado na
+  // hora em vez de descobrir depois noutra página que ficou por localizar.
+  const [geoEstado, setGeoEstado] = useState('')
 
   const [showAddMed, setShowAddMed] = useState(false)
   const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '', shifts: [] as string[], take_location: 'centro' })
@@ -155,6 +158,28 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     const { error } = await supabase.from('patients').update(patch).eq('id', patient.id)
     setSavingEdit(false)
     if (error) { setEditErr(reportError('patients-save-edit', error, MSG.save)); return }
+
+    // ── A morada vira coordenadas AQUI, ao gravar ─────────────────────────
+    // Antes só acontecia quando alguém abria o /apoio-servicos, e só para quem
+    // estivesse na rota daquele dia — por isso escrevia-se uma morada e ela
+    // ficava "sem coordenadas" sem explicação nenhuma. É aqui que a pessoa
+    // está a pensar na morada; é aqui que se resolve.
+    const moradaNova = (edit.address || '').trim()
+    if (moradaNova && moradaNova !== (patient.address || '').trim()) {
+      setGeoEstado('a localizar')
+      try {
+        const { data: sd } = await supabase.auth.getSession()
+        const r = await fetch('/api/geocode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+          body: JSON.stringify({ ids: [patient.id] }),
+        })
+        const d = await r.json()
+        setGeoEstado(d?.feitos?.length ? 'localizada' : 'nao_localizada')
+      } catch { setGeoEstado('nao_localizada') }
+      setTimeout(() => setGeoEstado(''), 8000)
+    }
+
     setEditing(false); load()
   }
 
@@ -702,6 +727,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               <input value={edit.conditions || ''} onChange={e => setEdit(p => ({ ...p, conditions: e.target.value }))} placeholder="Diagnósticos" style={inp} />
               <input value={edit.allergies || ''} onChange={e => setEdit(p => ({ ...p, allergies: e.target.value }))} placeholder="Alergias" style={inp} />
               <input value={edit.address || ''} onChange={e => setEdit(p => ({ ...p, address: e.target.value }))} placeholder={isDayCare ? 'Morada (recolha de transporte)' : 'Morada'} style={inp} />
+              <div style={{ fontSize: 11.5, lineHeight: 1.45, marginTop: -6, marginBottom: 6, color: geoEstado === 'nao_localizada' ? '#b45309' : geoEstado === 'localizada' ? '#15803d' : 'var(--ink-4)' }}>
+                {geoEstado === 'a localizar' ? 'A localizar a morada no mapa…'
+                  : geoEstado === 'localizada' ? '✓ Morada localizada — já aparece no mapa dos transportes.'
+                  : geoEstado === 'nao_localizada' ? 'Não foi possível localizar. Acrescenta o código postal e a localidade (ex.: 2745-123 Queluz) — é isso que o mapa usa.'
+                  : 'Com código postal e localidade aparece no mapa dos transportes.'}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input value={edit.room_number || ''} onChange={e => setEdit(p => ({ ...p, room_number: e.target.value }))} placeholder={cfg.roomLabel} style={inp} />
                 <input value={edit.emergency_contact || ''} onChange={e => setEdit(p => ({ ...p, emergency_contact: e.target.value }))} placeholder="Contacto SOS" style={inp} />

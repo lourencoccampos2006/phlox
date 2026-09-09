@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
 import { ensureUserScope, clearUserScopeOnSignOut, ensureProfileMatchesMode } from '@/lib/userScope'
 
@@ -137,7 +137,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  async function loadProfile(authUser: any) {
+  // ── Carregar o perfil UMA vez por conta ─────────────────────────────────
+  // O getSession() e o onAuthStateChange chamavam os dois isto no arranque, e
+  // o setUser corria duas vezes com objetos diferentes — o que fazia TODOS os
+  // efeitos que dependem de `user` dispararem outra vez. Resultado medido:
+  // cada página fazia o dobro das consultas ao Supabase (34 para 17 no
+  // /painel). O refreshUser() fura esta guarda de propósito: quando se muda
+  // de plano ou de organização, o perfil TEM de voltar a ser lido.
+  const perfilCarregado = useRef<string | null>(null)
+  const perfilEmCurso = useRef<Promise<void> | null>(null)
+
+  async function loadProfile(authUser: any, forcar = false) {
+    const id = authUser?.id
+    if (id && !forcar) {
+      if (perfilCarregado.current === id) return
+      if (perfilEmCurso.current) return perfilEmCurso.current
+    }
+    const p = carregarPerfil(authUser)
+    if (id) { perfilCarregado.current = id; perfilEmCurso.current = p }
+    try { await p } finally { perfilEmCurso.current = null }
+  }
+
+  async function carregarPerfil(authUser: any) {
     // Isolamento por conta: se a conta mudou neste browser, limpa os dados
     // locais da conta anterior (guardados, atalhos, etc.) antes de tudo.
     try { ensureUserScope(authUser?.id) } catch {}
@@ -269,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // não há refresh do browser, por isso isto é essencial).
   const refreshUser = async () => {
     const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) await loadProfile(session.user)
+    if (session?.user) await loadProfile(session.user, true)
   }
 
   return (
