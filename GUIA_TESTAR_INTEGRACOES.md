@@ -57,44 +57,41 @@ Há DUAS coisas diferentes:
 > Se ao "Ativar lembretes" aparecer uma caixa amarela a dizer "ainda não estão
 > ativadas no servidor", é porque ainda faltam as chaves do passo 2.
 
-### O "relógio" das tomas (cron) — no plano grátis da Vercel
+### O "relógio" das tomas (cron) — já está tratado
 
-⚠️ **O plano grátis (Hobby) da Vercel só deixa os crons correr 1× por dia.** Por
-isso é que o deploy dava erro quando tinha um cron de 15 em 15 minutos — removi-o.
+⚠️ **O plano grátis (Hobby) da Vercel só aceita 2 crons, e só 1× por dia cada
+um.** Era isso que fazia o deploy falhar. Por isso o `vercel.json` não tem crons
+nenhuns: **o agendador passou todo para o GitHub Actions**, que é gratuito e
+corre às mesmas horas (ambos usam UTC).
 
-Para os lembretes tocarem à hora certa, precisas de um **"relógio" externo
-gratuito** que bate no Phlox a cada 10–15 min. O endpoint já existe e está
-protegido pela tua `CRON_SECRET`. Opções **100% gratuitas** (escolhe UMA):
+Não tens de criar nada. Os ficheiros já existem:
 
-**Opção A — cron-job.org (recomendada, a mais simples):**
-1. Cria conta grátis em https://cron-job.org
-2. "Create cronjob" → URL: `https://phloxclinical.com/api/push/cron?secret=O_TEU_CRON_SECRET`
-3. Schedule: "Every 15 minutes". Guarda. Pronto — toca para sempre, de graça.
+- `.github/workflows/push-cron.yml` — os lembretes de medicação, de 15 em 15 min
+- `.github/workflows/crons.yml` — as outras cinco tarefas (resumo diário, caso
+  do dia, vigilância, ruturas e recolhas do INFARMED)
 
-**Opção B — GitHub Actions (se já tens o código no GitHub):**
-Cria `.github/workflows/push-cron.yml`:
-```yaml
-name: Phlox push reminders
-on:
-  schedule: [{ cron: '*/15 * * * *' }]
-jobs:
-  ping:
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -s "https://phloxclinical.com/api/push/cron?secret=${{ secrets.CRON_SECRET }}"
-```
-(Põe a `CRON_SECRET` em Settings → Secrets do repositório. Nota: o GitHub às vezes
-atrasa alguns minutos — para lembretes de medicação é aceitável.)
+**O único passo que é teu:** pôr o segredo em **GitHub → Settings → Secrets and
+variables → Actions → New repository secret**:
 
-**Opção C — UptimeRobot (monitor que também serve de relógio):**
-Cria um monitor HTTP gratuito que visita o URL do cron a cada 5 min. Simples, mas
-foi pensado para vigiar sites, não para crons — funciona à mesma.
+| Segredo | Valor |
+|---|---|
+| `CRON_SECRET` | exatamente o mesmo valor que está na Vercel |
+| `APP_URL` | `https://phloxclinical.com` (opcional — sem ele usa este) |
 
-> **Mais barato ainda (sem agendador nenhum):** os lembretes já funcionam **com a
-> app aberta** (há um "relógio" dentro da própria app). O agendador externo é só
-> para tocar com a app FECHADA. Se quiseres começar sem complicações, podes deixar
-> isto para depois e os lembretes funcionam na mesma quando o utilizador tem a app
-> aberta.
+Para testar sem esperar pela hora: **GitHub → Actions → "Crons do Phlox" → Run
+workflow**, e escolhe a tarefa. O registo diz-te, em português, se o segredo não
+bate certo (401) ou se a rota não existe (404).
+
+A lista completa dos horários e o que fazer quando algo não corre está em
+[`.github/CRON_SETUP.md`](.github/CRON_SETUP.md).
+
+> **Nota:** o GitHub às vezes atrasa alguns minutos quando está com carga, e
+> desliga workflows agendados em repositórios parados há 60 dias (avisa por
+> email). Para lembretes de medicação, o atraso é aceitável.
+
+> **Rede de segurança:** com a app aberta, os lembretes já tocam sozinhos (há um
+> relógio dentro da própria app). O agendador é o que faz tocar com a app
+> FECHADA — que é o que importa mesmo.
 
 ---
 
@@ -123,9 +120,9 @@ Criei um endereço que te diz, numa lista, **que funcionalidades estão prontas 
 quais precisam de uma migração SQL**. É a forma mais rápida de saber se algo está
 "partido" ou se só falta correr um ficheiro.
 
-Abre (com o teu CRON_SECRET):
+Abre pela linha de comandos (o segredo vai no cabeçalho, nunca no endereço):
 ```
-https://phloxclinical.com/api/health-check?secret=O_TEU_CRON_SECRET
+curl -H "x-cron-secret: O_TEU_CRON_SECRET" https://phloxclinical.com/api/health-check
 ```
 Mostra:
 - Se as chaves VAPID estão configuradas (notificações).

@@ -1,7 +1,9 @@
 // app/api/vigilancia/cron/route.ts
-// Vigilância noturna AUTOMÁTICA. Corre via cron (Vercel) — varre os residentes
-// de cada utilizador com plano clínico e atualiza o risco. De manhã o coordenador
-// abre /vigia e está tudo feito, com destaque para quem PIOROU.
+// Vigilância noturna AUTOMÁTICA. Corre via cron (GitHub Actions, ver
+// .github/workflows/crons.yml — o plano Hobby da Vercel não chega para isto) —
+// varre os residentes de cada utilizador com plano clínico e atualiza o risco.
+// De manhã o coordenador abre /vigia e está tudo feito, com destaque para quem
+// PIOROU.
 // Protegido por CRON_SECRET. Usa service role (sem sessão de utilizador).
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'

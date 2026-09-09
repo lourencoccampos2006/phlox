@@ -3,7 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { sendPushNotification } from '@/lib/webPush'
 import { ptHHMM, ptDate } from '@/lib/ptTime'
 
-// Called every 15 minutes by Vercel Cron (vercel.json) or an external scheduler.
+// Called every 15 minutes by GitHub Actions (.github/workflows/push-cron.yml)
+// or an external scheduler. NOT by Vercel Cron: the Hobby plan allows two cron
+// jobs, once a day each. See .github/CRON_SETUP.md.
 // Vercel sends: Authorization: Bearer <CRON_SECRET>
 // Manual/Cloudflare: x-cron-secret header or ?secret= query param
 export async function GET(req: NextRequest) {

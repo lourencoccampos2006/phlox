@@ -24,31 +24,5 @@
     "app/api/cron/caso-do-dia/route.ts": {
       "maxDuration": 120
     }
-  },
-  "crons": [
-    {
-      "path": "/api/push/cron",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/diario",
-      "schedule": "30 7 * * *"
-    },
-    {
-      "path": "/api/cron/caso-do-dia",
-      "schedule": "0 8 * * 1-5"
-    },
-    {
-      "path": "/api/vigilancia/cron",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/ingest-shortages",
-      "schedule": "0 6 * * 1"
-    },
-    {
-      "path": "/api/cron/ingest-recalls",
-      "schedule": "0 7 * * 1"
-    }
-  ]
+  }
 }

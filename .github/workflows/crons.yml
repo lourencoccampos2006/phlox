@@ -1,0 +1,148 @@
+name: Crons do Phlox
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Porque é que isto está aqui e não na Vercel
+#
+# O plano Hobby da Vercel aceita 2 cron jobs, e cada um só pode correr uma vez
+# por dia. O vercel.json tinha 6, um deles de 15 em 15 minutos — era isso que
+# fazia o deploy falhar. Os horários mudaram todos para cá.
+#
+# As horas são EXATAMENTE as mesmas. A Vercel corre os crons em UTC e o GitHub
+# também, portanto as mesmas expressões dão os mesmos momentos do dia. A única
+# diferença real é que o GitHub pode atrasar-se alguns minutos quando está com
+# muita carga; nenhuma destas tarefas depende do minuto exato.
+#
+# Em hora de Portugal (UTC+1 no verão, UTC no inverno):
+#   05:00 UTC  vigilância        → 06:00 verão / 05:00 inverno
+#   06:00 UTC  ruturas, 2ª feira → 07:00 verão / 06:00 inverno
+#   07:00 UTC  recolhas, 2ª      → 08:00 verão / 07:00 inverno
+#   07:30 UTC  resumo diário     → 08:30 verão / 07:30 inverno
+#   08:00 UTC  caso do dia, 2ª-6ª → 09:00 verão / 08:00 inverno
+#
+# O /api/push/cron ficou onde já estava, em push-cron.yml, de 15 em 15 minutos.
+#
+# Dois segredos, em Definições → Secrets and variables → Actions:
+#   CRON_SECRET  o MESMO valor que está na Vercel, sem espaços nem quebras
+#   APP_URL      opcional; sem ele usa https://phloxclinical.com
+#
+# Atenção: o GitHub desliga workflows agendados em repositórios sem atividade
+# durante 60 dias, e avisa por email antes. Um commit qualquer chega para os
+# reativar. E os agendamentos só correm a partir do ramo principal.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: '30 7 * * *'       # resumo diário para quem gere a casa
+    - cron: '0 8 * * 1-5'      # caso clínico do dia, dias úteis
+    - cron: '0 5 * * *'        # vigilância noturna de risco
+    - cron: '0 6 * * 1'        # ruturas do INFARMED, semanal
+    - cron: '0 7 * * 1'        # recolhas do INFARMED, semanal
+  workflow_dispatch:
+    inputs:
+      tarefa:
+        description: 'Qual correr agora'
+        required: true
+        default: todos
+        type: choice
+        options:
+          - todos
+          - diario
+          - caso-do-dia
+          - vigilancia
+          - ruturas
+          - recolhas
+
+jobs:
+  correr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Chamar as rotas do Phlox
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL || 'https://phloxclinical.com' }}
+          AGENDA: ${{ github.event.schedule }}
+          TAREFA: ${{ inputs.tarefa }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Falta o segredo CRON_SECRET. Cria-o em Definições → Secrets and variables → Actions com o MESMO valor que está na Vercel (Settings → Environment Variables → CRON_SECRET). Sem ele todas as rotas respondem 401 e nada corre."
+            exit 1
+          fi
+
+          FALHAS=0
+
+          # Sem o -f do curl. Com ele, um 401 fazia o curl sair com o código 22 e,
+          # como isto é uma atribuição `X=$(...)` sob `bash -e`, o passo morria
+          # aqui mesmo — todo o tratamento de erro em baixo nunca corria e o
+          # registo mostrava só "exit code 22", sem dizer o que se passou.
+          chamar() {
+            ROTA="$1"; LIMITE="$2"; NOME="$3"
+            echo "────────────────────────────────────────────────────────"
+            echo "${NOME}"
+            echo "${APP_URL}${ROTA} · $(date -u '+%Y-%m-%d %H:%M UTC')"
+
+            ESTADO=$(curl -s -o /tmp/resposta.json -w "%{http_code}" \
+              -X GET \
+              -H "x-cron-secret: ${CRON_SECRET}" \
+              --max-time "${LIMITE}" \
+              "${APP_URL}${ROTA}") || ESTADO="sem-resposta"
+
+            echo "Estado HTTP: ${ESTADO}"
+            head -c 2000 /tmp/resposta.json 2>/dev/null || true
+            echo
+
+            case "$ESTADO" in
+              2??)
+                echo "${NOME}: concluído." ;;
+              401)
+                echo "::error::401 em ${ROTA}. O CRON_SECRET do GitHub não coincide com o que está na Vercel. Confirma que são exatamente iguais, sem espaços nem quebras de linha."
+                FALHAS=$((FALHAS + 1)) ;;
+              404)
+                echo "::error::404 em ${APP_URL}${ROTA}. O endereço está errado ou a rota não foi publicada. Define o segredo APP_URL como https://phloxclinical.com e confirma que o último deploy passou."
+                FALHAS=$((FALHAS + 1)) ;;
+              503)
+                echo "::error::503 em ${ROTA}. Falta a chave de serviço do Supabase nas variáveis de ambiente da Vercel (SUPABASE_SERVICE_ROLE_KEY)."
+                FALHAS=$((FALHAS + 1)) ;;
+              5??)
+                echo "::error::${ESTADO} em ${ROTA}. A rota respondeu com erro de servidor — a resposta está em cima."
+                FALHAS=$((FALHAS + 1)) ;;
+              sem-resposta)
+                echo "::error::O servidor não respondeu em ${LIMITE}s a ${APP_URL}${ROTA}."
+                FALHAS=$((FALHAS + 1)) ;;
+              *)
+                echo "::error::Estado inesperado ${ESTADO} em ${APP_URL}${ROTA}."
+                FALHAS=$((FALHAS + 1)) ;;
+            esac
+          }
+
+          # Cada horário dispara a sua própria execução, e o GitHub diz-nos qual
+          # foi. À mão (workflow_dispatch) vale a escolha do menu.
+          ALVO="${TAREFA:-todos}"
+          if [ -n "$AGENDA" ]; then
+            case "$AGENDA" in
+              '30 7 * * *')  ALVO=diario ;;
+              '0 8 * * 1-5') ALVO=caso-do-dia ;;
+              '0 5 * * *')   ALVO=vigilancia ;;
+              '0 6 * * 1')   ALVO=ruturas ;;
+              '0 7 * * 1')   ALVO=recolhas ;;
+              *)
+                echo "::error::Horário desconhecido: '${AGENDA}'. Alguém mudou a lista de cima sem atualizar esta correspondência."
+                exit 1 ;;
+            esac
+          fi
+          echo "A correr: ${ALVO}"
+
+          # Os limites de tempo acompanham o maxDuration de cada rota no
+          # vercel.json, com folga para a viagem.
+          case "$ALVO" in todos|diario)       chamar /api/cron/diario           300 "Resumo diário — atenção, famílias à espera, stock em baixo" ;; esac
+          case "$ALVO" in todos|caso-do-dia)  chamar /api/cron/caso-do-dia      150 "Caso clínico do dia" ;; esac
+          case "$ALVO" in todos|vigilancia)   chamar /api/vigilancia/cron        90 "Vigilância noturna de risco" ;; esac
+          case "$ALVO" in todos|ruturas)      chamar /api/cron/ingest-shortages  90 "Ruturas de medicamentos (INFARMED)" ;; esac
+          case "$ALVO" in todos|recolhas)     chamar /api/cron/ingest-recalls    90 "Recolhas e alertas de qualidade (INFARMED)" ;; esac
+
+          echo "────────────────────────────────────────────────────────"
+          if [ "$FALHAS" -gt 0 ]; then
+            echo "::error::${FALHAS} tarefa(s) falharam. Ver os erros acima."
+            exit 1
+          fi
+          echo "Tudo concluído."
