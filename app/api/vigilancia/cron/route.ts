@@ -11,7 +11,7 @@ import { aiJSON } from '@/lib/ai'
 import { analyzeFamilyMember } from '@/lib/caregiverWatch'
 import { computeSelfRiskScore } from '@/lib/healthAlerts'
 import { RISK_LEVEL_META, type RiskLevel } from '@/lib/riskIndex'
-import { sendPushNotification } from '@/lib/webPush'
+import { enviarPush } from '@/lib/webPush'
 import { sendEmail, caregiverWatchEmail } from '@/lib/email'
 import { clinicalFindingsFor, type Finding } from '@/lib/medPrepIntel'
 
@@ -164,13 +164,13 @@ async function runSelfRiskWatch(db: any) {
         let didNotify = false
         const { data: subs } = await db.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId)
         for (const sub of subs || []) {
-          const ok = await sendPushNotification(sub, {
+          const r = await enviarPush(sub, {
             title: `Phlox — o teu Índice de Risco subiu`,
             body: `Passou de "${RISK_LEVEL_META[prevRow.level as RiskLevel].label}" para "${RISK_LEVEL_META[result.level].label}". Toca para ver o que mudou.`,
             url: '/timeline', tag: `self-risk-${userId}`,
           })
-          if (ok) didNotify = true
-          else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+          if (r.ok) didNotify = true
+          else if (r.expirada) await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
         }
         if (didNotify) notified++
       }
@@ -212,9 +212,9 @@ async function runRefillWatch(db: any) {
         : `${list.length} medicamentos a acabar em breve: ${list.map(m => m.name).join(', ')}.`
       let didNotify = false
       for (const sub of subs) {
-        const ok = await sendPushNotification(sub, { title: 'Phlox — medicação a acabar', body, url: '/mymeds', tag: `refill-${userId}` })
-        if (ok) didNotify = true
-        else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        const r = await enviarPush(sub, { title: 'Phlox — medicação a acabar', body, url: '/mymeds', tag: `refill-${userId}` })
+        if (r.ok) didNotify = true
+        else if (r.expirada) await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
       }
       if (didNotify) {
         notified++
@@ -270,9 +270,9 @@ async function runMissedDoseWatch(db: any) {
       for (const userId of recipients) {
         const { data: subs } = await db.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId)
         for (const sub of subs || []) {
-          const ok = await sendPushNotification(sub, { title: 'Phlox — toma por confirmar', body, url: `/perfil/${prof.id}`, tag: `missed-dose-${prof.id}` })
-          if (ok) anyNotified = true
-          else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+          const r = await enviarPush(sub, { title: 'Phlox — toma por confirmar', body, url: `/perfil/${prof.id}`, tag: `missed-dose-${prof.id}` })
+          if (r.ok) anyNotified = true
+          else if (r.expirada) await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
         }
       }
       if (anyNotified) notified++
@@ -342,13 +342,13 @@ async function runCaregiverWatch(db: any) {
         let didNotify = false
         const { data: subs } = await db.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', userId)
         for (const sub of subs || []) {
-          const ok = await sendPushNotification(sub, {
+          const r = await enviarPush(sub, {
             title: fresh.length === 1 ? `Phlox — ${fresh[0].who}: ${fresh[0].title}` : `Phlox — ${fresh.length} alertas na sua família`,
             body: fresh.length === 1 ? fresh[0].detail : fresh.map(f => `${f.who}: ${f.title}`).slice(0, 3).join(' · '),
             url: '/familia', tag: `fam-watch-${userId}`,
           })
-          if (ok) didNotify = true
-          else await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+          if (r.ok) didNotify = true
+          else if (r.expirada) await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
         }
         // Email resumo (best-effort; só se houver email do cuidador).
         const { data: au } = await db.auth.admin.getUserById(userId).catch(() => ({ data: null }))

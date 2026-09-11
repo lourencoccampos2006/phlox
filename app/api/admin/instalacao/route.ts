@@ -36,6 +36,7 @@ const TABELA_DE: Record<CodigoSetup, string | 'env'> = {
   'PHX-N8': 'meal_plan_entries',             // coluna course — verificada à parte
   'PHX-P1': 'user_sessions',
   'PHX-S3': 'activity_log',
+  'PHX-T3': 'support_transport_routes',
   'PHX-T5': 'patients',                      // coluna lat — verificada à parte
   'PHX-V7': 'shift_checkins',
   'PHX-R6': 'env',

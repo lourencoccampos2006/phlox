@@ -19,13 +19,21 @@ export async function POST(req: NextRequest) {
     { global: { headers: { Authorization: authHeader } } }
   )
 
-  // Upsert: one subscription per endpoint per user
-  await supabase.from('push_subscriptions').upsert({
+  // Uma subscricao por endpoint e por conta.
+  // O erro deste upsert era ignorado: se a gravacao falhasse, a resposta era
+  // `ok: true` na mesma e a pessoa ficava convencida de que tinha notificacoes
+  // ativas sem ter nenhuma linha na tabela. Agora falha a frente.
+  const { error } = await supabase.from('push_subscriptions').upsert({
     user_id: userId,
     endpoint: sub.endpoint,
     p256dh: sub.keys.p256dh,
     auth: sub.keys.auth,
   }, { onConflict: 'endpoint' })
+
+  if (error) {
+    console.error('[phlox:push] gravar subscricao falhou:', error.message)
+    return NextResponse.json({ error: 'Nao foi possivel guardar a subscricao.' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

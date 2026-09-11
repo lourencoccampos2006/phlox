@@ -16,6 +16,7 @@ import WidgetToggleList from '@/components/WidgetToggleList'
 import AlertPrefsList from '@/components/AlertPrefsList'
 import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 import { activatePush as activatePushShared, needsHomeScreenForPush } from '@/lib/pushActivation'
+import DiagnosticoPush from '@/components/DiagnosticoPush'
 import InstallInstructions from '@/components/InstallInstructions'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 
@@ -491,6 +492,9 @@ function SettingsPage() {
                 </>
               )}
             </div>
+
+            {/* Porque e que nao chegam. Ver components/DiagnosticoPush.tsx */}
+            <DiagnosticoPush supabase={supabase} />
 
             {/* What you'll receive */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>

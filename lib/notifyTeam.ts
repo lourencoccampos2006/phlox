@@ -5,7 +5,7 @@
 // Server-only: usa a service-role key (ignora RLS) para ler membros e subs.
 
 import { createClient } from '@supabase/supabase-js'
-import { sendPushNotification } from '@/lib/webPush'
+import { enviarPush } from '@/lib/webPush'
 
 export interface TeamPushPayload { title: string; body: string; url?: string; tag?: string }
 
@@ -24,11 +24,11 @@ export async function notifyOrgMembers(orgId: string, exceptUserId: string | nul
   const { data: subs } = await a.from('push_subscriptions').select('user_id, endpoint, p256dh, auth').in('user_id', ids)
   let sent = 0
   await Promise.all((subs || []).map(async (s: any) => {
-    const ok = await sendPushNotification(
+    const r = await enviarPush(
       { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } } as any,
       { title: payload.title, body: payload.body, url: payload.url || '/equipa?tab=mural', tag: payload.tag } as any,
     )
-    if (ok) sent++
+    if (r.ok) sent++
   }))
   return sent
 }

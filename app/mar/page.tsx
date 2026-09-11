@@ -13,6 +13,7 @@ import ClinicalGate from '@/components/ClinicalGate'
 import Icon from '@/components/Icon'
 import Link from 'next/link'
 import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
+import { registar, ACOES } from '@/lib/registo'
 
 // Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
 function LocBadge({ loc }: { loc?: string | null }) {
@@ -351,6 +352,33 @@ export default function MARPage() {
         if (error) { toast.error('Não foi possível registar a toma', reportError('mar-insert', error, 'Tenta de novo.')); return }
         if (data) setRecords(p => [...p, data])
       }
+
+      // ── O livro de registos ────────────────────────────────────────────
+      // Ver lib/registo.ts: as excecoes uma a uma, o turno em resumo. Isto
+      // faltava por completo — a medicacao era o unico trabalho do dia que
+      // nao deixava rasto nenhum em /historico.
+      const nomeUtente = selectedPatient?.name || 'o utente'
+      const nomeMed = meds.find(m => m.id === medId)?.name || 'o medicamento'
+      const ctxLivro = { supabase, scope, user: user as any }
+      const alvo = { subjectId: selectedId, subjectName: nomeUtente, entityId: selectedId }
+
+      if (status === 'refused') registar(ctxLivro, { ...ACOES.medicacaoRecusada(nomeUtente, nomeMed, notes || null), ...alvo })
+      else if (status === 'held') registar(ctxLivro, { ...ACOES.medicacaoSuspensa(nomeUtente, nomeMed, notes || null), ...alvo })
+      else if (!status && existing) registar(ctxLivro, { ...ACOES.medicacaoRetirada(nomeUtente, nomeMed), ...alvo })
+      else if (status === 'administered') {
+        // Uma so entrada, no momento em que o turno fica fechado — nao uma por
+        // dose. Calcula-se sobre o estado NOVO, porque o `records` do closure
+        // ainda e o de antes desta gravacao.
+        const doTurno = meds.filter(m => dueInShift(m, shift))
+        const decididos = new Map<string, string>()
+        records.filter(r => r.shift === shift && r.status).forEach(r => decididos.set(r.med_id, r.status as string))
+        decididos.set(medId, 'administered')
+        const faltam = doTurno.filter(m => !decididos.has(m.id))
+        if (doTurno.length && !faltam.length) {
+          const dadas = doTurno.filter(m => decididos.get(m.id) === 'administered').length
+          registar(ctxLivro, { ...ACOES.medicacaoTurno(nomeUtente, SHIFTS[shift].label, dadas, doTurno.length), ...alvo })
+        }
+      }
     } catch (e) {
       toast.error('Não foi possível guardar', reportError('mar-admin', e, 'Verifica a ligação e tenta de novo.'))
     } finally {
@@ -383,6 +411,16 @@ export default function MARPage() {
       const { data, error } = await supabase.from('mar_records').insert(inserts).select()
       if (error) { toast.error('Não foi possível registar tudo', reportError('mar-admin-all', error, 'Tenta de novo.')); return }
       if (data) setRecords(p => [...p, ...data])
+
+      // Marcou tudo de uma vez: o turno fica fechado aqui. Ver lib/registo.ts.
+      const decididos = new Map<string, string>()
+      records.filter(r => r.shift === shift && r.status).forEach(r => decididos.set(r.med_id, r.status as string))
+      pending.forEach(m => decididos.set(m.id, 'administered'))
+      const dadas = shiftMeds.filter(m => decididos.get(m.id) === 'administered').length
+      registar({ supabase, scope, user: user as any }, {
+        ...ACOES.medicacaoTurno(selectedPatient?.name || 'o utente', SHIFTS[shift].label, dadas, shiftMeds.length),
+        subjectId: selectedId, subjectName: selectedPatient?.name || null, entityId: selectedId,
+      })
     } catch (e) {
       toast.error('Não foi possível registar tudo', reportError('mar-admin-all', e, 'Verifica a ligação e tenta de novo.'))
     }

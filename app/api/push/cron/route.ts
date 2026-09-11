@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendPushNotification } from '@/lib/webPush'
+import { enviarPush } from '@/lib/webPush'
 import { ptHHMM, ptDate } from '@/lib/ptTime'
 
 // Called every 15 minutes by GitHub Actions (.github/workflows/push-cron.yml)
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
           const { data: subsBaixo } = await supabase
             .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', med.user_id)
           for (const sub of subsBaixo || []) {
-            await sendPushNotification(sub, {
+            await enviarPush(sub, {
               title: `${med.name} está a acabar`,
               body: diasQueFaltam <= 0
                 ? 'Já não há unidades suficientes para a próxima toma.'
@@ -105,19 +105,21 @@ export async function GET(req: NextRequest) {
         .eq('user_id', med.user_id)
 
       for (const sub of subs || []) {
-        const ok = await sendPushNotification(sub, {
+        const r = await enviarPush(sub, {
           title: `Phlox — ${med.name}${med.dose ? ' ' + med.dose : ''}`,
           body: `Hora de tomar o ${med.name}. Toca para confirmar.`,
           url: `/mymeds?confirm=${med.id}&date=${today}`,
           tag: `reminder-${med.id}`,
         })
-        if (ok) sent++
+        if (r.ok) sent++
         else {
           errors++
-          // Remove expired subscription
-          if (!ok) {
+          // Só o 410/404 diz que o dispositivo desapareceu. Qualquer outra
+          // falha é NOSSA (chave em falta, rede, 403) — apagar aqui era o que
+          // limpava a tabela inteira à primeira passagem do cron.
+          if (r.expirada) {
             await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
-          }
+          } else console.error('[phlox:push] envio falhou, subscrição mantida:', r.motivo)
         }
       }
     }
@@ -146,14 +148,14 @@ export async function GET(req: NextRequest) {
       const { data: subs } = await supabase
         .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', med.user_id)
       for (const sub of subs || []) {
-        const ok = await sendPushNotification(sub, {
+        const r = await enviarPush(sub, {
           title: `Phlox — ${who}: ${med.name}${med.dose ? ' ' + med.dose : ''}`,
           body: `Hora de dar o ${med.name} a ${who}.`,
           url: '/familia',
           tag: `fam-reminder-${med.id}`,
         })
-        if (ok) sent++
-        else { errors++; await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint) }
+        if (r.ok) sent++
+        else { errors++; if (r.expirada) await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); else console.error('[phlox:push] envio falhou, subscrição mantida:', r.motivo) }
       }
     }
   }
@@ -183,14 +185,14 @@ export async function GET(req: NextRequest) {
     const who = (prof?.name || 'Familiar').split(' ')[0]
     const { data: subs } = await supabase.from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', share.viewer_user_id)
     for (const sub of subs || []) {
-      const ok = await sendPushNotification(sub, {
+      const r = await enviarPush(sub, {
         title: `Phlox — ${who}`,
         body: `Há novidades na saúde de ${who} que partilharam consigo.`,
         url: '/partilhado-comigo',
         tag: `share-activity-${share.id}-${nowHHMM}`,
       })
-      if (ok) sent++
-      else { errors++; await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint) }
+      if (r.ok) sent++
+      else { errors++; if (r.expirada) await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); else console.error('[phlox:push] envio falhou, subscrição mantida:', r.motivo) }
     }
     await supabase.from('family_profile_shares').update({ last_activity_notified_at: new Date().toISOString() }).eq('id', share.id)
   }
@@ -274,14 +276,14 @@ export async function GET(req: NextRequest) {
           .eq('user_id', coord.id)
 
         for (const sub of subs || []) {
-          const ok = await sendPushNotification(sub, {
+          const r = await enviarPush(sub, {
             title: `MAR — ${totalMissing} doses em falta`,
             body: `Turno da ${shiftName === 'manha' ? 'manhã' : shiftName === 'tarde' ? 'tarde' : 'noite'}: ${names}${omissions.length > 3 ? ` e mais ${omissions.length - 3}` : ''}`,
             url: '/mar',
             tag: alertTag,
           })
-          if (ok) sent++
-          else await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+          if (r.ok) sent++
+          else if (r.expirada) await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
         }
       }
 

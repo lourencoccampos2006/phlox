@@ -109,7 +109,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => { params.then(p => setPid(p.id)) }, [params])
 
-  const today = new Date().toISOString().slice(0, 10)
+  // ptDate e não toISOString: no verão português (UTC+1), entre a meia-noite e
+  // a uma da manhã o toISOString ainda devolve o dia anterior — e o turno da
+  // noite via a medicação do dia errado.
+  const today = ptDate()
 
   const load = useCallback(async () => {
     if (!user || !pid) return

@@ -4,6 +4,7 @@
 // se está a funcionar". Protegido pelo CRON_SECRET (não é público).
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { chavesPush, chavePublicaDoCliente } from '@/lib/webPush'
 
 // Tabela → funcionalidade que depende dela. Se a tabela faltar, a funcionalidade
 // mostra "temporariamente indisponível".
@@ -49,7 +50,12 @@ export async function GET(req: NextRequest) {
     resumo: faltam.length === 0
       ? '✅ Todas as funcionalidades têm a base de dados pronta.'
       : `⚠️ ${faltam.length} funcionalidade(s) com tabela em falta — corre a migração SQL correspondente no Supabase.`,
-    vapid_configurado: !!process.env.VAPID_PRIVATE_KEY && !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    // Verifica o par que o ENVIO usa mesmo (ver lib/webPush.ts). Antes isto
+    // olhava para NEXT_PUBLIC_VAPID_PUBLIC_KEY e dizia "configurado" enquanto o
+    // envio morria por falta de VAPID_PUBLIC_KEY — um nome que mais nada usava.
+    vapid_configurado: chavesPush().falta.length === 0,
+    vapid_falta: chavesPush().falta,
+    vapid_chaves_coincidem: !!chavePublicaDoCliente() && chavePublicaDoCliente() === chavesPush().publica,
     cron_secret_configurado: !!process.env.CRON_SECRET,
     faltam,
     tudo: results,

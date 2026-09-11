@@ -24,6 +24,7 @@ import { ptDate } from '@/lib/ptTime'
 import { useLiveData } from '@/lib/useLiveData'
 import { marcarPresenca, type EstadoPresenca } from '@/lib/presenca'
 import LivroDeRegistos from '@/components/institution/LivroDeRegistos'
+import PatientTimeline from '@/components/PatientTimeline'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -564,6 +565,17 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       )}
 
       {children}
+
+      {/* ── A historia desta pessoa, dia a dia ────────────────────────────────
+          Faltava aqui. A ficha lia mar_records com .eq('date', hoje) e mais
+          nada: as doses de ontem existiam na base de dados e nao apareciam em
+          sitio nenhum, o que dava a impressao de que nao ficavam guardadas.
+          Este componente ja existia (90 dias, com filtro por assunto) e ate ja
+          estava importado na pagina — so nunca tinha sido colocado. */}
+      <div style={{ marginTop: 'var(--space-12)' }}>
+        <PatientTimeline patientId={pid} supabase={supabase} scope={scope} patientName={utente?.name} accent={cor} />
+      </div>
+
     <div style={{ marginTop: 'var(--space-12)', paddingTop: 'var(--space-9)', borderTop: '1px solid var(--border)' }}>
         <LivroDeRegistos subjectId={pid} limite={25} titulo="Tudo o que ficou registado" />
       </div>

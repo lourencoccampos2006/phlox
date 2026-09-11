@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
+import { separarMorada } from '@/lib/morada'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -37,47 +38,89 @@ async function autenticar(req: NextRequest) {
 
 const esperar = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-/** Uma morada → coordenadas, tentando do mais preciso para o mais grosseiro.
- *  Moradas portuguesas escritas à mão falham muito no Nominatim quando vão
- *  inteiras ("R. das Flores 12, 2745-123 Queluz"); o código postal e a
- *  localidade quase sempre acertam. Devolve também a precisão, para o mapa
- *  poder dizer se aquilo é a porta ou a zona. */
-async function geocodificar(morada: string): Promise<{ lat: number; lon: number; precisao: string } | null> {
-  const bruto = morada.trim().slice(0, 200)
-  if (!bruto) return null
+interface Achado { lat: number; lon: number; precisao: string; encontrado?: string }
 
-  const cp = bruto.match(/\b\d{4}-\d{3}\b/)?.[0] || bruto.match(/\b\d{4}\b/)?.[0] || ''
-  // Tudo o que vem depois do código postal costuma ser a localidade.
-  const localidade = cp
-    ? bruto.slice(bruto.indexOf(cp) + cp.length).replace(/^[\s,.-]+/, '').split(/[,\n]/)[0].trim()
-    : bruto.split(',').map(x => x.trim()).filter(Boolean).pop() || ''
+/** Portugal continental + ilhas. Fora disto e engano, nao resultado. */
+function dentroDePortugal(lat: number, lon: number): boolean {
+  return !isNaN(lat) && !isNaN(lon) && lat > 30 && lat < 43 && lon > -32 && lon < -6
+}
 
-  const tentativas: { q: string; precisao: string }[] = [
-    { q: bruto, precisao: 'morada' },
-    // sem o número de porta, que é onde falha mais
-    { q: bruto.replace(/\b(n\.?º?|no\.?)?\s*\d{1,4}\s*(,|$)/i, ' '), precisao: 'rua' },
-    ...(cp && localidade ? [{ q: `${cp} ${localidade}`, precisao: 'código postal' }] : []),
-    ...(cp ? [{ q: cp, precisao: 'código postal' }] : []),
-    ...(localidade ? [{ q: localidade, precisao: 'localidade' }] : []),
+/** Nominatim em modo ESTRUTURADO: cada peca da morada no seu campo.
+ *  E esta a diferenca que faz "rua + localidade" chegar. A pesquisa por texto
+ *  livre falha muito com moradas escritas a mao; com os campos separados, o
+ *  Nominatim sabe o que e via e o que e terra, e acerta. */
+async function nominatimEstruturado(
+  campos: { street?: string; city?: string; postalcode?: string },
+  precisao: string,
+): Promise<Achado | null> {
+  const qs = new URLSearchParams({ country: 'Portugal', format: 'json', limit: '1', addressdetails: '1' })
+  for (const [k, v] of Object.entries(campos)) if (v) qs.set(k, v)
+  if (!campos.street && !campos.city && !campos.postalcode) return null
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${qs}`, {
+      headers: { 'User-Agent': UA, 'Accept-Language': 'pt-PT' },
+    })
+    if (!r.ok) return null
+    const j = await r.json()
+    const p = Array.isArray(j) ? j[0] : null
+    const lat = Number(p?.lat), lon = Number(p?.lon)
+    if (!dentroDePortugal(lat, lon)) return null
+    return { lat, lon, precisao, encontrado: String(p?.display_name || '').slice(0, 160) }
+  } catch { return null }
+}
+
+/** O Photon (tambem do OpenStreetMap, mas com pesquisa difusa) apanha moradas
+ *  com erros de escrita e abreviaturas que o Nominatim recusa. Sem chave e sem
+ *  custo, como o outro. So entra depois de as tentativas estruturadas falharem. */
+async function photon(texto: string, precisao: string): Promise<Achado | null> {
+  const q = texto.trim()
+  if (q.length < 3) return null
+  try {
+    // A caixa delimitadora e o centro empurram os resultados para Portugal —
+    // sem isto, "Rua do Sol" devolve uma rua no Brasil.
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=pt&limit=1`
+      + `&bbox=-31.6,32.3,-6.1,42.3&lat=39.6&lon=-8.0`
+    const r = await fetch(url, { headers: { 'User-Agent': UA } })
+    if (!r.ok) return null
+    const j = await r.json()
+    const f = j?.features?.[0]
+    const lon = Number(f?.geometry?.coordinates?.[0]), lat = Number(f?.geometry?.coordinates?.[1])
+    if (!dentroDePortugal(lat, lon)) return null
+    const pr = f?.properties || {}
+    const nome = [pr.name, pr.street, pr.city, pr.postcode].filter(Boolean).join(', ')
+    return { lat, lon, precisao, encontrado: nome.slice(0, 160) }
+  } catch { return null }
+}
+
+/** Uma morada -> coordenadas, do mais preciso para o mais grosseiro.
+ *
+ *  A ordem importa. Comeca pela morada inteira com tudo o que ha, e so vai
+ *  alargando quando falha. Nunca INVENTA: se nenhuma etapa acertar, a pessoa
+ *  fica sem ponto e o mapa di-lo, em vez de a por num sitio aproximado. Um
+ *  ponto errado num mapa de transportes manda uma carrinha ao sitio errado. */
+async function geocodificar(morada: string): Promise<Achado | null> {
+  const m = separarMorada(morada)
+  if (!m.bruto) return null
+
+  // Sem o numero de porta: e onde o Nominatim falha mais, e a rua chega para
+  // saber a que porta ir.
+  const ruaSemNumero = m.rua.replace(/[,\s]*(n\.?º?|no\.?)?\s*\d{1,4}\s*[a-zA-Z]?\s*$/i, '').trim()
+
+  const tentativas: (() => Promise<Achado | null>)[] = [
+    () => nominatimEstruturado({ street: m.rua, city: m.localidade, postalcode: m.codigoPostal }, 'morada'),
+    () => nominatimEstruturado({ street: m.rua, city: m.localidade }, 'morada'),
+    () => nominatimEstruturado({ street: ruaSemNumero, city: m.localidade }, 'rua'),
+    () => nominatimEstruturado({ street: ruaSemNumero, postalcode: m.codigoPostal }, 'rua'),
+    () => photon([m.rua, m.localidade].filter(Boolean).join(', '), 'rua'),
+    () => nominatimEstruturado({ postalcode: m.codigoPostal, city: m.localidade }, 'codigo postal'),
+    () => nominatimEstruturado({ city: m.localidade }, 'localidade'),
+    () => photon(m.localidade, 'localidade'),
   ]
 
-  for (const t of tentativas) {
-    const q = t.q.trim()
-    if (q.length < 3) continue
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&countrycodes=pt&format=json&limit=1&addressdetails=0`
-      const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'pt-PT' } })
-      if (r.ok) {
-        const j = await r.json()
-        const p = Array.isArray(j) ? j[0] : null
-        const lat = Number(p?.lat), lon = Number(p?.lon)
-        // Portugal continental + ilhas. Fora disto é engano, não resultado.
-        if (!isNaN(lat) && !isNaN(lon) && lat > 30 && lat < 43 && lon > -32 && lon < -6) {
-          return { lat, lon, precisao: t.precisao }
-        }
-      }
-    } catch { /* tenta a etapa seguinte */ }
-    await esperar(1100)   // política do Nominatim: 1 pedido por segundo
+  for (const tentar of tentativas) {
+    const r = await tentar()
+    if (r) return r
+    await esperar(1100)   // politica do Nominatim: 1 pedido por segundo
   }
   return null
 }

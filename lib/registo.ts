@@ -100,6 +100,34 @@ export const ACOES = {
     summary: `Desmarcou a preparação de ${nome} — ${dia}, ${turno}.`,
   }),
 
+  // ── Administração ────────────────────────────────────────────────────────
+  // Uma entrada por TURNO e por pessoa, não por dose. Numa casa de trinta
+  // pessoas, dose a dose davam 150 a 250 linhas por dia e o livro deixava de
+  // se conseguir ler — as ocorrências e as presenças desapareciam no meio.
+  //
+  // As exceções são o contrário: cada recusa e cada suspensão tem linha
+  // própria, porque é exatamente isso que se procura numa inspeção ou quando
+  // se quer perceber o que correu mal. O dose a dose continua todo em
+  // mar_records, e vê-se na ficha da pessoa.
+  medicacaoTurno: (nome: string, turno: string, dadas: number, total: number) => ({
+    action: 'medicacao.turno', entity: 'patient',
+    summary: total === dadas
+      ? `Deu a medicação da ${turno.toLowerCase()} a ${nome} — ${dadas} de ${total}.`
+      : `Fechou a medicação da ${turno.toLowerCase()} de ${nome} — ${dadas} de ${total} administradas.`,
+  }),
+  medicacaoRecusada: (nome: string, med: string, motivo?: string | null) => ({
+    action: 'medicacao.recusada', entity: 'patient',
+    summary: `${nome} recusou ${med}.${motivo ? ` ${motivo}` : ''}`,
+  }),
+  medicacaoSuspensa: (nome: string, med: string, motivo?: string | null) => ({
+    action: 'medicacao.suspensa', entity: 'patient',
+    summary: `Suspendeu ${med} a ${nome}.${motivo ? ` ${motivo}` : ''}`,
+  }),
+  medicacaoRetirada: (nome: string, med: string) => ({
+    action: 'medicacao.retirada', entity: 'patient',
+    summary: `Retirou o registo de ${med} de ${nome}.`,
+  }),
+
   // ── Cuidado do dia ───────────────────────────────────────────────────────
   registoDoDia:     (nome: string, turno: string) => ({ action: 'cuidado.registo', entity: 'patient', summary: `Registou o dia de ${nome} (${turno}).` }),
   registoIgual:     (nome: string) => ({ action: 'cuidado.registo_igual', entity: 'patient', summary: `Registou o dia de ${nome} como igual ao anterior.` }),

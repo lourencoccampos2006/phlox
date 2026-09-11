@@ -28,14 +28,23 @@ import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
 
-import MapaDaRota, { type RotaCalculada } from '@/components/institution/MapaDaRota'
-import { montarRota, folhaDoMotorista } from '@/lib/rotaTransporte'
+import MapaLeaflet, { type RotaCalculada } from '@/components/institution/MapaLeaflet'
+import { montarRota, folhaDoMotorista, horariosDoCircuito, type Paragem } from '@/lib/rotaTransporte'
 import { useOrgName } from '@/lib/useOrgName'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
 import { registar, ACOES } from '@/lib/registo'
 
 interface Patient { id: string; name: string; room_number?: string | null; address?: string | null; photo_url?: string | null; lat?: number | null; lon?: number | null }
-interface Schedule { id: string; patient_id: string; label: string; weekdays: number[] | null; time: string | null; notes: string | null }
+type TipoTransporte = 'circuito' | 'consulta' | 'passeio' | 'pontual'
+interface Schedule {
+  id: string; patient_id: string; label: string; weekdays: number[] | null
+  time: string | null; notes: string | null
+  kind: TipoTransporte; route_id: string | null; destino: string | null; data: string | null
+}
+interface Circuito {
+  id: string; nome: string; direcao: 'recolha' | 'entrega'
+  hora_partida: string; minutos_paragem: number; weekdays: number[] | null; active: boolean
+}
 interface ScheduleLog { id: string; schedule_id: string; date: string; done: boolean }
 interface Service {
   id: string; patient_id: string | null; kind: 'roupa' | 'outro'
@@ -43,6 +52,20 @@ interface Service {
 }
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+// ── Os separadores ──────────────────────────────────────────────────────────
+// A página tinha tudo empilhado numa coluna só e obrigava a percorrer meia
+// dúzia de ecrãs para chegar aos serviços. Cada assunto passa a ter o seu
+// separador: abre-se o que se quer, e o resto não está lá a ocupar espaço.
+type Aba = TipoTransporte | 'roupa' | 'servicos'
+const ABAS: { id: Aba; label: string; icon: string; sub: string }[] = [
+  { id: 'circuito', label: 'Casa ↔ Centro', icon: 'route',   sub: 'O circuito diário. Uma hora de partida, as chegadas saem calculadas.' },
+  { id: 'consulta', label: 'Consultas',     icon: 'clock',   sub: 'Individual, com hora marcada que tem de ser respeitada.' },
+  { id: 'passeio',  label: 'Passeios',      icon: 'users',   sub: 'Grupo, ida e volta. Quem vai é uma lista, não um horário fixo.' },
+  { id: 'pontual',  label: 'Pontuais',      icon: 'package', sub: 'Farmácia, compras, levar a casa da família. Uma vez, sem repetição.' },
+  { id: 'roupa',    label: 'Roupa',         icon: 'shirt',   sub: 'Tratamento de roupa que se repete.' },
+  { id: 'servicos', label: 'Outros',        icon: 'clipboard', sub: 'Fim de semana, noite e pedidos avulsos.' },
+]
 const STATUS_META: Record<Service['status'], { label: string; color: string; bg: string }> = {
   pedido:    { label: 'Pedido',    color: '#b45309', bg: '#fffbeb' },
   em_curso:  { label: 'Em curso',  color: '#1d4ed8', bg: '#eff6ff' },
@@ -60,16 +83,22 @@ export default function ApoioServicosPage() {
   const today = new Date().toISOString().slice(0, 10)
   const todayWeekday = new Date().getDay()
 
+  const [aba, setAba] = useState<Aba>('circuito')
   const [patients, setPatients] = useState<Patient[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [circuitos, setCircuitos] = useState<Circuito[]>([])
+  const [circuitoId, setCircuitoId] = useState<string | null>(null)
   const [logs, setLogs] = useState<ScheduleLog[]>([])
   const [needsSetup, setNeedsSetup] = useState(false)
+  const [faltaSprint143, setFaltaSprint143] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [newFor, setNewFor] = useState<string | null>(null)
   const [newLabel, setNewLabel] = useState('')
   const [newTime, setNewTime] = useState('')
   const [newDays, setNewDays] = useState<number[] | null>(null)
+  const [newDestino, setNewDestino] = useState('')
+  const [newData, setNewData] = useState('')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
@@ -84,11 +113,12 @@ export default function ApoioServicosPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const [pats, sch, lgs, svcs] = await Promise.all([
+    const [pats, sch, lgs, svcs, rts] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,room_number,address,photo_url,lat,lon')).eq('active', true).order('name'),
       scope.filter(supabase.from('support_transport_schedules').select('*')).eq('active', true),
       scope.filter(supabase.from('support_transport_logs').select('id,schedule_id,date,done')).eq('date', today),
       scope.filter(supabase.from('support_services').select('*')).in('kind', ['roupa', 'outro']).neq('status', 'concluido').order('created_at', { ascending: false }),
+      scope.filter(supabase.from('support_transport_routes').select('*')).eq('active', true).order('hora_partida'),
     ])
     // As duas tabelas do par, não só a primeira: uma migração aplicada pela
     // metade deixava a outra a falhar em silêncio a cada visita (foi o caso
@@ -100,6 +130,11 @@ export default function ApoioServicosPage() {
     setSchedules(sch.data || [])
     setLogs(lgs.data || [])
     setServices(svcs.data || [])
+    // A tabela dos circuitos e a coluna `kind` vêm do sprint143. Enquanto não
+    // for aplicado, a página funciona na mesma — trata tudo como circuito, que
+    // era o unico tipo que existia — e o separador diz o que falta.
+    setCircuitos((rts as any)?.data || [])
+    setFaltaSprint143(emFalta((rts as any)?.error) || !!(sch.data || []).some((x: any) => x.kind === undefined))
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
@@ -197,9 +232,28 @@ export default function ApoioServicosPage() {
     setACalcular(false)
   }, [casaGeo])
 
+  // Só os horários do tipo que está a ser visto. Antes a rota misturava tudo:
+  // o circuito diário e a consulta de quinta-feira apareciam na mesma linha,
+  // como se o carro fosse fazer as duas coisas seguidas.
+  const doTipo = useMemo(
+    () => schedules.filter(x => (x.kind || 'circuito') === (aba === 'roupa' || aba === 'servicos' ? 'circuito' : aba)),
+    [schedules, aba])
+
+  const circuitoAtivo = useMemo(
+    () => circuitos.find(c => c.id === circuitoId) || circuitos[0] || null,
+    [circuitos, circuitoId])
+
+  // No separador do circuito, só quem pertence AO circuito escolhido (ou a
+  // nenhum, que é o caso de tudo o que existia antes do sprint143).
+  const doCircuito = useMemo(() => {
+    if (aba !== 'circuito') return doTipo
+    if (!circuitoAtivo) return doTipo
+    return doTipo.filter(x => !x.route_id || x.route_id === circuitoAtivo.id)
+  }, [doTipo, aba, circuitoAtivo])
+
   const rota = useMemo(
-    () => montarRota(schedules, patients, new Set(logs.filter(l => l.done).map(l => l.schedule_id)), todayWeekday),
-    [schedules, patients, logs, todayWeekday])
+    () => montarRota(doCircuito, patients, new Set(logs.filter(l => l.done).map(l => l.schedule_id)), todayWeekday),
+    [doCircuito, patients, logs, todayWeekday])
   const rotaRef = useRef(rota); rotaRef.current = rota
 
   // Tempos assim que houver coordenadas. A ordem ótima é sempre a pedido —
@@ -249,15 +303,25 @@ export default function ApoioServicosPage() {
 
   function openNew(patientId: string) { setNewFor(patientId); setNewLabel(''); setNewTime(''); setNewDays(null); setErr('') }
 
-  async function createSchedule() {
+  async function createSchedule(kind: TipoTransporte = 'circuito') {
     if (!newFor || !newLabel.trim()) return
     setSaving(true); setErr('')
-    const { error } = await supabase.from('support_transport_schedules').insert(scope.stamp({
+    // O circuito NAO leva hora por pessoa, de proposito: o motorista sai a uma
+    // hora so e a chegada a cada porta e calculada (ver lib/rotaTransporte,
+    // horariosDoCircuito). Pedir a hora de cada um era pedir para adivinhar o
+    // transito. Ja a consulta leva — la ha um medico a espera.
+    const linha: any = {
       user_id: user.id, patient_id: newFor, label: newLabel.trim().slice(0, 120),
-      weekdays: newDays, time: newTime || null, active: true,
-    }))
+      weekdays: kind === 'pontual' ? null : newDays, active: true, kind,
+      time: kind === 'circuito' ? null : (newTime || null),
+      destino: kind === 'circuito' ? null : (newDestino.trim().slice(0, 160) || null),
+      data: kind === 'pontual' ? (newData || today) : null,
+      route_id: kind === 'circuito' ? (circuitoAtivo?.id || null) : null,
+    }
+    if (faltaSprint143) { delete linha.kind; delete linha.destino; delete linha.data; delete linha.route_id }
+    const { error } = await supabase.from('support_transport_schedules').insert(scope.stamp(linha))
     if (error) { setErr(reportError('support-transport-create', error, MSG.save)); setSaving(false); return }
-    setSaving(false); setNewFor(null); setNewLabel(''); setNewTime('')
+    setSaving(false); setNewFor(null); setNewLabel(''); setNewTime(''); setNewDestino(''); setNewData('')
     load()
   }
 
@@ -267,6 +331,54 @@ export default function ApoioServicosPage() {
     if (error) { toast.error('Não foi possível remover', reportError('support-transport-remove', error, MSG.save)); return }
     load()
   }
+
+  // ── Os circuitos ──────────────────────────────────────────────────────────
+  async function criarCircuito(direcao: 'recolha' | 'entrega') {
+    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    const { data, error } = await supabase.from('support_transport_routes').insert(scope.stamp({
+      user_id: user.id,
+      nome: direcao === 'recolha' ? 'Recolha da manhã' : 'Entrega da tarde',
+      direcao, hora_partida: direcao === 'recolha' ? '08:00' : '17:00',
+      minutos_paragem: 3, weekdays: [1, 2, 3, 4, 5], active: true,
+    })).select().single()
+    if (error) { toast.error('Não foi possível criar o circuito', reportError('circuito-criar', error, MSG.save)); return }
+    if (data) { setCircuitos(c => [...c, data]); setCircuitoId(data.id) }
+  }
+
+  async function guardarCircuito(id: string, patch: Partial<Circuito>) {
+    setCircuitos(c => c.map(x => x.id === id ? { ...x, ...patch } as Circuito : x))
+    const { error } = await supabase.from('support_transport_routes').update(patch).eq('id', id)
+    if (error) { toast.error('Não foi possível guardar', reportError('circuito-guardar', error, MSG.save)); load() }
+  }
+
+  // ── As horas de chegada, calculadas ───────────────────────────────────────
+  // É isto que substitui a hora escrita à mão em cada pessoa: a partir da hora
+  // a que o carro sai e dos tempos de estrada reais que o /api/rota-otimizada
+  // devolveu, sai a hora a que se chega a cada porta.
+  const circuitoComHoras = useMemo(() => {
+    if (aba !== 'circuito' || !circuitoAtivo) return null
+    const comGeo = rotaFinal.paragens.filter(x => x.lat != null && x.lon != null)
+    if (!comGeo.length) return null
+    return horariosDoCircuito(
+      rotaFinal.paragens,
+      circuitoAtivo.hora_partida,
+      calculada?.pernas || [],
+      circuitoAtivo.minutos_paragem || 3,
+    )
+  }, [aba, circuitoAtivo, rotaFinal, calculada])
+
+  /** A rota que vai para o mapa e para a folha: com as horas calculadas quando
+   *  é um circuito, com as horas escritas quando é outra coisa. */
+  const rotaParaMostrar = useMemo(() => {
+    if (!circuitoComHoras) return rotaFinal
+    return {
+      ...rotaFinal,
+      paragens: circuitoComHoras.paragens.map(x => ({ ...x, hora: x.horaEstimada })) as Paragem[],
+      primeira: circuitoComHoras.partida,
+      ultima: circuitoComHoras.regresso,
+      duracaoMin: circuitoComHoras.minutosTotal,
+    }
+  }, [rotaFinal, circuitoComHoras])
 
   function toggleDay(d: number) {
     setNewDays(prev => { const base = prev || []; return base.includes(d) ? base.filter(x => x !== d) : [...base, d].sort() })
@@ -300,6 +412,7 @@ export default function ApoioServicosPage() {
 
   const filtered = patients.filter(p => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
   const svcColumns: Service['status'][] = ['pedido', 'em_curso']
+  const abaMeta = ABAS.find(a => a.id === aba)!
 
   if (needsSetup) {
     return (
@@ -311,216 +424,476 @@ export default function ApoioServicosPage() {
     )
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
-        <div className="page-container">
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Serviços de apoio</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Transportes, roupa e serviços complementares que se repetem toda a semana, e outros pedidos.</p>
-        </div>
-      </div>
+  // ── O quadro por pessoa ────────────────────────────────────────────────────
+  // Serve as consultas, os passeios e os pedidos pontuais: são a mesma forma
+  // (uma pessoa, uma ou mais deslocações), só mudam os campos que fazem
+  // sentido. O circuito NÃO passa por aqui — lá ninguém escreve horas.
+  //
+  // É uma função e não um componente de propósito: um componente definido
+  // dentro da página seria remontado a cada tecla e o cursor saltava do campo.
+  function quadroPorPessoa(kind: TipoTransporte) {
+    const doKind = (pid: string) => schedules.filter(x =>
+      x.patient_id === pid && (x.kind || 'circuito') === kind &&
+      (kind === 'pontual' ? true : (!x.weekdays || x.weekdays.includes(todayWeekday))))
 
-      <div className="page-container page-body" style={{ maxWidth: 860, display: 'flex', flexDirection: 'column', gap: 28 }}>
+    const comAlgo = filtered.filter(p => doKind(p.id).length > 0)
+    const lista = newFor ? filtered : (comAlgo.length ? comAlgo : filtered.slice(0, 8))
 
-        {/* ── A rota de hoje ──────────────────────────────────────────────
-            Isto é o que a página passou a ser. A lista por pessoa continua
-            em baixo, para criar e apagar horários; mas quem abre esta página
-            de manhã quer saber a ordem do carro, não uma grelha de
-            quadradinhos. */}
-        {!loading && (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                Rota de hoje
-              </span>
-              {rota.paragens.length > 0 && (
-                <button onClick={() => folhaDoMotorista(nomeCasa || 'Transportes', today, rota)} style={{
-                  minHeight: 36, padding: '0 13px', borderRadius: 8, border: '1px solid var(--border-2)',
-                  background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}>Folha do motorista</button>
-              )}
-            </div>
-            {semMoradaCasa && (
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 240px' }}>
-                  A instituição ainda não tem coordenadas — sem elas a rota não começa nem acaba na casa.
-                  {' '}<a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 600 }}>Confirma a morada</a>, ou converte-a agora.
-                </span>
-                {/* Uma morada gravada antes de isto existir ficou sem
-                    coordenadas. Este botão converte-a sem ter de a reescrever. */}
-                <button onClick={converterCasa} disabled={aConverterCasa} style={{
-                  minHeight: 34, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-2)',
-                  background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600,
-                  cursor: aConverterCasa ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                }}>{aConverterCasa ? 'a converter…' : 'Converter a morada da casa'}</button>
-              </div>
-            )}
-            <div style={{ marginTop: 14 }}>
-              <MapaDaRota
-                rota={rotaFinal}
-                casa={casaGeo}
-                cor={ACCENT}
-                marcar={id => { const s = schedules.find(x => x.id === id); if (s) toggle(s) }}
-                podeEditar={scope.canEdit}
-                calculada={calculada}
-                aCalcular={aCalcular}
-                otimizar={() => calcularRota(true)}
-              />
-            </div>
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {comAlgo.length === 0 && !newFor && (
+          <div style={{
+            background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 12,
+            padding: '16px 18px', fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6,
+          }}>
+            Ainda não há nada marcado. Escolhe a pessoa em baixo e carrega em <strong style={{ color: 'var(--ink-3)' }}>+ Marcar</strong>.
           </div>
         )}
 
-        {/* ── Transportes recorrentes ── */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Transportes recorrentes</div>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
-              style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-          </div>
-
-          {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 10 }} />)}</div>
-          ) : filtered.length === 0 ? (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 30, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13.5 }}>{cfg.emptyPeopleMsg}</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filtered.map(p => {
-                const todays = todaysFor(p.id)
-                const isNew = newFor === p.id
-                return (
-                  <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                        {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
-                      </div>
-                      <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{ padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                        {isNew ? 'Fechar' : '+ Transporte'}
-                      </button>
-                    </div>
-
-                    {todays.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-                        {todays.map(s => {
-                          const done = !!logFor(s.id)?.done
-                          return (
-                            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
-                              <input type="checkbox" checked={done} onChange={() => toggle(s)} style={{ width: 17, height: 17 }} />
-                              <Icon name="route" size={14} color={done ? '#16a34a' : 'var(--ink-4)'} />
-                              <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
-                                {s.label}{s.time ? ` · ${s.time}` : ''}
-                              </span>
-                              {!s.weekdays && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
-                              <button onClick={() => removeSchedule(s.id)} aria-label="Remover transporte recorrente" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15 }}>×</button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {isNew && (
-                      <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Ex: Fisioterapia, Recolha ao domicílio, Consulta regular"
-                          style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-                        <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} placeholder="Hora (opcional)"
-                          style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', width: 130 }} />
-                        <div>
-                          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Quando</div>
-                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            <button onClick={() => setNewDays(null)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays === null ? 'var(--ink)' : 'var(--border)'}`, background: newDays === null ? 'var(--ink)' : 'white', color: newDays === null ? 'white' : 'var(--ink-4)' }}>Todos os dias</button>
-                            {WEEKDAY_LABELS.map((label, d) => (
-                              <button key={d} onClick={() => toggleDay(d)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays?.includes(d) ? 'var(--ink)' : 'var(--border)'}`, background: newDays?.includes(d) ? 'var(--ink)' : 'white', color: newDays?.includes(d) ? 'white' : 'var(--ink-4)' }}>{label}</button>
-                            ))}
-                          </div>
-                        </div>
-                        {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
-                        <button onClick={createSchedule} disabled={saving || !newLabel.trim()} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving || !newLabel.trim() ? 'var(--bg-3)' : 'var(--ink)', color: saving || !newLabel.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving || !newLabel.trim() ? 'not-allowed' : 'pointer' }}>
-                          {saving ? 'A criar…' : 'Criar transporte recorrente'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ── Roupa recorrente + Serviços de fim de semana/noite (2026-08-11) ── */}
-        <RecurringServiceBoard title="Roupa recorrente" kinds={[{ id: 'roupa', label: 'Roupa' }]} icon="shirt" patients={patients} search={search} />
-        <RecurringServiceBoard title="Serviços de fim de semana / noite" kinds={[
-          { id: 'higiene_fds', label: 'Higiene · fim de semana' },
-          { id: 'alimentacao_fds', label: 'Alimentação · fim de semana' },
-          { id: 'reforco_noite', label: 'Reforço alimentar · noite (2ª-6ª)' },
-        ]} icon="clock" patients={patients} search={search} />
-
-        {/* ── Roupa & outros (secundário) ── */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Roupa & outros</div>
-            <button onClick={() => setShowNewSvc(v => !v)} style={{ padding: '7px 13px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', color: 'var(--ink-3)' }}>
-              {showNewSvc ? 'Cancelar' : '+ Novo pedido'}
-            </button>
-          </div>
-
-          {showNewSvc && (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setNewSvcKind('roupa')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newSvcKind === 'roupa' ? 'var(--ink)' : 'var(--border)'}`, background: newSvcKind === 'roupa' ? 'var(--ink)' : 'white', color: newSvcKind === 'roupa' ? 'white' : 'var(--ink-3)' }}>
-                  <Icon name="shirt" size={15} color={newSvcKind === 'roupa' ? 'white' : 'var(--ink-3)'} /> Tratamento de roupa
-                </button>
-                <button onClick={() => setNewSvcKind('outro')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newSvcKind === 'outro' ? 'var(--ink)' : 'var(--border)'}`, background: newSvcKind === 'outro' ? 'var(--ink)' : 'white', color: newSvcKind === 'outro' ? 'white' : 'var(--ink-3)' }}>
-                  <Icon name="package" size={15} color={newSvcKind === 'outro' ? 'white' : 'var(--ink-3)'} /> Outro
-                </button>
-              </div>
-              <select value={newSvcPatient} onChange={e => setNewSvcPatient(e.target.value)} style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }}>
-                <option value="">Sem {cfg.personNoun.toLowerCase()} associado</option>
-                {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <input value={newSvcNotes} onChange={e => setNewSvcNotes(e.target.value)} placeholder="Detalhe (opcional)"
-                style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
-              <button onClick={createService} disabled={svcSaving} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: svcSaving ? 'wait' : 'pointer' }}>
-                {svcSaving ? 'A publicar…' : 'Publicar pedido'}
-              </button>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
-            {svcColumns.map(colStatus => {
-              const items = services.filter(s => s.status === colStatus)
-              return (
-                <div key={colStatus}>
-                  <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: STATUS_META[colStatus].color, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 8 }}>
-                    {STATUS_META[colStatus].label} ({items.length})
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {items.length === 0 && <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 10, padding: '16px', textAlign: 'center', color: 'var(--ink-5)', fontSize: 12 }}>Nada aqui.</div>}
-                    {items.map(s => (
-                      <div key={s.id} style={{ background: STATUS_META[s.status].bg, border: `1px solid ${STATUS_META[s.status].color}33`, borderRadius: 10, padding: '10px 12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
-                            <Icon name={s.kind === 'roupa' ? 'shirt' : 'package'} size={14} color="var(--ink)" /> {s.kind === 'roupa' ? 'Tratamento de roupa' : 'Outro'}
-                          </div>
-                          <button onClick={() => removeService(s.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, padding: 0 }}>×</button>
-                        </div>
-                        {nameOf(s.patient_id) && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{nameOf(s.patient_id)}</div>}
-                        {s.notes && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 3 }}>{s.notes}</div>}
-                        <button onClick={() => advanceService(s)} style={{ marginTop: 8, padding: '5px 11px', background: 'white', border: `1px solid ${STATUS_META[s.status].color}`, color: STATUS_META[s.status].color, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                          {s.status === 'pedido' ? 'Assumir →' : 'Concluir ✓'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+        {lista.map(p => {
+          const seus = doKind(p.id)
+          const isNew = newFor === p.id
+          return (
+            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
+                  {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
                 </div>
+                <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{
+                  padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white',
+                  border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                }}>{isNew ? 'Fechar' : '+ Marcar'}</button>
+              </div>
+
+              {seus.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                  {seus.map(sc => {
+                    const done = !!logFor(sc.id)?.done
+                    return (
+                      <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                        <input type="checkbox" checked={done} onChange={() => toggle(sc)} style={{ width: 17, height: 17, flexShrink: 0 }} />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
+                          {sc.label}
+                          {sc.time ? <strong style={{ marginLeft: 7, fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>{String(sc.time).slice(0, 5)}</strong> : null}
+                          {sc.destino ? <span style={{ color: 'var(--ink-4)', marginLeft: 7 }}>→ {sc.destino}</span> : null}
+                        </span>
+                        {!sc.weekdays && kind !== 'pontual' && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
+                        <button onClick={() => removeSchedule(sc.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, flexShrink: 0 }}>×</button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {isNew && (
+                <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)}
+                    placeholder={kind === 'consulta' ? 'Ex: Consulta de oftalmologia' : kind === 'passeio' ? 'Ex: Passeio ao mercado' : 'Ex: Ida à farmácia'}
+                    style={campo} />
+                  <input value={newDestino} onChange={e => setNewDestino(e.target.value)}
+                    placeholder={kind === 'consulta' ? 'Onde (hospital, centro de saúde…)' : 'Onde'}
+                    style={campo} />
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={rotulo}>{kind === 'consulta' ? 'Hora da consulta' : 'Hora'}</div>
+                      <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} style={{ ...campo, width: 130 }} />
+                    </div>
+                    {kind === 'pontual' && (
+                      <div>
+                        <div style={rotulo}>Dia</div>
+                        <input type="date" value={newData || today} onChange={e => setNewData(e.target.value)} style={{ ...campo, width: 160 }} />
+                      </div>
+                    )}
+                  </div>
+
+                  {kind !== 'pontual' && (
+                    <div>
+                      <div style={rotulo}>Repete-se</div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        <button onClick={() => setNewDays(null)} style={pilula(newDays === null)}>Todos os dias</button>
+                        {WEEKDAY_LABELS.map((label, d) => (
+                          <button key={d} onClick={() => toggleDay(d)} style={pilula(!!newDays?.includes(d))}>{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
+                  <button onClick={() => createSchedule(kind)} disabled={saving || !newLabel.trim()} style={{
+                    alignSelf: 'flex-start', padding: '8px 16px',
+                    background: saving || !newLabel.trim() ? 'var(--bg-3)' : 'var(--ink)',
+                    color: saving || !newLabel.trim() ? 'var(--ink-4)' : 'white',
+                    border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700,
+                    cursor: saving || !newLabel.trim() ? 'not-allowed' : 'pointer',
+                  }}>{saving ? 'A guardar…' : 'Marcar'}</button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 0' }}>
+        <div className="page-container">
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Serviços de apoio</h1>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0', maxWidth: '62ch', lineHeight: 1.55 }}>{abaMeta.sub}</p>
+
+          {/* ── Os separadores ──────────────────────────────────────────────
+              Percorre na horizontal no telemóvel, em vez de empurrar a página
+              para baixo, que era o que obrigava a rolar meia dúzia de ecrãs
+              para chegar aos serviços. */}
+          <div style={{ display: 'flex', gap: 2, marginTop: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {ABAS.map(a => {
+              const on = aba === a.id
+              return (
+                <button key={a.id} onClick={() => { setAba(a.id); setNewFor(null) }} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                  padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 700 : 500,
+                  color: on ? 'var(--ink)' : 'var(--ink-4)',
+                  borderBottom: `2px solid ${on ? ACCENT : 'transparent'}`,
+                }}>
+                  <Icon name={a.icon} size={14} color={on ? ACCENT : 'var(--ink-5)'} />
+                  {a.label}
+                </button>
               )
             })}
           </div>
         </div>
       </div>
+
+      <div className="page-container page-body" style={{ maxWidth: 860, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {faltaSprint143 && aba !== 'roupa' && aba !== 'servicos' && (
+          <AvisoDeSetup codigo="PHX-T3" oQue="Os vários tipos de transporte ainda não estão disponíveis nesta conta — por agora tudo funciona como circuito diário." />
+        )}
+
+        {/* ══ CASA ↔ CENTRO ═══════════════════════════════════════════════ */}
+        {aba === 'circuito' && (
+          <>
+            {/* A hora de partida. A ÚNICA hora que alguém escreve. */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
+              {circuitos.length > 1 && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {circuitos.map(c => (
+                    <button key={c.id} onClick={() => setCircuitoId(c.id)} style={pilula(circuitoAtivo?.id === c.id)}>{c.nome}</button>
+                  ))}
+                </div>
+              )}
+
+              {!circuitoAtivo ? (
+                <div>
+                  <div style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, maxWidth: '56ch' }}>
+                    Ainda não há circuito. Cria um e diz só a que horas a carrinha sai —
+                    a hora a que chega a cada porta é calculada a partir da rota, com os tempos
+                    de estrada reais. Ninguém tem de adivinhar horas pessoa a pessoa.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 13, flexWrap: 'wrap' }}>
+                    <button onClick={() => criarCircuito('recolha')} disabled={faltaSprint143} style={botaoSolido(ACCENT, faltaSprint143)}>Criar a recolha da manhã</button>
+                    <button onClick={() => criarCircuito('entrega')} disabled={faltaSprint143} style={botaoVazio(faltaSprint143)}>Criar a entrega da tarde</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div>
+                    <div style={rotulo}>A carrinha sai às</div>
+                    <input type="time" value={circuitoAtivo.hora_partida}
+                      onChange={e => guardarCircuito(circuitoAtivo.id, { hora_partida: e.target.value })}
+                      disabled={!scope.canEdit}
+                      style={{ ...campo, width: 118, fontSize: 19, fontWeight: 700, fontFamily: 'var(--font-mono)' }} />
+                  </div>
+                  <div>
+                    <div style={rotulo}>A cada porta</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <input type="number" min={1} max={15} value={circuitoAtivo.minutos_paragem}
+                        onChange={e => guardarCircuito(circuitoAtivo.id, { minutos_paragem: Math.max(1, Math.min(15, Number(e.target.value) || 3)) })}
+                        disabled={!scope.canEdit} style={{ ...campo, width: 68 }} />
+                      <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>minutos</span>
+                    </div>
+                  </div>
+                  {circuitoComHoras && (
+                    <div style={{ flex: '1 1 190px' }}>
+                      <div style={rotulo}>De volta por volta das</div>
+                      <div style={{ fontSize: 19, fontWeight: 700, fontFamily: 'var(--font-mono)', color: ACCENT }}>
+                        {circuitoComHoras.regresso}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45 }}>
+                        {circuitoComHoras.minutosTotal} min no total
+                        {circuitoComHoras.aproximado ? ' · estimativa, ainda sem tempos de estrada reais' : ' · com os tempos de estrada reais'}
+                      </div>
+                    </div>
+                  )}
+                  {circuitos.length === 1 && scope.canEdit && (
+                    <button onClick={() => criarCircuito(circuitoAtivo.direcao === 'recolha' ? 'entrega' : 'recolha')} style={botaoVazio(false)}>
+                      + {circuitoAtivo.direcao === 'recolha' ? 'entrega da tarde' : 'recolha da manhã'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* O mapa e a sequência */}
+            {!loading && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px 16px' }}>
+                {semMoradaCasa && (
+                  <div style={{ marginBottom: 13, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 240px' }}>
+                      A instituição ainda não tem coordenadas — sem elas a rota não começa nem acaba na casa.
+                      {' '}<a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 600 }}>Confirma a morada</a>, ou converte-a agora.
+                    </span>
+                    <button onClick={converterCasa} disabled={aConverterCasa} style={botaoVazio(aConverterCasa)}>
+                      {aConverterCasa ? 'a converter…' : 'Converter a morada da casa'}
+                    </button>
+                  </div>
+                )}
+
+                <MapaLeaflet
+                  rota={rotaParaMostrar}
+                  casa={casaGeo}
+                  cor={ACCENT}
+                  marcar={(id: string) => { const sc = schedules.find(x => x.id === id); if (sc) toggle(sc) }}
+                  podeEditar={scope.canEdit}
+                  calculada={calculada}
+                  aCalcular={aCalcular}
+                  otimizar={() => calcularRota(true)}
+                />
+
+                {rotaParaMostrar.paragens.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <div style={rotulo}>A sequência do carro</div>
+                      <button onClick={() => folhaDoMotorista(nomeCasa || 'Transportes', today, rotaParaMostrar)} style={botaoVazio(false)}>
+                        Folha do motorista
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {rotaParaMostrar.paragens.map((pg, i) => {
+                        const done = pg.feito
+                        return (
+                          <div key={pg.scheduleId} style={{
+                            display: 'flex', alignItems: 'center', gap: 11,
+                            background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 9, padding: '9px 12px',
+                          }}>
+                            <input type="checkbox" checked={done} onChange={() => { const sc = schedules.find(x => x.id === pg.scheduleId); if (sc) toggle(sc) }} style={{ width: 17, height: 17, flexShrink: 0 }} />
+                            <span style={{
+                              fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700,
+                              color: done ? '#16a34a' : ACCENT, minWidth: 46,
+                            }}>{pg.hora || `${i + 1}.`}</span>
+                            <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)', opacity: done ? 0.6 : 1, textDecoration: done ? 'line-through' : 'none' }}>
+                              {pg.nome}
+                              {pg.morada ? <span style={{ color: 'var(--ink-4)', fontSize: 12.5 }}> · {pg.morada}</span> : null}
+                            </span>
+                            <button onClick={() => removeSchedule(pg.scheduleId)} aria-label="Tirar do circuito" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, flexShrink: 0 }}>×</button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {circuitoComHoras && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.55, maxWidth: '62ch' }}>
+                        As horas são calculadas a partir da hora de partida e do tempo de estrada entre
+                        cada porta. São uma estimativa boa, não uma promessa — o trânsito é do trânsito.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quem anda no circuito */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                <div style={rotulo}>Quem anda neste circuito</div>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`} style={{ ...campo, width: 210 }} />
+              </div>
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 58, borderRadius: 10 }} />)}</div>
+              ) : filtered.length === 0 ? (
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 30, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13.5 }}>{cfg.emptyPeopleMsg}</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {filtered.map(pp => {
+                    const seus = doCircuito.filter(x => x.patient_id === pp.id)
+                    const isNew = newFor === pp.id
+                    const semMorada = !pp.address
+                    return (
+                      <div key={pp.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{pp.name}</span>
+                            {semMorada && <span style={{ fontSize: 11, color: '#b45309', marginLeft: 8 }}>sem morada na ficha</span>}
+                          </div>
+                          <button onClick={() => isNew ? setNewFor(null) : openNew(pp.id)} style={{
+                            padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white',
+                            border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                          }}>{isNew ? 'Fechar' : seus.length ? '+ Outro' : '+ Pôr no circuito'}</button>
+                        </div>
+
+                        {seus.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                            {seus.map(sc => (
+                              <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                                <Icon name="route" size={14} color="var(--ink-4)" />
+                                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)' }}>{sc.label}</span>
+                                {!sc.weekdays && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
+                                <button onClick={() => removeSchedule(sc.id)} aria-label="Tirar do circuito" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15 }}>×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {isNew && (
+                          <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Ex: Recolha ao domicílio" style={campo} />
+                            <div>
+                              <div style={rotulo}>Em que dias</div>
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                <button onClick={() => setNewDays(null)} style={pilula(newDays === null)}>Todos os dias</button>
+                                {WEEKDAY_LABELS.map((label, d) => (
+                                  <button key={d} onClick={() => toggleDay(d)} style={pilula(!!newDays?.includes(d))}>{label}</button>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', lineHeight: 1.5, maxWidth: '54ch' }}>
+                              Sem hora, de propósito: neste circuito o carro sai às {circuitoAtivo?.hora_partida || '08:00'} e
+                              a hora de chegada a cada porta sai da rota.
+                            </div>
+                            {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
+                            <button onClick={() => createSchedule('circuito')} disabled={saving || !newLabel.trim()} style={{
+                              alignSelf: 'flex-start', padding: '8px 16px',
+                              background: saving || !newLabel.trim() ? 'var(--bg-3)' : 'var(--ink)',
+                              color: saving || !newLabel.trim() ? 'var(--ink-4)' : 'white',
+                              border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700,
+                              cursor: saving || !newLabel.trim() ? 'not-allowed' : 'pointer',
+                            }}>{saving ? 'A guardar…' : 'Pôr no circuito'}</button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ══ CONSULTAS · PASSEIOS · PONTUAIS ═════════════════════════════ */}
+        {(aba === 'consulta' || aba === 'passeio' || aba === 'pontual') && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <div style={rotulo}>{aba === 'pontual' ? 'Pedidos' : 'Hoje'}</div>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`} style={{ ...campo, width: 210 }} />
+            </div>
+            {loading
+              ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 58, borderRadius: 10 }} />)}</div>
+              : quadroPorPessoa(aba)}
+          </>
+        )}
+
+        {/* ══ ROUPA ═══════════════════════════════════════════════════════ */}
+        {aba === 'roupa' && (
+          <RecurringServiceBoard title="Roupa recorrente" kinds={[{ id: 'roupa', label: 'Roupa' }]} icon="shirt" patients={patients} search={search} />
+        )}
+
+        {/* ══ OUTROS SERVIÇOS ═════════════════════════════════════════════ */}
+        {aba === 'servicos' && (
+          <>
+            <RecurringServiceBoard title="Fim de semana / noite" kinds={[
+              { id: 'higiene_fds', label: 'Higiene · fim de semana' },
+              { id: 'alimentacao_fds', label: 'Alimentação · fim de semana' },
+              { id: 'reforco_noite', label: 'Reforço alimentar · noite (2ª-6ª)' },
+            ]} icon="clock" patients={patients} search={search} />
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={rotulo}>Pedidos avulsos</div>
+                <button onClick={() => setShowNewSvc(v => !v)} style={botaoVazio(false)}>{showNewSvc ? 'Cancelar' : '+ Novo pedido'}</button>
+              </div>
+
+              {showNewSvc && (
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setNewSvcKind('roupa')} style={pilula(newSvcKind === 'roupa')}>Tratamento de roupa</button>
+                    <button onClick={() => setNewSvcKind('outro')} style={pilula(newSvcKind === 'outro')}>Outro</button>
+                  </div>
+                  <select value={newSvcPatient} onChange={e => setNewSvcPatient(e.target.value)} style={campo}>
+                    <option value="">Sem {cfg.personNoun.toLowerCase()} associado</option>
+                    {patients.map(pp => <option key={pp.id} value={pp.id}>{pp.name}</option>)}
+                  </select>
+                  <input value={newSvcNotes} onChange={e => setNewSvcNotes(e.target.value)} placeholder="Detalhe (opcional)" style={campo} />
+                  <button onClick={createService} disabled={svcSaving} style={botaoSolido(ACCENT, svcSaving)}>
+                    {svcSaving ? 'A publicar…' : 'Publicar pedido'}
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+                {svcColumns.map(colStatus => {
+                  const items = services.filter(sv => sv.status === colStatus)
+                  return (
+                    <div key={colStatus}>
+                      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: STATUS_META[colStatus].color, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 8 }}>
+                        {STATUS_META[colStatus].label} ({items.length})
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {items.length === 0 && <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 10, padding: 16, textAlign: 'center', color: 'var(--ink-5)', fontSize: 12 }}>Nada aqui.</div>}
+                        {items.map(sv => (
+                          <div key={sv.id} style={{ background: STATUS_META[sv.status].bg, border: `1px solid ${STATUS_META[sv.status].color}33`, borderRadius: 10, padding: '10px 12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
+                                <Icon name={sv.kind === 'roupa' ? 'shirt' : 'package'} size={14} color="var(--ink)" /> {sv.kind === 'roupa' ? 'Tratamento de roupa' : 'Outro'}
+                              </div>
+                              <button onClick={() => removeService(sv.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, padding: 0 }}>×</button>
+                            </div>
+                            {nameOf(sv.patient_id) && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{nameOf(sv.patient_id)}</div>}
+                            {sv.notes && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 3 }}>{sv.notes}</div>}
+                            <button onClick={() => advanceService(sv)} style={{ marginTop: 8, padding: '5px 11px', background: 'white', border: `1px solid ${STATUS_META[sv.status].color}`, color: STATUS_META[sv.status].color, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                              {sv.status === 'pedido' ? 'Assumir →' : 'Concluir ✓'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
+
+// ── Alguns estilos repetidos, num sítio só ──────────────────────────────────
+const campo: React.CSSProperties = {
+  border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 11px',
+  fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+  boxSizing: 'border-box', minWidth: 0, maxWidth: '100%',
+}
+const rotulo: React.CSSProperties = {
+  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-4)',
+  textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5,
+}
+const pilula = (on: boolean): React.CSSProperties => ({
+  padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+  fontFamily: 'inherit', border: `1.5px solid ${on ? 'var(--ink)' : 'var(--border)'}`,
+  background: on ? 'var(--ink)' : 'white', color: on ? 'white' : 'var(--ink-4)',
+})
+const botaoSolido = (cor: string, ocupado: boolean): React.CSSProperties => ({
+  alignSelf: 'flex-start', padding: '9px 16px', background: ocupado ? 'var(--bg-3)' : cor,
+  color: ocupado ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8,
+  fontSize: 12.5, fontWeight: 700, cursor: ocupado ? 'wait' : 'pointer', fontFamily: 'inherit',
+})
+const botaoVazio = (ocupado: boolean): React.CSSProperties => ({
+  minHeight: 34, padding: '0 13px', borderRadius: 8, border: '1px solid var(--border-2)',
+  background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600,
+  cursor: ocupado ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+})
 
 // ─── Quadro de serviço recorrente genérico ──────────────────────────────────
 // Novo 2026-08-11 — mesma forma que "Transportes recorrentes" acima (uma

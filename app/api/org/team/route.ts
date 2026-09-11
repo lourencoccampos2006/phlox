@@ -209,7 +209,41 @@ export async function DELETE(req: NextRequest) {
   if (other?.org_id) {
     await a.from('profiles').update({ active_org_id: other.org_id, org_id: other.org_id }).eq('id', target)
   } else {
-    await a.from('profiles').update({ active_org_id: null, org_id: null, plan: 'free' }).eq('id', target)
+    // 2026-09-11: faltava aqui o `experience_mode`. O POST em cima põe-no a
+    // 'clinical' (linhas 124 e 161) e é ESSE campo — não o plano — que faz o
+    // /inicio e o /painel arrancarem no modo institucional. Limpar só o plano
+    // e a org deixava a pessoa a entrar numa instituição vazia: perdia os
+    // dados, mas continuava a ver a casa toda como interface. Daí o
+    // "continua a ter conta institucional".
+    //
+    // O org_role e o institution_type vão pelo mesmo motivo: são resíduo de
+    // uma pertença que já não existe, e o institution_type ainda mudava o
+    // vocabulário da aplicação inteira ("utente", "residente") a alguém que
+    // já não trabalha em lado nenhum.
+    await a.from('profiles').update({
+      active_org_id: null,
+      org_id: null,
+      plan: 'free',
+      experience_mode: 'personal',
+      org_role: null,
+      institution_type: null,
+    }).eq('id', target)
   }
+
+  // A linha das escalas. Sem isto, quem saiu continuava a aparecer como
+  // agendável em /schedule e /equipa — não tinha acesso, mas o turno ainda lhe
+  // podia ser atribuído, e alguém contava com ela.
+  //
+  // Apaga-se a linha em vez de a marcar: o `status` de team_members é o estado
+  // de turno ('on_shift', 'sick', 'vacation'…), não pertença — pô-lo a 'off'
+  // diria "está de folga", que é outra coisa. O filtro é pelo par org+conta,
+  // por isso só desaparece a linha que o convite criou; as pessoas que alguém
+  // escreveu à mão na escala (sem conta ligada) ficam onde estão. Os turnos já
+  // passados que apontem para esta linha continuam a desenhar — o /equipa já
+  // ignora atribuições sem membro (components/team/EscalasEquipa.tsx).
+  const { error: tmErr } = await a.from('team_members')
+    .delete().eq('org_id', orgId).eq('user_id', target)
+  if (tmErr) console.error('[phlox:org-team] remover de team_members falhou:', tmErr.message)
+
   return NextResponse.json({ ok: true })
 }

@@ -13,6 +13,7 @@
 // há, da última parte da morada — servem para agrupar em texto, no papel do
 // motorista, e são independentes das coordenadas.
 // ─────────────────────────────────────────────────────────────────────────────
+import { separarMorada, zonaDaMoradaPartida } from './morada'
 
 export interface HorarioTransporte {
   id: string
@@ -59,20 +60,12 @@ export interface Rota {
   semHora: number
 }
 
-const SEM_ZONA = 'Sem morada registada'
 
-/** "Rua X, 2745-123 Queluz" → "2745 · Queluz". Sem código postal, a última parte. */
+/** "Rua X, 2745-123 Queluz" -> "2745 . Queluz". Sem codigo postal, a terra.
+ *  Delega em lib/morada: tinha aqui a MESMA leitura errada do /api/geocode,
+ *  em que "Rua das Flores 1234" dava a zona "1234" — o numero da porta. */
 export function zonaDaMorada(morada?: string | null): string {
-  const m = String(morada || '').trim()
-  if (!m) return SEM_ZONA
-  const cp = m.match(/\b(\d{4})-?\d{0,3}\b/)
-  if (cp) {
-    // apanha a localidade logo a seguir ao código postal, quando existe
-    const depois = m.slice(m.indexOf(cp[0]) + cp[0].length).replace(/^[\s,.-]+/, '').split(/[,\n]/)[0].trim()
-    return depois ? `${cp[1]} · ${depois.slice(0, 24)}` : cp[1]
-  }
-  const partes = m.split(',').map(p => p.trim()).filter(Boolean)
-  return (partes[partes.length - 1] || m).slice(0, 28)
+  return zonaDaMoradaPartida(separarMorada(morada))
 }
 
 const minutos = (hhmm: string | null): number | null => {
@@ -191,4 +184,84 @@ footer { margin-top:22px; border-top:1px solid #d9dad2; padding-top:8px; font-si
   w.focus()
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
   return true
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O CIRCUITO: uma hora de partida, e as chegadas saem sozinhas.
+//
+// Num transporte casa-centro-casa nao faz sentido marcar uma hora a cada
+// pessoa. O motorista sai a uma hora e vai recolhendo toda a gente pela ordem
+// que faz menos quilometros; a hora a que chega a cada porta e uma CONSEQUENCIA
+// da rota, nao uma decisao de quem organiza. Pedir essas horas uma a uma era
+// pedir a alguem para adivinhar o transito.
+//
+// Por isso: a pessoa diz a que horas o carro sai, e isto calcula o resto a
+// partir dos tempos de estrada reais que o /api/rota-otimizada devolve.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ParagemComHora extends Paragem {
+  /** hora estimada de chegada a esta porta, "HH:MM" */
+  horaEstimada: string
+  /** minutos de estrada desde a paragem anterior (da casa, na primeira) */
+  minutosDeEstrada: number
+}
+
+export interface Circuito {
+  paragens: ParagemComHora[]
+  partida: string
+  /** hora a que o carro esta de volta a casa com toda a gente */
+  regresso: string
+  minutosTotal: number
+  /** true quando os tempos sao estimados por distancia, sem estradas reais */
+  aproximado: boolean
+}
+
+const paraHHMM = (m: number): string => {
+  const mm = ((Math.round(m) % 1440) + 1440) % 1440
+  return `${String(Math.floor(mm / 60)).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`
+}
+
+/**
+ * Calcula a que horas o carro chega a cada porta.
+ *
+ * @param paragens   ja pela ordem do percurso (a que o /api/rota-otimizada deu)
+ * @param partida    "HH:MM" a que o carro sai da instituicao
+ * @param pernas     minutos de estrada de cada troco, na mesma ordem:
+ *                   pernas[0] = casa -> 1a paragem, pernas[1] = 1a -> 2a, ...
+ *                   A ultima perna, se existir, e o regresso a casa.
+ * @param minutosPorParagem  quanto demora a recolher cada pessoa a porta
+ */
+export function horariosDoCircuito(
+  paragens: Paragem[],
+  partida: string,
+  pernas: number[],
+  minutosPorParagem = 3,
+): Circuito {
+  const inicio = minutos(partida) ?? 8 * 60
+  let relogio = inicio
+  const aproximado = !pernas.length
+
+  const comHora: ParagemComHora[] = paragens.map((p, i) => {
+    // Sem tempos reais de estrada (sem coordenadas, ou o servico em baixo),
+    // usa-se um valor honesto e diz-se que e aproximado — nunca se finge
+    // precisao que nao ha.
+    const estrada = pernas[i] != null ? pernas[i] : 6
+    relogio += estrada
+    const horaEstimada = paraHHMM(relogio)
+    relogio += minutosPorParagem
+    return { ...p, horaEstimada, minutosDeEstrada: estrada }
+  })
+
+  // O troco de volta a casa: a ultima perna quando o servico a devolveu.
+  const volta = pernas.length > paragens.length ? pernas[paragens.length] : (pernas.length ? 6 : 6)
+  const fim = relogio - minutosPorParagem + volta
+
+  return {
+    paragens: comHora,
+    partida: paraHHMM(inicio),
+    regresso: paraHHMM(fim),
+    minutosTotal: Math.max(0, Math.round(fim - inicio)),
+    aproximado,
+  }
 }
