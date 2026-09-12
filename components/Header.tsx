@@ -9,6 +9,7 @@ import { MODE_META, type ExperienceMode } from '@/lib/experienceMode'
 import { PRIMARY_NAV } from '@/lib/primaryNav'
 import { modeTheme } from '@/lib/modeTheme'
 import Icon from '@/components/Icon'
+import NotificationBell from '@/components/NotificationBell'
 
 // ─── DesktopSecondaryNav ────────────────────────────────────────────────────
 // No mobile há a BottomNav (fixa, em baixo). No desktop não havia nenhuma
@@ -554,6 +555,14 @@ export default function Header() {
                   )
                 })()}
 
+
+                {/* O sino. Saiu daqui a 2026-09-08 por uma razao boa: fora de
+                    uma instituicao nao tinha nada para mostrar, e um sino
+                    sempre vazio le-se como um sino avariado. Volta agora que
+                    o /api/notifications tambem responde no modo pessoal (o que
+                    falta tomar hoje, o que esta a acabar) e que as
+                    instituicoes passaram a ter avisos a serio. Ver lib/avisos. */}
+                <NotificationBell />
 
                 <span className="hdr-usermenu"><UserMenu user={user as HeaderUser} signOut={signOut} supabase={supabase} /></span>
 

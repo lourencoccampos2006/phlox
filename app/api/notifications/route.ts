@@ -1,140 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserPlan } from '@/lib/planGate'
 import { createClient } from '@supabase/supabase-js'
-import { ptDate } from '@/lib/ptTime'
+import { avisosDaInstituicao, avisosPessoais, type Aviso } from '@/lib/avisos'
 
-// ── O SINO (reescrito 2026-08-31) ─────────────────────────────────────────
-// Mostrava só mensagens do Mural marcadas como importantes ou urgentes, das
-// últimas 48 horas, escritas por outra pessoa. É uma fatia estreitíssima: na
-// maioria dos dias não havia nenhuma, o sino ficava vazio, e um sino que está
-// sempre vazio lê-se como um sino avariado.
+// ── O SINO ────────────────────────────────────────────────────────────────
+// Reescrito 2026-08-31 (juntava só mensagens do Mural e estava quase sempre
+// vazio) e outra vez 2026-09-12, por uma razão diferente: o cálculo do que
+// merece atenção passou para lib/avisos.ts, partilhado com o cron das
+// notificações.
 //
-// Agora junta as quatro coisas que num lar ou centro de dia mesmo pedem
-// atenção hoje, por esta ordem:
-//   1. ocorrências que ficaram com seguimento por fazer
-//   2. famílias à espera de resposta
-//   3. tomas recusadas ou suspensas hoje (o que a passagem de turno tem de levar)
-//   4. mensagens do Mural por resolver
+// Antes eram dois cálculos independentes que davam respostas diferentes — o
+// sino mostrava quatro tipos de aviso, o push enviava um só, e mal. Agora se
+// está no sino é porque foi (ou vai ser) empurrado, e vice-versa.
 //
-// NADA é inventado: cada linha aponta para um registo real e leva o utilizador
-// ao sítio onde ele está. Se não houver nada, o sino diz que não há nada — que
-// é uma resposta legítima e, num dia bom, a mais comum.
-
-type Aviso = {
-  id: string
-  type: string
-  title: string
-  body: string
-  href: string
-  created_at: string
-  priority: 'high' | 'normal'
-}
+// Fora de uma instituição o sino deixou de estar vazio: mostra o que falta
+// tomar hoje e o que está a acabar (ver avisosPessoais).
 
 export async function GET(req: NextRequest) {
   const { userId } = await getUserPlan(req)
   if (!userId) return NextResponse.json({ notifications: [], unread: 0 })
 
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !anon) return NextResponse.json({ notifications: [], unread: 0 })
+
   const authHeader = req.headers.get('authorization') || ''
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: authHeader } } }
-  )
+  const supabase = createClient(url, anon, { global: { headers: { Authorization: authHeader } } })
 
   const { data: prof } = await supabase
-    .from('profiles').select('active_org_id, org_id').eq('id', userId).maybeSingle()
+    .from('profiles').select('active_org_id, org_id, institution_type').eq('id', userId).maybeSingle()
   const orgId = prof?.active_org_id || prof?.org_id || null
 
-  // Sem organização não há nada institucional para mostrar. Devolvemos vazio,
-  // mas com `sem_org` — antes isto era indistinguível de "está tudo em ordem",
-  // e foi exatamente por aqui que o sino pareceu partido durante meses.
-  if (!orgId) return NextResponse.json({ notifications: [], unread: 0, sem_org: true })
+  const avisos: Aviso[] = orgId
+    ? await avisosDaInstituicao(supabase, orgId, {
+        excluirAutor: userId,
+        tipoInstituicao: (prof as any)?.institution_type || null,
+      })
+    : await avisosPessoais(supabase, userId)
 
-  const hoje = ptDate()
-  const desde48h = new Date(Date.now() - 48 * 3600000).toISOString()
-
-  const [inc, fam, mar, mural, pts] = await Promise.all([
-    supabase.from('incidents')
-      .select('id, date, type, description, patient_id')
-      .eq('org_id', orgId).eq('follow_up_required', true)
-      .order('date', { ascending: false }).limit(10)
-      .then(r => r, () => ({ data: [] as any[] })),
-    supabase.from('family_thread_messages')
-      .select('id, patient_id, body, created_at, author_side')
-      .eq('org_id', orgId).eq('author_side', 'family')
-      .gte('created_at', desde48h)
-      .order('created_at', { ascending: false }).limit(10)
-      .then(r => r, () => ({ data: [] as any[] })),
-    supabase.from('mar_records')
-      .select('id, patient_id, status, date')
-      .eq('org_id', orgId).eq('date', hoje).in('status', ['refused', 'held'])
-      .limit(10)
-      .then(r => r, () => ({ data: [] as any[] })),
-    supabase.from('team_messages')
-      .select('id, channel, body, author_name, priority, created_at')
-      .eq('org_id', orgId).neq('author_id', userId)
-      .in('priority', ['importante', 'urgente']).eq('resolved', false)
-      .gte('created_at', desde48h)
-      .order('created_at', { ascending: false }).limit(10)
-      .then(r => r, () => ({ data: [] as any[] })),
-    supabase.from('patients').select('id, name').eq('org_id', orgId)
-      .then(r => r, () => ({ data: [] as any[] })),
-  ])
-
-  const nome: Record<string, string> = {}
-  ;((pts as any).data || []).forEach((p: any) => { nome[p.id] = p.name })
-  const quem = (id: string) => nome[id] || 'Utente'
-
-  const TIPOS: Record<string, string> = {
-    fall: 'Queda', medication_error: 'Erro de medicação', pressure_ulcer: 'Úlcera de pressão',
-    behavioral: 'Incidente comportamental', choking: 'Engasgamento', infection: 'Infeção', other: 'Ocorrência',
-  }
-
-  const avisos: Aviso[] = [
-    ...((inc as any).data || []).map((i: any): Aviso => ({
-      id: `inc-${i.id}`,
-      type: 'incidente',
-      title: `${TIPOS[i.type] || 'Ocorrência'} · ${quem(i.patient_id)}`,
-      body: 'Seguimento por fazer.',
-      href: '/incidents',
-      created_at: i.date,
-      priority: 'high',
+  // O formato que o componente do sino já lê. Mantido de propósito: mudar o
+  // motor por baixo não é razão para mexer na interface.
+  return NextResponse.json({
+    notifications: avisos.slice(0, 20).map(a => ({
+      id: a.id,
+      type: a.tipo,
+      title: a.titulo,
+      body: a.corpo,
+      href: a.href,
+      created_at: a.quando,
+      priority: a.urgencia === 'alta' ? 'high' : 'normal',
     })),
-    ...((fam as any).data || []).map((m: any): Aviso => ({
-      id: `fam-${m.id}`,
-      type: 'familia',
-      title: `Família de ${quem(m.patient_id)}`,
-      body: (m.body || '').slice(0, 90),
-      href: '/family',
-      created_at: m.created_at,
-      priority: 'normal',
-    })),
-    ...((mar as any).data || []).map((d: any): Aviso => ({
-      id: `mar-${d.id}`,
-      type: 'medicacao',
-      title: `${quem(d.patient_id)} · toma ${d.status === 'refused' ? 'recusada' : 'suspensa'}`,
-      body: 'Confirmar na passagem de turno.',
-      href: '/mar',
-      created_at: d.date,
-      priority: 'high',
-    })),
-    ...((mural as any).data || []).map((m: any): Aviso => ({
-      id: `mural-${m.id}`,
-      type: 'mural',
-      title: `${m.channel} · ${m.author_name}`,
-      body: (m.body || '').slice(0, 90),
-      href: '/equipa?tab=mural',
-      created_at: m.created_at,
-      priority: m.priority === 'urgente' ? 'high' : 'normal',
-    })),
-  ]
-
-  // Urgente primeiro, e dentro de cada grupo o mais recente à frente.
-  avisos.sort((a, b) =>
-    a.priority === b.priority
-      ? String(b.created_at).localeCompare(String(a.created_at))
-      : a.priority === 'high' ? -1 : 1
-  )
-
-  return NextResponse.json({ notifications: avisos.slice(0, 20), unread: avisos.length })
+    unread: avisos.length,
+    sem_org: !orgId,
+  })
 }

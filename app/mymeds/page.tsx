@@ -13,6 +13,7 @@ import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import UpgradeNudge from '@/components/UpgradeNudge'
+import { horasDaFrequencia, explicarHorario } from '@/lib/horarioToma'
 
 interface ScannedMed {
   name: string; dose: string|null; frequency: string|null; indication: string|null; selected: boolean
@@ -333,6 +334,9 @@ export default function MyMedsPage() {
   const [pushSupported, setPushSupported] = useState(false)
   const [pushGranted, setPushGranted] = useState(false)
   const [pushMsg, setPushMsg] = useState('')   // feedback honesto quando o push não fica ativo
+  // O que se propos como hora de lembrete ao adicionar. Tem de ficar A VISTA:
+  // uma hora escolhida pelo sistema que ninguem ve e' pior que hora nenhuma.
+  const [horarioMsg, setHorarioMsg] = useState('')
 
   // Scan receita
   const [scannedMeds, setScannedMeds] = useState<ScannedMed[]>([])
@@ -539,6 +543,32 @@ export default function MyMedsPage() {
     }
   }
 
+  // Os que tem frequencia escrita mas ficaram sem hora — o legado do insert
+  // que nao gravava reminder_times. So conta aqueles em que a frequencia da
+  // mesmo para propor alguma coisa (um "SOS" nao da, e ainda bem).
+  const medsSemHoraComFrequencia = meds.filter(m =>
+    (!m.reminder_times || !m.reminder_times.length) && horasDaFrequencia(m.frequency).horas.length > 0)
+  const [aPropor, setAPropor] = useState(false)
+
+  const proporHorasEmFalta = async () => {
+    if (!medsSemHoraComFrequencia.length) return
+    setAPropor(true)
+    const table = activeProfile?.type === 'family' ? 'family_profile_meds' : 'personal_meds'
+    const feitos: Record<string, string[]> = {}
+    for (const m of medsSemHoraComFrequencia) {
+      const horas = horasDaFrequencia(m.frequency).horas
+      if (!horas.length) continue
+      const { error } = await supabase.from(table).update({ reminder_times: horas }).eq('id', m.id)
+      if (!error) feitos[m.id] = horas
+    }
+    setMeds(prev => prev.map(m => feitos[m.id] ? { ...m, reminder_times: feitos[m.id] } : m))
+    const n = Object.keys(feitos).length
+    setHorarioMsg(n
+      ? `${n} ${n === 1 ? 'medicamento ficou' : 'medicamentos ficaram'} com lembrete. Confere as horas — foram propostas a partir da frequência.`
+      : 'Não foi possível guardar as horas. Tenta outra vez.')
+    setAPropor(false)
+  }
+
   const saveReminder = async (medId: string, times: string[]) => {
     const table = activeProfile?.type === 'family' ? 'family_profile_meds' : 'personal_meds'
     await supabase.from(table).update({ reminder_times: times.length ? times : null }).eq('id', medId)
@@ -605,6 +635,16 @@ export default function MyMedsPage() {
       }
     }
 
+    // ── A hora do lembrete ─────────────────────────────────────────────────
+    // Isto faltava por completo: o insert gravava nome, dose, frequencia e
+    // indicacao, e o `reminder_times` ficava a null. Como o cron filtra por
+    // `.not('reminder_times','is',null)`, NENHUM medicamento adicionado pela
+    // aplicacao podia dar lembrete — as notificacoes de medicacao nunca
+    // funcionaram no modo pessoal e a causa era esta, nao o envio.
+    // A frequencia que a pessoa ja escreveu chega para propor as horas; a
+    // proposta aparece a seguir e muda-se num toque. Ver lib/horarioToma.
+    const proposta = horasDaFrequencia(newMed.frequency)
+
     let data: any = null
     let insertError: any = null
     if (activeProfile?.type === 'family') {
@@ -616,6 +656,7 @@ export default function MyMedsPage() {
         user_id: user.id,
         name: finalName,
         dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
+        reminder_times: proposta.horas.length ? proposta.horas : null,
       }).select().single()
       data = result.data
       insertError = result.error
@@ -623,11 +664,13 @@ export default function MyMedsPage() {
       const result = await supabase.from('personal_meds').insert({
         user_id: user.id, name: finalName,
         dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
+        reminder_times: proposta.horas.length ? proposta.horas : null,
       }).select().single()
       data = result.data
       insertError = result.error
     }
     if (data) {
+      setHorarioMsg(`${finalName} — ${explicarHorario(proposta)}`)
       const updatedMeds = [data, ...meds]
       setMeds(updatedMeds)
       setAnalysed(false)
@@ -714,6 +757,8 @@ export default function MyMedsPage() {
           dose: med.dose || null,
           frequency: med.frequency || null,
           indication: med.indication || null,
+          reminder_times: horasDaFrequencia(med.frequency).horas.length
+            ? horasDaFrequencia(med.frequency).horas : null,
         }).select().single()
         data = result.data
       } else {
@@ -723,12 +768,18 @@ export default function MyMedsPage() {
           dose: med.dose || null,
           frequency: med.frequency || null,
           indication: med.indication || null,
+          reminder_times: horasDaFrequencia(med.frequency).horas.length
+            ? horasDaFrequencia(med.frequency).horas : null,
         }).select().single()
         data = result.data
       }
       if (data) inserted.push(data as Med)
     }
     if (inserted.length) {
+      const comHora = inserted.filter((m: any) => m.reminder_times?.length)
+      setHorarioMsg(comHora.length
+        ? `${comHora.length} de ${inserted.length} ficaram com lembrete, a partir da frequência lida. Confere as horas.`
+        : `Nenhum ficou com hora de lembrete — a frequência lida não dizia quando tomar.`)
       const updatedMeds = [...inserted, ...meds]
       setMeds(updatedMeds)
       setAnalysed(false)
@@ -941,6 +992,55 @@ export default function MyMedsPage() {
         {/* ─── OVERVIEW ─── */}
         {tab === 'overview' && (
           <div>
+            {/* ── A hora do lembrete que acabou de ser proposta ──────────────
+                Uma hora escolhida pelo sistema que ninguem ve e' pior do que
+                hora nenhuma. Fica aqui, com o botao para a mudar. */}
+            {horarioMsg && (
+              <div style={{
+                marginBottom: 14, padding: '12px 15px', background: 'var(--green-light, #f0fdf4)',
+                border: '1px solid var(--green-mid, #86efac)', borderRadius: 10,
+                display: 'flex', alignItems: 'center', gap: 11, flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: 15, flexShrink: 0 }}>&#128276;</span>
+                <span style={{ flex: '1 1 240px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>{horarioMsg}</span>
+                <button onClick={() => { setReminderOpen(true); setHorarioMsg('') }} style={{
+                  padding: '6px 12px', background: 'white', border: '1px solid var(--border)',
+                  borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  color: 'var(--ink-2)', fontFamily: 'inherit',
+                }}>Mudar as horas</button>
+                <button onClick={() => setHorarioMsg('')} aria-label="Fechar" style={{
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16, padding: 0,
+                }}>&times;</button>
+              </div>
+            )}
+
+            {/* ── Os que ficaram sem hora, de antes ──────────────────────────
+                Todos os medicamentos criados antes de 2026-09-12 ficaram com
+                reminder_times a null, porque o insert nao o escrevia. Sem isto,
+                so os medicamentos NOVOS e' que dariam lembrete e os antigos
+                ficavam calados para sempre. Um toque resolve-os a todos. */}
+            {!horarioMsg && medsSemHoraComFrequencia.length > 0 && (
+              <div style={{
+                marginBottom: 14, padding: '12px 15px', background: 'var(--bg-2)',
+                border: '1px solid var(--border)', borderRadius: 10,
+                display: 'flex', alignItems: 'center', gap: 11, flexWrap: 'wrap',
+              }}>
+                <span style={{ flex: '1 1 250px', fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                  <strong style={{ color: 'var(--ink)' }}>
+                    {medsSemHoraComFrequencia.length === 1
+                      ? 'Um medicamento sem hora de lembrete'
+                      : `${medsSemHoraComFrequencia.length} medicamentos sem hora de lembrete`}
+                  </strong>{' '}
+                  — sem hora não há notificação. Posso propor horas a partir da frequência que escreveste.
+                </span>
+                <button onClick={proporHorasEmFalta} disabled={aPropor} style={{
+                  padding: '7px 13px', background: aPropor ? 'var(--bg-3)' : 'var(--ink)',
+                  color: aPropor ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7,
+                  fontSize: 12, fontWeight: 700, cursor: aPropor ? 'wait' : 'pointer', fontFamily: 'inherit',
+                }}>{aPropor ? 'A propor…' : 'Propor horas'}</button>
+              </div>
+            )}
+
             {/* Auto-check result */}
             {autoChecking && (
               <div style={{ marginBottom:14, padding:'12px 16px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:10, display:'flex', alignItems:'center', gap:10 }}>

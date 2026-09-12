@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarPush } from '@/lib/webPush'
-import { ptHHMM, ptDate } from '@/lib/ptTime'
+import { avisosDaInstituicao } from '@/lib/avisos'
+import { ptHHMM, ptDate, instanteEmPortugal } from '@/lib/ptTime'
 
 // Called every 15 minutes by GitHub Actions (.github/workflows/push-cron.yml)
 // or an external scheduler. NOT by Vercel Cron: the Hobby plan allows two cron
@@ -37,6 +38,16 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let errors = 0
 
+  // ── O batimento ────────────────────────────────────────────────────────────
+  // "As notificações de medicação não chegam" tem duas causas possíveis muito
+  // diferentes: ou o relógio não está a chamar o Phlox (segredo do GitHub
+  // errado), ou está e não há nada para enviar. Sem esta marca não havia
+  // maneira de distinguir as duas — e a primeira é de longe a mais comum.
+  // O /api/push/testar lê isto e diz há quanto tempo foi a última passagem.
+  await supabase.from('push_notifications_sent')
+    .upsert({ tag: 'cron:ultima-passagem', sent_at: new Date().toISOString() }, { onConflict: 'tag' })
+    .then((r: any) => r, () => null)
+
   // ─── 1. Medication reminders ─────────────────────────────────────────────────
   // Find all personal_meds with a reminder_time that matches ±10min of now
   const { data: medsWithReminders } = await supabase
@@ -44,28 +55,50 @@ export async function GET(req: NextRequest) {
     .select('id, user_id, name, dose, reminder_times, shifts, units_left, units_per_dose, low_notified_at')
     .not('reminder_times', 'is', null)
 
-  const dueReminders = (medsWithReminders || []).filter((med: any) => {
-    const times: string[] = med.reminder_times || []
-    return times.some(t => isWithin10Min(t, nowHHMM))
-  })
+  // Guarda-se QUAL das horas disparou, nao so que alguma disparou: e essa hora
+  // que identifica o lembrete. Usar a hora atual como chave falhava num caso
+  // real — um lembrete as 08:55 cai na passagem das 08:45 e na das 09:00, que
+  // sao horas diferentes, e saía duas vezes.
+  const dueReminders = (medsWithReminders || [])
+    .map((med: any) => ({
+      med,
+      hora: ((med.reminder_times || []) as string[]).find(t => isWithin10Min(t, nowHHMM)) || null,
+    }))
+    .filter((x: any) => x.hora)
 
   if (dueReminders.length > 0) {
     // Check which ones already have a log today at this hour (avoid duplicate pushes)
-    const dueIds = dueReminders.map((m: any) => m.id)
-    const hourKey = nowHHMM.slice(0, 2) // "09" from "09:23"
+    const dueIds = dueReminders.map((x: any) => x.med.id)
+    // A hora vem de ptHHMM (Portugal) mas o `logged_at` está gravado em UTC.
+    // Comparar as duas diretamente olhava para a hora errada no verão — uma
+    // toma marcada às 9h não contava, e a notificação repetia-se. Converte-se
+    // a janela para UTC antes de comparar.
+    const inicioUTC = instanteEmPortugal(today, `${nowHHMM.slice(0, 2)}:00`)
+    const fimUTC = new Date(inicioUTC.getTime() + 3599_000)
 
     const { data: todayLogs } = await supabase
       .from('med_logs')
       .select('med_id')
       .in('med_id', dueIds)
       .eq('date', today)
-      .gte('logged_at', `${today}T${hourKey}:00:00Z`)
-      .lt('logged_at', `${today}T${hourKey}:59:59Z`)
+      .gte('logged_at', inicioUTC.toISOString())
+      .lt('logged_at', fimUTC.toISOString())
 
     const alreadyLogged = new Set((todayLogs || []).map((l: any) => l.med_id))
 
-    for (const med of dueReminders) {
+    // O cron passa de 15 em 15 minutos e a janela e de +/-10: uma hora como
+    // 09:07 cai em DUAS passagens (09:00 e 09:15). O `tag` do service worker
+    // esconde a segunda (substitui a notificacao em vez de a empilhar), mas
+    // continuava a ser um envio a mais. Marca-se o que ja saiu.
+    const etiquetasHoje = dueReminders.map((x: any) => `toma:${x.med.id}:${today}:${x.hora}`)
+    const { data: jaAvisados } = await supabase
+      .from('push_notifications_sent').select('tag').in('tag', etiquetasHoje)
+    const jaSaiu = new Set((jaAvisados || []).map((x: any) => x.tag))
+
+    for (const { med, hora } of dueReminders) {
       if (alreadyLogged.has(med.id)) continue
+      const etiqueta = `toma:${med.id}:${today}:${hora}`
+      if (jaSaiu.has(etiqueta)) continue
 
       // ── A caixa está a acabar? ────────────────────────────────────────
       // O Phlox já sabe quantas doses são precisas por dia; com as unidades
@@ -122,6 +155,10 @@ export async function GET(req: NextRequest) {
           } else console.error('[phlox:push] envio falhou, subscrição mantida:', r.motivo)
         }
       }
+
+      await supabase.from('push_notifications_sent')
+        .insert({ tag: etiqueta, sent_at: new Date().toISOString() })
+        .then((r: any) => r, () => null)
     }
   }
 
@@ -197,99 +234,89 @@ export async function GET(req: NextRequest) {
     await supabase.from('family_profile_shares').update({ last_activity_notified_at: new Date().toISOString() }).eq('id', share.id)
   }
 
-  // ─── 2. MAR omission alerts (near shift end) ─────────────────────────────────
-  // Shift end windows: manhã ends ~13:45-14:15, tarde ~20:45-21:15, noite ~6:45-7:15
-  const SHIFT_END_WINDOWS: Record<string, [string, string]> = {
-    manha: ['13:45', '14:15'],
-    tarde:  ['20:45', '21:15'],
-    noite:  ['06:45', '07:15'],
-  }
+  // ─── 2. As instituições ──────────────────────────────────────────────────
+  // REFEITO 2026-09-12. O que estava aqui tinha três defeitos que, juntos,
+  // faziam com que uma instituição nunca recebesse notificação nenhuma:
+  //
+  //   • procurava os utentes por `user_id` dos coordenadores em vez de
+  //     `org_id` da casa — via só os utentes criados por aquelas contas;
+  //   • filtrava os profiles por `plan = 'clinic'`, que só o DONO tem: um
+  //     funcionário convidado fica com `plan: 'free'` e ganha acesso por
+  //     pertença (lib/planGate). A lista de coordenadores vinha vazia;
+  //   • contava todos os medicamentos ativos em vez de só os do turno, e
+  //     gravava a marca de "já enviado" com uma etiqueta partilhada entre
+  //     organizações — a primeira casa a ser processada calava as outras.
+  //
+  // Agora o cálculo é o mesmo do sino (lib/avisos.ts) e a marca é por casa.
+  const { data: casas } = await supabase.from('organizations').select('id, name, kind')
 
-  for (const [shiftName, [start, end]] of Object.entries(SHIFT_END_WINDOWS)) {
-    if (!isInWindow(nowHHMM, start, end)) continue
+  for (const casa of casas || []) {
+    let avisos: Awaited<ReturnType<typeof avisosDaInstituicao>> = []
+    try {
+      avisos = await avisosDaInstituicao(supabase, casa.id, {
+        agora: nowHHMM, hoje: today, tipoInstituicao: casa.kind,
+      })
+    } catch { continue }   // uma casa com problemas não pode calar as outras
 
-    // Only send once per shift end — check if we already sent this alert today
-    const alertTag = `mar-alert-${today}-${shiftName}`
-    const { count: alreadySent } = await supabase
-      .from('push_notifications_sent')
-      .select('*', { count: 'exact', head: true })
-      .eq('tag', alertTag)
+    const aEmpurrar = avisos.filter(a => a.empurrar)
+    if (!aEmpurrar.length) continue
 
-    if ((alreadySent || 0) > 0) continue
+    // O que já foi empurrado não se repete. A etiqueta leva o id da casa: sem
+    // isso, a primeira organização do dia consumia a etiqueta de todas.
+    const etiquetas = aEmpurrar.map(a => `${casa.id}:${a.id}`)
+    const { data: jaEnviados } = await supabase
+      .from('push_notifications_sent').select('tag').in('tag', etiquetas)
+    const enviados = new Set((jaEnviados || []).map((x: any) => x.tag))
+    const novos = aEmpurrar.filter(a => !enviados.has(`${casa.id}:${a.id}`))
+    if (!novos.length) continue
 
-    // Find orgs with institutional plan
-    const { data: orgUsers } = await supabase
-      .from('profiles')
-      .select('id, org_id, org_role, name')
-      .eq('plan', 'clinic')
-      .not('org_id', 'is', null)
-      .in('org_role', ['admin', 'coordinator', 'pharmacist'])
+    // ── Quem recebe ────────────────────────────────────────────────────────
+    // Quem gere a casa recebe tudo. Quem está no turno recebe o trabalho do
+    // turno — a rutura de stock e o recado da família não são para interromper
+    // uma auxiliar a meio de um banho.
+    const DO_TURNO = new Set(['doses', 'medicacao', 'incidente', 'presenca'])
+    const { data: membros } = await supabase
+      .from('org_members').select('user_id, role')
+      .eq('org_id', casa.id).eq('active', true).neq('role', 'viewer')
+    if (!membros?.length) continue
 
-    const orgIds = [...new Set((orgUsers || []).map((u: any) => u.org_id))]
+    for (const membro of membros) {
+      const gere = ['owner', 'admin'].includes(membro.role)
+      const seus = gere ? novos : novos.filter(a => DO_TURNO.has(a.tipo))
+      if (!seus.length) continue
 
-    for (const orgId of orgIds) {
-      const orgMembers = (orgUsers || []).filter((u: any) => u.org_id === orgId)
-      const memberIds = orgMembers.map((u: any) => u.id)
+      const { data: subs } = await supabase
+        .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', membro.user_id)
+      if (!subs?.length) continue
 
-      // Get all patients for this org
-      const { data: orgPatients } = await supabase
-        .from('patients')
-        .select('id, name')
-        .in('user_id', memberIds)
+      // Uma notificação por passagem, não uma por aviso. Oito notificações
+      // seguidas não são oito avisos — são uma pessoa a desligar o Phlox.
+      const principal = seus[0]
+      const titulo = seus.length === 1
+        ? principal.titulo
+        : `${seus.length} coisas precisam de atenção`
+      const corpo = seus.length === 1
+        ? principal.corpo
+        : seus.slice(0, 3).map(a => a.titulo).join(' · ')
 
-      if (!orgPatients?.length) continue
-
-      const patientIds = orgPatients.map((p: any) => p.id)
-
-      // Count active meds per patient
-      const { data: allMeds } = await supabase
-        .from('patient_meds')
-        .select('patient_id')
-        .eq('active', true)
-        .in('patient_id', patientIds)
-
-      // Count records for today/shift
-      const { data: todayRecs } = await supabase
-        .from('mar_records')
-        .select('patient_id')
-        .eq('date', today)
-        .eq('shift', shiftName)
-        .in('patient_id', patientIds)
-
-      const medsCount: Record<string, number> = {}
-      ;(allMeds || []).forEach((m: any) => { medsCount[m.patient_id] = (medsCount[m.patient_id] || 0) + 1 })
-      const recsCount: Record<string, number> = {}
-      ;(todayRecs || []).forEach((r: any) => { recsCount[r.patient_id] = (recsCount[r.patient_id] || 0) + 1 })
-
-      const omissions = orgPatients.filter((p: any) => (medsCount[p.id] || 0) - (recsCount[p.id] || 0) > 0)
-      if (omissions.length === 0) continue
-
-      const totalMissing = omissions.reduce((s: number, p: any) => s + (medsCount[p.id] || 0) - (recsCount[p.id] || 0), 0)
-      const names = omissions.slice(0, 3).map((p: any) => p.name).join(', ')
-
-      // Send to coordinators/admins of this org
-      const coordinators = orgMembers.filter((u: any) => ['admin', 'coordinator'].includes(u.org_role))
-      for (const coord of coordinators) {
-        const { data: subs } = await supabase
-          .from('push_subscriptions')
-          .select('endpoint, p256dh, auth')
-          .eq('user_id', coord.id)
-
-        for (const sub of subs || []) {
-          const r = await enviarPush(sub, {
-            title: `MAR — ${totalMissing} doses em falta`,
-            body: `Turno da ${shiftName === 'manha' ? 'manhã' : shiftName === 'tarde' ? 'tarde' : 'noite'}: ${names}${omissions.length > 3 ? ` e mais ${omissions.length - 3}` : ''}`,
-            url: '/mar',
-            tag: alertTag,
-          })
-          if (r.ok) sent++
-          else if (r.expirada) await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
-        }
+      for (const sub of subs) {
+        const r = await enviarPush(sub, {
+          title: titulo,
+          body: corpo,
+          url: seus.length === 1 ? principal.href : '/painel',
+          tag: `casa-${casa.id}-${nowHHMM}`,
+        })
+        if (r.ok) sent++
+        else if (r.expirada) await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        else { errors++; console.error('[phlox:push] envio falhou, subscrição mantida:', r.motivo) }
       }
-
-      // Mark as sent
-      await supabase.from('push_notifications_sent').insert({ tag: alertTag, sent_at: new Date().toISOString() })
     }
+
+    // Marca tudo o que foi processado, mesmo que ninguém tivesse subscrição:
+    // o aviso já foi considerado e não deve voltar a tocar amanhã.
+    await supabase.from('push_notifications_sent')
+      .insert(novos.map(a => ({ tag: `${casa.id}:${a.id}`, sent_at: new Date().toISOString() })))
+      .then((r: any) => r, () => null)
   }
 
   return NextResponse.json({ ok: true, sent, errors, time: nowHHMM })
@@ -300,12 +327,4 @@ function isWithin10Min(target: string, current: string): boolean {
   const [ch, cm] = current.split(':').map(Number)
   const diff = Math.abs((th * 60 + tm) - (ch * 60 + cm))
   return diff <= 10
-}
-
-function isInWindow(current: string, start: string, end: string): boolean {
-  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-  const c = toMin(current), s = toMin(start), e = toMin(end)
-  // Handle midnight crossing
-  if (s <= e) return c >= s && c <= e
-  return c >= s || c <= e
 }

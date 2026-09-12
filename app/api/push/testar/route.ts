@@ -129,22 +129,62 @@ export async function POST(req: NextRequest) {
           })
   }
 
-  // ── 4. O relógio que dispara os avisos automáticos ─────────────────────────
-  // Este teste passa por cima do cron. Se ele não correr, o teste funciona e os
-  // avisos reais continuam a não chegar — por isso vale a pena dizê-lo aqui.
-  etapas.push(process.env.CRON_SECRET
-    ? {
-        etapa: 'Avisos automáticos',
-        ok: true,
-        detalhe: 'O segredo do cron está definido no servidor. Os lembretes saem do GitHub Actions.',
-        accao: 'Confirmar em GitHub → Actions → "Push Notifications Cron" que as últimas execuções estão verdes. Se estiverem a 401, o CRON_SECRET do GitHub não é igual ao da Vercel.',
-      }
-    : {
-        etapa: 'Avisos automáticos',
-        ok: false,
-        detalhe: 'Falta CRON_SECRET no servidor. Este teste funciona à mesma, mas nenhum aviso automático é enviado.',
-        accao: 'Definir CRON_SECRET na Vercel e o MESMO valor em GitHub → Settings → Secrets and variables → Actions.',
-      })
+  // ── 4. O relógio que dispara os avisos automáticos ─────────────────
+  // Este teste passa POR CIMA do cron: envia diretamente. Se o relógio não
+  // estiver a correr, o teste funciona e nenhum aviso automático chega — que
+  // é exatamente a situação de "o teste dá, a medicação não".
+  //
+  // O cron marca cada passagem em push_notifications_sent (tag
+  // 'cron:ultima-passagem'). É isso que se lê aqui.
+  const { data: batimento } = await sb
+    .from('push_notifications_sent').select('sent_at').eq('tag', 'cron:ultima-passagem').maybeSingle()
+
+  const minutosDesde = batimento?.sent_at
+    ? Math.round((Date.now() - new Date(batimento.sent_at).getTime()) / 60000)
+    : null
+
+  etapas.push(
+    minutosDesde == null
+      ? {
+          etapa: 'O relógio automático', ok: false,
+          detalhe: 'Nunca correu. É por isto que os lembretes de medicação não chegam, mesmo com o teste a funcionar — o teste envia à mão, o relógio é que envia sozinho.',
+          accao: 'O relógio é o GitHub Actions. Confirmar que o segredo CRON_SECRET existe em GitHub → Settings → Secrets and variables → Actions com o MESMO valor da Vercel, e ver em GitHub → Actions → "Push Notifications Cron" se as últimas execuções estão verdes. A 401 significa segredos diferentes.',
+        }
+      : minutosDesde > 45
+        ? {
+            etapa: 'O relógio automático', ok: false,
+            detalhe: `A última passagem foi há ${minutosDesde > 1440 ? `${Math.round(minutosDesde / 1440)} dia(s)` : `${minutosDesde} minutos`}. Devia ser de 15 em 15 minutos.`,
+            accao: 'Ver em GitHub → Actions → "Push Notifications Cron" o que aconteceu nas últimas execuções. O GitHub também desliga workflows agendados em repositórios parados há 60 dias.',
+          }
+        : {
+            etapa: 'O relógio automático', ok: true,
+            detalhe: `A correr. Última passagem há ${minutosDesde} ${minutosDesde === 1 ? 'minuto' : 'minutos'}.`,
+          })
+
+  // ── 5. Os lembretes de medicação desta conta ─────────────────────
+  // A outra causa possível: o relógio corre, mas não há nada para enviar.
+  // Só saem lembretes de medicamentos com HORA definida — um medicamento sem
+  // hora é uma lista, não um alarme, e o Phlox não inventa horas.
+  const { data: meus } = await sb
+    .from('personal_meds').select('id, name, reminder_times').eq('user_id', userId)
+
+  const todos = meus || []
+  const comHora = todos.filter((m: any) => Array.isArray(m.reminder_times) && m.reminder_times.length)
+
+  if (todos.length) {
+    etapas.push(comHora.length
+      ? {
+          etapa: 'Lembretes de medicação', ok: true,
+          detalhe: `${comHora.length} de ${todos.length} ${todos.length === 1 ? 'medicamento tem' : 'medicamentos têm'} hora definida: `
+            + comHora.slice(0, 3).map((m: any) => `${m.name} (${m.reminder_times.join(', ')})`).join('; ')
+            + (comHora.length > 3 ? `… e mais ${comHora.length - 3}` : ''),
+        }
+      : {
+          etapa: 'Lembretes de medicação', ok: false,
+          detalhe: `Nenhum dos ${todos.length} medicamentos desta conta tem hora definida — por isso não há nada para o relógio enviar.`,
+          accao: 'Em /mymeds, abrir cada medicamento e definir a hora da toma. Só os que têm hora é que dão lembrete.',
+        })
+  }
 
   return NextResponse.json({ etapas, dispositivos, enviadas, total: lista.length })
 }

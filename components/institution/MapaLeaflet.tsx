@@ -85,12 +85,23 @@ export default function MapaLeaflet({
           scrollWheelZoom: false,   // senão a página deixa de se conseguir percorrer
         }).setView([39.6, -8.0], 7)
 
-        // Positron da CARTO: cinza claro, feito para levar dados por cima.
-        // A atribuição é obrigatória — do OpenStreetMap e da CARTO.
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-          subdomains: 'abcd', maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        // Azulejos do OpenStreetMap. A atribuição é obrigatória.
+        //
+        // 2026-09-12: estava aqui o Positron da CARTO, e foi um erro meu — a
+        // CARTO passou a carimbar "API KEY REQUIRED" em diagonal por cima de
+        // cada azulejo. Aparecia no mapa todo.
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         }).addTo(m)
+
+        // O mapa do OSM é colorido e come a rota que vai por cima. Em vez de o
+        // esbater com opacidade — que o deixava lavado e ilegível —, tira-se-lhe
+        // a cor: fica um cinzento claro parecido com os fundos feitos de
+        // propósito para levar dados em cima, e o traçado da rota é a única
+        // coisa com cor no ecrã. O contraste do texto das ruas mantém-se.
+        const painel = m.getPane('tilePane')
+        if (painel) painel.style.filter = 'grayscale(1) brightness(1.07) contrast(0.88)'
 
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(m)
 
