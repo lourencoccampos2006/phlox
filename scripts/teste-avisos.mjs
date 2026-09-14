@@ -200,5 +200,24 @@ console.log('\nModo pessoal')
   verificar('ja marcado -> sem aviso', !b.some(x => x.tipo === 'toma'), b.map(x => x.tipo))
 }
 
+console.log('\nJanelas largas (o relogio chega tarde)')
+{
+  // O GitHub descarta execucoes agendadas: se a janela for de 40 minutos, quase
+  // nunca e apanhada. O aviso tem de continuar a existir horas depois.
+  const sb = () => baseFalsa({ patients: utentes, patient_meds: meds, mar_records: [] })
+  const cedo = await avisosDaInstituicao(sb(), 'org1', { agora: '13:45', hoje: HOJE })
+  const tarde = await avisosDaInstituicao(sb(), 'org1', { agora: '16:30', hoje: HOJE })
+  const tardissimo = await avisosDaInstituicao(sb(), 'org1', { agora: '19:00', hoje: HOJE })
+  verificar('as 13:45 avisa das doses da manha', cedo.some(x => x.tipo === 'doses'), cedo.map(x => x.tipo))
+  verificar('as 16:30 AINDA avisa (o relogio chegou tarde)', tarde.some(x => x.tipo === 'doses'), tarde.map(x => x.tipo))
+  verificar('as 19:00 ja nao — a manha ja vai longe', !tardissimo.some(x => x.tipo === 'doses'), tardissimo.map(x => x.tipo))
+
+  const st = [{ id: 's1', name: 'Luvas', quantity: 2, min_quantity: 10, unit: 'cx' }]
+  const s13 = await avisosDaInstituicao(baseFalsa({ patients: utentes, stock_items: st }), 'org1', { agora: '13:00', hoje: HOJE })
+  verificar('o stock ainda empurra as 13h', s13.find(x => x.tipo === 'stock')?.empurrar === true, s13.find(x => x.tipo === 'stock'))
+  const s16 = await avisosDaInstituicao(baseFalsa({ patients: utentes, stock_items: st }), 'org1', { agora: '16:00', hoje: HOJE })
+  verificar('as 16h fica so no sino', s16.find(x => x.tipo === 'stock')?.empurrar === false, s16.find(x => x.tipo === 'stock'))
+}
+
 console.log(`\n${passou} passaram, ${falhou} falharam\n`)
 process.exit(falhou ? 1 : 0)

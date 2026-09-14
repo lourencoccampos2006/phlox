@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { enviarPush } from '@/lib/webPush'
 import { avisosDaInstituicao } from '@/lib/avisos'
 import { ptHHMM, ptDate, instanteEmPortugal } from '@/lib/ptTime'
+import { clienteDeServico, confirmarLigacao } from '@/lib/servico'
 
 // Called every 15 minutes by GitHub Actions (.github/workflows/push-cron.yml)
 // or an external scheduler. NOT by Vercel Cron: the Hobby plan allows two cron
@@ -23,10 +24,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  // A chave de serviço, verificada. Sem isto o cron corria sem conseguir ler
+  // nem escrever nada e respondia 200 — o GitHub Actions verde de 15 em 15
+  // minutos e nem uma notificação enviada. Ver lib/servico.ts.
+  const servico = clienteDeServico()
+  if (!servico.ok) {
+    console.error('[phlox:cron]', servico.motivo)
+    return NextResponse.json({ error: servico.motivo, comoResolver: servico.comoResolver }, { status: servico.estado })
+  }
+  const supabase = servico.sb
+
+  const ligacao = await confirmarLigacao(supabase)
+  if (!ligacao.ok) {
+    console.error('[phlox:cron]', ligacao.motivo)
+    return NextResponse.json({ error: ligacao.motivo, comoResolver: ligacao.comoResolver }, { status: 503 })
+  }
 
   // CRÍTICO: o servidor (Vercel) corre em UTC. Os horários de toma que o utilizador
   // escolhe estão em hora de PORTUGAL. Comparar UTC com hora local falhava por 1h
@@ -35,8 +47,21 @@ export async function GET(req: NextRequest) {
   const nowHHMM = ptHHMM()
   const today = ptDate()
 
+  // ── Modo de simulação ──────────────────────────────────────────────────────
+  // `?simular=1` faz o percurso todo — lê tudo, decide tudo — mas não envia
+  // nada nem marca nada como enviado. Serve para perguntar "o que é que ias
+  // fazer agora?" sem gastar os avisos: um aviso marcado como enviado sem ter
+  // sido enviado desaparece para sempre, e isso é pior do que não perguntar.
+  const simular = req.nextUrl.searchParams.get('simular') === '1'
+
   let sent = 0
   let errors = 0
+  // Quantos dispositivos seriam tocados. Em simulação é o número que interessa
+  // — o `sent` fica a zero de propósito, porque não se enviou nada.
+  let alvos = 0
+  // Só contagens — nunca nomes de casas nem o conteúdo dos avisos. Isto é
+  // informação de operação, não o livro de registos de ninguém.
+  let avisosTotal = 0, avisosNovos = 0
 
   // ── O batimento ────────────────────────────────────────────────────────────
   // "As notificações de medicação não chegam" tem duas causas possíveis muito
@@ -44,9 +69,18 @@ export async function GET(req: NextRequest) {
   // errado), ou está e não há nada para enviar. Sem esta marca não havia
   // maneira de distinguir as duas — e a primeira é de longe a mais comum.
   // O /api/push/testar lê isto e diz há quanto tempo foi a última passagem.
-  await supabase.from('push_notifications_sent')
-    .upsert({ tag: 'cron:ultima-passagem', sent_at: new Date().toISOString() }, { onConflict: 'tag' })
-    .then((r: any) => r, () => null)
+  let batimento = simular ? 'não gravado (simulação)' : 'gravado'
+  if (!simular) {
+    const { error } = await supabase.from('push_notifications_sent')
+      .upsert({ tag: 'cron:ultima-passagem', sent_at: new Date().toISOString() }, { onConflict: 'tag' })
+    if (error) {
+      // Antes isto era engolido. Se a marca não grava, o diagnóstico diz
+      // "nunca correu" enquanto o cron corre — que foi precisamente o
+      // enredo que nos custou dias.
+      batimento = `FALHOU: ${error.message}`
+      console.error('[phlox:cron] não consegui gravar o batimento:', error.message)
+    }
+  }
 
   // ─── 1. Medication reminders ─────────────────────────────────────────────────
   // Find all personal_meds with a reminder_time that matches ±10min of now
@@ -60,10 +94,16 @@ export async function GET(req: NextRequest) {
   // real — um lembrete as 08:55 cai na passagem das 08:45 e na das 09:00, que
   // sao horas diferentes, e saía duas vezes.
   const dueReminders = (medsWithReminders || [])
-    .map((med: any) => ({
-      med,
-      hora: ((med.reminder_times || []) as string[]).find(t => isWithin10Min(t, nowHHMM)) || null,
-    }))
+    .map((med: any) => {
+      // A hora que passou há mais tempo dentro da janela: se duas horas do
+      // mesmo medicamento ficaram por avisar (porque o relógio faltou), avisa-se
+      // primeiro a mais antiga, e a outra sai na passagem seguinte.
+      const candidatas = ((med.reminder_times || []) as string[])
+        .map(t => ({ t, atraso: minutosDesde(t, nowHHMM) }))
+        .filter(x => x.atraso >= -A_HORAS_MIN && x.atraso <= ATRASO_MAXIMO_MIN)
+        .sort((a, b) => b.atraso - a.atraso)
+      return { med, hora: candidatas[0]?.t || null, atraso: candidatas[0]?.atraso ?? 0 }
+    })
     .filter((x: any) => x.hora)
 
   if (dueReminders.length > 0) {
@@ -95,7 +135,7 @@ export async function GET(req: NextRequest) {
       .from('push_notifications_sent').select('tag').in('tag', etiquetasHoje)
     const jaSaiu = new Set((jaAvisados || []).map((x: any) => x.tag))
 
-    for (const { med, hora } of dueReminders) {
+    for (const { med, hora, atraso } of dueReminders) {
       if (alreadyLogged.has(med.id)) continue
       const etiqueta = `toma:${med.id}:${today}:${hora}`
       if (jaSaiu.has(etiqueta)) continue
@@ -137,10 +177,16 @@ export async function GET(req: NextRequest) {
         .select('endpoint, p256dh, auth')
         .eq('user_id', med.user_id)
 
-      for (const sub of subs || []) {
+      alvos += (subs || []).length
+      for (const sub of simular ? [] : (subs || [])) {
+        const atrasado = atraso > A_HORAS_MIN
         const r = await enviarPush(sub, {
           title: `Phlox — ${med.name}${med.dose ? ' ' + med.dose : ''}`,
-          body: `Hora de tomar o ${med.name}. Toca para confirmar.`,
+          // Honestidade: se o aviso vem atrasado, diz-se. Fingir que são horas
+          // quando já passaram duas é pior do que não avisar.
+          body: atrasado
+            ? `A toma das ${hora} ainda não ficou registada. Toca para confirmar.`
+            : `Hora de tomar o ${med.name}. Toca para confirmar.`,
           url: `/mymeds?confirm=${med.id}&date=${today}`,
           tag: `reminder-${med.id}`,
         })
@@ -156,9 +202,11 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      await supabase.from('push_notifications_sent')
-        .insert({ tag: etiqueta, sent_at: new Date().toISOString() })
-        .then((r: any) => r, () => null)
+      if (!simular) {
+        await supabase.from('push_notifications_sent')
+          .insert({ tag: etiqueta, sent_at: new Date().toISOString() })
+          .then((r: any) => r, () => null)
+      }
     }
   }
 
@@ -171,7 +219,10 @@ export async function GET(req: NextRequest) {
     .not('reminder_times', 'is', null)
 
   const dueFam = (famMeds || []).filter((med: any) =>
-    (med.reminder_times || []).some((t: string) => isWithin10Min(t, nowHHMM)))
+    (med.reminder_times || []).some((t: string) => {
+      const a = minutosDesde(t, nowHHMM)
+      return a >= -A_HORAS_MIN && a <= ATRASO_MAXIMO_MIN
+    }))
 
   if (dueFam.length > 0) {
     // nome de cada familiar para a mensagem
@@ -248,7 +299,8 @@ export async function GET(req: NextRequest) {
   //     organizações — a primeira casa a ser processada calava as outras.
   //
   // Agora o cálculo é o mesmo do sino (lib/avisos.ts) e a marca é por casa.
-  const { data: casas } = await supabase.from('organizations').select('id, name, kind')
+  const { data: casas, error: erroCasas } = await supabase.from('organizations').select('id, name, kind')
+  if (erroCasas) console.error('[phlox:cron] não consegui listar as instituições:', erroCasas.message)
 
   for (const casa of casas || []) {
     let avisos: Awaited<ReturnType<typeof avisosDaInstituicao>> = []
@@ -259,6 +311,7 @@ export async function GET(req: NextRequest) {
     } catch { continue }   // uma casa com problemas não pode calar as outras
 
     const aEmpurrar = avisos.filter(a => a.empurrar)
+    avisosTotal += aEmpurrar.length
     if (!aEmpurrar.length) continue
 
     // O que já foi empurrado não se repete. A etiqueta leva o id da casa: sem
@@ -268,6 +321,7 @@ export async function GET(req: NextRequest) {
       .from('push_notifications_sent').select('tag').in('tag', etiquetas)
     const enviados = new Set((jaEnviados || []).map((x: any) => x.tag))
     const novos = aEmpurrar.filter(a => !enviados.has(`${casa.id}:${a.id}`))
+    avisosNovos += novos.length
     if (!novos.length) continue
 
     // ── Quem recebe ────────────────────────────────────────────────────────
@@ -299,7 +353,8 @@ export async function GET(req: NextRequest) {
         ? principal.corpo
         : seus.slice(0, 3).map(a => a.titulo).join(' · ')
 
-      for (const sub of subs) {
+      alvos += subs.length
+      for (const sub of simular ? [] : subs) {
         const r = await enviarPush(sub, {
           title: titulo,
           body: corpo,
@@ -314,17 +369,55 @@ export async function GET(req: NextRequest) {
 
     // Marca tudo o que foi processado, mesmo que ninguém tivesse subscrição:
     // o aviso já foi considerado e não deve voltar a tocar amanhã.
-    await supabase.from('push_notifications_sent')
-      .insert(novos.map(a => ({ tag: `${casa.id}:${a.id}`, sent_at: new Date().toISOString() })))
-      .then((r: any) => r, () => null)
+    if (!simular) {
+      await supabase.from('push_notifications_sent')
+        .insert(novos.map(a => ({ tag: `${casa.id}:${a.id}`, sent_at: new Date().toISOString() })))
+        .then((r: any) => r, () => null)
+    }
   }
 
-  return NextResponse.json({ ok: true, sent, errors, time: nowHHMM })
+  // O workflow do GitHub imprime esta resposta no registo. Ela tem de chegar
+  // para perceber o que se passou sem abrir a Vercel: quantos lembretes havia
+  // para dar, quantas casas foram vistas, quantos avisos saíram.
+  const relatorio = {
+    ok: true,
+    simulacao: simular || undefined,
+    hora: nowHHMM,
+    batimento,
+    tomasNaHora: dueReminders.length,
+    casasVistas: (casas || []).length,
+    avisosParaEmpurrar: avisosTotal,
+    avisosPorEnviar: avisosNovos,
+    dispositivosAlvo: alvos,
+    enviadas: sent,
+    falhas: errors,
+  }
+  console.log('[phlox:cron]', JSON.stringify(relatorio))
+  return NextResponse.json(relatorio)
 }
 
-function isWithin10Min(target: string, current: string): boolean {
-  const [th, tm] = target.split(':').map(Number)
-  const [ch, cm] = current.split(':').map(Number)
-  const diff = Math.abs((th * 60 + tm) - (ch * 60 + cm))
-  return diff <= 10
+/** Há quantos minutos a hora do lembrete passou. Negativo = ainda não chegou. */
+function minutosDesde(alvo: string, agora: string): number {
+  const [ah, am] = alvo.split(':').map(Number)
+  const [ch, cm] = agora.split(':').map(Number)
+  return (ch * 60 + cm) - (ah * 60 + am)
 }
+
+/** Quanto tempo depois da hora ainda vale a pena avisar.
+ *
+ *  ── PORQUE É QUE ISTO NÃO É ±10 MINUTOS ───────────────────────────────────
+ *  Era. E era essa a razão pela qual os lembretes de medicação nunca chegavam.
+ *
+ *  O relógio é o GitHub Actions, agendado de 15 em 15 minutos. Só que o GitHub
+ *  ATRASA e DESCARTA execuções agendadas quando os runners estão com carga —
+ *  está documentado, e no Phlox via-se bem: a 12 e 13 de setembro de 2026 o
+ *  workflow correu OITO vezes em vinte horas, em vez de oitenta. Todas verdes.
+ *  Com passagens de duas em duas horas, uma janela de ±10 minutos quase nunca
+ *  apanha nada, e o lembrete das nove simplesmente nunca sai.
+ *
+ *  Agora o lembrete sai à mesma quando a passagem chega tarde, e diz que vem
+ *  atrasado em vez de fingir que são horas. Passadas três horas cala-se: um
+ *  aviso para tomar o comprimido das nove às duas da tarde já não é ajuda
+ *  nenhuma, e fica no sino (ver lib/avisos, avisosPessoais). */
+const ATRASO_MAXIMO_MIN = 180
+const A_HORAS_MIN = 10

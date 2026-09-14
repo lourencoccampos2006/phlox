@@ -51,6 +51,7 @@ jobs:
             2??) echo "Cron concluído."; exit 0 ;;
             401) echo "::error::401 em ${APP_URL}. O CRON_SECRET do GitHub não coincide com o que está na Vercel. Confirma que são exatamente iguais (sem espaços nem quebras de linha)."; exit 1 ;;
             404) echo "::error::404 em ${APP_URL}/api/push/cron. O endereço está errado — define o segredo APP_URL como https://phloxclinical.com"; exit 1 ;;
+            503) echo "::error::503 — o Phlox atendeu mas não consegue trabalhar. A resposta em cima diz o que falta (quase sempre a SUPABASE_SERVICE_ROLE_KEY nas variáveis de ambiente da Vercel). Até 2026-09-13 este caso respondia 200 e este passo ficava VERDE sem enviar nada."; exit 1 ;;
             sem-resposta) echo "::error::O servidor não respondeu em 25s a ${APP_URL}."; exit 1 ;;
             *) echo "::error::Estado inesperado ${HTTP_STATUS} de ${APP_URL}/api/push/cron."; exit 1 ;;
           esac

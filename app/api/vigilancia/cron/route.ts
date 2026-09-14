@@ -14,6 +14,7 @@ import { RISK_LEVEL_META, type RiskLevel } from '@/lib/riskIndex'
 import { enviarPush } from '@/lib/webPush'
 import { sendEmail, caregiverWatchEmail } from '@/lib/email'
 import { clinicalFindingsFor, type Finding } from '@/lib/medPrepIntel'
+import { clienteDeServico, confirmarLigacao } from '@/lib/servico'
 
 export const maxDuration = 60
 
@@ -43,7 +44,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  // Ver lib/servico.ts: sem a chave, isto corria sem fazer nada e devolvia 200.
+  const servico = clienteDeServico()
+  if (!servico.ok) {
+    console.error('[phlox:vigilancia]', servico.motivo)
+    return NextResponse.json({ error: servico.motivo, comoResolver: servico.comoResolver }, { status: servico.estado })
+  }
+  const db = servico.sb
+  const ligacao = await confirmarLigacao(db)
+  if (!ligacao.ok) {
+    console.error('[phlox:vigilancia]', ligacao.motivo)
+    return NextResponse.json({ error: ligacao.motivo, comoResolver: ligacao.comoResolver }, { status: 503 })
+  }
 
   // Utilizadores com plano clínico/pro (são quem tem residentes a vigiar)
   const { data: profiles, error } = await db.from('profiles').select('id').in('plan', ['clinic', 'pro'])

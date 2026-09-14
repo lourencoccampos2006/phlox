@@ -77,11 +77,22 @@ export function turnoAgora(agora = ptHHMM()): 'manha' | 'tarde' | 'noite' {
   return 'noite'
 }
 
-/** Os últimos 30 minutos de cada turno — quando ainda dá para corrigir. */
+/** Do fim do turno em diante.
+ *
+ *  Começou por ser uma janela de 40 minutos — o fim de cada turno, quando ainda
+ *  dá para corrigir. Estava errado por uma razão de fora do código: o relógio é
+ *  o GitHub Actions, e o GitHub atrasa e descarta execuções agendadas quando os
+ *  runners estão com carga. A 12 e 13 de setembro de 2026 o workflow do Phlox
+ *  correu oito vezes em vinte horas, em vez de oitenta — todas verdes. Uma
+ *  janela de 40 minutos quase nunca era apanhada.
+ *
+ *  Alargada, e não faz mal nenhum: cada aviso tem um id estável e é marcado
+ *  como enviado, por isso sai UMA vez mesmo que a janela dure horas. O limite
+ *  de cima existe só para não avisar de manhã ao fim da tarde. */
 const FIM_DE_TURNO: Record<string, [string, string]> = {
-  manha: ['13:30', '14:10'],
-  tarde: ['20:30', '21:10'],
-  noite: ['06:30', '07:10'],
+  manha: ['13:30', '17:00'],
+  tarde: ['20:30', '23:30'],
+  noite: ['06:30', '09:00'],
 }
 const dentroDe = (agora: string, [a, b]: [string, string]) => {
   const n = hhmmParaMin(agora)
@@ -189,23 +200,30 @@ export async function avisosDaInstituicao(
   // Refeito: a versão anterior procurava os utentes por `user_id` dos
   // coordenadores (perdia quase toda a casa) e contava TODOS os medicamentos
   // ativos em vez de só os do turno (inflava o número).
-  if (dentroDe(agora, FIM_DE_TURNO[turno])) {
-    const decididas = new Set(
-      tomas.filter((r: any) => r.shift === turno && r.status).map((r: any) => `${r.patient_id}|${r.med_id}`))
-    const doTurno = meds.filter((m: any) =>
-      !Array.isArray(m.shifts) || !m.shifts.length || m.shifts.includes(turno))
-    const porRegistar = doTurno.filter((m: any) => !decididas.has(`${m.patient_id}|${m.id}`))
+  // Percorre-se TODOS os turnos com a janela aberta, não só aquele em que
+  // estamos. Às 14h o turno muda para a tarde; se olhássemos só para o turno
+  // atual, as doses da manhã que ficaram por registar deixavam de ser vistas
+  // às 14h01 — e é precisamente depois das 14h que uma passagem atrasada do
+  // relógio costuma chegar.
+  for (const [qualTurno, janela] of Object.entries(FIM_DE_TURNO)) {
+    if (!dentroDe(agora, janela as [string, string])) continue
 
-    if (porRegistar.length) {
-      const pessoas = [...new Set(porRegistar.map((m: any) => quem(m.patient_id)))]
-      const rotulo = turno === 'manha' ? 'manhã' : turno === 'tarde' ? 'tarde' : 'noite'
-      avisos.push({
-        id: `doses-${orgId}-${hoje}-${turno}`, tipo: 'doses',
-        titulo: `${porRegistar.length} ${porRegistar.length === 1 ? 'dose' : 'doses'} por registar`,
-        corpo: `Turno da ${rotulo} está a acabar. ${pessoas.slice(0, 3).join(', ')}${pessoas.length > 3 ? ` e mais ${pessoas.length - 3}` : ''}.`,
-        href: '/mar', quando: new Date().toISOString(), urgencia: 'alta', empurrar: true,
-      })
-    }
+    const decididas = new Set(
+      tomas.filter((r: any) => r.shift === qualTurno && r.status).map((r: any) => `${r.patient_id}|${r.med_id}`))
+    const doTurno = meds.filter((m: any) =>
+      !Array.isArray(m.shifts) || !m.shifts.length || m.shifts.includes(qualTurno))
+    const porRegistar = doTurno.filter((m: any) => !decididas.has(`${m.patient_id}|${m.id}`))
+    if (!porRegistar.length) continue
+
+    const pessoas = [...new Set(porRegistar.map((m: any) => quem(m.patient_id)))]
+    const rotulo = qualTurno === 'manha' ? 'manhã' : qualTurno === 'tarde' ? 'tarde' : 'noite'
+    const jaPassou = hhmmParaMin(agora) > hhmmParaMin((janela as string[])[0]) + 60
+    avisos.push({
+      id: `doses-${orgId}-${hoje}-${qualTurno}`, tipo: 'doses',
+      titulo: `${porRegistar.length} ${porRegistar.length === 1 ? 'dose' : 'doses'} por registar`,
+      corpo: `${jaPassou ? `O turno da ${rotulo} acabou` : `Turno da ${rotulo} está a acabar`}. ${pessoas.slice(0, 3).join(', ')}${pessoas.length > 3 ? ` e mais ${pessoas.length - 3}` : ''}.`,
+      href: '/mar', quando: new Date().toISOString(), urgencia: 'alta', empurrar: true,
+    })
   }
 
   // ── 6. Stock abaixo do mínimo ─────────────────────────────────────────────
@@ -219,7 +237,9 @@ export async function avisosDaInstituicao(
         + (emBaixo.length > 3 ? ` e mais ${emBaixo.length - 3}` : ''),
       href: '/stock', quando: `${hoje}T09:00:00`, urgencia: 'normal',
       // Uma vez por dia, de manhã. Não é uma emergência; é uma ida à farmácia.
-      empurrar: hhmmParaMin(agora) >= 9 * 60 && hhmmParaMin(agora) < 10 * 60,
+      // A janela vai até ao início da tarde porque o relógio pode chegar tarde
+      // (ver a nota em FIM_DE_TURNO); o id estável garante que só sai uma vez.
+      empurrar: hhmmParaMin(agora) >= 9 * 60 && hhmmParaMin(agora) < 14 * 60,
     })
   }
 
@@ -230,7 +250,7 @@ export async function avisosDaInstituicao(
   if (opts.tipoInstituicao === 'day_care' && presencas.length > 0) {
     const marcados = new Set(presencas.map((a: any) => a.patient_id))
     const porMarcar = utentes.filter((p: any) => !marcados.has(p.id))
-    if (porMarcar.length && hhmmParaMin(agora) >= 10 * 60 && hhmmParaMin(agora) < 12 * 60) {
+    if (porMarcar.length && hhmmParaMin(agora) >= 10 * 60 && hhmmParaMin(agora) < 15 * 60) {
       avisos.push({
         id: `presenca-${orgId}-${hoje}`, tipo: 'presenca',
         titulo: `${porMarcar.length} sem marca de presença`,

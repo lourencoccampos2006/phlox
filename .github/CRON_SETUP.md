@@ -7,19 +7,87 @@ não tem secção `crons` nenhuma: **o agendador é o GitHub Actions**.
 As horas são as mesmas que estavam na Vercel — os dois correm em UTC, portanto
 as mesmas expressões dão os mesmos momentos do dia.
 
+## ⚠️ O GitHub Actions não é pontual (2026-09-13)
+
+O workflow está ativo e todas as execuções passam — e mesmo assim o relógio
+falta. O GitHub **atrasa e descarta** execuções agendadas quando os runners
+partilhados estão com carga; está documentado por eles. Nos números do Phlox:
+
+```
+agendado:  de 15 em 15 minutos   →  96 execuções/dia
+real:      05:02 · 00:22 · 22:43 · 20:56 · 18:31 · 16:16 · 13:07 · 09:35
+           8 execuções em 20 horas
+```
+
+Um lembrete das 09:00 precisa de uma passagem perto das 09:00. Com passagens de
+duas em duas horas, quase nenhuma janela é apanhada — e foi por isto que as
+notificações de medicação nunca chegaram, sem nada nunca dar erro.
+
+**Duas respostas, as duas aplicadas:**
+
+1. **O relógio verdadeiro passou a ser o `pg_cron` do Supabase** — corre dentro
+   da base de dados, não depende de runners partilhados, é gratuito. Correr
+   `supabase/sprint144_relogio.sql` (é preciso colar lá o `CRON_SECRET`).
+2. **O código aguenta atrasos.** Um lembrete de medicação até 3 horas atrasado
+   sai à mesma e diz que vem atrasado, em vez de fingir que são horas. Os avisos
+   das casas têm janelas largas e uma etiqueta estável, por isso saem uma vez só
+   mesmo que a janela dure horas.
+
+O GitHub Actions **fica como está, de reserva**. Os dois a bater na mesma rota
+não fazem mal: cada aviso só sai uma vez.
+
 ## O que corre, e quando
 
-| Quando (UTC) | Rota | O que faz | Ficheiro |
+| Quando (UTC) | Rota | O que faz | Onde está agendado |
 |---|---|---|---|
-| `0,15,30,45 * * * *` | `/api/push/cron` | Lembretes de medicação e avisos do MAR por notificação | `push-cron.yml` |
-| `0 5 * * *` | `/api/vigilancia/cron` | Vigilância noturna: recalcula o risco de cada pessoa | `crons.yml` |
-| `0 6 * * 1` | `/api/cron/ingest-shortages` | Ruturas de medicamentos do INFARMED (semanal) | `crons.yml` |
-| `0 7 * * 1` | `/api/cron/ingest-recalls` | Recolhas e alertas de qualidade do INFARMED (semanal) | `crons.yml` |
-| `30 7 * * *` | `/api/cron/diario` | O correio da manhã: o que merece atenção, famílias à espera, stock em baixo | `crons.yml` |
-| `0 8 * * 1-5` | `/api/cron/caso-do-dia` | Caso clínico do dia por email, dias úteis | `crons.yml` |
+| `*/5 * * * *` | `/api/push/cron` | Lembretes de medicação e avisos das casas | `pg_cron` (+ `push-cron.yml` de reserva, 15/15 min) |
+| `0 5 * * *` | `/api/vigilancia/cron` | Vigilância noturna: recalcula o risco de cada pessoa | `pg_cron` + `crons.yml` |
+| `0 6 * * 1` | `/api/cron/ingest-shortages` | Ruturas de medicamentos do INFARMED (semanal) | `pg_cron` + `crons.yml` |
+| `0 7 * * 1` | `/api/cron/ingest-recalls` | Recolhas e alertas de qualidade do INFARMED (semanal) | `pg_cron` + `crons.yml` |
+| `30 7 * * *` | `/api/cron/diario` | O correio da manhã: atenção, famílias à espera, stock em baixo | `pg_cron` + `crons.yml` |
+| `0 8 * * 1-5` | `/api/cron/caso-do-dia` | Caso clínico do dia por email, dias úteis | `pg_cron` + `crons.yml` |
 
 Em hora de Portugal soma-se uma hora no verão (UTC+1) e nada no inverno: o
 resumo diário das 07:30 UTC chega às 08:30 no verão e às 07:30 no inverno.
+
+### Ver se o pg_cron está a correr
+
+```sql
+select jobname, schedule, active from cron.job;
+select jobname, status, start_time from cron.job_run_details
+  order by start_time desc limit 20;
+```
+
+## Uma rota de cron NUNCA pode responder 200 sem trabalhar
+
+Até 2026-09-13, as rotas faziam
+`createClient(URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)`. O `!` é uma
+promessa ao compilador, não uma verificação: sem a variável, o supabase-js
+constrói o cliente na mesma, cada consulta volta com erro, o código corre até ao
+fim sem fazer nada — e responde **200**. Workflow verde, zero notificações,
+nenhuma pista.
+
+Agora todas passam por `lib/servico.ts`: sem chave, ou com uma chave que a base
+de dados recusa, respondem **503** com o nome da variável em falta, e o workflow
+fica **vermelho**. E a resposta do `/api/push/cron` diz o que fez:
+
+```json
+{ "ok": true, "hora": "09:15", "batimento": "gravado", "tomasNaHora": 2,
+  "casasVistas": 10, "avisosParaEmpurrar": 3, "avisosPorEnviar": 1,
+  "dispositivosAlvo": 4, "enviadas": 4, "falhas": 0 }
+```
+
+### Perguntar sem consumir nada
+
+`?simular=1` faz o percurso todo — lê tudo, decide tudo — mas não envia nem
+marca nada:
+
+```bash
+curl -H "x-cron-secret: $CRON_SECRET"   "https://phloxclinical.com/api/push/cron?simular=1"
+```
+
+Um aviso marcado como enviado sem ter sido enviado desaparece para sempre, por
+isso vale a pena perguntar antes.
 
 ## Os dois segredos
 

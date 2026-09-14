@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarPush, chavesPush, chavePublicaDoCliente } from '@/lib/webPush'
+import { clienteDeServico } from '@/lib/servico'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -129,14 +130,31 @@ export async function POST(req: NextRequest) {
           })
   }
 
-  // ── 4. O relógio que dispara os avisos automáticos ─────────────────
+  // ── 4. A chave de serviço ────────────────────────────────────────
+  // Esta é a etapa que faltava, e era a causa. Este teste envia com a sessão
+  // DA PESSOA; o cron envia com a chave de serviço. Se a chave faltar, o teste
+  // funciona e o cron não faz nada — e, como as rotas não a verificavam,
+  // respondia 200 na mesma e o GitHub Actions ficava verde. Ver lib/servico.ts.
+  const servico = clienteDeServico()
+  etapas.push(servico.ok
+    ? { etapa: 'Chave de serviço do servidor', ok: true, detalhe: 'Presente. É com ela que o relógio trabalha.' }
+    : {
+        etapa: 'Chave de serviço do servidor', ok: false,
+        detalhe: servico.motivo,
+        accao: servico.comoResolver,
+      })
+
+  // ── 5. O relógio que dispara os avisos automáticos ───────────────
   // Este teste passa POR CIMA do cron: envia diretamente. Se o relógio não
   // estiver a correr, o teste funciona e nenhum aviso automático chega — que
   // é exatamente a situação de "o teste dá, a medicação não".
   //
   // O cron marca cada passagem em push_notifications_sent (tag
-  // 'cron:ultima-passagem'). É isso que se lê aqui.
-  const { data: batimento } = await sb
+  // 'cron:ultima-passagem'). Lê-se com a chave de serviço quando ela existe:
+  // com a sessão da pessoa, uma leitura recusada era indistinguível de
+  // "nunca correu" — e este diagnóstico chegou a afirmar isso sem o saber.
+  const leitor = servico.ok ? servico.sb : sb
+  const { data: batimento, error: erroBatimento } = await leitor
     .from('push_notifications_sent').select('sent_at').eq('tag', 'cron:ultima-passagem').maybeSingle()
 
   const minutosDesde = batimento?.sent_at
@@ -144,24 +162,30 @@ export async function POST(req: NextRequest) {
     : null
 
   etapas.push(
-    minutosDesde == null
+    erroBatimento
       ? {
           etapa: 'O relógio automático', ok: false,
-          detalhe: 'Nunca correu. É por isto que os lembretes de medicação não chegam, mesmo com o teste a funcionar — o teste envia à mão, o relógio é que envia sozinho.',
-          accao: 'O relógio é o GitHub Actions. Confirmar que o segredo CRON_SECRET existe em GitHub → Settings → Secrets and variables → Actions com o MESMO valor da Vercel, e ver em GitHub → Actions → "Push Notifications Cron" se as últimas execuções estão verdes. A 401 significa segredos diferentes.',
+          detalhe: `Não consegui verificar: ${erroBatimento.message}`,
+          accao: 'Isto não quer dizer que o relógio não corra — quer dizer que não consegui ler a marca. Ver em GitHub → Actions → "Push Notifications Cron" o registo da última execução: ele agora imprime o que o cron fez.',
         }
-      : minutosDesde > 45
+      : minutosDesde == null
         ? {
             etapa: 'O relógio automático', ok: false,
-            detalhe: `A última passagem foi há ${minutosDesde > 1440 ? `${Math.round(minutosDesde / 1440)} dia(s)` : `${minutosDesde} minutos`}. Devia ser de 15 em 15 minutos.`,
-            accao: 'Ver em GitHub → Actions → "Push Notifications Cron" o que aconteceu nas últimas execuções. O GitHub também desliga workflows agendados em repositórios parados há 60 dias.',
+            detalhe: 'Nunca deixou marca. Ou nunca chamou o Phlox, ou chamou e não conseguiu escrever na base de dados — o que acontece quando falta a chave de serviço (etapa acima).',
+            accao: 'Ver em GitHub → Actions → "Push Notifications Cron" a última execução. Se estiver verde mas nada acontecer, o registo diz agora porquê. Se estiver a 401, o CRON_SECRET do GitHub não é igual ao da Vercel.',
           }
-        : {
-            etapa: 'O relógio automático', ok: true,
-            detalhe: `A correr. Última passagem há ${minutosDesde} ${minutosDesde === 1 ? 'minuto' : 'minutos'}.`,
-          })
+        : minutosDesde > 45
+          ? {
+              etapa: 'O relógio automático', ok: false,
+              detalhe: `A última passagem foi há ${minutosDesde > 1440 ? `${Math.round(minutosDesde / 1440)} dia(s)` : `${minutosDesde} minutos`}. Devia ser de 15 em 15 minutos.`,
+              accao: 'Ver em GitHub → Actions → "Push Notifications Cron" o que aconteceu nas últimas execuções. O GitHub também desliga workflows agendados em repositórios parados há 60 dias.',
+            }
+          : {
+              etapa: 'O relógio automático', ok: true,
+              detalhe: `A correr. Última passagem há ${minutosDesde} ${minutosDesde === 1 ? 'minuto' : 'minutos'}.`,
+            })
 
-  // ── 5. Os lembretes de medicação desta conta ─────────────────────
+  // ── 6. Os lembretes de medicação desta conta
   // A outra causa possível: o relógio corre, mas não há nada para enviar.
   // Só saem lembretes de medicamentos com HORA definida — um medicamento sem
   // hora é uma lista, não um alarme, e o Phlox não inventa horas.

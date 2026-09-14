@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { findLatestLnpUrl, parseLnpWorkbook } from '@/lib/shortageIngest'
+import { clienteDeServico } from '@/lib/servico'
 
 export const maxDuration = 60
 
@@ -18,7 +19,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  // Ver lib/servico.ts.
+  const servico = clienteDeServico()
+  if (!servico.ok) return NextResponse.json({ error: servico.motivo, comoResolver: servico.comoResolver }, { status: servico.estado })
+  const db = servico.sb
 
   try {
     const found = await findLatestLnpUrl()
