@@ -124,7 +124,10 @@ export async function avisosDaInstituicao(
     tol(() => sb.from('incidents').select('id, date, type, patient_id')
       .eq('org_id', orgId).eq('follow_up_required', true)
       .order('date', { ascending: false }).limit(10)),
-    tol(() => sb.from('family_thread_messages').select('id, patient_id, body, created_at, author_side')
+    // `content`, não `body`: o nome errado fazia o PostgREST recusar o select
+    // inteiro, e o aviso "família à espera" nunca chegou a existir. Apanhado
+    // por scripts/check-colunas.mjs.
+    tol(() => sb.from('family_thread_messages').select('id, patient_id, content, created_at, author_side')
       .eq('org_id', orgId).gte('created_at', desde48h)
       .order('created_at', { ascending: false }).limit(60)),
     tol(() => sb.from('mar_records').select('id, patient_id, status, med_id, shift, date')
@@ -169,7 +172,7 @@ export async function avisosDaInstituicao(
       avisos.push({
         id: `fam-${m.id}`, tipo: 'familia',
         titulo: `Família de ${quem(m.patient_id)} à espera`,
-        corpo: String(m.body || '').slice(0, 90),
+        corpo: String(m.content || '').slice(0, 90),
         href: '/family', quando: m.created_at, urgencia: 'normal', empurrar: true,
       })
     })
@@ -285,8 +288,11 @@ export async function avisosPessoais(
   const minAgora = hhmmParaMin(agora)
 
   const [meds, tomasHoje] = await Promise.all([
+    // Sem `shifts`: essa coluna não existe em personal_meds e fazia o select
+    // inteiro ser recusado — o `tol` devolvia lista vazia e o sino do modo
+    // pessoal ficava sempre vazio, calado, sem erro nenhum.
     tol(() => sb.from('personal_meds')
-      .select('id, name, dose, reminder_times, units_left, units_per_dose, shifts')
+      .select('id, name, dose, reminder_times, units_left, units_per_dose')
       .eq('user_id', userId)),
     tol(() => sb.from('med_logs').select('med_id, status').eq('user_id', userId).eq('date', hoje)),
   ])
@@ -313,7 +319,7 @@ export async function avisosPessoais(
     const restam = Number(m.units_left)
     const porDose = Number(m.units_per_dose) || 1
     if (!isNaN(restam) && restam > 0 && porDose > 0) {
-      const porDia = Array.isArray(m.shifts) && m.shifts.length ? m.shifts.length : (horas.length || 1)
+      const porDia = horas.length || 1
       const dias = Math.floor(restam / (porDose * porDia))
       if (dias <= 7) {
         avisos.push({

@@ -36,9 +36,9 @@
 import type { WatchSignal } from './caregiverWatch'
 
 export interface DoseRegistada { med_id: string; date: string; status: string }
-export interface MedDoCuidado { id: string; name: string; shifts?: string[] | null; active?: boolean | null; created_at?: string | null }
+export interface MedDoCuidado { id: string; name: string; pills_per_day?: number | null; active?: boolean | null; created_at?: string | null }
 export interface VitalRegistado { recorded_at: string; weight?: number | null }
-export interface SintomaRegistado { at?: string | null; created_at?: string | null; severity?: number | null }
+export interface SintomaRegistado { at?: string | null; created_at?: string | null; pain?: number | null }
 
 export interface EntradaCuidador {
   meds: MedDoCuidado[]
@@ -58,7 +58,7 @@ const diasEntre = (a: string, b: string) =>
 function dosesPorDia(meds: MedDoCuidado[]): number {
   return meds
     .filter(m => m.active !== false)
-    .reduce((s, m) => s + (Array.isArray(m.shifts) && m.shifts.length ? m.shifts.length : 1), 0)
+    .reduce((s, m) => s + (Number(m.pills_per_day) > 0 ? Number(m.pills_per_day) : 1), 0)
 }
 
 /** Adesão numa janela: dadas sobre devidas. `null` quando não há denominador. */
@@ -74,7 +74,7 @@ export function adesaoEm(entrada: EntradaCuidador, dias: number, hoje: string): 
       const inicio = m.created_at ? dia(m.created_at) : desdeStr
       const de = inicio > desdeStr ? inicio : desdeStr
       const n = Math.max(0, diasEntre(de, hoje) + 1)
-      return s + n * (Array.isArray(m.shifts) && m.shifts.length ? m.shifts.length : 1)
+      return s + n * (Number(m.pills_per_day) > 0 ? Number(m.pills_per_day) : 1)
     }, 0)
   if (devidas <= 0) return null
   const dadas = entrada.doses.filter(d => DADA.has(d.status) && dia(d.date) >= desdeStr).length
@@ -205,10 +205,14 @@ export async function carregarEntradaCuidador(
   const tol = async (q: any) => { try { const r = await q; return r?.error ? { data: [] } : r } catch { return { data: [] } } }
 
   const [meds, doses, vitals, sintomas, consultas] = await Promise.all([
-    tol(supabase.from('family_profile_meds').select('id,name,shifts,active,created_at').eq('profile_id', perfilId)),
+    // Sem `shifts` (não existe nesta tabela) — as tomas por dia saem de
+    // pills_per_day. Ver scripts/check-colunas.mjs.
+    tol(supabase.from('family_profile_meds').select('id,name,pills_per_day,active,created_at').eq('profile_id', perfilId)),
     tol(supabase.from('med_logs').select('med_id,date,status').gte('date', desde(35))),
     tol(supabase.from('vitals').select('recorded_at,weight').eq('profile_id', perfilId).gte('recorded_at', desde(180))),
-    tol(supabase.from('symptom_logs').select('at,created_at,severity').eq('profile_id', perfilId).gte('created_at', desde(60) + 'T00:00:00')),
+    // `pain` (0-10), não `severity` — essa coluna não existe em symptom_logs e
+    // fazia o select falhar inteiro. Ver scripts/check-colunas.mjs.
+    tol(supabase.from('symptom_logs').select('at,created_at,pain').eq('profile_id', perfilId).gte('created_at', desde(60) + 'T00:00:00')),
     tol(supabase.from('appointments').select('date').eq('profile_id', perfilId).gte('date', desde(60))),
   ])
 

@@ -150,7 +150,9 @@ export default function FamiliaPage() {
     })
     e.sintomas.forEach(sy => {
       const d = String((sy as any).at || (sy as any).created_at || '').slice(0, 10)
-      if (d) ev.push({ data: d, tipo: 'sintoma', alerta: Number((sy as any).severity) >= 7, texto: 'Queixa registada' })
+      // `pain`, não `severity`: essa coluna não existe em symptom_logs, por isso
+      // o alerta era sempre falso. Ver scripts/check-colunas.mjs.
+      if (d) ev.push({ data: d, tipo: 'sintoma', alerta: Number((sy as any).pain) >= 7, texto: 'Queixa registada' })
     })
     return ev
   }

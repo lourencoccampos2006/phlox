@@ -84,10 +84,17 @@ export async function GET(req: NextRequest) {
 
   // ─── 1. Medication reminders ─────────────────────────────────────────────────
   // Find all personal_meds with a reminder_time that matches ±10min of now
-  const { data: medsWithReminders } = await supabase
+  // NOTA (2026-09-14): esta lista já pediu uma coluna `shifts` que NÃO EXISTE
+  // em personal_meds. O PostgREST recusa o select inteiro nesse caso, devolve
+  // `data: null`, e como aqui só se destruturava `{ data }` o erro ia para o
+  // lixo. Resultado: `dueReminders` sempre vazio, zero lembretes de medicação
+  // enviados desde sempre — com o cron a correr e a responder 200.
+  // Por isso o erro é agora lido e vai no relatório.
+  const { data: medsWithReminders, error: erroMeds } = await supabase
     .from('personal_meds')
-    .select('id, user_id, name, dose, reminder_times, shifts, units_left, units_per_dose, low_notified_at')
+    .select('id, user_id, name, dose, reminder_times, units_left, units_per_dose, low_notified_at')
     .not('reminder_times', 'is', null)
+  if (erroMeds) console.error('[phlox:cron] não consegui ler os medicamentos pessoais:', erroMeds.message)
 
   // Guarda-se QUAL das horas disparou, nao so que alguma disparou: e essa hora
   // que identifica o lembrete. Usar a hora atual como chave falhava num caso
@@ -149,7 +156,9 @@ export async function GET(req: NextRequest) {
       const restam = Number((med as any).units_left)
       const porDose = Number((med as any).units_per_dose) || 1
       if (!isNaN(restam) && restam > 0 && porDose > 0) {
-        const dosesPorDia = Array.isArray((med as any).shifts) && (med as any).shifts.length ? (med as any).shifts.length : 1
+        // Quantas tomas por dia: são as horas de lembrete. (Era `med.shifts`,
+        // uma coluna que nunca existiu nesta tabela.)
+        const dosesPorDia = Array.isArray(med.reminder_times) && med.reminder_times.length ? med.reminder_times.length : 1
         const diasQueFaltam = Math.floor(restam / (porDose * dosesPorDia))
         const jaAvisado = (med as any).low_notified_at
         const avisadoHaPouco = jaAvisado && (Date.now() - new Date(jaAvisado + 'T12:00:00').getTime()) < 7 * 86400000
@@ -178,6 +187,7 @@ export async function GET(req: NextRequest) {
         .eq('user_id', med.user_id)
 
       alvos += (subs || []).length
+      let aceite = 0
       for (const sub of simular ? [] : (subs || [])) {
         const atrasado = atraso > A_HORAS_MIN
         const r = await enviarPush(sub, {
@@ -190,7 +200,7 @@ export async function GET(req: NextRequest) {
           url: `/mymeds?confirm=${med.id}&date=${today}`,
           tag: `reminder-${med.id}`,
         })
-        if (r.ok) sent++
+        if (r.ok) { sent++; aceite++ }
         else {
           errors++
           // Só o 410/404 diz que o dispositivo desapareceu. Qualquer outra
@@ -202,7 +212,12 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      if (!simular) {
+      // A marca só se escreve quando ALGUMA coisa saiu mesmo. Antes escrevia-se
+      // sempre: se a pessoa ainda não tinha dispositivo, ou se o envio falhava,
+      // o lembrete ficava marcado como dado e nunca mais era tentado nesse dia.
+      // Marcar como enviado o que não saiu é a maneira mais silenciosa de
+      // perder um aviso.
+      if (!simular && aceite > 0) {
         await supabase.from('push_notifications_sent')
           .insert({ tag: etiqueta, sent_at: new Date().toISOString() })
           .then((r: any) => r, () => null)
@@ -384,6 +399,8 @@ export async function GET(req: NextRequest) {
     simulacao: simular || undefined,
     hora: nowHHMM,
     batimento,
+    medicamentosComHora: (medsWithReminders || []).length,
+    erroMedicamentos: erroMeds?.message,
     tomasNaHora: dueReminders.length,
     casasVistas: (casas || []).length,
     avisosParaEmpurrar: avisosTotal,
