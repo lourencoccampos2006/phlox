@@ -25,7 +25,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'medication', label: 'Medicação', color: '#0d9488',
     tools: [
-      { href: '/scan',         icon: '📷', label: 'Tirar foto a uma receita', desc: 'O Phlox lê a receita, caixa, análise ou bula' },
+      { href: '/scan',         icon: '📷', label: 'Decifrar', desc: 'Uma foto a um relatório, análises, receita ou caixa — explicado em simples' },
       { href: '/medicamento',  icon: '💡', label: 'O que é este medicamento?', desc: 'Escreva o nome → para que serve e cuidados' },
       { href: '/mymeds',       icon: '💊', label: 'Os meus comprimidos', desc: 'Lista, horários e lembretes' },
       { href: '/interactions', icon: '🔍', label: 'Dão-se bem juntos?',  desc: 'Ver se é seguro tomá-los ao mesmo tempo' },
@@ -153,7 +153,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/vitals',       icon: '❤️', label: 'Saúde',       desc: 'Tensão, peso e açúcar' },
     { href: '/ai',           icon: '🤖', label: 'Perguntar',   desc: 'Tirar uma dúvida' },
     { href: '/passport',     icon: '🆘', label: 'Emergência',  desc: 'Cartão QR' },
-    { href: '/scan',         icon: '📷', label: 'Foto',        desc: 'Foto a uma receita ou caixa' },
+    { href: '/scan',         icon: '📷', label: 'Decifrar',    desc: 'Foto a um papel de saúde, explicado' },
   ],
   caregiver: [
     { href: '/familia',      icon: '👨‍👩‍👧', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },

@@ -39,6 +39,7 @@ import { useRouter } from 'next/navigation'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
 import { sendToTool } from '@/lib/toolBridge'
+import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -630,6 +631,7 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
             )}
 
             {report && !loading && <ReportView report={report} />}
+            <NaoEDispositivoMedico />
           </div>
         </div>
       </div>

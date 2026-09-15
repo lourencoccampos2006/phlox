@@ -10,6 +10,8 @@ import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import { reportError } from '@/lib/clientError'
 import Link from 'next/link'
+import { estiloFundoModal } from '@/lib/camadas'
+import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 
 type VaultDoc = {
   id: string
@@ -215,8 +217,17 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(11,17,32,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 560, maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', padding: 20 }}>
+    <div onClick={onClose} style={estiloFundoModal}>
+      {/* ── A barra de ações fica FIXA no fundo do modal ───────────────────
+          Antes o "Guardar" vivia no fim do conteúdo, dentro da zona que faz
+          scroll. Num telemóvel isso quer dizer: preenche-se o formulário todo
+          e o botão não está onde se espera — tem de se perceber que o modal
+          rola por dentro. (E, até 2026-09-15, a barra de navegação inferior
+          ainda lhe passava por cima, porque este modal estava a z-index 60 e
+          ela a 120.)
+          Agora o corpo rola e as ações ficam sempre à vista. */}
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 560, maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 20, minHeight: 0 }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 14 }}>{doc ? 'Editar documento' : 'Novo documento'}</div>
 
         <Label>Título</Label>
@@ -260,9 +271,16 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
         <Label>Texto/conteúdo (para pesquisar e mostrar)</Label>
         <textarea value={bodyText} onChange={e => setBodyText(e.target.value)} rows={5} placeholder="Cola o conteúdo do documento aqui…" style={{ ...input(), resize: 'vertical' }} />
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-          <button onClick={onClose} style={{ padding: '9px 16px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-          <button onClick={save} style={{ padding: '9px 18px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Guardar</button>
+        </div>
+
+        <div style={{
+          flexShrink: 0, display: 'flex', gap: 8, justifyContent: 'flex-end',
+          padding: '12px 20px', borderTop: '1px solid #e5e7eb', background: 'white',
+          // No iPhone, o indicador de gestos come os últimos milímetros.
+          paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+        }}>
+          <button onClick={onClose} style={{ padding: '11px 16px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Cancelar</button>
+          <button onClick={save} style={{ padding: '11px 20px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', minHeight: 44 }}>Guardar</button>
         </div>
       </div>
     </div>
@@ -270,12 +288,38 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
 }
 
 function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => void; onEdit: () => void }) {
+  const { supabase } = useAuth() as any
   const meta = CATS.find(c => c.id === doc.category) || CATS[CATS.length - 1]
   const isPdf = doc.body_url?.startsWith('data:application/pdf')
   const isImage = doc.body_url?.startsWith('data:image/')
 
+  // ── Decifrar o que está guardado ─────────────────────────────────────────
+  const [aDecifrar, setADecifrar] = useState(false)
+  const [decifrado, setDecifrado] = useState<any>(null)
+  const [erroDecifrar, setErroDecifrar] = useState('')
+
+  async function decifrar() {
+    if (aDecifrar) return
+    setADecifrar(true); setErroDecifrar(''); setDecifrado(null)
+    try {
+      const { data: sd } = await supabase.auth.getSession()
+      const r = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
+        body: JSON.stringify({ text: (doc.body_text || '').slice(0, 24000) }),
+      })
+      const t = await r.text()
+      let j: any = null
+      try { j = JSON.parse(t) } catch { throw new Error('O servidor demorou demasiado. Tenta outra vez.') }
+      if (!r.ok) throw new Error(j?.error || 'Não consegui interpretar este documento.')
+      setDecifrado(j)
+    } catch (e: any) {
+      setErroDecifrar(e.message || 'Não consegui interpretar.')
+    } finally { setADecifrar(false) }
+  }
+
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(11,17,32,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={onClose} style={estiloFundoModal}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 800, maxWidth: '100%', height: 'min(88vh, 720px)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 32, height: 32, borderRadius: 7, background: meta.color + '14', color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{meta.icon}</div>
@@ -285,6 +329,15 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
               {meta.label}{doc.issued_at ? ` · ${new Date(doc.issued_at).toLocaleDateString('pt-PT')}` : ''}
             </div>
           </div>
+          {/* Decifrar ─────────────────────────────────────────────────────
+              Um documento guardado no cofre é exatamente o que a ferramenta
+              Decifrar sabe ler. Sem isto era preciso voltar a fotografar um
+              papel que já está aqui dentro. */}
+          {(doc.body_text || '').trim().length > 40 && (
+            <button onClick={decifrar} disabled={aDecifrar} style={{ padding: '6px 12px', background: aDecifrar ? '#f1f5f9' : '#0d6e42', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, color: aDecifrar ? '#94a3b8' : 'white', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+              {aDecifrar ? 'A decifrar…' : 'Decifrar'}
+            </button>
+          )}
           <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Editar</button>
           <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
         </div>
@@ -306,6 +359,47 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                 <img src={doc.body_url} alt={doc.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               ) : (
                 <a href={doc.body_url} download={doc.title} style={{ color: 'white', fontSize: 13 }}>📥 Descarregar anexo</a>
+              )}
+            </div>
+          )}
+
+          {(decifrado || erroDecifrar) && (
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc' }}>
+              {erroDecifrar ? (
+                <div style={{ fontSize: 13, color: '#c53030', lineHeight: 1.6 }}>{erroDecifrar}</div>
+              ) : (
+                <>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>
+                    Decifrado
+                  </div>
+                  {decifrado.emDuasLinhas && (
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16.5, lineHeight: 1.5, color: '#0b1120', margin: '0 0 12px', maxWidth: '54ch' }}>
+                      {decifrado.emDuasLinhas}
+                    </p>
+                  )}
+                  {!!decifrado.oQueImporta?.length && (
+                    <ul style={{ margin: '0 0 12px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {decifrado.oQueImporta.map((x: string, i: number) => (
+                        <li key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: '#334155', lineHeight: 1.55 }}>
+                          <span aria-hidden style={{ color: '#0d6e42', fontWeight: 700 }}>—</span><span>{x}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {!!decifrado.termos?.length && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                      {decifrado.termos.map((t: any, i: number) => (
+                        <div key={i} style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                          <strong style={{ color: '#0b1120' }}>{t.termo}</strong> — {t.simples}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Link href="/scan" style={{ fontSize: 12.5, color: '#0d6e42', fontWeight: 700, textDecoration: 'none' }}>
+                    Abrir no Decifrar para perguntar sobre isto →
+                  </Link>
+                  <NaoEDispositivoMedico variante="linha" />
+                </>
               )}
             </div>
           )}
@@ -351,7 +445,7 @@ function ShareModal({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(11,17,32,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={onClose} style={estiloFundoModal}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 460, maxWidth: '100%', padding: 22 }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 6 }}>Partilhar com código</div>
         <p style={{ fontSize: 12.5, color: '#64748b', marginTop: 0, marginBottom: 16, lineHeight: 1.55 }}>

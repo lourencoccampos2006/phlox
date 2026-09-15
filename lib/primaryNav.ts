@@ -9,7 +9,10 @@ export const PRIMARY_NAV: Record<string, PrimaryNavItem[]> = {
   personal: [
     { href: '/inicio', label: 'Início', icon: 'home' },
     { href: '/mymeds', label: 'Medicação', icon: 'pill' },
-    { href: '/sintomas', label: 'Saúde', icon: 'heart' },
+    // 2026-09-15: era '/sintomas' com o rótulo "Saúde" — um destino vago num
+    // sítio que se vê em todos os ecrãs. O /scan (Decifrar) é a ferramenta que
+    // traz gente ao Phlox e estava escondida no catálogo; passa para aqui.
+    { href: '/scan', label: 'Decifrar', icon: 'camera' },
     { href: '/settings', label: 'Perfil', icon: 'user' },
   ],
   caregiver: [

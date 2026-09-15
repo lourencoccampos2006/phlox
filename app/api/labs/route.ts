@@ -36,7 +36,9 @@ Inclui também: data da colheita, laboratório, nome do doente se visível.
 Responde APENAS com o texto bruto dos resultados, em formato lista clara. Não analises — apenas extrai.`,
         body.pdf_base64,
         'application/pdf',
-        { maxTokens: 2000, temperature: 0.0 }
+        // qualidade: um PDF de análises é exatamente onde o modelo mais barato
+        // troca vírgulas e colunas. Ver a nota em lib/ai.ts.
+        { maxTokens: 2500, temperature: 0.0, qualidade: true }
       )
       if (extracted.trim().length > 20) {
         labText = extracted
@@ -104,7 +106,11 @@ Regras:
         role: 'user',
         content: `Interpreta estes resultados de análises clínicas:\n\n${cleanedText}`,
       },
-    ], { maxTokens: 2500, temperature: 0.05 })
+    // `qualidade` — sem isto, interpretar valores clinicos caía no
+    // llama-3.3-70b, que e' o primeiro da escada normal. Para escrever um
+    // resumo simpatico chega; para dizer se uma creatinina de 1,9 importa,
+    // nao. Era esta a causa dos erros de interpretacao.
+    ], { maxTokens: 2500, temperature: 0.05, qualidade: true })
 
     return NextResponse.json(result)
 

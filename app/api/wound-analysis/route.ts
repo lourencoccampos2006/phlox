@@ -55,7 +55,7 @@ Responde APENAS com JSON válido em português de Portugal:
 Sê objetivo e prudente. Esta análise é de APOIO e não substitui a avaliação presencial por um profissional.`
 
   try {
-    const result = await callGeminiVisionJSON<WoundAI>(prompt, imageBase64, mimeType, { maxTokens: 1200 })
+    const result = await callGeminiVisionJSON<WoundAI>(prompt, imageBase64, mimeType, { maxTokens: 1200 , qualidade: true })
     return NextResponse.json({ ...result, disclaimer: 'Análise de apoio por IA — confirmar sempre com avaliação presencial.' })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Não foi possível analisar a imagem.' }, { status: 500 })

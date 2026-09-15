@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const medications = await callGeminiVisionJSON<ExtractedMed[]>(
-      PROMPT, base64, mimeType, { maxTokens: 800 }
+      PROMPT, base64, mimeType, { maxTokens: 800, qualidade: true }
     )
     // Validate and sanitise
     const safe = (Array.isArray(medications) ? medications : [])

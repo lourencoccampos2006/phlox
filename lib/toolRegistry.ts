@@ -54,7 +54,7 @@ export const TOOLS: Tool[] = [
   // ── Medicação ──
   // ── 7 ESSENCIAIS (default pessoal/cuidador). O resto fica acessível em /tudo. ──
   { id: '/mymeds',       label: 'Os meus comprimidos',           desc: 'A lista, os horários e os lembretes', category: 'meds',    modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/scan',         label: 'Tirar foto a uma receita ou caixa', desc: 'O Phlox lê e organiza por si — receita, caixa, análise ou relatório', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/scan',         label: 'Decifrar',                      desc: 'Uma foto a qualquer papel de saúde — relatório, análises, receita, caixa — explicado em português simples', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/interactions', label: 'Os meus medicamentos dão-se bem?', desc: 'Ver se é seguro tomá-los juntos', category: 'meds',     modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free_limited' },
   { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreva o nome e veja para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], plan: 'free' },
 

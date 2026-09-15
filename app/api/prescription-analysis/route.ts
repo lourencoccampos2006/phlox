@@ -46,7 +46,7 @@ Responde APENAS com JSON válido em português de Portugal:
 Esta extração é de APOIO e tem de ser SEMPRE confirmada por um profissional antes de registar.`
 
   try {
-    const result = await callGeminiVisionJSON<PrescriptionAI>(prompt, body.imageBase64, body.mimeType || 'image/jpeg', { maxTokens: 1500 })
+    const result = await callGeminiVisionJSON<PrescriptionAI>(prompt, body.imageBase64, body.mimeType || 'image/jpeg', { maxTokens: 1500 , qualidade: true })
     if (!result.meds) result.meds = []
     return NextResponse.json({ ...result, disclaimer: 'Extração de apoio por IA — confirmar sempre com a prescrição original e o profissional responsável.' })
   } catch (err: any) {

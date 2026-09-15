@@ -59,7 +59,7 @@ Responde APENAS JSON válido, PT-PT:
 Se não conseguires ler, devolve meds: [] e confidence baixa.`
 
   try {
-    const res = await callGeminiVisionJSON<any>(prompt, body.image, body.mimeType || 'image/jpeg', { maxTokens: 1600 })
+    const res = await callGeminiVisionJSON<any>(prompt, body.image, body.mimeType || 'image/jpeg', { maxTokens: 1600 , qualidade: true })
     if (!res || !Array.isArray(res.meds)) throw new Error('Não consegui ler a foto.')
     return NextResponse.json(res)
   } catch (e: any) {

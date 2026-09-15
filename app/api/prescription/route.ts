@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
 Analisa esta imagem — pode ser uma receita médica, uma caixa de medicamento, um blister, ou um rótulo. Identifica todos os medicamentos visíveis e explica cada um conforme o JSON acima. Se não vires medicamentos, responde com medications: [] e explica o que vês em general_advice.`
 
-      result = await callGeminiVisionJSON(prompt, image, mimeType, { maxTokens: 2000 })
+      result = await callGeminiVisionJSON(prompt, image, mimeType, { maxTokens: 2000 , qualidade: true })
     } else {
       result = await aiJSON<any>([
         { role: 'system', content: SYSTEM },

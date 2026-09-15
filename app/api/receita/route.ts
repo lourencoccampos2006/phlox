@@ -43,7 +43,7 @@ Regras:
 - Esta leitura é de APOIO e deve ser confirmada com o farmacêutico/médico.`
 
   try {
-    const result = await callGeminiVisionJSON<RxResult>(prompt, body.imageBase64, body.mimeType || 'image/jpeg', { maxTokens: 1600 })
+    const result = await callGeminiVisionJSON<RxResult>(prompt, body.imageBase64, body.mimeType || 'image/jpeg', { maxTokens: 1600 , qualidade: true })
     if (!result.meds) result.meds = []
     return NextResponse.json({ ...result, disclaimer: 'Leitura de apoio por IA — confirma sempre com a receita original e o teu farmacêutico.' })
   } catch (err: any) {

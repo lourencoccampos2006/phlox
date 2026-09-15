@@ -208,7 +208,7 @@ Explica para uma pessoa sem formação clínica. ${RULES}
 
 Esquema:
 ${SCHEMA}`
-      result = await callGeminiVisionJSON<any>(prompt, image, mimeType, { maxTokens: 1400 })
+      result = await callGeminiVisionJSON<any>(prompt, image, mimeType, { maxTokens: 1400 , qualidade: true })
     } else {
       // ── NOME ou PRINCÍPIO ATIVO ou CÓDIGO INFARMED ──
       const resolved = resolveDrugName(name)

@@ -23,6 +23,7 @@ import ShareCard from '@/components/ShareCard'
 import SaveButton from '@/components/SaveButton'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import UpgradeNudge from '@/components/UpgradeNudge'
+import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 
 interface Result {
   identified: string
@@ -384,9 +385,7 @@ export default function MedicamentoTool() {
               </Link>
             </div>
 
-            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center', lineHeight: 1.5, marginTop: 8 }}>
-              Informação geral de apoio · Confirma sempre com o teu farmacêutico ou médico.
-            </div>
+            <NaoEDispositivoMedico variante="linha" quem="farmaceutico" />
           </div>
         )}
       </div>

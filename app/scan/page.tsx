@@ -1,34 +1,55 @@
 'use client'
 
-// /scan — Phlox Scan: uma foto de QUALQUER coisa de saúde.
-// A IA identifica o tipo (receita, caixa, análise, relatório, bula…) e age:
-// extrai medicação, interpreta valores, resume relatórios. "O Shazam da saúde."
-// Substitui o antigo /organizar — faz tudo o que ele fazia e muito mais.
+// /scan — DECIFRAR
+// ─────────────────────────────────────────────────────────────────────────────
+// A ferramenta mais importante do Phlox: uma foto a qualquer papel de saúde,
+// explicado em português simples.
+//
+// ── PORQUE É QUE FOI REFEITA (2026-09-15) ──────────────────────────────────
+// A versão anterior estava correta e era invisível. Chamava-se "Tirar foto a
+// uma receita ou caixa" — uma instrução, não uma promessa — e devolvia um
+// resumo de duas frases. Quem chega ao Phlox com um relatório do hospital na
+// mão não tem como saber que isto existe, e se descobrisse não veria o que
+// ganha com ele.
+//
+// Três mudanças de fundo:
+//
+//   1. O nome. "Decifrar" diz o que se faz: um papel médico é opaco de
+//      propósito para quem não é do meio, e isto abre-o.
+//   2. A promessa está no ecrã antes de haver resultado. Vê-se logo o que ele
+//      lê — receita, análises, relatório, caixa, bula — porque a dúvida de
+//      quem chega é "isto serve para o meu caso?".
+//   3. O resultado deixou de ser um resumo e passou a ser um documento
+//      decifrado: o essencial, o que importa, o glossário das palavras
+//      difíceis, o relatório reescrito secção a secção, o que perguntar ao
+//      médico, e o que fazer a seguir. E dá para CONTINUAR A PERGUNTAR — que
+//      é o que acontece sempre a seguir a ler um relatório.
+//
+// A IA é a de qualidade (Claude primeiro; ver `qualidade` em lib/ai.ts). Num
+// relatório médico, ler mal uma frase não é um defeito de estilo.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { extractFromFile } from '@/lib/docExtract'
-import { sendToTool } from '@/lib/toolBridge'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import UpgradeNudge from '@/components/UpgradeNudge'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
+import { horasDaFrequencia } from '@/lib/horarioToma'
 
-// /scan — Phlox Scan: SÓ a foto auto-deteta. Voltou a ser uma ferramenta
-// dedicada e simples (a fusão anterior em abas era frágil e rebentava).
-// Para texto: /medicamento e /receita são páginas próprias.
-export default function ScanPage() {
-  return <ScanTool />
-}
+/** O nome da ferramenta, num sítio só — muda aqui e muda em todo o lado. */
+export const NOME_FERRAMENTA = 'Decifrar'
 
 const ACCENT = '#0d6e42'
 
-// Reduz a foto antes de enviar. As fotos da câmara (3–12 MB) em base64 estouravam
-// o payload e o tempo da chamada de visão → "erro ao processar". Reduzir para
-// ~1280px/JPEG 0.82 mantém a legibilidade do texto e corta o tamanho ~10×.
-function downscaleImage(file: File, maxDim = 1280, q = 0.82): Promise<{ b64: string; mime: string }> {
+// Reduz a foto antes de enviar. As fotos da câmara (3–12 MB) em base64
+// estouravam o payload e o tempo da chamada de visão. ~1600px mantém o texto
+// pequeno legível — subiu de 1280 porque o modelo bom aproveita a resolução a
+// mais, e é aí que estão as letras das análises.
+function downscaleImage(file: File, maxDim = 1600, q = 0.85): Promise<{ b64: string; mime: string }> {
   return new Promise((resolve, reject) => {
     const img = new window.Image(); const url = URL.createObjectURL(file)
     img.onload = () => {
@@ -45,299 +66,628 @@ function downscaleImage(file: File, maxDim = 1280, q = 0.82): Promise<{ b64: str
   })
 }
 
-interface Med { name: string; dose?: string; frequency?: string; _import?: boolean }
-interface LabValue { name: string; value?: string; status?: string; note?: string }
-interface ScanResult {
+interface Med { name: string; dose?: string; frequency?: string; paraQue?: string; _import?: boolean }
+interface Valor { name: string; value?: string; unit?: string; reference?: string; status?: string; note?: string }
+interface Termo { termo: string; simples: string }
+interface Seccao { titulo: string; texto: string }
+
+interface Decifrado {
   kind: string
   title?: string
-  summary?: string
+  emDuasLinhas?: string
+  oQueImporta?: string[]
+  termos?: Termo[]
+  secoes?: Seccao[]
   meds?: Med[]
-  values?: LabValue[]
-  bullets?: string[]
-  action?: { label?: string; route?: string }
+  values?: Valor[]
+  perguntasParaOMedico?: string[]
+  aSeguir?: string[]
   warning?: string
+  legibilidade?: string
   confidence?: string
 }
 
-const KIND_META: Record<string, { icon: string; label: string }> = {
-  receita:     { icon: '📋', label: 'Receita médica' },
-  medicamento: { icon: '💊', label: 'Medicamento' },
-  analise:     { icon: '🩸', label: 'Análise' },
-  relatorio:   { icon: '📄', label: 'Relatório médico' },
-  bula:        { icon: '📑', label: 'Bula / folheto' },
-  outro:       { icon: '🔍', label: 'Documento de saúde' },
-  nao_saude:   { icon: '🤔', label: 'Sem relação com saúde' },
+const TIPOS: Record<string, { icon: string; label: string }> = {
+  receita:     { icon: '℞', label: 'Receita médica' },
+  medicamento: { icon: '◈', label: 'Medicamento' },
+  analise:     { icon: '◉', label: 'Análises' },
+  relatorio:   { icon: '§', label: 'Relatório médico' },
+  bula:        { icon: '¶', label: 'Folheto informativo' },
+  outro:       { icon: '?', label: 'Documento de saúde' },
+  nao_saude:   { icon: '—', label: 'Não parece ser de saúde' },
 }
-const STATUS_COLOR: Record<string, string> = { normal: '#0d6e42', baixo: '#b45309', alto: '#dc2626' }
 
-function ScanTool() {
+/** O que ele lê. Está no ecrã ANTES de haver resultado, de propósito: a
+ *  primeira pergunta de quem chega é "isto serve para o meu caso?". */
+const LE: { nome: string; exemplo: string }[] = [
+  { nome: 'Relatórios e cartas médicas', exemplo: 'a alta do hospital, o resultado de uma TAC' },
+  { nome: 'Análises', exemplo: 'sangue, urina — valor a valor' },
+  { nome: 'Receitas', exemplo: 'o que é, para que serve, como se toma' },
+  { nome: 'Caixas de medicamentos', exemplo: 'uma foto da caixa chega' },
+  { nome: 'Folhetos informativos', exemplo: 'o papel que vem dentro da caixa' },
+]
+
+const COR_ESTADO: Record<string, string> = { normal: '#0d6e42', baixo: '#b45309', alto: '#b91c1c' }
+
+export default function DecifrarPage() {
   const { user, supabase } = useAuth() as any
-  const router = useRouter()
   const [busy, setBusy] = useState('')
-  const [res, setRes] = useState<ScanResult | null>(null)
+  const [res, setRes] = useState<Decifrado | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [err, setErr] = useState('')
-  const [imported, setImported] = useState(false)
-  const [interactions, setInteractions] = useState<string | null>(null)
-  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(getActiveProfile())
-  const fileRef = useRef<HTMLInputElement>(null)
-  const scanUsage = useUsageLimit('scan')
+  const [importado, setImportado] = useState(false)
+  const [guardado, setGuardado] = useState(false)
+  const [perfil, setPerfil] = useState<ActiveProfile | null>(getActiveProfile())
+  const [pergunta, setPergunta] = useState('')
+  const [conversa, setConversa] = useState<{ q: string; r: string }[]>([])
+  const [aPerguntar, setAPerguntar] = useState(false)
+  const camaraRef = useRef<HTMLInputElement>(null)
+  const ficheiroRef = useRef<HTMLInputElement>(null)
+  const uso = useUsageLimit('scan')
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
     return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
   }, [supabase])
 
-  function reset() { setErr(''); setRes(null); setMeds([]); setImported(false); setInteractions(null) }
+  function limpar() {
+    setErr(''); setRes(null); setMeds([]); setImportado(false)
+    setGuardado(false); setConversa([]); setPergunta('')
+  }
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function aoEscolher(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
-    // Limite diário (Base/Plus). Pro/Institucional = ilimitado.
-    if (scanUsage.hit) { reset(); setErr('limit'); return }
-    reset()
-    // Deteção robusta de imagem: a câmara do telemóvel devolve muitas vezes
-    // file.type vazio (ou HEIC). Não confiar só no mimeType — olhar também à
-    // extensão e tratar "tipo desconhecido" como imagem (caso da foto auto).
-    const name = (file.name || '').toLowerCase()
-    const isDoc = /\.(pdf|docx?|pptx?|txt|md)$/.test(name) || file.type === 'application/pdf'
-      || file.type.startsWith('text/')
-      || file.type.includes('word') || file.type.includes('officedocument')
-    const isImage = !isDoc && (
-      file.type.startsWith('image/') ||
-      file.type === '' ||                       // câmara sem mimeType
-      /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/.test(name)
+    if (uso.hit) { limpar(); setErr('limit'); return }
+    limpar()
+
+    const nome = (file.name || '').toLowerCase()
+    const ehDoc = /\.(pdf|docx?|pptx?|txt|md)$/.test(nome) || file.type === 'application/pdf'
+      || file.type.startsWith('text/') || file.type.includes('word') || file.type.includes('officedocument')
+    // A câmara do telemóvel devolve muitas vezes `type` vazio (ou HEIC): não se
+    // confia só no mimeType, olha-se também à extensão.
+    const ehImagem = !ehDoc && (
+      file.type.startsWith('image/') || file.type === '' ||
+      /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/.test(nome)
     )
+
     try {
       let payload: any
-      if (isImage) {
-        setBusy('A interpretar a imagem…')
-        // 1ª via: reduzir no canvas (corta tamanho ~10×). Se o browser não souber
-        // descodificar (ex: HEIC antigo), recai na leitura crua do ficheiro.
-        let b64 = ''
-        let mime = 'image/jpeg'
+      if (ehImagem) {
+        setBusy('A ler o documento…')
+        let b64 = '', mime = 'image/jpeg'
         try {
-          const small = await downscaleImage(file)
-          if (!small.b64) throw new Error('empty')
-          b64 = small.b64; mime = small.mime
+          const pequena = await downscaleImage(file)
+          if (!pequena.b64) throw new Error('vazio')
+          b64 = pequena.b64; mime = pequena.mime
         } catch {
-          const raw = await new Promise<string>((res2, rej) => {
+          // O browser não soube descodificar (HEIC antigo): envia-se o ficheiro cru.
+          b64 = await new Promise<string>((ok, mau) => {
             const rd = new FileReader()
             rd.onload = () => {
-              const result = String(rd.result || '')
-              const comma = result.indexOf(',')
-              if (comma < 0) { rej(new Error('Não consegui ler a imagem. Tenta outra foto.')); return }
-              res2(result.slice(comma + 1))
+              const r = String(rd.result || ''); const v = r.indexOf(',')
+              if (v < 0) { mau(new Error('Não consegui ler a imagem. Tenta outra foto.')); return }
+              ok(r.slice(v + 1))
             }
-            rd.onerror = () => rej(new Error('Não consegui ler a imagem. Tenta outra foto.'))
+            rd.onerror = () => mau(new Error('Não consegui ler a imagem. Tenta outra foto.'))
             rd.readAsDataURL(file)
           })
-          b64 = raw
-          mime = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg'
+          mime = file.type?.startsWith('image/') ? file.type : 'image/jpeg'
         }
         payload = { image: b64, mimeType: mime }
       } else {
-        // PDF / Word / texto → extrai no browser e envia o texto
         setBusy('A ler o documento…')
         const ex = await extractFromFile(file)
-        if (!ex.text || ex.text.trim().length < 10) throw new Error('Documento sem texto legível.')
+        if (!ex.text || ex.text.trim().length < 10) throw new Error('Não encontrei texto neste ficheiro. Se for um PDF digitalizado, tenta tirar-lhe uma foto.')
         payload = { text: ex.text }
       }
+
+      setBusy('A decifrar…')
       const r = await fetch('/api/scan', { method: 'POST', headers: await auth(), body: JSON.stringify(payload) })
-      const j = await r.json()
+      const texto = await r.text()
+      let j: any = null
+      try { j = JSON.parse(texto) } catch { throw new Error('O servidor demorou demasiado. Tenta com uma foto mais pequena.') }
       if (r.status === 429 || j.limit_reached) { setErr('limit'); return }
       if (!r.ok) throw new Error(j.error || 'Não consegui interpretar.')
+
       setRes(j)
       setMeds((j.meds || []).map((m: Med) => ({ ...m, _import: true })))
-      scanUsage.increment()
-    } catch (e: any) { setErr(e.message || 'Erro ao processar.') } finally { setBusy('') }
+    } catch (e: any) {
+      setErr(e.message || 'Não consegui processar.')
+    } finally { setBusy('') }
   }
 
-  async function importMeds() {
-    if (!user) { setErr('Inicie sessão para guardar.'); return }
-    const toImport = meds.filter(m => m._import)
-    if (!toImport.length) return
+  // ── Guardar os medicamentos ────────────────────────────────────────────────
+  // COM a hora do lembrete. A versão anterior gravava só nome/dose/frequência e
+  // deixava `reminder_times` a null — e o cron das notificações filtra
+  // precisamente por isso, por isso um medicamento vindo daqui nunca dava
+  // lembrete. Ver lib/horarioToma.
+  async function guardarMedicamentos() {
+    if (!user) { setErr('Inicia sessão para guardar.'); return }
+    const escolhidos = meds.filter(m => m._import)
+    if (!escolhidos.length) return
     setBusy('A guardar…')
-    // Guarda no perfil ATIVO: o próprio (personal_meds) ou um familiar
-    // (family_profile_meds). Resolve o caso do cuidador a importar para a mãe.
-    const toFamily = activeProfile?.type === 'family' && activeProfile.id !== 'self'
-    for (const m of toImport) {
-      if (toFamily) {
-        await supabase.from('family_profile_meds').insert({ user_id: user.id, profile_id: activeProfile!.id, name: m.name, dose: m.dose || null, frequency: m.frequency || null }).then(() => {}, () => {})
+    const paraFamiliar = perfil?.type === 'family' && perfil.id !== 'self'
+    for (const m of escolhidos) {
+      const horas = horasDaFrequencia(m.frequency).horas
+      const linha: any = {
+        user_id: user.id, name: m.name, dose: m.dose || null, frequency: m.frequency || null,
+        reminder_times: horas.length ? horas : null,
+      }
+      if (paraFamiliar) {
+        await supabase.from('family_profile_meds').insert({ ...linha, profile_id: perfil!.id }).then(() => {}, () => {})
       } else {
-        await supabase.from('personal_meds').insert({ user_id: user.id, name: m.name, dose: m.dose || null, frequency: m.frequency || null }).then(() => {}, () => {})
+        await supabase.from('personal_meds').insert(linha).then(() => {}, () => {})
       }
     }
-    setBusy(''); setImported(true)
+    setBusy(''); setImportado(true)
   }
 
-  async function checkInteractions() {
-    const names = meds.filter(m => m._import).map(m => m.name)
-    if (names.length < 2) { setInteractions('Precisas de pelo menos 2 medicamentos para verificar interações.'); return }
-    setBusy('A verificar interações…')
+  // ── Guardar no cofre ───────────────────────────────────────────────────────
+  async function guardarNoCofre() {
+    if (!user || !res) { setErr('Inicia sessão para guardar.'); return }
+    setBusy('A guardar no cofre…')
+    const partes = [
+      res.emDuasLinhas,
+      res.oQueImporta?.length ? '\nO que importa:\n' + res.oQueImporta.map(x => `• ${x}`).join('\n') : '',
+      res.secoes?.length ? '\n' + res.secoes.map(s => `${s.titulo}\n${s.texto}`).join('\n\n') : '',
+      res.values?.length ? '\nValores:\n' + res.values.map(v => `${v.name}: ${v.value || ''} ${v.unit || ''} (${v.status || ''})`).join('\n') : '',
+      res.termos?.length ? '\nTermos:\n' + res.termos.map(t => `${t.termo} — ${t.simples}`).join('\n') : '',
+    ].filter(Boolean).join('\n')
+
+    const categoria = res.kind === 'analise' ? 'analises'
+      : res.kind === 'receita' ? 'receitas'
+      : res.kind === 'relatorio' ? 'relatorios' : 'outros'
+
+    const { error } = await supabase.from('health_vault').insert({
+      user_id: user.id,
+      title: res.title || 'Documento decifrado',
+      category: categoria,
+      body_text: partes.slice(0, 20000),
+      notes: 'Decifrado pelo Phlox',
+      issued_at: new Date().toISOString().slice(0, 10),
+      updated_at: new Date().toISOString(),
+    })
+    setBusy('')
+    if (error) setErr('Não foi possível guardar no cofre.')
+    else setGuardado(true)
+  }
+
+  async function perguntar() {
+    const q = pergunta.trim()
+    if (!q || !res || aPerguntar) return
+    setAPerguntar(true); setPergunta('')
     try {
-      const r = await fetch('/api/interactions', { method: 'POST', headers: await auth(), body: JSON.stringify({ drugs: names }) })
+      const r = await fetch('/api/scan/perguntar', {
+        method: 'POST', headers: await auth(),
+        body: JSON.stringify({ documento: res, pergunta: q, anteriores: conversa }),
+      })
       const j = await r.json()
-      const sev = j.severity || j.results?.[0]?.severity
-      setInteractions(j.summary || j.results?.[0]?.summary || (sev === 'SEM_INTERACAO' ? 'Sem interações relevantes conhecidas entre estes medicamentos.' : 'Verificação concluída — vê os detalhes em /interactions.'))
-    } catch { setInteractions('Não consegui verificar agora.') } finally { setBusy('') }
+      setConversa(c => [...c, { q, r: r.ok ? (j.resposta || '') : (j.error || 'Não consegui responder.') }])
+    } catch {
+      setConversa(c => [...c, { q, r: 'Não consegui responder agora. Tenta outra vez.' }])
+    } finally { setAPerguntar(false) }
   }
 
-  const meta = res ? (KIND_META[res.kind] || KIND_META.outro) : null
-  const hasMeds = meds.length > 0
-  const hasValues = (res?.values?.length || 0) > 0
+  const tipo = res ? (TIPOS[res.kind] || TIPOS.outro) : null
 
   return (
-    <main style={{ padding: '24px clamp(14px,4vw,32px) 60px', maxWidth: 680, margin: '0 auto' }}>
-      {/* Cabeçalho editorial */}
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-5)' }}>Phlox Scan</div>
-      <h1 style={{ margin: '6px 0 8px', fontSize: 'clamp(24px,5vw,34px)', fontFamily: 'var(--font-serif)', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Uma foto. E o Phlox percebe.</h1>
-      <p style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.65, marginBottom: 22, maxWidth: 540 }}>
-        Tire uma foto a qualquer coisa de saúde. O Phlox percebe o que é e explica em palavras simples — em segundos, sem escrever nada.
-      </p>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2, #fbfaf8)', fontFamily: 'var(--font-sans)' }}>
+      <div className="page-container page-body" style={{ maxWidth: 760 }}>
 
-      {/* O que pode fotografar — orienta antes da 1ª foto */}
-      {!res && !busy && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {[
-            { i: '📋', t: 'Receita' },
-            { i: '💊', t: 'Caixa de comprimidos' },
-            { i: '🩸', t: 'Análise' },
-            { i: '📄', t: 'Relatório' },
-            { i: '📑', t: 'Bula' },
-          ].map(c => (
-            <span key={c.t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 999, padding: '6px 12px' }}>
-              <span style={{ fontSize: 14 }}>{c.i}</span>{c.t}
-            </span>
-          ))}
+        {/* ── Cabeçalho ──────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: res ? 20 : 26 }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.2em',
+            textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 9,
+          }}>Phlox</div>
+          <h1 style={{
+            fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,5.4vw,44px)', fontWeight: 400,
+            color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.08,
+          }}>{NOME_FERRAMENTA}</h1>
+          <p style={{
+            fontSize: 15.5, color: 'var(--ink-3)', margin: '10px 0 0',
+            maxWidth: '44ch', lineHeight: 1.55, textWrap: 'pretty' as any,
+          }}>
+            Tire uma foto a qualquer papel de saúde. Nós explicamos o que lá está,
+            em português simples.
+          </p>
         </div>
-      )}
 
-      {/* Upload — foto (câmara/galeria) OU documento (PDF/Word) */}
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        disabled={!!busy}
-        className="scan-drop"
-        style={{
-          width: '100%', display: 'block', textAlign: 'center', cursor: busy ? 'wait' : 'pointer',
-          border: `1.5px dashed ${busy ? 'var(--ink-5)' : ACCENT}`, borderRadius: 16,
-          padding: '34px 20px', background: busy ? 'var(--bg-2)' : 'rgba(13,110,66,0.05)',
-          transition: 'background 0.15s, border-color 0.15s', fontFamily: 'inherit',
-        }}>
-        <div style={{
-          width: 56, height: 56, margin: '0 auto 12px', borderRadius: 14,
-          background: busy ? 'var(--bg-3, #eceae4)' : ACCENT,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
-        }}>{busy ? '⏳' : '📷'}</div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: busy ? 'var(--ink-3)' : ACCENT }}>{busy || 'Tirar foto ou escolher ficheiro'}</div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 4 }}>Câmara, galeria, PDF ou Word</div>
-        <input ref={fileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onFile} style={{ display: 'none' }} />
-      </button>
-      <style>{`.scan-drop:not(:disabled):hover { background: rgba(13,110,66,0.09) !important; }`}</style>
+        {!res && !busy && (
+          <>
+            {/* ── A captura ─────────────────────────────────────────────── */}
+            <div style={{
+              background: 'white', border: `2px dashed ${ACCENT}44`, borderRadius: 16,
+              padding: 'clamp(24px,5vw,36px) 22px', textAlign: 'center',
+            }}>
+              <div style={{
+                width: 54, height: 54, borderRadius: '50%', background: `${ACCENT}12`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px', fontSize: 25, color: ACCENT,
+              }} aria-hidden>◎</div>
 
-      {err === 'limit'
-        ? <UpgradeNudge used={scanUsage.used} limit={scanUsage.limit} what="fotos no Phlox Scan" plan="pro" />
-        : err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 12, borderRadius: 8, marginTop: 14, fontSize: 13 }}>{err}</div>}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button onClick={() => camaraRef.current?.click()} style={{
+                  padding: '14px 26px', background: ACCENT, color: 'white', border: 'none',
+                  borderRadius: 11, fontSize: 15.5, fontWeight: 700, cursor: 'pointer',
+                  fontFamily: 'inherit', minHeight: 52,
+                }}>Tirar foto</button>
+                <button onClick={() => ficheiroRef.current?.click()} style={{
+                  padding: '14px 22px', background: 'white', color: 'var(--ink-2)',
+                  border: '1.5px solid var(--border)', borderRadius: 11,
+                  fontSize: 15, fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit', minHeight: 52,
+                }}>Escolher ficheiro</button>
+              </div>
 
-      {/* Contador discreto de uso restante (só planos limitados) */}
-      {!scanUsage.unlimited && !res && err !== 'limit' && (
-        <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10, textAlign: 'center' }}>
-          {scanUsage.remaining} de {scanUsage.limit} análises grátis hoje
-        </div>
-      )}
+              <div style={{ fontSize: 12.5, color: 'var(--ink-5)', marginTop: 14, lineHeight: 1.55 }}>
+                Foto, PDF ou documento. Fica só na sua conta.
+              </div>
 
-      {/* Resultado interpretado */}
-      {res && meta && (
-        <div style={{ marginTop: 18 }}>
-          {/* Cabeçalho do tipo identificado */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ fontSize: 26 }}>{meta.icon}</span>
-            <div>
-              <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8b8f99', fontFamily: 'var(--font-mono,monospace)' }}>{meta.label}</div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#16181d' }}>{res.title || meta.label}</div>
+              {/* `capture` abre a câmara direto no telemóvel; o outro aceita tudo. */}
+              <input ref={camaraRef} type="file" accept="image/*" capture="environment"
+                onChange={aoEscolher} style={{ display: 'none' }} />
+              <input ref={ficheiroRef} type="file"
+                accept="image/*,application/pdf,.doc,.docx,.txt,.md"
+                onChange={aoEscolher} style={{ display: 'none' }} />
             </div>
-            {res.confidence && res.confidence !== 'alta' && (
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8b8f99', background: '#f3f4f6', padding: '3px 8px', borderRadius: 99 }}>confiança {res.confidence}</span>
-            )}
-          </div>
 
-          {res.summary && <p style={{ color: '#374151', fontSize: 14.5, lineHeight: 1.65, margin: '0 0 12px' }}>{res.summary}</p>}
-
-          {res.warning && <div style={{ background: '#fffbeb', color: '#92400e', padding: 11, borderRadius: 8, margin: '0 0 12px', fontSize: 13, lineHeight: 1.55 }}>⚠ {res.warning}</div>}
-
-          {/* Valores de análise */}
-          {hasValues && (
-            <div style={{ display: 'grid', gap: 6, margin: '0 0 14px' }}>
-              {res!.values!.map((v, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10, background: 'white', border: '1px solid #e7e8ea', borderRadius: 10, padding: '9px 12px' }}>
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
-                  {v.value && <span style={{ fontSize: 14, color: '#16181d' }}>{v.value}</span>}
-                  {v.status && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: STATUS_COLOR[v.status] || '#6b7280' }}>{v.status}</span>}
-                  {v.note && <span style={{ flexBasis: '100%', fontSize: 12.5, color: '#6b7280' }}>{v.note}</span>}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Pontos-chave */}
-          {(res.bullets?.length || 0) > 0 && (
-            <ul style={{ margin: '0 0 14px', paddingLeft: 20, color: '#374151', fontSize: 13.5, lineHeight: 1.7 }}>
-              {res.bullets!.map((b, i) => <li key={i}>{b}</li>)}
-            </ul>
-          )}
-
-          {/* Medicamentos extraídos — confirmar e importar */}
-          {hasMeds && (
-            <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8 }}>Encontrei {meds.length} medicamento{meds.length > 1 ? 's' : ''} — confirma antes de guardar:</div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {meds.map((m, i) => (
-                  <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', border: '1px solid #e7e8ea', borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!m._import} onChange={e => setMeds(ms => ms.map((x, j) => j === i ? { ...x, _import: e.target.checked } : x))} />
-                    <span style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14.5 }}>{m.name}{m.dose ? ` ${m.dose}` : ''}</span>
-                      {m.frequency && <span style={{ display: 'block', fontSize: 12.5, color: '#6b7280' }}>{m.frequency}</span>}
-                    </span>
-                  </label>
+            {/* ── A promessa, antes de haver resultado ───────────────────── */}
+            <div style={{ marginTop: 26 }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em',
+                textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 12,
+              }}>O que consegue ler</div>
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 1,
+                background: 'var(--border)', border: '1px solid var(--border)',
+                borderRadius: 12, overflow: 'hidden',
+              }}>
+                {LE.map(x => (
+                  <div key={x.nome} style={{ background: 'white', padding: '13px 16px' }}>
+                    <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink)' }}>{x.nome}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.5 }}>{x.exemplo}</div>
+                  </div>
                 ))}
               </div>
-              {/* Para quem? Permite ao cuidador guardar no perfil de um familiar. */}
-              {user && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 4px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12.5, color: '#6b7280', fontWeight: 600 }}>Guardar em:</span>
-                  <ProfileSelector onChange={p => { setActiveProfile(p); setImported(false) }} includePatients={false} />
+              <p style={{
+                fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, marginTop: 16,
+                maxWidth: '62ch', textWrap: 'pretty' as any,
+              }}>
+                De cada documento tira o essencial em duas linhas, explica as palavras
+                difíceis, diz o que importa reter, o que perguntar na próxima consulta —
+                e fica disponível para as perguntas que vierem a seguir.
+              </p>
+            </div>
+
+            <NaoEDispositivoMedico />
+          </>
+        )}
+
+        {/* ── A trabalhar ───────────────────────────────────────────────── */}
+        {busy && (
+          <div style={{
+            background: 'white', border: '1px solid var(--border)', borderRadius: 14,
+            padding: '30px 22px', textAlign: 'center',
+          }}>
+            <div style={{
+              width: 26, height: 26, border: '2.5px solid var(--bg-3)', borderTopColor: ACCENT,
+              borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 0.8s linear infinite',
+            }} />
+            <div style={{ fontSize: 14.5, color: 'var(--ink-2)', fontWeight: 600 }}>{busy}</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-5)', marginTop: 6, lineHeight: 1.5 }}>
+              Pode demorar até meio minuto. Usamos o modelo mais cuidadoso — num documento
+              de saúde vale a pena esperar.
+            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+          </div>
+        )}
+
+        {/* ── Erros ─────────────────────────────────────────────────────── */}
+        {err === 'limit' && <UpgradeNudge used={uso.used} limit={uso.limit} what="documentos decifrados" plan="pro" />}
+        {err && err !== 'limit' && (
+          <div style={{
+            background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 12,
+            padding: '14px 16px', fontSize: 13.5, color: '#c53030', lineHeight: 1.6, marginTop: 14,
+          }}>
+            {err}
+            <button onClick={limpar} style={{
+              display: 'block', marginTop: 10, padding: '7px 14px', background: 'white',
+              border: '1px solid #fed7d7', borderRadius: 8, fontSize: 12.5, fontWeight: 700,
+              color: '#c53030', cursor: 'pointer', fontFamily: 'inherit',
+            }}>Tentar outra vez</button>
+          </div>
+        )}
+
+        {/* ── O documento decifrado ─────────────────────────────────────── */}
+        {res && !busy && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* identificação */}
+            <div style={{
+              background: 'white', border: '1px solid var(--border)', borderRadius: 14,
+              padding: '18px 20px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12, flexWrap: 'wrap' }}>
+                <span aria-hidden style={{
+                  width: 34, height: 34, borderRadius: 9, background: `${ACCENT}12`, color: ACCENT,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 17, fontFamily: 'var(--font-serif)', flexShrink: 0,
+                }}>{tipo!.icon}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                    textTransform: 'uppercase', color: 'var(--ink-5)',
+                  }}>{tipo!.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 1 }}>
+                    {res.title || 'Documento'}
+                  </div>
+                </div>
+                <button onClick={limpar} style={{
+                  padding: '7px 13px', background: 'var(--bg-2)', border: '1px solid var(--border)',
+                  borderRadius: 8, fontSize: 12.5, fontWeight: 650, color: 'var(--ink-3)',
+                  cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                }}>Outro documento</button>
+              </div>
+
+              {res.emDuasLinhas && (
+                <p style={{
+                  fontFamily: 'var(--font-serif)', fontSize: 'clamp(17px,2.4vw,20px)',
+                  lineHeight: 1.5, color: 'var(--ink)', margin: 0, maxWidth: '52ch',
+                  textWrap: 'pretty' as any,
+                }}>{res.emDuasLinhas}</p>
+              )}
+
+              {(res.legibilidade || res.confidence === 'baixa') && (
+                <div style={{
+                  marginTop: 13, padding: '10px 13px', background: '#fffbeb',
+                  border: '1px solid #fde68a', borderRadius: 9, fontSize: 12.5,
+                  color: '#854d0e', lineHeight: 1.55,
+                }}>
+                  {res.legibilidade || 'Não consegui ler tudo com certeza — confirme o que aparece aqui com o documento original.'}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                <button onClick={importMeds} disabled={!!busy || imported} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{imported ? '✓ Guardado' : (activeProfile?.type === 'family' ? `Guardar em ${activeProfile.name.split(' ')[0]}` : 'Guardar na minha medicação')}</button>
-                {/* Handoff: leva os medicamentos extraídos para "Os meus medicamentos",
-                    onde o utilizador os revê, edita doses e ativa lembretes. */}
-                <button onClick={() => sendToTool(router, '/mymeds', {
-                  kind: 'meds', note: 'Importado do Phlox Scan', from: '/scan',
-                  payload: { meds: meds.filter(m => m._import).map(m => ({ name: m.name, dose: m.dose || null, frequency: m.frequency || null })) },
-                })} disabled={!!busy || !meds.some(m => m._import)} style={{ padding: '11px 20px', background: 'white', color: ACCENT, border: `1px solid ${ACCENT}`, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Rever e adicionar lembretes →</button>
-                <button onClick={checkInteractions} disabled={!!busy} style={{ padding: '11px 20px', background: 'white', color: ACCENT, border: `1px solid ${ACCENT}`, borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Verificar interações</button>
-              </div>
-              {imported && <div style={{ marginTop: 10, fontSize: 13, color: ACCENT }}>✓ Guardado. <Link href="/mymeds" style={{ color: ACCENT, fontWeight: 700 }}>Ver a minha medicação →</Link></div>}
-              {interactions && <div style={{ marginTop: 12, background: '#f8fafc', border: '1px solid #e7e8ea', borderRadius: 10, padding: 12, fontSize: 13.5, color: '#374151', lineHeight: 1.6 }}>{interactions} {' '}<Link href="/interactions" style={{ color: ACCENT, fontWeight: 600 }}>detalhes</Link></div>}
             </div>
-          )}
 
-          {/* Ação sugerida (para tipos sem medicação para importar) */}
-          {!hasMeds && res.action?.route && res.action?.label && (
-            <Link href={res.action.route} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '11px 20px', background: ACCENT, color: 'white', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 14 }}>
-              {res.action.label} →
-            </Link>
-          )}
+            {res.warning && (
+              <div style={{
+                background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12,
+                padding: '14px 16px',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: '#b91c1c', marginBottom: 5,
+                }}>A ter em conta</div>
+                <div style={{ fontSize: 14, color: '#7f1d1d', lineHeight: 1.6 }}>{res.warning}</div>
+              </div>
+            )}
 
-          {res.kind === 'nao_saude' && (
-            <p style={{ color: '#8b8f99', fontSize: 13, marginTop: 8 }}>Esta foto não parece relacionada com saúde. Tenta uma receita, caixa de medicamento, análise ou relatório.</p>
-          )}
+            <Bloco titulo="O que importa" quando={!!res.oQueImporta?.length}>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {res.oQueImporta!.map((x, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                    <span aria-hidden style={{ color: ACCENT, flexShrink: 0, fontWeight: 700 }}>—</span>
+                    <span style={{ textWrap: 'pretty' as any }}>{x}</span>
+                  </li>
+                ))}
+              </ul>
+            </Bloco>
 
-          <button onClick={() => { reset(); fileRef.current?.click() }} style={{ display: 'block', marginTop: 16, background: 'none', border: 'none', color: '#8b8f99', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>Analisar outra foto</button>
-        </div>
-      )}
-    </main>
+            {/* o relatório reescrito */}
+            <Bloco titulo="O documento, em simples" quando={!!res.secoes?.length}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {res.secoes!.map((s, i) => (
+                  <div key={i}>
+                    <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--ink)', marginBottom: 4 }}>{s.titulo}</div>
+                    <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{s.texto}</p>
+                  </div>
+                ))}
+              </div>
+            </Bloco>
+
+            {/* valores das análises */}
+            <Bloco titulo="Valor a valor" quando={!!res.values?.length}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {res.values!.map((v, i) => {
+                  const cor = COR_ESTADO[String(v.status || '').toLowerCase()] || 'var(--ink-4)'
+                  return (
+                    <div key={i} style={{ background: 'white', padding: '11px 13px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink)' }}>{v.name}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 700, color: cor }}>
+                          {v.value}{v.unit ? ` ${v.unit}` : ''}
+                        </span>
+                        {v.status && (
+                          <span style={{
+                            fontSize: 10.5, fontWeight: 700, color: cor, background: `${cor}14`,
+                            padding: '2px 7px', borderRadius: 5, textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                          }}>{v.status}</span>
+                        )}
+                        {v.reference && (
+                          <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>ref. {v.reference}</span>
+                        )}
+                      </div>
+                      {v.note && <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.5 }}>{v.note}</div>}
+                    </div>
+                  )
+                })}
+              </div>
+            </Bloco>
+
+            {/* medicamentos */}
+            <Bloco titulo="Medicamentos" quando={!!meds.length}>
+              <div style={{ marginBottom: 12 }}>
+                <ProfileSelector onChange={setPerfil} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {meds.map((m, i) => {
+                  const horas = horasDaFrequencia(m.frequency).horas
+                  return (
+                    <label key={i} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 11, background: 'var(--bg-2)',
+                      borderRadius: 9, padding: '11px 13px', cursor: 'pointer',
+                    }}>
+                      <input type="checkbox" checked={!!m._import} style={{ width: 17, height: 17, marginTop: 2, flexShrink: 0 }}
+                        onChange={() => setMeds(p => p.map((x, j) => j === i ? { ...x, _import: !x._import } : x))} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 14.5, fontWeight: 650, color: 'var(--ink)' }}>
+                          {m.name}{m.dose ? ` · ${m.dose}` : ''}
+                        </div>
+                        {m.frequency && <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 1 }}>{m.frequency}</div>}
+                        {m.paraQue && <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.5 }}>{m.paraQue}</div>}
+                        {horas.length > 0 && (
+                          <div style={{ fontSize: 11.5, color: ACCENT, marginTop: 4, fontWeight: 600 }}>
+                            lembrete às {horas.join(' e ')}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+              {importado ? (
+                <div style={{
+                  marginTop: 12, padding: '11px 14px', background: '#f0fdf4',
+                  border: '1px solid #86efac', borderRadius: 9, fontSize: 13, color: '#166534', lineHeight: 1.55,
+                }}>
+                  Guardado. <Link href="/mymeds" style={{ color: '#166534', fontWeight: 700 }}>Ver os medicamentos →</Link>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  <button onClick={guardarMedicamentos} disabled={!meds.some(m => m._import)} style={{
+                    padding: '10px 18px', background: meds.some(m => m._import) ? ACCENT : 'var(--bg-3)',
+                    color: meds.some(m => m._import) ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 9,
+                    fontSize: 13.5, fontWeight: 700, cursor: meds.some(m => m._import) ? 'pointer' : 'not-allowed',
+                    fontFamily: 'inherit',
+                  }}>Guardar nos meus medicamentos</button>
+                  {meds.filter(m => m._import).length >= 2 && (
+                    <Link href={`/interactions?drugs=${encodeURIComponent(meds.filter(m => m._import).map(m => m.name).join(','))}`} style={{
+                      padding: '10px 16px', background: 'white', color: 'var(--ink-2)',
+                      border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13.5,
+                      fontWeight: 650, textDecoration: 'none', display: 'inline-block',
+                    }}>Ver interações</Link>
+                  )}
+                </div>
+              )}
+            </Bloco>
+
+            {/* glossário */}
+            <Bloco titulo="As palavras difíceis" quando={!!res.termos?.length}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                {res.termos!.map((t, i) => (
+                  <div key={i}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.termo}</span>
+                    <span style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.55 }}> — {t.simples}</span>
+                  </div>
+                ))}
+              </div>
+            </Bloco>
+
+            <Bloco titulo="Para perguntar na consulta" quando={!!res.perguntasParaOMedico?.length}>
+              <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {res.perguntasParaOMedico!.map((q, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                    <span aria-hidden style={{ color: 'var(--ink-5)', flexShrink: 0 }}>{i + 1}.</span>
+                    <span style={{ textWrap: 'pretty' as any }}>{q}</span>
+                  </li>
+                ))}
+              </ul>
+            </Bloco>
+
+            <Bloco titulo="A seguir" quando={!!res.aSeguir?.length}>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {res.aSeguir!.map((x, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                    <span aria-hidden style={{ color: ACCENT, flexShrink: 0 }}>→</span>
+                    <span style={{ textWrap: 'pretty' as any }}>{x}</span>
+                  </li>
+                ))}
+              </ul>
+            </Bloco>
+
+            {/* ── Continuar a perguntar ──────────────────────────────────── */}
+            <div style={{
+              background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 4,
+              }}>Ficou com dúvidas?</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 13, lineHeight: 1.55, maxWidth: '54ch' }}>
+                Pergunte o que quiser sobre este documento. Respondo com o que ele diz —
+                se a resposta não estiver lá, digo-lhe isso.
+              </div>
+
+              {conversa.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
+                  {conversa.map((t, i) => (
+                    <div key={i}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{t.q}</div>
+                      <div style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{t.r}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input
+                  value={pergunta}
+                  onChange={e => setPergunta(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') perguntar() }}
+                  placeholder="Ex: o que quer dizer este valor?"
+                  disabled={aPerguntar}
+                  style={{
+                    flex: '1 1 220px', minWidth: 0, border: '1.5px solid var(--border)',
+                    borderRadius: 9, padding: '11px 13px', fontSize: 14.5,
+                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                  }} />
+                <button onClick={perguntar} disabled={aPerguntar || !pergunta.trim()} style={{
+                  padding: '11px 20px', background: aPerguntar || !pergunta.trim() ? 'var(--bg-3)' : 'var(--ink)',
+                  color: aPerguntar || !pergunta.trim() ? 'var(--ink-4)' : 'white', border: 'none',
+                  borderRadius: 9, fontSize: 14, fontWeight: 700,
+                  cursor: aPerguntar || !pergunta.trim() ? 'default' : 'pointer', fontFamily: 'inherit',
+                }}>{aPerguntar ? 'A pensar…' : 'Perguntar'}</button>
+              </div>
+            </div>
+
+            {/* ── Guardar ────────────────────────────────────────────────── */}
+            <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+              {guardado ? (
+                <div style={{
+                  flex: 1, padding: '12px 15px', background: '#f0fdf4', border: '1px solid #86efac',
+                  borderRadius: 10, fontSize: 13.5, color: '#166534', lineHeight: 1.55,
+                }}>
+                  Guardado no cofre. <Link href="/vault" style={{ color: '#166534', fontWeight: 700 }}>Abrir o cofre →</Link>
+                </div>
+              ) : (
+                <button onClick={guardarNoCofre} style={{
+                  padding: '12px 20px', background: 'white', color: 'var(--ink-2)',
+                  border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 14,
+                  fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
+                }}>Guardar no cofre</button>
+              )}
+            </div>
+
+            <NaoEDispositivoMedico />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Um bloco do resultado. Só aparece quando tem conteúdo — um cartão vazio com
+ *  um título é pior do que não ter cartão nenhum. */
+function Bloco({ titulo, quando, children }: { titulo: string; quando: boolean; children: React.ReactNode }) {
+  if (!quando) return null
+  return (
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+        textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 12,
+      }}>{titulo}</div>
+      {children}
+    </div>
   )
 }

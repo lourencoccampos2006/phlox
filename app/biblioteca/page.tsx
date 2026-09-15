@@ -11,6 +11,7 @@ import { useToast } from '@/components/Toast'
 import { extractFromFile } from '@/lib/docExtract'
 import ReportQuizError from '@/components/ReportQuizError'
 import Link from 'next/link'
+import { estiloFundoModal } from '@/lib/camadas'
 
 type DocSummary = {
   id: string
@@ -268,7 +269,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const busy = stage === 'extracting' || stage === 'processing'
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(11,17,32,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div onClick={onClose} style={{ ...estiloFundoModal, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 560, maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', padding: 22 }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 4 }}>Novo documento</div>
         <p style={{ fontSize: 12.5, color: '#64748b', marginTop: 0, marginBottom: 16, lineHeight: 1.55 }}>
@@ -337,7 +338,7 @@ function DocViewer({ doc, onClose }: { doc: DocFull; onClose: () => void }) {
   const meta = KIND_META[doc.kind] || KIND_META.text
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(11,17,32,0.55)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={onClose} style={estiloFundoModal}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 880, maxWidth: '100%', height: 'min(88vh, 720px)', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 12 }}>

@@ -2,7 +2,11 @@ import { registarUso, estimarTokens } from './aiCusto'
 // lib/ai.ts
 // Cliente de IA com fallback automático entre MUITOS providers + modelos.
 //
-// Sequência (default):
+// Sequência (default): rápido primeiro, qualidade como rede.
+// Com `{ qualidade: true }`: Claude Sonnet primeiro, depois Gemini 2.5 — para
+// rotas onde ler mal tem consequências (análises, relatórios, receitas).
+// A escada de VISÃO (VISION_MODELS) esteve ordenada do pior para o melhor até
+// 2026-09-15; ver a nota lá em baixo.
 //   1) Groq llama-3.3-70b-versatile
 //   2) Groq llama-3.1-8b-instant
 //   3) Groq llama-3.2-90b-vision-preview  (fallback de qualidade)
@@ -222,6 +226,14 @@ export async function aiComplete(
     maxTokens?: number
     temperature?: number
     preferFast?: boolean   // prefer the fast/small model first
+    /** O melhor modelo primeiro, mesmo que demore mais.
+     *
+     *  Para escrever um resumo simpático, o llama-3.3-70b chega e sobra. Para
+     *  INTERPRETAR análises clínicas ou um relatório médico, não: ler mal um
+     *  valor ou trocar o sentido de uma frase tem consequências reais para
+     *  quem está do outro lado. Nessas rotas pede-se qualidade e espera-se os
+     *  segundos a mais. */
+    qualidade?: boolean
   } = {}
 ): Promise<AIResponse> {
   const maxTokens = options.maxTokens ?? 800
@@ -246,9 +258,15 @@ export async function aiComplete(
   const OPENAI: ProviderStep = { name: 'OpenAI', model: 'gpt-4o-mini',          fn: () => callOpenAI(messages, 'gpt-4o-mini', maxTokens, temperature) }
   const ANTHROPIC: ProviderStep = { name: 'Anthropic', model: 'claude-haiku-4-5-20251001', fn: () => callAnthropic(messages, 'claude-haiku-4-5-20251001', maxTokens, temperature) }
 
-  const sequence: ProviderStep[] = options.preferFast
-    ? [GROQ_FAST, GROQ_LARGE, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_LITE_20, GEMINI_FLASH, GEMINI_FLASH_20, OPENAI, ANTHROPIC]
-    : [GROQ_LARGE, GROQ_FAST, ...GROQ_EXTRA, GEMINI_FLASH, GEMINI_FLASH_20, GEMINI_LITE_25, GEMINI_LITE_20, OPENAI, ANTHROPIC]
+  // O Claude, quando se pede qualidade. Estava configurado e era o ÚLTIMO da
+  // escada — ou seja, na prática nunca era usado. Ver a nota em `qualidade`.
+  const CLAUDE_BOM: ProviderStep = { name: 'Anthropic', model: 'claude-sonnet-5', fn: () => callAnthropic(messages, 'claude-sonnet-5', maxTokens, temperature) }
+
+  const sequence: ProviderStep[] = options.qualidade
+    ? [CLAUDE_BOM, GEMINI_FLASH, ANTHROPIC, GROQ_LARGE, GEMINI_FLASH_20, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_LITE_20, OPENAI]
+    : options.preferFast
+      ? [GROQ_FAST, GROQ_LARGE, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_LITE_20, GEMINI_FLASH, GEMINI_FLASH_20, OPENAI, ANTHROPIC]
+      : [GROQ_LARGE, GROQ_FAST, ...GROQ_EXTRA, GEMINI_FLASH, GEMINI_FLASH_20, GEMINI_LITE_25, GEMINI_LITE_20, OPENAI, ANTHROPIC]
 
   let lastError: any = null
   const errors: string[] = []
@@ -376,14 +394,102 @@ function repairTruncatedJSON(text: string): string | null {
 
 // Modelos atuais (jan 2026). gemini-1.5-* foi descontinuado na v1beta → removido.
 // Os -lite são os mais baratos; ficam à frente para minimizar custo.
-const VISION_MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
+// ─── Visão: ler uma imagem ou um PDF ─────────────────────────────────────────
+//
+// ── A ORDEM IMPORTA, E ESTAVA AO CONTRÁRIO ─────────────────────────────────
+// Até 2026-09-15 esta escada começava em `gemini-2.0-flash-lite` — o modelo
+// mais fraco de todos — e só chegava ao `2.5-flash` no fim, se os outros
+// falhassem. Como o primeiro quase nunca falha, era SEMPRE o mais fraco a ler
+// os relatórios e as análises. Era essa a causa dos erros de leitura no /labs
+// e da interpretação rasa no /scan: não é que a IA não consiga; é que se estava
+// a pedir ao aprendiz em vez de ao especialista.
+//
+// Uma escada de fallback existe para aguentar falhas, não para poupar. Começa
+// no melhor e desce só quando é preciso.
+//
+// ── E O CLAUDE NÃO ESTAVA CÁ ───────────────────────────────────────────────
+// A ANTHROPIC_API_KEY já estava configurada e o Claude era o ÚLTIMO da escada
+// de texto e não existia de todo na de visão. Para ler um relatório médico
+// manuscrito, com siglas e uma estrutura que muda de hospital para hospital, é
+// dos melhores que há. Agora é o primeiro quando se pede qualidade.
+const VISION_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']
+
+/** Claude a ler uma imagem. O `messages` da API aceita blocos de imagem em
+ *  base64 — é a mesma rota das mensagens normais, com outro tipo de conteúdo. */
+async function callAnthropicVision(
+  prompt: string,
+  imageBase64: string,
+  mimeType: string,
+  model: string,
+  maxTokens: number,
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+  // Um PDF entra como `document`, não como imagem — e é aí que o Claude ganha
+  // mais: lê o PDF inteiro, com as tabelas de valores de referência que as
+  // folhas de análises trazem, em vez de o tratar como uma fotografia.
+  const ehPdf = mimeType === 'application/pdf'
+  const tipo = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mimeType)
+    ? mimeType : 'image/jpeg'
+  const bloco = ehPdf
+    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: imageBase64 } }
+    : { type: 'image', source: { type: 'base64', media_type: tipo, data: imageBase64 } }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model, max_tokens: maxTokens, temperature: 0.1,
+      messages: [{
+        role: 'user',
+        content: [
+          bloco,
+          { type: 'text', text: prompt },
+        ],
+      }],
+    }),
+    signal: AbortSignal.timeout(60000),
+  })
+  if (res.status === 429) throw Object.assign(new Error('Rate limit'), { status: 429 })
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({} as any))
+    throw new Error(d?.error?.message || `Anthropic vision ${res.status}`)
+  }
+  const data = await res.json()
+  return (data.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n') || ''
+}
 
 export async function callGeminiVision(
   prompt: string,
   imageBase64: string,
   mimeType: string,
-  opts: { maxTokens?: number; temperature?: number } = {}
+  opts: { maxTokens?: number; temperature?: number; qualidade?: boolean } = {}
 ): Promise<string> {
+  // Com `qualidade`, o Claude primeiro — e num PDF de análises isso conta a
+  // dobrar: ele lê o documento inteiro, com as colunas de valores de
+  // referência, em vez de o tratar como uma fotografia de texto.
+  if (opts.qualidade && process.env.ANTHROPIC_API_KEY) {
+    for (const m of ['claude-sonnet-5', 'claude-haiku-4-5-20251001']) {
+      try {
+        const t0 = Date.now()
+        const t = await callAnthropicVision(prompt, imageBase64, mimeType, m, opts.maxTokens || 2400)
+        if (t) {
+          registarUso({
+            provider: 'Anthropic', model: m, ms: Date.now() - t0, ok: true, feature: 'visao',
+            tokensIn: estimarTokens(prompt) + Math.round(imageBase64.length / 750),
+            tokensOut: estimarTokens(t),
+          })
+          return t
+        }
+      } catch { /* cai para a escada do Gemini */ }
+    }
+  }
+
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY não configurado no ambiente do servidor.')
 
@@ -432,9 +538,38 @@ export async function callGeminiVisionJSON<T>(
   prompt: string,
   imageBase64: string,
   mimeType: string,
-  opts: { maxTokens?: number } = {}
+  opts: { maxTokens?: number; qualidade?: boolean } = {}
 ): Promise<T> {
-  const text = await callGeminiVision(prompt, imageBase64, mimeType, opts)
+  // `qualidade: true` → o Claude primeiro. Para ler um relatório médico ou uma
+  // folha de análises, a diferença entre o melhor modelo e o mais barato não é
+  // de estilo: é ler "creatinina 1,9" ou "creatinina 19". Quem chama com
+  // qualidade aceita esperar mais alguns segundos por isso.
+  //
+  // Se o Claude falhar (sem chave, quota, timeout), cai para a escada Gemini
+  // sem dizer nada a ninguém — é para isso que uma escada serve.
+  let text = ''
+  if (opts.qualidade && process.env.ANTHROPIC_API_KEY) {
+    for (const m of ['claude-sonnet-5', 'claude-haiku-4-5-20251001']) {
+      try {
+        const t0 = Date.now()
+        text = await callAnthropicVision(prompt, imageBase64, mimeType, m, opts.maxTokens || 2400)
+        if (text) {
+          registarUso({
+            provider: 'Anthropic', model: m, ms: Date.now() - t0, ok: true, feature: 'visao',
+            // Uma imagem custa tokens a valer. A regra da Anthropic é
+            // ~(largura × altura) / 750; sem as dimensões aqui, aproxima-se
+            // pelo tamanho do base64, que lhes é proporcional. É uma
+            // estimativa e está assumida como tal — melhor isso do que
+            // registar zero e o /admin voltar a dizer que a visão é grátis.
+            tokensIn: estimarTokens(prompt) + Math.round(imageBase64.length / 750),
+            tokensOut: estimarTokens(text),
+          })
+          break
+        }
+      } catch { text = '' }
+    }
+  }
+  if (!text) text = await callGeminiVision(prompt, imageBase64, mimeType, opts)
   const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
   // Find JSON object or array in response
   const match = clean.match(/[\[{][\s\S]*[\]\}]/)

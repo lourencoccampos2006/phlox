@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     let result: BulaResult
     if (imageBase64) {
       const prompt = `${SYSTEM_PROMPT}\n\nLê a foto desta bula e traduz para linguagem simples seguindo o esquema. Identifica também se requer receita médica em Portugal e em que dose.`
-      result = await callGeminiVisionJSON<BulaResult>(prompt, imageBase64, mimeType || 'image/jpeg', { maxTokens: 1600 })
+      result = await callGeminiVisionJSON<BulaResult>(prompt, imageBase64, mimeType || 'image/jpeg', { maxTokens: 1600 , qualidade: true })
     } else {
       const input = texto?.trim()
         ? `Bula completa:\n${texto.trim()}`

@@ -12,6 +12,7 @@ import { useUsageLimit } from '@/lib/useUsageLimit'
 import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
+import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 
 const SEVERITY: Record<string, { label: string; color: string; bg: string; border: string; barColor: string }> = {
   GRAVE:         { label: 'GRAVE',                  color: '#7f1d1d', bg: '#fff5f5', border: '#feb2b2', barColor: '#c53030' },
@@ -503,6 +504,7 @@ export default function InteractionsPage() {
               </div>
             )}
           </div>
+          <NaoEDispositivoMedico />
         </div>
       </div>
     </div>
