@@ -17,6 +17,7 @@ import AlertPrefsList from '@/components/AlertPrefsList'
 import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 import { activatePush as activatePushShared, needsHomeScreenForPush } from '@/lib/pushActivation'
 import DiagnosticoPush from '@/components/DiagnosticoPush'
+import PreferenciasNotificacao from '@/components/PreferenciasNotificacao'
 import InstallInstructions from '@/components/InstallInstructions'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 
@@ -493,51 +494,18 @@ function SettingsPage() {
               )}
             </div>
 
+            {/* O que cada pessoa quer receber. Ver lib/notificacoes.ts. */}
+            {user?.id && <PreferenciasNotificacao supabase={supabase} userId={user.id} />}
+
             {/* Porque e que nao chegam. Ver components/DiagnosticoPush.tsx */}
             <DiagnosticoPush supabase={supabase} />
 
-            {/* What you'll receive */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>
-                O que vais receber
-              </div>
-              {[
-                { icon: '💊', title: 'Lembretes de toma', desc: 'Aviso quando está na hora de tomar cada medicamento. Configura os horários em Os meus medicamentos.', active: pushSubscribed },
-                { icon: '⚠️', title: 'Alertas de interações', desc: 'Aviso imediato quando adicionas um medicamento com interação grave.', active: pushSubscribed },
-                { icon: '🏥', title: 'Alertas de MAR', desc: 'Para coordenadores: aviso de doses não registadas antes do fim do turno.', active: pushSubscribed },
-                { icon: '📊', title: 'Resumo semanal', desc: 'Taxa de adesão da semana todos os domingos às 18h.', active: false },
-              ].map(item => (
-                <div key={item.title} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 14,
-                  padding: '11px 0',
-                  borderBottom: '1px solid var(--border)',
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 9,
-                    background: item.active ? '#f0fdf4' : 'var(--bg-2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18, flexShrink: 0,
-                  }}>
-                    {item.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {item.title}
-                      {item.active && (
-                        <span style={{ fontSize: 9, fontWeight: 700, color: '#059669', background: '#f0fdf4', border: '1px solid #86efac', padding: '1px 6px', borderRadius: 4, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                          Activo
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.55 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-              <div style={{ paddingTop: 10, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
-                Os lembretes de toma requerem horários configurados em <strong>Os meus medicamentos</strong>.
-                Resumo semanal em breve.
-              </div>
-            </div>
+            {/* A lista estatica "O que vais receber" foi daqui removida a
+                2026-09-14: dizia quatro coisas, duas das quais nao existiam
+                ("Alertas de interacoes" e "Resumo semanal em breve"), e estava
+                escrita a mao ao lado dos interruptores reais. Duas listas de
+                notificacoes, uma delas inventada, e pior do que nenhuma. O que
+                se recebe vive agora em lib/notificacoes.ts, num sitio so. */}
 
           </div>
         )}

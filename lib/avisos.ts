@@ -38,7 +38,8 @@ import { ptDate, ptHHMM } from './ptTime'
 export type TipoAviso =
   | 'incidente' | 'familia' | 'medicacao' | 'mural'
   | 'doses' | 'stock' | 'presenca' | 'preparacao'
-  | 'toma' | 'caixa'
+  | 'validades' | 'avaliacoes'
+  | 'toma' | 'caixa' | 'resumo_dia' | 'consulta'
 
 export interface Aviso {
   /** estável — o mesmo aviso dá sempre o mesmo id */
@@ -119,7 +120,7 @@ export async function avisosDaInstituicao(
   const desde48h = new Date(Date.now() - 48 * 3600000).toISOString()
   const turno = turnoAgora(agora)
 
-  const [utentes, ocorrencias, mensagensFamilia, tomas, mural, stock, presencas, meds] = await Promise.all([
+  const [utentes, ocorrencias, mensagensFamilia, tomas, mural, stock, presencas, meds, preparacoes, avaliacoes] = await Promise.all([
     tol(() => sb.from('patients').select('id, name').eq('org_id', orgId).eq('active', true)),
     tol(() => sb.from('incidents').select('id, date, type, patient_id')
       .eq('org_id', orgId).eq('follow_up_required', true)
@@ -135,9 +136,11 @@ export async function avisosDaInstituicao(
     tol(() => sb.from('team_messages').select('id, channel, body, author_name, author_id, priority, created_at')
       .eq('org_id', orgId).in('priority', ['importante', 'urgente']).eq('resolved', false)
       .gte('created_at', desde48h).order('created_at', { ascending: false }).limit(10)),
-    tol(() => sb.from('stock_items').select('id, name, quantity, min_quantity, unit').eq('org_id', orgId)),
+    tol(() => sb.from('stock_items').select('id, name, quantity, min_quantity, unit, expiry_date').eq('org_id', orgId)),
     tol(() => sb.from('attendance').select('patient_id, status').eq('org_id', orgId).eq('date', hoje)),
     tol(() => sb.from('patient_meds').select('id, patient_id, name, shifts').eq('org_id', orgId).eq('active', true)),
+    tol(() => sb.from('medication_prep_logs').select('patient_id, week_start, weekday, packed').eq('org_id', orgId)),
+    tol(() => sb.from('assessments').select('patient_id, date').eq('org_id', orgId)),
   ])
 
   const nome = new Map<string, string>(utentes.map((p: any) => [p.id, p.name]))
@@ -263,6 +266,90 @@ export async function avisosDaInstituicao(
     }
   }
 
+  // ── 8. Validades a expirar ────────────────────────────────────────────────
+  // Um medicamento fora do prazo é um medicamento que não se pode dar, e
+  // descobre-se sempre à hora de o dar. Trinta dias chegam para repor.
+  const aExpirar = stock.filter((i: any) => {
+    if (!i.expiry_date) return false
+    const dias = Math.round((new Date(i.expiry_date + 'T12:00:00').getTime() - new Date(hoje + 'T12:00:00').getTime()) / 86400000)
+    return dias <= 30
+  })
+  if (aExpirar.length) {
+    const jaFora = aExpirar.filter((i: any) => i.expiry_date < hoje).length
+    avisos.push({
+      id: `validades-${orgId}-${hoje}`, tipo: 'validades',
+      titulo: jaFora
+        ? `${jaFora} ${jaFora === 1 ? 'artigo fora' : 'artigos fora'} do prazo`
+        : `${aExpirar.length} ${aExpirar.length === 1 ? 'artigo a expirar' : 'artigos a expirar'}`,
+      corpo: aExpirar.slice(0, 3).map((i: any) => `${i.name} (${i.expiry_date})`).join(', ')
+        + (aExpirar.length > 3 ? ` e mais ${aExpirar.length - 3}` : ''),
+      href: '/stock', quando: `${hoje}T09:00:00`,
+      urgencia: jaFora ? 'alta' : 'normal',
+      empurrar: hhmmParaMin(agora) >= 9 * 60 && hhmmParaMin(agora) < 14 * 60,
+    })
+  }
+
+  // ── 9. Pastilheiro de amanhã ──────────────────────────────────────────────
+  // Só se a casa USA o pastilheiro. Uma casa que prepara a medicação de outra
+  // maneira não tem de levar com isto todas as tardes — não se impõe ritmo a
+  // quem não pediu. É a mesma regra das presenças.
+  if (preparacoes.length > 0 && hhmmParaMin(agora) >= 17 * 60 && hhmmParaMin(agora) < 20 * 60) {
+    const amanha = new Date(hoje + 'T12:00:00')
+    amanha.setDate(amanha.getDate() + 1)
+    const diaSemana = amanha.getDay()
+    const domingo = new Date(amanha)
+    domingo.setDate(domingo.getDate() - diaSemana)
+    const semana = `${domingo.getFullYear()}-${String(domingo.getMonth() + 1).padStart(2, '0')}-${String(domingo.getDate()).padStart(2, '0')}`
+
+    const prontos = new Set(
+      preparacoes
+        .filter((r: any) => r.week_start === semana && r.weekday === diaSemana && r.packed)
+        .map((r: any) => r.patient_id))
+    const porPreparar = utentes.filter((p: any) => !prontos.has(p.id))
+
+    if (porPreparar.length) {
+      avisos.push({
+        id: `preparacao-${orgId}-${hoje}`, tipo: 'preparacao',
+        titulo: `Pastilheiro de amanhã: ${porPreparar.length} por preparar`,
+        corpo: `${porPreparar.slice(0, 3).map((p: any) => p.name).join(', ')}${porPreparar.length > 3 ? ` e mais ${porPreparar.length - 3}` : ''}.`,
+        href: '/preparacao-medicacao', quando: new Date().toISOString(),
+        urgencia: 'normal', empurrar: true,
+      })
+    }
+  }
+
+  // ── 10. Avaliações desatualizadas ─────────────────────────────────────────
+  // Uma vez por semana, à segunda. É um lembrete de fundo, não uma urgência —
+  // e vem desligado por omissão (ver lib/notificacoes). Também só aparece a
+  // casas que JÁ fazem avaliações.
+  const segunda = new Date(hoje + 'T12:00:00').getDay() === 1
+  if (avaliacoes.length > 0 && segunda && hhmmParaMin(agora) >= 9 * 60 && hhmmParaMin(agora) < 14 * 60) {
+    const maisRecente = new Map<string, string>()
+    avaliacoes.forEach((a: any) => {
+      const d = String(a.date || '').slice(0, 10)
+      if (!d) return
+      const atual = maisRecente.get(a.patient_id)
+      if (!atual || d > atual) maisRecente.set(a.patient_id, d)
+    })
+    const limite = new Date(hoje + 'T12:00:00')
+    limite.setDate(limite.getDate() - 90)
+    const limiteISO = limite.toISOString().slice(0, 10)
+
+    const desatualizados = utentes.filter((p: any) => {
+      const d = maisRecente.get(p.id)
+      return !d || d < limiteISO
+    })
+    if (desatualizados.length) {
+      avisos.push({
+        id: `avaliacoes-${orgId}-${hoje}`, tipo: 'avaliacoes',
+        titulo: `${desatualizados.length} ${desatualizados.length === 1 ? 'pessoa sem avaliação' : 'pessoas sem avaliação'} há mais de 90 dias`,
+        corpo: `${desatualizados.slice(0, 3).map((p: any) => p.name).join(', ')}${desatualizados.length > 3 ? ` e mais ${desatualizados.length - 3}` : ''}.`,
+        href: '/patients', quando: new Date().toISOString(),
+        urgencia: 'normal', empurrar: true,
+      })
+    }
+  }
+
   avisos.sort((a, b) =>
     a.urgencia === b.urgencia
       ? String(b.quando).localeCompare(String(a.quando))
@@ -287,7 +374,11 @@ export async function avisosPessoais(
   const hoje = opts.hoje ?? ptDate()
   const minAgora = hhmmParaMin(agora)
 
-  const [meds, tomasHoje] = await Promise.all([
+  const amanhaD = new Date(hoje + 'T12:00:00')
+  amanhaD.setDate(amanhaD.getDate() + 1)
+  const amanha = amanhaD.toISOString().slice(0, 10)
+
+  const [meds, tomasHoje, agenda] = await Promise.all([
     // Sem `shifts`: essa coluna não existe em personal_meds e fazia o select
     // inteiro ser recusado — o `tol` devolvia lista vazia e o sino do modo
     // pessoal ficava sempre vazio, calado, sem erro nenhum.
@@ -295,6 +386,12 @@ export async function avisosPessoais(
       .select('id, name, dose, reminder_times, units_left, units_per_dose')
       .eq('user_id', userId)),
     tol(() => sb.from('med_logs').select('med_id, status').eq('user_id', userId).eq('date', hoje)),
+    // A agenda pessoal (cal_events). As `appointments` são dos utentes de uma
+    // casa, não da própria pessoa — tabelas diferentes, propósitos diferentes.
+    tol(() => sb.from('cal_events').select('id, title, starts_at, kind, location')
+      .eq('user_id', userId)
+      .gte('starts_at', `${amanha}T00:00:00`)
+      .lte('starts_at', `${amanha}T23:59:59`)),
   ])
 
   const jaTomados = new Set(tomasHoje.filter((l: any) => l.status === 'taken').map((l: any) => l.med_id))
@@ -334,6 +431,44 @@ export async function avisosPessoais(
       }
     }
   })
+
+  // ── O que ficou por marcar hoje ───────────────────────────────────────────
+  // Ao fim do dia, uma só linha em vez de um lembrete por medicamento. Quem
+  // teve o dia cheio não precisa de cinco notificações às dez da noite; precisa
+  // de saber que ficaram duas por confirmar.
+  if (hhmmParaMin(agora) >= 20 * 60 && hhmmParaMin(agora) < 23 * 60) {
+    const porConfirmar = meds.filter((m: any) => {
+      const horas: string[] = Array.isArray(m.reminder_times) ? m.reminder_times : []
+      return horas.some(h => hhmmParaMin(h) <= minAgora) && !jaTomados.has(m.id)
+    })
+    if (porConfirmar.length) {
+      avisos.push({
+        id: `resumo-${userId}-${hoje}`, tipo: 'resumo_dia',
+        titulo: porConfirmar.length === 1
+          ? 'Ficou uma toma por confirmar'
+          : `Ficaram ${porConfirmar.length} tomas por confirmar`,
+        corpo: porConfirmar.slice(0, 3).map((m: any) => m.name).join(', ')
+          + (porConfirmar.length > 3 ? ` e mais ${porConfirmar.length - 3}` : '')
+          + '. Se tomaste, marca — se não tomaste, também é bom ficar registado.',
+        href: '/mymeds', quando: `${hoje}T21:00:00`, urgencia: 'normal', empurrar: true,
+      })
+    }
+  }
+
+  // ── Consulta amanhã ───────────────────────────────────────────────────────
+  // Na véspera, à tarde. Não de manhã: de manhã ainda faltam trinta horas e
+  // esquece-se na mesma.
+  if (agenda.length && hhmmParaMin(agora) >= 17 * 60 && hhmmParaMin(agora) < 21 * 60) {
+    agenda.forEach((e: any) => {
+      const hora = String(e.starts_at || '').slice(11, 16)
+      avisos.push({
+        id: `consulta-${e.id}`, tipo: 'consulta',
+        titulo: `Amanhã: ${String(e.title || 'marcação').slice(0, 60)}`,
+        corpo: [hora && `às ${hora}`, e.location].filter(Boolean).join(' · ') || 'Está na tua agenda.',
+        href: '/agenda', quando: String(e.starts_at), urgencia: 'normal', empurrar: true,
+      })
+    })
+  }
 
   avisos.sort((a, b) =>
     a.urgencia === b.urgencia

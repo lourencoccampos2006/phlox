@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarPush } from '@/lib/webPush'
-import { avisosDaInstituicao } from '@/lib/avisos'
+import { avisosDaInstituicao, avisosPessoais } from '@/lib/avisos'
+import { querReceber } from '@/lib/notificacoes'
 import { ptHHMM, ptDate, instanteEmPortugal } from '@/lib/ptTime'
 import { clienteDeServico, confirmarLigacao } from '@/lib/servico'
 
@@ -62,6 +63,32 @@ export async function GET(req: NextRequest) {
   // Só contagens — nunca nomes de casas nem o conteúdo dos avisos. Isto é
   // informação de operação, não o livro de registos de ninguém.
   let avisosTotal = 0, avisosNovos = 0
+
+  // ── As preferências de cada pessoa ─────────────────────────────────────────
+  // Carregadas uma vez, à medida que são precisas. A coluna vem do sprint145;
+  // enquanto ele não for aplicado, isto degrada para "toda a gente recebe tudo"
+  // em vez de rebentar — e é por isso que a leitura é separada e tolerante.
+  // (Foi uma coluna inexistente num select que manteve o /mymeds calado durante
+  // semanas: um select que pede uma coluna que não existe é recusado INTEIRO.)
+  const prefsPorUtilizador = new Map<string, Record<string, boolean>>()
+  let prefsDisponiveis = true
+
+  async function carregarPrefs(ids: string[]) {
+    const faltam = [...new Set(ids)].filter(id => id && !prefsPorUtilizador.has(id))
+    if (!faltam.length || !prefsDisponiveis) return
+    const { data, error } = await supabase
+      .from('profiles').select('id, notification_prefs').in('id', faltam)
+    if (error) {
+      prefsDisponiveis = false
+      console.error('[phlox:cron] sem preferências de notificação (sprint145 por aplicar?):', error.message)
+      return
+    }
+    ;(data || []).forEach((p: any) => prefsPorUtilizador.set(p.id, p.notification_prefs || {}))
+    faltam.forEach(id => { if (!prefsPorUtilizador.has(id)) prefsPorUtilizador.set(id, {}) })
+  }
+
+  const quer = (userId: string, tipo: string) =>
+    !prefsDisponiveis || querReceber(prefsPorUtilizador.get(userId), tipo)
 
   // ── O batimento ────────────────────────────────────────────────────────────
   // "As notificações de medicação não chegam" tem duas causas possíveis muito
@@ -142,8 +169,11 @@ export async function GET(req: NextRequest) {
       .from('push_notifications_sent').select('tag').in('tag', etiquetasHoje)
     const jaSaiu = new Set((jaAvisados || []).map((x: any) => x.tag))
 
+    await carregarPrefs(dueReminders.map((x: any) => x.med.user_id))
+
     for (const { med, hora, atraso } of dueReminders) {
       if (alreadyLogged.has(med.id)) continue
+      if (!quer(med.user_id, 'toma')) continue
       const etiqueta = `toma:${med.id}:${today}:${hora}`
       if (jaSaiu.has(etiqueta)) continue
 
@@ -162,7 +192,7 @@ export async function GET(req: NextRequest) {
         const diasQueFaltam = Math.floor(restam / (porDose * dosesPorDia))
         const jaAvisado = (med as any).low_notified_at
         const avisadoHaPouco = jaAvisado && (Date.now() - new Date(jaAvisado + 'T12:00:00').getTime()) < 7 * 86400000
-        if (diasQueFaltam <= 7 && !avisadoHaPouco) {
+        if (diasQueFaltam <= 7 && !avisadoHaPouco && quer(med.user_id, 'caixa')) {
           const { data: subsBaixo } = await supabase
             .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', med.user_id)
           for (const sub of subsBaixo || []) {
@@ -300,6 +330,62 @@ export async function GET(req: NextRequest) {
     await supabase.from('family_profile_shares').update({ last_activity_notified_at: new Date().toISOString() }).eq('id', share.id)
   }
 
+  // ─── 1d. Os avisos pessoais que não são a hora de uma toma ───────────────
+  // O resumo do fim do dia e a consulta de amanhã. A secção 1 trata da hora
+  // exata de cada medicamento; estes são de janela, e vêm do mesmo motor que
+  // alimenta o sino (lib/avisos, avisosPessoais) para os dois nunca
+  // discordarem.
+  //
+  // Só se percorre quem TEM dispositivo — é o conjunto certo e é pequeno.
+  // Percorrer todas as contas para descobrir que ninguém tem push seria caro e
+  // inútil.
+  {
+    const { data: comDispositivo } = await supabase
+      .from('push_subscriptions').select('user_id')
+    const utilizadores = [...new Set((comDispositivo || []).map((s: any) => s.user_id))] as string[]
+    await carregarPrefs(utilizadores)
+
+    for (const uid of utilizadores) {
+      let meus: Awaited<ReturnType<typeof avisosPessoais>> = []
+      try { meus = await avisosPessoais(supabase, uid, { agora: nowHHMM, hoje: today }) } catch { continue }
+
+      const aEmpurrar = meus.filter(a => a.empurrar && quer(uid, a.tipo))
+      if (!aEmpurrar.length) continue
+
+      const etiquetas = aEmpurrar.map(a => `${uid}:${a.id}`)
+      const { data: jaSaiu } = await supabase
+        .from('push_notifications_sent').select('tag').in('tag', etiquetas)
+      const enviados = new Set((jaSaiu || []).map((x: any) => x.tag))
+      const novos = aEmpurrar.filter(a => !enviados.has(`${uid}:${a.id}`))
+      if (!novos.length) continue
+
+      const { data: subs } = await supabase
+        .from('push_subscriptions').select('endpoint, p256dh, auth').eq('user_id', uid)
+      if (!subs?.length) continue
+
+      const principal = novos[0]
+      alvos += subs.length
+      let aceite = 0
+      for (const sub of simular ? [] : subs) {
+        const r = await enviarPush(sub, {
+          title: novos.length === 1 ? principal.titulo : `${novos.length} coisas para hoje`,
+          body: novos.length === 1 ? principal.corpo : novos.slice(0, 3).map(a => a.titulo).join(' · '),
+          url: novos.length === 1 ? principal.href : '/inicio',
+          tag: `pessoal-${uid}-${today}`,
+        })
+        if (r.ok) { sent++; aceite++ }
+        else if (r.expirada) await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+        else { errors++; console.error('[phlox:push] envio falhou, subscrição mantida:', r.motivo) }
+      }
+
+      if (!simular && aceite > 0) {
+        await supabase.from('push_notifications_sent')
+          .insert(novos.map(a => ({ tag: `${uid}:${a.id}`, sent_at: new Date().toISOString() })))
+          .then((r: any) => r, () => null)
+      }
+    }
+  }
+
   // ─── 2. As instituições ──────────────────────────────────────────────────
   // REFEITO 2026-09-12. O que estava aqui tinha três defeitos que, juntos,
   // faziam com que uma instituição nunca recebesse notificação nenhuma:
@@ -349,9 +435,13 @@ export async function GET(req: NextRequest) {
       .eq('org_id', casa.id).eq('active', true).neq('role', 'viewer')
     if (!membros?.length) continue
 
+    await carregarPrefs(membros.map((m: any) => m.user_id))
+
     for (const membro of membros) {
       const gere = ['owner', 'admin'].includes(membro.role)
-      const seus = gere ? novos : novos.filter(a => DO_TURNO.has(a.tipo))
+      const seus = (gere ? novos : novos.filter(a => DO_TURNO.has(a.tipo)))
+        // Cada pessoa recebe o que escolheu receber. Ver lib/notificacoes.
+        .filter(a => quer(membro.user_id, a.tipo))
       if (!seus.length) continue
 
       const { data: subs } = await supabase

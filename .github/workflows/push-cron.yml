@@ -1,13 +1,39 @@
 name: Push Notifications Cron
 
-# GitHub Actions schedules run at most every 5 minutes (free tier may delay).
-# This workflow is the primary scheduler for medication reminders and MAR alerts.
+# ── A BANDA, E PORQUE E QUE E ASSIM ─────────────────────────────────────────
+# Este workflow e a RESERVA. O relogio verdadeiro e o pg_cron dentro do
+# Supabase (supabase/sprint144_relogio.sql), que corre de 5 em 5 minutos e nao
+# depende de runners partilhados.
+#
+# Media-se o que o GitHub faz mesmo, a 14 de setembro de 2026:
+#
+#   Push Notifications Cron   agendado 96/dia (*/15)  ->  6 execucoes em 24h
+#   Crons do Phlox            agendado  5/dia (diarios) ->  5 execucoes em 24h
+#
+# O padrao e claro: o GitHub cumpre agendamentos POUCO FREQUENTES e descarta os
+# frequentes. E o que eles proprios documentam — o evento `schedule` e atrasado
+# em alturas de carga, e um agendamento de 5 em 5 minutos pode ser saltado.
+#
+# Por isso deixou de haver UM agendamento de 15 em 15 minutos e passou a haver
+# SEIS agendamentos horarios desencontrados. Cada um, sozinho, esta na banda que
+# o GitHub cumpre; juntos dao uma passagem a cada ~10 minutos. Os minutos nao
+# custam nada: em repositorios PUBLICOS os runners normais sao gratuitos e sem
+# limite (os 3.000 minutos do plano Pro so contam para repositorios privados).
+#
+# Evita-se de proposito o minuto :00 — e a hora de maior carga do GitHub e a que
+# mais atrasos apanha.
+#
+# Chamar a mesma rota varias vezes nao faz mal nenhum: cada lembrete e cada
+# aviso tem uma etiqueta estavel e so sai uma vez (ver push_notifications_sent).
 
 on:
   schedule:
-    # Every 15 minutes — GitHub's minimum supported interval is 5 min; 15 min is fine.
-    # Note: GitHub may delay by up to 15 min during high load.
-    - cron: '0,15,30,45 * * * *'
+    - cron: '7 * * * *'
+    - cron: '17 * * * *'
+    - cron: '27 * * * *'
+    - cron: '37 * * * *'
+    - cron: '47 * * * *'
+    - cron: '57 * * * *'
   workflow_dispatch:
     inputs:
       environment:
