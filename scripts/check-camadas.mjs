@@ -18,9 +18,10 @@ import { join, extname } from 'node:path'
 
 const BARRA = 120
 
-// Onde a barra inferior não existe, um z-index baixo não faz mal:
-// o modo clínico tem navegação própria, e o /inicio está a ser refeito.
-const ISENTOS = ['components/InstitutionShell.tsx', 'app/inicio/page.tsx']
+// Onde a barra inferior não existe, um z-index baixo não faz mal: o modo
+// clínico tem navegação própria. (O /inicio esteve isento enquanto estava a
+// ser refeito — deixou de estar a 2026-09-16, e foi logo apanhado.)
+const ISENTOS = ['components/InstitutionShell.tsx']
 
 const ficheiros = []
 ;(function varrer(dir) {

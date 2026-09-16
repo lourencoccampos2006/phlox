@@ -32,7 +32,6 @@ function SuccessContent() {
           {(plan === 'pro' ? [
             { href: '/med-review', label: 'Revisão Clínica de Medicação', desc: 'Análise completa + relatório PDF' },
             { href: '/ai', label: 'Phlox AI', desc: 'Farmacologista clínico virtual' },
-            { href: '/revisao-medicacao', label: 'Revisão da minha medicação', desc: 'O motor de regras clínicas em linguagem simples' },
           ] : [
             { href: '/labs', label: 'Interpretação de Análises', desc: 'A ferramenta mais popular' },
             { href: '/simulador', label: 'Casos Clínicos', desc: 'Raciocínio clínico guiado' },

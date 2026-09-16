@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = makeSupabase(token)
     const [{ data: quiz }, { data: arena }, { data: sessions }] = await Promise.all([
-      supabase.from('quiz_results').select('drug_class, correct, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
+      supabase.from('quiz_results').select('drug_class, correct, date').eq('user_id', userId).order('date', { ascending: false }).limit(500),
       supabase.from('arena_attempts').select('domain, score').eq('user_id', userId).limit(500),
       supabase.from('study_sessions').select('topic, minutes').eq('user_id', userId).limit(500),
     ])

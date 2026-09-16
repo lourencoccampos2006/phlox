@@ -156,9 +156,9 @@ function AdherenceWidget({ t }: { t: ModeTheme }) {
     })
   }, [user, supabase])
 
-  if (rate === undefined) return <Tile href="/adherencia" tag="Adesão" headline="…" sub="A carregar" icon="target" t={t} />
+  if (rate === undefined) return <Tile href="/mymeds" tag="Adesão" headline="…" sub="A carregar" icon="target" t={t} />
   if (rate === null) return <Tile href="/mymeds" tag="Adesão" headline="Sem horários" sub="Define horários para veres a adesão" icon="target" t={t} />
-  return <Tile href="/adherencia" tag="Adesão · 7 dias" headline={`${rate}%`} sub={rate >= 80 ? 'A correr bem' : rate >= 50 ? 'Alguns esquecimentos' : 'Vale a pena rever'} icon="target" t={t} tone={rate >= 80 ? 'good' : rate < 50 ? 'warn' : undefined} />
+  return <Tile href="/mymeds" tag="Adesão · 7 dias" headline={`${rate}%`} sub={rate >= 80 ? 'A correr bem' : rate >= 50 ? 'Alguns esquecimentos' : 'Vale a pena rever'} icon="target" t={t} tone={rate >= 80 ? 'good' : rate < 50 ? 'warn' : undefined} />
 }
 
 // ─── Interações (pessoal: os meus meds · cuidador: os da família) ──────────

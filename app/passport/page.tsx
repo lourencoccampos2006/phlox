@@ -82,7 +82,10 @@ export default function PassportPage() {
     Promise.all([
       medsPromise,
       isFamily
-        ? supabase.from('family_profiles').select('name, allergies, blood_type, emergency_contact').eq('id', activeProfile.id).maybeSingle()
+        ? // `family_profiles` nao tem blood_type nem emergency_contact — pedi-los
+        // fazia o select INTEIRO ser recusado, e por isso nem o nome nem as
+        // alergias chegavam a pre-preencher. Ficam por preencher a mao.
+        supabase.from('family_profiles').select('name, allergies').eq('id', activeProfile.id).maybeSingle()
         : supabase.from('emergency_tokens').select('*').eq('user_id', user.id).maybeSingle(),
     ]).then(async ([{ data: medsData }, { data: cardData }]) => {
       setMeds(medsData || [])

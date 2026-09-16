@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomInt, randomBytes } from 'crypto'
-import { sendEmail, emailLayout } from '@/lib/email'
+import { sendEmail, emailLayout, teamInviteEmail } from '@/lib/email'
 
 function admin() {
   return createClient(
@@ -165,6 +165,18 @@ export async function POST(req: NextRequest) {
         { onConflict: 'org_id,user_id' }
       )
       if (tmErr) console.error('[phlox:org-team] criar perfil em team_members falhou (convite existente):', tmErr.message)
+
+      // Avisar quem foi adicionado. Este caminho — conta que JÁ existe — dava
+      // acesso a uma instituição e não dizia nada a ninguém: a pessoa entrava
+      // um dia qualquer e encontrava uma casa inteira na conta dela, sem
+      // perceber porquê. Quem é convidado pelo outro caminho (sem conta) já
+      // recebia email; este não.
+      try {
+        const { data: casa } = await a.from('organizations').select('name').eq('id', orgId).maybeSingle()
+        const { subject, html } = teamInviteEmail(casa?.name || 'equipa', ownerName || 'Alguém da equipa')
+        sendEmail({ to: email, subject, html }).catch(() => {})
+      } catch { /* o convite vale por si; o email é um extra */ }
+
       return NextResponse.json({ ok: true, mode: 'added', email, name: existing.name || email })
     }
 

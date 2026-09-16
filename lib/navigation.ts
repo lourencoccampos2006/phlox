@@ -25,7 +25,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   {
     id: 'medication', label: 'Medicação', color: '#0d9488',
     tools: [
-      { href: '/scan',         icon: '📷', label: 'Decifrar', desc: 'Uma foto a um relatório, análises, receita ou caixa — explicado em simples' },
+      { href: '/scan',         icon: '📷', label: 'Explicar um exame ou receita', desc: 'Tire uma foto. Dizemos-lhe o que lá está, em português simples' },
       { href: '/medicamento',  icon: '💡', label: 'O que é este medicamento?', desc: 'Escreva o nome → para que serve e cuidados' },
       { href: '/mymeds',       icon: '💊', label: 'Os meus comprimidos', desc: 'Lista, horários e lembretes' },
       { href: '/interactions', icon: '🔍', label: 'Dão-se bem juntos?',  desc: 'Ver se é seguro tomá-los ao mesmo tempo' },
@@ -37,21 +37,20 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/sintomas',  icon: '🌡', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
       { href: '/vault',     icon: '🔒', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
       { href: '/vitals',    icon: '❤️', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
-      { href: '/adherencia', icon: '📈', label: 'Adesão à medicação', desc: 'Padrões reais ao longo das semanas — que dias e horas falham mais' },
       { href: '/timeline',  icon: '🗓', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
       { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
       { href: '/labs',      icon: '🧪', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
       { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
-      { href: '/reach',     icon: '🎁', label: 'Convidar amigos',       desc: 'Ambos ganham quando alguém se junta com o seu código' },
       { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
       // CURADORIA 2026-07-21: eram 6 entradas Pro soltas aqui (rastreio visual,
       // vigia de ruturas, painel da condição, plano de recuperação, revisão da
       // medicação, exportar registo) — uma parede de itens parecidos, sem
-      // hierarquia. Consolidadas num hub só (/saude-avancada, ver check-nav.mjs
-      // KNOWN para os 6 hrefs originais, continuam alcançáveis a partir de lá).
+      // hierarquia. Foram consolidadas num hub (/saude-avancada) e, a
+      // 2026-09-16, cortadas de vez com ele: eram textos gerados por IA sem
+      // seguimento nenhum, e duas delas andavam perto da linha que o Phlox diz
+      // não atravessar (não diagnosticar, não prescrever).
       // /health-import saiu da lista (continua acessível por link direto e
       // pelos atalhos fixos em lib/pinnedTools.ts), só não polui esta lista.
-      { href: '/saude-avancada', icon: '🔬', label: 'Saúde avançada', desc: 'Painel da condição, revisão da medicação, plano de peso, rastreio visual, vigia de ruturas, plano de recuperação, exportar registo', badge: 'Pro' },
     ],
   },
   {
@@ -65,7 +64,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: 'clinical', label: 'Clínico', color: '#2563eb',
     tools: [
       // CURADORIA 2026-06-01: Reduzido de 26 para 14. Removidas /calculators,
-      // /counseling, /electrolytes, /nota-clinica, /handover (ainda incompletas
+      // /counseling, /electrolytes, /handover (ainda incompletas
       // ou duplicadas com calculos / oracle). O utilizador pode reativar em
       // /settings/tools.
       { href: '/painel',             icon: '🎛️', label: 'Painel',              desc: 'O painel da instituição, ao vivo' },
@@ -153,7 +152,7 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
     { href: '/vitals',       icon: '❤️', label: 'Saúde',       desc: 'Tensão, peso e açúcar' },
     { href: '/ai',           icon: '🤖', label: 'Perguntar',   desc: 'Tirar uma dúvida' },
     { href: '/passport',     icon: '🆘', label: 'Emergência',  desc: 'Cartão QR' },
-    { href: '/scan',         icon: '📷', label: 'Decifrar',    desc: 'Foto a um papel de saúde, explicado' },
+    { href: '/scan',         icon: '📷', label: 'Explicar',    desc: 'Foto a um exame ou receita, explicado' },
   ],
   caregiver: [
     { href: '/familia',      icon: '👨‍👩‍👧', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },

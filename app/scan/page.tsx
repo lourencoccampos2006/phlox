@@ -1,6 +1,6 @@
 'use client'
 
-// /scan — DECIFRAR
+// /scan — EXPLICAR
 // ─────────────────────────────────────────────────────────────────────────────
 // A ferramenta mais importante do Phlox: uma foto a qualquer papel de saúde,
 // explicado em português simples.
@@ -14,8 +14,9 @@
 //
 // Três mudanças de fundo:
 //
-//   1. O nome. "Decifrar" diz o que se faz: um papel médico é opaco de
-//      propósito para quem não é do meio, e isto abre-o.
+//   1. O nome. Passou por "Decifrar" e não chegou: era abstrato demais, e
+//      quem lê não fica a saber o que a ferramenta faz. "Explicar" é o que
+//      ela faz POR SI, e é um verbo que toda a gente usa.
 //   2. A promessa está no ecrã antes de haver resultado. Vê-se logo o que ele
 //      lê — receita, análises, relatório, caixa, bula — porque a dúvida de
 //      quem chega é "isto serve para o meu caso?".
@@ -41,7 +42,7 @@ import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 import { horasDaFrequencia } from '@/lib/horarioToma'
 
 /** O nome da ferramenta, num sítio só — muda aqui e muda em todo o lado. */
-export const NOME_FERRAMENTA = 'Decifrar'
+export const NOME_FERRAMENTA = 'Explicar'
 
 const ACCENT = '#0d6e42'
 
@@ -71,7 +72,7 @@ interface Valor { name: string; value?: string; unit?: string; reference?: strin
 interface Termo { termo: string; simples: string }
 interface Seccao { titulo: string; texto: string }
 
-interface Decifrado {
+interface Explicado {
   kind: string
   title?: string
   emDuasLinhas?: string
@@ -109,10 +110,10 @@ const LE: { nome: string; exemplo: string }[] = [
 
 const COR_ESTADO: Record<string, string> = { normal: '#0d6e42', baixo: '#b45309', alto: '#b91c1c' }
 
-export default function DecifrarPage() {
+export default function ExplicarPage() {
   const { user, supabase } = useAuth() as any
   const [busy, setBusy] = useState('')
-  const [res, setRes] = useState<Decifrado | null>(null)
+  const [res, setRes] = useState<Explicado | null>(null)
   const [meds, setMeds] = useState<Med[]>([])
   const [err, setErr] = useState('')
   const [importado, setImportado] = useState(false)
@@ -182,7 +183,7 @@ export default function DecifrarPage() {
         payload = { text: ex.text }
       }
 
-      setBusy('A decifrar…')
+      setBusy('A explicar…')
       const r = await fetch('/api/scan', { method: 'POST', headers: await auth(), body: JSON.stringify(payload) })
       const texto = await r.text()
       let j: any = null
@@ -244,7 +245,7 @@ export default function DecifrarPage() {
       title: res.title || 'Documento decifrado',
       category: categoria,
       body_text: partes.slice(0, 20000),
-      notes: 'Decifrado pelo Phlox',
+      notes: 'Explicado pelo Phlox',
       issued_at: new Date().toISOString().slice(0, 10),
       updated_at: new Date().toISOString(),
     })
@@ -289,8 +290,8 @@ export default function DecifrarPage() {
             fontSize: 15.5, color: 'var(--ink-3)', margin: '10px 0 0',
             maxWidth: '44ch', lineHeight: 1.55, textWrap: 'pretty' as any,
           }}>
-            Tire uma foto a qualquer papel de saúde. Nós explicamos o que lá está,
-            em português simples.
+            Tire uma foto a um exame, receita ou relatório. Nós explicamos o que
+            lá está, em português simples.
           </p>
         </div>
 

@@ -58,9 +58,12 @@ const ficheiros = []
 })('.')
 
 // .from('tabela')  ...  .select('a, b, c')
-// O `[\s\S]{0,200}?` deixa passar os encadeamentos e as quebras de linha que
-// há pelo meio; para de procurar antes de chegar ao `from` seguinte.
-const PADRAO = /\.from\(\s*['"`]([a-z_0-9]+)['"`]\s*\)[\s\S]{0,200}?\.select\(\s*['"`]([^'"`]*)['"`]/g
+// O `(?:(?!\.from\()[\s\S])` e um "tempered token": deixa passar tudo o que
+// esta entre o .from() e o .select(), MENOS outro .from(. Sem isso, o padrao
+// emparelhava o `.from('a')` de uma consulta com o `.select()` da consulta
+// SEGUINTE — e acusava colunas inexistentes que na verdade pertenciam a outra
+// tabela. Apanhei-me a corrigir codigo que estava bom por causa disso.
+const PADRAO = /\.from\(\s*['"`]([a-z_0-9]+)['"`]\s*\)((?:(?!\.from\()[\s\S]){0,200}?)\.select\(\s*['"`]([^'"`]*)['"`]/g
 
 let problemas = 0, verificados = 0
 const desconhecidas = new Set()
@@ -68,7 +71,7 @@ const desconhecidas = new Set()
 for (const f of ficheiros) {
   const texto = readFileSync(f, 'utf8')
   for (const m of texto.matchAll(PADRAO)) {
-    const [, tabela, lista] = m
+    const [, tabela, , lista] = m
     // `*`, contagens e recursos encaixados ficam de fora: o que se quer apanhar
     // é o nome de coluna escrito à mão que não existe.
     if (!lista || lista.includes('*') || lista.includes('(') || lista.includes(':')) continue

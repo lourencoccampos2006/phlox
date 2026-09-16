@@ -225,7 +225,10 @@ export function teamInviteEmail(nomeCasa: string, quemConvidou: string): { subje
         <p>${escapeHtml(quemConvidou)} deu-lhe acesso ao Phlox do ${escapeHtml(nomeCasa)}.</p>
         <p>Entra com este email e vê o dia da casa: quem chegou, a medicação por dar,
         o que ficou registado e o que merece atenção.</p>`,
-      cta: { label: 'Entrar', url: '/painel' },
+      // URL ABSOLUTO. Estava '/painel' — um caminho relativo dentro de um email
+      // não vai a lado nenhum, e era por isso que este modelo nunca chegou a
+      // ser usado em sítio nenhum. Todos os outros daqui já usavam absoluto.
+      cta: { label: 'Entrar', url: 'https://phloxclinical.com/painel' },
     }),
   }
 }

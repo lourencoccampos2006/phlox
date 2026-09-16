@@ -329,13 +329,13 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
               {meta.label}{doc.issued_at ? ` · ${new Date(doc.issued_at).toLocaleDateString('pt-PT')}` : ''}
             </div>
           </div>
-          {/* Decifrar ─────────────────────────────────────────────────────
+          {/* Explicar ─────────────────────────────────────────────────────
               Um documento guardado no cofre é exatamente o que a ferramenta
-              Decifrar sabe ler. Sem isto era preciso voltar a fotografar um
+              Explicar sabe ler. Sem isto era preciso voltar a fotografar um
               papel que já está aqui dentro. */}
           {(doc.body_text || '').trim().length > 40 && (
             <button onClick={decifrar} disabled={aDecifrar} style={{ padding: '6px 12px', background: aDecifrar ? '#f1f5f9' : '#0d6e42', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, color: aDecifrar ? '#94a3b8' : 'white', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-              {aDecifrar ? 'A decifrar…' : 'Decifrar'}
+              {aDecifrar ? 'A ler…' : 'Explicar'}
             </button>
           )}
           <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Editar</button>
@@ -370,7 +370,7 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
               ) : (
                 <>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>
-                    Decifrado
+                    Explicado
                   </div>
                   {decifrado.emDuasLinhas && (
                     <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16.5, lineHeight: 1.5, color: '#0b1120', margin: '0 0 12px', maxWidth: '54ch' }}>
@@ -396,7 +396,7 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                     </div>
                   )}
                   <Link href="/scan" style={{ fontSize: 12.5, color: '#0d6e42', fontWeight: 700, textDecoration: 'none' }}>
-                    Abrir no Decifrar para perguntar sobre isto →
+                    Abrir no Explicar para perguntar sobre isto →
                   </Link>
                   <NaoEDispositivoMedico variante="linha" />
                 </>

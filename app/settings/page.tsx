@@ -2,7 +2,7 @@
 
 // ─── PHLOX SETTINGS ───────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -10,11 +10,6 @@ import { planById, planName } from '@/lib/plans'
 import { reportError, MSG } from '@/lib/clientError'
 import SecuritySettings from '@/components/settings/SecuritySettings'
 import HealthGoalPicker from '@/components/HealthGoalPicker'
-import PinPickerGrid from '@/components/PinPickerGrid'
-import ModuleToggleList from '@/components/ModuleToggleList'
-import WidgetToggleList from '@/components/WidgetToggleList'
-import AlertPrefsList from '@/components/AlertPrefsList'
-import { getPins, setPins as persistPins } from '@/lib/pinnedTools'
 import { activatePush as activatePushShared, needsHomeScreenForPush } from '@/lib/pushActivation'
 import DiagnosticoPush from '@/components/DiagnosticoPush'
 import PreferenciasNotificacao from '@/components/PreferenciasNotificacao'
@@ -55,7 +50,7 @@ function SettingsPage() {
   // — esses escolhem as suas ferramentas. No modo clínico, o produto monta-se
   // sozinho a partir do tipo de instituição (blueprint), por isso não há picker.
   // "organizacoes" foi removido (criar org era confuso e inútil).
-  const validTabs = ['profile', 'ferramentas', 'seguranca', 'account', 'notifications'] as const
+  const validTabs = ['profile', 'seguranca', 'account', 'notifications'] as const
   type SettingsTab = typeof validTabs[number]
   const requestedTab = searchParams?.get('tab')
   const initialTab = ((requestedTab && (validTabs as readonly string[]).includes(requestedTab)
@@ -160,20 +155,7 @@ function SettingsPage() {
 
   // Picker de atalhos fixos — só para modos não-clínicos. No clínico, as
   // ferramentas vêm do blueprint da instituição (não se escolhem). A secção
-  // "Explorar" no fundo de /inicio já mostra tudo, sempre, organizado por
-  // assunto — esconder ferramentas não faz sentido; o que resta escolher
-  // aqui são os atalhos fixos (mesmo seletor do botão "Personalizar" em
-  // /inicio), mais o liga/desliga de secções (ModuleToggleList) acima.
   const notClinical = expMode !== 'clinical'
-  const [pinIds, setPinIds] = useState<string[]>([])
-  useEffect(() => { setPinIds(getPins()) }, [])
-  function togglePin(path: string) {
-    setPinIds(prev => {
-      const next = prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path].slice(0, 6)
-      persistPins(next)
-      return next
-    })
-  }
 
   const downloadExport = async (format: 'json' | 'csv') => {
     setExporting(true)
@@ -273,7 +255,6 @@ function SettingsPage() {
         <div className="settings-tabbar-wrap">
           <div className="page-container settings-tabbar" style={{ display: 'flex', borderTop: '1px solid var(--border)', background: 'white', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
-            {notClinical && <button onClick={() => setTab('ferramentas')} style={tabStyle('ferramentas')}>Ferramentas</button>}
             <button onClick={() => setTab('seguranca')} style={tabStyle('seguranca')}>Segurança</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
@@ -408,36 +389,12 @@ function SettingsPage() {
         )}
 
         {/* Picker de atalhos + módulos — só modos não-clínicos. No clínico vem do blueprint. */}
-        {tab === 'ferramentas' && notClinical && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>A tua página de início</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55 }}>
-                Escolhe que secções aparecem e que ferramentas ficam sempre à mão. Tudo o resto continua
-                sempre acessível mais abaixo no início, organizado por assunto.
-              </div>
-            </div>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Secções</div>
-              <ModuleToggleList mode={expMode} />
-            </div>
-            {(expMode === 'personal' || expMode === 'caregiver') && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Avisos</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 10 }}>
-                  Escolhe que tipos de aviso aparecem em "A minha saúde" no início.
-                </div>
-                <AlertPrefsList />
-              </div>
-            )}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>{(expMode === 'personal' || expMode === 'caregiver') ? 'Widgets' : 'Atalhos fixos'}</div>
-              {(expMode === 'personal' || expMode === 'caregiver')
-                ? <WidgetToggleList mode={expMode} />
-                : <PinPickerGrid pins={pinIds} onToggle={togglePin} />}
-            </div>
-          </div>
-        )}
+        {/* A aba "Ferramentas" foi daqui removida a 2026-09-16.
+            Ligava/desligava secoes, avisos, widgets e atalhos fixos do
+            /inicio. Com o /inicio novo — uma acao e uma lista curta — nenhuma
+            dessas partes existe, e a aba passou a ser quatro grupos de
+            interruptores que rodavam sem produzir efeito nenhum. Um
+            interruptor que nao faz nada e pior do que nao haver interruptor. */}
 
         {tab === 'seguranca' && <SecuritySettings />}
 

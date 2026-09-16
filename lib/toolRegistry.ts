@@ -54,7 +54,7 @@ export const TOOLS: Tool[] = [
   // ── Medicação ──
   // ── 7 ESSENCIAIS (default pessoal/cuidador). O resto fica acessível em /tudo. ──
   { id: '/mymeds',       label: 'Os meus comprimidos',           desc: 'A lista, os horários e os lembretes', category: 'meds',    modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/scan',         label: 'Decifrar',                      desc: 'Uma foto a qualquer papel de saúde — relatório, análises, receita, caixa — explicado em português simples', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/scan',         label: 'Explicar um exame ou receita',  desc: 'Tire uma foto. Dizemos-lhe o que lá está, em português simples — exames, análises, receitas, relatórios e caixas', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/interactions', label: 'Os meus medicamentos dão-se bem?', desc: 'Ver se é seguro tomá-los juntos', category: 'meds',     modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free_limited' },
   { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreva o nome e veja para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], plan: 'free' },
 
@@ -62,20 +62,12 @@ export const TOOLS: Tool[] = [
   { id: '/sintomas',     label: 'Como me sinto hoje',            desc: 'Diário de sintomas e recuperação', category: 'health',     modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/vitals',       label: 'Tensão, peso e açúcar',         desc: 'Registar e ver como evolui',       category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/adherencia',   label: 'Adesão à medicação',             desc: 'Padrões reais ao longo das semanas — que dias e horas falham mais', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
   { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/plano-peso',   label: 'Plano de perda de peso',        desc: 'Dieta e exercício contextualizados à tua medicação', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
-  { id: '/rastreio-visual', label: 'Rastreio visual',            desc: 'Risco dermatológico ABCDE por IA, com evolução ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
-  { id: '/vigia-ruturas', label: 'Vigia de ruturas',              desc: 'Cruza a tua medicação com a lista oficial de ruturas do INFARMED', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
-  { id: '/minha-condicao', label: 'Painel da minha condição',     desc: 'Medicação, vitais, sintomas e risco — tudo à volta da tua doença crónica', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
-  { id: '/plano-recuperacao', label: 'Plano de recuperação',      desc: 'Marcos realistas para o teu evento de saúde, contextualizados à tua medicação', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
-  { id: '/revisao-medicacao', label: 'Revisão da minha medicação', desc: 'O motor de regras clínicas que os profissionais usam, explicado em linguagem simples', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
-  { id: '/exportar-saude', label: 'Exportar o meu registo de saúde', desc: 'Medicação, vitais, sintomas e análises num PDF completo para o médico', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
+  { id: '/vigia-ruturas', label: 'Vigia de ruturas',              desc: 'Cruza a tua medicação com a lista oficial de ruturas do INFARMED', category: 'health', modes: ['clinical'], plan: 'pro' },
   // Existia (Phlox Reach) mas só aparecia na command palette clínica — invisível
   // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em
   // /tudo, não empurrado para a Hub (convidar não deve ser a 1ª coisa que se vê).
-  { id: '/reach',        label: 'Convidar amigos',               desc: 'Ambos ganham quando alguém se junta com o seu código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
   { id: '/partilhado-comigo', label: 'Partilhado comigo',        desc: 'Perfis de família que outra pessoa te deu acesso a ver', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
 
   // ── Perceber ──
@@ -125,7 +117,10 @@ export const TOOLS: Tool[] = [
   // Operações & equipa
   { id: '/stock',        label: 'Stock & consumíveis',           desc: 'Consumo a 1 toque · ruturas · encomendas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care', 'pharmacy_community', 'clinic'], plan: 'pro' },
   { id: '/equipa?tab=escalas', label: 'Equipa & escalas',        desc: 'Membros, turnos, competências e tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
-  { id: '/equipa?tab=cobertura', label: 'Cobertura de turnos',  desc: 'Publica vagas quando falta alguém; a equipa vê e cobre', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
+  // A aba "cobertura" deixou de existir — as vagas de turno vivem dentro das
+  // Escalas (components/team/EscalasEquipa.tsx). O /equipa ainda redireciona o
+  // link antigo em silêncio, mas o catálogo não deve anunciar um endereço morto.
+  { id: '/equipa?tab=escalas', label: 'Cobertura de turnos',  desc: 'Publica vagas quando falta alguém; a equipa vê e cobre', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/apoio-servicos', label: 'Serviços de apoio',          desc: 'Roupa, transporte e outros pedidos — quem publica, quem trata', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/preparacao-medicacao', label: 'Preparação da medicação', desc: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/apoio-psicossocial', label: 'Apoio psico-social',     desc: 'Notas de acompanhamento e encaminhamento a especialistas — só equipa', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },

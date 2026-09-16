@@ -71,13 +71,13 @@ export default function HealthGoalPicker() {
       {saving && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>A guardar…</div>}
       {saved && <div style={{ fontSize: 11, color: '#0d6e42', marginTop: 8, fontWeight: 700 }}>✓ Guardado</div>}
       {goal === 'lose_weight' && !saving && (
-        <Link href="/plano-peso" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0d9488', textDecoration: 'none' }}>Abrir o teu plano de perda de peso →</Link>
+        <Link href="/vitals" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0d9488', textDecoration: 'none' }}>Abrir o teu plano de perda de peso →</Link>
       )}
       {goal === 'manage_chronic' && !saving && (
-        <Link href="/minha-condicao" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Abrir o painel da tua condição →</Link>
+        <Link href="/timeline" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Abrir o painel da tua condição →</Link>
       )}
       {goal === 'recover' && !saving && (
-        <Link href="/plano-recuperacao" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Abrir o teu plano de recuperação →</Link>
+        <Link href="/timeline" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Abrir o teu plano de recuperação →</Link>
       )}
       {goal === 'wellness' && !saving && (
         <Link href="/relatorio" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0d6e42', textDecoration: 'none' }}>Abrir o teu check-in geral →</Link>

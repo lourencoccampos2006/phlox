@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       ? supabase.from('family_profile_meds').select('name, dose, frequency, indication').eq('user_id', userId).eq('profile_id', profileId).limit(30)
       : supabase.from('personal_meds').select('name, dose, frequency, indication').eq('user_id', userId).limit(30),
     profileFilter(supabase.from('vital_records').select('date, vital_type, value_1, value_2, unit').eq('user_id', userId).order('date', { ascending: false }).limit(20)),
-    profileFilter(supabase.from('vaccine_records').select('name, date, batch, valid_until').eq('user_id', userId).order('date', { ascending: false }).limit(20)),
+    profileFilter(supabase.from('vaccine_records').select('vaccine_name, date_given, batch, next_due').eq('user_id', userId).order('date_given', { ascending: false }).limit(20)),
   ])
 
   // ── Preparar contexto para AI ──────────────────────────────────────────────

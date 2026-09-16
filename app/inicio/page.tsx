@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { planName } from '@/lib/plans'
 import Icon from '@/components/Icon'
 import WelcomeTour from '@/components/WelcomeTour'
 import { modeTheme, type ModeTheme } from '@/lib/modeTheme'
@@ -15,14 +14,7 @@ import { blueprintFor } from '@/lib/institutionBlueprint'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
-import { MODULES_BY_MODE, getModulePrefs, type ModuleId } from '@/lib/inicioModules'
-import TodayModule from '@/components/inicio/TodayModule'
-import HealthModule from '@/components/inicio/HealthModule'
-import RosterModule from '@/components/inicio/RosterModule'
-import ProgressModule from '@/components/inicio/ProgressModule'
-import ShortcutsModule from '@/components/inicio/ShortcutsModule'
-import HomeWidgetsModule from '@/components/inicio/HomeWidgets'
-import ExploreSection from '@/components/inicio/ExploreSection'
+import { CAMADA } from '@/lib/camadas'
 
 // ─── /inicio DO ZERO — 2026-07-21 ───────────────────────────────────────────
 // A página mais importante do site, reconstruída de raiz (não reorganizada):
@@ -45,8 +37,6 @@ export default function InicioPage() {
     if (!user) { router.push('/login'); return }
   }, [loading, user, router])
 
-  const [enabled, setEnabled] = useState<ModuleId[] | null>(null)
-  useEffect(() => { setEnabled(getModulePrefs(expMode)) }, [expMode])
 
   const plan = (user?.plan as string) || 'free'
   // Acesso institucional SÓ por PERTENÇA a uma organização — nunca por plano
@@ -74,78 +64,153 @@ export default function InicioPage() {
   const t = modeTheme(expMode)
   const firstName = user?.name?.split(' ')[0] || ''
   const greeting = mounted ? homeGreeting(firstName) : 'Olá'
-  const modules = MODULES_BY_MODE[expMode] || []
-  const active = enabled ? modules.filter(m => enabled.includes(m.id)) : []
+  const principal = PRINCIPAL[expMode] || PRINCIPAL.personal
+  const destinos = DESTINOS[expMode] || DESTINOS.personal
+  const hoje = mounted
+    ? new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
+    : ''
 
   return (
     <div style={{ minHeight: '100vh', background: t.pageBg, fontFamily: 'var(--font-sans)', color: t.ink }}>
       <WelcomeTour mode={expMode} />
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '30px 18px 48px', boxSizing: 'border-box', width: '100%' }}>
+      <div style={{ maxWidth: 560, margin: '0 auto', padding: '34px 20px 56px', boxSizing: 'border-box', width: '100%' }}>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 'clamp(28px,6.5vw,36px)', letterSpacing: '-0.01em', margin: 0, lineHeight: 1.1, color: t.ink }}>
-            {greeting}.
-          </h1>
-          <ModeChip theme={t} />
+        {/* ── A data e a saudação ─────────────────────────────────────────
+            A beleza desta página é tipográfica: uma linha pequena em mono, um
+            nome grande em serif, e muito ar. Sem cartões, sem sombras, sem
+            gradientes — a folha de um livro bem composta. */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.2em',
+              textTransform: 'uppercase', color: t.inkFaint, marginBottom: 12,
+            }}>{hoje}</div>
+            <h1 style={{
+              fontFamily: 'var(--font-serif)', fontWeight: 400,
+              fontSize: 'clamp(32px,7.5vw,44px)', letterSpacing: '-0.02em',
+              margin: 0, lineHeight: 1.08, color: t.ink, textWrap: 'balance' as any,
+            }}>{greeting}.</h1>
+          </div>
+          <div style={{ flexShrink: 0, paddingTop: 4 }}><ModeChip theme={t} /></div>
         </div>
 
-        {enabled === null ? (
-          <div className="skeleton" style={{ height: 220, borderRadius: 10, marginTop: 34 }} />
-        ) : (
-          <>
-            {active.map(m => (
-              <ModuleSection key={m.id} title={m.label} theme={t}>
-                {renderModule(m.id, expMode, t)}
-              </ModuleSection>
-            ))}
+        {/* ── A ação ──────────────────────────────────────────────────────
+            O que traz a pessoa ao Phlox fica sozinho, grande, com ar à volta.
+            Uma coisa só — se houvesse duas, não haveria nenhuma. */}
+        <Link href={principal.href} style={{
+          display: 'block', textDecoration: 'none', marginTop: 34,
+          border: `1px solid ${t.border}`, borderRadius: 14, background: t.surface,
+          padding: 'clamp(22px,5vw,30px) clamp(20px,4vw,26px)',
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%', border: `1.5px solid ${t.accent}`,
+            color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 16, fontSize: 17,
+          }} aria-hidden>◎</div>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: 'clamp(23px,4.4vw,28px)',
+            fontWeight: 400, color: t.ink, letterSpacing: '-0.015em', lineHeight: 1.15,
+          }}>{principal.titulo}</div>
+          <div style={{
+            fontSize: 14.5, color: t.inkSoft, marginTop: 7, lineHeight: 1.5,
+            maxWidth: '34ch', textWrap: 'pretty' as any,
+          }}>{principal.nota}</div>
+        </Link>
 
-            {(expMode === 'personal' || expMode === 'caregiver') && (
-              <ModuleSection title="Um momento difícil?" theme={t}>
-                <Link href="/comecar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '4px 0', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 13.5, color: t.inkSoft, lineHeight: 1.5 }}>Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo.</span>
-                  <Icon name="chevron" size={15} color={t.inkFaint} style={{ flexShrink: 0 }} />
-                </Link>
-              </ModuleSection>
-            )}
+        {/* ── O dia a dia ─────────────────────────────────────────────────
+            Fios finos em vez de cartões. Cada linha tem alvo de toque grande
+            (56px) — esta aplicação é para pessoas de 60 e 70 anos. */}
+        <div style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: t.inkFaint, margin: '38px 0 4px',
+        }}>O dia a dia</div>
 
-            <ModuleSection title="Explorar" theme={t} anchorId="explorar">
-              <ExploreSection mode={expMode} theme={t} />
-            </ModuleSection>
-          </>
+        <div>
+          {destinos.map((d, i) => (
+            <Link key={d.href} href={d.href} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 14, padding: '17px 2px', textDecoration: 'none',
+              borderTop: `1px solid ${t.border}`,
+              borderBottom: i === destinos.length - 1 ? `1px solid ${t.border}` : 'none',
+              minHeight: 56, boxSizing: 'border-box',
+            }}>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 16, color: t.ink, fontWeight: 550, letterSpacing: '-0.005em' }}>{d.titulo}</span>
+                <span style={{ display: 'block', fontSize: 13, color: t.inkFaint, marginTop: 2, lineHeight: 1.45 }}>{d.nota}</span>
+              </span>
+              <Icon name="chevron" size={16} color={t.inkFaint} style={{ flexShrink: 0 }} />
+            </Link>
+          ))}
+        </div>
+
+        {/* ── Um momento difícil ──────────────────────────────────────────
+            Fica. É a linha que apanha quem chega ao Phlox no pior dia, e não
+            custa nada ao resto da página. */}
+        {(expMode === 'personal' || expMode === 'caregiver') && (
+          <Link href="/comecar" style={{
+            display: 'block', textDecoration: 'none', marginTop: 30,
+            padding: '15px 17px', background: t.pageBg,
+            border: `1px dashed ${t.border}`, borderRadius: 11,
+          }}>
+            <span style={{ display: 'block', fontSize: 14.5, color: t.ink, fontWeight: 600 }}>Um momento difícil?</span>
+            <span style={{ display: 'block', fontSize: 13, color: t.inkFaint, marginTop: 3, lineHeight: 1.5, maxWidth: '40ch' }}>
+              Alta do hospital, diagnóstico novo, cuidar de alguém — começamos consigo.
+            </span>
+          </Link>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 36, paddingTop: 18, borderTop: `1px solid ${t.border}` }}>
-          <Link href="/settings" style={{ fontSize: 13, color: t.inkFaint, textDecoration: 'none', fontWeight: 600 }}>Definições</Link>
-          <Link href="/pricing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: plan === 'free' ? t.inkFaint : t.accent }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: t.inkSoft }}>Plano {planName(user?.plan)}</span>
+        {/* ── O rodapé ────────────────────────────────────────────────────
+            "Ver tudo" em vez da secção "Explorar" aberta: quem quer o
+            catálogo inteiro sabe onde o procurar, e quem não quer não tem de
+            passar por ele todos os dias. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, marginTop: 40, paddingTop: 18, borderTop: `1px solid ${t.border}`,
+        }}>
+          <Link href="/tudo" style={{ fontSize: 13, color: t.inkSoft, textDecoration: 'none', fontWeight: 600 }}>
+            Ver tudo o que o Phlox faz
           </Link>
+          <Link href="/settings" style={{ fontSize: 13, color: t.inkFaint, textDecoration: 'none', fontWeight: 600 }}>Definições</Link>
         </div>
       </div>
     </div>
   )
 }
 
-function renderModule(id: ModuleId, mode: string, t: ModeTheme) {
-  switch (id) {
-    case 'today': return <TodayModule theme={t} />
-    case 'health': return <HealthModule theme={t} />
-    case 'roster': return <RosterModule theme={t} />
-    case 'progress': return <ProgressModule theme={t} />
-    case 'shortcuts': return (mode === 'personal' || mode === 'caregiver') ? <HomeWidgetsModule mode={mode} theme={t} /> : <ShortcutsModule mode={mode} theme={t} />
-    default: return null
-  }
+// ─── A FOLHA ────────────────────────────────────────────────────────────────
+// O que cada modo tem no início. É uma lista curta, escrita à mão, e é assim
+// de propósito: a página anterior deixava a pessoa ESCOLHER os módulos em
+// /settings, e uma página inicial que é preciso configurar não é uma página
+// inicial — é mais um formulário.
+//
+// Uma ação em destaque (aquilo que traz a pessoa ao Phlox) e três ou quatro
+// linhas por baixo. Mais nada.
+interface Destino { href: string; titulo: string; nota: string }
+
+const PRINCIPAL: Record<string, Destino> = {
+  personal:  { href: '/scan', titulo: 'Explicar', nota: 'Foto a um exame, receita ou relatório' },
+  caregiver: { href: '/scan', titulo: 'Explicar', nota: 'Foto a um exame, receita ou relatório' },
+  student:   { href: '/study', titulo: 'Estudar', nota: 'Continuar de onde ficou' },
 }
 
-// ─── Rótulo de secção — assinatura visual da página: mono, maiúsculas, sem
-// caixa/sombra à volta. Substitui o antigo estilo de "cartão" repetido. ──────
-function ModuleSection({ title, theme: t, children, anchorId }: { title: string; theme: ModeTheme; children: React.ReactNode; anchorId?: string }) {
-  return (
-    <section id={anchorId} style={{ marginTop: 34, scrollMarginTop: 76 }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>{title}</div>
-      {children}
-    </section>
-  )
+const DESTINOS: Record<string, Destino[]> = {
+  personal: [
+    { href: '/mymeds',   titulo: 'A minha medicação',       nota: 'O que tomo e a que horas' },
+    { href: '/vault',    titulo: 'Os meus documentos',      nota: 'Exames, receitas e relatórios guardados' },
+    { href: '/labs',     titulo: 'Análises',                nota: 'Perceber os valores' },
+    { href: '/timeline', titulo: 'A minha história',        nota: 'Tudo o que ficou registado' },
+  ],
+  caregiver: [
+    { href: '/familia',  titulo: 'Quem eu cuido',           nota: 'Como têm estado' },
+    { href: '/mymeds',   titulo: 'Medicação',               nota: 'O que tomam e a que horas' },
+    { href: '/vault',    titulo: 'Documentos',              nota: 'Exames, receitas e relatórios' },
+    { href: '/timeline', titulo: 'História de saúde',       nota: 'Tudo o que ficou registado' },
+  ],
+  student: [
+    { href: '/arena',    titulo: 'Arena',                   nota: 'Competir e treinar' },
+    { href: '/osce',     titulo: 'OSCE',                    nota: 'Estações práticas' },
+    { href: '/study360', titulo: 'Onde focar',              nota: 'O que falta saber' },
+  ],
 }
 
 // ─── Troca de modo (chip compacto, abre menu) ──────────────────────────────
@@ -182,8 +247,10 @@ function ModeChip({ theme: t }: { theme: ModeTheme }) {
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
-          <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 80, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: '0 16px 44px -12px rgba(8,12,24,0.35)', minWidth: 260, padding: 6 }}>
+          {/* z-index acima da barra inferior (120): senao, no telemovel, a
+              barra ficava POR CIMA deste menu. Ver lib/camadas.ts. */}
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: CAMADA.fundoModal }} />
+          <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: CAMADA.menuSobreModal, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: '0 16px 44px -12px rgba(8,12,24,0.35)', minWidth: 260, padding: 6 }}>
             <div style={{ padding: '6px 10px 8px', fontSize: 10.5, fontWeight: 800, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mudar de modo</div>
             {personas.map(p => {
               const active = p.mode === current.mode
