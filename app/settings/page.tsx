@@ -9,12 +9,13 @@ import Link from 'next/link'
 import { planById, planName } from '@/lib/plans'
 import { reportError, MSG } from '@/lib/clientError'
 import SecuritySettings from '@/components/settings/SecuritySettings'
-import HealthGoalPicker from '@/components/HealthGoalPicker'
 import { activatePush as activatePushShared, needsHomeScreenForPush } from '@/lib/pushActivation'
 import DiagnosticoPush from '@/components/DiagnosticoPush'
 import PreferenciasNotificacao from '@/components/PreferenciasNotificacao'
 import InstallInstructions from '@/components/InstallInstructions'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import EscolherFerramentas from '@/components/EscolherFerramentas'
+import PreferenciasMemoria from '@/components/PreferenciasMemoria'
 
 // O modo institucional NÃO está aqui de propósito: nunca é auto-selecionável.
 // Fica só disponível a quem é membro ativo de uma organização (dono ou
@@ -359,7 +360,26 @@ function SettingsPage() {
               )}
             </div>
 
-            <HealthGoalPicker />
+
+            {/* ── O que aparece no início ──────────────────────────────────
+                Voltou a 2026-09-16, mas noutra forma. O que saiu daqui ligava e
+                desligava SECÇÕES do /inicio — a página mudava de forma conforme
+                a configuração. Isto escolhe só o que está na lista; a forma é
+                sempre a mesma. A queixa era concreta: o início mostrava quatro
+                ferramentas e o catálogo tem onze. */}
+            {notClinical && (
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>O que aparece no início</div>
+                <EscolherFerramentas modo={expMode} principal={expMode === 'student' ? '/study' : '/scan'} />
+              </div>
+            )}
+
+            {/* ── A memória ────────────────────────────────────────────────
+                Fica aqui, ao pé do resto do que é da pessoa, e não enterrada
+                nas notificações: é sobre o que o Phlox guarda dela. */}
+            {user?.id && (
+              <PreferenciasMemoria supabase={supabase} userId={user.id} plano={(user as any)?.plan || 'free'} />
+            )}
 
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Informação pessoal</div>

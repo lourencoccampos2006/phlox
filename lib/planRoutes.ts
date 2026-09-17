@@ -44,8 +44,13 @@ export const PLAN_ROUTES: PlanRoute[] = [
 
   // ── Estudo (Plus) ──
   // NOTA: /labs NÃO está aqui de propósito — é grátis com limite diário (3/dia,
-  // ver lib/plans.ts). /vault também é grátis. A etiqueta "Grátis · limitado"
-  // do registry passa assim a ser verdadeira.
+  // ver lib/plans.ts). A etiqueta "Grátis · limitado" do registry é verdadeira.
+  //
+  // O /vault esteve aqui descrito como grátis até 2026-09-17, e era mentira: a
+  // própria página recusa quem tem plano free (`canUse = plan !== 'free'`).
+  // Três sítios a dizer coisas diferentes sobre a mesma ferramenta — o
+  // catálogo, este ficheiro e o ecrã. Agora dizem os três o mesmo.
+  { prefix: '/vault', min: 'pro', tool: 'Cofre de documentos', note: 'Guarda exames, análises e receitas, lidos a fundo pela IA.' },
   { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação por IA.' },
   { prefix: '/osce', min: 'student', tool: 'OSCE' },
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },

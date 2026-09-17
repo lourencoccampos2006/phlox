@@ -134,8 +134,14 @@ const RISK_RANK: Record<RiskLevel, number> = { ok: 0, info: 1, warning: 2, criti
 async function runSelfRiskWatch(db: any) {
   let users = 0, worsened = 0, notified = 0
   try {
+    // O `health_goal` deixou de ser o porteiro desta vigilância (2026-09-16).
+    // Era um campo que se escolhia nas definições — e o seletor foi removido,
+    // por isso ninguém novo o poderia definir: a vigilância deixava de
+    // encontrar gente sem ninguém dar por isso. E o campo nunca foi um bom
+    // critério: quem tem plano Pro, medicação registada e medições é
+    // exatamente quem deve ser vigiado, tenha ou não escolhido um "objetivo".
     const { data: profs, error } = await db.from('profiles')
-      .select('id, plan, health_goal').in('plan', ['pro', 'clinic']).not('health_goal', 'is', null).limit(200)
+      .select('id, plan').in('plan', ['pro', 'clinic']).limit(200)
     if (error || !profs?.length) return { users: 0, worsened: 0, notified: 0 }
 
     const now = new Date()

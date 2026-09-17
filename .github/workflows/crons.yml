@@ -37,6 +37,7 @@ on:
     - cron: '0 5 * * *'        # vigilância noturna de risco
     - cron: '0 6 * * 1'        # ruturas do INFARMED, semanal
     - cron: '0 7 * * 1'        # recolhas do INFARMED, semanal
+    - cron: '30 18 * * *'      # "como correu o dia" para as famílias
   workflow_dispatch:
     inputs:
       tarefa:
@@ -51,6 +52,7 @@ on:
           - vigilancia
           - ruturas
           - recolhas
+          - resumo-familia
 
 jobs:
   correr:
@@ -125,6 +127,7 @@ jobs:
               '0 5 * * *')   ALVO=vigilancia ;;
               '0 6 * * 1')   ALVO=ruturas ;;
               '0 7 * * 1')   ALVO=recolhas ;;
+              '30 18 * * *') ALVO=resumo-familia ;;
               *)
                 echo "::error::Horário desconhecido: '${AGENDA}'. Alguém mudou a lista de cima sem atualizar esta correspondência."
                 exit 1 ;;
@@ -139,6 +142,7 @@ jobs:
           case "$ALVO" in todos|vigilancia)   chamar /api/vigilancia/cron        90 "Vigilância noturna de risco" ;; esac
           case "$ALVO" in todos|ruturas)      chamar /api/cron/ingest-shortages  90 "Ruturas de medicamentos (INFARMED)" ;; esac
           case "$ALVO" in todos|recolhas)     chamar /api/cron/ingest-recalls    90 "Recolhas e alertas de qualidade (INFARMED)" ;; esac
+          case "$ALVO" in todos|resumo-familia) chamar /api/cron/resumo-familia   300 "Como correu o dia — email às famílias" ;; esac
 
           echo "────────────────────────────────────────────────────────"
           if [ "$FALHAS" -gt 0 ]; then

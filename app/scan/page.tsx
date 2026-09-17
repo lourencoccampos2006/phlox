@@ -40,6 +40,7 @@ import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 import { horasDaFrequencia } from '@/lib/horarioToma'
+import { impressaoDigital, lerPreferencias, leituraAnterior, guardarLeitura, explicarMemoria } from '@/lib/memoriaDocumentos'
 
 /** O nome da ferramenta, num sítio só — muda aqui e muda em todo o lado. */
 export const NOME_FERRAMENTA = 'Explicar'
@@ -122,9 +123,14 @@ export default function ExplicarPage() {
   const [pergunta, setPergunta] = useState('')
   const [conversa, setConversa] = useState<{ q: string; r: string }[]>([])
   const [aPerguntar, setAPerguntar] = useState(false)
+  const [daMemoria, setDaMemoria] = useState('')
   const camaraRef = useRef<HTMLInputElement>(null)
   const ficheiroRef = useRef<HTMLInputElement>(null)
   const uso = useUsageLimit('scan')
+  // O guardar automático corre logo a seguir ao setRes, antes do próximo
+  // render — por isso lê daqui e não do estado, que ainda é o anterior.
+  const resRef = useRef<Explicado | null>(null)
+  resRef.current = res
 
   const auth = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -133,7 +139,7 @@ export default function ExplicarPage() {
 
   function limpar() {
     setErr(''); setRes(null); setMeds([]); setImportado(false)
-    setGuardado(false); setConversa([]); setPergunta('')
+    setGuardado(false); setConversa([]); setPergunta(''); setDaMemoria('')
   }
 
   async function aoEscolher(e: React.ChangeEvent<HTMLInputElement>) {
@@ -183,6 +189,26 @@ export default function ExplicarPage() {
         payload = { text: ex.text }
       }
 
+      // ── A impressão digital ──────────────────────────────────────────
+      // O MESMO documento tem de dar a MESMA resposta. Sem isto, analisar duas
+      // vezes o mesmo relatório dava dois textos diferentes — e para quem está
+      // a tentar perceber um exame, uma resposta que muda mina a confiança
+      // toda. Ver lib/memoriaDocumentos.
+      const conteudo = payload.image || payload.text || ''
+      const hash = await impressaoDigital(conteudo)
+      const prefs = user ? await lerPreferencias(supabase, user.id, (user as any).plan || 'free') : null
+
+      if (user && hash && prefs?.memoria) {
+        const antes = await leituraAnterior(supabase, user.id, hash)
+        if (antes) {
+          setRes(antes)
+          setMeds((antes.meds || []).map((m: Med) => ({ ...m, _import: true })))
+          setDaMemoria(explicarMemoria(antes._lidoEm))
+          setBusy('')
+          return
+        }
+      }
+
       setBusy('A explicar…')
       const r = await fetch('/api/scan', { method: 'POST', headers: await auth(), body: JSON.stringify(payload) })
       const texto = await r.text()
@@ -193,6 +219,20 @@ export default function ExplicarPage() {
 
       setRes(j)
       setMeds((j.meds || []).map((m: Med) => ({ ...m, _import: true })))
+
+      // ── A memória ────────────────────────────────────────────────────
+      // Guarda-se a leitura para a próxima vez dar o mesmo, e para o Phlox
+      // passar a conhecer a história de saúde de quem o usa. Quem tem cofre e
+      // pediu para guardar lá, vai também para o cofre visível.
+      if (user && hash && prefs?.memoria) {
+        const paraOCofre = !!prefs.guardarNoCofre
+        guardarLeitura(supabase, {
+          userId: user.id, hash, analise: j, origem: 'scan',
+          perfilId: perfil?.type === 'family' && perfil.id !== 'self' ? perfil.id : null,
+          noCofre: paraOCofre,
+        })
+        if (paraOCofre) { guardarNoCofre(j).then(() => setGuardado(true), () => {}) }
+      }
     } catch (e: any) {
       setErr(e.message || 'Não consegui processar.')
     } finally { setBusy('') }
@@ -225,9 +265,10 @@ export default function ExplicarPage() {
   }
 
   // ── Guardar no cofre ───────────────────────────────────────────────────────
-  async function guardarNoCofre() {
+  async function guardarNoCofre(qual?: Explicado) {
+    const res = qual || resRef.current
     if (!user || !res) { setErr('Inicia sessão para guardar.'); return }
-    setBusy('A guardar no cofre…')
+    if (!qual) setBusy('A guardar no cofre…')
     const partes = [
       res.emDuasLinhas,
       res.oQueImporta?.length ? '\nO que importa:\n' + res.oQueImporta.map(x => `• ${x}`).join('\n') : '',
@@ -242,16 +283,16 @@ export default function ExplicarPage() {
 
     const { error } = await supabase.from('health_vault').insert({
       user_id: user.id,
-      title: res.title || 'Documento decifrado',
+      title: res.title || 'Documento explicado',
       category: categoria,
       body_text: partes.slice(0, 20000),
       notes: 'Explicado pelo Phlox',
       issued_at: new Date().toISOString().slice(0, 10),
       updated_at: new Date().toISOString(),
     })
-    setBusy('')
-    if (error) setErr('Não foi possível guardar no cofre.')
-    else setGuardado(true)
+    if (!qual) setBusy('')
+    if (error) { if (!qual) setErr('Não foi possível guardar no cofre.'); throw new Error('cofre') }
+    setGuardado(true)
   }
 
   async function perguntar() {
@@ -430,6 +471,18 @@ export default function ExplicarPage() {
                   cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                 }}>Outro documento</button>
               </div>
+
+              {daMemoria && (
+                <div style={{
+                  marginBottom: 12, padding: '9px 12px', background: 'var(--bg-2)',
+                  border: '1px solid var(--border)', borderRadius: 9,
+                  fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5,
+                  display: 'flex', alignItems: 'baseline', gap: 8,
+                }}>
+                  <span aria-hidden style={{ fontSize: 11, color: 'var(--ink-5)' }}>↺</span>
+                  <span>{daMemoria}</span>
+                </div>
+              )}
 
               {res.emDuasLinhas && (
                 <p style={{
@@ -662,7 +715,7 @@ export default function ExplicarPage() {
                   Guardado no cofre. <Link href="/vault" style={{ color: '#166534', fontWeight: 700 }}>Abrir o cofre →</Link>
                 </div>
               ) : (
-                <button onClick={guardarNoCofre} style={{
+                <button onClick={() => { guardarNoCofre().catch(() => {}) }} style={{
                   padding: '12px 20px', background: 'white', color: 'var(--ink-2)',
                   border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 14,
                   fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',

@@ -68,6 +68,22 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 // Editorial, sóbrio, sem gradientes nem ruído. Branco, tipografia, uma cor.
 const ACCENT = '#0d6e42'
 
+/** Um link relativo dentro de um email não vai a lado nenhum: o cliente de
+ *  correio não tem um "sítio atual" a partir do qual o resolver — o botão
+ *  simplesmente não faz nada, ou abre `about:blank`.
+ *
+ *  Cinco modelos (resumo do dia à família, famílias à espera, o que merece
+ *  atenção, stock, convite de equipa) tinham CTAs relativos, e era por isso que
+ *  alguns nunca chegaram a ser ligados a nada. Resolve-se AQUI, uma vez, em vez
+ *  de em cada modelo — senão volta a acontecer no próximo que se escrever. */
+const BASE_EMAIL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://phloxclinical.com').replace(/\/+$/, '')
+
+export function urlAbsoluto(url: string): string {
+  if (!url) return BASE_EMAIL
+  if (/^https?:\/\//i.test(url) || url.startsWith('mailto:')) return url
+  return `${BASE_EMAIL}${url.startsWith('/') ? '' : '/'}${url}`
+}
+
 export function emailLayout(opts: {
   preheader?: string
   heading: string
@@ -95,7 +111,7 @@ export function emailLayout(opts: {
           ${body}
         </td></tr>
         ${cta ? `<tr><td style="padding:24px 32px 0">
-          <a href="${cta.url}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:6px">${escapeHtml(cta.label)}</a>
+          <a href="${urlAbsoluto(cta.url)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:6px">${escapeHtml(cta.label)}</a>
         </td></tr>` : ''}
         <tr><td style="padding:28px 32px 28px">
           <div style="border-top:1px solid #e4e4e7;margin-bottom:14px"></div>

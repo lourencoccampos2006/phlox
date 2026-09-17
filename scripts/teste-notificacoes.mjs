@@ -104,6 +104,21 @@ console.log('\nCada aviso tem um interruptor (e vice-versa)')
   for (const t of ['validades', 'preparacao', 'avaliacoes', 'resumo_dia', 'consulta']) {
     verificar(`o tipo novo "${t}" e mesmo produzido`, vistos.has(t), [...vistos])
   }
+
+  // ── A excecao, escrita de proposito ──────────────────────────────────────
+  // `resumo_centro` e o unico interruptor que NAO tem um aviso do sino por
+  // tras: e um email, mandado por /api/cron/resumo-familia ao fim do dia.
+  // Sem este teste, quem correr o de cima ve um interruptor sem produtor e
+  // conclui que e codigo morto -- e apaga-o.
+  const resumoCentro = TIPOS_NOTIFICACAO.find(t => t.id === 'resumo_centro')
+  verificar('resumo_centro existe e e do ambito de quem cuida',
+    !!resumoCentro && resumoCentro.ambito === 'cuidador', resumoCentro)
+  verificar('resumo_centro vem ligado (a familia quer saber do dia)',
+    querReceber({}, 'resumo_centro') === true)
+  verificar('resumo_centro desliga-se e fica desligado',
+    querReceber({ resumo_centro: false }, 'resumo_centro') === false)
+  verificar('resumo_centro nao e um aviso do sino -- e email',
+    !vistos.has('resumo_centro'), [...vistos])
 }
 
 console.log(`\n${passou} passaram, ${falhou} falharam\n`)

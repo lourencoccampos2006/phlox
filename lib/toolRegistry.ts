@@ -63,7 +63,7 @@ export const TOOLS: Tool[] = [
   { id: '/vitals',       label: 'Tensão, peso e açúcar',         desc: 'Registar e ver como evolui',       category: 'health',     modes: ['personal', 'caregiver'], default: ['personal'], plan: 'free' },
   { id: '/timeline',     label: 'A minha história de saúde',      desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo', category: 'health', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   // ── Secundárias (acessíveis em /tudo, fora do destaque) ──
-  { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Análises e receitas guardadas, com partilha por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'free' },
+  { id: '/vault',        label: 'Os meus documentos de saúde',   desc: 'Exames, análises e receitas guardados, lidos a fundo pela IA e partilháveis por código', category: 'health', modes: ['personal', 'caregiver'], plan: 'pro' },
   { id: '/vigia-ruturas', label: 'Vigia de ruturas',              desc: 'Cruza a tua medicação com a lista oficial de ruturas do INFARMED', category: 'health', modes: ['clinical'], plan: 'pro' },
   // Existia (Phlox Reach) mas só aparecia na command palette clínica — invisível
   // para quem mais fecha o ciclo (pessoal/cuidador). Sem "default": acessível em

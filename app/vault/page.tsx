@@ -12,6 +12,7 @@ import { reportError } from '@/lib/clientError'
 import Link from 'next/link'
 import { estiloFundoModal } from '@/lib/camadas'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
+import { extractFromFile } from '@/lib/docExtract'
 
 type VaultDoc = {
   id: string
@@ -19,7 +20,13 @@ type VaultDoc = {
   category: string
   notes: string | null
   body_text: string | null
-  body_url: string | null              // data URL ou URL externa do ficheiro
+  body_url: string | null              // data URL (documentos antigos) ou URL externa
+  storage_path: string | null          // o caminho no bucket privado `cofre` (sprint147)
+  file_name: string | null
+  file_type: string | null
+  file_size: number | null
+  analise: any | null                  // a leitura a fundo, guardada
+  analise_em: string | null
   issued_at: string | null
   expires_at: string | null
   tags: string[] | null
@@ -83,6 +90,12 @@ export default function VaultPage() {
 
   async function removeItem(id: string) {
     if (!confirm('Eliminar este documento do cofre?')) return
+    // O ficheiro primeiro. Apagar só a linha deixava o ficheiro no bucket para
+    // sempre — e é um documento de saúde que a pessoa pediu para apagar.
+    const alvo = items.find(it => it.id === id)
+    if (alvo?.storage_path) {
+      try { await supabase.storage.from('cofre').remove([alvo.storage_path]) } catch { /* já não existe */ }
+    }
     await supabase.from('health_vault').delete().eq('id', id)
     refresh()
   }
@@ -181,25 +194,65 @@ function Chip({ active, color, label, onClick }: { active: boolean; color: strin
 }
 
 function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: () => void; onSave: (d: Partial<VaultDoc>) => void }) {
+  const { user, supabase } = useAuth() as any
   const [title, setTitle] = useState(doc?.title || '')
   const [category, setCategory] = useState(doc?.category || 'exam')
   const [notes, setNotes] = useState(doc?.notes || '')
   const [bodyText, setBodyText] = useState(doc?.body_text || '')
   const [bodyUrl, setBodyUrl] = useState<string | null>(doc?.body_url || null)
+  const [caminho, setCaminho] = useState<string | null>(doc?.storage_path || null)
+  const [ficheiro, setFicheiro] = useState<{ nome: string; tipo: string; tamanho: number } | null>(
+    doc?.file_name ? { nome: doc.file_name, tipo: doc.file_type || '', tamanho: doc.file_size || 0 } : null,
+  )
+  const [aEnviar, setAEnviar] = useState('')
   const [issuedAt, setIssuedAt] = useState(doc?.issued_at || '')
   const [tags, setTags] = useState((doc?.tags || []).join(', '))
   const toast = useToast()
 
-  // Aceita PDF/imagem até ~3MB. Acima disso, recusa (Supabase row caps).
-  // 2026-06-01: o utilizador reportou "no cofre não se conseguem colocar
-  // documentos (só o texto) e tampouco abrem". Resolvido com upload + view.
+  const temFicheiro = !!(caminho || bodyUrl)
+
+  // ── Anexar um ficheiro ────────────────────────────────────────────────────
+  // Até ao sprint147 o ficheiro era guardado DENTRO da linha da tabela, em
+  // base64 — que é ~33% maior que o ficheiro. Daí o limite de 3 MB, que um
+  // relatório hospitalar digitalizado passa à primeira. Agora vai para o
+  // Storage (bucket privado) e a linha guarda só o caminho.
+  //
+  // E extrai-se o texto. Sem isto, procurar no cofre por uma palavra que está
+  // dentro do PDF não dava nada — a pesquisa lê `body_text`, e `body_text`
+  // ficava vazio sempre que se anexava um ficheiro em vez de colar texto.
   async function pickFile(file: File) {
-    const MAX = 3 * 1024 * 1024
-    if (file.size > MAX) { toast.error('Ficheiro acima de 3 MB. Para PDFs grandes, exporta texto e cola em baixo.'); return }
-    const reader = new FileReader()
-    reader.onload = () => setBodyUrl(reader.result as string)
-    reader.onerror = () => toast.error('Não foi possível ler o ficheiro.')
-    reader.readAsDataURL(file)
+    const MAX = 25 * 1024 * 1024
+    if (file.size > MAX) { toast.error('Ficheiro acima de 25 MB. Divide-o ou exporta só as páginas que interessam.'); return }
+    if (!user?.id) { toast.error('Inicia sessão para anexar ficheiros.'); return }
+
+    setAEnviar('A enviar o ficheiro…')
+    try {
+      const extensao = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase()
+      const destino = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extensao}`
+      const { error } = await supabase.storage.from('cofre')
+        .upload(destino, file, { upsert: false, contentType: file.type || undefined })
+      if (error) throw error
+
+      setCaminho(destino)
+      setBodyUrl(null)   // a partir daqui o ficheiro vive no Storage, não na linha
+      setFicheiro({ nome: file.name, tipo: file.type || '', tamanho: file.size })
+
+      // O texto é um extra: se não der, o documento fica guardado na mesma.
+      if (!bodyText.trim()) {
+        setAEnviar('A ler o texto do documento…')
+        try {
+          const extraido = await extractFromFile(file)
+          if (extraido.text?.trim()) setBodyText(extraido.text.trim())
+        } catch { /* imagens e PDFs digitalizados não têm texto — normal */ }
+      }
+    } catch (e: any) {
+      toast.error(reportError('vault-upload', e, 'Não foi possível enviar o ficheiro.'))
+    } finally { setAEnviar('') }
+  }
+
+  async function removerFicheiro() {
+    if (caminho) { try { await supabase.storage.from('cofre').remove([caminho]) } catch { /* já não existe */ } }
+    setCaminho(null); setBodyUrl(null); setFicheiro(null)
   }
 
   function save() {
@@ -211,6 +264,10 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
       notes: notes.trim() || null,
       body_text: bodyText.trim() || null,
       body_url: bodyUrl,
+      storage_path: caminho,
+      file_name: ficheiro?.nome || null,
+      file_type: ficheiro?.tipo || null,
+      file_size: ficheiro?.tamanho || null,
       issued_at: issuedAt || null,
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
     })
@@ -258,14 +315,14 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
         <Label>Notas (opcional)</Label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...input(), resize: 'vertical' }} />
 
-        <Label>Ficheiro (PDF ou imagem — opcional, máx 3 MB)</Label>
+        <Label>Ficheiro (PDF, imagem ou documento — opcional, até 25 MB)</Label>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-          <label style={{ flex: 1, padding: '8px 12px', background: bodyUrl ? '#f0fdf4' : '#f8fafc', border: `1.5px dashed ${bodyUrl ? '#16a34a' : '#cbd5e1'}`, borderRadius: 8, fontSize: 12.5, color: '#475569', cursor: 'pointer', display: 'block', textAlign: 'center' }}>
-            {bodyUrl ? '✓ Ficheiro anexado' : '+ Anexar ficheiro (PDF/imagem)'}
-            <input type="file" accept="application/pdf,image/*" style={{ display: 'none' }}
+          <label style={{ flex: 1, padding: '8px 12px', background: temFicheiro ? '#f0fdf4' : '#f8fafc', border: `1.5px dashed ${temFicheiro ? '#16a34a' : '#cbd5e1'}`, borderRadius: 8, fontSize: 12.5, color: '#475569', cursor: aEnviar ? 'wait' : 'pointer', display: 'block', textAlign: 'center' }}>
+            {aEnviar || (ficheiro ? `✓ ${ficheiro.nome}` : temFicheiro ? '✓ Ficheiro anexado' : '+ Anexar ficheiro')}
+            <input type="file" accept="application/pdf,image/*,.docx,.pptx,.txt,.md" style={{ display: 'none' }} disabled={!!aEnviar}
               onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f) }} />
           </label>
-          {bodyUrl && <button onClick={() => setBodyUrl(null)} style={{ padding: '8px 10px', background: 'white', color: '#94a3b8', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 11, cursor: 'pointer' }}>Remover</button>}
+          {temFicheiro && !aEnviar && <button onClick={removerFicheiro} style={{ padding: '8px 10px', background: 'white', color: '#94a3b8', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 11, cursor: 'pointer' }}>Remover</button>}
         </div>
 
         <Label>Texto/conteúdo (para pesquisar e mostrar)</Label>
@@ -290,29 +347,126 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
 function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => void; onEdit: () => void }) {
   const { supabase } = useAuth() as any
   const meta = CATS.find(c => c.id === doc.category) || CATS[CATS.length - 1]
-  const isPdf = doc.body_url?.startsWith('data:application/pdf')
-  const isImage = doc.body_url?.startsWith('data:image/')
+  // O tipo vem do ficheiro guardado (sprint147) ou, nos documentos antigos, do
+  // cabeçalho do data: URL.
+  const tipoFicheiro = doc.file_type || (doc.body_url?.match(/^data:([^;]+)/) || [])[1] || ''
+  const isPdf = tipoFicheiro === 'application/pdf'
+  const isImage = tipoFicheiro.startsWith('image/')
 
-  // ── Decifrar o que está guardado ─────────────────────────────────────────
+  // ── O PDF de várias páginas ───────────────────────────────────────────────
+  // O visualizador de PDF do Chrome dentro de um <iframe src="data:...">
+  // mostra a primeira página e mais nada — não dá barra de navegação nem
+  // scroll entre páginas. Era esta a queixa: guardava-se um documento de seis
+  // páginas e via-se uma.
+  //
+  // Com um blob: URL o visualizador comporta-se como um visualizador — páginas
+  // todas, zoom, procura, imprimir. O URL é revogado ao fechar, senão fica a
+  // segurar o ficheiro em memória.
+  const [urlFicheiro, setUrlFicheiro] = useState<string | null>(null)
+  useEffect(() => {
+    let url: string | null = null
+    let vivo = true
+
+    // O caminho novo: o ficheiro está no bucket privado. Descarrega-se com a
+    // sessão da pessoa e faz-se um blob — pela mesma razão do data: URL abaixo,
+    // e porque assim o ficheiro nunca passa por um URL que outra pessoa possa
+    // abrir.
+    if (doc.storage_path) {
+      supabase.storage.from('cofre').download(doc.storage_path).then(({ data, error }: any) => {
+        if (!vivo) return
+        if (error || !data) { setUrlFicheiro(null); return }
+        url = URL.createObjectURL(data)
+        setUrlFicheiro(url)
+      })
+      return () => { vivo = false; if (url) URL.revokeObjectURL(url) }
+    }
+
+    if (!doc.body_url?.startsWith('data:')) { setUrlFicheiro(doc.body_url || null); return }
+    try {
+      const [cabeca, dados] = doc.body_url.split(',')
+      const tipo = (cabeca.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream'
+      const bin = atob(dados)
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      url = URL.createObjectURL(new Blob([bytes], { type: tipo }))
+      setUrlFicheiro(url)
+    } catch {
+      setUrlFicheiro(doc.body_url)   // se algo correr mal, o comportamento antigo
+    }
+    return () => { vivo = false; if (url) URL.revokeObjectURL(url) }
+  }, [doc.body_url, doc.storage_path, supabase])
+
+  // ── Ler o que está guardado ──────────────────────────────────────────────
+  // A leitura anterior aparece logo ao abrir: custou tempo e dinheiro a fazer
+  // e, até ao sprint147, desaparecia ao fechar o documento — quem voltasse a
+  // querê-la tinha de a mandar fazer outra vez, e vinha diferente.
   const [aDecifrar, setADecifrar] = useState(false)
-  const [decifrado, setDecifrado] = useState<any>(null)
+  const [decifrado, setDecifrado] = useState<any>(doc.analise || null)
   const [erroDecifrar, setErroDecifrar] = useState('')
 
-  async function decifrar() {
+  const [aFundo, setAFundo] = useState(false)
+  const [precisaPro, setPrecisaPro] = useState<string>('')
+
+  /** O ficheiro em base64, venha ele do Storage ou de um data: URL antigo.
+   *  É isto que permite ao Claude ler o PDF INTEIRO — todas as páginas — em vez
+   *  de uma fotografia da primeira. */
+  async function ficheiroEmBase64(): Promise<{ ficheiro: string; mimeType: string } | null> {
+    if (doc.storage_path) {
+      const { data, error } = await supabase.storage.from('cofre').download(doc.storage_path)
+      if (error || !data) return null
+      const buf = new Uint8Array(await data.arrayBuffer())
+      let bin = ''
+      // Em pedaços: um `apply` com um array de milhões de bytes rebenta a pilha.
+      for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode(...buf.subarray(i, i + 8192))
+      return { ficheiro: btoa(bin), mimeType: doc.file_type || 'application/pdf' }
+    }
+    if (doc.body_url?.startsWith('data:')) {
+      return {
+        ficheiro: doc.body_url.split(',')[1],
+        mimeType: (doc.body_url.match(/data:([^;]+)/) || [])[1] || 'application/pdf',
+      }
+    }
+    return null
+  }
+
+  /** `fundo` → /api/vault/analisar: o documento INTEIRO (o PDF vai como PDF,
+   *  todas as páginas) e sem corte de texto. Senão → /api/scan, o Explicar
+   *  normal, que é rápido e chega para o essencial. */
+  async function decifrar(fundo = false) {
     if (aDecifrar) return
-    setADecifrar(true); setErroDecifrar(''); setDecifrado(null)
+    setADecifrar(true); setAFundo(fundo); setErroDecifrar(''); setDecifrado(null); setPrecisaPro('')
     try {
       const { data: sd } = await supabase.auth.getSession()
-      const r = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` },
-        body: JSON.stringify({ text: (doc.body_text || '').slice(0, 24000) }),
-      })
+      const cab = { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` }
+
+      let r: Response
+      if (fundo) {
+        // O ficheiro, quando existe: é onde está o documento todo. O texto
+        // colado é o segundo melhor.
+        const bin = await ficheiroEmBase64()
+        const dados = bin
+          ? { ...bin, titulo: doc.title }
+          : { texto: doc.body_text || '', titulo: doc.title }
+        r = await fetch('/api/vault/analisar', { method: 'POST', headers: cab, body: JSON.stringify(dados) })
+      } else {
+        r = await fetch('/api/scan', { method: 'POST', headers: cab, body: JSON.stringify({ text: (doc.body_text || '').slice(0, 24000) }) })
+      }
+
       const t = await r.text()
       let j: any = null
-      try { j = JSON.parse(t) } catch { throw new Error('O servidor demorou demasiado. Tenta outra vez.') }
+      try { j = JSON.parse(t) } catch { throw new Error('O documento é grande e demorou demasiado. Tenta outra vez.') }
+      if (r.status === 402) { setPrecisaPro(j?.detalhe || j?.error || ''); return }
       if (!r.ok) throw new Error(j?.error || 'Não consegui interpretar este documento.')
       setDecifrado(j)
+
+      // Guarda-se no documento. A próxima abertura mostra isto sem voltar a
+      // perguntar à IA — e sem dar uma resposta diferente.
+      if (fundo) {
+        supabase.from('health_vault')
+          .update({ analise: j, analise_em: new Date().toISOString() })
+          .eq('id', doc.id)
+          .then(() => {}, () => { /* a leitura já está no ecrã; guardar é o extra */ })
+      }
     } catch (e: any) {
       setErroDecifrar(e.message || 'Não consegui interpretar.')
     } finally { setADecifrar(false) }
@@ -334,8 +488,13 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
               Explicar sabe ler. Sem isto era preciso voltar a fotografar um
               papel que já está aqui dentro. */}
           {(doc.body_text || '').trim().length > 40 && (
-            <button onClick={decifrar} disabled={aDecifrar} style={{ padding: '6px 12px', background: aDecifrar ? '#f1f5f9' : '#0d6e42', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, color: aDecifrar ? '#94a3b8' : 'white', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-              {aDecifrar ? 'A ler…' : 'Explicar'}
+            <button onClick={() => decifrar(false)} disabled={aDecifrar} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+              {aDecifrar && !aFundo ? 'A ler…' : 'Explicar'}
+            </button>
+          )}
+          {(doc.body_url || doc.storage_path || (doc.body_text || '').trim().length > 40) && (
+            <button onClick={() => decifrar(true)} disabled={aDecifrar} style={{ padding: '6px 12px', background: aDecifrar ? '#f1f5f9' : '#0d6e42', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, color: aDecifrar ? '#94a3b8' : 'white', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+              {aDecifrar && aFundo ? 'A ler tudo…' : 'Ler a fundo'}
             </button>
           )}
           <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Editar</button>
@@ -350,16 +509,26 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
           )}
 
           {/* Preview do ficheiro */}
-          {doc.body_url && (
-            <div style={{ flex: 1, background: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320 }}>
+          {(doc.body_url || doc.storage_path) && (
+            <div style={{ flex: 1, background: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: isPdf ? 520 : 320 }}>
               {isPdf ? (
-                <iframe src={doc.body_url} title={doc.title} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} />
+                <iframe src={urlFicheiro || undefined} title={doc.title} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} />
               ) : isImage ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={doc.body_url} alt={doc.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                <img src={urlFicheiro || doc.body_url || undefined} alt={doc.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              ) : urlFicheiro || doc.body_url ? (
+                <a href={urlFicheiro || doc.body_url || undefined} download={doc.file_name || doc.title} style={{ color: 'white', fontSize: 13 }}>📥 Descarregar anexo</a>
               ) : (
-                <a href={doc.body_url} download={doc.title} style={{ color: 'white', fontSize: 13 }}>📥 Descarregar anexo</a>
+                <span style={{ color: '#94a3b8', fontSize: 13 }}>A abrir o ficheiro…</span>
               )}
+            </div>
+          )}
+
+          {precisaPro && (
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid #e5e7eb', background: '#fffbeb' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#854d0e', marginBottom: 5 }}>Ler a fundo faz parte do plano Pro</div>
+              <div style={{ fontSize: 13, color: '#854d0e', lineHeight: 1.6, maxWidth: '58ch' }}>{precisaPro}</div>
+              <Link href="/pricing" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#854d0e' }}>Ver o plano Pro →</Link>
             </div>
           )}
 
@@ -370,7 +539,14 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
               ) : (
                 <>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>
-                    Explicado
+                    {aFundo ? 'Lido a fundo' : 'Explicado'}
+                    {/* Dizer que a leitura é a de antes. Sem isto, quem abre o
+                        documento não percebe porque é que já lá está. */}
+                    {decifrado === doc.analise && doc.analise_em && (
+                      <span style={{ textTransform: 'none', letterSpacing: 0, color: '#94a3b8', marginLeft: 8 }}>
+                        · a leitura de {new Date(doc.analise_em).toLocaleDateString('pt-PT')}
+                      </span>
+                    )}
                   </div>
                   {decifrado.emDuasLinhas && (
                     <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16.5, lineHeight: 1.5, color: '#0b1120', margin: '0 0 12px', maxWidth: '54ch' }}>
@@ -395,6 +571,49 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                       ))}
                     </div>
                   )}
+                  {!!decifrado.secoes?.length && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
+                      {decifrado.secoes.map((sec: any, i: number) => (
+                        <div key={i}>
+                          <div style={{ fontSize: 13, fontWeight: 750, color: '#0b1120', marginBottom: 3 }}>{sec.titulo}</div>
+                          <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>{sec.texto}</p>
+                          {sec.porqueImporta && (
+                            <p style={{ margin: '5px 0 0', fontSize: 12.5, color: '#64748b', lineHeight: 1.5, paddingLeft: 10, borderLeft: '2px solid #e5e7eb' }}>
+                              {sec.porqueImporta}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!!decifrado.cronologia?.length && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>A história, por datas</div>
+                      {decifrado.cronologia.map((c: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', gap: 11, fontSize: 13, color: '#334155', lineHeight: 1.55, padding: '4px 0' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#64748b', minWidth: 78, flexShrink: 0 }}>{c.quando}</span>
+                          <span>{c.o_que}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!!decifrado.perguntasParaOMedico?.length && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>Para perguntar na consulta</div>
+                      {decifrado.perguntasParaOMedico.map((q: string, i: number) => (
+                        <div key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: '#334155', lineHeight: 1.55, padding: '3px 0' }}>
+                          <span style={{ color: '#94a3b8', flexShrink: 0 }}>{i + 1}.</span><span>{q}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {decifrado.paginas && (
+                    <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 10 }}>Lido por inteiro — {decifrado.paginas}.</div>
+                  )}
+
                   <Link href="/scan" style={{ fontSize: 12.5, color: '#0d6e42', fontWeight: 700, textDecoration: 'none' }}>
                     Abrir no Explicar para perguntar sobre isto →
                   </Link>

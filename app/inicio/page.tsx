@@ -15,6 +15,8 @@ import { institutionConfig } from '@/lib/institutionConfig'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
 import { CAMADA } from '@/lib/camadas'
+import { getEscolha } from '@/lib/inicioEscolha'
+import { TOOLS } from '@/lib/toolRegistry'
 
 // ─── /inicio DO ZERO — 2026-07-21 ───────────────────────────────────────────
 // A página mais importante do site, reconstruída de raiz (não reorganizada):
@@ -65,7 +67,16 @@ export default function InicioPage() {
   const firstName = user?.name?.split(' ')[0] || ''
   const greeting = mounted ? homeGreeting(firstName) : 'Olá'
   const principal = PRINCIPAL[expMode] || PRINCIPAL.personal
-  const destinos = DESTINOS[expMode] || DESTINOS.personal
+  // A lista deixou de ser fixa: lê-se o que a pessoa escolheu em /settings.
+  // A FORMA da página continua a mesma — uma ação e uma lista. Ver lib/inicioEscolha.
+  const [escolhidas, setEscolhidas] = useState<string[] | null>(null)
+  useEffect(() => { setEscolhidas(getEscolha(expMode)) }, [expMode])
+  const catalogo = new Map(TOOLS.map(t => [t.id, t]))
+  const destinos: Destino[] = (escolhidas || [])
+    .map(id => DESTINOS_CONHECIDOS[id] || (catalogo.has(id)
+      ? { href: id, titulo: catalogo.get(id)!.label, nota: catalogo.get(id)!.desc }
+      : null))
+    .filter(Boolean) as Destino[]
   const hoje = mounted
     ? new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })
     : ''
@@ -191,6 +202,19 @@ const PRINCIPAL: Record<string, Destino> = {
   personal:  { href: '/scan', titulo: 'Explicar', nota: 'Foto a um exame, receita ou relatório' },
   caregiver: { href: '/scan', titulo: 'Explicar', nota: 'Foto a um exame, receita ou relatório' },
   student:   { href: '/study', titulo: 'Estudar', nota: 'Continuar de onde ficou' },
+}
+
+/** Textos curtos, escritos a pensar em quem le — quando existem, ganham ao
+ *  `label`/`desc` do catalogo, que sao mais formais. */
+const DESTINOS_CONHECIDOS: Record<string, Destino> = {
+  '/mymeds':   { href: '/mymeds',   titulo: 'A minha medicação',  nota: 'O que tomo e a que horas' },
+  '/vault':    { href: '/vault',    titulo: 'Os meus documentos', nota: 'Exames, receitas e relatórios guardados' },
+  '/labs':     { href: '/labs',     titulo: 'Análises',           nota: 'Perceber os valores' },
+  '/timeline': { href: '/timeline', titulo: 'A minha história',   nota: 'Tudo o que ficou registado' },
+  '/familia':  { href: '/familia',  titulo: 'Quem eu cuido',      nota: 'Como têm estado' },
+  '/arena':    { href: '/arena',    titulo: 'Arena',              nota: 'Competir e treinar' },
+  '/osce':     { href: '/osce',     titulo: 'OSCE',               nota: 'Estações práticas' },
+  '/study360': { href: '/study360', titulo: 'Onde focar',         nota: 'O que falta saber' },
 }
 
 const DESTINOS: Record<string, Destino[]> = {
