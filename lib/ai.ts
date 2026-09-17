@@ -78,7 +78,8 @@ async function callGemini(
   messages: AIMessage[],
   model: string,
   maxTokens: number,
-  temperature: number
+  temperature: number,
+  json = false,
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not set')
@@ -99,7 +100,23 @@ async function callGemini(
       body: JSON.stringify({
         system_instruction: systemMsg ? { parts: [{ text: systemMsg }] } : undefined,
         contents,
-        generationConfig: { maxOutputTokens: maxTokens, temperature },
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature,
+          // ── O QUE PARTIU O /scan E O /vault (2026-09-17) ────────────────
+          // Os Gemini modernos PENSAM antes de responder, e o pensamento sai
+          // do MESMO orçamento de `maxOutputTokens`. Com 3000 tokens, o
+          // modelo gastava a maior parte a pensar e a resposta saía cortada a
+          // meio de uma string — JSON inválido, e o utilizador via "Não foi
+          // possível interpretar a resposta da IA", três vezes seguidas,
+          // porque o problema não era sorte nenhuma: era determinístico.
+          //
+          // Quando se quer JSON, não se quer prosa nem raciocínio visível.
+          // Orçamento de pensamento a zero e o formato pedido à API em vez de
+          // pedido por palavras — assim não vem dentro de ```json nem com um
+          // "Aqui está:" à frente.
+          ...(json ? { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } : {}),
+        },
       }),
       signal: AbortSignal.timeout(25000),
     }
@@ -109,7 +126,19 @@ async function callGemini(
   if (!res.ok) throw new Error(`Gemini error: ${res.status}`)
 
   const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const cand = data.candidates?.[0]
+  // TODAS as partes, e nunca as de pensamento. Ler só `parts[0]` devolvia o
+  // raciocínio (ou vazio) nos modelos que pensam.
+  const texto = (cand?.content?.parts || [])
+    .filter((x: any) => x && !x.thought && typeof x.text === 'string')
+    .map((x: any) => x.text).join('')
+
+  // Resposta cortada é resposta estragada. Mais vale falhar aqui e deixar a
+  // escada tentar o modelo seguinte do que devolver meio JSON como se fosse bom.
+  if (cand?.finishReason === 'MAX_TOKENS' && json) {
+    throw new Error(`Gemini ${model}: resposta cortada por falta de espaço`)
+  }
+  return texto
 }
 
 // ─── Provider 3: OpenAI (fallback final, se chave configurada) ────────────────
@@ -163,9 +192,19 @@ async function callAnthropic(
     signal: AbortSignal.timeout(25000),
   })
   if (res.status === 429) throw Object.assign(new Error('Rate limit'), { status: 429 })
-  if (!res.ok) throw new Error(`Anthropic error: ${res.status}`)
+  if (!res.ok) {
+    // O 400 da Anthropic diz porquê no corpo. Sem isto, uma conta sem saldo
+    // aparecia nos registos como "Anthropic error: 400" e ninguém percebia
+    // que bastava carregar a conta.
+    const d = await res.json().catch(() => ({} as any))
+    throw new Error(d?.error?.message || `Anthropic error: ${res.status}`)
+  }
   const data = await res.json()
-  return data.content?.[0]?.text || ''
+  // Todos os blocos de texto, não só o primeiro: um modelo que devolva um
+  // bloco de raciocínio à frente deixava isto a zero.
+  return (data.content || [])
+    .filter((b: any) => b?.type === 'text' && typeof b.text === 'string')
+    .map((b: any) => b.text).join('\n') || ''
 }
 
 // ─── Wrapper de retry por (provider, modelo) ─────────────────────────────────
@@ -234,10 +273,25 @@ export async function aiComplete(
      *  quem está do outro lado. Nessas rotas pede-se qualidade e espera-se os
      *  segundos a mais. */
     qualidade?: boolean
+    /** A resposta vai ser lida como JSON. Deixa os fornecedores que o suportam
+     *  devolver JSON de raiz, em vez de o pedir por palavras e esperar. */
+    json?: boolean
+    /** Aceitar a resposta deste fornecedor?
+     *
+     *  Existe por causa de um erro que deitou abaixo o /scan e o /vault: um
+     *  fornecedor devolvia texto — portanto "sucesso" — mas o texto não era
+     *  JSON válido, e a escada parava ali. Um fornecedor a responder mal
+     *  passava a valer mais do que três a responder bem, que estavam logo a
+     *  seguir na fila e nunca eram chamados.
+     *
+     *  Com isto, "responder" e "responder uma coisa utilizável" passam a ser
+     *  a mesma condição, e a escada faz o que existe para fazer. */
+    validar?: (texto: string) => boolean
   } = {}
 ): Promise<AIResponse> {
   const maxTokens = options.maxTokens ?? 800
   const temperature = options.temperature ?? 0.15
+  const json = options.json === true
 
   // Lista completa de providers, na ordem que queremos tentar.
   const GROQ_LARGE: ProviderStep = { name: 'Groq', model: 'llama-3.3-70b-versatile', fn: () => callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature) }
@@ -248,11 +302,19 @@ export async function aiComplete(
     { name: 'Groq', model: 'llama-3.2-90b-vision-preview',                  fn: () => callGroq(messages, 'llama-3.2-90b-vision-preview', maxTokens, temperature) },
   ]
 
-  // Gemini — múltiplos modelos como fallback de qualidade/quota.
-  const GEMINI_FLASH:    ProviderStep = { name: 'Gemini', model: 'gemini-2.5-flash',      fn: () => callGemini(messages, 'gemini-2.5-flash', maxTokens, temperature) }
-  const GEMINI_FLASH_20: ProviderStep = { name: 'Gemini', model: 'gemini-2.0-flash',      fn: () => callGemini(messages, 'gemini-2.0-flash', maxTokens, temperature) }
-  const GEMINI_LITE_25:  ProviderStep = { name: 'Gemini', model: 'gemini-2.5-flash-lite', fn: () => callGemini(messages, 'gemini-2.5-flash-lite', maxTokens, temperature) }
-  const GEMINI_LITE_20:  ProviderStep = { name: 'Gemini', model: 'gemini-2.0-flash-lite', fn: () => callGemini(messages, 'gemini-2.0-flash-lite', maxTokens, temperature) }
+  // Gemini — vários modelos como rede de segurança de qualidade/quota.
+  //
+  // O `gemini-2.0-flash` e o `gemini-2.0-flash-lite` foram DESLIGADOS pela
+  // Google (404: "no longer available"). Estavam aqui como dois degraus da
+  // escada e eram, na prática, dois degraus a menos. Verificado a 2026-09-17
+  // contra a lista de modelos da API; substituídos pelos que existem hoje.
+  // O `-latest` no fim é de propósito: é o degrau que sobrevive à próxima vez
+  // que a Google desligar um modelo com nome e versão.
+  const GEMINI_NOVO:     ProviderStep = { name: 'Gemini', model: 'gemini-3.8-flash',      fn: () => callGemini(messages, 'gemini-3.8-flash', maxTokens, temperature, json) }
+  const GEMINI_FLASH:    ProviderStep = { name: 'Gemini', model: 'gemini-2.5-flash',      fn: () => callGemini(messages, 'gemini-2.5-flash', maxTokens, temperature, json) }
+  const GEMINI_36:       ProviderStep = { name: 'Gemini', model: 'gemini-3.6-flash',      fn: () => callGemini(messages, 'gemini-3.6-flash', maxTokens, temperature, json) }
+  const GEMINI_LITE_25:  ProviderStep = { name: 'Gemini', model: 'gemini-2.5-flash-lite', fn: () => callGemini(messages, 'gemini-2.5-flash-lite', maxTokens, temperature, json) }
+  const GEMINI_ULTIMO:   ProviderStep = { name: 'Gemini', model: 'gemini-flash-latest',   fn: () => callGemini(messages, 'gemini-flash-latest', maxTokens, temperature, json) }
 
   // OpenAI / Anthropic — só entram se as chaves existirem
   const OPENAI: ProviderStep = { name: 'OpenAI', model: 'gpt-4o-mini',          fn: () => callOpenAI(messages, 'gpt-4o-mini', maxTokens, temperature) }
@@ -263,17 +325,24 @@ export async function aiComplete(
   const CLAUDE_BOM: ProviderStep = { name: 'Anthropic', model: 'claude-sonnet-5', fn: () => callAnthropic(messages, 'claude-sonnet-5', maxTokens, temperature) }
 
   const sequence: ProviderStep[] = options.qualidade
-    ? [CLAUDE_BOM, GEMINI_FLASH, ANTHROPIC, GROQ_LARGE, GEMINI_FLASH_20, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_LITE_20, OPENAI]
+    ? [CLAUDE_BOM, GEMINI_NOVO, GEMINI_FLASH, ANTHROPIC, GEMINI_36, GROQ_LARGE, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_ULTIMO, OPENAI]
     : options.preferFast
-      ? [GROQ_FAST, GROQ_LARGE, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_LITE_20, GEMINI_FLASH, GEMINI_FLASH_20, OPENAI, ANTHROPIC]
-      : [GROQ_LARGE, GROQ_FAST, ...GROQ_EXTRA, GEMINI_FLASH, GEMINI_FLASH_20, GEMINI_LITE_25, GEMINI_LITE_20, OPENAI, ANTHROPIC]
+      ? [GROQ_FAST, GROQ_LARGE, ...GROQ_EXTRA, GEMINI_LITE_25, GEMINI_NOVO, GEMINI_FLASH, GEMINI_ULTIMO, OPENAI, ANTHROPIC]
+      : [GROQ_LARGE, GROQ_FAST, ...GROQ_EXTRA, GEMINI_NOVO, GEMINI_FLASH, GEMINI_36, GEMINI_LITE_25, GEMINI_ULTIMO, OPENAI, ANTHROPIC]
 
   let lastError: any = null
   const errors: string[] = []
 
   for (const step of sequence) {
     try {
-      return await tryProvider(step.fn, step.name, step.model, 1, [500], messages.map(m => m.content).join(' '))
+      const r = await tryProvider(step.fn, step.name, step.model, 1, [500], messages.map(m => m.content).join(' '))
+      // Responder não chega: tem de ser uma resposta que sirva. Ver `validar`.
+      if (options.validar && !options.validar(r.text)) {
+        errors.push(`${step.name}/${step.model}: respondeu, mas a resposta não serve`)
+        lastError = new Error(`${step.model} devolveu uma resposta que não se consegue usar`)
+        continue
+      }
+      return r
     } catch (err: any) {
       lastError = err
       const msg = (err?.message || '').toLowerCase()
@@ -294,33 +363,71 @@ export async function aiComplete(
 
 // ─── JSON helper ─────────────────────────────────────────────────────────────
 
-export async function aiJSON<T>(
-  messages: AIMessage[],
-  options: Parameters<typeof aiComplete>[1] = {}
-): Promise<T> {
-  const result = await aiComplete(messages, options)
-  if (!result.text?.trim()) throw new Error('Resposta vazia do serviço de IA. Tenta novamente.')
+/** Tira JSON de uma resposta, venha ela como vier.
+ *
+ *  Devolve `undefined` quando não há nada de aproveitável — e é essa a
+ *  diferença que interessa: `undefined` é o sinal para a escada tentar o
+ *  fornecedor seguinte, em vez de desistir com a resposta do primeiro. */
+export function extrairJSON<T>(texto: string): T | undefined {
+  if (!texto?.trim()) return undefined
 
-  const clean = result.text
+  const limpo = texto
     .replace(/```json\s*/gi, '')
     .replace(/```\s*/g, '')
     .trim()
 
-  // Try to extract the first JSON object or array if the model added surrounding text
-  const match = clean.match(/[\[{][\s\S]*[\]\}]/)
-  const toParse = match ? match[0] : clean
+  // Do primeiro parêntesis ao último: apanha o objeto mesmo que o modelo tenha
+  // escrito "Aqui está o resultado:" antes.
+  const match = limpo.match(/[\[{][\s\S]*[\]\}]/)
+  const candidatos = [match ? match[0] : null, limpo].filter(Boolean) as string[]
 
-  try {
-    return JSON.parse(toParse) as T
-  } catch {
-    // Tentativa de reparo: quando max_tokens corta a resposta a meio (caso
-    // comum em quizzes de 10+ perguntas), aproveita os items completos.
-    const repaired = repairTruncatedJSON(toParse)
-    if (repaired) {
-      try { return JSON.parse(repaired) as T } catch {}
+  for (const c of candidatos) {
+    try { return JSON.parse(c) as T } catch { /* segue */ }
+    // Cortado a meio (o orçamento de tokens acabou): aproveita-se o que está
+    // completo em vez de deitar tudo fora.
+    const reparado = repairTruncatedJSON(c)
+    if (reparado) {
+      try { return JSON.parse(reparado) as T } catch { /* segue */ }
     }
-    throw new Error('Não foi possível interpretar a resposta da IA. Tenta novamente.')
   }
+  return undefined
+}
+
+export async function aiJSON<T>(
+  messages: AIMessage[],
+  options: Parameters<typeof aiComplete>[1] = {}
+): Promise<T> {
+  // ── O QUE ESTAVA ERRADO AQUI (2026-09-17) ────────────────────────────────
+  // Isto pedia UMA resposta e tentava lê-la. Se o fornecedor do topo devolvia
+  // texto que não era JSON — por estar cortado, por vir com prosa à frente, o
+  // que fosse — a função desistia, e o utilizador via "Não foi possível
+  // interpretar a resposta da IA. Tenta novamente". Tentar outra vez não
+  // resolvia nada, porque a escada voltava a parar exatamente no mesmo sítio.
+  // Havia quatro fornecedores a seguir na fila que nunca chegavam a ser
+  // chamados.
+  //
+  // Agora a leitura do JSON faz parte da condição de sucesso: um fornecedor
+  // que não devolva JSON utilizável é um fornecedor que falhou, e a escada
+  // segue para o seguinte. É para isso que ela existe.
+  let lido: T | undefined
+
+  const result = await aiComplete(messages, {
+    ...options,
+    json: true,
+    validar: (texto) => {
+      const v = extrairJSON<T>(texto)
+      if (v === undefined) return false
+      lido = v
+      return true
+    },
+  })
+
+  if (lido !== undefined) return lido
+  // Não devia acontecer (o `validar` já leu), mas se alguém chamar o
+  // aiComplete com outro `validar` por cima, tenta-se à mesma.
+  const ultima = extrairJSON<T>(result.text)
+  if (ultima !== undefined) return ultima
+  throw new Error('Não foi possível interpretar a resposta da IA. Tenta novamente.')
 }
 
 // ─── Verificação cruzada (interna, silenciosa) ───────────────────────────────
@@ -412,7 +519,12 @@ function repairTruncatedJSON(text: string): string | null {
 // de texto e não existia de todo na de visão. Para ler um relatório médico
 // manuscrito, com siglas e uma estrutura que muda de hospital para hospital, é
 // dos melhores que há. Agora é o primeiro quando se pede qualidade.
-const VISION_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']
+//
+// ── E DOIS DELES JÁ NÃO EXISTIAM (2026-09-17) ──────────────────────────────
+// `gemini-2.0-flash` e `gemini-2.0-flash-lite` foram desligados pela Google e
+// respondiam 404. Metade da escada de visão era decorativa. Confirmado contra
+// a lista de modelos da API e substituídos pelos que existem hoje.
+const VISION_MODELS = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-3.6-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
 
 /** Claude a ler uma imagem. O `messages` da API aceita blocos de imagem em
  *  base64 — é a mesma rota das mensagens normais, com outro tipo de conteúdo. */
@@ -468,7 +580,7 @@ export async function callGeminiVision(
   prompt: string,
   imageBase64: string,
   mimeType: string,
-  opts: { maxTokens?: number; temperature?: number; qualidade?: boolean } = {}
+  opts: { maxTokens?: number; temperature?: number; qualidade?: boolean; json?: boolean; validar?: (t: string) => boolean } = {}
 ): Promise<string> {
   // Com `qualidade`, o Claude primeiro — e num PDF de análises isso conta a
   // dobrar: ele lê o documento inteiro, com as colunas de valores de
@@ -478,7 +590,7 @@ export async function callGeminiVision(
       try {
         const t0 = Date.now()
         const t = await callAnthropicVision(prompt, imageBase64, mimeType, m, opts.maxTokens || 2400)
-        if (t) {
+        if (t && (!opts.validar || opts.validar(t))) {
           registarUso({
             provider: 'Anthropic', model: m, ms: Date.now() - t0, ok: true, feature: 'visao',
             tokensIn: estimarTokens(prompt) + Math.round(imageBase64.length / 750),
@@ -495,7 +607,13 @@ export async function callGeminiVision(
 
   const bodyStr = JSON.stringify({
     contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: imageBase64 } }] }],
-    generationConfig: { maxOutputTokens: opts.maxTokens || 1500, temperature: opts.temperature ?? 0.1 },
+    generationConfig: {
+      maxOutputTokens: opts.maxTokens || 1500,
+      temperature: opts.temperature ?? 0.1,
+      // Mesma razão do callGemini: o pensamento sai do orçamento da resposta e
+      // deixava o JSON cortado a meio. Ver a nota lá em cima.
+      ...(opts.json ? { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } : {}),
+    },
   })
 
   let lastErr = 'tenta novamente'
@@ -508,9 +626,20 @@ export async function callGeminiVision(
       )
       if (res.ok) {
         const data = await res.json()
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        if (text) return text
-        lastErr = 'resposta vazia'
+        const cand = data.candidates?.[0]
+        // Todas as partes e nunca as de pensamento — ler só `parts[0]` dava o
+        // raciocínio, ou vazio, nos modelos que pensam.
+        const text = (cand?.content?.parts || [])
+          .filter((x: any) => x && !x.thought && typeof x.text === 'string')
+          .map((x: any) => x.text).join('')
+        if (cand?.finishReason === 'MAX_TOKENS' && opts.json) {
+          lastErr = 'resposta cortada por falta de espaço'
+        } else if (text && opts.validar && !opts.validar(text)) {
+          // Respondeu, mas não se consegue usar. É uma falha como outra
+          // qualquer — segue para o modelo seguinte em vez de desistir.
+          lastErr = 'a resposta não veio em formato utilizável'
+        } else if (text) return text
+        else lastErr = 'resposta vazia'
         continue
       }
       const errData = await res.json().catch(() => ({} as any))
@@ -547,12 +676,25 @@ export async function callGeminiVisionJSON<T>(
   //
   // Se o Claude falhar (sem chave, quota, timeout), cai para a escada Gemini
   // sem dizer nada a ninguém — é para isso que uma escada serve.
+  // A leitura do JSON faz parte da condição de sucesso, aqui como no aiJSON:
+  // um modelo que responda com algo que não se consegue ler é um modelo que
+  // falhou, e a escada segue. Antes bastava o primeiro responder qualquer
+  // coisa para o pedido inteiro morrer ali.
+  let lido: T | undefined
+  const aceitar = (t: string) => {
+    const v = extrairJSON<T>(t)
+    if (v === undefined) return false
+    lido = v
+    return true
+  }
+
   let text = ''
   if (opts.qualidade && process.env.ANTHROPIC_API_KEY) {
     for (const m of ['claude-sonnet-5', 'claude-haiku-4-5-20251001']) {
       try {
         const t0 = Date.now()
         text = await callAnthropicVision(prompt, imageBase64, mimeType, m, opts.maxTokens || 2400)
+        if (text && !aceitar(text)) text = ''
         if (text) {
           registarUso({
             provider: 'Anthropic', model: m, ms: Date.now() - t0, ok: true, feature: 'visao',
@@ -569,16 +711,12 @@ export async function callGeminiVisionJSON<T>(
       } catch { text = '' }
     }
   }
-  if (!text) text = await callGeminiVision(prompt, imageBase64, mimeType, opts)
-  const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
-  // Find JSON object or array in response
-  const match = clean.match(/[\[{][\s\S]*[\]\}]/)
-  if (!match) throw new Error('Não foi possível interpretar a imagem. Tenta com uma foto mais nítida.')
-  try {
-    return JSON.parse(match[0]) as T
-  } catch {
-    throw new Error('Erro ao processar resposta. Tenta novamente.')
-  }
+  if (lido !== undefined) return lido
+
+  await callGeminiVision(prompt, imageBase64, mimeType, { ...opts, json: true, validar: aceitar })
+  if (lido !== undefined) return lido
+
+  throw new Error('Não foi possível interpretar a imagem. Tenta com uma foto mais nítida, sem sombra e com o papel direito.')
 }
 
 // ─── Transcrição de áudio (Groq Whisper) ──────────────────────────────────────
