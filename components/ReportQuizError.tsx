@@ -112,7 +112,7 @@ export default function ReportQuizError({
           </div>
           {hasFlags && (
             <div style={{ fontSize: 11, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '6px 8px', marginBottom: 8 }}>
-              <strong>Sinais de qualidade detetados:</strong> {qualityFlags!.join(' · ')}
+              <strong>Sinais de qualidade detetados:</strong> {(qualityFlags || []).join(' · ')}
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>

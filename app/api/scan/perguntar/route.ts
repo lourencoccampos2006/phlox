@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Inicia sessão para perguntar.' }, { status: 401 })
 
   const body = await req.json().catch(() => null) as
-    { documento?: any; pergunta?: string; anteriores?: { q: string; r: string }[] } | null
+    { documento?: any; pergunta?: string; anteriores?: { q: string; r: string }[]; memoria?: string } | null
 
   const pergunta = String(body?.pergunta || '').trim().slice(0, 500)
   if (!pergunta) return NextResponse.json({ error: 'Falta a pergunta.' }, { status: 400 })
@@ -37,15 +37,23 @@ export async function POST(req: NextRequest) {
   const historico = (body.anteriores || []).slice(-4)
     .map(t => `Pergunta: ${t.q}\nResposta: ${t.r}`).join('\n\n').slice(0, 4000)
 
+  // O que já se sabe desta pessoa, de documentos anteriores. Sem isto, a dúvida
+  // era respondida no vazio: "e isto é grave?" tem uma resposta diferente
+  // conforme seja a primeira vez que o valor aparece alterado ou a terceira.
+  const memoria = String(body.memoria || '').slice(0, 4000)
+
   const sistema = `És um médico português a responder a uma dúvida sobre UM documento de saúde que já foi explicado a esta pessoa. Português europeu, simples, direto.
 
 O documento decifrado (em JSON):
 ${doc}
+${memoria ? `\nO QUE JÁ SE SABE SOBRE ESTA PESSOA, de documentos anteriores:\n${memoria}` : ''}
 ${historico ? `\nJá foi perguntado antes:\n${historico}` : ''}
 
 REGRAS:
 - Responde em 2 a 5 frases. Sem listas a não ser que a pergunta peça mesmo uma.
-- Só sobre ESTE documento e o que ele contém. Se a pergunta for sobre outra coisa (sintomas de agora, se deve mudar a medicação, o que tem), diz com franqueza que isso não está no documento e que é conversa para o médico — e diz exatamente o que perguntar.
+- Sobre ESTE documento e o que já se sabe da pessoa (em cima). Ligar os dois é bom e é o que se espera: "este valor está mais baixo do que em junho" é exatamente o tipo de coisa útil.
+- Se a pergunta for sobre outra coisa (sintomas de agora, se deve mudar a medicação, o que tem), diz com franqueza que isso não está nos documentos e que é conversa para o médico — e diz exatamente o que perguntar.
+- Quando usares algo da memória, diz de onde vem ("no relatório de novembro...", "quando me disse que..."). Saber de onde saiu a informação é o que separa isto de um palpite.
 - NUNCA dás um diagnóstico, nem dizes se deve ou não tomar alguma coisa.
 - Se o documento não tiver a resposta, diz isso. "Não está aqui" é uma resposta honesta e útil; inventar não é.
 - Não acrescentas "consulte o seu médico" a todas as respostas — a aplicação já o diz. Usa isso só quando for mesmo o passo seguinte.`

@@ -31,9 +31,13 @@ const PROMPT = `És um médico português a ler um documento de saúde COM TEMPO
 
 Lê TUDO. Se são dez páginas, são dez páginas. Não saltes secções por parecerem acessórias — os antecedentes, a medicação à entrada e as notas de rodapé são muitas vezes onde está o que a pessoa não sabia.
 
+DE QUEM É O DOCUMENTO: quem o guardou pode não ser a pessoa a quem ele pertence. Documentos de saúde trazem quase sempre o nome (junto a "Utente", "Nome" ou "Doente"). Lê-o e devolve-o EXATAMENTE como está escrito, sem corrigir nem completar. Sem nome, deixa vazio — não adivinhes.
+
 Responde APENAS JSON válido:
 {
   "kind": "relatorio|analise|receita|medicamento|bula|outro",
+  "pessoa": { "nome": "o nome tal como aparece no documento, ou vazio", "onde": "onde o encontraste, ou vazio" },
+  "dataDoDocumento": "AAAA-MM-DD, ou vazio se não a conseguires ler",
   "title": "o que é este documento, em 3-6 palavras",
   "emDuasLinhas": "o essencial, como se explicasses a um amigo ao telefone",
   "oQueImporta": ["o que reter, uma ideia por linha, até 6"],
@@ -46,6 +50,14 @@ Responde APENAS JSON válido:
   "meds": [{ "name": "...", "dose": "...", "frequency": "...", "paraQue": "..." }],
   "termos": [{ "termo": "a palavra difícil tal como aparece", "simples": "o que quer dizer, numa frase" }],
   "cronologia": [{ "quando": "a data tal como aparece", "o_que": "o que aconteceu" }],
+  "ligacoes": ["o que este documento muda no que já se sabia sobre esta pessoa — vazio se não houver memória dela"],
+  "factosNovos": {
+    "condicoes": [{ "nome": "...", "desde": "...", "estado": "ativo|resolvido" }],
+    "medicamentos": [{ "nome": "...", "detalhe": "dose e como se toma", "estado": "ativo|parado" }],
+    "valores": [{ "nome": "...", "valor": "...", "unidade": "...", "estado": "normal|baixo|alto", "quando": "AAAA-MM-DD" }],
+    "acontecimentos": [{ "quando": "AAAA-MM-DD", "o_que": "numa frase" }]
+  },
+  "perguntas": [{ "pergunta": "...", "porque": "porque é que isto ajuda", "tipo": "sim_nao|escolha|aberta", "opcoes": ["só se tipo=escolha"] }],
   "perguntasParaOMedico": ["perguntas concretas para a próxima consulta, até 6"],
   "aSeguir": ["passos concretos, até 5"],
   "warning": "só se houver algo que precise de atenção médica sem demora",
@@ -60,7 +72,13 @@ REGRAS QUE NÃO SE QUEBRAM:
 - "cronologia" só se o documento tiver datas que contem uma história (internamentos, exames, mudanças de medicação). Senão, deixa vazio.
 - NUNCA dás um diagnóstico e NUNCA inventas. O que não se lê, diz-se em "legibilidade" e baixa-se a "confidence".
 - Preenche só os campos que fazem sentido: um relatório não tem "values"; uma folha de análises não tem "secoes" longas.
-- Não escrevas "consulte o seu médico" em cada parágrafo — a aplicação já o diz. Diz antes O QUE perguntar.`
+- Não escrevas "consulte o seu médico" em cada parágrafo — a aplicação já o diz. Diz antes O QUE perguntar.
+
+"factosNovos" é o que fica a saber-se desta pessoa para a próxima vez: condições, o que toma, valores medidos, o que aconteceu. Se já conheceres uma condição ou um medicamento pelo que te foi dado, usa EXATAMENTE o mesmo nome. Marca "resolvido" ou "parado" só quando o documento o disser — não mencionar não é prova de ter acabado.
+
+"ligacoes" compara este documento com o que já se sabia: um valor que mudou, uma dose diferente, algo que o documento anterior mandava vigiar. Frases curtas e concretas. Se não houver nada a ligar, lista vazia — inventar uma ligação é pior do que não haver nenhuma.
+
+"perguntas": no máximo 3, zero por omissão. Só o que mude mesmo a leitura de um documento futuro, pertinente a ESTE documento e ao que já se sabe. Nunca perguntes o que já está na memória nem o que já foi respondido, e nunca perguntes nada que o documento não levante. São opcionais e a pessoa sabe disso.`
 
 export async function POST(req: NextRequest) {
   if (!checkRateLimit(getIP(req), 6, 60_000).allowed) return rateLimitResponse()
@@ -78,10 +96,17 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null) as
-    { ficheiro?: string; mimeType?: string; texto?: string; titulo?: string } | null
+    { ficheiro?: string; mimeType?: string; texto?: string; titulo?: string; memoria?: string } | null
   if (!body?.ficheiro && !body?.texto) {
     return NextResponse.json({ error: 'Não há nada para ler neste documento.' }, { status: 400 })
   }
+
+  // O que já se sabe da pessoa entra ANTES do documento: o modelo tem de saber
+  // de quem pode ser o papel enquanto o lê, não depois de o ter lido.
+  const memoria = String(body.memoria || '').slice(0, 6000)
+  const prompt = memoria
+    ? `${PROMPT}\n\n─────\nO QUE JÁ SABES (de documentos anteriores desta conta). Usa isto para ligar, comparar e não repetir perguntas:\n${memoria}\n─────`
+    : PROMPT
 
   try {
     let res: any
@@ -89,7 +114,7 @@ export async function POST(req: NextRequest) {
       // O PDF vai inteiro. O Claude lê-o como documento (ver callAnthropicVision
       // em lib/ai.ts) — todas as páginas, não só a primeira.
       res = await callGeminiVisionJSON<any>(
-        `${PROMPT}\n\nO que se segue é um documento${body.titulo ? ` intitulado "${body.titulo}"` : ''}. Lê-o por inteiro.`,
+        `${prompt}\n\nO que se segue é um documento${body.titulo ? ` intitulado "${body.titulo}"` : ''}. Lê-o por inteiro.`,
         body.ficheiro,
         body.mimeType || 'application/pdf',
         { maxTokens: 8000, qualidade: true },
@@ -98,7 +123,7 @@ export async function POST(req: NextRequest) {
       // SEM corte. O /api/scan corta aos 24 mil caracteres porque tem de ser
       // rápido; aqui o ponto é o contrário.
       res = await aiJSON<any>([
-        { role: 'system', content: PROMPT },
+        { role: 'system', content: prompt },
         { role: 'user', content: `Documento${body.titulo ? ` — ${body.titulo}` : ''}:\n\n${body.texto}` },
       ], { maxTokens: 8000, qualidade: true })
     }

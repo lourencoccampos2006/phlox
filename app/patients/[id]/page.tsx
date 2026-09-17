@@ -580,7 +580,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             {summary.overview && <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{summary.overview}</p>}
             {(summary.watch_for || []).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                {summary.watch_for!.map((w, i) => (
+                {(summary.watch_for || []).map((w, i) => (
                   <div key={i} style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'flex-start' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: '#92400e', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-sm)', padding: '2px 7px', flexShrink: 0 }}>{w.level}</span>
                     <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{w.text}</span>
@@ -591,7 +591,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             {(summary.interactions || []).length > 0 && (
               <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: 'var(--space-7)' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, color: '#92400e', marginBottom: 'var(--space-4)' }}>Interações a confirmar</div>
-                {summary.interactions!.map((it, i) => <div key={i} style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.55 }}>{it}</div>)}
+                {(summary.interactions || []).map((it, i) => <div key={i} style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.55 }}>{it}</div>)}
               </div>
             )}
             <div style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>

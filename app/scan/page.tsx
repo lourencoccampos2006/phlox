@@ -40,7 +40,14 @@ import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 import { horasDaFrequencia } from '@/lib/horarioToma'
-import { impressaoDigital, lerPreferencias, leituraAnterior, guardarLeitura, explicarMemoria } from '@/lib/memoriaDocumentos'
+import {
+  impressaoDigital, lerPreferencias, leituraAnterior, guardarLeitura, explicarMemoria,
+  lerSujeitos, lerIdentidades, resolverSujeito, atualizarDossier, responderPergunta,
+  dispensarPergunta, contextoParaIA, explicarArrumacao,
+  type Sujeito, type ResolucaoSujeito,
+} from '@/lib/memoriaDocumentos'
+import { nomeCurto } from '@/lib/sujeitos'
+import { type PerguntaPendente } from '@/lib/dossier'
 
 /** O nome da ferramenta, num sítio só — muda aqui e muda em todo o lado. */
 export const NOME_FERRAMENTA = 'Explicar'
@@ -75,8 +82,16 @@ interface Seccao { titulo: string; texto: string }
 
 interface Explicado {
   kind: string
+  /** De quem é o documento, lido do próprio papel. Ver lib/sujeitos. */
+  pessoa?: { nome?: string; onde?: string }
+  dataDoDocumento?: string
   title?: string
   emDuasLinhas?: string
+  /** O que este documento muda no que já se sabia. Só existe por haver
+   *  memória — sem ela, cada leitura era a primeira. */
+  ligacoes?: string[]
+  perguntas?: PerguntaPendente[]
+  factosNovos?: any
   oQueImporta?: string[]
   termos?: Termo[]
   secoes?: Seccao[]
@@ -124,6 +139,19 @@ export default function ExplicarPage() {
   const [conversa, setConversa] = useState<{ q: string; r: string }[]>([])
   const [aPerguntar, setAPerguntar] = useState(false)
   const [daMemoria, setDaMemoria] = useState('')
+  // ── A arrumação ──────────────────────────────────────────────────────────
+  // De quem é o documento, e onde é que ele ficou guardado. Fica à vista e
+  // corrige-se: uma arrumação errada feita em silêncio contamina a memória de
+  // uma pessoa com os papéis de outra, e isso não se desfaz sozinho.
+  const [arrumacao, setArrumacao] = useState<ResolucaoSujeito | null>(null)
+  const [sujeitos, setSujeitos] = useState<Sujeito[]>([])
+  const [aMudarPessoa, setAMudarPessoa] = useState(false)
+  const [perguntas, setPerguntas] = useState<PerguntaPendente[]>([])
+  const [respostas, setRespostas] = useState<Record<string, string>>({})
+  const [aResponder, setAResponder] = useState('')
+  // A impressao digital do documento em mao -- serve para reapontar a linha
+  // guardada quando a arrumacao for corrigida.
+  const [hashAtual, setHashAtual] = useState('')
   const camaraRef = useRef<HTMLInputElement>(null)
   const ficheiroRef = useRef<HTMLInputElement>(null)
   const uso = useUsageLimit('scan')
@@ -140,6 +168,7 @@ export default function ExplicarPage() {
   function limpar() {
     setErr(''); setRes(null); setMeds([]); setImportado(false)
     setGuardado(false); setConversa([]); setPergunta(''); setDaMemoria('')
+    setArrumacao(null); setPerguntas([]); setRespostas({}); setAMudarPessoa(false); setHashAtual('')
   }
 
   async function aoEscolher(e: React.ChangeEvent<HTMLInputElement>) {
@@ -196,9 +225,11 @@ export default function ExplicarPage() {
       // toda. Ver lib/memoriaDocumentos.
       const conteudo = payload.image || payload.text || ''
       const hash = await impressaoDigital(conteudo)
+      setHashAtual(hash)
       const prefs = user ? await lerPreferencias(supabase, user.id, (user as any).plan || 'free') : null
+      const comMemoria = !!(user && prefs?.memoria)
 
-      if (user && hash && prefs?.memoria) {
+      if (comMemoria && hash) {
         const antes = await leituraAnterior(supabase, user.id, hash)
         if (antes) {
           setRes(antes)
@@ -207,6 +238,21 @@ export default function ExplicarPage() {
           setBusy('')
           return
         }
+      }
+
+      // ── O que já se sabe ─────────────────────────────────────────────
+      // Vai com o documento. É a diferença entre ler o décimo relatório de
+      // alguém com a ignorância do primeiro e lê-lo sabendo o que veio antes.
+      let osSujeitos: Sujeito[] = []
+      let identidades = { proprio: '', perfis: [] as { id: string; nome: string }[] }
+      if (comMemoria) {
+        setBusy('A ver o que já sei…')
+        ;[osSujeitos, identidades] = await Promise.all([
+          lerSujeitos(supabase, user.id),
+          lerIdentidades(supabase, user.id),
+        ])
+        setSujeitos(osSujeitos)
+        payload.memoria = contextoParaIA(osSujeitos, { perfilAtivoId: perfil?.id })
       }
 
       setBusy('A explicar…')
@@ -221,14 +267,44 @@ export default function ExplicarPage() {
       setMeds((j.meds || []).map((m: Med) => ({ ...m, _import: true })))
 
       // ── A memória ────────────────────────────────────────────────────
-      // Guarda-se a leitura para a próxima vez dar o mesmo, e para o Phlox
-      // passar a conhecer a história de saúde de quem o usa. Quem tem cofre e
-      // pediu para guardar lá, vai também para o cofre visível.
-      if (user && hash && prefs?.memoria) {
-        const paraOCofre = !!prefs.guardarNoCofre
+      // Três coisas, por esta ordem: de quem é o documento, o que ele
+      // acrescenta ao que já se sabia dessa pessoa, e a leitura em si.
+      if (comMemoria && hash) {
+        const nomeNoDoc = String(j?.pessoa?.nome || '').trim()
+
+        // Quem decide de quem é o papel é lib/sujeitos, a partir do nome —
+        // não o modelo. Se fosse o modelo, a arrumação mudava de opinião
+        // entre chamadas, e juntar duas pessoas é um erro que não se desfaz.
+        const onde = await resolverSujeito(supabase, user.id, {
+          nomeNoDocumento: nomeNoDoc,
+          sujeitos: osSujeitos,
+          identidades,
+          perfilAtivoId: perfil?.id,
+        })
+        setArrumacao(onde)
+
+        if (onde.sujeito) {
+          const pendentes = Array.isArray(j.perguntas) ? j.perguntas.slice(0, 3) : []
+          setPerguntas(pendentes)
+          atualizarDossier(supabase, onde.sujeito, {
+            factos: j.factosNovos,
+            perguntas: pendentes,
+            fonte: j.title,
+            data: j.dataDoDocumento,
+          }).then(dossier => {
+            // O sujeito em memória tem de acompanhar, senão responder a uma
+            // pergunta logo a seguir escrevia por cima do dossier acabado de
+            // atualizar.
+            setArrumacao(a => (a?.sujeito ? { ...a, sujeito: { ...a.sujeito, dossier } } : a))
+          }, () => {})
+        }
+
+        const paraOCofre = !!prefs!.guardarNoCofre
         guardarLeitura(supabase, {
           userId: user.id, hash, analise: j, origem: 'scan',
-          perfilId: perfil?.type === 'family' && perfil.id !== 'self' ? perfil.id : null,
+          perfilId: onde.sujeito?.profile_id || null,
+          sujeitoId: onde.sujeito?.id || null,
+          nomeNoDocumento: nomeNoDoc,
           noCofre: paraOCofre,
         })
         if (paraOCofre) { guardarNoCofre(j).then(() => setGuardado(true), () => {}) }
@@ -302,13 +378,63 @@ export default function ExplicarPage() {
     try {
       const r = await fetch('/api/scan/perguntar', {
         method: 'POST', headers: await auth(),
-        body: JSON.stringify({ documento: res, pergunta: q, anteriores: conversa }),
+        body: JSON.stringify({
+          documento: res, pergunta: q, anteriores: conversa,
+          // O que já se sabe da pessoa. "E isto é grave?" tem uma resposta
+          // diferente conforme seja a primeira vez que o valor aparece
+          // alterado ou a terceira.
+          memoria: arrumacao?.sujeito
+            ? contextoParaIA([arrumacao.sujeito])
+            : '',
+        }),
       })
       const j = await r.json()
       setConversa(c => [...c, { q, r: r.ok ? (j.resposta || '') : (j.error || 'Não consegui responder.') }])
     } catch {
       setConversa(c => [...c, { q, r: 'Não consegui responder agora. Tenta outra vez.' }])
     } finally { setAPerguntar(false) }
+  }
+
+  /** A pessoa respondeu a uma das perguntas. Vale mais do que um papel: foi
+   *  ela que o disse, e é mais atual do que um relatório de há três meses. */
+  async function responder(pergunta: string, resposta: string) {
+    const suj = arrumacao?.sujeito
+    if (!suj || !resposta.trim()) return
+    setAResponder(pergunta)
+    const dossier = await responderPergunta(supabase, suj, pergunta, resposta.trim())
+    setArrumacao(a => (a?.sujeito ? { ...a, sujeito: { ...a.sujeito, dossier } } : a))
+    setPerguntas(ps => ps.filter(x => x.pergunta !== pergunta))
+    setRespostas(r => { const n = { ...r }; delete n[pergunta]; return n })
+    setAResponder('')
+  }
+
+  async function dispensar(pergunta: string) {
+    const suj = arrumacao?.sujeito
+    setPerguntas(ps => ps.filter(x => x.pergunta !== pergunta))
+    if (suj) {
+      const dossier = await dispensarPergunta(supabase, suj, pergunta)
+      setArrumacao(a => (a?.sujeito ? { ...a, sujeito: { ...a.sujeito, dossier } } : a))
+    }
+  }
+
+  /** Corrigir a arrumação. Sem isto, um nome mal lido metia os papéis de uma
+   *  pessoa na gaveta de outra e não havia forma de o desfazer. */
+  async function mudarPessoa(destino: Sujeito | null) {
+    if (!user || !res) return
+    setAMudarPessoa(false)
+    setArrumacao(a => (a ? { ...a, sujeito: destino, confianca: 'certa', confirmar: false, porque: 'corrigido por si', novo: false } : a))
+    if (destino) {
+      const dossier = await atualizarDossier(supabase, destino, {
+        factos: res.factosNovos, perguntas: res.perguntas, fonte: res.title, data: res.dataDoDocumento,
+      })
+      setArrumacao(a => (a?.sujeito ? { ...a, sujeito: { ...a.sujeito, dossier } } : a))
+    }
+    if (hashAtual) {
+      supabase.from('documentos_memoria')
+        .update({ sujeito_id: destino?.id || null })
+        .eq('user_id', user.id).eq('hash', hashAtual)
+        .then(() => {}, () => {})
+    }
   }
 
   const tipo = res ? (TIPOS[res.kind] || TIPOS.outro) : null
@@ -492,6 +618,65 @@ export default function ExplicarPage() {
                 }}>{res.emDuasLinhas}</p>
               )}
 
+              {/* ── De quem é este documento ────────────────────────────────
+                  Fica à vista e corrige-se num toque. Um documento arrumado na
+                  gaveta errada mistura a história de saúde de duas pessoas — e
+                  a partir daí tudo o que o Phlox disser sobre qualquer uma
+                  delas sai contaminado. É por isso que isto não é silencioso. */}
+              {arrumacao && (
+                <div style={{
+                  marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'flex-start', gap: 9, flexWrap: 'wrap',
+                }}>
+                  <span aria-hidden style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 1 }}>◆</span>
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                      {explicarArrumacao(arrumacao)}
+                    </div>
+                    {res.pessoa?.nome && arrumacao.confirmar && (
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>
+                        O documento diz <strong style={{ color: 'var(--ink-4)' }}>{res.pessoa.nome}</strong>.
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => setAMudarPessoa(v => !v)} style={{
+                    padding: '5px 10px', background: 'transparent', border: '1px solid var(--border)',
+                    borderRadius: 7, fontSize: 11.5, fontWeight: 650, color: 'var(--ink-4)',
+                    cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}>{aMudarPessoa ? 'Fechar' : 'Mudar'}</button>
+                </div>
+              )}
+
+              {aMudarPessoa && (
+                <div style={{
+                  marginTop: 10, padding: '11px 13px', background: 'var(--bg-2)',
+                  border: '1px solid var(--border)', borderRadius: 9,
+                }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 9, lineHeight: 1.5 }}>
+                    De quem é este documento? O que já se sabe de cada pessoa fica separado.
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {sujeitos.map(sj => (
+                      <button key={sj.id} onClick={() => mudarPessoa(sj)} style={{
+                        padding: '6px 11px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                        fontSize: 12, fontWeight: 650,
+                        border: `1px solid ${arrumacao?.sujeito?.id === sj.id ? 'var(--ink)' : 'var(--border)'}`,
+                        background: arrumacao?.sujeito?.id === sj.id ? 'var(--ink)' : 'white',
+                        color: arrumacao?.sujeito?.id === sj.id ? 'white' : 'var(--ink-3)',
+                      }}>
+                        {nomeCurto(sj.nome)}
+                        {sj.relacao === 'proprio' ? ' (eu)' : ''}
+                      </button>
+                    ))}
+                    <button onClick={() => mudarPessoa(null)} style={{
+                      padding: '6px 11px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 12, fontWeight: 650, border: '1px dashed var(--border)',
+                      background: 'white', color: 'var(--ink-5)',
+                    }}>Não guardar em ninguém</button>
+                  </div>
+                </div>
+              )}
+
               {(res.legibilidade || res.confidence === 'baixa') && (
                 <div style={{
                   marginTop: 13, padding: '10px 13px', background: '#fffbeb',
@@ -516,9 +701,23 @@ export default function ExplicarPage() {
               </div>
             )}
 
+            {/* ── O que isto muda no que já se sabia ──────────────────────
+                A parte que só existe por haver memória. Sem ela, o décimo
+                relatório de uma pessoa era lido com a ignorância do primeiro. */}
+            <Bloco titulo="Em relação ao que já sabia" quando={!!res.ligacoes?.length}>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {(res.ligacoes || []).map((x, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                    <span aria-hidden style={{ color: '#0d6e42', flexShrink: 0 }}>→</span>
+                    <span>{x}</span>
+                  </li>
+                ))}
+              </ul>
+            </Bloco>
+
             <Bloco titulo="O que importa" quando={!!res.oQueImporta?.length}>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {res.oQueImporta!.map((x, i) => (
+                {(res.oQueImporta || []).map((x, i) => (
                   <li key={i} style={{ display: 'flex', gap: 11, fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
                     <span aria-hidden style={{ color: ACCENT, flexShrink: 0, fontWeight: 700 }}>—</span>
                     <span style={{ textWrap: 'pretty' as any }}>{x}</span>
@@ -530,7 +729,7 @@ export default function ExplicarPage() {
             {/* o relatório reescrito */}
             <Bloco titulo="O documento, em simples" quando={!!res.secoes?.length}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {res.secoes!.map((s, i) => (
+                {(res.secoes || []).map((s, i) => (
                   <div key={i}>
                     <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--ink)', marginBottom: 4 }}>{s.titulo}</div>
                     <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{s.texto}</p>
@@ -542,7 +741,7 @@ export default function ExplicarPage() {
             {/* valores das análises */}
             <Bloco titulo="Valor a valor" quando={!!res.values?.length}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                {res.values!.map((v, i) => {
+                {(res.values || []).map((v, i) => {
                   const cor = COR_ESTADO[String(v.status || '').toLowerCase()] || 'var(--ink-4)'
                   return (
                     <div key={i} style={{ background: 'white', padding: '11px 13px' }}>
@@ -629,7 +828,7 @@ export default function ExplicarPage() {
             {/* glossário */}
             <Bloco titulo="As palavras difíceis" quando={!!res.termos?.length}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                {res.termos!.map((t, i) => (
+                {(res.termos || []).map((t, i) => (
                   <div key={i}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.termo}</span>
                     <span style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.55 }}> — {t.simples}</span>
@@ -640,7 +839,7 @@ export default function ExplicarPage() {
 
             <Bloco titulo="Para perguntar na consulta" quando={!!res.perguntasParaOMedico?.length}>
               <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {res.perguntasParaOMedico!.map((q, i) => (
+                {(res.perguntasParaOMedico || []).map((q, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
                     <span aria-hidden style={{ color: 'var(--ink-5)', flexShrink: 0 }}>{i + 1}.</span>
                     <span style={{ textWrap: 'pretty' as any }}>{q}</span>
@@ -649,9 +848,89 @@ export default function ExplicarPage() {
               </ul>
             </Bloco>
 
+            {/* ── As perguntas ────────────────────────────────────────────
+                Opcionais, e não se insiste. Saem do documento E do que já se
+                sabe da pessoa: é isso que faz a diferença entre "tem alguma
+                alergia?" (um formulário) e uma pergunta sobre o que estava no
+                papel do mês passado.
+
+                Uma resposta da própria pessoa vale mais do que um relatório:
+                é mais atual, e foi ela que o disse. */}
+            {!!perguntas.length && arrumacao?.sujeito && (
+              <div style={{
+                background: 'white', border: '1px solid var(--border)', borderRadius: 14,
+                padding: '18px 20px',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 6,
+                }}>Se quiser responder</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 14, maxWidth: '56ch' }}>
+                  Não é obrigatório. O que responder fica a saber-se sobre
+                  {' '}{nomeCurto(arrumacao.sujeito.nome)} e faz a próxima leitura ser melhor.
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {perguntas.map(pg => (
+                    <div key={pg.pergunta}>
+                      <div style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.5, fontWeight: 600 }}>
+                        {pg.pergunta}
+                      </div>
+                      {pg.porque && (
+                        <div style={{ fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.5, marginTop: 3 }}>{pg.porque}</div>
+                      )}
+
+                      {pg.tipo === 'sim_nao' || pg.tipo === 'escolha' ? (
+                        <div style={{ display: 'flex', gap: 7, marginTop: 9, flexWrap: 'wrap' }}>
+                          {(pg.tipo === 'sim_nao' ? ['Sim', 'Não', 'Não sei'] : (pg.opcoes || [])).map(op => (
+                            <button key={op} onClick={() => responder(pg.pergunta, op)} disabled={aResponder === pg.pergunta}
+                              style={{
+                                padding: '8px 15px', background: 'white', border: '1px solid var(--border)',
+                                borderRadius: 999, fontSize: 13, fontWeight: 650, color: 'var(--ink-2)',
+                                cursor: 'pointer', fontFamily: 'inherit',
+                              }}>{op}</button>
+                          ))}
+                          <button onClick={() => dispensar(pg.pergunta)} style={{
+                            padding: '8px 12px', background: 'transparent', border: 'none',
+                            fontSize: 12.5, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit',
+                          }}>Agora não</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 7, marginTop: 9, flexWrap: 'wrap' }}>
+                          <input
+                            value={respostas[pg.pergunta] || ''}
+                            onChange={e => setRespostas(r => ({ ...r, [pg.pergunta]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter') responder(pg.pergunta, respostas[pg.pergunta] || '') }}
+                            placeholder="A sua resposta…"
+                            style={{
+                              flex: 1, minWidth: 180, padding: '9px 13px', border: '1px solid var(--border)',
+                              borderRadius: 9, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'var(--bg-2)',
+                            }}
+                          />
+                          <button
+                            onClick={() => responder(pg.pergunta, respostas[pg.pergunta] || '')}
+                            disabled={!((respostas[pg.pergunta] || '').trim()) || aResponder === pg.pergunta}
+                            style={{
+                              padding: '9px 16px', background: (respostas[pg.pergunta] || '').trim() ? ACCENT : 'var(--bg-3)',
+                              color: (respostas[pg.pergunta] || '').trim() ? 'white' : 'var(--ink-4)',
+                              border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
+                              cursor: (respostas[pg.pergunta] || '').trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                            }}>Guardar</button>
+                          <button onClick={() => dispensar(pg.pergunta)} style={{
+                            padding: '9px 10px', background: 'transparent', border: 'none',
+                            fontSize: 12.5, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit',
+                          }}>Agora não</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Bloco titulo="A seguir" quando={!!res.aSeguir?.length}>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {res.aSeguir!.map((x, i) => (
+                {(res.aSeguir || []).map((x, i) => (
                   <li key={i} style={{ display: 'flex', gap: 11, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
                     <span aria-hidden style={{ color: ACCENT, flexShrink: 0 }}>→</span>
                     <span style={{ textWrap: 'pretty' as any }}>{x}</span>
@@ -733,6 +1012,14 @@ export default function ExplicarPage() {
 
 /** Um bloco do resultado. Só aparece quando tem conteúdo — um cartão vazio com
  *  um título é pior do que não ter cartão nenhum. */
+/** ATENCAO ao usar isto: `quando` esconde o bloco, mas NAO impede que os
+ *  filhos sejam avaliados. Em JSX, `<Bloco quando={false}>{x.map(...)}</Bloco>`
+ *  corre o `.map()` na mesma, antes de esta funcao sequer ser chamada. Se `x`
+ *  vier em falta, a pagina inteira vai abaixo com "Algo correu mal".
+ *
+ *  Foi o que aconteceu a 2026-09-17 com um campo novo (`ligacoes`) que as
+ *  leituras ja guardadas em memoria nao tinham. Por isso: SEMPRE `(x || [])`,
+ *  nunca `x!`. */
 function Bloco({ titulo, quando, children }: { titulo: string; quando: boolean; children: React.ReactNode }) {
   if (!quando) return null
   return (

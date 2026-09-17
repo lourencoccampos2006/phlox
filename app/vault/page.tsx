@@ -13,6 +13,10 @@ import Link from 'next/link'
 import { estiloFundoModal } from '@/lib/camadas'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 import { extractFromFile } from '@/lib/docExtract'
+import {
+  lerPreferencias, lerSujeitos, lerIdentidades, resolverSujeito,
+  atualizarDossier, contextoParaIA, explicarArrumacao,
+} from '@/lib/memoriaDocumentos'
 
 type VaultDoc = {
   id: string
@@ -345,7 +349,7 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
 }
 
 function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => void; onEdit: () => void }) {
-  const { supabase } = useAuth() as any
+  const { user, supabase } = useAuth() as any
   const meta = CATS.find(c => c.id === doc.category) || CATS[CATS.length - 1]
   // O tipo vem do ficheiro guardado (sprint147) ou, nos documentos antigos, do
   // cabeçalho do data: URL.
@@ -405,6 +409,7 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
   const [erroDecifrar, setErroDecifrar] = useState('')
 
   const [aFundo, setAFundo] = useState(false)
+  const [arrumado, setArrumado] = useState('')
   const [precisaPro, setPrecisaPro] = useState<string>('')
 
   /** O ficheiro em base64, venha ele do Storage ou de um data: URL antigo.
@@ -439,17 +444,31 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
       const { data: sd } = await supabase.auth.getSession()
       const cab = { 'Content-Type': 'application/json', Authorization: `Bearer ${sd?.session?.access_token || ''}` }
 
+      // ── O que ja se sabe ────────────────────────────────────────────
+      // O mesmo contexto que o Explicar usa. Um relatorio de dez paginas lido
+      // sem saber o que veio antes e dez paginas de estranho.
+      let contexto = ''
+      let memoriaLigada = false
+      if (user?.id) {
+        const prefs = await lerPreferencias(supabase, user.id, (user as any)?.plan || 'free')
+        memoriaLigada = prefs.memoria
+        if (memoriaLigada) {
+          const sjs = await lerSujeitos(supabase, user.id)
+          contexto = contextoParaIA(sjs)
+        }
+      }
+
       let r: Response
       if (fundo) {
         // O ficheiro, quando existe: é onde está o documento todo. O texto
         // colado é o segundo melhor.
         const bin = await ficheiroEmBase64()
         const dados = bin
-          ? { ...bin, titulo: doc.title }
-          : { texto: doc.body_text || '', titulo: doc.title }
+          ? { ...bin, titulo: doc.title, memoria: contexto }
+          : { texto: doc.body_text || '', titulo: doc.title, memoria: contexto }
         r = await fetch('/api/vault/analisar', { method: 'POST', headers: cab, body: JSON.stringify(dados) })
       } else {
-        r = await fetch('/api/scan', { method: 'POST', headers: cab, body: JSON.stringify({ text: (doc.body_text || '').slice(0, 24000) }) })
+        r = await fetch('/api/scan', { method: 'POST', headers: cab, body: JSON.stringify({ text: (doc.body_text || '').slice(0, 24000), memoria: contexto }) })
       }
 
       const t = await r.text()
@@ -458,6 +477,25 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
       if (r.status === 402) { setPrecisaPro(j?.detalhe || j?.error || ''); return }
       if (!r.ok) throw new Error(j?.error || 'Não consegui interpretar este documento.')
       setDecifrado(j)
+
+      // ── A arrumacao e o dossier ─────────────────────────────────────
+      // Mesma regra do Explicar: o nome no papel manda, e cada pessoa tem a
+      // sua gaveta. Um relatorio guardado no cofre por um familiar nao pode
+      // misturar-se com a historia de saude de quem o guardou.
+      if (memoriaLigada && user?.id) {
+        const [sjs, ids] = await Promise.all([lerSujeitos(supabase, user.id), lerIdentidades(supabase, user.id)])
+        const onde = await resolverSujeito(supabase, user.id, {
+          nomeNoDocumento: String(j?.pessoa?.nome || ''),
+          sujeitos: sjs, identidades: ids,
+        })
+        setArrumado(onde.sujeito ? explicarArrumacao(onde) : '')
+        if (onde.sujeito) {
+          atualizarDossier(supabase, onde.sujeito, {
+            factos: j.factosNovos, perguntas: j.perguntas,
+            fonte: j.title || doc.title, data: j.dataDoDocumento,
+          }).then(() => {}, () => {})
+        }
+      }
 
       // Guarda-se no documento. A próxima abertura mostra isto sem voltar a
       // perguntar à IA — e sem dar uma resposta diferente.
@@ -542,6 +580,14 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                     {aFundo ? 'Lido a fundo' : 'Explicado'}
                     {/* Dizer que a leitura é a de antes. Sem isto, quem abre o
                         documento não percebe porque é que já lá está. */}
+                    {/* Onde e que isto ficou arrumado. Um relatorio de outra
+                        pessoa guardado no cofre nao pode misturar-se com a
+                        historia de saude de quem o guardou. */}
+                    {arrumado && (
+                      <span style={{ textTransform: 'none', letterSpacing: 0, color: '#94a3b8', marginLeft: 8 }}>
+                        · {arrumado}
+                      </span>
+                    )}
                     {decifrado === doc.analise && doc.analise_em && (
                       <span style={{ textTransform: 'none', letterSpacing: 0, color: '#94a3b8', marginLeft: 8 }}>
                         · a leitura de {new Date(doc.analise_em).toLocaleDateString('pt-PT')}
@@ -552,6 +598,14 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                     <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16.5, lineHeight: 1.5, color: '#0b1120', margin: '0 0 12px', maxWidth: '54ch' }}>
                       {decifrado.emDuasLinhas}
                     </p>
+                  )}
+                  {!!decifrado.ligacoes?.length && (
+                    <div style={{ marginBottom: 12, paddingLeft: 11, borderLeft: '2px solid #0d6e42' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#0d6e42', marginBottom: 6 }}>Em relação ao que já sabia</div>
+                      {decifrado.ligacoes.map((x: string, i: number) => (
+                        <div key={i} style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6, padding: '2px 0' }}>{x}</div>
+                      ))}
+                    </div>
                   )}
                   {!!decifrado.oQueImporta?.length && (
                     <ul style={{ margin: '0 0 12px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>

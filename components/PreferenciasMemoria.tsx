@@ -19,6 +19,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react'
+import { lerSujeitos, type Sujeito } from '@/lib/memoriaDocumentos'
+import { nomeCurto } from '@/lib/sujeitos'
+import { contarDossier, normalizarDossier } from '@/lib/dossier'
 
 function Interruptor({ ligado, ocupado, onChange }: { ligado: boolean; ocupado: boolean; onChange: () => void }) {
   return (
@@ -53,6 +56,8 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
   const [erro, setErro] = useState('')
   const [perguntarApagar, setPerguntarApagar] = useState(false)
   const [apagado, setApagado] = useState(false)
+  const [gavetas, setGavetas] = useState<Sujeito[]>([])
+  const [aberta, setAberta] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     const { data, error } = await supabase
@@ -67,6 +72,8 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
     const { count, error: e2 } = await supabase
       .from('documentos_memoria').select('id', { count: 'exact', head: true }).eq('user_id', userId)
     if (!e2) setQuantos(count ?? 0)
+
+    setGavetas(await lerSujeitos(supabase, userId))
   }, [supabase, userId])
 
   useEffect(() => { carregar() }, [carregar])
@@ -102,9 +109,21 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
   async function apagarTudo() {
     setOcupado(true); setErro('')
     const { error } = await supabase.from('documentos_memoria').delete().eq('user_id', userId)
+    if (!error) await supabase.from('documentos_sujeitos').delete().eq('user_id', userId)
     setOcupado(false)
     if (error) { setErro('Não foi possível apagar. Tenta outra vez.'); return }
-    setQuantos(0); setPerguntarApagar(false); setApagado(true)
+    setQuantos(0); setGavetas([]); setPerguntarApagar(false); setApagado(true)
+  }
+
+  /** Esquecer uma pessoa. O documento fica (é a leitura, e pode ser precisa);
+   *  o que desaparece é o que se tinha aprendido sobre ela. */
+  async function esquecer(sujeito: Sujeito) {
+    setOcupado(true); setErro('')
+    const { error } = await supabase.from('documentos_sujeitos').delete().eq('id', sujeito.id)
+    setOcupado(false)
+    if (error) { setErro('Não foi possível esquecer essa pessoa. Tenta outra vez.'); return }
+    setGavetas(g => g.filter(x => x.id !== sujeito.id))
+    setAberta(null)
   }
 
   if (!carregado) return <div className="skeleton" style={{ height: 150, borderRadius: 10 }} />
@@ -164,6 +183,81 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
         <div style={{ fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.55, marginTop: 12, maxWidth: '60ch' }}>
           Com o plano Pro, os documentos analisados podem ir também para o cofre — onde
           os vê, procura e partilha com quem quiser.
+        </div>
+      )}
+
+      {/* ── O que o Phlox sabe, e de quem ──────────────────────────────────
+          Um documento que não é seu não pode ir para o mesmo sítio que os seus.
+          Cada pessoa de quem já se leu um papel tem a sua gaveta, e o que se
+          sabe de uma nunca informa o que se diz sobre outra.
+
+          Está aqui à vista por duas razões: para se perceber que a arrumação
+          existe, e para se poder desfazer quando estiver errada. */}
+      {gavetas.length > 0 && (
+        <div style={{ marginTop: 16, paddingTop: 15, borderTop: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 3 }}>
+            De quem o Phlox tem memória
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.55, marginBottom: 11, maxWidth: '58ch' }}>
+            Cada pessoa tem a sua. O que se sabe de uma nunca entra no que o Phlox diz sobre outra.
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+            {gavetas.map(g => {
+              const d = normalizarDossier(g.dossier)
+              const sabe = contarDossier(d)
+              const aberto = aberta === g.id
+              return (
+                <div key={g.id} style={{ background: 'white' }}>
+                  <button onClick={() => setAberta(aberto ? null : g.id)} style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px',
+                    background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--ink)' }}>
+                        {nomeCurto(g.nome)}
+                        {g.relacao === 'proprio' && (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-5)', marginLeft: 7 }}>você</span>
+                        )}
+                        {g.relacao === 'outro' && (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-5)', marginLeft: 7 }}>outra pessoa</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>
+                        {g.documentos} {g.documentos === 1 ? 'documento' : 'documentos'}
+                        {sabe > 0 ? ` · ${sabe} ${sabe === 1 ? 'coisa sabida' : 'coisas sabidas'}` : ' · nada guardado ainda'}
+                      </div>
+                    </div>
+                    <span aria-hidden style={{ fontSize: 11, color: 'var(--ink-5)' }}>{aberto ? '▲' : '▼'}</span>
+                  </button>
+
+                  {aberto && (
+                    <div style={{ padding: '0 14px 13px', fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+                      {!!d.condicoes.length && (
+                        <div style={{ marginBottom: 6 }}><strong style={{ color: 'var(--ink-4)' }}>Condições:</strong> {d.condicoes.map(c => c.nome + (c.estado === 'resolvido' ? ' (resolvido)' : '')).join(', ')}</div>
+                      )}
+                      {!!d.medicamentos.length && (
+                        <div style={{ marginBottom: 6 }}><strong style={{ color: 'var(--ink-4)' }}>Medicação:</strong> {d.medicamentos.map(m => m.nome + (m.detalhe ? ` ${m.detalhe}` : '') + (m.estado === 'parado' ? ' (já não toma)' : '')).join(', ')}</div>
+                      )}
+                      {!!d.valores.length && (
+                        <div style={{ marginBottom: 6 }}><strong style={{ color: 'var(--ink-4)' }}>Últimos valores:</strong> {d.valores.slice(0, 6).map(v => `${v.nome} ${v.valor}${v.unidade ? ' ' + v.unidade : ''}`).join(', ')}</div>
+                      )}
+                      {!!d.respostas.length && (
+                        <div style={{ marginBottom: 6 }}><strong style={{ color: 'var(--ink-4)' }}>Disse-me:</strong> {d.respostas.slice(-4).map(r => `${r.resposta}`).join('; ')}</div>
+                      )}
+                      {sabe === 0 && <div style={{ color: 'var(--ink-5)' }}>Ainda não há nada guardado sobre esta pessoa.</div>}
+
+                      <button onClick={() => esquecer(g)} disabled={ocupado} style={{
+                        marginTop: 9, background: 'none', border: 'none', padding: 0, color: '#b91c1c',
+                        fontSize: 12, fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
+                        textDecoration: 'underline', textUnderlineOffset: 3,
+                      }}>Esquecer esta pessoa</button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
