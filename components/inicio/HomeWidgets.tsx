@@ -20,6 +20,7 @@ import WidgetPickerModal from '@/components/inicio/WidgetPickerModal'
 import { activeWidgets, type HomeWidgetId } from '@/lib/homeWidgets'
 import { computeAdherenceOverview, type AdherenceMed, type AdherenceLog } from '@/lib/adherence'
 import type { ModeTheme } from '@/lib/modeTheme'
+import { reportError } from '@/lib/clientError'
 
 function relTime(iso: string): string {
   const d = new Date(iso)
@@ -79,8 +80,9 @@ function SymptomsWidget({ t }: { t: ModeTheme }) {
   const load = useCallback(async () => {
     if (!user || !supabase) return
     const since = new Date(); since.setHours(0, 0, 0, 0)
-    const { data } = await supabase.from('symptom_logs').select('feeling, at').eq('user_id', user.id).is('profile_id', null)
+    const { data, error: erroLeitura } = await supabase.from('symptom_logs').select('feeling, at').eq('user_id', user.id).is('profile_id', null)
       .gte('at', since.toISOString()).order('at', { ascending: false }).limit(1)
+    if (erroLeitura) reportError('home-symptoms', erroLeitura)
     setToday(data && data[0] ? data[0] : null)
   }, [user, supabase])
   useEffect(() => { load() }, [load])

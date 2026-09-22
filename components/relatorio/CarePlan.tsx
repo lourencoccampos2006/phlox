@@ -10,6 +10,7 @@ import { useState } from 'react'
 import ProfileSelector from '@/components/ProfileSelector'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { lerMedsDoPerfil } from '@/lib/medsDoPerfil'
 
 interface CarePlanData {
   profile_summary: string
@@ -135,12 +136,14 @@ export default function CarePlan() {
     setProfileId(p.id === 'self' ? null : p.id)
     if (p.name) setPatientName(p.name)
     if (!supabase) return
-    const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
-    const col   = p.id === 'self' ? 'user_id' : 'profile_id'
-    const id    = p.id === 'self' ? user?.id : p.id
-    const { data } = await supabase.from(table).select('name, dose, frequency, indication').eq(col, id)
-    if (data?.length) {
-      setMeds(data.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.frequency ? ' ' + m.frequency : ''}${m.indication ? ' (indicação: ' + m.indication + ')' : ''}`).join('\n'))
+    const leitura = await lerMedsDoPerfil(supabase, p, (user as any)?.id,
+      { comIndicacao: true, codigo: 'careplan-meds' })
+    if (leitura.falhou) { setError(leitura.aviso); return }
+    setError('')
+    if (leitura.meds.length) {
+      setMeds(leitura.meds
+        .map(m => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.frequency ? ' ' + m.frequency : ''}${m.indication ? ' (indicação: ' + m.indication + ')' : ''}`)
+        .join('\n'))
     }
     if (p.id !== 'self' && p.conditions) setConditions(p.conditions)
   }

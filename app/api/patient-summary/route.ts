@@ -56,18 +56,27 @@ export async function POST(req: NextRequest) {
   if (Array.isArray(body.meds)) {
     meds = body.meds
   } else {
-    try {
-      if (body.profileType === 'patient' && body.profileId) {
-        const { data } = await supabase.from('patient_meds').select('name, dose, frequency').eq('patient_id', body.profileId)
-        meds = data || []
-      } else if (body.profileType === 'family' && body.profileId) {
-        const { data } = await supabase.from('family_profile_meds').select('name, dose, frequency').eq('profile_id', body.profileId)
-        meds = data || []
-      } else {
-        const { data } = await supabase.from('personal_meds').select('name, dose, frequency').eq('user_id', userId)
-        meds = data || []
-      }
-    } catch { /* tabela pode variar — segue sem meds */ }
+    // A leitura pode falhar (uma coluna que não existe chega para o PostgREST
+    // recusar o select inteiro e devolver data:null). Um resumo clínico que
+    // diz "sem medicação" quando a leitura falhou é pior do que um resumo que
+    // recusa sair: quem o lê acredita nele.
+    const fonte = body.profileType === 'patient' && body.profileId
+      ? { tabela: 'patient_meds', coluna: 'patient_id', chave: body.profileId }
+      : body.profileType === 'family' && body.profileId
+        ? { tabela: 'family_profile_meds', coluna: 'profile_id', chave: body.profileId }
+        : { tabela: 'personal_meds', coluna: 'user_id', chave: userId }
+
+    const { data, error } = await supabase
+      .from(fonte.tabela).select('name, dose, frequency').eq(fonte.coluna, fonte.chave)
+
+    if (error) {
+      console.error('[phlox:patient-summary-meds]', fonte.tabela, error)
+      return NextResponse.json({
+        error: 'Não consegui ler a medicação desta pessoa, por isso não faço o resumo.',
+        detalhe: 'Um resumo sem a medicação dá a entender que ela não existe. Tenta outra vez.',
+      }, { status: 503 })
+    }
+    meds = data || []
   }
 
   const demo = [

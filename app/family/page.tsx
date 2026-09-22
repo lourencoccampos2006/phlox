@@ -6,7 +6,7 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
-import { reportError, MSG } from '@/lib/clientError'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import { useToast } from '@/components/Toast'
 import Icon from '@/components/Icon'
 
@@ -135,8 +135,9 @@ export default function FamilyPage() {
   const [unreadByPt, setUnreadByPt] = useState<Record<string, number>>({})
   const loadUnread = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase.from('family_thread_messages')
+    const { data, error: erroLeitura1 } = await supabase.from('family_thread_messages')
       .select('patient_id').eq('user_id', user.id).eq('author_side', 'family').eq('read_by_staff', false)
+    if (erroLeitura1) reportError('family-read', erroLeitura1)
     const counts: Record<string, number> = {}
     ;(data || []).forEach((r: any) => { counts[r.patient_id] = (counts[r.patient_id] || 0) + 1 })
     setUnreadByPt(counts)
@@ -660,6 +661,8 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   const [photo, setPhoto] = useState<File | null>(null)
   const [wb, setWb] = useState<{ mood?: string; meals?: string; activity?: string }>({})
   const [sending, setSending] = useState(false)
+  // O recado nao saiu. Mostra-se ao lado do botao, e a caixa NAO se limpa.
+  const [erroEnvio, setErroEnvio] = useState('')
   const [prefilling, setPrefilling] = useState(false)
   const [extrasOpen, setExtrasOpen] = useState(false)
   const [ptSearch, setPtSearch] = useState('')
@@ -695,8 +698,9 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
     setLoading(true)
     // Por patient_id (o utente já é partilhado pela org) — evita o caso de mensagens
     // ligadas a outro user_id da equipa não aparecerem.
-    const { data } = await supabase.from('family_thread_messages').select('*')
+    const { data, error: erroLeitura2 } = await supabase.from('family_thread_messages').select('*')
       .eq('patient_id', pid).order('created_at', { ascending: true })
+    if (erroLeitura2) reportError('family-read', erroLeitura2)
     setMsgs(data || [])
     setLoading(false)
     // marcar respostas da família como lidas pela equipa
@@ -761,8 +765,17 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
         read_by_family: false,
       }
       if (orgId) { row.org_id = orgId; row.recorded_by_id = user.id }  // partilha + auditoria na equipa
-      const { data } = await supabase.from('family_thread_messages').insert(row).select().single()
-      if (data) setMsgs(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+      setErroEnvio('')
+      const { data, error } = await supabase.from('family_thread_messages').insert(row).select().single()
+      if (error || !data) {
+        // NAO se limpa a caixa. Quem escreveu um recado e o viu desaparecer
+        // conclui que foi enviado -- e a familia nunca o recebeu.
+        setErroEnvio(reportError('family-msg-insert', error,
+          isSetupError(error) ? MSG.unavailable
+            : 'A mensagem não foi enviada. O que escreveu continua aqui — tente de novo.'))
+        return
+      }
+      setMsgs(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
       setText(''); setPhoto(null); setWb({}); setMode('message')
     } finally { setSending(false) }
   }
@@ -773,9 +786,10 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
     setPrefilling(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      const { data } = await supabase.from('care_records').select('vitals,mood,nutrition,date,created_at')
+      const { data, error: erroLeitura3 } = await supabase.from('care_records').select('vitals,mood,nutrition,date,created_at')
         .eq('user_id', user.id).eq('patient_id', patientId).eq('date', today)
         .order('created_at', { ascending: false }).limit(1)
+      if (erroLeitura3) reportError('family-read', erroLeitura3)
       const rec = (data || [])[0]
       const next: { mood?: string; meals?: string; activity?: string } = {}
       if (rec?.mood?.level != null) next.mood = rec.mood.level >= 4 ? 'bom' : rec.mood.level === 3 ? 'razoavel' : 'mau'
@@ -966,6 +980,12 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
                 {sending ? '…' : '➤'}
               </button>
             </div>
+            {erroEnvio && (
+              <div style={{
+                padding: '9px 14px', background: '#fff5f5', borderTop: '1px solid #fed7d7',
+                fontSize: 12.5, color: '#c53030', lineHeight: 1.5,
+              }}>{erroEnvio}</div>
+            )}
             {photo && <div style={{ fontSize: 12, color: '#0d6e42', padding: '6px 14px', background: '#f0f2f5' }}>📎 {photo.name} — será enviada <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>remover</button></div>}
           </>
         )}

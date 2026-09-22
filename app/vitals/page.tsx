@@ -131,9 +131,10 @@ export default function VitalsPage() {
   const loadWater = useCallback(async () => {
     if (!user) return
     const since = new Date(Date.now() - 7 * 86400000).toISOString()
-    const { data } = await supabase.from('hydration_logs')
+    const { data, error: erroLeitura } = await supabase.from('hydration_logs')
       .select('id,at,fluid_ml').eq('user_id', user.id).eq('kind', 'fluid')
       .gte('at', since).order('at', { ascending: false }).limit(100)
+    if (erroLeitura) reportError('hydration-logs', erroLeitura)
     setWaterLogs(data || [])
   }, [user, supabase])
   useEffect(() => { loadWater() }, [loadWater])

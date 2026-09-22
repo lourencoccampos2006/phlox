@@ -5,7 +5,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { callGeminiVisionJSON, aiJSON } from '@/lib/ai'
 import { getIP, checkRateLimit, rateLimitResponse } from '@/lib/rateLimit'
 
-export const maxDuration = 45
+// 120s e nao menos: esta rota le uma imagem ou escreve uma resposta longa, e
+// no pior caso a escada de IA tenta mais do que um modelo. Um tecto curto
+// aqui nao poupa nada -- so troca uma resposta lenta por um 504 sem mensagem.
+export const maxDuration = 120
 
 const SCHEMA_HINT = `Responde APENAS JSON válido, PT-PT:
 {

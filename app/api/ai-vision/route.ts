@@ -3,6 +3,15 @@ import { callGeminiVision } from '@/lib/ai'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { getUserPlan } from '@/lib/planGate'
 
+// ── Quanto tempo esta rota pode demorar ─────────────────────────────────────
+// O tecto geral de `app/api/**` no vercel.json é 60s, e não chega aqui: ler uma
+// fotografia ou um PDF é a operação mais lenta que a app faz, e a escada de IA
+// pode ter de tentar mais do que um modelo. O `maxDuration` é um corte seco —
+// a Vercel mata a função e quem está do outro lado recebe um 504 sem uma frase
+// que explique nada.
+export const maxDuration = 120
+
+
 // POST /api/ai-vision — análise multimodal: imagem (base64) + pergunta opcional.
 // Para o Phlox AI permitir enviar fotos (medicamento, bula, análise, ferida, etc).
 // Devolve resposta em texto (markdown).

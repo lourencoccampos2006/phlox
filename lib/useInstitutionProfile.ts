@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { getActiveOrgId } from '@/lib/orgContext'
+import { reportError } from '@/lib/clientError'
 
 // Perfil "da instituição" para branding do layout clínico.
 // Prioridade: organização ativa (multi-org) → institution_settings (legado).
@@ -44,11 +45,12 @@ export function useInstitutionProfile() {
 
       if (orgId) {
         try {
-          const { data } = await supabase
+          const { data, error: erroLeitura1 } = await supabase
             .from('organizations')
             .select('name, short_name, kind, logo_url, accent_color, address, phone, email, director, total_beds, vat_number')
             .eq('id', orgId)
             .maybeSingle()
+          if (erroLeitura1) reportError('institution-profile', erroLeitura1)
           if (data) {
             merged = {
               name: data.name,
@@ -66,11 +68,12 @@ export function useInstitutionProfile() {
           }
         } catch { /* coluna em falta noutro esquema — tenta selecção mínima */
           try {
-            const { data } = await supabase
+            const { data, error: erroLeitura2 } = await supabase
               .from('organizations')
               .select('name, kind')
               .eq('id', orgId)
               .maybeSingle()
+            if (erroLeitura2) reportError('institution-profile', erroLeitura2)
             if (data) merged = { name: data.name, type: data.kind }
           } catch { /* ignore */ }
         }
@@ -78,7 +81,8 @@ export function useInstitutionProfile() {
 
       // 2) Fallback / complemento: institution_settings (legado, por user)
       try {
-        const { data } = await supabase.from('institution_settings').select('*').eq('user_id', user.id).maybeSingle()
+        const { data, error: erroLeitura3 } = await supabase.from('institution_settings').select('*').eq('user_id', user.id).maybeSingle()
+        if (erroLeitura3) reportError('institution-profile', erroLeitura3)
         if (data) {
           merged = { ...data, ...Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== '')) }
         }

@@ -24,7 +24,11 @@ const PDFJS_VERSION = '4.5.136'
 const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`
 
 let pdfJsLoaded: Promise<any> | null = null
-function loadPdfJs(): Promise<any> {
+/** O pdf.js, carregado uma vez. Exportado porque serve para duas coisas:
+ *  tirar o TEXTO de um PDF (aqui em baixo) e DESENHÁ-LO página a página
+ *  (components/VisualizadorPDF) — os browsers de telemóvel não mostram PDFs
+ *  dentro de um iframe, por isso desenhar é a única forma de os ver. */
+export function loadPdfJs(): Promise<any> {
   if (pdfJsLoaded) return pdfJsLoaded
   pdfJsLoaded = new Promise((resolve, reject) => {
     if (typeof window === 'undefined') return reject(new Error('Só no browser'))

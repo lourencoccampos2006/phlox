@@ -18,10 +18,19 @@ export async function GET(req: NextRequest) {
   const { data: owned } = await supabase.from('family_profiles').select('id').eq('id', profileId).eq('user_id', userId).maybeSingle()
   if (!owned) return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 404 })
 
-  const { data } = await supabase.from('family_profile_shares')
+  const { data, error: erroPartilhas } = await supabase.from('family_profile_shares')
     .select('id, code, created_at, redeemed_at, revoked_at, viewer_user_id, role')
     .eq('profile_id', profileId).eq('owner_user_id', userId)
     .order('created_at', { ascending: false })
+
+  // "Ninguém tem acesso a este perfil" é uma afirmação sobre privacidade. Se a
+  // leitura falhou, não se diz — pergunta-se outra vez.
+  if (erroPartilhas) {
+    console.error('[phlox:family-share-list]', erroPartilhas)
+    return NextResponse.json({
+      error: 'Não consegui ver quem tem acesso a este perfil. Tenta outra vez.',
+    }, { status: 503 })
+  }
 
   const viewerIds = Array.from(new Set((data || []).map(s => s.viewer_user_id).filter(Boolean)))
   let viewerName: Record<string, string> = {}

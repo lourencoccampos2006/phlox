@@ -87,7 +87,8 @@ function DocumentosTool() {
     } finally { setSaving(false) }
   }
   async function open(d: Doc) {
-    const { data } = await supabase.storage.from('documents').createSignedUrl(d.file_path, 120)
+    const { data, error: erroLeitura } = await supabase.storage.from('documents').createSignedUrl(d.file_path, 120)
+    if (erroLeitura) reportError('documentos-signed-url', erroLeitura)
     if (data?.signedUrl) window.open(data.signedUrl, '_blank')
     else alert('Não foi possível abrir o documento.')
   }

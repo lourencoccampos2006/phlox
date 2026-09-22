@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { logStudy, setLastTool } from '@/lib/studyProgress'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 
 interface GrandRoundCase {
   id: string
@@ -105,6 +106,8 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
   const [submitting, setSubmitting] = useState(false)
   const [voted, setVoted] = useState(c.my_vote)
   const [votes, setVotes] = useState(c.votes)
+  // A escrita falhou: diz-se, e nao se limpa o que a pessoa escreveu.
+  const [erroEnvio, setErroEnvio] = useState('')
   const diff = DIFF_META[c.difficulty]
 
   useEffect(() => {
@@ -126,11 +129,19 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
   const submitComment = async () => {
     if (!comment.trim() || submitting) return
     setSubmitting(true)
-    const { data } = await supabase.from('grand_round_comments').insert({
+    const { data, error } = await supabase.from('grand_round_comments').insert({
       case_id: c.id, user_id: userId, author_name: myName,
       author_role: myRole || null, content: comment.trim(), votes: 0
     }).select().single()
-    if (data) setComments(p => [data, ...p])
+    if (error || !data) {
+      // O comentario fica escrito. Limpa-lo era perder o que a pessoa pensou.
+      setErroEnvio(reportError('gr-comment-insert', error,
+        isSetupError(error) ? MSG.unavailable : 'O comentário não foi publicado. Continua aqui — tente de novo.'))
+      setSubmitting(false)
+      return
+    }
+    setErroEnvio('')
+    setComments(p => [data, ...p])
     setComment('')
     setSubmitting(false)
   }
@@ -231,6 +242,13 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
             style={{ padding: '9px 18px', background: comment.trim() ? 'var(--ink)' : 'var(--bg-3)', color: comment.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
             Comentar
           </button>
+          {erroEnvio && (
+            <div style={{
+              marginTop: 8, padding: '8px 12px', background: '#fff5f5',
+              border: '1px solid #fed7d7', borderRadius: 7,
+              fontSize: 12.5, color: '#c53030', lineHeight: 1.5,
+            }}>{erroEnvio}</div>
+          )}
         </div>
         {comments.map(cm => (
           <div key={cm.id} style={{ padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 9, marginBottom: 6 }}>
@@ -270,8 +288,9 @@ export default function GrandRoundPage() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
-    const { data } = await supabase.from('grand_round_cases')
+    const { data, error: erroLeitura1 } = await supabase.from('grand_round_cases')
       .select('*').order('votes', { ascending: false }).limit(30)
+    if (erroLeitura1) reportError('grand-round-read', erroLeitura1)
     setCases(data || [])
     setLoading(false)
   }, [user, supabase])
@@ -282,7 +301,7 @@ export default function GrandRoundPage() {
     if (!user || !form.title.trim() || !form.presentation.trim()) return
     setSubmitting(true)
     const { data: profile } = await supabase.from('profiles').select('display_name, professional_role').eq('id', user.id).single()
-    const { data } = await supabase.from('grand_round_cases').insert({
+    const { data, error: erroLeitura2 } = await supabase.from('grand_round_cases').insert({
       title: form.title, presentation: form.presentation,
       key_findings: form.key_findings.split('\n').filter(Boolean),
       question: form.question, specialty: form.specialty,
@@ -296,6 +315,7 @@ export default function GrandRoundPage() {
       management: form.management || null,
       learning_points: form.learning_points ? form.learning_points.split('\n').filter(Boolean) : null,
     }).select().single()
+    if (erroLeitura2) reportError('grand-round-read', erroLeitura2)
     if (data) { setCases(p => [data, ...p]); setComposing(false) }
     setSubmitting(false)
   }

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import SaveButton from '@/components/SaveButton'
 import { consumeReopen } from '@/lib/saves'
+import { lerMedsDoPerfil, medsComoTexto } from '@/lib/medsDoPerfil'
 
 // Ferramenta para TODOS: cola a lista de medicamentos, recebe análise em PT simples
 // Sem conta, sem fricção. O hook para converter pessoas normais e médicos ocupados.
@@ -52,12 +53,10 @@ export default function QuickCheckPage() {
   const handleProfileChange = async (p: any) => {
     setActiveProfileState(p)
     if (!supabase) return
-    const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
-    const col   = p.id === 'self' ? 'user_id' : 'profile_id'
-    const { data } = await supabase.from(table).select('name, dose, frequency').eq(col, p.id === 'self' ? user?.id : p.id)
-    if (data?.length) {
-      setInput(data.map((m: any) => `${m.name}${m.dose ? ` ${m.dose}` : ''}${m.frequency ? ` ${m.frequency}` : ''}`).join('\n'))
-    }
+    const leitura = await lerMedsDoPerfil(supabase, p, (user as any)?.id, { codigo: 'quickcheck-meds' })
+    if (leitura.falhou) { setError(leitura.aviso); return }
+    setError('')
+    if (leitura.meds.length) setInput(medsComoTexto(leitura.meds))
   }
 
   const analyse = async (text?: string) => {

@@ -14,7 +14,10 @@ import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { aiJSON } from '@/lib/ai'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+// 120s e nao menos: esta rota le uma imagem ou escreve uma resposta longa, e
+// no pior caso a escada de IA tenta mais do que um modelo. Um tecto curto
+// aqui nao poupa nada -- so troca uma resposta lenta por um 504 sem mensagem.
+export const maxDuration = 120
 
 const CATEGORIAS = ['carne', 'peixe', 'vegetariano', 'sopa', 'doce', 'fruta', 'outro']
 

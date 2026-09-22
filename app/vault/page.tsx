@@ -8,11 +8,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
-import { reportError } from '@/lib/clientError'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import Link from 'next/link'
 import { estiloFundoModal } from '@/lib/camadas'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
 import { extractFromFile } from '@/lib/docExtract'
+import { CATEGORIAS_COFRE } from '@/lib/cofre'
+import VisualizadorPDF from '@/components/VisualizadorPDF'
 import {
   lerPreferencias, lerSujeitos, lerIdentidades, resolverSujeito,
   atualizarDossier, contextoParaIA, explicarArrumacao,
@@ -38,15 +40,9 @@ type VaultDoc = {
   created_at: string
 }
 
-const CATS: { id: string; label: string; icon: string; color: string }[] = [
-  { id: 'exam',         label: 'Análises',      icon: '🧪', color: '#0891b2' },
-  { id: 'prescription', label: 'Receita',       icon: '📄', color: '#7c3aed' },
-  { id: 'imaging',      label: 'Imagiologia',   icon: '🔬', color: '#0d6e42' },
-  { id: 'vaccine',      label: 'Vacina',        icon: '💉', color: '#16a34a' },
-  { id: 'report',       label: 'Relatório',     icon: '📋', color: '#475569' },
-  { id: 'letter',       label: 'Carta',         icon: '✉',  color: '#b45309' },
-  { id: 'other',        label: 'Outro',         icon: '📁', color: '#94a3b8' },
-]
+// A lista vive em lib/cofre, a par do `check` da base de dados. Duas cópias
+// da mesma lista foi exatamente o que partiu o "Guardar no cofre".
+const CATS = CATEGORIAS_COFRE as unknown as { id: string; label: string; icon: string; color: string }[]
 
 export default function VaultPage() {
   const { user, supabase } = useAuth()
@@ -59,13 +55,25 @@ export default function VaultPage() {
   const [viewing, setViewing] = useState<VaultDoc | null>(null)
   const [addingNew, setAddingNew] = useState(false)
   const [sharing, setSharing] = useState<VaultDoc | null>(null)
+  // "Vazio" e "nao consegui ler" nao sao a mesma coisa, e num cofre a
+  // diferenca e entre estar tudo bem e ter-se perdido tudo.
+  const [erroCarregar, setErroCarregar] = useState('')
   const plan = ((user as any)?.plan || 'free') as string
   const canUse = plan !== 'free'
 
   async function refresh() {
     if (!user?.id) return
-    const { data } = await supabase.from('health_vault')
+    const { data, error } = await supabase.from('health_vault')
       .select('*').order('pinned', { ascending: false }).order('updated_at', { ascending: false }).limit(200)
+    // Um cofre que aparece vazio por causa de um erro de leitura faz parecer
+    // que os documentos se perderam. Isso nao se diz sem ser verdade.
+    if (error) {
+      setErroCarregar(reportError('vault-refresh', error,
+        isSetupError(error) ? MSG.unavailable : 'Não consegui abrir o cofre agora. Os documentos estão guardados — tente de novo.'))
+      setLoading(false)
+      return
+    }
+    setErroCarregar('')
     setItems(data || [])
     setLoading(false)
   }
@@ -149,6 +157,17 @@ export default function VaultPage() {
 
         {loading ? (
           <div style={{ background: 'white', borderRadius: 14, padding: 36, textAlign: 'center', color: '#94a3b8' }}>A carregar…</div>
+        ) : erroCarregar ? (
+          /* Um cofre que parece vazio por causa de um erro faz pensar que os
+             documentos se perderam. Diz-se o que se passa, e oferece-se voltar
+             a tentar — o que nao se faz e chamar-lhe "vazio". */
+          <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 12, padding: 28, textAlign: 'center' }}>
+            <div style={{ fontSize: 13.5, color: '#c53030', lineHeight: 1.6, marginBottom: 12 }}>{erroCarregar}</div>
+            <button onClick={() => { setLoading(true); refresh() }} style={{
+              padding: '9px 18px', background: 'white', border: '1px solid #fca5a5', borderRadius: 8,
+              fontSize: 13, fontWeight: 700, color: '#c53030', cursor: 'pointer', fontFamily: 'inherit',
+            }}>Tentar de novo</button>
+          </div>
         ) : filtered.length === 0 ? (
           <div style={{ background: 'white', border: '1px dashed #cbd5e1', borderRadius: 12, padding: 36, textAlign: 'center', color: '#94a3b8' }}>
             {items.length === 0 ? 'Cofre vazio — adiciona o primeiro documento.' : 'Nenhum resultado.'}
@@ -367,9 +386,13 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
   // todas, zoom, procura, imprimir. O URL é revogado ao fechar, senão fica a
   // segurar o ficheiro em memória.
   const [urlFicheiro, setUrlFicheiro] = useState<string | null>(null)
+  // Os bytes, para o VisualizadorPDF os desenhar página a página. O URL sozinho
+  // não chega: um iframe com um PDF não funciona em browsers de telemóvel.
+  const [bytesFicheiro, setBytesFicheiro] = useState<Blob | null>(null)
   useEffect(() => {
     let url: string | null = null
     let vivo = true
+    setBytesFicheiro(null)
 
     // O caminho novo: o ficheiro está no bucket privado. Descarrega-se com a
     // sessão da pessoa e faz-se um blob — pela mesma razão do data: URL abaixo,
@@ -381,6 +404,7 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
         if (error || !data) { setUrlFicheiro(null); return }
         url = URL.createObjectURL(data)
         setUrlFicheiro(url)
+        setBytesFicheiro(data)
       })
       return () => { vivo = false; if (url) URL.revokeObjectURL(url) }
     }
@@ -392,8 +416,10 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
       const bin = atob(dados)
       const bytes = new Uint8Array(bin.length)
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-      url = URL.createObjectURL(new Blob([bytes], { type: tipo }))
+      const blob = new Blob([bytes], { type: tipo })
+      url = URL.createObjectURL(blob)
       setUrlFicheiro(url)
+      setBytesFicheiro(blob)
     } catch {
       setUrlFicheiro(doc.body_url)   // se algo correr mal, o comportamento antigo
     }
@@ -548,9 +574,14 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
 
           {/* Preview do ficheiro */}
           {(doc.body_url || doc.storage_path) && (
-            <div style={{ flex: 1, background: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: isPdf ? 520 : 320 }}>
+            <div style={{
+              flex: 1, background: '#0b1120', minHeight: isPdf ? 420 : 320,
+              // Um PDF desenhado em canvas empilha as páginas e cresce para
+              // baixo: não se centra nem se limita a altura, deixa-se rolar.
+              ...(isPdf ? {} : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+            }}>
               {isPdf ? (
-                <iframe src={urlFicheiro || undefined} title={doc.title} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} />
+                <VisualizadorPDF dados={bytesFicheiro} url={urlFicheiro} nome={doc.file_name || doc.title} />
               ) : isImage ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={urlFicheiro || doc.body_url || undefined} alt={doc.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />

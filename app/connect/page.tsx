@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -568,6 +569,8 @@ export default function ConnectPage() {
   const [selected, setSelected] = useState<ClinicalConsult | null>(null)
   const [myRole, setMyRole] = useState<UserRole>('pharmacist')
   const [tab, setTab] = useState<'inbox' | 'sent' | 'all'>('inbox')
+  // A escrita falhou: diz-se, e não se limpa o que a pessoa escreveu.
+  const [erroEnvio, setErroEnvio] = useState('')
 
   const plan = (user?.plan || 'free') as string
   const isPro = plan === 'pro' || plan === 'clinic'
@@ -610,11 +613,19 @@ export default function ConnectPage() {
 
   const handleSubmit = async (c: Partial<ClinicalConsult>) => {
     if (!user) return
-    const { data } = await supabase.from('clinical_consults').insert({
+    const { data, error } = await supabase.from('clinical_consults').insert({
       ...c, from_user_id: user.id,
       from_name: user.name || user.email || 'Profissional',
     }).select().single()
-    if (data) { setConsults(p => [data, ...p]); setComposing(false) }
+    if (error || !data) {
+      // O formulario fica ABERTO, com o que foi escrito. Fecha-lo daria a
+      // entender que o pedido seguiu.
+      setErroEnvio(reportError('connect-insert', error,
+        isSetupError(error) ? MSG.unavailable : 'O pedido não foi enviado. O que escreveu continua aqui.'))
+      return
+    }
+    setErroEnvio('')
+    setConsults(p => [data, ...p]); setComposing(false)
   }
 
   const updateConsult = (updated: ClinicalConsult) => {
@@ -711,6 +722,13 @@ export default function ConnectPage() {
             <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', background: '#fffbeb' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>A redigir nova consulta...</div>
             </div>
+          )}
+          {/* O pedido nao saiu. Fica dito aqui, com o formulario ainda aberto. */}
+          {erroEnvio && (
+            <div style={{
+              padding: '10px 14px', borderBottom: '1px solid #fed7d7', background: '#fff5f5',
+              fontSize: 12.5, color: '#c53030', lineHeight: 1.5,
+            }}>{erroEnvio}</div>
           )}
           {loading ? (
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>

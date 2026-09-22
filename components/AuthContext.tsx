@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
 import { ensureUserScope, clearUserScopeOnSignOut, ensureProfileMatchesMode } from '@/lib/userScope'
+import { comVigilancia } from '@/lib/supabaseVigiado'
 
 // Cria o cliente uma vez, fora do componente, ao nível do módulo
 // Isto garante que é o mesmo cliente em toda a app independentemente de renders
@@ -17,6 +18,19 @@ const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+    },
+    // ── Uma consulta que falha deixa de poder falhar em silêncio ───────────
+    // O cliente do Supabase devolve `{ data, error }` em vez de lançar, e há
+    // 239 sítios na app escritos como `const { data } = await …` — que atiram
+    // o erro ao chão. Quando o PostgREST recusa um select (uma coluna que não
+    // existe chega), o `data` vem null e a página mostra uma lista vazia: a
+    // avaria fica com a cara de "não há nada".
+    //
+    // Foi assim que as notificações de medicação estiveram semanas caladas.
+    // Daqui para a frente, qualquer resposta de erro aparece na consola com a
+    // tabela e a mensagem real. Ver lib/supabaseVigiado.
+    global: {
+      fetch: comVigilancia(),
     },
   }
 )

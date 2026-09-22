@@ -11,6 +11,7 @@ import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, currentShiftFor } from '@/lib/institutionConfig'
+import { reportError } from '@/lib/clientError'
 
 const ACCENT = '#0d6e42'
 interface Assignment { id: string; patient_id: string; assigned_to: string; assigned_name: string; status: 'pending' | 'done' | 'skipped'; attended_by?: string | null; attended_name?: string | null; outcome?: string | null }
@@ -62,7 +63,8 @@ export default function RondaCoordenadaPage() {
       if (r.round) {
         const ids = (r.assignments || []).map((a: Assignment) => a.patient_id)
         if (ids.length) {
-          const { data } = await supabase.from('patients').select('id, name').in('id', ids)
+          const { data, error: erroLeitura } = await supabase.from('patients').select('id, name').in('id', ids)
+          if (erroLeitura) reportError('ronda-patients', erroLeitura)
           const m: Record<string, Patient> = {}; (data || []).forEach((p: Patient) => { m[p.id] = p }); setPatients(m)
         }
       }

@@ -11,6 +11,12 @@ import { QUIZ_RULES_PT, inspectQuestion } from '@/lib/quizQuality'
 import { getUserPlan } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
+// ── Quanto tempo esta rota pode demorar ─────────────────────────────────────
+// Respostas longas (um plano de estudo, um quiz de vinte perguntas, um
+// documento processado) não caem nos 60s do tecto geral de `app/api/**`.
+export const maxDuration = 120
+
+
 interface ExamQuestion {
   question: string
   options: string[]

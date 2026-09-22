@@ -13,6 +13,7 @@ import { UpgradePrompt, UsageBadge } from '@/components/UpgradePrompt'
 import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
+import { lerMedsDoPerfil } from '@/lib/medsDoPerfil'
 
 const SEVERITY: Record<string, { label: string; color: string; bg: string; border: string; barColor: string }> = {
   GRAVE:         { label: 'GRAVE',                  color: '#7f1d1d', bg: '#fff5f5', border: '#feb2b2', barColor: '#c53030' },
@@ -185,21 +186,19 @@ export default function InteractionsPage() {
     if (!user) return
     setDrugs([])
     setResult(null)
-    let names: string[] = []
-    if (profile.type === 'self') {
-      const { data } = await supabase.from('personal_meds').select('name').eq('user_id', user.id)
-      names = (data || []).map((m: any) => m.name)
-    } else if (profile.type === 'patient') {
-      // Utente institucional → medicação está em patient_meds (ativa). Antes este
-      // caso caía no ramo family_profile_meds e não carregava nada.
-      const { data } = await supabase.from('patient_meds').select('name').eq('patient_id', profile.id).eq('active', true)
-      names = (data || []).map((m: any) => m.name)
-    } else {
-      const { data } = await supabase.from('family_profile_meds').select('name').eq('profile_id', profile.id)
-      names = (data || []).map((m: any) => m.name)
+    // A escolha da tabela (personal_meds / family_profile_meds / patient_meds)
+    // vive em lib/medsDoPerfil. Estava aqui, copiada em sete ferramentas — e
+    // foi essa duplicação que fez o caso do utente institucional cair no ramo
+    // errado e não carregar nada.
+    const leitura = await lerMedsDoPerfil(supabase, profile, user.id, { codigo: 'interactions-meds' })
+    if (leitura.falhou) {
+      // Uma lista vazia aqui seria o pior resultado possível: "não encontrei
+      // interações" a quem toma oito medicamentos.
+      setError(leitura.aviso)
+      return
     }
-    // Carrega TODOS os medicamentos do perfil (sem repetidos), pronto a verificar.
-    const uniq = Array.from(new Set(names.filter(Boolean)))
+    setError('')
+    const uniq = Array.from(new Set(leitura.meds.map(m => m.name).filter(Boolean)))
     if (uniq.length > 0) setDrugs(uniq)
   }
 

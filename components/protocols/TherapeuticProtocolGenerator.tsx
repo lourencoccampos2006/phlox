@@ -9,6 +9,7 @@ import { useState } from 'react'
 import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { lerMedsDoPerfil } from '@/lib/medsDoPerfil'
 
 const EXAMPLES = [
   { label: 'HTA + DM2 + DRC G3', prompt: 'Homem 60 anos, HTA, DM2, DRC G3 (TFG 42), sem DCV estabelecida. Objectivo TA < 130/80.' },
@@ -74,11 +75,15 @@ export default function TherapeuticProtocolGenerator() {
           <div style={{ marginBottom: 10 }}>
             <ProfileSelector onChange={async p => {
               if (!supabase) return
-              const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
-              const col = p.id === 'self' ? 'user_id' : 'profile_id'
-              const id = p.id === 'self' ? (user as any)?.id : p.id
-              const { data } = await supabase.from(table).select('name, dose, frequency, indication').eq(col, id)
-              if (data?.length) setPrompt(data.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.indication ? ' — ' + m.indication : ''}`).join('\n'))
+              const leitura = await lerMedsDoPerfil(supabase, p, (user as any)?.id,
+                { comIndicacao: true, codigo: 'protocolo-meds' })
+              if (leitura.falhou) { setError(leitura.aviso); return }
+              setError('')
+              if (leitura.meds.length) {
+                setPrompt(leitura.meds
+                  .map(m => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.indication ? ' — ' + m.indication : ''}`)
+                  .join('\n'))
+              }
             }} />
           </div>
         )}

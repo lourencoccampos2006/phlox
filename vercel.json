@@ -1,7 +1,7 @@
 {
   "functions": {
     "app/api/**": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "app/api/refeicoes/suggest/route.ts": {
       "maxDuration": 300
@@ -10,10 +10,10 @@
       "maxDuration": 60
     },
     "app/api/rota-otimizada/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 45
     },
     "app/api/refeicoes/arrumar/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
     },
     "app/api/push/cron/route.ts": {
       "maxDuration": 60

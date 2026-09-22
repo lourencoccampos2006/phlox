@@ -8,6 +8,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
+import { lerMedsDoPerfil } from '@/lib/medsDoPerfil'
 
 const EXAMPLES = [
   {
@@ -261,12 +262,16 @@ export default function BriefingConsulta() {
           <div style={{ marginBottom: 10 }}>
             <ProfileSelector onChange={async p => {
               if (!supabase) return
-              const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
-              const col = p.id === 'self' ? 'user_id' : 'profile_id'
-              const id = p.id === 'self' ? user?.id : p.id
-              const { data } = await supabase.from(table).select('name, dose, frequency').eq(col, id)
-              if (data?.length) {
-                setMeds(data.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}`).join('\n'))
+              const leitura = await lerMedsDoPerfil(supabase, p, (user as any)?.id, { codigo: 'briefing-meds' })
+              if (leitura.falhou) {
+                // Levar a uma consulta um briefing sem a medicação, sem saber
+                // que ela falta, é pior do que não levar briefing nenhum.
+                setError(leitura.aviso)
+                return
+              }
+              setError('')
+              if (leitura.meds.length) {
+                setMeds(leitura.meds.map(m => `${m.name}${m.dose ? ' ' + m.dose : ''}`).join('\n'))
               }
             }} />
           </div>

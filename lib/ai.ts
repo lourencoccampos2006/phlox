@@ -287,11 +287,27 @@ export async function aiComplete(
      *  Com isto, "responder" e "responder uma coisa utilizável" passam a ser
      *  a mesma condição, e a escada faz o que existe para fazer. */
     validar?: (texto: string) => boolean
+    /** Quantos segundos a escada TODA pode gastar antes de desistir.
+     *
+     *  Isto passou a fazer falta quando a escada deixou de aceitar respostas
+     *  inutilizáveis: ao tentar mais fornecedores, o pior caso ficou mais
+     *  longo. E o `maxDuration` de uma rota é um corte seco — a Vercel mata a
+     *  função e o utilizador recebe um 504 sem uma frase que explique nada.
+     *
+     *  Mais vale desistir um segundo antes, com uma mensagem em português, do
+     *  que ser interrompido a meio. */
+    prazoSegundos?: number
   } = {}
 ): Promise<AIResponse> {
   const maxTokens = options.maxTokens ?? 800
   const temperature = options.temperature ?? 0.15
   const json = options.json === true
+  // 45s, e não mais: o tecto de `app/api/**` no vercel.json é 60s, e um prazo
+  // MAIOR do que o tecto da rota não serve de nada — a Vercel mata a função
+  // antes de a escada chegar a desistir, e a mensagem cuidada nunca aparece.
+  // As rotas que declaram um maxDuration maior (ler uma foto, um PDF) pedem
+  // um prazo maior por `prazoSegundos`.
+  const prazo = Date.now() + (options.prazoSegundos ?? 45) * 1000
 
   // Lista completa de providers, na ordem que queremos tentar.
   const GROQ_LARGE: ProviderStep = { name: 'Groq', model: 'llama-3.3-70b-versatile', fn: () => callGroq(messages, 'llama-3.3-70b-versatile', maxTokens, temperature) }
@@ -334,6 +350,12 @@ export async function aiComplete(
   const errors: string[] = []
 
   for (const step of sequence) {
+    // Chegou a hora: para em vez de ser parado. O que já se tentou vai na
+    // mensagem, para os registos dizerem alguma coisa.
+    if (Date.now() > prazo) {
+      errors.push('prazo esgotado antes de tentar ' + step.model)
+      break
+    }
     try {
       const r = await tryProvider(step.fn, step.name, step.model, 1, [500], messages.map(m => m.content).join(' '))
       // Responder não chega: tem de ser uma resposta que sirva. Ver `validar`.
@@ -356,6 +378,9 @@ export async function aiComplete(
 
   if (process.env.NODE_ENV !== 'production') {
     console.error('[aiComplete] todos os providers falharam:', errors)
+  }
+  if (Date.now() > prazo) {
+    throw new Error('A leitura demorou demasiado. Tenta outra vez, ou com um documento mais pequeno.')
   }
   const detail = lastError?.message ? ` (último: ${lastError.message})` : ''
   throw new Error(`Todos os serviços de IA estão temporariamente indisponíveis${detail}. Tenta novamente em alguns segundos.`)
@@ -580,13 +605,23 @@ export async function callGeminiVision(
   prompt: string,
   imageBase64: string,
   mimeType: string,
-  opts: { maxTokens?: number; temperature?: number; qualidade?: boolean; json?: boolean; validar?: (t: string) => boolean } = {}
+  opts: {
+    maxTokens?: number; temperature?: number; qualidade?: boolean; json?: boolean
+    validar?: (t: string) => boolean
+    /** Quantos segundos a escada de visão toda pode gastar. Ver a nota no
+     *  aiComplete: no pior caso são dois Claude a 60s mais cinco Gemini a 20s,
+     *  o que passa o tecto de qualquer rota. Mais vale desistir com uma frase
+     *  do que ser morto pela plataforma a meio. */
+    prazoSegundos?: number
+  } = {}
 ): Promise<string> {
+  const prazoVisao = Date.now() + (opts.prazoSegundos ?? 100) * 1000
   // Com `qualidade`, o Claude primeiro — e num PDF de análises isso conta a
   // dobrar: ele lê o documento inteiro, com as colunas de valores de
   // referência, em vez de o tratar como uma fotografia de texto.
   if (opts.qualidade && process.env.ANTHROPIC_API_KEY) {
     for (const m of ['claude-sonnet-5', 'claude-haiku-4-5-20251001']) {
+      if (Date.now() > prazoVisao) break
       try {
         const t0 = Date.now()
         const t = await callAnthropicVision(prompt, imageBase64, mimeType, m, opts.maxTokens || 2400)
@@ -619,6 +654,7 @@ export async function callGeminiVision(
   let lastErr = 'tenta novamente'
   // Tenta vários modelos — se um não estiver disponível para a chave (404), passa ao seguinte.
   for (const model of VISION_MODELS) {
+    if (Date.now() > prazoVisao) { lastErr = 'demorou demasiado'; break }
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -667,7 +703,7 @@ export async function callGeminiVisionJSON<T>(
   prompt: string,
   imageBase64: string,
   mimeType: string,
-  opts: { maxTokens?: number; qualidade?: boolean } = {}
+  opts: { maxTokens?: number; qualidade?: boolean; prazoSegundos?: number } = {}
 ): Promise<T> {
   // `qualidade: true` → o Claude primeiro. Para ler um relatório médico ou uma
   // folha de análises, a diferença entre o melhor modelo e o mais barato não é
@@ -688,9 +724,14 @@ export async function callGeminiVisionJSON<T>(
     return true
   }
 
+  // Mesmo prazo do callGeminiVision: no pior caso são dois Claude a 60s mais
+  // cinco Gemini a 20s, e isso passa o tecto de qualquer rota.
+  const prazoJSON = Date.now() + (opts.prazoSegundos ?? 100) * 1000
+
   let text = ''
   if (opts.qualidade && process.env.ANTHROPIC_API_KEY) {
     for (const m of ['claude-sonnet-5', 'claude-haiku-4-5-20251001']) {
+      if (Date.now() > prazoJSON) break
       try {
         const t0 = Date.now()
         text = await callAnthropicVision(prompt, imageBase64, mimeType, m, opts.maxTokens || 2400)
@@ -713,7 +754,11 @@ export async function callGeminiVisionJSON<T>(
   }
   if (lido !== undefined) return lido
 
-  await callGeminiVision(prompt, imageBase64, mimeType, { ...opts, json: true, validar: aceitar })
+  await callGeminiVision(prompt, imageBase64, mimeType, {
+    ...opts, json: true, validar: aceitar,
+    // O que sobrou do prazo, não o prazo inteiro outra vez.
+    prazoSegundos: Math.max(5, Math.floor((prazoJSON - Date.now()) / 1000)),
+  })
   if (lido !== undefined) return lido
 
   throw new Error('Não foi possível interpretar a imagem. Tenta com uma foto mais nítida, sem sombra e com o papel direito.')

@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         `${prompt}\n\nO que se segue é um documento${body.titulo ? ` intitulado "${body.titulo}"` : ''}. Lê-o por inteiro.`,
         body.ficheiro,
         body.mimeType || 'application/pdf',
-        { maxTokens: 8000, qualidade: true },
+        { maxTokens: 8000, qualidade: true, prazoSegundos: 240 },
       )
     } else {
       // SEM corte. O /api/scan corta aos 24 mil caracteres porque tem de ser
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       res = await aiJSON<any>([
         { role: 'system', content: prompt },
         { role: 'user', content: `Documento${body.titulo ? ` — ${body.titulo}` : ''}:\n\n${body.texto}` },
-      ], { maxTokens: 8000, qualidade: true })
+      ], { maxTokens: 8000, qualidade: true, prazoSegundos: 240 })
     }
     if (!res || !res.kind) throw new Error('Não consegui interpretar este documento.')
     return NextResponse.json(res)

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
+import { reportError } from '@/lib/clientError'
 
 interface Dest { label: string; href: string; group: string; keywords?: string }
 
@@ -100,9 +101,10 @@ export default function ClinicalCommandPalette() {
   useEffect(() => {
     if (!open || !user || query.trim().length < 2) { setPatients([]); return }
     const t = setTimeout(async () => {
-      const { data } = await supabase
+      const { data, error: erroLeitura } = await supabase
         .from('patients').select('id,name,room_number')
         .eq('user_id', user.id).ilike('name', `%${query.trim()}%`).limit(6)
+      if (erroLeitura) reportError('command-palette', erroLeitura)
       setPatients((data as PatientHit[]) || [])
     }, 180)
     return () => clearTimeout(t)

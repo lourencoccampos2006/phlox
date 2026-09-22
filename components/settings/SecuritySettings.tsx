@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 
 export default function SecuritySettings() {
   const { user, supabase } = useAuth() as any
@@ -71,10 +72,17 @@ export default function SecuritySettings() {
 
   // ─── Sessões ────────────────────────────────────────────────────────────
   const [sessions, setSessions] = useState<any[]>([])
+  // Num ecra de seguranca, "nenhuma sessao" e uma afirmacao. Sem leitura, nao
+  // se afirma nada.
+  const [erroSessoes, setErroSessoes] = useState('')
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      const { data } = await supabase.from('user_sessions').select('*').eq('user_id', user.id).order('last_seen_at', { ascending: false }).limit(20)
+      const { data, error } = await supabase.from('user_sessions').select('*').eq('user_id', user.id).order('last_seen_at', { ascending: false }).limit(20)
+      // Num ecra de seguranca, "nenhuma sessao" e uma afirmacao: ninguem esta
+      // ligado a esta conta. Se a leitura falhou, nao se afirma nada.
+      if (error) { setErroSessoes(reportError('sec-sessions', error, MSG.load)); return }
+      setErroSessoes('')
       setSessions(data || [])
     })()
   }, [user?.id])
@@ -90,7 +98,8 @@ export default function SecuritySettings() {
   useEffect(() => {
     if (!user?.id) return
     ;(async () => {
-      const { data } = await supabase.from('access_anomalies').select('*').eq('user_id', user.id).order('detected_at', { ascending: false }).limit(10)
+      const { data, error } = await supabase.from('access_anomalies').select('*').eq('user_id', user.id).order('detected_at', { ascending: false }).limit(10)
+      if (error) { setErroSessoes(reportError('sec-anomalies', error, MSG.load)); return }
       setAnomalies(data || [])
     })()
   }, [user?.id])
@@ -148,7 +157,13 @@ export default function SecuritySettings() {
 
       {/* ── Sessões ─────────────────────────────────────────────────────── */}
       <Card title="Sessões ativas" subtitle="Dispositivos onde estás autenticado(a). Revoga qualquer um que não reconheças.">
-        {sessions.length === 0 ? (
+        {erroSessoes ? (
+          /* "Sem sessoes registadas" num ecra de seguranca quer dizer "ninguem
+             esta ligado a esta conta". Se a leitura falhou, nao se diz. */
+          <div style={{ fontSize: 12.5, color: '#c53030', textAlign: 'center', padding: 14, lineHeight: 1.6 }}>
+            {erroSessoes}
+          </div>
+        ) : sessions.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--ink-5)', textAlign: 'center', padding: 14 }}>Sem sessões registadas ainda.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

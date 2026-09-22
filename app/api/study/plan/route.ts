@@ -9,6 +9,12 @@ import { getUserPlan, planGateResponse } from '@/lib/planGate'
 import { sb } from '@/lib/orgAuth'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 
+// ── Quanto tempo esta rota pode demorar ─────────────────────────────────────
+// Respostas longas (um plano de estudo, um quiz de vinte perguntas, um
+// documento processado) não caem nos 60s do tecto geral de `app/api/**`.
+export const maxDuration = 120
+
+
 const NO_TABLE = (m: string) => /relation .*study_plans.* does not exist/i.test(m)
 
 export async function GET(req: NextRequest) {

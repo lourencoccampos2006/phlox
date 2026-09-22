@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { logStudy } from '@/lib/studyProgress'
 import StudyProgressBar from '@/components/StudyProgressBar'
+import { reportError } from '@/lib/clientError'
 
 // ─── Domínios de estudo — TODAS as áreas das ciências da saúde ───────────────
 
@@ -668,8 +669,9 @@ export default function StudyPage() {
     if (!user) return
     ;(async () => {
       try {
-        const { data } = await supabase.from('study_sessions').select('type, metadata, xp_earned')
+        const { data, error: erroLeitura } = await supabase.from('study_sessions').select('type, metadata, xp_earned')
           .eq('user_id', user.id)
+        if (erroLeitura) reportError('study-sessions', erroLeitura)
         if (!data) return
         const stats: Record<string, { sessions: number; lastScore: number }> = {}
         data.forEach((s: any) => {

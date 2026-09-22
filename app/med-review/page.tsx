@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import ProfileSelector from '@/components/ProfileSelector'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { lerMedsDoPerfil } from '@/lib/medsDoPerfil'
 
 // /med-review — JUNTADO em /assessments (aba "Revisão de medicação"). A rota
 // antiga redireciona; o MedReviewTool abaixo é reutilizado por /assessments.
@@ -341,18 +342,24 @@ export function MedReviewTool() {
               <div style={{ marginBottom: 10 }}>
                 <ProfileSelector onChange={async p => {
                   if (!supabase) return
-                  const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
-                  const col = p.id === 'self' ? 'user_id' : 'profile_id'
-                  const id = p.id === 'self' ? (user as any)?.id : p.id
-                  const { data } = await supabase.from(table).select('name, dose, frequency, indication').eq(col, id)
-                  if (data?.length) {
-                    const mappedMeds = data.map((m: any, index: number) => ({
+                  // Ver lib/medsDoPerfil: a escolha da tabela e a leitura do
+                  // erro vivem lá, uma vez, em vez de copiadas em sete sítios.
+                  const leitura = await lerMedsDoPerfil(supabase, p, (user as any)?.id,
+                    { comIndicacao: true, codigo: 'med-review-meds' })
+                  if (leitura.falhou) {
+                    // Uma revisão da medicação feita sobre uma lista vazia por
+                    // engano não é uma revisão — é um engano com relatório.
+                    setError(leitura.aviso)
+                    return
+                  }
+                  setError('')
+                  if (leitura.meds.length) {
+                    setMeds(leitura.meds.map((m, index) => ({
                       id: `${p.id}-${index}`,
                       name: m.name,
-                      dose: m.dose,
-                      frequency: m.frequency,
-                    }))
-                    setMeds(mappedMeds)
+                      dose: m.dose ?? undefined,
+                      frequency: m.frequency ?? undefined,
+                    })))
                   }
                 }} />
               </div>

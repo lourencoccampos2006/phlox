@@ -130,13 +130,13 @@ export async function POST(req: NextRequest) {
       res = await callGeminiVisionJSON<any>(
         `${comMemoria}\n\nO que se segue é UMA FOTO de um documento.`,
         body.image, body.mimeType || 'image/jpeg',
-        { maxTokens: 4000, qualidade: true },
+        { maxTokens: 4000, qualidade: true, prazoSegundos: 100 },
       )
     } else {
       res = await aiJSON<any>([
         { role: 'system', content: comMemoria },
         { role: 'user', content: `Documento:\n${(body.text || '').slice(0, 24000)}` },
-      ], { maxTokens: 4000, qualidade: true })
+      ], { maxTokens: 4000, qualidade: true, prazoSegundos: 100 })
     }
     if (!res || !res.kind) throw new Error('Não consegui interpretar.')
     return NextResponse.json(res)

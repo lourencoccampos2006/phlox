@@ -10,6 +10,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { extractFromFile } from '@/lib/docExtract'
+import { lerMedsDoPerfil, medsComoTexto } from '@/lib/medsDoPerfil'
 
 interface Discrepancy {
   type: 'added' | 'removed' | 'dose_changed' | 'frequency_changed' | 'intentional_omission'
@@ -99,13 +100,14 @@ export default function ReconciliacaoPage() {
 
   const handleProfile = async (p: any) => {
     if (!supabase) return
-    const table = p.id === 'self' ? 'personal_meds' : 'family_profile_meds'
-    const col   = p.id === 'self' ? 'user_id' : 'profile_id'
-    const id    = p.id === 'self' ? user?.id : p.id
-    const { data } = await supabase.from(table).select('name, dose, frequency').eq(col, id)
-    if (data?.length) {
-      setBefore(data.map((m: any) => `${m.name}${m.dose ? ' ' + m.dose : ''}${m.frequency ? ' ' + m.frequency : ''}`).join('\n'))
+    const leitura = await lerMedsDoPerfil(supabase, p, (user as any)?.id, { codigo: 'reconciliacao-meds' })
+    if (leitura.falhou) {
+      // Numa reconciliação, uma lista "antes" vazia por engano faz parecer que
+      // toda a medicação é nova. Mais vale dizer que não se leu.
+      setError(leitura.aviso)
+      return
     }
+    if (leitura.meds.length) setBefore(medsComoTexto(leitura.meds))
   }
 
   const reconcile = async () => {

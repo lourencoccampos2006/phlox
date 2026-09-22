@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { reportError } from '@/lib/clientError'
 
 interface Props { params: { id: string } }
 
@@ -12,7 +13,8 @@ async function getResult(id: string) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  const { data } = await supabase.from('shared_results').select('*').eq('id', id).single()
+  const { data, error: erroLeitura } = await supabase.from('shared_results').select('*').eq('id', id).single()
+  if (erroLeitura) reportError('resultado-partilhado', erroLeitura)
   if (data) {
     // Increment views (fire and forget)
     supabase.from('shared_results').update({ views: (data.views || 0) + 1 }).eq('id', id).then(() => {})

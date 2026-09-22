@@ -12,6 +12,12 @@ import { createClient } from '@supabase/supabase-js'
 import { QUIZ_RULES_PT } from '@/lib/quizQuality'
 import { sb } from '@/lib/orgAuth'
 
+// ── Quanto tempo esta rota pode demorar ─────────────────────────────────────
+// Respostas longas (um plano de estudo, um quiz de vinte perguntas, um
+// documento processado) não caem nos 60s do tecto geral de `app/api/**`.
+export const maxDuration = 120
+
+
 const NO_TABLE = (m: string) => /relation .*study_documents.* does not exist/i.test(m)
 const MAX_CHARS = 60_000  // truncamos a entrada para caber em contexto da AI
 

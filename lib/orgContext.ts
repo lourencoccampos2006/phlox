@@ -60,6 +60,7 @@ export function setActiveOrgId(id: string | null) {
 
 // ─── Hook que carrega as memberships do utilizador atual ────────────────────
 import { useAuth } from '@/components/AuthContext'
+import { reportError } from '@/lib/clientError'
 
 export function useMemberships(): { memberships: OrgMembership[]; active: OrgMembership | null; loading: boolean; refresh: () => void } {
   const { user, supabase } = useAuth() as any
@@ -90,7 +91,8 @@ export function useMemberships(): { memberships: OrgMembership[]; active: OrgMem
         if (role === 'owner' || role === 'admin') {
           caps = ALL_CAPABILITIES
         } else if (caps.length === 0) {
-          const { data } = await supabase.rpc('default_capabilities', { role })
+          const { data, error: erroLeitura } = await supabase.rpc('default_capabilities', { role })
+          if (erroLeitura) reportError('org-capabilities', erroLeitura)
           caps = Array.isArray(data) ? data : []
         }
         out.push({

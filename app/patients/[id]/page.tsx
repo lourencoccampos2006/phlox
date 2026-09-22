@@ -11,7 +11,7 @@ import FichaUtente from './FichaUtente'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
-import { reportError, MSG } from '@/lib/clientError'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import ResidentRequests from '@/components/ResidentRequests'
 import PatientTimeline from '@/components/PatientTimeline'
 import { usePhloxContext } from '@/lib/copilotContext'
@@ -229,13 +229,22 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setAddingMed(true)
     const resolved = resolveDrugName(newMed.name)
     const name = resolved ? resolved.dci : newMed.name.trim()
-    const { data } = await supabase.from('patient_meds').insert(scope.stamp({
+    const { data, error } = await supabase.from('patient_meds').insert(scope.stamp({
       patient_id: pid, user_id: user.id, active: true, name,
       dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
       shifts: newMed.shifts.length ? newMed.shifts : null,
       ...(isDayCare ? { take_location: newMed.take_location } : {}),
     })).select().single()
-    if (data) setMeds(p => [data, ...p])
+    if (error || !data) {
+      // O formulario fica ABERTO e preenchido. Fecha-lo seria dizer que ficou
+      // registado -- e numa casa isso e uma dose que nao e dada.
+      toast.error('O medicamento NÃO foi registado',
+        reportError('patient-med-insert', error,
+          isSetupError(error) ? MSG.unavailable : 'Verifique a ligação e tente de novo. O que escreveu continua aqui.'))
+      setAddingMed(false)
+      return
+    }
+    setMeds(p => [data, ...p])
     setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], take_location: 'centro' }); setSug([])
     setShowAddMed(false); setAddingMed(false)
   }
@@ -249,11 +258,21 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   async function addContact() {
     if (!contactForm.name.trim() || !pid) return
     setSavingContact(true)
-    const { data } = await supabase.from('resident_contacts').insert(scope.stamp({
+    const { data, error } = await supabase.from('resident_contacts').insert(scope.stamp({
       patient_id: pid, user_id: user.id, name: contactForm.name.trim(),
       relationship: contactForm.relationship || null, phone: contactForm.phone || null, is_emergency: contactForm.is_emergency,
     })).select().single()
-    if (data) setContacts(p => [...p, data])
+    if (error || !data) {
+      // E o numero a que se liga quando acontece alguma coisa. Ficar por
+      // registar sem ninguem saber e uma falha que so se descobre na pior
+      // altura possivel.
+      toast.error('O contacto NÃO foi guardado',
+        reportError('resident-contact-insert', error,
+          isSetupError(error) ? MSG.unavailable : 'Verifique a ligação e tente de novo. O que escreveu continua aqui.'))
+      setSavingContact(false)
+      return
+    }
+    setContacts(p => [...p, data])
     setContactForm({ name: '', relationship: '', phone: '', is_emergency: true }); setShowAddContact(false); setSavingContact(false)
   }
 

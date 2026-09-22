@@ -127,5 +127,39 @@ seccao('A escada segue quando um fornecedor responde mal')
   globalThis.fetch = original
 }
 
+// ── O prazo ────────────────────────────────────────────────────────────────
+// Passou a fazer falta quando a escada deixou de aceitar respostas
+// inutilizaveis: ao tentar mais fornecedores, o pior caso ficou mais longo. E
+// o `maxDuration` de uma rota e um corte seco -- a Vercel mata a funcao e o
+// utilizador recebe um 504 sem uma frase que explique nada.
+seccao('A escada tem prazo')
+{
+  const original = globalThis.fetch
+  let chamadas = 0
+  // Cada fornecedor demora 1,2s e responde mal. Com 2s de prazo, a escada tem
+  // de desistir ao cabo de duas ou tres tentativas -- nao das dez.
+  globalThis.fetch = async (url) => {
+    chamadas++
+    await new Promise(r => setTimeout(r, 1200))
+    const u = String(url)
+    if (u.includes('anthropic.com')) return Response.json({ content: [{ type: 'text', text: 'prosa' }] })
+    if (u.includes('groq.com')) return Response.json({ choices: [{ message: { content: 'prosa' } }] })
+    return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'prosa' }] } }] })
+  }
+
+  const t0 = Date.now()
+  let erro = null
+  try { await aiJSON([{ role: 'user', content: 'x' }], { qualidade: true, prazoSegundos: 2 }) } catch (e) { erro = e }
+  const gastou = Date.now() - t0
+
+  verificar('desiste quando o prazo acaba', !!erro, erro?.message)
+  verificar('e a mensagem fala de tempo, nao de servicos em baixo',
+    /demorou demasiado/i.test(erro?.message || ''), erro?.message)
+  verificar('nao gastou muito mais do que o prazo', gastou < 12000, gastou)
+  verificar('e nao tentou a escada toda', chamadas < 9, chamadas)
+
+  globalThis.fetch = original
+}
+
 console.log(`\n${passou} passaram, ${falhou} falharam\n`)
 process.exit(falhou ? 1 : 0)

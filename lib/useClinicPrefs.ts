@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { reportError } from '@/lib/clientError'
 
 export type ClinicalRole =
   | 'pharmacist'
@@ -79,7 +80,8 @@ export function useClinicPrefs() {
       const org = user.active_org_id || user.org_id
       if (org && supabase) {
         try {
-          const { data } = await supabase.from('organizations').select('kind').eq('id', org).maybeSingle()
+          const { data, error: erroLeitura } = await supabase.from('organizations').select('kind').eq('id', org).maybeSingle()
+          if (erroLeitura) reportError('clinic-kind', erroLeitura)
           if (data?.kind) tipo = data.kind
         } catch { /* fica o do perfil */ }
       }

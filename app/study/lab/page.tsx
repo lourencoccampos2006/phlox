@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
+import { reportError } from '@/lib/clientError'
 
 const ACCENT = '#0d6e42'
 
@@ -35,7 +36,8 @@ export default function LabPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('lab_value_library').select('*').order('parameter')
+      const { data, error: erroLeitura } = await supabase.from('lab_value_library').select('*').order('parameter')
+      if (erroLeitura) reportError('lab-library', erroLeitura)
       setRefs(data || [])
     })()
   }, [supabase])

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import Icon from '@/components/Icon'
 import { printDoc } from '@/lib/print'
-import { reportError, MSG } from '@/lib/clientError'
+import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
@@ -123,6 +123,8 @@ export function AtividadesTool() {
   const [view, setView]         = useState<'today' | 'week' | 'all'>('today')
   const [activities, setActivities] = useState<Activity[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
+  // Um registo que nao gravou tem de se ver que nao gravou.
+  const [erroRegisto, setErroRegisto] = useState('')
   const [selected, setSelected] = useState<Activity | null>(null)
   const [participations, setParticipations] = useState<Participation[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -237,8 +239,9 @@ export function AtividadesTool() {
   }
 
   async function loadParticipation(actId: string) {
-    const { data } = await supabase
+    const { data, error: erroLeitura1 } = await supabase
       .from('activity_participations').select('*').eq('activity_id', actId)
+    if (erroLeitura1) reportError('activities-read', erroLeitura1)
     setParticipations(data || [])
   }
 
@@ -290,11 +293,19 @@ export function AtividadesTool() {
       await supabase.from('activity_participations').update({ attended }).eq('id', existing.id)
       setParticipations(prev => prev.map(p => p.patient_id === patientId ? { ...p, attended } : p))
     } else {
-      const { data } = await supabase.from('activity_participations').insert(scope.stamp({
+      const { data, error } = await supabase.from('activity_participations').insert(scope.stamp({
         activity_id: selected.id, patient_id: patientId, attended,
         user_id: user.id,
       })).select().single()
-      if (data) setParticipations(prev => [...prev, data])
+      if (error || !data) {
+        // Nao se finge que ficou marcado. A presenca de hoje e a prova de que
+        // alguem esteve na casa -- se nao gravou, tem de se ver que nao gravou.
+        setErroRegisto(reportError('activity-part-insert', error,
+          isSetupError(error) ? MSG.unavailable : 'A presença não ficou registada. Tente de novo.'))
+        return
+      }
+      setErroRegisto('')
+      setParticipations(prev => [...prev, data])
     }
   }
 
@@ -305,7 +316,16 @@ export function AtividadesTool() {
     const toUpdate = participations.filter(p => !p.attended)
     if (toUpdate.length) await supabase.from('activity_participations').update({ attended: true }).in('id', toUpdate.map(p => p.id))
     let inserted: Participation[] = []
-    if (toInsert.length) { const { data } = await supabase.from('activity_participations').insert(toInsert).select(); inserted = data || [] }
+    if (toInsert.length) {
+      const { data, error } = await supabase.from('activity_participations').insert(toInsert).select()
+      if (error) {
+        setErroRegisto(reportError('activity-all-insert', error,
+          isSetupError(error) ? MSG.unavailable : 'Não foi possível marcar todos. Tente de novo.'))
+        return
+      }
+      inserted = data || []
+    }
+    setErroRegisto('')
     setParticipations(prev => [...prev.map(p => ({ ...p, attended: true })), ...inserted])
   }
 
@@ -358,7 +378,19 @@ export function AtividadesTool() {
       const monthActs = activities.filter(a => a.date.slice(0, 7) === m && a.status !== 'cancelled')
       const ids = monthActs.map(a => a.id)
       let parts: Participation[] = []
-      if (ids.length) { const { data } = await supabase.from('activity_participations').select('*').in('activity_id', ids); parts = data || [] }
+      if (ids.length) {
+        const { data, error } = await supabase.from('activity_participations').select('*').in('activity_id', ids)
+        // Um relatorio mensal com zero presencas, impresso e entregue, e uma
+        // afirmacao sobre o mes que ninguem verificou. Se a leitura falhou, nao
+        // se imprime.
+        if (error) {
+          setErroRegisto(reportError('activities-report-parts', error,
+            'Não consegui ler as presenças do mês. O relatório não foi criado — tente de novo.'))
+          setPrintingReport(false)
+          return
+        }
+        parts = data || []
+      }
       const attendedParts = parts.filter(p => p.attended)
       // por tipo
       const byType: Record<string, { count: number; attend: number }> = {}
@@ -614,6 +646,14 @@ export function AtividadesTool() {
                     )}
                   </div>
                 </div>
+                {/* Um registo que nao gravou tem de se ver que nao gravou. */}
+                {erroRegisto && (
+                  <div style={{
+                    marginBottom: 8, padding: '8px 12px', background: '#fff5f5',
+                    border: '1px solid #fed7d7', borderRadius: 7,
+                    fontSize: 12, color: '#c53030', lineHeight: 1.5,
+                  }}>{erroRegisto}</div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {patients.length === 0 ? (
                     <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 12 }}>Sem {cfg.personNounPlural.toLowerCase()} registados</div>

@@ -47,6 +47,7 @@ import {
   type Sujeito, type ResolucaoSujeito,
 } from '@/lib/memoriaDocumentos'
 import { nomeCurto } from '@/lib/sujeitos'
+import { categoriaDoKind } from '@/lib/cofre'
 import { type PerguntaPendente } from '@/lib/dossier'
 
 /** O nome da ferramenta, num sítio só — muda aqui e muda em todo o lado. */
@@ -353,9 +354,11 @@ export default function ExplicarPage() {
       res.termos?.length ? '\nTermos:\n' + res.termos.map(t => `${t.termo} — ${t.simples}`).join('\n') : '',
     ].filter(Boolean).join('\n')
 
-    const categoria = res.kind === 'analise' ? 'analises'
-      : res.kind === 'receita' ? 'receitas'
-      : res.kind === 'relatorio' ? 'relatorios' : 'outros'
+    // A tradução vive em lib/cofre. Estava aqui, e estava errada: inventava
+    // 'analises'/'receitas'/'relatorios'/'outros', e a coluna só aceita sete
+    // valores em inglês. Todos os inserts batiam no `check` e devolviam 400 —
+    // o botão nunca guardou nada, nem o guardar automático dos planos pagos.
+    const categoria = categoriaDoKind(res.kind)
 
     const { error } = await supabase.from('health_vault').insert({
       user_id: user.id,

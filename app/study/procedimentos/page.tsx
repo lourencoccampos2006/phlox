@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { reportError } from '@/lib/clientError'
 
 const ACCENT = '#0d6e42'
 
@@ -24,7 +25,8 @@ export default function ProcedimentosPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('procedure_guides').select('*').order('title')
+      const { data, error: erroLeitura } = await supabase.from('procedure_guides').select('*').order('title')
+      if (erroLeitura) reportError('procedure-guides', erroLeitura)
       setList(data || [])
     })()
   }, [supabase])
