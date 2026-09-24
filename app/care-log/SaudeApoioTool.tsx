@@ -32,6 +32,9 @@ export function SaudeApoioTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
   const cfg = institutionConfig(institution)
 
@@ -70,7 +73,7 @@ export function SaudeApoioTool() {
 
   async function save(patientId: string) {
     if (!notes.trim()) { setErr('Escreve uma nota curta sobre o que se passou.'); return }
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     setSaving(true); setErr('')
     const { error } = await supabase.from('health_checkins').insert(scope.stamp({
       user_id: user.id,

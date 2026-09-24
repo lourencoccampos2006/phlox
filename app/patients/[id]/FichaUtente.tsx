@@ -25,6 +25,9 @@ import { useLiveData } from '@/lib/useLiveData'
 import { marcarPresenca, type EstadoPresenca } from '@/lib/presenca'
 import LivroDeRegistos from '@/components/institution/LivroDeRegistos'
 import PatientTimeline from '@/components/PatientTimeline'
+import PlanoIndividual from '@/components/institution/PlanoIndividual'
+import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
+import { nomeDoPlano } from '@/lib/plano'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -97,13 +100,41 @@ type Props = {
   aoMudar?: (recarregar: () => void) => void
 }
 
+type Aba = 'hoje' | 'plano' | 'evolucao' | 'registos' | 'documentos'
+
 export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos, pedidos, revisaoMedicacao, children, aoMudar }: Props) {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('utentes', 'editar')
   const { institution } = useClinicPrefs()
   const bp = blueprintFor(institution)
   const cfg = institutionConfig(institution)
   const cor = bp.accent
+
+  // ── As abas ───────────────────────────────────────────────────────────────
+  // Esta ficha foi feita de propósito como uma pilha, sem abas — «quem chega
+  // ao pé de uma pessoa quer saber em cinco segundos o que já foi feito hoje».
+  // Isso continua verdade, e é por isso que «Hoje» é a primeira e abre sempre.
+  //
+  // O que mudou foi a quantidade de coisa. Com o Plano Individual, a evolução e
+  // o livro de registos, a página passava dos dois metros de altura: a linha do
+  // tempo e o livro estavam lá em baixo, onde ninguém chega. Uma pilha protege
+  // o que se lê de uma vez; não protege o que se consulta.
+  //
+  // A aba vai ao endereço (`?aba=plano`) para se poder mandar a alguém.
+  const [aba, setAba] = useState<Aba>('hoje')
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('aba')
+    if (q && ['hoje', 'plano', 'evolucao', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
+  }, [])
+  const irPara = (a: Aba) => {
+    setAba(a)
+    const u = new URL(window.location.href)
+    if (a === 'hoje') u.searchParams.delete('aba'); else u.searchParams.set('aba', a)
+    window.history.replaceState(null, '', u.toString())
+  }
 
   const [carregando, setCarregando] = useState(true)
   const [utente, setUtente] = useState<any | null>(null)
@@ -295,12 +326,55 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         }}>Registar o dia</Link>
       </div>
 
+      {/* ── As abas ─────────────────────────────────────────────────────── */}
+      <nav style={{
+        display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-9)',
+        borderBottom: '1px solid var(--border)', overflowX: 'auto',
+      }}>
+        {([
+          ['hoje', 'Hoje'],
+          ['plano', nomeDoPlano(institution).curto],
+          ['evolucao', 'Evolução'],
+          ['registos', 'Registos'],
+          ['documentos', 'Documentos'],
+        ] as [Aba, string][]).map(([id, rotulo]) => {
+          const on = aba === id
+          return (
+            <button key={id} onClick={() => irPara(id)} style={{
+              padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 14, whiteSpace: 'nowrap', marginBottom: -1,
+              fontWeight: on ? 800 : 600, color: on ? cor : 'var(--ink-4)',
+              borderBottom: `2.5px solid ${on ? cor : 'transparent'}`,
+            }}>{rotulo}</button>
+          )
+        })}
+      </nav>
+
+      {aba === 'plano' && <PlanoIndividual pid={pid} nome={utente.name} cor={cor} />}
+
+      {aba === 'evolucao' && (
+        <div style={{ marginTop: 'var(--space-10)' }}>
+          <PatientTimeline patientId={pid} supabase={supabase} scope={scope} patientName={utente?.name} accent={cor} />
+        </div>
+      )}
+
+      {aba === 'registos' && (
+        <div style={{ marginTop: 'var(--space-10)' }}>
+          <LivroDeRegistos subjectId={pid} limite={50} titulo="Tudo o que ficou registado" />
+        </div>
+      )}
+
+      {aba === 'documentos' && <DocumentosDaPessoa pid={pid} nome={utente.name} cor={cor} />}
+
+      {/* ── HOJE ─────────────────────────────────────────────────────────── */}
+      <div style={{ display: aba === 'hoje' ? 'block' : 'none' }}>
+
       {/* ── Presenças ──────────────────────────────────────────────────────
           Aqui, ao contrário do painel, há tudo: ausente, e retirar a marca.
           O painel é para a chegada em massa (um toque numa cara); a ficha é
           onde se corrige um engano com calma — e num centro de dia isso
           significa também desfazer o recado que já foi para a família. */}
-      {scope.canEdit && (
+      {podeEditar && (
         <div style={{
           marginTop: 'var(--space-9)', border: '1px solid var(--border)',
           borderRadius: 'var(--r-lg)', padding: '14px 16px', background: 'var(--bg)',
@@ -564,21 +638,13 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         </Seccao>
       )}
 
+      </div>{/* fim de HOJE */}
+
+      {/* Os modais da pagina dona ficam montados em TODAS as abas, de
+          proposito: um modal aberto numa aba e fechado ao mudar para outra e
+          uma forma barata de fazer alguem perder o que estava a escrever.
+          Ficam fora das abas, e nao dentro de «Hoje», por isso. */}
       {children}
-
-      {/* ── A historia desta pessoa, dia a dia ────────────────────────────────
-          Faltava aqui. A ficha lia mar_records com .eq('date', hoje) e mais
-          nada: as doses de ontem existiam na base de dados e nao apareciam em
-          sitio nenhum, o que dava a impressao de que nao ficavam guardadas.
-          Este componente ja existia (90 dias, com filtro por assunto) e ate ja
-          estava importado na pagina — so nunca tinha sido colocado. */}
-      <div style={{ marginTop: 'var(--space-12)' }}>
-        <PatientTimeline patientId={pid} supabase={supabase} scope={scope} patientName={utente?.name} accent={cor} />
-      </div>
-
-    <div style={{ marginTop: 'var(--space-12)', paddingTop: 'var(--space-9)', borderTop: '1px solid var(--border)' }}>
-        <LivroDeRegistos subjectId={pid} limite={25} titulo="Tudo o que ficou registado" />
-      </div>
 
     </div>
   )

@@ -34,6 +34,9 @@ import Icon from '@/components/Icon'
 import NotificationBell from '@/components/NotificationBell'
 import { useOrgName } from '@/lib/useOrgName'
 import TurnoResumo from '@/components/institution/TurnoResumo'
+import { useOrgScope } from '@/lib/orgScope'
+import { areaDaRota } from '@/lib/areasDeDados'
+import { ContadoresProvider, Distintivo, useContadores } from '@/components/institution/Contadores'
 
 /** Os separadores de topo. São VISTAS DO PAINEL, não atalhos para ferramentas:
  *  trocam o que o painel mostra (?aba=…) e nunca saltam para outra página.
@@ -50,6 +53,23 @@ const SEPARADORES: { label: string; aba: string }[] = [
   { label: 'Equipa', aba: 'equipa' },
   { label: 'Gestão', aba: 'gestao' },
 ]
+
+/**
+ * Em ecrã pequeno o menu lateral está fechado, e com ele os números todos.
+ * Um ponto no botão do menu é a única forma de alguém saber que vale a pena
+ * abri-lo. Não leva número: qual é a ferramenta vê-se lá dentro.
+ */
+function PontoNoMenu({ cor }: { cor: string }) {
+  const { numeros } = useContadores()
+  const ha = Object.values(numeros).some(n => n > 0)
+  if (!ha) return null
+  return (
+    <span aria-hidden style={{
+      position: 'absolute', top: 4, right: 2, width: 8, height: 8,
+      borderRadius: '50%', background: cor, border: '2px solid white',
+    }} />
+  )
+}
 
 /** Turno atual pela hora de Portugal. */
 function turnoAgora(d: Date): { nome: string; hora: string } {
@@ -90,8 +110,24 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
   }
   const turno = agora ? turnoAgora(agora) : null
 
+  // ── O que esta pessoa pode abrir ─────────────────────────────────────────
+  // Uma ferramenta que a pessoa nao pode abrir nao aparece no menu. Nao fica
+  // cinzenta nem da erro ao clicar: nao existe para ela. E o que o Ankira faz,
+  // e e o que faz sentido -- um menu cheio de portas fechadas e um menu que
+  // ensina a pessoa a ignorar o menu.
+  //
+  // Isto e CONFORTO, nao seguranca. Quem protege os dados e a RLS
+  // (sprint153): esconder uma entrada nao impede ninguem de escrever o
+  // endereco a mao.
+  const scope = useOrgScope()
+  const podeAbrir = (href: string) => {
+    const area = areaDaRota(href)
+    return area ? scope.ve(area) : true
+  }
+
   const NavItem = ({ t }: { t: ToolEntry }) => {
     const active = isActive(t.href)
+    if (!podeAbrir(t.href)) return null
     return (
       <Link href={t.href} title={t.hint}
         style={{
@@ -105,6 +141,10 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
           <Icon name={iconForHref(t.href)} size={18} color={active ? bp.accent : 'var(--ink-4)'} />
         </span>
         <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+        {/* O número só aparece quando há mesmo alguma coisa. Na cor de acento e
+            não a vermelho: a maior parte destes números é trabalho à espera, e
+            um menu todo a vermelho deixa de querer dizer urgência. */}
+        <Distintivo href={t.href} cor={bp.accent} />
       </Link>
     )
   }
@@ -148,6 +188,7 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
   )
 
   return (
+    <ContadoresProvider>
     <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa', ['--accent' as any]: bp.accent, ['--accent-soft' as any]: bp.accentSoft }}>
       <header style={{
         position: 'sticky', top: 0, zIndex: 40, height: 58, display: 'flex', alignItems: 'center',
@@ -156,7 +197,9 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         borderBottom: '1px solid var(--border)',
       }}>
         <button onClick={() => setMobileNav(v => !v)} className="ish-burger" aria-label="Menu"
-          style={{ display: 'none', background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink-3)' }}>☰</button>
+          style={{ display: 'none', position: 'relative', background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ink-3)' }}>
+          ☰<PontoNoMenu cor={bp.accent} />
+        </button>
 
         {/* Marca: a flor + o nome da instituição, uma vez só */}
         <Link href="/painel" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
@@ -260,5 +303,6 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         }
       `}</style>
     </div>
+    </ContadoresProvider>
   )
 }

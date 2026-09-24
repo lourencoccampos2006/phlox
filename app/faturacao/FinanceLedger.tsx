@@ -23,6 +23,9 @@ const INCOME_CATS = ['Donativo', 'Subsídio', 'Atividade', 'Venda', 'Outro']
 export default function FinanceLedger({ month, monthlyReceived }: { month: string; monthlyReceived: number }) {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('financeiro', 'editar')
   const [moves, setMoves] = useState<Move[]>([])
   const [loading, setLoading] = useState(true)
   const [tableMissing, setTableMissing] = useState(false)
@@ -47,7 +50,7 @@ export default function FinanceLedger({ month, monthlyReceived }: { month: strin
 
   async function save() {
     if (!user || !form.description.trim() || !parseFloat(form.amount)) { setErr('Descrição e valor são obrigatórios.'); return }
-    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setErr('A sua conta é só de leitura.'); return }
     setSaving(true); setErr('')
     const row = scope.stamp({
       kind: form.kind, category: form.category || null, description: form.description.trim(),

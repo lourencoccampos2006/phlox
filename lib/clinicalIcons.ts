@@ -10,6 +10,7 @@ const BY_HREF: Record<string, string> = {
   '/patients': 'users',
   '/residentes': 'users',
   '/mar': 'pill',
+  '/o-dia': 'clock',
   '/care-log': 'note',
   '/activities': 'target',
   '/family': 'family',

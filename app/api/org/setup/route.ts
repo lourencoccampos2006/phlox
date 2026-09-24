@@ -6,6 +6,7 @@
 //
 // GET → devolve a org ativa do utilizador (ou null) + o seu papel.
 import { NextRequest, NextResponse } from 'next/server'
+import { normalizarPapel } from '@/lib/permissoes'
 import { createClient } from '@supabase/supabase-js'
 
 function hasServiceKey() { return !!process.env.SUPABASE_SERVICE_ROLE_KEY }
@@ -82,9 +83,14 @@ export async function POST(req: NextRequest) {
   const { data: prof0 } = await a.from('profiles').select('active_org_id, org_id').eq('id', user.id).maybeSingle()
   let orgId: string | null = prof0?.active_org_id || prof0?.org_id || null
   if (orgId) {
-    // confirma que continua mesmo dono desta org (não confiar só no profiles)
+    // Confirma que continua mesmo dono desta casa (não confiar só no profiles).
+    //
+    // Comparava `role !== 'owner'`. Depois do sprint152 o papel é `dono`, e
+    // isto anulava a organização AO PRÓPRIO DONO: entrava em /equipa e o
+    // Phlox dizia-lhe que ele não tinha casa nenhuma. `normalizarPapel`
+    // entende os dois vocabulários.
     const { data: membership } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).eq('active', true).maybeSingle()
-    if (membership?.role !== 'owner') orgId = null
+    if (normalizarPapel(membership?.role) !== 'dono') orgId = null
   }
 
   // BUG CRÍTICO corrigido 2026-07-28: esta rota dava plan='clinic' (Institucional,
@@ -107,7 +113,7 @@ export async function POST(req: NextRequest) {
       const retry = await a.from('organizations').insert({ name, kind: 'nursing_home' }).select('id').single()
       org = retry.data; error = retry.error
       if (org) {
-        await a.from('org_members').upsert({ org_id: org.id, user_id: user.id, role: 'owner', active: true }, { onConflict: 'org_id,user_id' })
+        await a.from('org_members').upsert({ org_id: org.id, user_id: user.id, role: 'dono', active: true }, { onConflict: 'org_id,user_id' })
         await a.from('profiles').update({ org_id: org.id, active_org_id: org.id, org_role: 'owner', plan: 'clinic', experience_mode: 'clinical', institution_type: kind }).eq('id', user.id)
         await backfillOrg(a, user.id, org.id)
         return NextResponse.json({ ok: true, org_id: org.id, kind, kindConstraintOutdated: true })
@@ -117,7 +123,7 @@ export async function POST(req: NextRequest) {
     orgId = org.id
     // garante o membro owner (o trigger SQL também o faz, mas o trigger usa
     // auth.uid() que aqui é o service-role — por isso inserimos explicitamente)
-    await a.from('org_members').upsert({ org_id: orgId, user_id: user.id, role: 'owner', active: true }, { onConflict: 'org_id,user_id' })
+    await a.from('org_members').upsert({ org_id: orgId, user_id: user.id, role: 'dono', active: true }, { onConflict: 'org_id,user_id' })
   } else {
     const patch: any = { name, kind }
     // campos opcionais da página pública (só se vierem no body)

@@ -23,6 +23,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useAuth } from '@/components/AuthContext'
+import { useMemberships } from './orgContext'
+import {
+  AREAS, PAPEL_ANTIGO_PARA_NOVO, type Nivel,
+  pode as podePermissao, veArea as veAreaPermissao,
+} from './permissoes'
 
 export interface OrgScope {
   /** id da organização ativa, ou null para conta individual */
@@ -33,9 +38,17 @@ export interface OrgScope {
   role: string | null
   /** true se for dono ou administrador (vê auditoria, gere equipa) */
   isManager: boolean
-  /** false quando o papel é "viewer" (Só leitura) — NÃO pode criar/editar/apagar.
+  /** false quando a pessoa não pode escrever nesta casa.
    *  Conta individual (sem org) pode sempre editar. */
   canEdit: boolean
+  /** As permissões efetivas nesta organização (`area.nivel`). Vazio fora de
+   *  uma instituição — aí não há nada a limitar. */
+  permissoes: string[]
+  /** Pode fazer isto? A pergunta que as páginas devem fazer, em vez de olhar
+   *  para o papel. Fora de uma instituição devolve sempre true. */
+  pode: (area: string, nivel: Nivel) => boolean
+  /** Deve esta área aparecer no menu? */
+  ve: (area: string) => boolean
   /** Aplica o filtro de leitura certo a uma query supabase. */
   filter: <T>(query: T) => T
   /** Carimba uma linha a inserir com os campos de partilha + auditoria. */
@@ -47,12 +60,44 @@ export interface OrgScope {
 
 export function useOrgScope(): OrgScope {
   const { user } = useAuth() as any
+  const { active } = useMemberships()
   const orgId: string | null = user?.active_org_id || user?.org_id || null
   const userId: string | null = user?.id || null
-  const role: string | null = user?.org_role || null
-  const isManager = !!orgId && (role === 'owner' || role === 'admin')
-  // Só leitura: pertence a uma org com papel viewer. Conta individual edita sempre.
-  const canEdit = !orgId || role !== 'viewer'
+
+  // ── De onde vem o papel ───────────────────────────────────────────────────
+  // `org_members.role` é a fonte; `profiles.org_role` é uma cópia grosseira
+  // que só alguma vez recebe 'owner', 'admin' ou 'member'. Fica como recurso
+  // para o instante em que as memberships ainda não carregaram.
+  const papelCopia: string | null = user?.org_role || null
+  const papel: string | null = active?.role
+    || (papelCopia ? (PAPEL_ANTIGO_PARA_NOVO[papelCopia] || papelCopia) : null)
+
+  const permissoes: string[] = orgId ? (active?.capabilities || []) : []
+
+  // Quem gere a casa: vê o painel do dono, a auditoria, a equipa.
+  // Passou a ser uma PERMISSÃO e não uma lista de papéis — era
+  // `role === 'owner' || role === 'admin'`, e depois da migração (sprint152)
+  // não existe nenhum papel com esses nomes: o painel fechava-se ao dono.
+  const isManager = !!orgId && (
+    papel === 'dono' || podePermissao(permissoes, 'definicoes', 'editar')
+  )
+
+  // ── Só leitura ────────────────────────────────────────────────────────────
+  // Isto estava escrito `role !== 'viewer'` — e `profiles.org_role` NUNCA
+  // recebe 'viewer'. Ou seja: era sempre verdadeiro, e o papel de só-leitura
+  // nunca chegou a ser imposto do lado do cliente.
+  //
+  // Agora é o que devia ser desde o início: pode escrever quem tiver alguma
+  // permissão de editar. Enquanto as memberships carregam, não se assume que
+  // pode — é meio segundo de botões desativados em vez de uma escrita que não
+  // devia acontecer.
+  const canEdit = !orgId || AREAS.some(a => podePermissao(permissoes, a.id, 'editar'))
+
+  const pode = (area: string, nivel: Nivel): boolean =>
+    !orgId ? true : podePermissao(permissoes, area, nivel)
+
+  const ve = (area: string): boolean =>
+    !orgId ? true : veAreaPermissao(permissoes, area)
 
   const filter = <T,>(query: T): T => {
     const q = query as any
@@ -73,7 +118,8 @@ export function useOrgScope(): OrgScope {
   }
 
   return {
-    orgId, userId, role, isManager, canEdit,
+    orgId, userId, role: papel, isManager, canEdit,
+    permissoes, pode, ve,
     filter, stamp,
     liveFilterColumn: orgId ? 'org_id' : 'user_id',
     liveFilterValue: orgId || userId,

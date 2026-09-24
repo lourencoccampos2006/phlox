@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomInt, randomBytes } from 'crypto'
 import { sendEmail, emailLayout, teamInviteEmail } from '@/lib/email'
+import { normalizarPapel, orgRoleAntigo, PAPEL_NA_ESCALA } from '@/lib/permissoes'
 
 function admin() {
   return createClient(
@@ -39,16 +40,21 @@ async function requireManager(req: NextRequest) {
   }
   if (!orgId) return { error: 'Sem organização ativa.', status: 400 as const }
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).eq('active', true).maybeSingle()
-  if (!mem || !['owner', 'admin'].includes(mem.role)) return { error: 'Sem permissão (só o dono/admin gere a equipa).', status: 403 as const }
+  // Os dois vocabularios: entre este codigo subir e a migracao (sprint152)
+  // correr, a base de dados ainda tem os papeis antigos.
+  if (!mem || !['owner', 'admin', 'dono', 'direcao'].includes(mem.role)) {
+    return { error: 'Não tem acesso a gerir a equipa.', status: 403 as const }
+  }
   return { a, user, orgId, ownerName: prof?.name || '' }
 }
 
 // Mapeia o papel org_members → o "role" das escalas (team_members), para o
 // funcionário aparecer com a função certa em /equipa?tab=escalas.
-const TEAM_ROLE: Record<string, string> = {
-  admin: 'coordinator', nurse: 'nurse', assistant: 'caregiver',
-  clinician: 'doctor', viewer: 'other',
-}
+//
+// Era uma lista à mão com os papéis ANTIGOS (`admin`, `nurse`, `clinician`).
+// Depois do sprint152 nenhum deles é escrito, por isso `TEAM_ROLE[papel]` dava
+// sempre `undefined` e toda a gente entrava na escala como "outro" — sem erro
+// nenhum a dizê-lo. Agora vem de lib/permissoes, que é onde os papéis vivem.
 
 function slugifyName(name: string): string {
   return name.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -94,7 +100,23 @@ export async function POST(req: NextRequest) {
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status })
   const { a, orgId, ownerName, user } = ctx
   const body = await req.json().catch(() => ({}))
-  const role = ['admin', 'nurse', 'assistant', 'clinician', 'viewer'].includes(body.role) ? body.role : 'assistant'
+  // O papel vem da interface. `normalizarPapel` aceita os dois vocabulários
+  // (um separador aberto de ontem manda o antigo) e devolve sempre um dos sete
+  // novos — ou null, e aí diz-se que não se percebeu em vez de escolher um.
+  //
+  // A versão anterior era `[...antigos].includes(body.role) ? body.role :
+  // 'assistant'`: assim que a interface passou a mandar `direcao`, a lista não
+  // o reconhecia e TODA A GENTE entrava como auxiliar, sem erro nenhum.
+  const papel = normalizarPapel(body.role)
+  if (!papel) {
+    return NextResponse.json({ error: 'Escolha a função desta pessoa na casa.' }, { status: 400 })
+  }
+  if (papel === 'dono') {
+    // O Dono não se atribui: herda-se ao criar a casa. Deixar dar o papel por
+    // aqui seria uma forma de qualquer gestor criar um segundo dono.
+    return NextResponse.json({ error: 'O papel de Dono não se atribui.' }, { status: 400 })
+  }
+  const role = papel
 
   // ── Modo "gerar login" — cria conta com password temporária, pronta a entregar ──
   if (body.mode === 'generate') {
@@ -122,7 +144,10 @@ export async function POST(req: NextRequest) {
     await a.from('profiles').upsert({
       id: newId, email: emailAddr, name, plan: 'free',
       experience_mode: 'clinical', onboarded: true,
-      org_id: orgId, active_org_id: orgId, org_role: role === 'admin' ? 'admin' : 'member',
+      // `profiles.org_role` e uma copia grosseira (owner/admin/member) do papel
+      // real, que vive em `org_members.role`. Mantem-se por compatibilidade.
+      org_id: orgId, active_org_id: orgId,
+      org_role: orgRoleAntigo(papel),
     })
     await a.from('org_members').upsert({ org_id: orgId, user_id: newId, role, invited_by: user.id, active: true }, { onConflict: 'org_id,user_id' })
 
@@ -131,7 +156,7 @@ export async function POST(req: NextRequest) {
     // diferentes). supabase-js não lança exceção em erro de query — tem de se
     // verificar .error explicitamente, senão uma falha fica invisível.
     const { error: tmErr } = await a.from('team_members').upsert(
-      { org_id: orgId, user_id: newId, name, role: TEAM_ROLE[role] || 'other', status: 'off' },
+      { org_id: orgId, user_id: newId, name, role: PAPEL_NA_ESCALA[papel] || 'other', status: 'off' },
       { onConflict: 'org_id,user_id' }
     )
     if (tmErr) console.error('[phlox:org-team] criar perfil em team_members falhou:', tmErr.message)
@@ -144,7 +169,9 @@ export async function POST(req: NextRequest) {
   if (body.mode === 'invite') {
     const email = String(body.email || '').trim().toLowerCase()
     if (!/.+@.+\..+/.test(email)) return NextResponse.json({ error: 'Email inválido.' }, { status: 400 })
-    const inviteRole = ['admin', 'nurse', 'assistant', 'clinician', 'viewer'].includes(body.role) ? body.role : 'assistant'
+    // O mesmo papel já normalizado acima — não se volta a ler `body.role`, que
+    // era como as duas metades desta rota acabavam a discordar uma da outra.
+    const inviteRole = papel
 
     // BUG CORRIGIDO: se o email JÁ tem conta Phlox, o convite por link nunca dava
     // acesso (a pessoa ficava com o plano dela, ex. student, sem entrar na org).
@@ -158,10 +185,10 @@ export async function POST(req: NextRequest) {
       // Aponta a org ATIVA para esta (é para cá que a pessoa é convidada) e mete
       // em modo clínico. NÃO tocamos no plano de faturação: o acesso institucional
       // vem da pertença (effectivePlan/getUserPlan dão-lhe 'clinic' no modo clínico).
-      const patch: any = { experience_mode: 'clinical', org_id: orgId, active_org_id: orgId, org_role: inviteRole === 'admin' ? 'admin' : 'member', onboarded: true }
+      const patch: any = { experience_mode: 'clinical', org_id: orgId, active_org_id: orgId, org_role: orgRoleAntigo(papel), onboarded: true }
       await a.from('profiles').update(patch).eq('id', existing.id)
       const { error: tmErr } = await a.from('team_members').upsert(
-        { org_id: orgId, user_id: existing.id, name: existing.name || email, role: TEAM_ROLE[inviteRole] || 'other', status: 'off' },
+        { org_id: orgId, user_id: existing.id, name: existing.name || email, role: PAPEL_NA_ESCALA[papel] || 'other', status: 'off' },
         { onConflict: 'org_id,user_id' }
       )
       if (tmErr) console.error('[phlox:org-team] criar perfil em team_members falhou (convite existente):', tmErr.message)
@@ -211,7 +238,9 @@ export async function DELETE(req: NextRequest) {
   if (target === user.id) return NextResponse.json({ error: 'Não te podes remover a ti próprio.' }, { status: 400 })
   // não permitir remover o owner
   const { data: m } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', target).maybeSingle()
-  if (m?.role === 'owner') return NextResponse.json({ error: 'O dono não pode ser removido.' }, { status: 400 })
+  if (['owner', 'dono'].includes(m?.role)) {
+    return NextResponse.json({ error: 'O dono não pode ser removido.' }, { status: 400 })
+  }
   await a.from('org_members').update({ active: false }).eq('org_id', orgId).eq('user_id', target)
 
   // Tirar MESMO o acesso institucional ao removido: se ainda pertencer a outra org

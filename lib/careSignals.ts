@@ -17,6 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { analyzeResident, type Severity, type Signal } from './residentSignals'
+import { repeticoes } from './naoPrestado'
 
 export const CARE_DISCLAIMER =
   'Esta vista apoia a organização do trabalho da equipa: reúne o que foi registado e ' +
@@ -67,6 +68,15 @@ export interface CareSignalsInput {
   dailyDetail?: DailyDetailRow[]
   /** já existe ferida em acompanhamento? (cruza com o que a pele diz) */
   hasOpenWound?: boolean
+
+  /**
+   * O que NÃO foi prestado nos últimos ~14 dias, e porquê (sprint154).
+   *
+   * É a fonte que faltava ao motor. Até aqui ele só via o que a equipa FEZ:
+   * um banho recusado três vezes numa semana era invisível — precisamente o
+   * padrão que uma pessoa a acompanhar quer apanhar cedo.
+   */
+  naoPrestados?: { o_que: string; motivo: string; data: string }[]
 }
 
 export interface CareItem { kind: string; severity: Severity; title: string; detail: string }
@@ -154,6 +164,22 @@ export function summariseResident(input: CareSignalsInput): CareResult {
     const given = input.mar.filter(m => m.status === 'taken' || m.status === 'given').length
     const missing = input.marExpectedToday - given
     if (missing > 0) extra.push({ kind: 'mar_open', severity: 'warning', title: `${missing} toma(s) por registar hoje`, detail: 'Há tomas previstas que ainda não foram marcadas como dadas. Confirmar e registar.' })
+  }
+
+  // ── O mesmo cuidado recusado vezes seguidas ─────────────────────────────
+  // Uma recusa é uma contrariedade. Três da mesma coisa em duas semanas é
+  // outra coisa: pode ser dor, pode ser uma mudança de humor, pode ser alguém
+  // que já não consegue o que conseguia. `repeticoes` só conta os motivos que
+  // são sinal — quem faltou três vezes não está a recusar nada, e uma
+  // suspensão clínica é uma decisão, não um sintoma.
+  for (const r of repeticoes(
+    (input.naoPrestados || []).map(x => ({ o_que: x.o_que, motivo: x.motivo as any, data: x.data })), 14)) {
+    extra.push({
+      kind: 'recusa_repetida',
+      severity: r.vezes >= 3 ? 'warning' : 'info',
+      title: `${r.o_que.charAt(0).toUpperCase() + r.o_que.slice(1)}: ${r.vezes} vezes em duas semanas`,
+      detail: `Desde ${r.desde}. Repetir-se assim costuma querer dizer alguma coisa — dor, cansaço, ou simplesmente uma hora que já não serve a esta pessoa. Vale a pena perguntar.`,
+    })
   }
 
   // Recusa alimentar hoje (organizacional — a equipa registou; destacar para seguir).

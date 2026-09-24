@@ -438,7 +438,7 @@ export async function GET(req: NextRequest) {
     await carregarPrefs(membros.map((m: any) => m.user_id))
 
     for (const membro of membros) {
-      const gere = ['owner', 'admin'].includes(membro.role)
+      const gere = ['owner', 'admin', 'dono', 'direcao'].includes(membro.role)
       const seus = (gere ? novos : novos.filter(a => DO_TURNO.has(a.tipo)))
         // Cada pessoa recebe o que escolheu receber. Ver lib/notificacoes.
         .filter(a => quer(membro.user_id, a.tipo))

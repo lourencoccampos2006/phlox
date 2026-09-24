@@ -92,6 +92,40 @@ for (const f of ficheiros) {
   }
 }
 
+// ── 3. As colunas que o codigo ESCREVE ──────────────────────────────────────
+// O select nao era a unica porta. Um `.update({ motivo })` sobre uma coluna que
+// nao existe leva um 400 igualzinho, e com a mesma consequencia: o codigo que
+// nao le o `error` (e havia 69 sitios assim) fica a achar que gravou.
+//
+// So objetos LITERAIS e simples. Um `...spread` ou uma chave calculada nao se
+// consegue ler daqui sem adivinhar, e um guarda que adivinha e um guarda que
+// da alarmes falsos ate alguem o desligar.
+const ESCRITA = /\.from\(\s*['"`]([a-z_0-9]+)['"`]\s*\)((?:(?!\.from\()[\s\S]){0,200}?)\.(insert|update|upsert)\(\s*(?:scope\.stamp\(\s*)?\{([^{}]*)\}/g
+
+for (const f of ficheiros) {
+  const texto = readFileSync(f, 'utf8')
+  for (const m of texto.matchAll(ESCRITA)) {
+    const [, tabela, , verbo, corpo] = m
+    if (corpo.includes('...')) continue          // nao da para saber o que traz
+    const cols = reais.get(tabela)
+    if (!cols) { desconhecidas.add(tabela); continue }
+
+    const linha = texto.slice(0, m.index).split('\n').length
+    for (const par of corpo.split(',')) {
+      // `nome:` ou so `nome` (atalho do JS). Qualquer outra coisa salta.
+      const k = par.trim().match(/^([a-z_][a-z_0-9]*)\s*(?::|$)/i)
+      if (!k) continue
+      const col = k[1]
+      verificados++
+      if (!cols.has(col)) {
+        problemas++
+        console.log(`✗ ${f.replace(/\\/g, '/')}:${linha}`)
+        console.log(`    ${tabela}.${col} NAO EXISTE — este ${verbo} devolve 400 e nao grava nada`)
+      }
+    }
+  }
+}
+
 if (desconhecidas.size) {
   console.log(`\n(${desconhecidas.size} tabela(s) fora da API: ${[...desconhecidas].slice(0, 8).join(', ')})`)
 }

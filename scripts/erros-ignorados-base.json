@@ -1,5 +1,5 @@
 {
-  "app/activities/page.tsx": 7,
+  "app/activities/page.tsx": 6,
   "app/admin/page.tsx": 1,
   "app/agenda/page.tsx": 2,
   "app/api/account/delete/route.ts": 2,
@@ -20,7 +20,6 @@
   "app/api/email/welcome/route.ts": 2,
   "app/api/emergency-card/generate/route.ts": 3,
   "app/api/emergency-card/[token]/route.ts": 1,
-  "app/api/family/documents/route.ts": 1,
   "app/api/family-events/route.ts": 8,
   "app/api/family-handoff/route.ts": 7,
   "app/api/family-help/route.ts": 7,
@@ -135,7 +134,6 @@
   "lib/familyShareAccess.ts": 2,
   "lib/memoriaDocumentos.ts": 2,
   "lib/notifyTeam.ts": 2,
-  "lib/orgAuth.ts": 1,
   "lib/planGate.ts": 1,
   "components/Header.tsx": 1,
   "components/inicio/RosterModule.tsx": 1,

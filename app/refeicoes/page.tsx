@@ -75,6 +75,9 @@ function fmtDate(d: Date) { return d.toISOString().slice(0, 10) }
 export default function RefeicoesPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
 
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
@@ -195,7 +198,7 @@ export default function RefeicoesPage() {
   function entryFor(date: string, mealType: string, course: string) { return entries.find(e => e.date === date && e.meal_type === mealType && (e.course || 'prato') === course) }
 
   async function assignDish(date: string, mealType: string, course: string, dishId: string) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const { data, error } = await supabase.from('meal_plan_entries').upsert(scope.stamp({
       user_id: user.id, date, meal_type: mealType, course, dish_id: dishId || null, dish_name_free: null,
     }), { onConflict: 'org_id,user_id,date,meal_type,course' }).select().single()
@@ -205,7 +208,7 @@ export default function RefeicoesPage() {
 
   /** Guarda na biblioteca um prato que a IA propôs, sem ter de aplicar a semana toda. */
   async function guardarPropostoNaBiblioteca(d: NewDish) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const { data, error } = await supabase.from('meal_dishes').insert(scope.stamp({
       user_id: user.id, name: d.name, course: d.course || 'prato', category: d.category || null, meal_types: d.meal_types,
       allergens: d.allergens, texture: d.texture, diet_tags: d.diet_tags, cost_tier: d.cost_tier, active: true,
@@ -641,6 +644,9 @@ interface ReinforcementRow { id: string; patient_id: string; shift: string; give
 function DiabeticReinforcementSection() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
   const today = new Date().toISOString().slice(0, 10)
 
@@ -678,7 +684,7 @@ function DiabeticReinforcementSection() {
   useEffect(() => { load() }, [load])
 
   async function toggle(patientId: string, shift: string) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const existing = rows.find(r => r.patient_id === patientId && r.shift === shift)
     const nextGiven = !existing?.given
     const { data, error } = await supabase.from('dietary_reinforcements').upsert(scope.stamp({

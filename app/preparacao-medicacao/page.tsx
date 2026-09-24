@@ -45,6 +45,9 @@ function fmtDate(d: Date) { return d.toISOString().slice(0, 10) }
 export default function PreparacaoMedicacaoPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('medicacao', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const toast = useToast()
@@ -103,7 +106,7 @@ export default function PreparacaoMedicacaoPage() {
   }
 
   async function toggle(patientId: string, weekday: number, shift: string) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const existing = logFor(patientId, weekday, shift)
     const nextPacked = !existing?.packed
     // NÃO usa scope.stamp aqui, de propósito. O stamp acrescenta sempre

@@ -76,6 +76,9 @@ export default function ApoioServicosPage() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
   const cfg = institutionConfig(institution)
   const ACCENT = blueprintFor(institution).accent
@@ -285,7 +288,7 @@ export default function ApoioServicosPage() {
   function nameOf(patientId: string | null) { return patients.find(p => p.id === patientId)?.name || null }
 
   async function toggle(s: Schedule) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const existing = logFor(s.id)
     const nextDone = !existing?.done
     const { data, error } = await supabase.from('support_transport_logs').upsert(scope.stamp({
@@ -334,7 +337,7 @@ export default function ApoioServicosPage() {
 
   // ── Os circuitos ──────────────────────────────────────────────────────────
   async function criarCircuito(direcao: 'recolha' | 'entrega') {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const { data, error } = await supabase.from('support_transport_routes').insert(scope.stamp({
       user_id: user.id,
       nome: direcao === 'recolha' ? 'Recolha da manhã' : 'Entrega da tarde',
@@ -385,7 +388,7 @@ export default function ApoioServicosPage() {
   }
 
   async function createService() {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     setSvcSaving(true)
     const { error } = await supabase.from('support_services').insert(scope.stamp({
       user_id: user.id, patient_id: newSvcPatient || null, kind: newSvcKind, status: 'pedido',
@@ -396,7 +399,7 @@ export default function ApoioServicosPage() {
     load()
   }
   async function advanceService(s: Service) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const next: Service['status'] = s.status === 'pedido' ? 'em_curso' : 'concluido'
     const patch: any = { status: next }
     if (next === 'concluido') { patch.completed_by_id = user.id; patch.completed_at = new Date().toISOString() }
@@ -604,7 +607,7 @@ export default function ApoioServicosPage() {
                     <div style={rotulo}>A carrinha sai às</div>
                     <input type="time" value={circuitoAtivo.hora_partida}
                       onChange={e => guardarCircuito(circuitoAtivo.id, { hora_partida: e.target.value })}
-                      disabled={!scope.canEdit}
+                      disabled={!podeEditar}
                       style={{ ...campo, width: 118, fontSize: 19, fontWeight: 700, fontFamily: 'var(--font-mono)' }} />
                   </div>
                   <div>
@@ -612,7 +615,7 @@ export default function ApoioServicosPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <input type="number" min={1} max={15} value={circuitoAtivo.minutos_paragem}
                         onChange={e => guardarCircuito(circuitoAtivo.id, { minutos_paragem: Math.max(1, Math.min(15, Number(e.target.value) || 3)) })}
-                        disabled={!scope.canEdit} style={{ ...campo, width: 68 }} />
+                        disabled={!podeEditar} style={{ ...campo, width: 68 }} />
                       <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>minutos</span>
                     </div>
                   </div>
@@ -628,7 +631,7 @@ export default function ApoioServicosPage() {
                       </div>
                     </div>
                   )}
-                  {circuitos.length === 1 && scope.canEdit && (
+                  {circuitos.length === 1 && podeEditar && (
                     <button onClick={() => criarCircuito(circuitoAtivo.direcao === 'recolha' ? 'entrega' : 'recolha')} style={botaoVazio(false)}>
                       + {circuitoAtivo.direcao === 'recolha' ? 'entrega da tarde' : 'recolha da manhã'}
                     </button>
@@ -657,7 +660,7 @@ export default function ApoioServicosPage() {
                   casa={casaGeo}
                   cor={ACCENT}
                   marcar={(id: string) => { const sc = schedules.find(x => x.id === id); if (sc) toggle(sc) }}
-                  podeEditar={scope.canEdit}
+                  podeEditar={podeEditar}
                   calculada={calculada}
                   aCalcular={aCalcular}
                   otimizar={() => calcularRota(true)}
@@ -910,6 +913,9 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
 }) {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
   const today = new Date().toISOString().slice(0, 10)
   const todayWeekday = new Date().getDay()
@@ -963,7 +969,7 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
   function kindLabel(kind: string) { return kinds.find(k => k.id === kind)?.label || kind }
 
   async function toggle(s: RecSchedule) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const existing = logFor(s.id)
     const nextDone = !existing?.done
     const { data, error } = await supabase.from('support_recurring_logs').upsert({

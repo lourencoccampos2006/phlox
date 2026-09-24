@@ -149,15 +149,29 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [usersRes, searchesRes, analyticsRes] = await Promise.allSettled([
-        supabase.from('profiles').select('id, email, name, plan, created_at, blocked').order('created_at', { ascending: false }).limit(100),
-        supabase.from('search_history').select('query, type, result_severity, created_at').order('created_at', { ascending: false }).limit(500),
-        supabase.from('analytics_events').select('event_type, drug_names, result_severity, country_code, created_at').order('created_at', { ascending: false }).limit(1000),
-      ])
+      // ── Isto saiu do browser ────────────────────────────────────────────
+      // Lia `profiles` (o email de toda a gente), `search_history` e
+      // `analytics_events` direto daqui, o que obrigava essas tabelas a estar
+      // abertas a qualquer utilizador autenticado. Agora vai por uma rota que
+      // confirma a identidade do lado do servidor — e o `profiles` pode
+      // fechar-se. Ver app/api/admin/painel.
+      const { data: sessao } = await supabase.auth.getSession()
+      const r = await fetch('/api/admin/painel', {
+        headers: { Authorization: `Bearer ${sessao?.session?.access_token || ''}` },
+      })
+      const painel = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        console.error('[phlox:admin-painel]', painel?.error)
+        setLoading(false)
+        return
+      }
+      if (painel.falhou?.length) {
+        console.error('[phlox:admin-painel] não vieram:', painel.falhou)
+      }
 
-      const usersData = usersRes.status === 'fulfilled' ? (usersRes.value.data || []) : []
-      const searchesData = searchesRes.status === 'fulfilled' ? (searchesRes.value.data || []) : []
-      const analyticsData = analyticsRes.status === 'fulfilled' ? (analyticsRes.value.data || []) : []
+      const usersData = painel.utilizadores || []
+      const searchesData = painel.pesquisas || []
+      const analyticsData = painel.eventos || []
 
       // Compute stats
       const today = new Date(); today.setHours(0,0,0,0)

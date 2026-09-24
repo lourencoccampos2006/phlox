@@ -12,16 +12,20 @@ import { useAuth } from '@/components/AuthContext'
 import { useClinicPrefs, INST_META, OFFERED_INSTITUTIONS } from '@/lib/useClinicPrefs'
 import EscalasEquipa from '@/components/team/EscalasEquipa'
 import MuralEquipa from '@/components/team/MuralEquipa'
+import AcessosPessoa from '@/components/team/AcessosPessoa'
+import {
+  resumoCurto, PAPEL_ANTIGO_PARA_NOVO, PAPEIS_ATRIBUIVEIS,
+  normalizarPapel, permissoesDe, pode,
+} from '@/lib/permissoes'
 
 const ACCENT = '#0d9488'
 type PageTab = 'conta' | 'escalas' | 'mural'
 
-const ROLES = [
-  { id: 'assistant', label: 'Auxiliar / Cuidador', hint: 'Regista cuidados, medicação e ocorrências' },
-  { id: 'nurse', label: 'Enfermeiro/a', hint: 'Tudo do auxiliar + avaliações clínicas' },
-  { id: 'admin', label: 'Administrador/a', hint: 'Gere a equipa e vê o painel do dono' },
-  { id: 'viewer', label: 'Só leitura', hint: 'Vê, mas não altera' },
-]
+// Os papéis que se podem dar a alguém, tirados de lib/permissoes — que é também
+// de onde sai o SQL. Escrever a lista aqui à mão foi o que fez esta página
+// oferecer 'assistant' e 'nurse' durante meses enquanto a base de dados tinha
+// onze papéis diferentes.
+const ROLES = PAPEIS_ATRIBUIVEIS.map(p => ({ id: p.id, label: p.label, hint: p.descricao }))
 
 interface Member { user_id: string; role: string; name: string; email: string; department?: string }
 interface Invite { email: string; role: string; created_at: string }
@@ -34,6 +38,8 @@ export default function EquipaPage() {
   // Aceita ?tab=conta|escalas|mural e o antigo ?tab=team|schedule|tarefas|config
   // (do /schedule) para não partir favoritos/links antigos.
   const [tab, setTab] = useState<PageTab>('conta')
+  // A pessoa cujos acessos estão abertos. Ver components/team/AcessosPessoa.
+  const [acessosDe, setAcessosDe] = useState<Member | null>(null)
   const [escalasSubTab, setEscalasSubTab] = useState<'team' | 'schedule' | 'tarefas' | 'config' | undefined>(undefined)
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('tab')
@@ -82,7 +88,7 @@ export default function EquipaPage() {
   const [addMode, setAddMode] = useState<'generate' | 'invite'>('generate')
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
-  const [newRole, setNewRole] = useState('assistant')
+  const [newRole, setNewRole] = useState('auxiliar')
   const [lastLogin, setLastLogin] = useState<GenLogin | null>(null)
   const [inviteMsg, setInviteMsg] = useState('')
 
@@ -193,7 +199,14 @@ export default function EquipaPage() {
   if (!user) return null
 
   const card: React.CSSProperties = { background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '20px 22px' }
-  const isManager = myRole === 'owner' || myRole === 'admin'
+  // Comparava `myRole === 'owner' || myRole === 'admin'`. Depois do sprint152 o
+  // papel é `dono`/`direcao`, e isto ficava FALSO para toda a gente — a página
+  // da equipa trancava-se ao próprio dono.
+  //
+  // E a pergunta certa nunca foi «que papel tem». É «pode gerir a equipa»,
+  // que é o que a Direção Técnica pode ter tirado a alguém.
+  const papelNaCasa = normalizarPapel(myRole)
+  const isManager = !!papelNaCasa && pode(permissoesDe(papelNaCasa), 'equipa', 'editar')
 
   return (
     <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
@@ -426,12 +439,20 @@ export default function EquipaPage() {
                     <span style={{ width: 34, height: 34, borderRadius: '50%', background: '#f0fdfa', color: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>{(m.name || '?')[0].toUpperCase()}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{m.name}</span>
-                      <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8' }}>{roleLabel(m.role)}{m.email ? ` · ${m.email}` : ''}</span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8' }}>
+                        {resumoCurto(PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role)}{m.email ? ` · ${m.email}` : ''}
+                      </span>
                     </span>
-                    {isManager && m.role !== 'owner' && (
+                    {/* Os acessos desta pessoa. O Dono não se limita — é a
+                        única garantia de que ninguém fica fechado fora da sua
+                        própria casa. */}
+                    {isManager && !['owner', 'dono'].includes(m.role) && (
+                      <button onClick={() => setAcessosDe(m)} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 10px', color: '#475569', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Acessos</button>
+                    )}
+                    {isManager && !['owner', 'dono'].includes(m.role) && (
                       <button onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Remover</button>
                     )}
-                    {m.role === 'owner' && <span style={{ fontSize: 11, color: ACCENT, fontWeight: 700 }}>Dono</span>}
+                    {['owner', 'dono'].includes(m.role) && <span style={{ fontSize: 11, color: ACCENT, fontWeight: 700 }}>Dono</span>}
                   </div>
                 ))}
               </div>
@@ -451,6 +472,36 @@ export default function EquipaPage() {
         )}
         </>}
       </div>
+
+      {/* ── Os acessos de uma pessoa ────────────────────────────────────
+          A frase primeiro, a matriz atrás de «Afinar». Quem guarda é a rota
+          /api/org/permissoes, que volta a verificar tudo do lado do servidor:
+          esconder um botão não impede ninguém de chamar a API. */}
+      {acessosDe && (
+        <AcessosPessoa
+          pessoa={{
+            user_id: acessosDe.user_id,
+            nome: acessosDe.name,
+            email: acessosDe.email,
+            papel: PAPEL_ANTIGO_PARA_NOVO[acessosDe.role] || acessosDe.role,
+          }}
+          aoFechar={() => setAcessosDe(null)}
+          aoGuardar={async (papel, permissoes) => {
+            try {
+              const r = await fetch('/api/org/permissoes', {
+                method: 'POST', headers: await auth(),
+                body: JSON.stringify({ userId: acessosDe.user_id, papel, permissoes }),
+              })
+              const j = await r.json()
+              if (!r.ok) return { ok: false, erro: j.error || 'Não foi possível guardar.' }
+              await loadAll()
+              return { ok: true }
+            } catch {
+              return { ok: false, erro: 'Não foi possível guardar. Verifique a ligação.' }
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

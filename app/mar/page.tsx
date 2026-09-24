@@ -151,6 +151,9 @@ export default function MARPage() {
   const { user, supabase } = useAuth()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('medicacao', 'editar')
   const toast = useToast()
   const cfg = institutionConfig(institution)
   const isDayCare = institution === 'day_care'   // ponte casa↔centro só faz sentido aqui
@@ -324,7 +327,7 @@ export default function MARPage() {
   const isToday = date === getToday()
   const doAdmin = async (medId: string, status: AdminStatus, notes: string) => {
     if (!user || !selectedId) return
-    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
+    if (!podeEditar) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
     if (!isToday && !scope.isManager) {
       toast.error('Só para outro dia com um administrador', 'Só consegues registar tomas de hoje. Para lançar uma toma de outro dia, pede a um administrador da equipa.')
       return
@@ -404,7 +407,7 @@ export default function MARPage() {
   const administerAllPending = async () => {
     const pending = shiftMeds.filter(m => !getRecord(m.id))
     if (!pending.length || !user || !selectedId) return
-    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
+    if (!podeEditar) { toast.error('Só leitura', 'A sua conta não pode registar medicação.'); return }
     const now = new Date().toISOString()
     const inserts = pending.map(m => scope.stamp({ patient_id: selectedId, user_id: user.id, med_id: m.id, shift, date, status: 'administered', notes: '', recorded_by: (user as any).name || user.email || '', recorded_at: now }))
     try {

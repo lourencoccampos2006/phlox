@@ -43,6 +43,9 @@ function expiryDays(d?: string | null) { return d ? Math.floor((new Date(d + 'T1
 export default function StockPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('stock', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [items, setItems] = useState<Item[]>([])
@@ -169,7 +172,7 @@ export default function StockPage() {
     setSaving(false)
   }
   async function adjust(it: Item, delta: number) {
-    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setErr('A sua conta é só de leitura.'); return }
     const q = Math.max(0, Number(it.quantity) + delta)
     const prev = it.quantity
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: q } : x))
@@ -177,7 +180,7 @@ export default function StockPage() {
     if (error) { setErr(reportError('stock-adjust', error, 'Não foi possível atualizar. Tenta de novo.')); setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: prev } : x)) }
   }
   async function del(id: string) {
-    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setErr('A sua conta é só de leitura.'); return }
     const { error } = await supabase.from('stock_items').delete().eq('id', id)
     if (error) { setErr(reportError('stock-del', error, 'Não foi possível remover. Tenta de novo.')); return }
     setItems(p => p.filter(x => x.id !== id))
@@ -188,7 +191,7 @@ export default function StockPage() {
     return { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` }
   }, [supabase])
   async function consume(it: Item, qty = 1, patientId?: string) {
-    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setErr('A sua conta é só de leitura.'); return }
     const prev = it.quantity
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: Math.max(0, prev - qty) } : x))
     const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, qty, patient_id: patientId || null }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
@@ -196,7 +199,7 @@ export default function StockPage() {
     setItems(p => p.map(x => x.id === it.id ? { ...x, quantity: r.quantity, reorder_status: r.alerted ? 'requested' : x.reorder_status } : x))
   }
   async function reorder(it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) {
-    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setErr('A sua conta é só de leitura.'); return }
     const r = await fetch('/api/stock/consume', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ item_id: it.id, action, ...extra }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     if (r.error) { setErr(r.error); return }
     setItems(p => p.map(x => x.id === it.id ? { ...x, reorder_status: r.reorder_status, quantity: r.quantity ?? x.quantity } : x))
@@ -516,15 +519,15 @@ function StockItemCard({ it, card, scope, consume, adjust, del, reorder, daysLef
           {it.reorder_status === 'requested' ? (
             <>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>📦 Pedido de encomenda enviado à equipa</span>
-              {scope.canEdit && <button onClick={() => reorder(it, 'ordered')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar encomendado</button>}
+              {scope.pode('stock', 'editar') && <button onClick={() => reorder(it, 'ordered')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar encomendado</button>}
             </>
           ) : it.reorder_status === 'ordered' ? (
             <>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>✅ Encomendado — a caminho</span>
-              {scope.canEdit && <button onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Recebido — repor</button>}
+              {scope.pode('stock', 'editar') && <button onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Recebido — repor</button>}
             </>
           ) : (
-            scope.canEdit && <button onClick={() => reorder(it, 'request')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Avisar equipa — falta este</button>
+            scope.pode('stock', 'editar') && <button onClick={() => reorder(it, 'request')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Avisar equipa — falta este</button>
           )}
           {it.buy_url && <a href={it.buy_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Comprar →</a>}
           {it.supplier_name && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{it.supplier_name}{it.supplier_contact ? ` · ${it.supplier_contact}` : ''}</span>}

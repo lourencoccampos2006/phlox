@@ -144,6 +144,9 @@ const MNA_SCREENING = [
 function AssessmentsTool() {
   const { user, supabase } = useAuth()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('avaliacoes', 'editar')
   const toast = useToast()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
@@ -197,7 +200,7 @@ function AssessmentsTool() {
 
   async function save() {
     if (!user || !patientId) return
-    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode registar avaliações.'); return }
+    if (!podeEditar) { toast.error('Só leitura', 'A sua conta não pode registar avaliações.'); return }
     setSaving(true)
     const payload = scope.stamp({
       patient_id: patientId,

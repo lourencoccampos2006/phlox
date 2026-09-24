@@ -15,7 +15,9 @@ import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 const ACCENT = '#0d9488'
 type Channel = 'geral' | 'doentes' | 'pedidos' | 'stock' | 'avisos'
-interface Msg { id: string; author_id: string; author_name: string; channel: Channel; body: string; priority: 'normal' | 'importante' | 'urgente'; resolved: boolean; patient_id?: string | null; created_at: string }
+interface Msg { id: string; author_id: string; author_name: string; channel: Channel; body: string; priority: 'normal' | 'importante' | 'urgente'; resolved: boolean; patient_id?: string | null; created_at: string; para_ids?: string[] | null }
+/** Um colega, para o seletor de destinatarios. */
+interface Colega { user_id: string; nome: string }
 
 const CHANNELS: { id: Channel; label: string; icon: string; hint: string }[] = [
   { id: 'geral',   label: 'Geral',    icon: '💬', hint: 'Conversa e coordenação da equipa' },
@@ -40,6 +42,14 @@ export default function MuralEquipa() {
   const [text, setText] = useState('')
   const [priority, setPriority] = useState<'normal' | 'importante' | 'urgente'>('normal')
   const [sending, setSending] = useState(false)
+  // ── Recados dirigidos (sprint156) ────────────────────────────────────────
+  // Vazio = para a casa toda, que e o que o mural sempre foi. Escolher pessoas
+  // torna o recado privado: so elas e quem o escreveu o leem, e so elas
+  // recebem a notificacao. Quem garante isso e a politica `tm_dirigido` na
+  // base de dados, nao este ecra.
+  const [colegas, setColegas] = useState<Colega[]>([])
+  const [para, setPara] = useState<string[]>([])
+  const [aEscolherPara, setAEscolherPara] = useState(false)
   const [err, setErr] = useState('')
   const [needsSetup, setNeedsSetup] = useState(false)
   // Chegou de /mar ("Passagem →", ?handover=1) — abre já o formulário de
@@ -73,6 +83,22 @@ export default function MuralEquipa() {
 
   useEffect(() => { load() }, [load])
 
+  // Os colegas, para o seletor de destinatarios. So os nomes — ver
+  // app/api/org/colegas. Carrega uma vez; uma equipa nao muda a meio da tarde.
+  useEffect(() => {
+    if (!scope.orgId) return
+    let vivo = true
+    ;(async () => {
+      try {
+        const r = await fetch(`/api/org/colegas?org=${encodeURIComponent(scope.orgId!)}`, { headers: await auth() })
+        if (!r.ok) return
+        const j = await r.json()
+        if (vivo) setColegas(j.colegas || [])
+      } catch { /* sem lista, o mural continua a funcionar para a casa toda */ }
+    })()
+    return () => { vivo = false }
+  }, [scope.orgId, auth])
+
   useEffect(() => {
     if (!user) return
     const ch = supabase.channel('team_messages_live')
@@ -88,10 +114,10 @@ export default function MuralEquipa() {
     if (!text.trim() || sending) return
     setSending(true)
     const body = text.trim()
-    const r = await fetch('/api/team-messages', { method: 'POST', headers: await auth(), body: JSON.stringify({ body, channel, priority }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
+    const r = await fetch('/api/team-messages', { method: 'POST', headers: await auth(), body: JSON.stringify({ body, channel, priority, para_ids: para }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
     setSending(false)
     if (r.error) { setErr(r.error); return }
-    setText(''); setPriority('normal'); load()
+    setText(''); setPriority('normal'); setPara([]); setAEscolherPara(false); load()
   }
   async function toggleResolved(m: Msg) {
     setMsgs(prev => prev.map(x => x.id === m.id ? { ...x, resolved: !x.resolved } : x))
@@ -314,6 +340,20 @@ export default function MuralEquipa() {
                           {m.priority !== 'normal' && <span style={{ fontSize: 10, fontWeight: 700, color: PRIO[m.priority].c }}>{PRIO[m.priority].l}</span>}
                           <span style={{ fontSize: 10.5, color: '#94a3b8' }}>{new Date(m.created_at).toLocaleString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                           {m.resolved && <span style={{ fontSize: 10.5, color: '#16a34a', fontWeight: 700 }}>✓ resolvido</span>}
+                          {/* Quem escreve um recado dirigido tem de VER que ele
+                              e dirigido. Sem isto, alguem escreve para uma
+                              colega a achar que a casa toda leu — ou o
+                              contrario, que e pior. */}
+                          {m.para_ids && m.para_ids.length > 0 && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, color: ACCENT,
+                              background: ACCENT + '14', borderRadius: 20, padding: '2px 8px',
+                            }}>
+                              só para {m.para_ids
+                                .map(id => id === user?.id ? 'ti' : (colegas.find(c => c.user_id === id)?.nome || '').split(' ')[0])
+                                .filter(Boolean).join(', ') || `${m.para_ids.length} pessoas`}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: 13.5, color: '#1e293b', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.body}</div>
                         {canResolve && <button onClick={() => toggleResolved(m)} style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: m.resolved ? '#94a3b8' : ACCENT, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>{m.resolved ? 'reabrir' : 'marcar resolvido'}</button>}
@@ -326,6 +366,75 @@ export default function MuralEquipa() {
           </div>
 
           <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: 12 }}>
+            {/* Para quem. Fechado por omissao: a esmagadora maioria dos recados
+                e para a casa toda, e um seletor sempre aberto so acrescenta um
+                passo a cada mensagem. */}
+            {colegas.length > 0 && (
+              <div style={{ marginBottom: 9 }}>
+                <button
+                  onClick={() => setAEscolherPara(v => !v)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px',
+                    borderRadius: 20, minHeight: 32, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1.5px solid ${para.length ? ACCENT : '#e2e8f0'}`,
+                    background: para.length ? ACCENT + '12' : 'white',
+                    color: para.length ? ACCENT : '#64748b', fontSize: 12, fontWeight: 600,
+                  }}>
+                  {para.length === 0
+                    ? 'Para: toda a equipa'
+                    : para.length === 1
+                      ? `Para: ${colegas.find(c => c.user_id === para[0])?.nome || '1 pessoa'}`
+                      : `Para: ${para.length} pessoas`}
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>{aEscolherPara ? '▲' : '▼'}</span>
+                </button>
+
+                {para.length > 0 && (
+                  <span style={{ marginLeft: 9, fontSize: 11.5, color: '#64748b' }}>
+                    Só estas pessoas veem este recado.
+                  </span>
+                )}
+
+                {aEscolherPara && (
+                  <div style={{
+                    marginTop: 8, padding: 10, border: '1px solid #e9eaec', borderRadius: 10,
+                    background: '#fafbfc', maxHeight: 190, overflowY: 'auto',
+                  }}>
+                    <button
+                      onClick={() => setPara([])}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px',
+                        borderRadius: 7, minHeight: 36, cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${para.length === 0 ? ACCENT : 'transparent'}`,
+                        background: para.length === 0 ? 'white' : 'transparent',
+                        fontSize: 13, fontWeight: 600, color: '#0b1120', marginBottom: 4,
+                      }}>Toda a equipa</button>
+                    {colegas.map(c => {
+                      const escolhido = para.includes(c.user_id)
+                      return (
+                        <button key={c.user_id}
+                          onClick={() => setPara(p => escolhido ? p.filter(x => x !== c.user_id) : [...p, c.user_id])}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+                            padding: '7px 9px', borderRadius: 7, minHeight: 36, cursor: 'pointer',
+                            fontFamily: 'inherit', border: 'none',
+                            background: escolhido ? ACCENT + '12' : 'transparent',
+                            fontSize: 13, fontWeight: escolhido ? 700 : 500, color: '#0b1120',
+                          }}>
+                          <span style={{
+                            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                            border: `1.5px solid ${escolhido ? ACCENT : '#cbd5e1'}`,
+                            background: escolhido ? ACCENT : 'white',
+                            color: 'white', fontSize: 11, lineHeight: '13px', textAlign: 'center',
+                          }}>{escolhido ? '✓' : ''}</span>
+                          {c.nome}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             <textarea value={text} onChange={e => setText(e.target.value)} rows={2}
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send() }}
               placeholder={channel === 'stock' ? 'Ex: Fraldas quase a acabar — faltam para 2 dias' : channel === 'doentes' ? `Recado sobre ${cfg.personNounIndef}…` : 'Escreve à equipa…'}

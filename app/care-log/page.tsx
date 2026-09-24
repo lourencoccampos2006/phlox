@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
+import { CuidadosNaoPrestados } from '@/components/institution/NaoPrestado'
 import { useToast } from '@/components/Toast'
 import { reportError } from '@/lib/clientError'
 import RegistoDoDia from './RegistoDoDia'
@@ -72,6 +73,9 @@ export function CareLogTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
   const cfg = institutionConfig(institution)
   const personLower = cfg.personNoun.toLowerCase()
@@ -198,7 +202,7 @@ export function CareLogTool() {
    *  suas — e a hora fica a de agora. */
   async function registarIgual() {
     if (!user || !patientId || !lastRecord) return
-    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
+    if (!podeEditar) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
     setSaving(true)
     try {
       const r = lastRecord
@@ -225,7 +229,7 @@ export function CareLogTool() {
 
   async function save() {
     if (!user || !patientId) return
-    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
+    if (!podeEditar) { toast.error('Só leitura', 'A sua conta não tem permissão para registar.'); return }
     setSaving(true)
     try {
     const { error } = await supabase.from('care_records').upsert(scope.stamp({
@@ -648,6 +652,19 @@ export function CareLogTool() {
               {saving ? 'A guardar...' : saved ? '✓ Registo guardado' : `Guardar registo — ${pat?.name || `Selecionar ${personLower}`}`}
             </button>
           </div>
+
+          {/* O que NÃO foi feito, e porquê. Fica a seguir ao registo normal,
+              e não numa ferramenta à parte: a altura de dizer que o banho não
+              foi dado é a altura em que se está a escrever o resto do dia
+              desta pessoa. Grava sozinho — não espera pelo botão de guardar,
+              porque cada linha é um facto independente do resto do formulário. */}
+          <CuidadosNaoPrestados
+            patientId={patientId}
+            nome={pat?.name}
+            data={date}
+            turno={shift}
+            podeEditar={podeEditar}
+          />
         </div>
 
         {/* History sidebar */}

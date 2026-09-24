@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   ])
   if (orgsErr) return NextResponse.json({ error: orgsErr.message }, { status: 500 })
 
-  const ownerIds = [...new Set((members || []).filter(m => m.role === 'owner').map(m => m.user_id))]
+  const ownerIds = [...new Set((members || []).filter(m => ['owner', 'dono'].includes(m.role)).map(m => m.user_id))]
   const { data: owners } = ownerIds.length
     ? await db.from('profiles').select('id, email, name').in('id', ownerIds)
     : { data: [] as any[] }
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const result = (orgs || []).map(o => {
     const orgMembers = (members || []).filter(m => m.org_id === o.id)
-    const owner = orgMembers.find(m => m.role === 'owner')
+    const owner = orgMembers.find(m => ['owner', 'dono'].includes(m.role))
     return {
       id: o.id, name: o.name, kind: o.kind, created_at: o.created_at,
       member_count: orgMembers.filter(m => m.active !== false).length,

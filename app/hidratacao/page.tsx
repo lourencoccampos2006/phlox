@@ -26,6 +26,9 @@ const todayStr = () => new Date().toISOString().slice(0, 10)
 export function HidratacaoTool() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
@@ -64,14 +67,14 @@ export function HidratacaoTool() {
 
   async function addFluid(pid: string, ml: number) {
     if (!user) return
-    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { alert('A sua conta é só de leitura.'); return }
     const { error } = await supabase.from('hydration_logs').insert(scope.stamp({ patient_id: pid, kind: 'fluid', fluid_ml: ml }))
     if (error) { alert('Não foi possível registar: ' + error.message); return }
     load()
   }
   async function addBowel(pid: string, bristol: number) {
     if (!user) return
-    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { alert('A sua conta é só de leitura.'); return }
     setSaving(true)
     const { error } = await supabase.from('hydration_logs').insert(scope.stamp({ patient_id: pid, kind: 'bowel', bristol }))
     setSaving(false); setBowelFor(null)

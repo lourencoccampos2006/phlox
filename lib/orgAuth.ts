@@ -18,6 +18,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import {
+  PAPEL_ANTIGO_PARA_NOVO, permissoesDe, pode, type Nivel,
+} from '@/lib/permissoes'
 
 /** Cliente Supabase autenticado com o token Bearer do pedido (RLS do utilizador). */
 export function authedClient(req: NextRequest): SupabaseClient {
@@ -50,17 +53,63 @@ export const sb = authedClient
 export const authClient = authedClient
 
 /**
- * Confirma que `userId` tem um dos `roles` na organização `orgId` (membro
- * ativo). Devolve `null` se sim, ou uma NextResponse 403 pronta a devolver
- * se não — uso: `const denied = await requireOrgRole(...); if (denied) return denied`.
+ * As permissões efetivas de alguém numa organização (`area.nivel`).
+ * Vazio quando não é membro ativo.
+ *
+ * Lê de `org_members` e traduz o papel: entre o dia em que este código sobe e
+ * o dia em que a migração (sprint152) corre, a base de dados ainda tem os
+ * papéis antigos. Sem a tradução, toda a gente ficava sem permissões nenhumas
+ * nesse intervalo — e são 70 rotas a passar por aqui.
+ */
+export async function permissoesNaOrg(
+  sb: SupabaseClient, userId: string, orgId: string,
+): Promise<string[]> {
+  const { data, error } = await sb.from('org_members')
+    .select('role, capabilities').eq('org_id', orgId).eq('user_id', userId).eq('active', true).maybeSingle()
+  if (error || !data) return []
+  const papel = PAPEL_ANTIGO_PARA_NOVO[data.role] || data.role
+  return permissoesDe(papel, data.capabilities)
+}
+
+/**
+ * Exige uma permissão concreta. É a forma que as rotas novas devem usar:
+ *
+ *   const negado = await requireOrgPermissao(sb, user.id, orgId, 'financeiro', 'editar')
+ *   if (negado) return negado
+ */
+export async function requireOrgPermissao(
+  sb: SupabaseClient, userId: string, orgId: string, area: string, nivel: Nivel,
+): Promise<NextResponse | null> {
+  const minhas = await permissoesNaOrg(sb, userId, orgId)
+  if (pode(minhas, area, nivel)) return null
+  return NextResponse.json({ error: 'Não tem acesso a esta parte.' }, { status: 403 })
+}
+
+/**
+ * Confirma que `userId` gere a organização. Devolve `null` se sim, ou uma
+ * NextResponse 403 pronta a devolver se não — uso:
+ * `const denied = await requireOrgRole(...); if (denied) return denied`.
+ *
+ * ── PORQUE É QUE ISTO DEIXOU DE OLHAR PARA O NOME DO PAPEL ─────────────────
+ * Estava escrito `roles.includes(data.role)` com `roles: ('owner'|'admin')[]`,
+ * e é chamado por SETENTA rotas. Depois da migração (sprint152) não existe
+ * nenhum papel chamado `owner` nem `admin` — as setenta passariam a devolver
+ * 403 a toda a gente, incluindo ao dono da casa.
+ *
+ * Agora pergunta pela CAPACIDADE de gerir (`definicoes.editar`), que é o que
+ * estas rotas querem dizer quando pedem "owner ou admin". O parâmetro `roles`
+ * fica por compatibilidade com as chamadas existentes e é ignorado — quem
+ * escrever uma rota nova deve usar `requireOrgPermissao`.
  */
 export async function requireOrgRole(
-  sb: SupabaseClient, userId: string, orgId: string, roles: ('owner' | 'admin')[]
+  sb: SupabaseClient, userId: string, orgId: string, _roles?: string[],
 ): Promise<NextResponse | null> {
-  const { data } = await sb.from('org_members')
-    .select('role').eq('org_id', orgId).eq('user_id', userId).eq('active', true).maybeSingle()
-  if (!data || !roles.includes(data.role)) {
-    return NextResponse.json({ error: 'Sem permissão — só admins/owner da instituição.' }, { status: 403 })
+  const minhas = await permissoesNaOrg(sb, userId, orgId)
+  if (!minhas.length) {
+    return NextResponse.json({ error: 'Não pertence a esta instituição.' }, { status: 403 })
+  }
+  if (!pode(minhas, 'definicoes', 'editar')) {
+    return NextResponse.json({ error: 'Não tem acesso a esta parte — fale com quem gere a casa.' }, { status: 403 })
   }
   return null
 }

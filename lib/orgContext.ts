@@ -10,25 +10,15 @@ import { useEffect, useState, useCallback } from 'react'
 const LS_KEY = 'phlox-active-org'
 const EVT = 'phlox-org-changed'
 
-// Lista completa de capabilities que owner/admin têm sempre — mantida em
-// sincronia com `capability_catalog` SQL. Adicionar aqui sempre que se cria
-// nova capability na BD.
-export const ALL_CAPABILITIES = [
-  'patients.read','patients.write','patients.delete',
-  'episodes.read','episodes.write',
-  'prescription.read','prescription.write','prescription.validate',
-  'mar.read','mar.administer',
-  'rounds.read','rounds.write',
-  'stock.read','stock.write','stock.purchase','stock.inventory',
-  'billing.read','billing.write','billing.fiscal_export',
-  'pos.use',
-  'team.read','team.manage','team.schedule',
-  'quality.read','quality.write','audit.read',
-  'org.admin','org.billing_settings',
-  'suppliers.read','suppliers.write',
-  'loyalty.read','loyalty.write',
-  'translate.use',
-]
+// ── As permissões vivem em lib/permissoes.ts ────────────────────────────────
+// Esta lista era aqui, escrita à mão, e falava de `pos.use`, `loyalty.write` e
+// `suppliers.read` — a farmácia, que saiu do produto. Agora vem do catálogo,
+// que é também de onde o SQL é gerado: não podem divergir.
+import { TODAS, permissoesDe, PAPEL_ANTIGO_PARA_NOVO } from './permissoes'
+
+/** @deprecated Usa `TODAS` de lib/permissoes. Fica por compatibilidade com
+ *  app/convite/[token]/page.tsx, o único sítio que ainda a importava. */
+export const ALL_CAPABILITIES = TODAS
 
 export interface OrgSummary {
   id: string
@@ -80,28 +70,30 @@ export function useMemberships(): { memberships: OrgMembership[]; active: OrgMem
         .eq('active', true)
       if (error) { console.error('[orgContext] memberships:', error); setMemberships([]); setLoading(false); return }
 
-      // 2) Para cada membership sem capabilities override, vai buscar defaults.
-      //    Owner e admin têm SEMPRE tudo. Independentemente do estado do
-      //    capability_catalog na BD (que pode estar vazia em instalações
-      //    parciais), damos-lhes uma lista completa hardcoded no cliente.
-      const out: OrgMembership[] = []
-      for (const m of (members || [])) {
-        const role = (m as any).role
-        let caps: string[] = Array.isArray((m as any).capabilities) ? (m as any).capabilities : []
-        if (role === 'owner' || role === 'admin') {
-          caps = ALL_CAPABILITIES
-        } else if (caps.length === 0) {
-          const { data, error: erroLeitura } = await supabase.rpc('default_capabilities', { role })
-          if (erroLeitura) reportError('org-capabilities', erroLeitura)
-          caps = Array.isArray(data) ? data : []
+      // 2) As permissões efetivas de cada membership.
+      //
+      //    Calculadas AQUI, a partir de lib/permissoes, e não com um
+      //    `rpc('default_capabilities')` por organização. Duas razões: poupa
+      //    uma ida à rede por cada casa a que a pessoa pertence, e usa
+      //    exatamente a mesma fonte de onde o SQL foi gerado — se um dia
+      //    discordassem, a interface mostraria uma coisa e a base de dados
+      //    faria outra.
+      //
+      //    O `PAPEL_ANTIGO_PARA_NOVO` está aqui de propósito: entre o dia em
+      //    que este código sobe e o dia em que a migração corre, a base de
+      //    dados ainda tem os papéis antigos. Sem esta tradução, toda a gente
+      //    ficava sem permissões nenhumas nesse intervalo.
+      const out: OrgMembership[] = (members || []).map((m: any) => {
+        const papelBruto: string = m.role
+        const papel = PAPEL_ANTIGO_PARA_NOVO[papelBruto] || papelBruto
+        const sobreposicao: string[] = Array.isArray(m.capabilities) ? m.capabilities : []
+        return {
+          org: m.organizations as OrgSummary,
+          role: papel,
+          capabilities: permissoesDe(papel, sobreposicao),
+          department: m.department,
         }
-        out.push({
-          org: (m as any).organizations as OrgSummary,
-          role,
-          capabilities: caps,
-          department: (m as any).department,
-        })
-      }
+      })
       setMemberships(out)
 
       // Se não houver active org ou a guardada já não pertence → pega primeira

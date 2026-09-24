@@ -9,6 +9,8 @@ import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import RegistarNaoPrestado from '@/components/institution/NaoPrestado'
+import { rotuloMotivo } from '@/lib/naoPrestado'
 
 // Fundido no "Registo do dia" (/care-log) como aba "Atividades" (AtividadesTool
 // reutilizado). A rota /activities redireciona p/ não partir links antigos.
@@ -80,6 +82,10 @@ interface Participation {
   patient_name?: string
   attended: boolean
   notes?: string
+  /** Porque e que nao participou. So faz sentido com `attended = false`.
+   *  Sem isto, «Ausente» tanto podia ser «nao veio» como «veio e nao quis» —
+   *  e para quem cuida essas duas coisas nao tem nada a ver uma com a outra. */
+  motivo?: string | null
 }
 
 interface Patient {
@@ -119,6 +125,9 @@ export function AtividadesTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('atividades', 'editar')
   const cfg = institutionConfig(institution)
   const [view, setView]         = useState<'today' | 'week' | 'all'>('today')
   const [activities, setActivities] = useState<Activity[]>([])
@@ -211,7 +220,7 @@ export function AtividadesTool() {
 
   async function saveRecurring() {
     if (!recurringForm.title.trim() || !user) return
-    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { alert('A sua conta é só de leitura.'); return }
     setSavingRecurring(true)
     const { error } = await supabase.from('recurring_activities').insert(scope.stamp({
       user_id: user.id, title: recurringForm.title.trim(), type: recurringForm.type, weekday: recurringForm.weekday,
@@ -252,7 +261,7 @@ export function AtividadesTool() {
 
   async function saveActivity() {
     if (!form.title.trim() || !user) return
-    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { alert('A sua conta é só de leitura.'); return }
     setSaving(true)
     const title = form.title.trim()
     const { error } = await supabase.from('activities').insert(scope.stamp({
@@ -286,12 +295,34 @@ export function AtividadesTool() {
     if (selected?.id === act.id) setSelected(prev => prev ? { ...prev, status } : null)
   }
 
+  // Marcar presenca. Quando alguem passa a NAO participar, pergunta-se porque:
+  // e a diferenca entre um registo que diz «faltaram 4» e um que diz o que se
+  // passou com cada uma das quatro pessoas.
+  //
+  // A pergunta e feita DEPOIS de gravar, nao antes. Quem esta a marcar
+  // presencas esta a correr uma lista; travar a lista com um formulario por
+  // cada ausencia faria com que ninguem marcasse presencas.
+  const [aPerguntarMotivo, setAPerguntarMotivo] = useState<{ id: string; nome: string } | null>(null)
+
   async function toggleParticipation(patientId: string, attended: boolean) {
     if (!selected) return
     const existing = participations.find(p => p.patient_id === patientId)
+    // Voltar a marcar presente apaga o motivo: ja nao ha ausencia nenhuma para
+    // explicar, e um motivo orfao ficaria a contradizer a presenca.
+    const motivo = attended ? null : (existing?.motivo ?? null)
     if (existing) {
-      await supabase.from('activity_participations').update({ attended }).eq('id', existing.id)
-      setParticipations(prev => prev.map(p => p.patient_id === patientId ? { ...p, attended } : p))
+      const { error } = await supabase.from('activity_participations').update({ attended, motivo }).eq('id', existing.id)
+      if (error) {
+        // A presenca de hoje e a prova de que alguem esteve na casa. Se nao
+        // gravou, tem de se ver que nao gravou — e o ecra nao pode ficar a
+        // mostrar o estado novo como se tivesse ficado.
+        setErroRegisto(reportError('activity-part-update', error,
+          isSetupError(error) ? MSG.unavailable : 'A presença não ficou registada. Tente de novo.'))
+        return
+      }
+      setErroRegisto('')
+      setParticipations(prev => prev.map(p => p.patient_id === patientId ? { ...p, attended, motivo } : p))
+      if (!attended) perguntarPorque(patientId)
     } else {
       const { data, error } = await supabase.from('activity_participations').insert(scope.stamp({
         activity_id: selected.id, patient_id: patientId, attended,
@@ -306,7 +337,13 @@ export function AtividadesTool() {
       }
       setErroRegisto('')
       setParticipations(prev => [...prev, data])
+      if (!attended) perguntarPorque(patientId)
     }
+  }
+
+  function perguntarPorque(patientId: string) {
+    const nome = patients.find(p => p.id === patientId)?.name || ''
+    setAPerguntarMotivo({ id: patientId, nome })
   }
 
   async function markAllPresent() {
@@ -314,7 +351,17 @@ export function AtividadesTool() {
     const existingIds = new Set(participations.map(p => p.patient_id))
     const toInsert = patients.filter(p => !existingIds.has(p.id)).map(p => scope.stamp({ activity_id: selected.id, patient_id: p.id, attended: true, user_id: user.id }))
     const toUpdate = participations.filter(p => !p.attended)
-    if (toUpdate.length) await supabase.from('activity_participations').update({ attended: true }).in('id', toUpdate.map(p => p.id))
+    // `motivo: null` junto com o `attended: true`: marcar toda a gente presente
+    // tem de apagar os motivos de ausencia que ja la estivessem, senao fica um
+    // «Recusou» colado a uma pessoa que esta marcada como presente.
+    if (toUpdate.length) {
+      const { error } = await supabase.from('activity_participations').update({ attended: true, motivo: null }).in('id', toUpdate.map(p => p.id))
+      if (error) {
+        setErroRegisto(reportError('activity-all-update', error,
+          isSetupError(error) ? MSG.unavailable : 'Não foi possível marcar todos. Tente de novo.'))
+        return
+      }
+    }
     let inserted: Participation[] = []
     if (toInsert.length) {
       const { data, error } = await supabase.from('activity_participations').insert(toInsert).select()
@@ -326,7 +373,7 @@ export function AtividadesTool() {
       inserted = data || []
     }
     setErroRegisto('')
-    setParticipations(prev => [...prev.map(p => ({ ...p, attended: true })), ...inserted])
+    setParticipations(prev => [...prev.map(p => ({ ...p, attended: true, motivo: null })), ...inserted])
   }
 
   // Envia um recado às famílias dos utentes indicados, no FIO que as famílias
@@ -352,7 +399,7 @@ export function AtividadesTool() {
     if (!selected || !user) return
     const present = participations.filter(p => p.attended).map(p => p.patient_id)
     if (present.length === 0) { alert('Marca primeiro quem participou.'); return }
-    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { alert('A sua conta é só de leitura.'); return }
     if (!confirm(`Enviar recado às famílias de ${present.length} ${cfg.personNounPlural.toLowerCase()} que participaram em "${selected.title}"?`)) return
     setNotifyBusy(true)
     const n = await sendActivityMessages(selected.title, present, 'participated')
@@ -665,14 +712,31 @@ export function AtividadesTool() {
                         key={p.id}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: attended ? '#f0fdf4' : '#f9fafb', border: `1px solid ${attended ? '#bbf7d0' : '#e5e7eb'}` }}
                       >
-                        <div>
+                        <div style={{ minWidth: 0 }}>
                           <span style={{ fontSize: 13, fontWeight: 500, color: '#0b1120' }}>{p.name}</span>
                           {p.room_number && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>Q.{p.room_number}</span>}
+                          {/* O motivo por baixo do nome. Um «Ausente» seco nao
+                              diz nada a quem le o registo na semana seguinte. */}
+                          {!attended && part?.motivo && (
+                            <span style={{ display: 'block', fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                              {rotuloMotivo(part.motivo)}
+                            </span>
+                          )}
                         </div>
-                        <button
-                          onClick={() => toggleParticipation(p.id, !attended)}
-                          style={{ padding: '3px 10px', borderRadius: 5, border: 'none', background: attended ? '#16a34a' : '#e5e7eb', color: attended ? '#fff' : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                        >{attended ? '✓ Presente' : 'Ausente'}</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          {/* Depois de marcar ausente, o motivo ainda se pode
+                              acrescentar ou corrigir sem desfazer nada. */}
+                          {!attended && (
+                            <button
+                              onClick={() => perguntarPorque(p.id)}
+                              style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
+                            >{part?.motivo ? 'Mudar motivo' : 'Porquê?'}</button>
+                          )}
+                          <button
+                            onClick={() => toggleParticipation(p.id, !attended)}
+                            style={{ padding: '3px 10px', borderRadius: 5, border: 'none', background: attended ? '#16a34a' : '#e5e7eb', color: attended ? '#fff' : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                          >{attended ? '✓ Presente' : 'Ausente'}</button>
+                        </div>
                       </div>
                     )
                   })}
@@ -682,6 +746,38 @@ export function AtividadesTool() {
           )
         })()}
       </div>
+
+      {/* Porque e que esta pessoa nao participou.
+          Grava em dois sitios de proposito: o `motivo` fica na participacao
+          (e o que se le aqui, ao lado do nome) e uma linha fica em
+          `cuidados_nao_prestados`, que e a tabela onde se pergunta «o que e
+          que esta pessoa tem recusado ultimamente», atravessando as areas
+          todas. Sem a segunda, a recusa ficava presa dentro das atividades. */}
+      {aPerguntarMotivo && selected && (
+        <RegistarNaoPrestado
+          patientId={aPerguntarMotivo.id}
+          nome={aPerguntarMotivo.nome}
+          area="atividades"
+          oQue={selected.title}
+          origem="activities"
+          origemId={selected.id}
+          aoFechar={() => setAPerguntarMotivo(null)}
+          aoGravar={async (_frase, motivo) => {
+            const part = participations.find(pp => pp.patient_id === aPerguntarMotivo.id)
+            if (!part) return
+            const { error } = await supabase.from('activity_participations').update({ motivo }).eq('id', part.id)
+            if (error) {
+              // A linha em `cuidados_nao_prestados` ja ficou gravada (e o que
+              // importa para o historico). Isto aqui e so a etiqueta ao lado do
+              // nome; se falhar, diz-se, mas nao se perde o registo.
+              setErroRegisto(reportError('activity-motivo', error,
+                'O motivo ficou no registo, mas não apareceu aqui ao lado. Recarregue a página.'))
+              return
+            }
+            setParticipations(prev => prev.map(pp => pp.id === part.id ? { ...pp, motivo } : pp))
+          }}
+        />
+      )}
 
       {/* New activity modal */}
       {showModal && (

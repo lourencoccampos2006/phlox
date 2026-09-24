@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       // Quem recebe: donos e administradores da casa.
       const { data: membros } = await sb.from('org_members')
         .select('user_id, role').eq('org_id', org.id).eq('active', true)
-        .in('role', ['owner', 'admin'])
+        .in('role', ['owner', 'admin', 'dono', 'direcao'])
       const ids = (membros || []).map((m: any) => m.user_id)
       if (!ids.length) continue
       const { data: perfis } = await sb.from('profiles').select('id, email, blocked').in('id', ids)

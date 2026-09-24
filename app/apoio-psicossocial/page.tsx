@@ -56,6 +56,9 @@ const REFERRAL_OPTIONS = ['Psicologia', 'Psiquiatria', 'Assistente Social (exter
 export default function ApoioPsicossocialPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('avaliacoes', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const toast = useToast()
@@ -71,7 +74,7 @@ export default function ApoioPsicossocialPage() {
    *  do silêncio volta a zero. Sem isto, a única forma de dizer que se falou
    *  com alguém era escrever uma nota inteira, e por isso ninguém dizia. */
   async function registarContacto(pid: string, nome: string) {
-    if (!scope.canEdit) { alert('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { alert('A sua conta é só de leitura.'); return }
     setARegistar(pid)
     const hoje = new Date().toISOString().slice(0, 10)
     const { error } = await supabase.from('psychosocial_notes').insert(scope.stamp({
@@ -173,7 +176,7 @@ export default function ApoioPsicossocialPage() {
 
   async function saveNote() {
     if (!openFor || !newNote.trim()) return
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     setSaving(true)
     const { data, error } = await supabase.from('psychosocial_notes').insert(scope.stamp({
       user_id: user.id, patient_id: openFor, note: newNote.trim().slice(0, 2000),
@@ -187,7 +190,7 @@ export default function ApoioPsicossocialPage() {
   }
 
   async function advanceReferral(n: Note) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const order = ['sugerido', 'agendado', 'em_curso', 'concluido']
     const idx = order.indexOf(n.referral_status || 'sugerido')
     if (idx === order.length - 1) return

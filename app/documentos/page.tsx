@@ -36,6 +36,9 @@ const daysTo = (d?: string | null) => d ? Math.round((new Date(d).getTime() - Da
 function DocumentosTool() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('documentos', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
@@ -72,7 +75,7 @@ function DocumentosTool() {
 
   async function save() {
     if (!user || !form.name.trim() || !file) { setErr('Nome e ficheiro são obrigatórios.'); return }
-    if (!scope.canEdit) { setErr('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setErr('A sua conta é só de leitura.'); return }
     setSaving(true); setErr('')
     try {
       const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()

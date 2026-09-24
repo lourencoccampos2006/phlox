@@ -155,7 +155,7 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
   const diaSemana = new Date().getDay()
 
   const [p, careToday, careHist, mar, meds, inc, wounds, assess, hyd, reqs,
-         presencas, prep, transportes, transporteLogs, detalhe7] = await Promise.all([
+         presencas, prep, transportes, transporteLogs, detalhe7, naoPrestados] = await Promise.all([
     scope.filter(supabase.from('patients').select('id,name,age,conditions,allergies,room_number')).eq('active', true).order('name'),
     safe(scope.filter(supabase.from('care_records').select('patient_id,date,shift,mood,nutrition,notes')).eq('date', d)),
     safe(scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since365)),
@@ -193,6 +193,12 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
     // colunas, e alargar o histórico inteiro seria puxar um ano de jsonb por
     // causa de uma regra de três dias.
     safe(scope.filter(supabase.from('care_records').select('patient_id,date,nutrition,continence,skin')).gte('date', daysAgoStr(7)).order('date')),
+
+    // O que NÃO foi prestado (sprint154). É a fonte que faltava: até aqui o
+    // Sentinel só via o que a equipa fez, e por isso um banho recusado três
+    // vezes numa semana era invisível para ele. `safe` como o resto — enquanto
+    // a migração não correr, o sinal simplesmente não existe.
+    safe(scope.filter(supabase.from('cuidados_nao_prestados').select('patient_id,data,o_que,motivo')).gte('data', daysAgoStr(14))),
   ])
   if (p.error) return { results: [], trends: {}, error: 'Não foi possível carregar. Verifica a ligação.' }
 
@@ -210,6 +216,7 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
   const hydBy = by(hyd.data || [], (r: any) => r.patient_id)
   const reqsBy = by(reqs.data || [], (r: any) => r.patient_id)
   const presencasBy = by(presencas.data || [], (r: any) => r.patient_id)
+  const naoPrestadosBy = by(naoPrestados.data || [], (r: any) => r.patient_id)
 
   const detalheBy: Record<string, { date: string; appetite?: string | null; urinary?: string | null; bowel?: string | null; skin?: string | null }[]> = {}
   ;((detalhe7.data || []) as any[]).forEach(r => {
@@ -271,6 +278,7 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
     transportsToday: transportesBy[pt.id] || [],
     dailyDetail: detalheBy[pt.id] || [],
     hasOpenWound: comFeridaAberta.has(pt.id),
+    naoPrestados: (naoPrestadosBy[pt.id] || []).map((r: any) => ({ o_que: r.o_que, motivo: r.motivo, data: r.data })),
   })))
 
   // Tendência (2-3 semanas) — mesma função que o /apoio-psicossocial usa.
@@ -286,5 +294,5 @@ export async function loadSentinel(supabase: any, scope: SentinelScope): Promise
 export const SENTINEL_LIVE_TABLES = [
   'patients', 'care_records', 'mar_records', 'incidents', 'wounds', 'assessments',
   'patient_meds', 'hydration_logs', 'resident_requests', 'activities', 'activity_participations',
-  'attendance', 'medication_prep_logs', 'support_transport_logs',
+  'attendance', 'medication_prep_logs', 'support_transport_logs', 'cuidados_nao_prestados',
 ]

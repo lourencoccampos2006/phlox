@@ -23,6 +23,7 @@ import { useState } from 'react'
 import { iniciais, corDaPessoa } from '@/lib/presenca'
 import Link from 'next/link'
 import Icon from '@/components/Icon'
+import { Distintivo, DistintivoDaPasta } from '@/components/institution/Contadores'
 
 /* ── Tipos das peças (o painel monta-os em painelAbas.ts) ─────────────────── */
 
@@ -467,12 +468,16 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
                   </span>
                 ))}
               </span>
-              <span style={{ minWidth: 0 }}>
+              <span style={{ minWidth: 0, flex: 1 }}>
                 <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.nome}</span>
                 <span style={{ ...MONO_MINI, display: 'block', marginTop: 4 }}>
                   {f.ferramentas.length} {f.ferramentas.length === 1 ? 'ferramenta' : 'ferramentas'}
                 </span>
               </span>
+              {/* Uma pasta fechada esconde as ferramentas todas. Sem a soma
+                  aqui, o aviso de uma ocorrência por fechar só aparecia a quem
+                  já tivesse aberto a pasta certa. */}
+              <DistintivoDaPasta hrefs={f.ferramentas.map(t => t.href)} cor="var(--ink)" />
             </button>
           )
         })}
@@ -496,10 +501,11 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
                 <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={t.icone} size={15} color="var(--ink-3)" />
                 </span>
-                <span style={{ minWidth: 0 }}>
+                <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</span>
                   <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45, textWrap: 'pretty' as any }}>{t.hint}</span>
                 </span>
+                <Distintivo href={t.href} cor="var(--ink)" />
               </Link>
             ))}
           </div>

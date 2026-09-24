@@ -15,11 +15,28 @@ function admin() {
   })
 }
 
-export async function notifyOrgMembers(orgId: string, exceptUserId: string | null, payload: TeamPushPayload): Promise<number> {
+/**
+ * Avisa a equipa no telemóvel.
+ *
+ * `apenas` limita o aviso a um conjunto de pessoas — é o que faz um recado
+ * dirigido (sprint156) tocar só a quem é dirigido. Sem isso, a casa toda
+ * receberia uma notificação de uma conversa que a base de dados não a deixa
+ * ler: o pior dos dois mundos, um aviso sobre nada.
+ *
+ * Cruza-se sempre com os membros ATIVOS da casa, nunca se confia só na lista
+ * que vem de fora: um id que já não pertence a esta organização não pode
+ * receber notificações dela.
+ */
+export async function notifyOrgMembers(
+  orgId: string, exceptUserId: string | null, payload: TeamPushPayload, apenas?: string[],
+): Promise<number> {
   if (!orgId || !process.env.SUPABASE_SERVICE_ROLE_KEY) return 0
   const a = admin()
   const { data: members } = await a.from('org_members').select('user_id').eq('org_id', orgId).eq('active', true)
-  const ids = (members || []).map((m: any) => m.user_id).filter((id: string) => id !== exceptUserId)
+  const permitidos = apenas?.length ? new Set(apenas) : null
+  const ids = (members || []).map((m: any) => m.user_id)
+    .filter((id: string) => id !== exceptUserId)
+    .filter((id: string) => !permitidos || permitidos.has(id))
   if (ids.length === 0) return 0
   const { data: subs } = await a.from('push_subscriptions').select('user_id, endpoint, p256dh, auth').in('user_id', ids)
   let sent = 0

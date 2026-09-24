@@ -1,9 +1,18 @@
 // app/api/team-messages/route.ts
 // Mural de comunicação da equipa (institucional).
 //   GET               → mensagens da org ativa (canais: geral/doentes/stock/avisos)
-//   POST {body,...}   → publica mensagem + push aos outros membros
+//   POST {body,...}   → publica mensagem + push aos destinatários
 //   PATCH {id,resolved} → marca aviso/pedido como resolvido
 // Escrita/leitura por org via RLS (token do utilizador). O push usa a service key.
+//
+// ── RECADOS DIRIGIDOS (sprint156) ──────────────────────────────────────────
+// `para_ids` vazio = para a casa toda (o que o mural sempre foi). Com pessoas
+// lá dentro, só elas e quem escreveu o veem — e o push vai só para elas.
+//
+// A filtragem da LEITURA não está aqui: está na política `tm_dirigido` da base
+// de dados. É de propósito. O browser fala diretamente com o Supabase, por
+// isso um filtro nesta rota protegeria de quem usa a aplicação e de mais
+// ninguém.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyOrgMembers } from '@/lib/notifyTeam'
@@ -54,6 +63,12 @@ export async function POST(req: NextRequest) {
     user_id: ctx.user.id, org_id: ctx.orgId, author_id: ctx.user.id, author_name: ctx.name || 'Equipa',
     channel, body: text.slice(0, 2000), priority,
     patient_id: body.patient_id || null,
+    // Uma lista vazia é o mesmo que não haver lista: «para ninguém» não é uma
+    // coisa que alguém queira dizer, e guardá-la assim criava um recado que
+    // nem o próprio voltava a encontrar.
+    para_ids: Array.isArray(body.para_ids) && body.para_ids.length
+      ? body.para_ids.filter((x: any) => typeof x === 'string').slice(0, 50)
+      : null,
   }
   const { data, error } = await db.from('team_messages').insert(row).select().single()
   if (error) { console.error('[phlox:team-messages-post]', error.message); return NextResponse.json({ error: error.message.includes('team_messages') ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível enviar agora. Tenta de novo.' }, { status: 400 }) }
@@ -61,12 +76,14 @@ export async function POST(req: NextRequest) {
   // Push aos outros membros (best-effort, não bloqueia a resposta se falhar).
   const CHAN_LABEL: Record<string, string> = { geral: 'Equipa', doentes: 'Doentes', stock: 'Stock', avisos: 'Aviso' }
   const prefix = priority === 'urgente' ? '🔴 ' : priority === 'importante' ? '🟠 ' : ''
+  // Um recado dirigido só toca o telemóvel de quem está nele. Avisar a casa
+  // toda de uma conversa que ela não pode ler seria o pior dos dois mundos.
   notifyOrgMembers(ctx.orgId, ctx.user.id, {
     title: `${prefix}${CHAN_LABEL[channel]} · ${ctx.name || 'Equipa'}`,
     body: text.slice(0, 140),
     url: '/equipa?tab=mural',
     tag: `team-${channel}`,
-  }).catch(() => {})
+  }, row.para_ids || undefined).catch(() => {})
 
   return NextResponse.json({ ok: true, message: data })
 }

@@ -90,6 +90,9 @@ export default function IncidentsPage() {
   const { user, supabase } = useAuth()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('ocorrencias', 'editar')
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun                 // "Residente" | "Utente" | "Doente"
   const personLower = person.toLowerCase()
@@ -178,7 +181,7 @@ export default function IncidentsPage() {
 
   const save = async () => {
     if (!user) return
-    if (!scope.canEdit) { setSaveError('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setSaveError('A sua conta é só de leitura.'); return }
     setSaving(true)
     setSaveError('')
     try {
@@ -248,7 +251,7 @@ export default function IncidentsPage() {
   }
 
   const updateStatus = async (id: string, status: string) => {
-    if (!scope.canEdit) { setSaveError('A sua conta é só de leitura.'); return }
+    if (!podeEditar) { setSaveError('A sua conta é só de leitura.'); return }
     let q = supabase.from('incidents').update({ status }).eq('id', id)
     if (!scope.orgId) q = q.eq('user_id', user!.id)
     const { error } = await q

@@ -45,6 +45,7 @@ import {
   ABAS, abaHoje, abaCuidados, abaPessoas, abaEquipa, abaGestao,
   type AbaId, type Base, type CruCuidados, type CruPessoas, type CruEquipa, type CruGestao,
 } from './painelAbas'
+import { areaDaRota } from '@/lib/areasDeDados'
 
 const ABA_VALIDA = (v: string | null): AbaId =>
   (ABAS.some(a => a.id === v) ? v : 'hoje') as AbaId
@@ -289,11 +290,16 @@ export default function PainelHoje() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, base, pessoasPresenca, supabase, scope.orgId, scope.userId, avisaFamilia])
 
+  // As pastas só mostram o que esta pessoa pode abrir, e uma pasta que fique
+  // sem nada desaparece — uma pasta vazia é uma promessa por cumprir.
   const pastas: Pasta[] = useMemo(() => (bp.toolFolders || []).map(f => ({
+    ...f,
+    tools: f.tools.filter(t => { const a = areaDaRota(t.href); return !a || scope.ve(a) }),
+  })).filter(f => f.tools.length > 0).map(f => ({
     id: f.id, nome: f.label, hint: f.hint,
     mini: f.tools.slice(0, 4).map(t => iconForHref(t.href)),
     ferramentas: f.tools.map(t => ({ href: t.href, label: t.label, hint: t.hint, icone: iconForHref(t.href) })),
-  })), [bp.toolFolders])
+  })), [bp.toolFolders, scope])
 
   /* ── Estados de partida ────────────────────────────────────────────────── */
   if (carregando) {

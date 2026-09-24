@@ -18,6 +18,7 @@ import { useOrgScope } from '@/lib/orgScope'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
 import { iconForHref } from '@/lib/clinicalIcons'
+import { areaDaRota } from '@/lib/areasDeDados'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const HIDE_KEY = 'phlox-cockpit-hidden'
@@ -247,8 +248,16 @@ export default function PainelCockpit() {
   // aparecem em extraTools consoante o tipo — dedupe por href, core primeiro).
   const allTools = useMemo(() => {
     const seen = new Set<string>()
-    return [...bp.coreTools, ...bp.extraTools].filter(t => { if (seen.has(t.href)) return false; seen.add(t.href); return true })
-  }, [bp])
+    return [...bp.coreTools, ...bp.extraTools].filter(t => {
+      if (seen.has(t.href)) return false
+      seen.add(t.href)
+      // Uma ferramenta que esta pessoa não pode abrir não aparece — nem aqui
+      // nem nas pastas. Uma porta fechada num painel ensina a ignorar o painel.
+      const area = areaDaRota(t.href)
+      if (area && !scope.ve(area)) return false
+      return true
+    })
+  }, [bp, scope])
 
   // ── estilos por tom ──
   const warm = bp.tone === 'warm'

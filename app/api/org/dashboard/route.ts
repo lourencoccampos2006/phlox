@@ -22,7 +22,10 @@ export async function GET(req: NextRequest) {
   const orgId = prof?.active_org_id || prof?.org_id || null
   if (!orgId) return NextResponse.json({ error: 'Sem organização.' }, { status: 400 })
   const { data: mem } = await a.from('org_members').select('role').eq('org_id', orgId).eq('user_id', user.id).eq('active', true).maybeSingle()
-  if (!mem || !['owner', 'admin'].includes(mem.role)) return NextResponse.json({ error: 'Só o dono/admin.' }, { status: 403 })
+  // Os dois vocabularios, para funcionar antes e depois do sprint152.
+  if (!mem || !['owner', 'admin', 'dono', 'direcao'].includes(mem.role)) {
+    return NextResponse.json({ error: 'Não tem acesso a esta parte.' }, { status: 403 })
+  }
 
   const today = new Date().toISOString().slice(0, 10)
   const monthStart = new Date(); monthStart.setDate(1)

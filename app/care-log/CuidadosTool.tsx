@@ -27,6 +27,9 @@ export function CuidadosTool() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
   const cfg = institutionConfig(institution)
 
@@ -67,7 +70,7 @@ export function CuidadosTool() {
   function logFor(checklistId: string) { return logs.find(l => l.checklist_id === checklistId) }
 
   async function toggle(c: Checklist) {
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const existing = logFor(c.id)
     const nextDone = !existing?.done
     const { data, error } = await supabase.from('care_checklist_logs').upsert(scope.stamp({

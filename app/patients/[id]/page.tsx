@@ -50,6 +50,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const toast = useToast()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('utentes', 'editar')
   const cfg = institutionConfig(institution)
   const noun = cfg.personNoun.toLowerCase()
   const isDayCare = institution === 'day_care'
@@ -581,7 +584,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">Cartão de emergência</button>
         <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '\…' : 'Relatório do mês'}</button>
         <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal">{dossierBusy ? '\…' : 'Dossier mensal'}</button>
-        {scope.canEdit && (
+        {podeEditar && (
           <button onClick={archiveThisPatient} style={{ ...btnGhost(accent), borderColor: '#e2e8f0', color: '#94a3b8' }}>Arquivar</button>
         )}
       </>}

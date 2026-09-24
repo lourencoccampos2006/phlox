@@ -38,6 +38,9 @@ interface Review extends AdlReview { id: string; patient_id: string }
 export default function AutonomiaPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('avaliacoes', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const toast = useToast()
@@ -91,7 +94,7 @@ export default function AutonomiaPage() {
 
   async function save() {
     if (!openFor) return
-    if (!scope.canEdit) { toast.error('Só leitura', MSG.readonly); return }
+    if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     if (ADL_TASKS.every(t => draft[t.key] == null)) { toast.error('Nada para guardar', 'Responde a pelo menos uma das perguntas.'); return }
     setSaving(true)
     // ptDate (data de calendário de Portugal), NÃO toISOString: no verão, entre

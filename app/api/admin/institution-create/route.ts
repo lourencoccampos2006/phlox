@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     orgId = org.id
   }
 
-  const { error: memErr } = await db.from('org_members').upsert({ org_id: orgId, user_id: target.id, role: 'owner', active: true }, { onConflict: 'org_id,user_id' })
+  const { error: memErr } = await db.from('org_members').upsert({ org_id: orgId, user_id: target.id, role: 'dono', active: true }, { onConflict: 'org_id,user_id' })
   if (memErr) return NextResponse.json({ error: memErr.message }, { status: 500 })
 
   await db.from('profiles').update({

@@ -69,6 +69,9 @@ export default function PatientsPage() {
   const toast = useToast()
   const { institution } = useClinicPrefs()
   const scope = useOrgScope()
+  // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
+  // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
+  const podeEditar = scope.pode('utentes', 'editar')
   const cfg = institutionConfig(institution)
   const noun = cfg.personNoun.toLowerCase()
   const nounPlural = cfg.personNounPlural.toLowerCase()
@@ -150,7 +153,7 @@ export default function PatientsPage() {
   // ── ações ──
   async function addPatient() {
     if (!newP.name.trim() || !user) return
-    if (!scope.canEdit) { toast.error('Só leitura', 'A sua conta não pode adicionar pessoas.'); return }
+    if (!podeEditar) { toast.error('Só leitura', 'A sua conta não pode adicionar pessoas.'); return }
     setAdding(true)
     try {
       const { data, error } = await supabase.from('patients').insert(scope.stamp({

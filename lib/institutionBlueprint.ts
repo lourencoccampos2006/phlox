@@ -91,6 +91,11 @@ export interface InstitutionBlueprint {
 // Helpers de ferramentas (nomes CLAROS, reutilizáveis) ────────────────────────
 const T = {
   people: (label: string, hint: string): ToolEntry => ({ href: '/patients', label, hint, icon: '🧑‍🤝‍🧑' }),
+  // O Dia junta num ecrã o que estava em cinco: a medicação, as atividades, os
+  // pedidos de apoio, os reforços alimentares e as ações do plano de cada
+  // pessoa. As cinco continuam a existir — esta não as substitui, dá-lhes uma
+  // porta comum. Fica à frente de todas porque é por onde um turno começa.
+  oDia:    { href: '/o-dia', label: 'O dia', hint: 'O que há para fazer agora — por pessoa ou por tarefa', icon: '🕐' },
   meds:    { href: '/mar', label: 'Medicação a dar', hint: 'Marca o que foi tomado, por pessoa e horário', icon: '💊' },
   activities: { href: '/activities', label: 'Atividades', hint: 'Plano do dia e quem participou', icon: '🎯' },
   family:  { href: '/family', label: 'Famílias', hint: 'Mostra às famílias como correu o dia', icon: '👨‍👩‍👧' },
@@ -151,6 +156,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       { id: 'quick_actions', size: 'small', essential: true },
     ],
     coreTools: [
+      T.oDia,
       T.people('Utentes', 'As pessoas que frequentam o centro'),
       T.meds, T.careLog, T.refeicoes, T.ronda, T.family, T.radar, T.mural,
     ],
@@ -192,6 +198,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       { id: 'quick_actions', size: 'small', essential: true },
     ],
     coreTools: [
+      T.oDia,
       T.people('Residentes', 'As pessoas que vivem no lar'),
       T.meds, T.careLog, T.refeicoes, T.ronda, T.radar, T.assessments, T.wounds, T.family, T.mural,
     ],
