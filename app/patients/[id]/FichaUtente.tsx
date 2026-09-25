@@ -27,6 +27,7 @@ import LivroDeRegistos from '@/components/institution/LivroDeRegistos'
 import PatientTimeline from '@/components/PatientTimeline'
 import PlanoIndividual from '@/components/institution/PlanoIndividual'
 import MedicacaoSOS from '@/components/institution/MedicacaoSOS'
+import StockDoUtente from '@/components/institution/StockDoUtente'
 import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
 import { nomeDoPlano } from '@/lib/plano'
 
@@ -567,6 +568,10 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           duas perguntas diferentes. A lista de cima e «o que e que esta pessoa
           toma»; esta e «posso dar alguma coisa agora». */}
       <MedicacaoSOS pid={pid} nome={utente.name} cor={cor} />
+
+      {/* O que esta pessoa tem ca. Fica a seguir a medicacao porque e a mesma
+          conversa: o que ha para dar, e se ainda ha. */}
+      <StockDoUtente pid={pid} nome={utente.name} cor={cor} />
 
       {revisaoMedicacao && <Seccao titulo="Revisão da medicação">{revisaoMedicacao}</Seccao>}
 

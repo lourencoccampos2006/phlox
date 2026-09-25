@@ -16,7 +16,7 @@
 -- le as mensalidades de todas as familias -- a menos que a RLS diga que nao.
 -- E a unica defesa que nao se contorna.
 --
--- 70 tabelas ganham politicas por area. 26 ficam de fora, de
+-- 72 tabelas ganham politicas por area. 26 ficam de fora, de
 -- proposito e com a razao escrita em lib/areasDeDados.ts.
 --
 -- ── NADA E LARGADO ─────────────────────────────────────────────────────────
@@ -106,6 +106,8 @@ declare
     ['shift_vacancies', 'equipa.ver', 'equipa.editar', 'equipa.eliminar'],
     ['stock_consumption', 'stock.ver', 'stock.editar', 'stock.eliminar'],
     ['stock_items', 'stock.ver', 'stock.editar', 'stock.eliminar'],
+    ['stock_movimentos', 'stock.ver', 'stock.editar', 'stock.eliminar'],
+    ['stock_utente', 'stock.ver', 'stock.editar', 'stock.eliminar'],
     ['suppliers', 'stock.ver', 'stock.editar', 'stock.eliminar'],
     ['support_recurring_services', 'registos.ver', 'registos.editar', 'registos.eliminar'],
     ['support_services', 'registos.ver', 'registos.editar', 'registos.eliminar'],

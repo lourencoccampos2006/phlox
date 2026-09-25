@@ -111,6 +111,10 @@ export const AREA_DA_TABELA: Record<string, string> = {
 
   // ── Stock ────────────────────────────────────────────────────────────────
   stock_items: 'stock',
+  // O stock POR UTENTE (sprint160) e os seus movimentos. Mesma area do
+  // armazem da casa: quem trata de um trata do outro.
+  stock_utente: 'stock',
+  stock_movimentos: 'stock',
   stock_consumption: 'stock',
   purchase_orders: 'stock',
   goods_receipts: 'stock',

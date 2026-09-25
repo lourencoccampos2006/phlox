@@ -137,20 +137,40 @@ const CALCULOS: Record<string, (c: Ctx) => Promise<number | null>> = {
     return cá.filter(id => !comRegisto.has(id)).length
   },
 
-  // Artigos abaixo do mínimo. `quantity <= min_quantity` compara duas colunas,
-  // e isso o PostgREST não faz — por isso a conta é aqui.
+  // Artigos abaixo do mínimo — os do armazém da casa E os de cada pessoa.
+  //
+  // `quantity <= min_quantity` compara duas colunas, e isso o PostgREST não
+  // faz; por isso a conta é aqui.
   //
   // Um mínimo por definir (null ou 0) não conta: ninguém pediu para ser
   // avisado sobre esse artigo, e avisar à mesma seria encher o número de
-  // coisas que a casa não quer ver.
+  // coisas que a casa não quer ver. A exceção é o que chegou a ZERO — isso
+  // avisa sempre, tenha mínimo ou não, porque acabou mesmo.
+  //
+  // Este é o «alerta para quem o precisar de ver, apenas» que o Fernando
+  // pediu: o contador só é calculado para quem tem `stock.ver` (ver o filtro
+  // por área no fim deste ficheiro), por isso uma auxiliar sem essa permissão
+  // nunca recebe o número.
   async stock(c) {
-    const r = await c.sb.from('stock_items').select('quantity, min_quantity')
-      .eq('org_id', c.orgId)
-    if (r.error) return null
-    return (r.data || []).filter(i =>
-      typeof i.min_quantity === 'number' && i.min_quantity > 0 &&
-      typeof i.quantity === 'number' && i.quantity <= i.min_quantity
-    ).length
+    const [casa, pessoas] = await Promise.all([
+      c.sb.from('stock_items').select('quantity, min_quantity').eq('org_id', c.orgId),
+      c.sb.from('stock_utente').select('quantidade, minimo').eq('org_id', c.orgId),
+    ])
+    if (casa.error) return null
+
+    const abaixo = (q: unknown, min: unknown) => {
+      const quantidade = Number(q)
+      if (!Number.isFinite(quantidade)) return false
+      if (quantidade <= 0) return true
+      const minimo = Number(min)
+      return Number.isFinite(minimo) && minimo > 0 && quantidade <= minimo
+    }
+
+    const nCasa = (casa.data || []).filter(i => abaixo(i.quantity, i.min_quantity)).length
+    // A tabela pode ainda não existir (migração por correr). Isso não pode
+    // apagar o número do armazém da casa, que está certo.
+    const nPessoas = pessoas.error ? 0 : (pessoas.data || []).filter(i => abaixo(i.quantidade, i.minimo)).length
+    return nCasa + nPessoas
   },
 
   // Pastilheiros desta semana por preparar.

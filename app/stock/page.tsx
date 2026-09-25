@@ -5,6 +5,7 @@
 // Alertas de stock baixo e validade próxima — útil da farmácia ao lar e à clínica.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import StockDosUtentes from '@/components/institution/StockDosUtentes'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useLiveData } from '@/lib/useLiveData'
@@ -330,6 +331,11 @@ export default function StockPage() {
               <div style={{ ...card, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem produtos. Adiciona o primeiro com “+ Produto”.</div>
             ) : (
               <>
+                {/* Quem esta a ficar sem o que, primeiro. Ninguem abre trinta
+                    fichas para descobrir que faltam fraldas a duas pessoas —
+                    a reposicao faz-se aqui, com a lista de compras a frente. */}
+                <StockDosUtentes cor="var(--accent, #0d9488)" />
+
                 {attention.length > 0 && (
                   <div style={{ marginBottom: rest.length > 0 ? 22 : 0 }}>
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Precisa de atenção ({attention.length})</div>
