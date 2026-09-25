@@ -5,7 +5,7 @@
 // organizações (lar, centro de dia, farmácia comunitária, clínica). A "active
 // org" decide que dados clínicos aparecem na UI e que capabilities estão em vigor.
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 
 const LS_KEY = 'phlox-active-org'
 const EVT = 'phlox-org-changed'
@@ -118,11 +118,20 @@ export function useMemberships(): { memberships: OrgMembership[]; active: OrgMem
   }, [])
 
   const active = memberships.find(m => m.org.id === activeId) || null
-  return { memberships, active, loading, refresh }
+
+  // O objeto tem de ser o MESMO enquanto nada mudar. Um hook que devolve um
+  // objeto novo a cada render faz ciclos infinitos em quem o puser numa lista
+  // de dependencias — ver scripts/check-hooks-estaveis.mjs, que nasceu de um
+  // desses ciclos ter chegado a producao.
+  return useMemo(
+    () => ({ memberships, active, loading, refresh }),
+    [memberships, active, loading, refresh])
 }
 
 // ─── Hook simples para apenas a org ativa ───────────────────────────────────
 export function useActiveOrg(): { org: OrgSummary | null; role: string | null; caps: string[]; loading: boolean } {
   const { active, loading } = useMemberships()
-  return { org: active?.org || null, role: active?.role || null, caps: active?.capabilities || [], loading }
+  return useMemo(
+    () => ({ org: active?.org || null, role: active?.role || null, caps: active?.capabilities || [], loading }),
+    [active, loading])
 }

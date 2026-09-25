@@ -26,6 +26,7 @@ import { marcarPresenca, type EstadoPresenca } from '@/lib/presenca'
 import LivroDeRegistos from '@/components/institution/LivroDeRegistos'
 import PatientTimeline from '@/components/PatientTimeline'
 import PlanoIndividual from '@/components/institution/PlanoIndividual'
+import MedicacaoSOS from '@/components/institution/MedicacaoSOS'
 import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
 import { nomeDoPlano } from '@/lib/plano'
 
@@ -561,6 +562,11 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           </div>
         )}
       </Seccao>
+
+      {/* A SOS entra a seguir a medicacao e nao dentro dela, de proposito: sao
+          duas perguntas diferentes. A lista de cima e «o que e que esta pessoa
+          toma»; esta e «posso dar alguma coisa agora». */}
+      <MedicacaoSOS pid={pid} nome={utente.name} cor={cor} />
 
       {revisaoMedicacao && <Seccao titulo="Revisão da medicação">{revisaoMedicacao}</Seccao>}
 

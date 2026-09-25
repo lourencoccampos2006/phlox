@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { limitFor } from '@/lib/plans'
 
@@ -40,5 +40,7 @@ export function useUsageLimit(key: string) {
     })
   }, [storeKey, unlimited])
 
-  return { plan, limit, used, remaining, allowed, unlimited, hit: !allowed, increment }
+  return useMemo(
+    () => ({ plan, limit, used, remaining, allowed, unlimited, hit: !allowed, increment }),
+    [plan, limit, used, remaining, allowed, unlimited, increment])
 }

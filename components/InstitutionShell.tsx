@@ -27,7 +27,8 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { useClinicPrefs, type InstitutionType } from '@/lib/useClinicPrefs'
+import { currentShiftFor, type Shift } from '@/lib/institutionConfig'
 import { blueprintFor, type ToolEntry } from '@/lib/institutionBlueprint'
 import { iconForHref } from '@/lib/clinicalIcons'
 import Icon from '@/components/Icon'
@@ -71,12 +72,29 @@ function PontoNoMenu({ cor }: { cor: string }) {
   )
 }
 
-/** Turno atual pela hora de Portugal. */
-function turnoAgora(d: Date): { nome: string; hora: string } {
-  const h = Number(d.toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon', hour: '2-digit', hour12: false }))
+/**
+ * Turno atual, pela hora de Portugal.
+ *
+ * ── PORQUE E QUE O NOME DO TURNO NAO E CALCULADO AQUI ──────────────────────
+ * Era. Havia aqui uma escada de horas propria — e ela nao sabia que tipo de
+ * casa era esta. Resultado: um CENTRO DE DIA, que fecha as seis da tarde,
+ * mostrava «Turno da noite» as dez da noite, ao mesmo tempo que a pagina do
+ * dia, por baixo, dizia «Tarde». O cabecalho e a pagina a discordar um do
+ * outro sobre a coisa mais basica do ecra.
+ *
+ * `currentShiftFor` ja e a fonte unica disto (lib/institutionConfig diz isso
+ * na primeira linha) e sabe que um centro de dia so tem manha e tarde. A hora
+ * continua a ser lida no fuso de Lisboa, que e o cuidado que esta funcao ja
+ * tinha e que vale a pena manter.
+ */
+const NOME_DO_TURNO: Record<Shift, string> = {
+  manha: 'Turno da manhã',
+  tarde: 'Turno da tarde',
+  noite: 'Turno da noite',
+}
+function turnoAgora(d: Date, institution: InstitutionType): { nome: string; hora: string } {
   const hora = d.toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon', hour: '2-digit', minute: '2-digit' })
-  const nome = h < 8 ? 'Turno da noite' : h < 14 ? 'Turno da manhã' : h < 21 ? 'Turno da tarde' : 'Turno da noite'
-  return { nome, hora }
+  return { nome: NOME_DO_TURNO[currentShiftFor(institution)], hora }
 }
 
 export default function InstitutionShell({ children }: { children: React.ReactNode }) {
@@ -108,7 +126,7 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
     const base = href.split('?')[0]
     return pathname === base || pathname.startsWith(base + '/')
   }
-  const turno = agora ? turnoAgora(agora) : null
+  const turno = agora ? turnoAgora(agora, institution) : null
 
   // ── O que esta pessoa pode abrir ─────────────────────────────────────────
   // Uma ferramenta que a pessoa nao pode abrir nao aparece no menu. Nao fica

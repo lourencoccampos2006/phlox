@@ -3,7 +3,7 @@
 // useLivePulse — consome o stream SSE de /api/pulse e devolve o último snapshot
 // ao componente. Reconexão automática e cleanup correto. Apenas no browser.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
 export interface PulseSnapshot {
   revenue_today: number
@@ -50,5 +50,5 @@ export function useLivePulse(supabase: any, enabled: boolean = true) {
     return () => { cancelled = true; setConnected(false); es?.close() }
   }, [enabled, supabase])
 
-  return { snap, connected }
+  return useMemo(() => ({ snap, connected }), [snap, connected])
 }

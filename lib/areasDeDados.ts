@@ -47,6 +47,9 @@ export const AREA_DA_TABELA: Record<string, string> = {
   patient_meds: 'medicacao',
   mar_records: 'medicacao',
   medication_prep_logs: 'medicacao',
+  // As tomas «quando for preciso» (sprint159). Mesma area da medicacao: quem
+  // da uma toma SOS e quem da as outras.
+  tomas_sos: 'medicacao',
   patient_vigilance: 'medicacao',
 
   // ── Registos do dia ──────────────────────────────────────────────────────

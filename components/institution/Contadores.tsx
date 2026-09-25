@@ -24,7 +24,7 @@
 // rápida de fazer uma interface parecer lenta. Aparecem quando chegam.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
@@ -123,14 +123,51 @@ export function ContadoresProvider({ children }: { children: React.ReactNode }) 
   // Entrar numa ferramenta marca-a como vista. Fica aqui, e não em cada uma
   // das dezoito páginas: uma página nova ganha isto de borla, e nenhuma se
   // esquece de o fazer.
+  //
+  // A dependência é a QUERY EM TEXTO e não o objeto do `useSearchParams`. Um
+  // objeto sem identidade estável entre renders faz este efeito correr em cada
+  // render — e como ele dispara um pedido ao servidor, o resultado é uma
+  // chuva de pedidos em cada página institucional. A string só muda quando o
+  // endereço muda mesmo.
+  const query = searchParams.toString()
   useEffect(() => {
+    const params = new URLSearchParams(query)
     const aqui = CONTADORES.find(c =>
       (c.tipo === 'novidades' || c.comMarcador) &&
-      correspondeAoEndereco(c.href, pathname, searchParams))
+      correspondeAoEndereco(c.href, pathname, params))
     if (aqui) marcarVista(aqui.id)
-  }, [pathname, searchParams, marcarVista])
+  }, [pathname, query, marcarVista])
 
-  return <Ctx.Provider value={{ numeros, marcarVista }}>{children}</Ctx.Provider>
+  // Estavel enquanto os numeros nao mudarem — senao cada render deste provider
+  // re-renderizava todos os distintivos e o menu inteiro por baixo deles.
+  const valor = useMemo(() => ({ numeros, marcarVista }), [numeros, marcarVista])
+  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
+}
+
+/**
+ * A aparência do distintivo, num sítio só.
+ *
+ * ── A FONTE NÃO É A HERDADA, DE PROPÓSITO ──────────────────────────────────
+ * O menu está escrito em Syne, que é uma fonte de TÍTULOS: traços grossos,
+ * altura-x enorme, desenhada para 24px e acima. Um algarismo de 11px em Syne,
+ * dentro de um círculo de 20px, não se lê — sai uma mancha branca. Vi isso no
+ * ecrã antes de perceber o que era.
+ *
+ * Os números deste produto são todos em `--font-mono` (as contagens do turno,
+ * logo por baixo, no mesmo menu). Um distintivo é um número: segue-os.
+ *
+ * `lineHeight: 1` com `fontSize` igual à altura da linha não deixa folga
+ * nenhuma para as hastes dos algarismos — daí ficar em 1.1, com o alinhamento
+ * a ser feito pelo flex.
+ */
+const estiloDistintivo: React.CSSProperties = {
+  flexShrink: 0, minWidth: 20, height: 20, padding: '0 6px',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  borderRadius: 999, color: '#fff',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 11, fontWeight: 700, lineHeight: 1.1,
+  letterSpacing: '0.01em',
+  fontVariantNumeric: 'tabular-nums',
 }
 
 /**
@@ -145,14 +182,7 @@ export function Distintivo({ href, cor }: { href: string; cor?: string }) {
     <span
       title={c.frase}
       aria-label={c.frase}
-      style={{
-        marginLeft: 'auto', flexShrink: 0,
-        minWidth: 20, height: 20, padding: '0 6px',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 999, background: cor || '#dc2626', color: '#fff',
-        fontSize: 11, fontWeight: 800, lineHeight: 1,
-        fontVariantNumeric: 'tabular-nums',
-      }}>
+      style={{ ...estiloDistintivo, marginLeft: 'auto', background: cor || '#dc2626' }}>
       {c.n > 99 ? '99+' : c.n}
     </span>
   )
@@ -179,13 +209,7 @@ export function DistintivoDaPasta({ hrefs, cor }: { hrefs: string[]; cor?: strin
     <span
       title={frase}
       aria-label={frase}
-      style={{
-        flexShrink: 0, minWidth: 20, height: 20, padding: '0 6px',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 999, background: cor || '#dc2626', color: '#fff',
-        fontSize: 11, fontWeight: 800, lineHeight: 1,
-        fontVariantNumeric: 'tabular-nums',
-      }}>
+      style={{ ...estiloDistintivo, background: cor || '#dc2626' }}>
       {total > 99 ? '99+' : total}
     </span>
   )

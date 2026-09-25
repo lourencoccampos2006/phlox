@@ -26,7 +26,7 @@ interface Patient {
   id: string; name: string; age: number | null; room_number: string | null
   conditions: string | null; allergies: string | null; egfr?: number | null; last_review?: string | null
 }
-interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: 'centro' | 'casa' | 'ambos' | null; started_at?: string | null }
+interface PatientMed { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; shifts?: string[] | null; take_location?: 'centro' | 'casa' | 'ambos' | null; started_at?: string | null; sos?: boolean | null; sos_para?: string | null; sos_max_dia?: number | null; sos_intervalo_horas?: number | null }
 type Shift = 'manha' | 'tarde' | 'noite'
 type AdminStatus = 'administered' | 'refused' | 'held' | null
 interface AdminRecord {
@@ -73,7 +73,15 @@ function interactionWarnings(med: string, others: string[]): string[] {
 }
 
 // Med é devido neste turno? (shifts vazio/null = todos os turnos, compat. retro)
-function dueInShift(med: { shifts?: string[] | null }, shift: Shift): boolean {
+//
+// Um SOS nunca é devido: dá-se quando é preciso. E como um SOS tem `shifts`
+// vazio — e vazio quer dizer «todos os turnos» — ele aparecia aqui como dose
+// por dar em CADA turno de CADA dia, para sempre. A grelha de medicação ficava
+// com linhas que nunca se podem marcar, e quem trabalha aprende a ignorá-las.
+//
+// As tomas SOS registam-se à parte, com a hora e o motivo (lib/sos.ts).
+function dueInShift(med: { shifts?: string[] | null; sos?: boolean | null }, shift: Shift): boolean {
+  if (med.sos) return false
   return !med.shifts || med.shifts.length === 0 || med.shifts.includes(shift)
 }
 
@@ -253,7 +261,12 @@ export default function MARPage() {
     if (!user || !isPro || !patients.length) return
     const ids = patients.map(p => p.id)
     Promise.all([
-      supabase.from('patient_meds').select('id, patient_id, name, dose, frequency, shifts').eq('active', true).in('patient_id', ids),
+      // `*` e nao a lista de colunas: o PostgREST recusa o SELECT INTEIRO quando
+      // uma coluna nao existe, e devolve `data: null` sem levantar excecao. Com
+      // a lista escrita a mao, esta pagina ficava em branco entre o momento em
+      // que o codigo sobe e o momento em que a migracao do SOS corre. Com `*`,
+      // a coluna aparece quando existir e nada parte entretanto.
+      supabase.from('patient_meds').select('*').eq('active', true).in('patient_id', ids),
       supabase.from('mar_records').select('patient_id, med_id, shift, status').eq('date', date).in('patient_id', ids),
     ]).then(([{ data: allMeds }, { data: dayRecs }]) => {
       const medsArr: any[] = allMeds || []

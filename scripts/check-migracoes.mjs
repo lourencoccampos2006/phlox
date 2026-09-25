@@ -48,7 +48,7 @@ const cab = { apikey: CHAVE, Authorization: `Bearer ${CHAVE}` }
 
 // Que ficheiros olhar. Sem argumento, os que ainda nao foram aplicados — que
 // sao os unicos que podem rebentar.
-const POR_APLICAR = ['150', '151', '152', '153', '154', '155', '156', '157', '158']
+const POR_APLICAR = ['150', '151', '152', '153', '154', '155', '156', '157', '158', '159']
 const alvos = process.argv.slice(2).length
   ? process.argv.slice(2)
   : readdirSync('supabase')

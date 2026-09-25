@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { reportError } from '@/lib/clientError'
 
@@ -103,5 +103,14 @@ export function useClinicPrefs() {
     localStorage.setItem(INST_KEY, i)
   }
 
-  return { role, institution, setRole, setInstitution }
+  // Estavel enquanto o papel e o tipo de casa nao mudarem. Este hook e chamado
+  // em dezenas de paginas; se devolvesse um objeto novo a cada render, qualquer
+  // uma delas ficava a um `useCallback([cfg])` de distancia de um ciclo
+  // infinito. Ver scripts/check-hooks-estaveis.mjs.
+  return useMemo(
+    () => ({ role, institution, setRole, setInstitution }),
+    // As duas funcoes so tocam em `setState` e no localStorage: nao fecham
+    // sobre nada que mude, por isso nao precisam de entrar na chave.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [role, institution])
 }

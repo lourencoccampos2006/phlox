@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
 import { ensureUserScope, clearUserScopeOnSignOut, ensureProfileMatchesMode } from '@/lib/userScope'
 import { comVigilancia } from '@/lib/supabaseVigiado'
@@ -307,8 +307,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session?.user) await loadProfile(session.user, true)
   }
 
+  // ── PORQUE E QUE ISTO E UM useMemo ──────────────────────────────────────
+  // Este Provider envolve a aplicacao INTEIRA. Um objeto novo aqui a cada
+  // render e um objeto novo em todos os `useAuth()` do produto — e quem
+  // escrever `const auth = useAuth()` e o puser numa lista de dependencias
+  // fica com um ciclo infinito. Ja aconteceu uma vez, por outro caminho, e
+  // custou uma pagina que nunca assentava e um menu que parecia avariado.
+  //
+  // A chave sao so `user` e `loading`. As funcoes nao entram porque nao leem
+  // estado nenhum que possa envelhecer: o cliente `supabase` e uma constante
+  // do modulo, e o `loadProfile` so toca em `useRef` e em `setState`, que sao
+  // estaveis por construcao. Confirmei uma a uma antes de as deixar de fora.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const valor = useMemo(() => ({
+    user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, supabase, refreshUser,
+  }), [user, loading])
+
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, supabase, refreshUser }}>
+    <AuthContext.Provider value={valor}>
       {children}
     </AuthContext.Provider>
   )

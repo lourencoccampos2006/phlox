@@ -116,13 +116,19 @@ export function tarefasDoPlano(
 /** As tomas devidas neste turno. */
 export function tarefasDaMedicacao(
   pessoas: Pessoa[],
-  meds: { id: string; patient_id: string; name: string; dose: string | null; shifts: string[] | null; take_location?: string | null }[],
+  meds: { id: string; patient_id: string; name: string; dose: string | null; shifts: string[] | null; take_location?: string | null; sos?: boolean | null }[],
   registos: { med_id: string; patient_id: string; status: string }[],
   turno: string,
 ): Tarefa[] {
   const registado = new Map(registos.map(r => [`${r.patient_id}|${r.med_id}`, r.status]))
 
   return meds.flatMap(m => {
+    // Um SOS não é uma dose agendada: dá-se quando é preciso e mais nenhuma
+    // vez. Como um SOS tem `shifts` vazio, e vazio quer dizer «todos os
+    // turnos», sem esta linha ele aparecia como dose por dar em cada turno de
+    // cada dia — para sempre. Enchia a lista de trabalho com coisas que não
+    // são para fazer, e uma lista assim ensina-se a ignorar.
+    if (m.sos) return []
     // `shifts` vazio significa «todos os turnos» — é a compatibilidade com os
     // medicamentos criados antes de haver turnos, e o /mar lê-o da mesma forma.
     const devido = !m.shifts || m.shifts.length === 0 || m.shifts.includes(turno)

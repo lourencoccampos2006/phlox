@@ -16,7 +16,7 @@
 -- le as mensalidades de todas as familias -- a menos que a RLS diga que nao.
 -- E a unica defesa que nao se contorna.
 --
--- 69 tabelas ganham politicas por area. 26 ficam de fora, de
+-- 70 tabelas ganham politicas por area. 26 ficam de fora, de
 -- proposito e com a razao escrita em lib/areasDeDados.ts.
 --
 -- ── NADA E LARGADO ─────────────────────────────────────────────────────────
@@ -117,6 +117,7 @@ declare
     ['team_reads', 'equipa.ver', 'equipa.editar', 'equipa.eliminar'],
     ['team_spaces', 'equipa.ver', 'equipa.editar', 'equipa.eliminar'],
     ['team_tasks', 'equipa.ver', 'equipa.editar', 'equipa.eliminar'],
+    ['tomas_sos', 'medicacao.ver', 'medicacao.editar', 'medicacao.eliminar'],
     ['visit_requests', 'familias.ver', 'familias.editar', null],
     ['vitals', 'registos.ver', 'registos.editar', 'registos.eliminar'],
     ['wards', null, 'definicoes.editar', null],

@@ -4,7 +4,7 @@
 // Empilha múltiplas mensagens, com tipo (success/error/info), auto-dismiss e
 // botão de fechar. Posição: canto inferior direito (não interfere com o cockpit).
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 export type ToastKind = 'success' | 'error' | 'info' | 'warn'
 export interface ToastItem { id: string; kind: ToastKind; title: string; description?: string; duration?: number }
@@ -20,20 +20,23 @@ interface ToastCtx {
 
 const Ctx = createContext<ToastCtx | null>(null)
 
+// Fallback silencioso, para não rebentar em testes ou fora do Provider.
+//
+// É uma constante do módulo e não um objeto criado dentro do hook: assim é
+// SEMPRE o mesmo objeto. Um fallback recriado a cada render poria quem o usasse
+// numa lista de dependências a girar em ciclo — e o sítio onde isso acontece é
+// justamente o sítio onde não há Provider, ou seja, onde ninguém está a olhar.
+const SEM_PROVIDER: ToastCtx = {
+  toast: () => '',
+  success: () => '',
+  error: () => '',
+  info: () => '',
+  warn: () => '',
+  dismiss: () => { /* noop */ },
+}
+
 export function useToast(): ToastCtx {
-  const c = useContext(Ctx)
-  if (!c) {
-    // fallback silencioso (não rebenta em testes ou contextos sem Provider)
-    return {
-      toast: () => '',
-      success: () => '',
-      error: () => '',
-      info: () => '',
-      warn: () => '',
-      dismiss: () => { /* noop */ },
-    }
-  }
-  return c
+  return useContext(Ctx) || SEM_PROVIDER
 }
 
 let counter = 0
@@ -52,14 +55,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return id
   }, [dismiss])
 
-  const api: ToastCtx = {
+  // O valor de um contexto TEM de ser memorizado. Sem isto, este objeto é novo
+  // a cada render do Provider — que envolve a aplicação inteira — e portanto o
+  // `useToast()` devolvia um objeto novo a TODOS os consumidores, mesmo os que
+  // nunca mostram um aviso. Qualquer `useCallback([toast])` pelo caminho vira
+  // um ciclo infinito.
+  const api: ToastCtx = useMemo(() => ({
     toast,
     success: (title, desc) => toast({ kind: 'success', title, description: desc }),
     error: (title, desc) => toast({ kind: 'error', title, description: desc, duration: 8000 }),
     info: (title, desc) => toast({ kind: 'info', title, description: desc }),
     warn: (title, desc) => toast({ kind: 'warn', title, description: desc }),
     dismiss,
-  }
+  }), [toast, dismiss])
 
   return (
     <Ctx.Provider value={api}>

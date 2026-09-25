@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Tool {
@@ -68,7 +68,8 @@ export function useCommandPalette() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  return { open, setOpen }
+  // `setOpen` do useState ja e estavel; so falta o involucro.
+  return useMemo(() => ({ open, setOpen }), [open])
 }
 
 export default function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {

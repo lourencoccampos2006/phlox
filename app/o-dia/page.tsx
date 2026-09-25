@@ -84,7 +84,11 @@ export default function ODia() {
     // seis idas e voltas antes de a primeira linha aparecer no ecrã.
     const [pes, meds, mar, ativs, apoios, reforcos] = await Promise.all([
       q('patients', 'id,name').eq('active', true).order('name'),
-      q('patient_meds', 'id,patient_id,name,dose,shifts,take_location').eq('active', true),
+      // `*` e nao a lista de colunas. O PostgREST recusa o SELECT INTEIRO quando
+      // uma coluna nao existe: com a lista escrita a mao, entre o deploy do
+      // codigo e o momento em que a migracao do SOS corre, a medicacao TODA
+      // desaparecia desta pagina — sem erro visivel, so uma lista mais curta.
+      q('patient_meds', '*').eq('active', true),
       q('mar_records', 'med_id,patient_id,status').eq('date', hoje).eq('shift', turno),
       q('activities', 'id,title,start_time,status').eq('date', hoje),
       q('support_services', 'id,patient_id,kind,status,notes').eq('date', hoje),

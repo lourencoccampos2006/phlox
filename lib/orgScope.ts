@@ -22,6 +22,7 @@
 //   await supabase.from('care_records').insert(scope.stamp({ patient_id, ... }))
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useMemberships } from './orgContext'
 import {
@@ -93,35 +94,64 @@ export function useOrgScope(): OrgScope {
   // devia acontecer.
   const canEdit = !orgId || AREAS.some(a => podePermissao(permissoes, a.id, 'editar'))
 
-  const pode = (area: string, nivel: Nivel): boolean =>
-    !orgId ? true : podePermissao(permissoes, area, nivel)
+  // ── PORQUE É QUE ISTO É UM useMemo ────────────────────────────────────────
+  // Este objeto era construído de raiz em CADA render, com funções novas lá
+  // dentro. Quem escrevesse o que parece óbvio —
+  //
+  //     const carregar = useCallback(async () => { … }, [scope])
+  //     useEffect(() => { carregar() }, [carregar])
+  //
+  // — ficava com um CICLO INFINITO: o `scope` é novo a cada render, portanto o
+  // `carregar` é novo, portanto o efeito volta a correr, portanto há um
+  // `setState`, portanto há outro render. A página fica eternamente «a
+  // carregar» e o browser passa a vida a disparar consultas; em ecrãs com
+  // muitas fontes chega a bloquear a navegação toda, o que faz parecer que a
+  // aplicação inteira está avariada.
+  //
+  // Aconteceu, a sério, no /o-dia. A cura tinha de ser aqui: pedir a cinquenta
+  // ficheiros que tenham cuidado com as dependências é pedir a alguém que se
+  // lembre para sempre. Com o memo, `scope` só muda quando muda alguma coisa a
+  // sério — a casa, a pessoa, o papel ou as permissões.
+  //
+  // A chave é feita de VALORES e não de objetos: `permissoes` é um array novo
+  // vindo do contexto a cada render, e usá-lo direto no memo não memorizava
+  // nada. `join()` compara o conteúdo, que é o que interessa.
+  const chavePermissoes = permissoes.join(',')
 
-  const ve = (area: string): boolean =>
-    !orgId ? true : veAreaPermissao(permissoes, area)
+  return useMemo(() => {
+    const pode = (area: string, nivel: Nivel): boolean =>
+      !orgId ? true : podePermissao(permissoes, area, nivel)
 
-  const filter = <T,>(query: T): T => {
-    const q = query as any
-    if (orgId) return q.eq('org_id', orgId)
-    return q.eq('user_id', userId)
-  }
+    const ve = (area: string): boolean =>
+      !orgId ? true : veAreaPermissao(permissoes, area)
 
-  const stamp = <T extends Record<string, any>>(row: T): T => {
-    const out: any = { ...row }
-    // user_id mantém-se sempre (compat + RLS "_own")
-    if (userId && out.user_id === undefined) out.user_id = userId
-    // org partilha + auditoria, só quando há organização
-    if (orgId) {
-      out.org_id = orgId
-      if (out.recorded_by_id === undefined) out.recorded_by_id = userId
+    const filter = <T,>(query: T): T => {
+      const q = query as any
+      if (orgId) return q.eq('org_id', orgId)
+      return q.eq('user_id', userId)
     }
-    return out
-  }
 
-  return {
-    orgId, userId, role: papel, isManager, canEdit,
-    permissoes, pode, ve,
-    filter, stamp,
-    liveFilterColumn: orgId ? 'org_id' : 'user_id',
-    liveFilterValue: orgId || userId,
-  }
+    const stamp = <T extends Record<string, any>>(row: T): T => {
+      const out: any = { ...row }
+      // user_id mantém-se sempre (compat + RLS "_own")
+      if (userId && out.user_id === undefined) out.user_id = userId
+      // org partilha + auditoria, só quando há organização
+      if (orgId) {
+        out.org_id = orgId
+        if (out.recorded_by_id === undefined) out.recorded_by_id = userId
+      }
+      return out
+    }
+
+    return {
+      orgId, userId, role: papel, isManager, canEdit,
+      permissoes, pode, ve,
+      filter, stamp,
+      liveFilterColumn: (orgId ? 'org_id' : 'user_id') as 'org_id' | 'user_id',
+      liveFilterValue: orgId || userId,
+    }
+    // `permissoes` fica de fora de propósito: quem manda é a `chavePermissoes`,
+    // que compara o conteúdo. O array em si muda de identidade a cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, userId, papel, isManager, canEdit, chavePermissoes])
 }
