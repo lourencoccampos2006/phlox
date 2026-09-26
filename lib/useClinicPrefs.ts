@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { reportError } from '@/lib/clientError'
+import { leituraPartilhada } from '@/lib/leituraPartilhada'
 
 export type ClinicalRole =
   | 'pharmacist'
@@ -80,7 +81,16 @@ export function useClinicPrefs() {
       const org = user.active_org_id || user.org_id
       if (org && supabase) {
         try {
-          const { data, error: erroLeitura } = await supabase.from('organizations').select('kind').eq('id', org).maybeSingle()
+          // Partilhada: este hook e chamado por dezenas de componentes e todos
+          // perguntavam o mesmo ao mesmo tempo. Medido num browser: 55 pedidos
+          // a `organizations` para abrir seis paginas. Agora e um.
+          //
+          // O tipo de uma casa nao muda a meio de um turno — e quando mudar
+          // (nas definicoes), `invalidar('org-kind')` limpa isto.
+          const { data, error: erroLeitura } = await leituraPartilhada<{ data: { kind?: string } | null; error: any }>(
+            `org-kind:${org}`,
+            () => supabase.from('organizations').select('kind').eq('id', org).maybeSingle(),
+          )
           if (erroLeitura) reportError('clinic-kind', erroLeitura)
           if (data?.kind) tipo = data.kind
         } catch { /* fica o do perfil */ }

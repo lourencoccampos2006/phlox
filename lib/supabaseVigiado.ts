@@ -54,13 +54,73 @@ function tabelaDoUrl(url: string): string {
   } catch { return url.slice(0, 80) }
 }
 
-/** Envolve um `fetch` para registar as respostas de erro do Supabase.
+// ─────────────────────────────────────────────────────────────────────────────
+// PEDIDOS IGUAIS AO MESMO TEMPO: UM SÓ
+// ─────────────────────────────────────────────────────────────────────────────
+// Uma página do Phlox é feita de componentes que se montam todos no mesmo
+// instante, e vários deles precisam da mesma coisa — a lista de utentes, as
+// tomas de hoje. Cada um faz o seu pedido. Contado num browser, a abrir seis
+// páginas: `patients` 25 vezes, `mar_records` 23, `patient_meds` 21.
+//
+// São pedidos IDÊNTICOS, disparados com milissegundos de diferença, e a
+// resposta é a mesma. No plano gratuito do Supabase isso custa caro de uma
+// forma que não se vê: o tecto é de LINHAS DE REGISTO, e cada chamada escreve
+// uma, traga um byte ou um megabyte.
+//
+// Aqui juntam-se. O primeiro faz o pedido e os que chegarem enquanto ele está
+// em voo recebem a MESMA resposta (uma cópia, para cada um poder ler o corpo).
+//
+// ── PORQUE É QUE ISTO NÃO ENVELHECE NADA ───────────────────────────────────
+// Não há cache. A janela é só a do pedido em voo — normalmente uns 50
+// milissegundos. Assim que ele responde, o próximo pedido vai à rede outra vez.
+// Ninguém pode ver dados mais velhos do que o tempo que a rede demorou, que é
+// o mesmo que veria de qualquer maneira.
+//
+// Só GET, e só leituras. Escritas nunca se juntam: dois `insert` iguais podem
+// ser duas coisas diferentes que aconteceram mesmo, e juntá-los perderia uma.
+const emVoo = new Map<string, Promise<Response>>()
+
+function podeJuntar(url: string, init?: any): boolean {
+  const metodo = (init?.method || 'GET').toUpperCase()
+  if (metodo !== 'GET') return false
+  if (!/\/rest\/v1\//.test(url)) return false
+  // Um `Prefer: count=exact` devolve um cabeçalho que quem pediu vai ler;
+  // partilhar a resposta continua correto, mas não vale a pena o risco.
+  return true
+}
+
+/** A chave tem de incluir TUDO o que muda a resposta — o endereço completo e a
+ *  sessão. Duas pessoas no mesmo browser (separadores diferentes) não partilham
+ *  a mesma ficha, e um pedido com token diferente é outro pedido. */
+function chaveDoPedido(url: string, init?: any): string {
+  const h = init?.headers || {}
+  const auth = typeof h.get === 'function' ? h.get('authorization') : (h.Authorization || h.authorization || '')
+  return `${url}|${String(auth).slice(-24)}`
+}
+
+/** Envolve um `fetch` para registar as respostas de erro do Supabase e juntar
+ *  as leituras idênticas que estão em voo ao mesmo tempo.
  *
  *  Nunca lança, nunca altera a resposta e nunca atrasa nada: lê uma CÓPIA do
  *  corpo, depois de a resposta já ter seguido para quem a pediu. */
 export function comVigilancia(original: typeof fetch = fetch): typeof fetch {
   return async function (input: any, init?: any) {
-    const res = await original(input, init)
+    const alvo = typeof input === 'string' ? input : (input?.url || String(input))
+
+    let res: Response
+    if (podeJuntar(alvo, init)) {
+      const chave = chaveDoPedido(alvo, init)
+      let voo = emVoo.get(chave)
+      if (!voo) {
+        voo = original(input, init).finally(() => { emVoo.delete(chave) })
+        emVoo.set(chave, voo)
+      }
+      // Uma cópia por leitor: o corpo de uma `Response` só se lê uma vez, e
+      // sem isto o segundo componente receberia um corpo já gasto.
+      res = (await voo).clone()
+    } else {
+      res = await original(input, init)
+    }
     try {
       const url = typeof input === 'string' ? input : (input?.url || String(input))
       if (!res.ok && /\/(rest|storage)\/v1\//.test(url)) {

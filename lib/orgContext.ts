@@ -6,6 +6,7 @@
 // org" decide que dados clínicos aparecem na UI e que capabilities estão em vigor.
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { leituraPartilhada, invalidar } from '@/lib/leituraPartilhada'
 
 const LS_KEY = 'phlox-active-org'
 const EVT = 'phlox-org-changed'
@@ -58,16 +59,31 @@ export function useMemberships(): { memberships: OrgMembership[]; active: OrgMem
   const [activeId, setActiveId] = useState<string | null>(() => getActiveOrgId())
   const [loading, setLoading] = useState(true)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (forcar = false) => {
     if (!user?.id) { setMemberships([]); setLoading(false); return }
+    // Quem pede explicitamente para recarregar quer mesmo ir buscar.
+    if (forcar) invalidar(`memberships:${user.id}`)
     setLoading(true)
     try {
       // 1) memberships ativas do utilizador
-      const { data: members, error } = await supabase
-        .from('org_members')
-        .select('role, capabilities, department, organizations(id, name, short_name, kind, accent_color)')
-        .eq('user_id', user.id)
-        .eq('active', true)
+      //
+      // PARTILHADA, e essa e a parte importante. Este hook esta por baixo do
+      // `useOrgScope()`, que e chamado em 55 ficheiros — e como e um hook e
+      // nao um contexto, cada componente fazia o SEU pedido para a mesma
+      // resposta. Contado num browser: 69 pedidos a `org_members` para abrir
+      // seis paginas.
+      //
+      // Agora o primeiro pede e os outros esperam pela mesma promessa. A
+      // `refresh()` com `forcar` limpa a cache antes, para o botao de recarregar
+      // continuar a ir mesmo buscar.
+      const { data: members, error } = await leituraPartilhada<{ data: any[] | null; error: any }>(
+        `memberships:${user.id}`,
+        () => supabase
+          .from('org_members')
+          .select('role, capabilities, department, organizations(id, name, short_name, kind, accent_color)')
+          .eq('user_id', user.id)
+          .eq('active', true),
+      )
       if (error) { console.error('[orgContext] memberships:', error); setMemberships([]); setLoading(false); return }
 
       // 2) As permissões efetivas de cada membership.

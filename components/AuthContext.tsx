@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react'
+import { invalidar } from '@/lib/leituraPartilhada'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
 import { ensureUserScope, clearUserScopeOnSignOut, ensureProfileMatchesMode } from '@/lib/userScope'
 import { comVigilancia } from '@/lib/supabaseVigiado'
@@ -293,6 +294,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
     // Limpa os dados locais da conta antes de sair (privacidade no dispositivo).
     try { clearUserScopeOnSignOut() } catch {}
+    // E o que esta guardado em memoria. As chaves ja incluem o id de quem
+    // pediu, por isso nao havia risco de uma conta ver os dados da outra — mas
+    // guardar respostas de alguem que ja saiu nao serve para nada.
+    try { invalidar() } catch {}
     const { error } = await supabase.auth.signOut()
     if (error) console.error('SignOut error:', error.message)
     setUser(null)

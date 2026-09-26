@@ -13,10 +13,19 @@
 // Por isso há um contexto: o shell busca uma vez, e quem precisar lê daí.
 //
 // ── QUANDO É QUE SE VAI BUSCAR OUTRA VEZ ───────────────────────────────────
-// Ao entrar, ao mudar de página (com um travão de 30 segundos), e de dois em
-// dois minutos enquanto o separador estiver à frente. Quando o separador está
+// Ao entrar, ao mudar de página (com um travão de 30 segundos), e de dez em
+// dez minutos enquanto o separador estiver à frente. Quando o separador está
 // escondido, pára — ninguém precisa de contagens frescas de uma janela que
 // está atrás de outras, e um portátil de turno agradece.
+//
+// O temporizador era de DOIS minutos. Cada busca são dezasseis consultas, e o
+// plano gratuito do Supabase conta LINHAS DE REGISTO, uma por chamada: num
+// turno de oito horas isso eram 3840 chamadas por separador aberto, só para
+// manter uns números que ninguém está a olhar.
+//
+// Dez minutos é o compromisso certo porque o temporizador quase não é o que
+// atualiza isto: quem está a trabalhar navega, e cada navegação já refresca.
+// O temporizador só serve para quem deixou a página aberta a olhar.
 //
 // ── PORQUE É QUE O PRIMEIRO ECRÃ NÃO ESPERA POR ISTO ───────────────────────
 // Os números não são a página: são uma pista. Enquanto não chegam, não há
@@ -95,7 +104,7 @@ export function ContadoresProvider({ children }: { children: React.ReactNode }) 
     if (!orgId) return
     const t = setInterval(() => {
       if (document.visibilityState === 'visible') buscar()
-    }, 120_000)
+    }, 600_000)
     const aoVoltar = () => { if (document.visibilityState === 'visible') buscar() }
     document.addEventListener('visibilitychange', aoVoltar)
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar) }
