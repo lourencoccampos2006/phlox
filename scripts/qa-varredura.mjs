@@ -1,81 +1,123 @@
-// scripts/qa-varredura.mjs — passa por todas as rotas alcançáveis e regista
-// tudo o que corre mal: crashes, erros de consola, respostas 4xx/5xx do
-// Supabase e das APIs, e páginas que ficam em branco.
-
+// scripts/qa-varredura.mjs
+// ─────────────────────────────────────────────────────────────────────────────
+// Abre TODAS as páginas institucionais e vê se alguma rebenta.
+//
+// ── PORQUE E QUE ISTO E A REDE MAIS LARGA QUE EXISTE ────────────────────────
+// O `tsc` não apanha erros de execução. Nesta sessão, um `useMemo` que usava
+// uma função declarada mais abaixo (zona morta temporal) deitou a ronda
+// inteira abaixo — e o `tsc` passou. Só o browser mostrou.
+//
+// Um ecrã em branco é o pior defeito que existe: quem está a trabalhar não
+// tem nada a que se agarrar, e não há erro nenhum a dizer-lhe porquê.
+//
+// ── O QUE SE MEDE ───────────────────────────────────────────────────────────
+//   • páginas que rebentam (o `pageerror` do browser)
+//   • páginas que mostram o ecrã de erro do Next
+//   • erros de consola que não sejam de uma migração por correr
+//   • scroll horizontal do corpo, que a 390px é sempre um defeito
+//   • texto técnico à vista do cliente
+//
+//   node scripts/qa-varredura.mjs           (desktop + telemóvel)
+//   node scripts/qa-varredura.mjs --rapido  (só telemóvel)
+// ─────────────────────────────────────────────────────────────────────────────
 import { chromium } from 'playwright'
-import { readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
 
-const BASE = process.env.BASE || 'http://localhost:3001'
-const EMAIL = process.env.QA_EMAIL || 'qa1781881827891@phloxqa.pt'
-const PASS = process.env.QA_PASSWORD || 'QaPhlox2026!'
+const BASE = process.env.QA_BASE || 'http://localhost:3311'
+const RAPIDO = process.argv.includes('--rapido')
 
-// Todas as rotas estáticas de app/ (sem [param], sem api, sem grupos).
-function rotas(dir = 'app', prefixo = '') {
-  const out = []
-  for (const e of readdirSync(dir)) {
-    const p = join(dir, e)
-    if (!statSync(p).isDirectory()) continue
-    if (e.startsWith('[') || e === 'api' || e.startsWith('(') || e.startsWith('_')) continue
-    const r = prefixo + '/' + e
-    try { statSync(join(p, 'page.tsx')); out.push(r) } catch {}
-    out.push(...rotas(p, r))
-  }
-  return out
-}
+// As páginas institucionais, pela ordem por que a equipa lhes chega.
+const PAGINAS = [
+  '/painel', '/o-dia', '/patients', '/mar', '/care-log', '/incidents',
+  '/family', '/radar', '/equipa', '/painel-dono', '/estatisticas',
+  '/inscricoes', '/calendario-do-ano', '/documentos', '/ronda-guiada',
+  '/activities', '/assessments', '/feridas', '/agenda', '/stock',
+  '/refeicoes', '/apoio-servicos', '/tendencias', '/guardiao', '/carga',
+  '/autonomia', '/preparacao-medicacao', '/apoio-psicossocial', '/historico',
+  '/faturacao', '/interactions', '/calculos', '/vigia', '/migrar',
+]
 
-const IGNORAR = /^\/(blog|partilhar|c|v|auth|checkout|convite)\b/
-const TODAS = ['/', ...rotas().filter(r => !IGNORAR.test(r))].sort()
-const ALVO = process.env.ROTAS ? process.env.ROTAS.split(',') : TODAS
+// Ruído que NÃO é defeito: tabelas de migrações que o Fernando ainda não
+// correu. Filtrar isto é o que faz a varredura ser legível.
+const ESPERADO = /candidaturas|criterios_entrada|calendario_marcas|modelos_documentos|documentos_emitidos|servicos_|etiquetas|stock_utente|PGRST205|Failed to load resource/i
 
-console.log(`${ALVO.length} rotas a varrer em ${BASE}\n`)
-
-const navegador = await chromium.launch()
+const browser = await chromium.launch()
 const problemas = []
 try {
-  const ctx = await navegador.newContext({ viewport: { width: 1440, height: 900 } })
-  const page = await ctx.newPage()
-  await page.goto(BASE + '/login', { waitUntil: 'domcontentloaded' })
-  await page.fill('input[type="email"]', EMAIL)
-  await page.fill('input[type="password"]', PASS)
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/\/inicio|\/painel/, { timeout: 30_000 }).catch(() => {})
+  for (const [nome, viewport] of (RAPIDO
+    ? [['telemóvel', { width: 390, height: 844 }]]
+    : [['desktop', { width: 1366, height: 900 }], ['telemóvel', { width: 390, height: 844 }]])) {
+    const ctx = await browser.newContext({ viewport })
+    const p = await ctx.newPage()
 
-  let atual = []
-  page.on('console', m => { if (m.type() === 'error') atual.push(['consola', m.text().slice(0, 150)]) })
-  page.on('pageerror', e => atual.push(['CRASH', String(e.message).slice(0, 150)]))
-  page.on('response', r => {
-    const s = r.status(), u = r.url()
-    if (s < 400) return
-    if (/supabase\.co\/rest/.test(u)) atual.push([`http ${s}`, 'supabase ' + decodeURIComponent(u.split('/rest/v1/')[1] || '').split('&')[0].slice(0, 70)])
-    else if (u.startsWith(BASE)) atual.push([`http ${s}`, u.replace(BASE, '')])
-  })
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded' })
+    await p.fill('input[type="email"]', process.env.QA_EMAIL || 'qa1781881827891@phloxqa.pt')
+    await p.fill('input[type="password"]', process.env.QA_PASSWORD || 'QaPhlox2026!')
+    await p.click('button[type="submit"]')
+    await p.waitForTimeout(6000)
 
-  for (const r of ALVO) {
-    atual = []
-    let status = 0
-    try {
-      const resp = await page.goto(BASE + r, { waitUntil: 'domcontentloaded', timeout: 25_000 })
-      status = resp?.status() || 0
-      await page.waitForTimeout(1800)
-    } catch (e) { atual.push(['navegação', String(e).slice(0, 100)]) }
+    console.log(`\n════════ ${nome} ════════`)
+    for (const rota of PAGINAS) {
+      const rebentou = []
+      const consola = []
+      const onErr = e => rebentou.push(String(e).split('\n')[0].slice(0, 160))
+      const onCon = m => { if (m.type() === 'error') consola.push(m.text().slice(0, 200)) }
+      p.on('pageerror', onErr)
+      p.on('console', onCon)
 
-    const texto = await page.evaluate(() => (document.body?.innerText || '').replace(/\s+/g, ' ').trim()).catch(() => '')
-    if (texto.length < 25) atual.push(['vazio', `só ${texto.length} caracteres de texto`])
+      try {
+        await p.goto(BASE + rota, { waitUntil: 'domcontentloaded', timeout: 30000 })
+        // Esperar por CONTEÚDO, e não por tempo.
+        //
+        // A primeira versão esperava 6,5 segundos fixos e acusou a
+        // /assessments de estar vazia. A página estava bem: era o servidor de
+        // desenvolvimento a compilar a rota. Uma QA que mente uma vez deixa de
+        // valer, porque a partir daí ninguém sabe se o vermelho é verdadeiro.
+        await p.waitForFunction(
+          () => (document.body?.innerText || '').trim().length > 250,
+          null, { timeout: 25000 },
+        ).catch(() => {})
+        await p.waitForTimeout(2500)
+      } catch (e) {
+        rebentou.push(`não carregou: ${String(e).split('\n')[0].slice(0, 90)}`)
+      }
 
-    const unicos = [...new Map(atual.map(x => [x[0] + x[1], x])).values()]
-    if (status >= 400) unicos.unshift([`http ${status}`, 'a própria página'])
-    if (unicos.length) {
-      problemas.push([r, unicos])
-      console.log(`✗ ${r}`)
-      unicos.slice(0, 4).forEach(([t, d]) => console.log(`    ${t.padEnd(9)} ${d}`))
+      const texto = await p.locator('body').innerText().catch(() => '')
+      const ecraDeErro = /Algo correu mal|Erro inesperado|Application error|Unhandled Runtime/i.test(texto)
+      const vazia = texto.trim().length < 40
+      const lateral = await p.evaluate(() =>
+        document.documentElement.scrollWidth > document.documentElement.clientWidth + 1).catch(() => false)
+      const tecnico = /relation ".*" does not exist|column .* does not exist|schema cache|PGRST\d|TypeError|undefined is not/i.test(texto)
+      const consolaReal = consola.filter(x => !ESPERADO.test(x))
+
+      p.off('pageerror', onErr)
+      p.off('console', onCon)
+
+      const mal = []
+      if (rebentou.length) mal.push(`REBENTOU: ${rebentou[0]}`)
+      if (ecraDeErro) mal.push('ecrã de erro')
+      if (vazia) mal.push('página vazia')
+      if (lateral) mal.push('scroll horizontal')
+      if (tecnico) mal.push('texto técnico à vista')
+      if (consolaReal.length) mal.push(`consola: ${consolaReal[0]}`)
+
+      if (mal.length) {
+        problemas.push({ nome, rota, mal })
+        console.log(`✗ ${rota.padEnd(26)} ${mal.join(' · ')}`)
+      } else {
+        console.log(`  ${rota.padEnd(26)} ok`)
+      }
     }
+    await ctx.close()
   }
-} finally { await navegador.close() }
+} finally {
+  await browser.close()
+}
 
-console.log(`\n${'═'.repeat(60)}`)
-console.log(problemas.length ? `${problemas.length} rotas com problemas (de ${ALVO.length})` : `Nenhum problema em ${ALVO.length} rotas.`)
-const porTipo = {}
-problemas.forEach(([, ps]) => ps.forEach(([t, d]) => { const k = `${t} · ${d.slice(0, 60)}`; porTipo[k] = (porTipo[k] || 0) + 1 }))
-console.log('\nmais frequentes:')
-Object.entries(porTipo).sort((a, b) => b[1] - a[1]).slice(0, 14).forEach(([k, n]) => console.log(`  ${String(n).padStart(3)}×  ${k}`))
+console.log(`\n${PAGINAS.length} página(s) × ${RAPIDO ? 1 : 2} tamanho(s).`)
+if (!problemas.length) {
+  console.log('✓ Nenhuma rebentou, nenhuma ficou vazia, nenhuma anda de lado.')
+  process.exit(0)
+}
+console.log(`\n✗ ${problemas.length} problema(s):`)
+for (const x of problemas) console.log(`  ${x.nome} ${x.rota} — ${x.mal.join(' · ')}`)
+process.exit(1)

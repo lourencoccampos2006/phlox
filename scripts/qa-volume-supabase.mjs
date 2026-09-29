@@ -29,7 +29,11 @@ const EMAIL = process.env.QA_EMAIL || 'qa1781881827891@phloxqa.pt'
 const PASS = process.env.QA_PASSWORD || 'QaPhlox2026!'
 const PARADO = Number(process.env.PARADO || 60)
 
-const ROTAS = ['/painel', '/o-dia', '/patients', '/mar', '/care-log', '/equipa?tab=mural']
+// As paginas novas de 2026-09-27 entraram aqui porque sao as que fazem mais
+// consultas: as estatisticas somam doze meses de treze tabelas, e o calendario
+// le onze fontes. Se alguma delas for caro, e aqui que se ve.
+const ROTAS = ['/painel', '/o-dia', '/patients', '/mar', '/care-log', '/equipa?tab=mural',
+  '/estatisticas', '/calendario-do-ano', '/painel-dono', '/inscricoes', '/ronda-guiada']
 
 const b = await chromium.launch()
 try {

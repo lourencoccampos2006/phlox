@@ -32,8 +32,24 @@ export default function NotificationBell() {
       setUnread(d.unread || 0)
     }
     load()
-    const t = setInterval(load, 60000)
-    return () => clearInterval(t)
+
+    // ── Só se pede quando alguém está a olhar ──────────────────────────────
+    // Isto pedia de sessenta em sessenta segundos sempre, mesmo com o
+    // separador escondido. Medido: 40 chamadas por hora POR SEPARADOR ABERTO
+    // (scripts/qa-parado.mjs). Num posto de equipa com três separadores
+    // esquecidos oito horas são cerca de mil chamadas por dia — para um sino
+    // que ninguém está a ver.
+    //
+    // No plano gratuito do Supabase o que custa é o número de chamadas, não
+    // os dados. Este era o maior consumo em repouso de toda a aplicação.
+    const t = setInterval(() => { if (!document.hidden) load() }, 60000)
+
+    // E ao voltar ao separador, pede uma vez — senão quem volta ao fim de
+    // duas horas via o sino como estava quando saiu, o que é pior do que
+    // pedir de minuto a minuto.
+    const aoVoltar = () => { if (!document.hidden) load() }
+    document.addEventListener('visibilitychange', aoVoltar)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar) }
   }, [user, supabase])
 
   useEffect(() => {

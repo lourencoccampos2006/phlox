@@ -112,7 +112,19 @@ function ProfessionalDirectory({ onSelect }: { onSelect: (p: Professional) => vo
 
   const search = useCallback(async () => {
     setLoading(true)
-    let q = supabase.from('profiles')
+    // De `perfis_visiveis` e nao de `profiles` (sprint168). O directorio ja
+    // pedia so estas seis colunas, mas lia-as de uma tabela que devolvia o
+    // perfil inteiro a quem soubesse pedi-lo — bastava trocar o `select`.
+    //
+    // O `connect_visible` nao se filtra aqui: quem nao se pos no directorio
+    // nao esta na vista. Fica na mesma escrito, porque a vista tambem inclui
+    // a propria pessoa e os colegas de casa, e nenhum desses e do directorio.
+    // A vista se existir, a tabela enquanto o sprint168 nao correr. O
+    // directorio ja pedia so estas seis colunas, mas lia-as de uma tabela que
+    // devolvia o perfil inteiro a quem soubesse pedi-lo.
+    const daVista = await supabase.from('perfis_visiveis').select('id').limit(1)
+    const fonte = daVista.error ? 'profiles' : 'perfis_visiveis'
+    let q = supabase.from(fonte)
       .select('id, display_name, connect_handle, professional_role, institution, speciality')
       .eq('connect_visible', true)
       .not('connect_handle', 'is', null)

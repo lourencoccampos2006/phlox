@@ -1,6 +1,5 @@
 import { renderShareCard, cardSize, SHARE_CARDS } from '@/lib/shareCard'
 
-export const runtime = 'edge'
 export const alt = SHARE_CARDS['como-ler-receita-medica'].title
 export const size = cardSize
 export const contentType = 'image/png'

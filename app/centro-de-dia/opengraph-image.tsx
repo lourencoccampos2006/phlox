@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og'
 
 // Imagem OG dedicada à landing do Centro de Dia — partilha com mensagem dirigida.
-export const runtime = 'edge'
 export const alt = 'Phlox — o software do seu Centro de Dia'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'

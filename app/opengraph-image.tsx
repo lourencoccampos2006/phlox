@@ -4,7 +4,6 @@ import { ImageResponse } from 'next/og'
 // Faz as partilhas do site terem uma pré-visualização profissional em vez de
 // um cartão vazio. Cada página herda esta imagem (Next App Router).
 
-export const runtime = 'edge'
 export const alt = 'Phlox Clinical — Farmacologia clínica em português'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'

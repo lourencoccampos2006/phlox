@@ -2,11 +2,15 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Phlox Pulse — Server-Sent Events com KPIs operacionais ao vivo. Sem polling.
-// Funciona em Cloudflare Workers (ReadableStream). Token de autenticação no
-// query string (?token=) porque o EventSource do browser não permite headers.
-
+// Token de autenticação no query string (?token=) porque o EventSource do
+// browser não permite cabeçalhos.
+//
+// ── PORQUE E QUE DEIXOU DE SER `edge` (2026-09-28) ─────────────────────────
+// O Edge Runtime está depreciado e o build avisa-o em todas as compilações.
+// Eventos do servidor (SSE) NÃO são exclusivos do Edge: o `ReadableStream`
+// funciona no runtime de Node tal e qual, e lá esta rota passa a ter as APIs
+// de Node todas disponíveis e um tempo de execução maior.
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
 
 function adminClient() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
