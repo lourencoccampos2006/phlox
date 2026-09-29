@@ -1,6 +1,10 @@
 'use client'
 
-// /painel-dono — Painel do Dono (só owner/admin da organização).
+// /painel-dono — Painel ADMINISTRATIVO (só owner/admin/direção da organização).
+//
+// O endereço continua a ser /painel-dono para não partir os links que já
+// existem (menus, emails, marcadores de quem já o usa). O nome mudou em todo
+// o lado onde alguém o lê.
 // Mostra a linha do tempo de "quem fez o quê a quem" na instituição: medicação
 // dada, registos do dia, ocorrências — com nome de quem fez, utente, data e hora.
 // Os funcionários NÃO veem esta página (a API valida o papel; aqui escondemos).
@@ -15,6 +19,7 @@ import { printDoc } from '@/lib/print'
 import OwnerPerformance from '@/components/owner/OwnerPerformance'
 import OwnerInsights from '@/components/owner/OwnerInsights'
 import PatientTimeline from '@/components/PatientTimeline'
+import PainelAdmin from './PainelAdmin'
 
 const ACCENT = '#0d9488'
 
@@ -56,9 +61,11 @@ export default function PainelDonoPage() {
   const [totalEvents, setTotalEvents] = useState(0)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [tab, setTab] = useState<'negocio' | 'qualidade' | 'registos' | 'desempenho' | 'comparar'>(() => {
-    if (typeof window !== 'undefined') { const t = new URLSearchParams(window.location.search).get('tab'); if (t === 'qualidade' || t === 'registos' || t === 'desempenho' || t === 'comparar') return t }
-    return 'negocio'
+  const [tab, setTab] = useState<'painel' | 'negocio' | 'qualidade' | 'registos' | 'desempenho' | 'comparar'>(() => {
+    if (typeof window !== 'undefined') { const t = new URLSearchParams(window.location.search).get('tab'); if (t === 'qualidade' || t === 'registos' || t === 'desempenho' || t === 'comparar' || t === 'negocio') return t }
+    // O painel a sério é o que abre. Os outros separadores são relatórios —
+    // valem quando alguém os procura, não como primeira coisa que se vê.
+    return 'painel'
   })
   const [biz, setBiz] = useState<any | null>(null)
   const [expSource, setExpSource] = useState('medicacao')
@@ -179,7 +186,9 @@ export default function PainelDonoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px clamp(14px,3vw,28px) 70px' }}>
+      {/* O painel precisa das doze colunas do desenho; os relatórios são
+          listas e leem-se melhor estreitos. A largura segue o separador. */}
+      <div style={{ maxWidth: tab === 'painel' ? 1240 : 860, margin: '0 auto', padding: '24px clamp(14px,3vw,28px) 70px' }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -187,9 +196,9 @@ export default function PainelDonoPage() {
               <img src={biz.org.logoUrl} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover', border: '1px solid #e9eaec', flexShrink: 0 }} />
             )}
             <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: bizAccent, fontWeight: 700, marginBottom: 6 }}>Painel do dono</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: bizAccent, fontWeight: 700, marginBottom: 6 }}>Painel administrativo</div>
               <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>{biz?.org?.name || 'Registo de tudo'}</h1>
-              <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>Ocupação, receita, equipa e tudo o que a equipa regista — num só sítio.</p>
+              <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>A casa inteira num sítio: quem cá está e quem espera, o cuidado, a equipa, o dinheiro e o que uma inspeção pede.</p>
             </div>
           </div>
         </div>
@@ -224,10 +233,17 @@ export default function PainelDonoPage() {
           <>
             {/* Separadores: Visão geral | Qualidade | Registos */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0', flexWrap: 'wrap' }}>
-              {([['negocio', 'Visão geral'], ['desempenho', 'Desempenho'], ['qualidade', 'Qualidade'], ['comparar', 'Comparar'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
+              {([['painel', 'Painel'], ['negocio', 'Números do mês'], ['desempenho', 'Desempenho'], ['qualidade', 'Qualidade'], ['comparar', 'Comparar'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} style={{ padding: '9px 16px', background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? ACCENT : 'transparent'}`, cursor: 'pointer', fontSize: 14, fontWeight: tab === k ? 800 : 600, color: tab === k ? ACCENT : '#64748b', marginBottom: -1, fontFamily: 'inherit' }}>{l}</button>
               ))}
             </div>
+
+            {/* ── O PAINEL ──────────────────────────────────────────────
+                Cinco vistas da casa, feitas com as MESMAS peças do /painel
+                (app/painel/painelPecas.tsx): os mesmos cartões, a mesma
+                grelha de doze colunas. Não é parecido com o painel — é feito
+                dele, e por isso não se vai afastar. */}
+            {tab === 'painel' && <PainelAdmin />}
 
             {/* ── NEGÓCIO ── */}
             {tab === 'negocio' && biz && (() => {

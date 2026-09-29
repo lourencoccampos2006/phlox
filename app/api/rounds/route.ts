@@ -52,17 +52,117 @@ export async function GET(req: NextRequest) {
 // recorrentes de hoje (fusão 2026-08-07 das abas "Saúde & Apoio"/"Cuidados"
 // do /care-log para dentro da ronda — ver care_checklists/care_checklist_logs,
 // mesmas tabelas que essas abas já usavam). Endpoint separado (POST).
+/**
+ * Tudo o que a ronda precisa de saber sobre uma pessoa.
+ *
+ * -- O QUE MUDOU (sprint167) -----------------------------------------------
+ * Isto devolvia quatro coisas: a medicacao, o que ja tinha sido dado, as
+ * tarefas da lista e o que ja estava riscado. Quem fazia a ronda entrava no
+ * quarto sem saber que aquela pessoa e alergica a penicilina, que come
+ * passado, que tem uma ferida por fechar, ou que na ronda das 14h ficou em
+ * alerta.
+ *
+ * Nada disto foi criado agora. As alergias e a dieta estao em `patients`
+ * desde sempre, as feridas em `wounds`, os pedidos em `resident_requests`, o
+ * registo do dia em `care_records`, a ronda anterior em `round_assignments`.
+ * O que faltava era ir busca-los.
+ *
+ * -- PORQUE E QUE CADA CONSULTA VAI EM SEPARADO ----------------------------
+ * Algumas destas tabelas ainda nao existem em todas as instalacoes (o SOS e
+ * as acoes do plano sao de migracoes recentes). Uma delas a falhar nao pode
+ * levar o painel inteiro atras -- quem esta a fazer a ronda ficava sem a
+ * medicacao por causa de uma tabela de pedidos que nao existe.
+ *
+ * `Promise.allSettled` e um `?? null` em cada uma: o que nao veio, nao veio,
+ * e o resto aparece.
+ */
 async function patientPanel(db: any, patientId: string) {
   const today = new Date().toISOString().slice(0, 10)
   const todayWeekday = new Date().getDay()
-  const [meds, mar, checklists, logs] = await Promise.all([
-    db.from('patient_meds').select('id, name, dose, frequency, shifts').eq('patient_id', patientId).eq('active', true),
+
+  const r = await Promise.allSettled([
+    // `not sos is true` e nao `eq('sos', false)`: as linhas antigas tem `sos`
+    // a null, e `eq(false)` deixava-as todas de fora. O SOS sai daqui porque
+    // e «quando for preciso» — na lista do turno parecia medicacao por dar.
+    db.from('patient_meds').select('id, name, dose, frequency, shifts')
+      .eq('patient_id', patientId).eq('active', true).not('sos', 'is', true),
     db.from('mar_records').select('med_id, status, shift').eq('patient_id', patientId).eq('date', today),
     db.from('care_checklists').select('id, title, weekdays').eq('patient_id', patientId).eq('active', true),
     db.from('care_checklist_logs').select('id, checklist_id, done').eq('patient_id', patientId).eq('date', today),
+
+    // -- O que e preciso saber ANTES de entrar ----------------------------
+    // `select('*')` de proposito: `mobility`, `diet` e `cognitive_status` sao
+    // colunas que so agora comecaram a ser preenchidas, e nomear uma coluna
+    // que nao exista faz o PostgREST recusar a consulta INTEIRA -- a ficha
+    // voltava vazia e o painel ficava sem um unico aviso, sem erro nenhum.
+    db.from('patients').select('*').eq('id', patientId).maybeSingle(),
+    db.from('wounds').select('id, location, dressing, status').eq('patient_id', patientId).neq('status', 'healed'),
+    db.from('incidents').select('id, type, date, status').eq('patient_id', patientId).neq('status', 'closed'),
+    db.from('resident_requests').select('id, kind, content, status').eq('patient_id', patientId).eq('status', 'open'),
+
+    // -- O registo do dia, que e onde os vitais tambem vivem --------------
+    db.from('care_records').select('*').eq('patient_id', patientId).eq('date', today),
+
+    // -- A ronda anterior desta pessoa ------------------------------------
+    db.from('round_assignments')
+      .select('outcome, note, attended_name, updated_at')
+      .eq('patient_id', patientId).eq('status', 'done')
+      .order('updated_at', { ascending: false }).limit(1),
+
+    // -- O SOS e as acoes do plano ----------------------------------------
+    db.from('patient_meds').select('*').eq('patient_id', patientId).eq('sos', true).eq('active', true),
+    db.from('tomas_sos').select('*').eq('patient_id', patientId).gte('dada_em', today),
+    // O plano NAO pende do utente diretamente: patients <- planos <-
+    // plano_objetivos <- plano_acoes. Escrevi primeiro
+    // `.eq('patient_id', ...)` em `plano_acoes` e a coluna nem existe la — o
+    // PostgREST recusava, o `allSettled` engolia, e o plano nunca aparecia na
+    // ronda sem nada a assinalar. E por isso que vai em tres passos, a
+    // seguir, e nao aqui.
   ])
-  const tasks = (checklists.data || []).filter((c: any) => !c.weekdays || c.weekdays.includes(todayWeekday))
-  return { meds: meds.data || [], mar: mar.data || [], tasks, taskLogs: logs.data || [] }
+
+  const d = (i: number) => {
+    const x = r[i]
+    return x.status === 'fulfilled' && !(x.value as any)?.error ? ((x.value as any).data ?? null) : null
+  }
+
+  const tasks = (d(2) || []).filter((c: any) => !c.weekdays || c.weekdays.includes(todayWeekday))
+
+  // ── As acoes do plano, pela cadeia ────────────────────────────────────
+  // A mesma que lib/carregarODia.ts percorre, para a ronda e o /o-dia nao
+  // discordarem sobre o que ha para fazer hoje a mesma pessoa. As execucoes
+  // de hoje vem juntas: uma acao ja feita nao se mostra por fazer.
+  const acoesPlano = await (async () => {
+    try {
+      const { data: planos, error: ePlanos } = await db.from('planos').select('id')
+        .eq('patient_id', patientId).eq('estado', 'ativo')
+      if (ePlanos || !planos?.length) return { acoes: [], execucoes: [] }
+      const { data: objs, error: eObjs } = await db.from('plano_objetivos').select('id')
+        .in('plano_id', planos.map((x: any) => x.id)).eq('estado', 'aberto')
+      if (eObjs || !objs?.length) return { acoes: [], execucoes: [] }
+      const ids = objs.map((o: any) => o.id)
+      const [acs, exs] = await Promise.all([
+        db.from('plano_acoes').select('*').in('objetivo_id', ids).eq('ativa', true),
+        db.from('plano_execucoes').select('acao_id, turno').eq('data', today),
+      ])
+      return { acoes: acs.data || [], execucoes: exs.data || [] }
+    } catch { return { acoes: [], execucoes: [] } }
+  })()
+
+  return {
+    meds: d(0) || [], mar: d(1) || [], tasks, taskLogs: d(3) || [],
+    pessoa: d(4) || null,
+    feridas: d(5) || [],
+    ocorrencias: d(6) || [],
+    pedidos: d(7) || [],
+    // O registo de hoje, seja de que turno for: a ronda da noite quer ver o
+    // que a da manha escreveu.
+    registos: d(8) || [],
+    anterior: (d(9) || [])[0] || null,
+    sos: d(10) || [],
+    tomasSos: d(11) || [],
+    acoesPlano: acoesPlano.acoes,
+    execucoesPlano: acoesPlano.execucoes,
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -152,13 +252,53 @@ export async function POST(req: NextRequest) {
       outcome: body.outcome || null, note: body.note || null, updated_at: new Date().toISOString(),
     }).eq('id', aid).select().single()
     if (upd.error) return NextResponse.json({ error: upd.error.message }, { status: 400 })
-    // Regista no care_records (o registo simples que "atualiza" o resto do sistema).
+    // ── O registo do dia ────────────────────────────────────────────────
+    // Isto escrevia `mood` e `notes` por cima do que la estivesse. Se a
+    // auxiliar tinha registado de manha «comeu bem, bem-disposto», a ronda da
+    // tarde apagava-lhe o registo inteiro e deixava so `{behavior:'estavel'}`.
+    // Ninguem dava por isso, porque o que desaparece nao se ve.
+    //
+    // Agora le-se primeiro e junta-se. Uma leitura a mais por pessoa atendida
+    // e um preco pequeno por nao apagar o trabalho de um colega.
     const today = new Date().toISOString().slice(0, 10)
     const shift = (a as any).rounds?.shift || null
-    await db.from('care_records').upsert(stamp({
-      patient_id: a.patient_id, date: today, shift,
-      mood: body.outcome ? { behavior: body.outcome } : null, notes: body.note || null,
-    }), { onConflict: 'patient_id,date,shift' }).then(() => {}, () => {})
+
+    let q = db.from('care_records').select('mood, notes, vitals')
+      .eq('patient_id', a.patient_id).eq('date', today)
+    // `.eq(col, null)` nao encontra nada no PostgREST; para nulos e `.is`.
+    q = shift === null ? q.is('shift', null) : q.eq('shift', shift)
+    const { data: jaLa, error: eLeitura } = await q.maybeSingle()
+
+    // Se nao se conseguiu ler o que la estava, NAO se escreve. Escrever as
+    // cegas era voltar ao bug que isto veio corrigir: apagar por cima o
+    // registo que um colega fez de manha. A ronda em si fica registada na
+    // `round_assignments`, que e o que importa — so o resumo do dia e que
+    // fica por atualizar, e isso ve-se; um registo apagado nao.
+
+    const mood = { ...(jaLa?.mood || {}), ...(body.outcome ? { behavior: body.outcome } : {}) }
+
+    // So os vitais que vierem mesmo preenchidos, juntos aos que ja la estavam:
+    // uma ronda pode medir a temperatura sem apagar a tensao da ronda anterior.
+    const vitaisNovos = body.vitals && typeof body.vitals === 'object' ? body.vitals : null
+    const vitals = vitaisNovos && Object.keys(vitaisNovos).length
+      ? { ...(jaLa?.vitals || {}), ...vitaisNovos }
+      : (jaLa?.vitals ?? null)
+
+    // A nota acrescenta-se. Se ja la estiver a mesma (atender duas vezes na
+    // mesma ronda), nao se repete.
+    const notaNova = String(body.note || '').trim()
+    const notasAntes = String(jaLa?.notes || '').trim()
+    const notes = !notaNova ? (notasAntes || null)
+      : notasAntes.includes(notaNova) ? notasAntes
+      : [notasAntes, notaNova].filter(Boolean).join(' · ')
+
+    if (!eLeitura) {
+      await db.from('care_records').upsert(stamp({
+        patient_id: a.patient_id, date: today, shift,
+        mood: Object.keys(mood).length ? mood : null,
+        vitals, notes,
+      }), { onConflict: 'patient_id,date,shift' }).then(() => {}, () => {})
+    }
     return NextResponse.json({ ok: true, transferred: a.assigned_to !== c.user.id })
   }
 
