@@ -100,6 +100,16 @@ const sql = `-- ${DESTINO}
 -- Linhas pessoais (\`org_id is null\`) passam sempre, e quem decide sobre elas
 -- continua a ser a politica que ja la estava. O modo pessoal nao e tocado.
 --
+-- ── E QUE UTENTES E QUE CADA PESSOA VE (sprint164) ─────────────────────────
+-- Alem da area, cada tabela com \`patient_id\` ganha uma condicao a mais: ou
+-- quem pergunta nao tem restricao de utentes, ou aquele utente tem uma das
+-- etiquetas dela. Num lar de sessenta pessoas, a auxiliar do piso 1 deixa de
+-- ver os registos do piso 2.
+--
+-- Precisa do sprint164, que cria \`org_members.utentes_etiquetas\` e a funcao
+-- \`ve_este_utente\`. Sem restricao configurada — que e o caso de toda a gente
+-- ate alguem decidir o contrario — a funcao devolve \`true\` e ninguem nota.
+--
 -- ── FALHA FECHADO ──────────────────────────────────────────────────────────
 -- Se uma tabela estiver mapeada para a area errada, a ferramenta deixa de
 -- funcionar -- chato, e visivel no minuto seguinte. O erro contrario (abrir
@@ -116,14 +126,38 @@ const sql = `-- ${DESTINO}
 do $$
 declare
   tem_org     boolean;
+  tem_utente  boolean;
+  ha_funcao   boolean;
   pol         record;
   n_tab       int := 0;
   n_pol       int := 0;
+  n_esc       int := 0;
   mapa        text[][] := array[
 ${linhas}
   ];
   i int;
 begin
+  -- A funcao \`ve_este_utente\` vem do sprint164. Se este ficheiro correr
+  -- primeiro, ela nao existe — e um \`create policy\` que a invoque rebenta o
+  -- bloco INTEIRO, deixando a casa a meio de uma migracao de seguranca.
+  --
+  -- Perguntar antes custa uma linha e evita isso: sem a funcao, as politicas
+  -- de area entram na mesma e o ambito por utente fica para quando o 164
+  -- correr. Depois volta-se a correr este ficheiro, que e idempotente.
+  select exists(
+    select 1 from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = 've_este_utente'
+  ) into ha_funcao;
+
+  if not ha_funcao then
+    raise notice '';
+    raise notice 'AVISO: a funcao ve_este_utente nao existe (falta o sprint164).';
+    raise notice 'As permissoes por AREA entram na mesma. O ambito POR UTENTE fica';
+    raise notice 'de fora — corre o sprint164 e volta a correr este ficheiro.';
+    raise notice '';
+  end if;
+
   for i in 1 .. array_length(mapa, 1) loop
     -- A tabela existe mesmo? Uma instalacao parcial nao pode fazer isto parar.
     if to_regclass('public.' || mapa[i][1]) is null then
@@ -215,11 +249,64 @@ begin
         )$f$, mapa[i][1] || '_area_eliminar', mapa[i][1], mapa[i][4]);
     end if;
 
+    -- ── QUE UTENTES E QUE ESTA PESSOA VE (sprint164) ──────────────────────
+    -- Limitar so a tabela \`patients\` nao serve de nada: quem nao ve a pessoa
+    -- continuaria a ler-lhe a medicacao, os registos e as ocorrencias
+    -- escrevendo \`supabase.from('mar_records').select('*')\` na consola.
+    --
+    -- Por isso TODA a tabela que tenha \`patient_id\` ganha a mesma condicao. E
+    -- a condicao vive numa funcao (\`ve_este_utente\`) e nao escrita aqui
+    -- setenta vezes: setenta copias da mesma regra sao setenta sitios para uma
+    -- delas ficar diferente das outras.
+    --
+    -- Restritiva, como as outras: soma-se com E ao que ja la esta e nao larga
+    -- nada. Sem restricao configurada, a funcao devolve \`true\` e ninguem nota.
+    select exists(
+      select 1 from information_schema.columns
+       where table_schema = 'public' and table_name = mapa[i][1] and column_name = 'patient_id'
+    ) into tem_utente;
+
+    if tem_utente and ha_funcao then
+      execute format($f$
+        create policy %I on public.%I as restrictive for select using (
+          patient_id is null or ve_este_utente(patient_id, org_id)
+        )$f$, mapa[i][1] || '_area_utentes_ver', mapa[i][1]);
+
+      -- Escrever tambem: sem isto, quem nao ve uma pessoa podia na mesma
+      -- registar-lhe uma toma.
+      execute format($f$
+        create policy %I on public.%I as restrictive for insert with check (
+          patient_id is null or ve_este_utente(patient_id, org_id)
+        )$f$, mapa[i][1] || '_area_utentes_criar', mapa[i][1]);
+
+      execute format($f$
+        create policy %I on public.%I as restrictive for update using (
+          patient_id is null or ve_este_utente(patient_id, org_id)
+        )$f$, mapa[i][1] || '_area_utentes_alterar', mapa[i][1]);
+
+      n_esc := n_esc + 1;
+    end if;
+
     n_tab := n_tab + 1;
   end loop;
 
+  -- A tabela \`patients\` e o caso a parte: a pessoa E a linha, por isso a
+  -- coluna e \`id\` e nao \`patient_id\`.
+  if ha_funcao and to_regclass('public.patients') is not null then
+    begin
+      drop policy if exists "patients_area_utentes_ver" on patients;
+      create policy "patients_area_utentes_ver" on patients as restrictive for select using (
+        ve_este_utente(id, org_id)
+      );
+      n_esc := n_esc + 1;
+    exception when others then
+      raise notice '  (salta) patients: %', sqlerrm;
+    end;
+  end if;
+
   raise notice '';
   raise notice '% tabelas protegidas por area (% politicas antigas substituidas).', n_tab, n_pol;
+  raise notice '% tabelas com ambito por utente.', n_esc;
 end $$;
 
 

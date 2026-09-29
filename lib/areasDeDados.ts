@@ -27,6 +27,24 @@ export const AREA_DA_TABELA: Record<string, string> = {
   // ── Utentes ──────────────────────────────────────────────────────────────
   patients: 'utentes',
   resident_contacts: 'utentes',
+  // Etiquetas (sprint163). Area `utentes`: quem ve as pessoas ve as etiquetas
+  // delas, e sao as etiquetas que dizem o que e preciso saber primeiro.
+  etiquetas: 'utentes',
+  etiquetas_do_utente: 'utentes',
+  // A lista de espera e os criterios que a ordenam (sprint165). Area
+  // `utentes`: e gente, e e o mesmo acesso que abre a ficha de quem ja ca
+  // esta. Dentro dela ha ainda o detalhe `utentes.lista_espera`, que permite
+  // esconder a lista a quem ve os utentes — numa terra pequena, saber quem
+  // esta a espera de vaga chega a rua no mesmo dia.
+  candidaturas: 'utentes',
+  // Os pesos do regulamento interno. Fica em `utentes` para a lista de espera
+  // os poder LER; mexer neles esta preso a direcao no proprio ecra, porque
+  // mudar um peso reordena a fila por que as pessoas entram.
+  criterios_entrada: 'utentes',
+  // O que se marca a mao no calendario do ano (sprint166). Muitas destas
+  // marcas sao sobre uma pessoa (uma consulta, uma visita), e por isso
+  // acompanham quem pode ver as pessoas.
+  calendario_marcas: 'utentes',
   patient_channels: 'utentes',
   care_plans: 'utentes',
   // O Plano Individual (PIC/PII) — sprint157. A área base é `utentes`: ver o
@@ -54,6 +72,13 @@ export const AREA_DA_TABELA: Record<string, string> = {
 
   // ── Registos do dia ──────────────────────────────────────────────────────
   care_records: 'registos',
+  // Os servicos de cuidado (sprint162): o catalogo da casa, o que cada pessoa
+  // leva, e o que ficou feito. Area `registos` — quem escreve o dia e quem
+  // marca isto. (O catalogo tem ainda uma area POR SERVICO, na coluna `area`,
+  // que e o que decide quem ve cada um deles no /o-dia.)
+  catalogo_servicos: 'registos',
+  servicos_do_utente: 'registos',
+  servicos_execucoes: 'registos',
   // O que NÃO foi feito, e porquê (sprint154). Vive na mesma área do que foi
   // feito, de propósito: quem escreve o registo do dia é quem escreve isto.
   cuidados_nao_prestados: 'registos',
@@ -122,6 +147,11 @@ export const AREA_DA_TABELA: Record<string, string> = {
 
   // ── Documentos ───────────────────────────────────────────────────────────
   documents: 'documentos',
+  // Os modelos de documentos e o registo do que foi emitido (sprint167). Um
+  // modelo e um documento por preencher; um emitido e a prova do que saiu e
+  // foi assinado. Os dois na area `documentos`, que e onde o cofre vive.
+  modelos_documentos: 'documentos',
+  documentos_emitidos: 'documentos',
   consents: 'documentos',
 
   // ── Qualidade ────────────────────────────────────────────────────────────
