@@ -7,6 +7,7 @@ import { useLiveData } from '@/lib/useLiveData'
 import { reportError, MSG } from '@/lib/clientError'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import ModelosDeDocumentos from '@/components/institution/ModelosDeDocumentos'
 
 // /documentos = cofre de documentos da instituição, só isso. (A auditoria vive no
 // /painel-dono "quem fez o quê"; a notificação RAM em /adr-report.)
@@ -47,6 +48,11 @@ function DocumentosTool() {
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
   const [tableMissing, setTableMissing] = useState(false)
+  // Duas vistas. O cofre e o que esta pagina sempre foi: ficheiros guardados.
+  // Os modelos sao o contrario — texto que ainda nao e documento de ninguem e
+  // que se preenche na hora. Misturar as duas coisas na mesma lista fazia um
+  // «contrato» significar duas coisas diferentes na mesma linha.
+  const [vista, setVista] = useState<'cofre' | 'modelos'>('modelos')
   const [search, setSearch] = useState('')
   const [expFilter, setExpFilter] = useState<'all' | 'expiring' | 'expired'>('all')
   const [showForm, setShowForm] = useState(false)
@@ -129,10 +135,28 @@ function DocumentosTool() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Documentos</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Contratos, consentimentos, RGPD e relatórios — por {personLower} e da instituição.</p>
           </div>
-          <button onClick={() => { setForm(blank); setFile(null); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Documento</button>
+          {vista === 'cofre' && (
+            <button onClick={() => { setForm(blank); setFile(null); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Documento</button>
+          )}
         </div>
 
-        {tableMissing ? (
+        <nav style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
+          {([['modelos', 'Modelos'], ['cofre', 'Guardados']] as const).map(([id, rotulo]) => (
+            <button key={id} onClick={() => setVista(id)}
+              aria-current={vista === id ? 'page' : undefined}
+              style={{
+                padding: '9px 15px', background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', fontSize: 13.5, marginBottom: -1,
+                fontWeight: vista === id ? 800 : 600,
+                color: vista === id ? 'var(--ink)' : 'var(--ink-4)',
+                borderBottom: `2.5px solid ${vista === id ? '#0d6e42' : 'transparent'}`,
+              }}>{rotulo}</button>
+          ))}
+        </nav>
+
+        {vista === 'modelos' && <ModelosDeDocumentos cor="#0d6e42" />}
+
+        {vista === 'cofre' && (tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
             <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
@@ -179,7 +203,7 @@ function DocumentosTool() {
               </div>
             ))}
           </>
-        )}
+        ))}
       </div>
 
       {showForm && (

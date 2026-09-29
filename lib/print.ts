@@ -31,6 +31,18 @@ export interface PrintDoc {
   meta?: PrintField[]      // header summary stats (e.g. "Residentes: 28")
   sections: PrintSection[]
   footerNote?: string
+  /**
+   * TEXTO CORRIDO, para documentos que sao prosa e nao tabelas.
+   *
+   * Um contrato ou uma declaracao nao sao "secoes com registos e campos": sao
+   * paragrafos, com linhas em branco que contam e alinhamentos que contam
+   * (as duas linhas de assinatura no fim). Empurrados para o formato de
+   * registos sairiam com cada paragrafo a fingir que era um titulo.
+   *
+   * Vem do motor de modelos (lib/modelos.ts) e e sempre escapado: o texto tem
+   * dados de pessoas la dentro, e um `<` num nome nao pode virar HTML.
+   */
+  corpo?: string
 }
 
 function esc(s: string | undefined | null): string {
@@ -119,6 +131,16 @@ export function buildPrintHTML(doc: PrintDoc): string {
 
   .doc-title { font-size: 19pt; font-weight: 800; letter-spacing: -0.02em; margin: 2px 0 2px; }
   .doc-sub { font-size: 10pt; color: #475569; margin-bottom: 10px; }
+  /* Texto corrido de um documento (contrato, declaracao, consentimento).
+     Preserva as linhas em branco e os espacos do fim, porque num documento
+     destes as linhas de assinatura sao feitas deles — colapsa-los estragava
+     o alinhamento. A fonte e com serifa: um contrato le-se em papel. */
+  .prosa {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 11pt; line-height: 1.7; color: #111827;
+    white-space: pre-wrap; word-break: break-word;
+    margin-top: 14px;
+  }
   .hsummary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
   .hchip { font-size: 9pt; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; }
   .hchip b { color: #0b1120; }
@@ -166,6 +188,7 @@ export function buildPrintHTML(doc: PrintDoc): string {
     <div class="doc-title">${esc(doc.docTitle)}</div>
     ${doc.docSubtitle ? `<div class="doc-sub">${esc(doc.docSubtitle)}</div>` : ''}
     ${metaChips ? `<div class="hsummary">${metaChips}</div>` : ''}
+    ${doc.corpo ? `<div class="prosa">${esc(doc.corpo)}</div>` : ''}
     ${doc.sections.map(sectionHTML).join('')}
   </div>
 </body></html>`
