@@ -1,5 +1,5 @@
 // app/api/org/export/route.ts
-// Painel do dono, aba "Registos & auditoria": exportação por intervalo de
+// Painel administrativo, aba "Registos & auditoria": exportação por intervalo de
 // datas. Para responder a uma inspeção sem ter de ir dia a dia — o dono
 // escolhe o intervalo e o tipo de registo, recebe um .xlsx com tudo já
 // legível (nomes em vez de IDs, valores traduzidos). Só owner/admin. Os

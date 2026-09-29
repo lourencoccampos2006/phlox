@@ -1,5 +1,5 @@
 // app/api/org/dashboard/route.ts
-// Painel do dono — VISÃO DE NEGÓCIO da instituição. Só owner/admin.
+// Painel administrativo — VISÃO DE NEGÓCIO da instituição. Só owner/admin.
 // Indicadores para gerir o negócio a partir do Phlox: ocupação, receita estimada,
 // equipa, qualidade do cuidado e ligação às famílias.
 import { NextRequest, NextResponse } from 'next/server'

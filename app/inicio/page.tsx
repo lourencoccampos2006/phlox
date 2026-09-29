@@ -382,8 +382,39 @@ function ClinicalHub({ name }: { name: string }) {
   // utentes, três nomes não é uma amostra — é um recorte arbitrário que faz
   // parecer que aqueles são os casos, quando são só os primeiros da consulta.
   // O painel é que lista pessoa a pessoa; aqui fica a forma do dia.
-  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null)
-  const conclusao = snap ? pct(snap.doses + snap.logged, snap.people * 2) : null
+  // ── A percentagem do dia ─────────────────────────────────────────────────
+  // Era uma conta inventada aqui: `(doses + registos) / (pessoas × 2)`. Media
+  // outra coisa, e nao batia certo com nada — o Fernando pediu que fosse a
+  // MESMA que o /o-dia mostra.
+  //
+  // Agora vem de /api/o-dia/progresso, que monta o dia com o mesmo codigo que
+  // a pagina (lib/carregarODia). Duas contas do mesmo numero acabam sempre por
+  // discordar, e nesse dia ninguem confia em nenhuma das duas.
+  //
+  // Vem de uma rota e nao daqui porque montar o dia sao doze consultas, e esta
+  // e a primeira pagina que abre de manha num telemovel de turno.
+  const [progresso, setProgresso] = useState<{ pct: number; feitos: number; total: number } | null>(null)
+  const [progressoIncompleto, setProgressoIncompleto] = useState(false)
+  useEffect(() => {
+    if (!scope.orgId || !user) return
+    let vivo = true
+    ;(async () => {
+      try {
+        const { data: sessao } = await supabase.auth.getSession()
+        const token = sessao?.session?.access_token
+        if (!token) return
+        const r = await fetch(`/api/o-dia/progresso?org=${encodeURIComponent(scope.orgId!)}&tipo=${institution}`,
+          { headers: { Authorization: `Bearer ${token}` } })
+        if (!r.ok || !vivo) return
+        const j = await r.json()
+        setProgresso(j.progresso || null)
+        setProgressoIncompleto(Boolean(j.falharam?.length))
+      } catch { /* sem barra; a pagina nao depende disto */ }
+    })()
+    return () => { vivo = false }
+  }, [scope.orgId, user, supabase, institution])
+
+  const conclusao = progresso?.pct ?? null
 
   const Bloco = ({ etiqueta, children, href, largo }: {
     etiqueta: string; children: React.ReactNode; href?: string; largo?: boolean
@@ -432,9 +463,9 @@ function ClinicalHub({ name }: { name: string }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(196px,1fr))', gap: 'var(--space-6)' }}>
 
-            <Bloco etiqueta="Como vai o dia" href="/painel" largo>
+            <Bloco etiqueta="Como vai o dia" href="/o-dia" largo>
               {conclusao == null ? (
-                <Nota>Ainda sem nada registado hoje.</Nota>
+                <Nota>Ainda não há nada marcado para hoje.</Nota>
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-6)' }}>
@@ -444,7 +475,10 @@ function ClinicalHub({ name }: { name: string }) {
                   <div style={{ height: 5, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(100, conclusao)}%`, background: bp.accent, borderRadius: 3, transition: 'width .5s' }} />
                   </div>
-                  <Nota>Conta as tomas dadas e os registos do dia, sobre o que estava previsto.</Nota>
+                  <Nota>
+                    {progresso ? `${progresso.feitos} de ${progresso.total} tratados` : ''}
+                    {progressoIncompleto ? ' — faltou ler uma parte, pode estar incompleto.' : '. É o mesmo número que aparece em «O dia».'}
+                  </Nota>
                 </>
               )}
             </Bloco>

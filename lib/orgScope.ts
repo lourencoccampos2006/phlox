@@ -27,7 +27,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useMemberships } from './orgContext'
 import {
   AREAS, PAPEL_ANTIGO_PARA_NOVO, type Nivel,
-  pode as podePermissao, veArea as veAreaPermissao,
+  pode as podePermissao, veArea as veAreaPermissao, podeDetalhe as podeDetalhePermissao,
 } from './permissoes'
 
 export interface OrgScope {
@@ -35,7 +35,7 @@ export interface OrgScope {
   orgId: string | null
   /** id do utilizador atual (sempre presente quando há sessão) */
   userId: string | null
-  /** papel do utilizador na organização: owner/admin têm acesso ao painel do dono */
+  /** papel do utilizador na organização: owner/admin têm acesso ao painel administrativo */
   role: string | null
   /** true se for dono ou administrador (vê auditoria, gere equipa) */
   isManager: boolean
@@ -50,6 +50,15 @@ export interface OrgScope {
   pode: (area: string, nivel: Nivel) => boolean
   /** Deve esta área aparecer no menu? */
   ve: (area: string) => boolean
+  /**
+   * Deve este PEDAÇO de uma ferramenta aparecer? (sprint164)
+   *
+   * `scope.veDetalhe('utentes.financeiro')`. Falha ABERTO: quem não tem nada
+   * dito sobre um detalhe vê-o. Só deixa de o ver quando alguém lho tirou de
+   * propósito — senão, cada detalhe novo que se acrescentasse ao catálogo
+   * escondia um pedaço a toda a gente que já usa o produto.
+   */
+  veDetalhe: (detalhe: string) => boolean
   /** Aplica o filtro de leitura certo a uma query supabase. */
   filter: <T>(query: T) => T
   /** Carimba uma linha a inserir com os campos de partilha + auditoria. */
@@ -75,7 +84,7 @@ export function useOrgScope(): OrgScope {
 
   const permissoes: string[] = orgId ? (active?.capabilities || []) : []
 
-  // Quem gere a casa: vê o painel do dono, a auditoria, a equipa.
+  // Quem gere a casa: vê o painel administrativo, a auditoria, a equipa.
   // Passou a ser uma PERMISSÃO e não uma lista de papéis — era
   // `role === 'owner' || role === 'admin'`, e depois da migração (sprint152)
   // não existe nenhum papel com esses nomes: o painel fechava-se ao dono.
@@ -125,6 +134,9 @@ export function useOrgScope(): OrgScope {
     const ve = (area: string): boolean =>
       !orgId ? true : veAreaPermissao(permissoes, area)
 
+    const veDetalhe = (detalhe: string): boolean =>
+      !orgId ? true : podeDetalhePermissao(permissoes, detalhe)
+
     const filter = <T,>(query: T): T => {
       const q = query as any
       if (orgId) return q.eq('org_id', orgId)
@@ -145,7 +157,7 @@ export function useOrgScope(): OrgScope {
 
     return {
       orgId, userId, role: papel, isManager, canEdit,
-      permissoes, pode, ve,
+      permissoes, pode, ve, veDetalhe,
       filter, stamp,
       liveFilterColumn: (orgId ? 'org_id' : 'user_id') as 'org_id' | 'user_id',
       liveFilterValue: orgId || userId,

@@ -35,6 +35,21 @@ export async function GET(req: NextRequest) {
   if (!chave) return NextResponse.json({ error: 'Sem chave de serviço.' }, { status: 503 })
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, chave)
 
+  // ── As idades, antes de tudo o resto ──────────────────────────────────────
+  // `patients.age` era um numero escrito a mao no dia da inscricao: quem
+  // entrou com 78 ficava com 78 para sempre. Desde o sprint165 sai da data de
+  // nascimento — o gatilho trata de quem se escreve, e esta chamada trata dos
+  // aniversarios de quem ninguem tocou. Num dia normal sao zero ou uma pessoa.
+  //
+  // Vai aqui e nao num cron proprio porque o plano Hobby da Vercel aceita
+  // dois agendamentos, e ja ha seis a viver no GitHub Actions.
+  let idades = 0
+  {
+    const { data, error } = await sb.rpc('refrescar_idades')
+    if (error) console.error('[cron/diario] refrescar_idades:', error.message)
+    else idades = Number(data) || 0
+  }
+
   const { data: orgs } = await sb.from('organizations').select('id, name, suspended')
   const ativas = (orgs || []).filter((o: any) => !o.suspended)
   const hoje = ptDate()
@@ -98,5 +113,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ dia: hoje, instituicoes: ativas.length, enviados, falhas })
+  return NextResponse.json({ dia: hoje, instituicoes: ativas.length, enviados, falhas, idades })
 }

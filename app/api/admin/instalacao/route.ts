@@ -39,6 +39,8 @@ const TABELA_DE: Record<CodigoSetup, string | 'env'> = {
   'PHX-T3': 'support_transport_routes',
   'PHX-T5': 'patients',                      // coluna lat — verificada à parte
   'PHX-V7': 'shift_checkins',
+  'PHX-W4': 'candidaturas',
+  'PHX-X6': 'modelos_documentos',
   'PHX-R6': 'env',
 }
 /** Códigos que dependem de uma COLUNA e não da tabela inteira. */

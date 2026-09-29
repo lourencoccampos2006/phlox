@@ -36,11 +36,8 @@ import { useLiveData } from '@/lib/useLiveData'
 import RegistarNaoPrestado from '@/components/institution/NaoPrestado'
 import { rotuloMotivo } from '@/lib/naoPrestado'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
-import {
-  tarefasDoPlano, tarefasDaMedicacao, tarefasDasAtividades, tarefasDoApoio, tarefasDosReforcos,
-  porPessoa, porTarefa, resumo, ROTULO_DA_FONTE,
-  type Tarefa, type Grupo,
-} from '@/lib/oDia'
+import { porPessoa, porTarefa, resumo, ROTULO_DA_FONTE, type Tarefa, type Grupo } from '@/lib/oDia'
+import { carregarODia, progressoDoDia } from '@/lib/carregarODia'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -75,100 +72,28 @@ export default function ODia() {
 
   // ── Carregar ──────────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
-    if (!user) return
+    if (!user || !scope.orgId) { setCarregando(false); return }
     setCarregando(true)
 
-    const q = (t: string, cols: string) => scope.filter(supabase.from(t).select(cols))
+    // A montagem do dia vive em lib/carregarODia e NAO aqui: o /inicio mostra
+    // a mesma percentagem, e duas montagens do mesmo dia acabavam sempre por
+    // discordar. Quando discordassem, ninguem confiava em nenhuma das duas.
+    const { tarefas: lista, falharam } = await carregarODia(supabase, scope.orgId, turno)
 
-    // Tudo ao mesmo tempo. São seis consultas independentes; em série seriam
-    // seis idas e voltas antes de a primeira linha aparecer no ecrã.
-    const [pes, meds, mar, ativs, apoios, reforcos] = await Promise.all([
-      q('patients', 'id,name').eq('active', true).order('name'),
-      // `*` e nao a lista de colunas. O PostgREST recusa o SELECT INTEIRO quando
-      // uma coluna nao existe: com a lista escrita a mao, entre o deploy do
-      // codigo e o momento em que a migracao do SOS corre, a medicacao TODA
-      // desaparecia desta pagina — sem erro visivel, so uma lista mais curta.
-      q('patient_meds', '*').eq('active', true),
-      q('mar_records', 'med_id,patient_id,status').eq('date', hoje).eq('shift', turno),
-      q('activities', 'id,title,start_time,status').eq('date', hoje),
-      q('support_services', 'id,patient_id,kind,status,notes').eq('date', hoje),
-      q('dietary_reinforcements', 'id,patient_id,shift,given,notes').eq('date', hoje),
-    ])
-
-    if (pes.error) {
-      // Sem a lista de pessoas não há dia nenhum para montar. É a única falha
-      // que não se pode contornar — as outras só tiram uma fonte da lista.
+    if (falharam.includes('utentes')) {
       setIndisponivel(true); setCarregando(false)
       return
     }
     setIndisponivel(false)
+    // Uma lista mais curta por causa de uma falha nao pode passar por um dia
+    // mais leve. Diz-se qual a fonte que nao respondeu.
+    setErro(falharam.length
+      ? `Nao consegui ler: ${falharam.join(', ')}. O que esta em baixo pode estar incompleto.`
+      : '')
 
-    const pessoas = pes.data || []
-    const idsPessoas = pessoas.map((p: any) => p.id)
-
-    // As inscrições SÓ das atividades de hoje. Carregar a tabela inteira
-    // funciona na primeira semana e deixa de funcionar ao fim de um ano.
-    const idsAtiv = ativs.error ? [] : (ativs.data || []).map((a: any) => a.id)
-    const inscricoes = idsAtiv.length
-      ? await supabase.from('activity_participations')
-          .select('activity_id,patient_id,attended,motivo').in('activity_id', idsAtiv)
-      : { data: [] as any[], error: null }
-
-    // ── O Plano (sprint157/158) ────────────────────────────────────────────
-    // Em três consultas porque as ações não têm `patient_id` — pertencem a um
-    // objetivo, que pertence a um plano, que pertence a uma pessoa. Guardar o
-    // `patient_id` na ação seria mais rápido e ficava errado no dia em que um
-    // plano mudasse de pessoa.
-    let doPlano: Tarefa[] = []
-    if (idsPessoas.length) {
-      const planos = await scope.filter(
-        supabase.from('planos').select('id,patient_id').eq('estado', 'ativo'))
-      if (!planos.error && (planos.data || []).length) {
-        const planoDe = new Map((planos.data || []).map((p: any) => [p.id, p.patient_id]))
-        const objs = await supabase.from('plano_objetivos')
-          .select('id,plano_id,area,titulo,estado,ordem')
-          .in('plano_id', [...planoDe.keys()]).eq('estado', 'aberto')
-        if (!objs.error && (objs.data || []).length) {
-          const objetivos = (objs.data || []).map((o: any) => ({ ...o, patient_id: planoDe.get(o.plano_id) }))
-          const [acs, execs] = await Promise.all([
-            supabase.from('plano_acoes').select('*').in('objetivo_id', objetivos.map((o: any) => o.id)).eq('ativa', true),
-            scope.filter(supabase.from('plano_execucoes').select('acao_id,turno')).eq('data', hoje),
-          ])
-          if (!acs.error) {
-            doPlano = tarefasDoPlano(
-              pessoas, objetivos as any, acs.data || [],
-              execs.error ? [] : (execs.data || []), new Date())
-          }
-        }
-      }
-    }
-
-    const lista: Tarefa[] = [
-      ...doPlano,
-      ...(meds.error ? [] : tarefasDaMedicacao(pessoas, meds.data || [], mar.error ? [] : (mar.data || []), turno)),
-      ...(ativs.error ? [] : tarefasDasAtividades(
-        pessoas, ativs.data || [], inscricoes.error ? [] : (inscricoes.data || []))),
-      ...(apoios.error ? [] : tarefasDoApoio(pessoas, apoios.data || [])),
-      ...(reforcos.error ? [] : tarefasDosReforcos(pessoas, reforcos.data || [], turno)),
-    ]
-
-    // O que já foi assinalado como não prestado hoje. Uma coisa recusada não
-    // pode continuar a aparecer como trabalho por fazer — seria pedir à equipa
-    // que voltasse a tentar o que já tentou e já registou.
-    const naoPrestados = await scope.filter(
-      supabase.from('cuidados_nao_prestados').select('patient_id,o_que,motivo,nota')).eq('data', hoje)
-    if (!naoPrestados.error) {
-      for (const n of naoPrestados.data || []) {
-        const alvo = lista.find(t =>
-          t.patientId === n.patient_id &&
-          t.oQue.trim().toLowerCase() === String(n.o_que).trim().toLowerCase())
-        if (alvo && !alvo.naoPrestado) alvo.naoPrestado = { motivo: n.motivo, nota: n.nota }
-      }
-    }
-
-    // Quem não vê a área não recebe a tarefa. A RLS já não devolveria as
-    // linhas, mas as atividades são montadas aqui a partir da lista de
-    // pessoas — e essa vem sempre.
+    // Quem nao ve a area nao recebe a tarefa. A RLS ja nao devolveria as
+    // linhas, mas as atividades sao montadas a partir da lista de pessoas — e
+    // essa vem sempre.
     setTarefas(lista.filter(t => scope.ve(t.area)))
     setCarregando(false)
   }, [user, supabase, scope, hoje, turno])
@@ -178,7 +103,8 @@ export default function ODia() {
   useLiveData({
     supabase, userId: user?.id,
     table: ['mar_records', 'activity_participations', 'support_services',
-            'dietary_reinforcements', 'plano_execucoes', 'cuidados_nao_prestados'],
+            'dietary_reinforcements', 'plano_execucoes', 'servicos_execucoes',
+            'cuidados_nao_prestados'],
     filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue,
     onChange: carregar,
   })
@@ -222,6 +148,24 @@ export default function ODia() {
       // dizer que já ficou marcado, que é o resultado que se queria.
       if (error && !/duplicate key/i.test(error.message)) {
         return reportError('o-dia-plano', error, isSetupError(error) ? MSG.unavailable : MSG.save)
+      }
+      return ''
+    }
+
+    if (t.fonte === 'servico') {
+      if (!feito) {
+        const { error } = await supabase.from('servicos_execucoes')
+          .delete().eq('servico_utente_id', t.ref.servico_utente_id).eq('data', hoje)
+        return error ? reportError('o-dia-servico-desmarcar', error, MSG.save) : ''
+      }
+      const { error } = await supabase.from('servicos_execucoes').insert(scope.stamp({
+        user_id: user.id, servico_utente_id: t.ref.servico_utente_id,
+        patient_id: t.patientId, data: hoje, turno: t.ref.turno || null, feito_por: quem,
+      }))
+      // Dois toques ao mesmo tempo dão violação de chave única — e isso quer
+      // dizer que já ficou marcado, que é o resultado que se queria.
+      if (error && !/duplicate key/i.test(error.message)) {
+        return reportError('o-dia-servico', error, isSetupError(error) ? MSG.unavailable : MSG.save)
       }
       return ''
     }
@@ -288,6 +232,8 @@ export default function ODia() {
     () => (vista === 'pessoa' ? porPessoa(tarefas) : porTarefa(tarefas)),
     [vista, tarefas])
   const linhaResumo = useMemo(() => resumo(tarefas), [tarefas])
+  // A MESMA conta que o /inicio mostra. Vem de lib/carregarODia, de proposito.
+  const progresso = useMemo(() => progressoDoDia(tarefas), [tarefas])
   const turnos = shiftsFor(institution)
 
   if (indisponivel) {
@@ -315,6 +261,27 @@ export default function ODia() {
         <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: 'var(--space-5) 0 0', lineHeight: 1.55 }}>
           {carregando ? 'A juntar o que há para fazer…' : linhaResumo}
         </p>
+
+        {/* A barra. É a mesma percentagem que aparece no /inicio — o número
+            vem do mesmo sítio, e por isso não há forma de discordarem. */}
+        {progresso && (
+          <div style={{ marginTop: 'var(--space-7)', maxWidth: 420 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+              <span style={{ ...MONO, fontSize: 9.5 }}>O dia</span>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700,
+                color: progresso.pct >= 100 ? 'var(--badge-green-fg)' : cor,
+              }}>{progresso.pct}%</span>
+            </div>
+            <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${Math.min(100, progresso.pct)}%`,
+                background: progresso.pct >= 100 ? 'var(--badge-green-fg)' : cor,
+                borderRadius: 3, transition: 'width .5s',
+              }} />
+            </div>
+          </div>
+        )}
       </div>
 
       {erro && (

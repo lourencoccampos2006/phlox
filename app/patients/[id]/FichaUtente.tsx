@@ -28,8 +28,11 @@ import PatientTimeline from '@/components/PatientTimeline'
 import PlanoIndividual from '@/components/institution/PlanoIndividual'
 import MedicacaoSOS from '@/components/institution/MedicacaoSOS'
 import StockDoUtente from '@/components/institution/StockDoUtente'
+import CuidadosDeRotina from '@/components/institution/CuidadosDeRotina'
+import EtiquetasDoUtente from '@/components/institution/EtiquetasDoUtente'
 import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
 import { nomeDoPlano } from '@/lib/plano'
+import { registoEmPalavras } from '@/lib/registoEmPalavras'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -102,7 +105,7 @@ type Props = {
   aoMudar?: (recarregar: () => void) => void
 }
 
-type Aba = 'hoje' | 'plano' | 'evolucao' | 'registos' | 'documentos'
+type Aba = 'hoje' | 'plano' | 'historico' | 'registos' | 'documentos'
 
 export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos, pedidos, revisaoMedicacao, children, aoMudar }: Props) {
   const { user, supabase } = useAuth() as any
@@ -129,7 +132,10 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
   const [aba, setAba] = useState<Aba>('hoje')
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('aba')
-    if (q && ['hoje', 'plano', 'evolucao', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
+    // `evolucao` continua a ser aceite: e o nome que os enderecos ja partilhados
+    // tem, e um link que deixa de funcionar e pior do que um nome antigo.
+    if (q === 'evolucao') { setAba('historico'); return }
+    if (q && ['hoje', 'plano', 'historico', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
   }, [])
   const irPara = (a: Aba) => {
     setAba(a)
@@ -157,7 +163,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       tol(supabase.from('patients').select('*').eq('id', pid).maybeSingle()),
       tol(supabase.from('patient_meds').select('id,name,dose,frequency,indication,shifts,take_location,active').eq('patient_id', pid)),
       tol(supabase.from('mar_records').select('id,med_id,status,shift,recorded_at,notes').eq('patient_id', pid).eq('date', d)),
-      tol(supabase.from('care_records').select('id,created_at,nutrition,mood,vitals,notes').eq('patient_id', pid).eq('date', d)),
+      tol(supabase.from('care_records').select('id,created_at,nutrition,mood,continence,skin,vitals,notes').eq('patient_id', pid).eq('date', d)),
       tol(supabase.from('attendance').select('status,arrived_at,left_at').eq('patient_id', pid).eq('date', d).maybeSingle()),
       tol(supabase.from('resident_contacts').select('*').eq('patient_id', pid)),
       tol(supabase.from('incidents').select('id,date,type,description').eq('patient_id', pid).eq('status', 'open')),
@@ -228,7 +234,11 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       itens.push({
         hora: r.created_at ? new Date(r.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '—',
         titulo: 'Registo do dia',
-        detalhe: [r.nutrition && `Alimentação: ${r.nutrition}`, r.mood && `Humor: ${r.mood}`].filter(Boolean).join(' · ') || undefined,
+        // `nutrition` e `mood` sao objetos jsonb, nao texto. Isto mostrava
+        // «Alimentacao: [object Object]» a quem abrisse a ficha. O tradutor
+        // vive em lib/registoEmPalavras para todos os sitios que leem um
+        // registo dizerem a mesma coisa da mesma maneira.
+        detalhe: registoEmPalavras(r) || undefined,
         feito: true,
       })
     })
@@ -328,18 +338,30 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         }}>Registar o dia</Link>
       </div>
 
+      {/* As etiquetas ficam logo debaixo do nome, e nao numa seccao la em
+          baixo: «risco de queda» e «disfagia» sao o que alguem tem de saber
+          ANTES de ler o resto da ficha. */}
+      <EtiquetasDoUtente pid={pid} cor={cor} />
+
       {/* ── As abas ─────────────────────────────────────────────────────── */}
       <nav style={{
         display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-9)',
         borderBottom: '1px solid var(--border)', overflowX: 'auto',
       }}>
-        {([
+        {/* Duas pessoas, a mesma ficha, separadores diferentes. Um separador
+            que a pessoa nao pode ver nao fica cinzento: nao existe para ela.
+            (sprint164 — `nao:utentes.plano`, `nao:utentes.documentos`.) */}
+        {(([
           ['hoje', 'Hoje'],
           ['plano', nomeDoPlano(institution).curto],
-          ['evolucao', 'Evolução'],
+          ['historico', 'Histórico'],
           ['registos', 'Registos'],
           ['documentos', 'Documentos'],
-        ] as [Aba, string][]).map(([id, rotulo]) => {
+        ] as [Aba, string][]).filter(([id]) =>
+          id === 'plano' ? scope.veDetalhe('utentes.plano')
+          : id === 'documentos' ? scope.veDetalhe('utentes.documentos')
+          : true,
+        )).map(([id, rotulo]) => {
           const on = aba === id
           return (
             <button key={id} onClick={() => irPara(id)} style={{
@@ -352,9 +374,11 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         })}
       </nav>
 
-      {aba === 'plano' && <PlanoIndividual pid={pid} nome={utente.name} cor={cor} />}
+      {aba === 'plano' && scope.veDetalhe('utentes.plano') && (
+        <PlanoIndividual pid={pid} nome={utente.name} cor={cor} />
+      )}
 
-      {aba === 'evolucao' && (
+      {aba === 'historico' && (
         <div style={{ marginTop: 'var(--space-10)' }}>
           <PatientTimeline patientId={pid} supabase={supabase} scope={scope} patientName={utente?.name} accent={cor} />
         </div>
@@ -366,7 +390,9 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         </div>
       )}
 
-      {aba === 'documentos' && <DocumentosDaPessoa pid={pid} nome={utente.name} cor={cor} />}
+      {aba === 'documentos' && scope.veDetalhe('utentes.documentos') && (
+        <DocumentosDaPessoa pid={pid} nome={utente.name} cor={cor} />
+      )}
 
       {/* ── HOJE ─────────────────────────────────────────────────────────── */}
       <div style={{ display: aba === 'hoje' ? 'block' : 'none' }}>
@@ -567,7 +593,11 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       {/* A SOS entra a seguir a medicacao e nao dentro dela, de proposito: sao
           duas perguntas diferentes. A lista de cima e «o que e que esta pessoa
           toma»; esta e «posso dar alguma coisa agora». */}
-      <MedicacaoSOS pid={pid} nome={utente.name} cor={cor} />
+      {scope.veDetalhe('medicacao.sos') && <MedicacaoSOS pid={pid} nome={utente.name} cor={cor} />}
+
+      {/* Os cuidados de rotina. E daqui que sai o dia de trabalho — e a razao
+          de «O Dia» so mostrar medicacao era nao existir isto. */}
+      <CuidadosDeRotina pid={pid} nome={utente.name} cor={cor} />
 
       {/* O que esta pessoa tem ca. Fica a seguir a medicacao porque e a mesma
           conversa: o que ha para dar, e se ainda ha. */}

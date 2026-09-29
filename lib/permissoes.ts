@@ -331,6 +331,120 @@ export function resumoCurto(papel: string | null | undefined, sobreposicao?: str
   return igualAoMolde ? molde.label : `${molde.label} (afinado)`
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OS DETALHES — o que se esconde DENTRO de uma ferramenta
+// ─────────────────────────────────────────────────────────────────────────────
+// O Fernando: «personalização extrema, faz mesmo um exagero — por exemplo,
+// dentro da mesma ferramenta duas pessoas não verem sequer as mesmas coisas».
+//
+// As áreas resolvem «pode abrir a ferramenta?». Não resolvem isto:
+//
+//   • a auxiliar abre a ficha do utente e vê tudo menos a mensalidade;
+//   • a animadora vê as ocorrências, mas não as reclamações de família;
+//   • quem faz a escala vê a equipa toda, mas não os contactos pessoais.
+//
+// Um detalhe é um pedaço nomeado de uma ferramenta. Tem a MESMA forma de uma
+// permissão normal (`area.detalhe`), e por isso o `pode()` funciona sem
+// alterações — não há um segundo sistema a conviver com o primeiro, que é como
+// estas coisas costumam acabar.
+//
+// ── A REGRA QUE EVITA UM DESASTRE ──────────────────────────────────────────
+// Um detalhe é uma RESTRIÇÃO, não uma concessão: quem não tem o detalhe
+// marcado continua a ver tudo, e só deixa de ver quando alguém o tira de
+// propósito. Ao contrário, cada detalhe novo que eu acrescentasse ao catálogo
+// escondia, sem aviso, mais um pedaço a toda a gente que já usava o produto.
+//
+// Por isso `podeDetalhe()` falha ABERTO, e `NEGADOS` guarda o que foi tirado —
+// e não o que foi dado.
+
+export interface Detalhe {
+  /** `area.detalhe` — a chave completa. */
+  id: string
+  area: string
+  label: string
+  /** O que é que esta pessoa deixa de ver. Escrito do lado de quem perde. */
+  descricao: string
+}
+
+export const DETALHES: Detalhe[] = [
+  // ── Dentro da ficha do utente ──────────────────────────────────────────
+  { id: 'utentes.financeiro', area: 'utentes', label: 'A parte do dinheiro',
+    descricao: 'Mensalidade, comparticipações e recibos dentro da ficha.' },
+  { id: 'utentes.historia', area: 'utentes', label: 'História de vida',
+    descricao: 'O que a pessoa foi, a família, a vida antes de cá chegar.' },
+  { id: 'utentes.contactos', area: 'utentes', label: 'Contactos da família',
+    descricao: 'Telefones e moradas de quem se avisa.' },
+  { id: 'utentes.documentos', area: 'utentes', label: 'Documentos na ficha',
+    descricao: 'Contratos, consentimentos e identificação.' },
+  { id: 'utentes.plano', area: 'utentes', label: 'Plano de cuidados',
+    descricao: 'Objetivos, ações e avaliações.' },
+  // Quem cuida de quem já cá está não tem de saber quem está à espera de
+  // vaga, nem que lugar cada um ocupa na lista. É informação que numa terra
+  // pequena chega à rua no mesmo dia.
+  { id: 'utentes.lista_espera', area: 'utentes', label: 'Lista de espera',
+    descricao: 'Inscrições por admitir e a ordem de prioridade entre elas.' },
+
+  // ── Dentro da medicação ────────────────────────────────────────────────
+  { id: 'medicacao.sos', area: 'medicacao', label: 'Medicação SOS',
+    descricao: 'Dar e registar o que se dá quando é preciso.' },
+  { id: 'medicacao.alterar_prescricao', area: 'medicacao', label: 'Mexer na prescrição',
+    descricao: 'Acrescentar, parar ou mudar a medicação de alguém.' },
+
+  // ── Dentro das ocorrências ─────────────────────────────────────────────
+  // Isto ficou de fora de propósito no sprint152 («deixar para quando refizer
+  // as ocorrências»). As ocorrências foram refeitas no sprint161, e é agora.
+  { id: 'ocorrencias.reclamacao', area: 'ocorrencias', label: 'Reclamações',
+    descricao: 'As reclamações de famílias e utentes.' },
+  { id: 'ocorrencias.ausencia_equipa', area: 'ocorrencias', label: 'Faltas de pessoal',
+    descricao: 'As ocorrências sobre quem faltou.' },
+  { id: 'ocorrencias.agressao', area: 'ocorrencias', label: 'Agressões e conflitos',
+    descricao: 'Entre utentes, ou com a equipa.' },
+
+  // ── Dentro da equipa ───────────────────────────────────────────────────
+  { id: 'equipa.contactos', area: 'equipa', label: 'Contactos dos colegas',
+    descricao: 'Telefones e emails de quem cá trabalha.' },
+  { id: 'equipa.mural_dirigido', area: 'equipa', label: 'Escrever recados privados',
+    descricao: 'Mandar um recado só a algumas pessoas, em vez de à casa toda.' },
+
+  // ── Dentro dos registos ────────────────────────────────────────────────
+  { id: 'registos.apagar_proprio', area: 'registos', label: 'Corrigir o que escreveu',
+    descricao: 'Apagar um registo que a própria pessoa fez hoje.' },
+]
+
+export const DETALHES_POR_AREA = DETALHES.reduce((m, d) => {
+  ;(m[d.area] ||= []).push(d)
+  return m
+}, {} as Record<string, Detalhe[]>)
+
+export const POR_DETALHE = new Map(DETALHES.map(d => [d.id, d]))
+
+/** A chave que se guarda quando um detalhe é TIRADO a alguém. */
+export const negar = (detalhe: string) => `nao:${detalhe}`
+
+/**
+ * Pode ver este pedaço da ferramenta?
+ *
+ * ── FALHA ABERTO, DE PROPÓSITO ─────────────────────────────────────────────
+ * Quem não tem nada dito sobre este detalhe vê-o. Só deixa de o ver quando
+ * alguém escreve `nao:<detalhe>` na sobreposição dessa pessoa.
+ *
+ * Ao contrário — exigir que o detalhe estivesse marcado — cada detalhe novo
+ * que eu acrescentasse a este ficheiro escondia um pedaço a toda a gente que
+ * já usa o produto, sem ninguém pedir e sem ninguém perceber porquê.
+ *
+ * A área continua a mandar: sem `utentes.ver`, o detalhe não interessa —
+ * a ferramenta inteira já está fechada.
+ */
+export function podeDetalhe(permissoes: string[], detalhe: string): boolean {
+  return !permissoes.includes(negar(detalhe))
+}
+
+/** O que foi tirado a esta pessoa, em palavras. */
+export function detalhesTirados(permissoes: string[]): Detalhe[] {
+  return DETALHES.filter(d => permissoes.includes(negar(d.id)))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // A MIGRAÇÃO DOS PAPÉIS ANTIGOS
 //

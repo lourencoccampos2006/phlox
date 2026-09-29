@@ -1,5 +1,5 @@
 // app/api/org/audit/route.ts
-// Painel do dono: linha do tempo "quem fez o quê a quem", da organização.
+// Painel administrativo: linha do tempo "quem fez o quê a quem", da organização.
 // SÓ owner/admin. Junta medicação dada, registos do dia e ocorrências, com o
 // nome de quem fez e de que utente se trata. Dentro do legal: o dono é o
 // responsável pelo tratamento e vê os registos da SUA instituição.

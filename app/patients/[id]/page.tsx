@@ -98,7 +98,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [geoEstado, setGeoEstado] = useState('')
 
   const [showAddMed, setShowAddMed] = useState(false)
-  const [newMed, setNewMed] = useState({ name: '', dose: '', frequency: '', indication: '', shifts: [] as string[], take_location: 'centro' })
+  const [newMed, setNewMed] = useState({
+    name: '', dose: '', frequency: '', indication: '', shifts: [] as string[], take_location: 'centro',
+    // Medicacao SOS (sprint159). Nao havia onde a marcar — o modelo existia e
+    // a interface do SOS na ficha nunca chegava a aparecer, porque nenhum
+    // medicamento podia ser marcado como tal.
+    sos: false, sos_para: '', sos_max_dia: '', sos_intervalo_horas: '',
+  })
   const [sug, setSug] = useState<{ display: string; dci: string }[]>([])
   const [addingMed, setAddingMed] = useState(false)
 
@@ -235,7 +241,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     const { data, error } = await supabase.from('patient_meds').insert(scope.stamp({
       patient_id: pid, user_id: user.id, active: true, name,
       dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
-      shifts: newMed.shifts.length ? newMed.shifts : null,
+      // Um SOS nao tem turnos: da-se quando e preciso. Gravar turnos num SOS
+      // fa-lo-ia aparecer como dose por dar em cada turno de cada dia.
+      shifts: newMed.sos ? null : (newMed.shifts.length ? newMed.shifts : null),
+      sos: newMed.sos,
+      sos_para: newMed.sos ? (newMed.sos_para.trim() || null) : null,
+      sos_max_dia: newMed.sos && newMed.sos_max_dia ? Number(newMed.sos_max_dia) : null,
+      sos_intervalo_horas: newMed.sos && newMed.sos_intervalo_horas ? Number(newMed.sos_intervalo_horas) : null,
       ...(isDayCare ? { take_location: newMed.take_location } : {}),
     })).select().single()
     if (error || !data) {
@@ -248,7 +260,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       return
     }
     setMeds(p => [data, ...p])
-    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], take_location: 'centro' }); setSug([])
+    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], take_location: 'centro', sos: false, sos_para: '', sos_max_dia: '', sos_intervalo_horas: '' }); setSug([])
     setShowAddMed(false); setAddingMed(false)
   }
 
@@ -644,11 +656,43 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               <input value={newMed.frequency} onChange={e => setNewMed(p => ({ ...p, frequency: e.target.value }))} placeholder="Frequência (1+0+1)" style={inp} />
             </div>
             <input value={newMed.indication} onChange={e => setNewMed(p => ({ ...p, indication: e.target.value }))} placeholder="Para que serve (opcional)" style={{ ...inp, marginTop: 8 }} />
-            {/* Turnos: num centro de dia não existe turno da noite (o centro está
-                fechado) — oferecer "Noite" faria a toma nunca aparecer no /mar. */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-              {SHIFTS.filter(s => !isDayCare || s.v !== 'noite').map(s => { const on = newMed.shifts.includes(s.v); return <button key={s.v} onClick={() => setNewMed(p => ({ ...p, shifts: on ? p.shifts.filter(x => x !== s.v) : [...p.shifts, s.v] }))} style={chip(on, accent)}>{on ? '✓ ' : ''}{s.l}</button> })}
+            {/* ── Horário OU «quando for preciso» ─────────────────────────
+                São duas coisas que se excluem, e por isso é uma escolha e não
+                duas caixas: um medicamento com horário aparece no mapa de
+                medicação; um SOS aparece na secção própria da ficha, com o
+                registo da hora e do motivo. */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+              <button onClick={() => setNewMed(p => ({ ...p, sos: false }))} style={chip(!newMed.sos, accent)}>A horas certas</button>
+              <button onClick={() => setNewMed(p => ({ ...p, sos: true }))} style={chip(newMed.sos, accent)}>Quando for preciso (SOS)</button>
             </div>
+
+            {!newMed.sos ? (
+              <>
+                {/* Turnos: num centro de dia não existe turno da noite (o centro
+                    está fechado) — oferecer "Noite" faria a toma nunca aparecer
+                    no /mar. */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                  {SHIFTS.filter(s => !isDayCare || s.v !== 'noite').map(s => { const on = newMed.shifts.includes(s.v); return <button key={s.v} onClick={() => setNewMed(p => ({ ...p, shifts: on ? p.shifts.filter(x => x !== s.v) : [...p.shifts, s.v] }))} style={chip(on, accent)}>{on ? '✓ ' : ''}{s.l}</button> })}
+                </div>
+              </>
+            ) : (
+              <div style={{ marginTop: 10 }}>
+                <input value={newMed.sos_para} onChange={e => setNewMed(p => ({ ...p, sos_para: e.target.value }))}
+                  placeholder="Para quê? (ex: dores de cabeça, agitação)" style={inp} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                  <input value={newMed.sos_max_dia} inputMode="numeric"
+                    onChange={e => setNewMed(p => ({ ...p, sos_max_dia: e.target.value.replace(/\D/g, '') }))}
+                    placeholder="Máx. por dia" style={inp} />
+                  <input value={newMed.sos_intervalo_horas} inputMode="numeric"
+                    onChange={e => setNewMed(p => ({ ...p, sos_intervalo_horas: e.target.value.replace(/\D/g, '') }))}
+                    placeholder="Horas entre tomas" style={inp} />
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5, lineHeight: 1.5 }}>
+                  Os dois são opcionais. Escritos, a ficha diz «foi dado 2 vezes hoje, a última há 3 horas»
+                  antes de alguém dar outro — e nunca bloqueia, só informa.
+                </div>
+              </div>
+            )}
             {isDayCare && (
               <div style={{ marginTop: 10 }}>
                 <Label>Onde é dado?</Label>

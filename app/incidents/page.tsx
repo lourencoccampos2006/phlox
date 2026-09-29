@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { TIPOS, seguimento, repeticoes, ordenarPorAtencao, type Ocorrencia } from '@/lib/ocorrencias'
 import { useAuth } from '@/components/AuthContext'
 import Icon from '@/components/Icon'
 import { useLiveData } from '@/lib/useLiveData'
@@ -32,27 +33,22 @@ interface Incident {
   status: 'open' | 'under_review' | 'closed'
   created_by?: string
   created_at: string
+  // Seguimento com dono e prazo (sprint161). Sem isto, `follow_up_required`
+  // era um sim/nao que nao obrigava ninguem a nada.
+  responsavel?: string | null
+  responsavel_id?: string | null
+  prazo?: string | null
+  fechado_em?: string | null
+  fechado_por?: string | null
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  fall: 'Queda',
-  medication_error: 'Erro de Medicação',
-  pressure_ulcer: 'Úlcera de Pressão',
-  behavioral: 'Incidente Comportamental',
-  choking: 'Engasgamento',
-  infection: 'Infeção',
-  other: 'Outro',
-}
-
-const TYPE_ICONS: Record<string, string> = {
-  fall: '🫸',
-  medication_error: '💊',
-  pressure_ulcer: '🩹',
-  behavioral: '🧠',
-  choking: '🫁',
-  infection: '🦠',
-  other: '⚠️',
-}
+// Os tipos vem de lib/ocorrencias, que e a fonte unica: o SQL do sprint161, o
+// formulario e os filtros tem de concordar, e duas listas da mesma coisa
+// divergem sempre. Eram sete de enfermaria; passaram a catorze, com os que
+// acontecem mesmo num centro de dia (fuga, transporte, reclamacao, falta de
+// pessoal). «Outro» a apanhar metade e o mesmo que nao ter tipos nenhuns.
+const TYPE_LABELS: Record<string, string> = Object.fromEntries(TIPOS.map(t => [t.id, t.label]))
+const TYPE_ICONS: Record<string, string> = Object.fromEntries(TIPOS.map(t => [t.id, t.icone]))
 
 const SEV_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
   minor:    { color: '#374151', bg: '#f9fafb', border: '#e5e7eb', label: 'Ligeiro' },
@@ -82,6 +78,8 @@ const EMPTY_FORM = {
   outcome: '',
   follow_up_required: false,
   follow_up_notes: '',
+  responsavel: '',
+  prazo: '',
   root_cause: '',
   created_by: '',
 }
@@ -204,6 +202,8 @@ export default function IncidentsPage() {
         outcome: form.outcome || null,
         follow_up_required: form.follow_up_required,
         follow_up_notes: form.follow_up_notes || null,
+        responsavel: form.responsavel.trim() || null,
+        prazo: form.prazo || null,
         root_cause: form.root_cause || null,
         created_by: form.created_by || null,
       }
@@ -245,6 +245,7 @@ export default function IncidentsPage() {
       description: inc.description, witnesses: inc.witnesses || '', injuries: inc.injuries || '',
       action_taken: inc.action_taken || '', reported_to: inc.reported_to || '', outcome: inc.outcome || '',
       follow_up_required: inc.follow_up_required, follow_up_notes: inc.follow_up_notes || '',
+      responsavel: inc.responsavel || '', prazo: inc.prazo || '',
       root_cause: inc.root_cause || '', created_by: inc.created_by || '',
     })
     setSaveError(''); setShowForm(true)
@@ -261,12 +262,30 @@ export default function IncidentsPage() {
   }
 
   const filtered = incidents.filter(i => {
+    // ── POR TIPO DE OCORRENCIA (sprint164) ────────────────────────────────
+    // Ficou prometido no sprint152 («deixar para quando refizer as
+    // ocorrencias») e e agora. A animadora ve as ocorrencias e nao ve as
+    // reclamacoes de familia; quem faz a escala nao ve as faltas de pessoal.
+    //
+    // Isto e CONFORTO, nao seguranca: quem escrever o endereco a mao continua
+    // a poder pedir a linha. A defesa a serio para isto seria uma politica de
+    // RLS que lesse o tipo da linha — fica escrito aqui para nao se perder.
+    if (!scope.veDetalhe(`ocorrencias.${i.type}`)) return false
     if (filterType !== 'all' && i.type !== filterType) return false
     if (filterStatus !== 'all' && i.status !== filterStatus) return false
     if (filterSeverity !== 'all' && i.severity !== filterSeverity) return false
     if (search && !i.patient_name?.toLowerCase().includes(search.toLowerCase()) && !i.description.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  // Os que precisam de alguem AGORA, primeiro: prazo passado, depois prazo a
+  // chegar, e as fechadas no fim. A ordem so por data punha uma queda de ontem
+  // por fechar debaixo de uma reclamacao de hoje ja resolvida.
+  const ordenadas = useMemo(() => ordenarPorAtencao(filtered as any) as typeof filtered, [filtered])
+
+  // A repeticao olha para TUDO, e nao so para o que os filtros deixaram passar:
+  // filtrar por «abertas» escondia justamente o padrao que se quer ver.
+  const padroes = useMemo(() => repeticoes(incidents as any), [incidents])
 
   const stats = {
     total: incidents.length,
@@ -505,9 +524,29 @@ export default function IncidentsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filtered.map(inc => {
+            {/* ── O QUE NINGUEM CONSEGUE VER SOZINHO ──────────────────────
+                Cada ocorrencia foi escrita num dia diferente, provavelmente
+                por uma pessoa diferente, e nenhuma delas sabe das outras. Tres
+                quedas em dois meses nao sao tres quedas: e uma pessoa que
+                precisa de uma avaliacao de marcha. */}
+            {padroes.length > 0 && (
+              <div style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  A repetir-se
+                </div>
+                {padroes.map(r => (
+                  <div key={`${r.patientId}-${r.tipo}`} style={{
+                    background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10,
+                    padding: '11px 14px', fontSize: 13, color: '#92400e', lineHeight: 1.55,
+                  }}>{r.frase}</div>
+                ))}
+              </div>
+            )}
+
+            {ordenadas.map(inc => {
               const ss = SEV_STYLE[inc.severity]
               const st = STATUS_STYLE[inc.status]
+              const seg = seguimento(inc as any)
               return (
                 <div key={inc.id} onClick={() => setSelected(inc)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(inc) } }}
@@ -535,6 +574,15 @@ export default function IncidentsPage() {
                     <p style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, margin: '6px 0 0', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
                       {inc.description}
                     </p>
+                    {/* O seguimento, se houver. «Passou do prazo» e nao «EM
+                        ATRASO» a vermelho: quem le isto nao e o culpado, e quem
+                        esta a tentar resolver. */}
+                    {seg.frase && (
+                      <div style={{
+                        fontSize: 11.5, marginTop: 6, fontWeight: seg.chama ? 700 : 500,
+                        color: seg.estado === 'passou' ? '#c2410c' : seg.chama ? '#92400e' : 'var(--ink-4)',
+                      }}>{seg.frase}</div>
+                    )}
                   </div>
                 </div>
               )
@@ -686,12 +734,34 @@ export default function IncidentsPage() {
                   </label>
                 </div>
 
+                {/* ── QUEM E ATÉ QUANDO ────────────────────────────────────
+                    Isto era só uma caixa de texto. Um seguimento sem dono não é
+                    um seguimento — é uma intenção: passa a semana, ninguém faz
+                    nada, e quando alguém pergunta o que foi feito a seguir à
+                    queda, a resposta é uma caixa vazia. */}
                 {form.follow_up_required && (
-                  <div style={{ gridColumn: '1/-1' }}>
-                    <Label>Notas de acompanhamento</Label>
-                    <textarea value={form.follow_up_notes} onChange={e => f('follow_up_notes', e.target.value)} placeholder="Descreve o acompanhamento necessário..." rows={2}
-                      style={{ ...inputStyle, resize: 'vertical' }} />
-                  </div>
+                  <>
+                    <div>
+                      <Label>Quem trata</Label>
+                      <input value={form.responsavel} onChange={e => f('responsavel', e.target.value)}
+                        placeholder="Nome de quem fica responsável" style={inputStyle} />
+                    </div>
+                    <div>
+                      <Label>Até quando</Label>
+                      <input type="date" value={form.prazo} onChange={e => f('prazo', e.target.value)}
+                        style={inputStyle} />
+                    </div>
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <Label>O que é preciso fazer</Label>
+                      <textarea value={form.follow_up_notes} onChange={e => f('follow_up_notes', e.target.value)} placeholder="Ex.: avaliar a marcha e rever o calçado." rows={2}
+                        style={{ ...inputStyle, resize: 'vertical' }} />
+                    </div>
+                    {!form.responsavel.trim() && (
+                      <div style={{ gridColumn: '1/-1', fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', lineHeight: 1.5 }}>
+                        Sem um nome, isto fica à espera de toda a gente — que é o mesmo que ficar à espera de ninguém.
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 

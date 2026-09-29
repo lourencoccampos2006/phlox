@@ -23,6 +23,7 @@ import { useState, useEffect } from 'react'
 import { estiloFundoModal } from '@/lib/camadas'
 import {
   AREAS, GRUPOS, PAPEIS_ATRIBUIVEIS, POR_PAPEL, chave, permissoesDe, emPalavras,
+  DETALHES_POR_AREA, negar, podeDetalhe, detalhesTirados,
   type Nivel,
 } from '@/lib/permissoes'
 
@@ -78,6 +79,20 @@ export default function AcessosPessoa({
       if (nivel !== 'ver' && a?.niveis.includes('ver')) juntar.push(chave(area, 'ver'))
       return [...new Set([...atual, ...juntar])]
     })
+  }
+
+  /**
+   * Tirar (ou devolver) um pedaco de uma ferramenta.
+   *
+   * Guarda-se o que foi TIRADO (`nao:utentes.financeiro`) e nao o que foi
+   * dado. Ao contrario, cada detalhe novo que eu acrescentasse ao catalogo
+   * escondia um pedaco a toda a gente que ja usa o produto, sem ninguem pedir.
+   */
+  function alternarDetalhe(id: string) {
+    const k = negar(id)
+    setMarcadas(atual => atual.includes(k)
+      ? atual.filter(x => x !== k)
+      : [...atual, k])
   }
 
   async function guardar() {
@@ -142,6 +157,20 @@ export default function AcessosPessoa({
           }}>{afinar ? '← Voltar ao papel' : 'Afinar esta pessoa →'}</button>
 
           {/* ── A matriz ────────────────────────────────────────────────── */}
+          {afinar && detalhesTirados(marcadas).length > 0 && (
+            <div style={{
+              marginTop: 14, padding: '11px 13px', borderRadius: 9,
+              background: '#fef2f2', border: '1px solid #fecaca',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', marginBottom: 5 }}>
+                Não vai ver, dentro das ferramentas a que tem acesso:
+              </div>
+              <div style={{ fontSize: 12.5, color: '#991b1b', lineHeight: 1.6 }}>
+                {detalhesTirados(marcadas).map(d => d.label.toLowerCase()).join(' · ')}
+              </div>
+            </div>
+          )}
+
           {afinar && (
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55, marginBottom: 14, maxWidth: '58ch' }}>
@@ -192,6 +221,46 @@ export default function AcessosPessoa({
                               )
                             })}
                           </div>
+
+                          {/* ── DENTRO DESTA FERRAMENTA ─────────────────────
+                              «Dentro da mesma ferramenta, duas pessoas nao
+                              verem sequer as mesmas coisas.» Estes pedacos so
+                              aparecem quando a pessoa PODE abrir a ferramenta:
+                              afinar o que ve dentro de uma porta fechada nao
+                              quer dizer nada.
+
+                              Sao RESTRICOES: por omissao ve tudo, e cada
+                              carregar TIRA uma coisa. E por isso que ficam
+                              vermelhos quando ligados — um carregar aqui
+                              retira, nao acrescenta. */}
+                          {marcadas.includes(chave(a.id, 'ver')) && (DETALHES_POR_AREA[a.id] || []).length > 0 && (
+                            <div style={{
+                              flexBasis: '100%', marginTop: 4, paddingTop: 10,
+                              borderTop: '1px dashed #e5e7eb',
+                            }}>
+                              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 7 }}>
+                                Dentro desta ferramenta, esconder:
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                                {(DETALHES_POR_AREA[a.id] || []).map(d => {
+                                  const escondido = !podeDetalhe(marcadas, d.id)
+                                  return (
+                                    <button key={d.id} onClick={() => alternarDetalhe(d.id)}
+                                      title={d.descricao} aria-pressed={escondido}
+                                      style={{
+                                        padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
+                                        fontFamily: 'inherit', fontSize: 11, fontWeight: escondido ? 700 : 500,
+                                        border: `1.5px solid ${escondido ? '#dc2626' : '#e2e8f0'}`,
+                                        background: escondido ? '#fef2f2' : 'white',
+                                        color: escondido ? '#dc2626' : '#94a3b8',
+                                      }}>
+                                      {escondido ? '✕ ' : ''}{d.label}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

@@ -2,7 +2,22 @@
 
 // components/institution/PlanoIndividual.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// O Plano Individual de uma pessoa — PIC num lar, PII num centro de dia.
+// O Plano de Cuidados de uma pessoa.
+//
+// ── O QUE MUDOU, E PORQUÊ (2026-09-26) ─────────────────────────────────────
+// A primeira versão disto era uma página em branco: objetivos e ações escritos
+// de intuição, sem nada por baixo. O Fernando foi directo — «é uma merda,
+// deveria ser um plano de cuidados, medical grade mesmo, com avaliações,
+// dependências».
+//
+// Tinha razão, e o pior é que a matéria já cá estava: as escalas (Barthel,
+// Braden, Morse, MNA) existiam e estão bem feitas — só que guardavam **um
+// número**. «Barthel 35» não diz a ninguém o que fazer; a informação estava
+// nas RESPOSTAS, enterradas num jsonb que nada voltava a ler.
+//
+// Agora o plano abre com o que as avaliações dizem: o perfil de dependência
+// item a item, e o que isso implica em cuidados concretos. Os objetivos
+// continuam a ser escritos por uma pessoa — mas já não a partir do nada.
 //
 // ── O QUE ESTE ECRÃ TEM DE CONSEGUIR ───────────────────────────────────────
 // Três leituras diferentes, na mesma página, sem modos:
@@ -36,6 +51,7 @@ import { AREAS, POR_AREA } from '@/lib/permissoes'
 import { ptDate } from '@/lib/ptTime'
 import { printDoc } from '@/lib/print'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
+import AvaliacoesEDependencias from '@/components/institution/AvaliacoesEDependencias'
 import {
   nomeDoPlano, CADENCIAS, POR_CADENCIA, DIAS_DA_SEMANA,
   cadenciaEmPalavras, proximaRevisao, estadoDaRevisao, objetivosSemAcoes,
@@ -290,14 +306,22 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
   }
 
   // ── Ainda não há plano ────────────────────────────────────────────────────
+  // As avaliações aparecem NA MESMA. São elas que dizem o que esta pessoa
+  // precisa, e ver isso antes de escrever o plano é a diferença entre um plano
+  // que sai da avaliação e um plano que sai da cabeça de quem o escreve.
   if (!plano) {
     return (
+      <>
+      <AvaliacoesEDependencias pid={pid} nome={nome} cor={cor} planoId={null} />
       <div style={{
         marginTop: 'var(--space-10)', padding: 'var(--space-12)', borderRadius: 'var(--r-xl)',
         border: '1px dashed var(--border-2)', textAlign: 'center',
       }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>
-          {nome.split(' ')[0]} ainda não tem {nomes.curto === 'PIC' ? 'plano de cuidados' : 'plano de intervenção'}
+          {/* Comparava com 'PIC', que deixou de ser o nome curto — a condicao
+              ficou sempre falsa e um LAR passou a ver «plano de intervencao».
+              O tipo de casa e a fonte, nao a sigla. */}
+          {nome.split(' ')[0]} ainda não tem {institution === 'nursing_home' ? 'plano de cuidados' : 'plano de intervenção'}
         </div>
         <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 460, margin: '0 auto 18px' }}>
           É aqui que se escreve o que se quer para esta pessoa e o que se faz para lá chegar.
@@ -307,7 +331,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
           <button onClick={criarPlano} style={{
             minHeight: 46, padding: '0 22px', borderRadius: 'var(--r-lg)', border: 'none',
             background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-          }}>Começar o {nomes.curto}</button>
+          }}>Começar o plano</button>
         ) : (
           <div style={{ fontSize: 13, color: 'var(--ink-5)' }}>
             Fale com quem gere a casa para o plano ser criado.
@@ -315,6 +339,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         )}
         {erro && <div style={{ marginTop: 12, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
       </div>
+      </>
     )
   }
 
@@ -357,6 +382,12 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
           }}>Imprimir</button>
         </div>
       </div>
+
+      {/* ── O que as avaliações dizem ────────────────────────────────────
+          Vem ANTES dos objetivos, de propósito. Um objetivo escrito sem olhar
+          para a dependência da pessoa é um palpite; escrito depois, é uma
+          decisão. */}
+      <AvaliacoesEDependencias pid={pid} nome={nome} cor={cor} planoId={plano.id} />
 
       {/* ── A voz da pessoa ──────────────────────────────────────────────── */}
       <CaixaDeTexto

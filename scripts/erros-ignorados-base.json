@@ -111,7 +111,7 @@
   "app/link/page.tsx": 1,
   "app/mymeds/page.tsx": 2,
   "app/onboarding/page.tsx": 1,
-  "app/patients/page.tsx": 3,
+  "app/patients/page.tsx": 2,
   "app/patients/[id]/page.tsx": 3,
   "app/perfil/[id]/page.tsx": 8,
   "app/protocolos/page.tsx": 2,

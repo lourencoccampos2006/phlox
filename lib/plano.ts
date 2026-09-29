@@ -59,9 +59,13 @@ import { ptDate } from './ptTime'
  * casa que o está a usar.
  */
 export function nomeDoPlano(tipoDeCasa: string): { curto: string; longo: string } {
+  // O nome CURTO deixou de ser a sigla. «PIC» e «PII» são o que a papelada da
+  // Segurança Social usa, e é por isso que o nome longo os mantém — mas num
+  // separador, uma sigla é uma porta fechada para quem entrou esta semana.
+  // «Plano» toda a gente percebe.
   return tipoDeCasa === 'nursing_home'
-    ? { curto: 'PIC', longo: 'Plano Individual de Cuidados' }
-    : { curto: 'PII', longo: 'Plano Individual de Intervenção' }
+    ? { curto: 'Plano', longo: 'Plano Individual de Cuidados (PIC)' }
+    : { curto: 'Plano', longo: 'Plano Individual de Intervenção (PII)' }
 }
 
 export type EstadoPlano = 'rascunho' | 'ativo' | 'arquivado'

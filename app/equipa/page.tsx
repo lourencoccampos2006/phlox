@@ -286,7 +286,7 @@ export default function EquipaPage() {
                 <Link href="/painel-dono" style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, textDecoration: 'none', borderColor: '#cbd5e1' }}>
                   <span style={{ fontSize: 22 }}>🛡️</span>
                   <span style={{ flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0b1120' }}>Painel do dono — registo de tudo</span>
+                    <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0b1120' }}>Painel administrativo</span>
                     <span style={{ display: 'block', fontSize: 12.5, color: '#64748b' }}>Quem deu a medicação a quem, e todos os registos da equipa, com data e hora.</span>
                   </span>
                   <span style={{ color: ACCENT, fontWeight: 700 }}>→</span>

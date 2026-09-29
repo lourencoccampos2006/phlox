@@ -42,8 +42,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { ehParaHoje, type Acao, type Objetivo } from './plano'
+import { servicosDeHoje, type ServicoDoUtente, type ServicoDoCatalogo, type ExecucaoServico } from './servicos'
 
-export type Fonte = 'plano' | 'medicacao' | 'atividade' | 'apoio' | 'reforco'
+export type Fonte = 'servico' | 'plano' | 'medicacao' | 'atividade' | 'apoio' | 'reforco'
 
 export interface Tarefa {
   /** Estável entre recargas: é o que permite marcar sem esperar pelo servidor. */
@@ -67,6 +68,7 @@ export interface Tarefa {
 }
 
 export const ROTULO_DA_FONTE: Record<Fonte, string> = {
+  servico: 'Cuidado',
   plano: 'Plano',
   medicacao: 'Medicação',
   atividade: 'Atividades',
@@ -79,6 +81,47 @@ export const ROTULO_DA_FONTE: Record<Fonte, string> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface Pessoa { id: string; name: string }
+
+/**
+ * Os cuidados de rotina que tocam hoje — o banho, o levante, a ajuda à
+ * refeição (sprint162).
+ *
+ * É a fonte que faltava, e é a maior de todas: o dia de uma casa é feito
+ * sobretudo disto. Sem ela, «O Dia» só sabia mostrar medicação — que foi
+ * exatamente o que o Fernando viu ao abrir a página.
+ */
+export function tarefasDosServicos(
+  pessoas: Pessoa[],
+  atribuicoes: ServicoDoUtente[],
+  catalogo: ServicoDoCatalogo[],
+  execucoes: ExecucaoServico[],
+  dia: Date,
+): Tarefa[] {
+  const porPessoa = new Map<string, ServicoDoUtente[]>()
+  for (const a of atribuicoes) {
+    const l = porPessoa.get(a.patient_id)
+    if (l) l.push(a); else porPessoa.set(a.patient_id, [a])
+  }
+
+  return [...porPessoa.entries()].flatMap(([pid, lista]) => {
+    const pessoa = pessoas.find(p => p.id === pid)
+    if (!pessoa) return []
+    return servicosDeHoje(lista, catalogo, execucoes, dia).map(s => ({
+      chave: `servico:${s.atribuicao.id}`,
+      fonte: 'servico' as const,
+      patientId: pid,
+      nome: pessoa.name,
+      oQue: s.servico.nome,
+      detalhe: [s.atribuicao.quem, s.atribuicao.notas].filter(Boolean).join(' · ') || null,
+      turno: s.atribuicao.turno,
+      // A área vem do SERVIÇO e não da pessoa: um tratamento de feridas é de
+      // quem trata feridas, mesmo que o banho da mesma pessoa seja de todos.
+      area: s.servico.area,
+      feito: s.feito,
+      ref: { servico_utente_id: s.atribuicao.id, turno: s.atribuicao.turno },
+    }))
+  })
+}
 
 /** As ações do Plano Individual que tocam hoje. */
 export function tarefasDoPlano(
@@ -345,7 +388,7 @@ export function porTarefa(tarefas: Tarefa[]): Grupo[] {
 
 /** Dentro de uma pessoa: primeiro o que falta, e a medicação à frente. */
 function ordenar(lista: Tarefa[]): Tarefa[] {
-  const peso: Record<Fonte, number> = { medicacao: 0, plano: 1, reforco: 2, atividade: 3, apoio: 4 }
+  const peso: Record<Fonte, number> = { medicacao: 0, servico: 1, plano: 2, reforco: 3, atividade: 4, apoio: 5 }
   return [...lista].sort((a, b) => {
     const aFeita = a.feito || !!a.naoPrestado
     const bFeita = b.feito || !!b.naoPrestado

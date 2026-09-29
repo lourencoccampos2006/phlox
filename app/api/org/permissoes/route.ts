@@ -22,7 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import {
-  TODAS, POR_PAPEL, PAPEIS_ATRIBUIVEIS, permissoesDe, pode,
+  TODAS, POR_PAPEL, PAPEIS_ATRIBUIVEIS, permissoesDe, pode, DETALHES, negar,
   PAPEL_ANTIGO_PARA_NOVO,
 } from '@/lib/permissoes'
 
@@ -91,7 +91,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { data: membros, error } = await a.from('org_members')
-    .select('user_id, role, capabilities, department, joined_at')
+    // `*` e nao a lista: `utentes_etiquetas` so existe depois do sprint164, e
+    // com a lista escrita a mao o PostgREST recusava o SELECT INTEIRO ate la —
+    // deixando a pagina dos acessos vazia.
+    .select('*')
     .eq('org_id', orgId).eq('active', true)
   if (error) {
     return NextResponse.json({ error: 'Não foi possível ler a equipa.' }, { status: 503 })
@@ -118,6 +121,7 @@ export async function GET(req: NextRequest) {
         // lista igual ao molde, porque assim as mudanças ao papel chegam-lhe.
         sobreposicao: Array.isArray(m.capabilities) && m.capabilities.length ? m.capabilities : null,
         permissoes: permissoesDe(papel, m.capabilities),
+        utentesEtiquetas: m.utentes_etiquetas || [],
       }
     }),
   })
@@ -169,15 +173,48 @@ export async function POST(req: NextRequest) {
   // dia em que foi gravada.
   let sobreposicao: string[] | null = null
   if (Array.isArray(body?.permissoes)) {
-    const validas = new Set(TODAS)
+    // As chaves validas sao de DOIS tipos, e falhar o segundo custou-me quase
+    // um bug silencioso: `area.nivel` (o que a pessoa PODE) e `nao:detalhe`
+    // (um pedaco de ferramenta que lhe foi TIRADO, sprint164).
+    //
+    // A primeira versao disto filtrava so contra TODAS — e portanto deitava
+    // fora todos os `nao:` sem dizer nada. A interface deixava esconder a
+    // parte do dinheiro, o servidor aceitava o pedido, e nada ficava guardado.
+    const validas = new Set<string>([...TODAS, ...DETALHES.map(d => negar(d.id))])
     const limpas = [...new Set(body.permissoes.filter(x => validas.has(x)))].sort()
     const molde = [...(POR_PAPEL.get(papel as any)?.omissao || [])].sort()
     const igualAoMolde = limpas.length === molde.length && limpas.every((x, i) => x === molde[i])
     sobreposicao = igualAoMolde ? null : limpas
   }
 
+  // ── Que utentes e que esta pessoa ve (sprint164) ──────────────────────────
+  // Vazio grava-se como NULL, que quer dizer «ve todos». Um array vazio na
+  // base de dados seria «ve nenhum», e a diferenca entre as duas coisas e
+  // alguem que chega ao turno e nao encontra ninguem.
+  let etiquetasDeUtentes: string[] | null | undefined = undefined
+  if ('utentesEtiquetas' in (body || {})) {
+    const cru = (body as any).utentesEtiquetas
+    if (!Array.isArray(cru) || !cru.length) etiquetasDeUtentes = null
+    else {
+      // So etiquetas DESTA casa. Sem isto, um id de outra organizacao passava
+      // a restringir uma pessoa a um conjunto que nunca corresponde a ninguem.
+      const { data: nossas, error: erroEt } = await a.from('etiquetas')
+        .select('id').eq('org_id', orgId).in('id', cru.filter((x: any) => typeof x === 'string'))
+      if (erroEt) {
+        return NextResponse.json({ error: 'Não foi possível confirmar as etiquetas.' }, { status: 503 })
+      }
+      const validos = (nossas || []).map(e => e.id)
+      etiquetasDeUtentes = validos.length ? validos : null
+    }
+  }
+
+  const mudanca: Record<string, any> = { role: papel, capabilities: sobreposicao }
+  // `undefined` quer dizer «nao veio no pedido» — e nesse caso nao se toca.
+  // Quem envia o papel nao pode, sem querer, limpar a restricao de utentes.
+  if (etiquetasDeUtentes !== undefined) mudanca.utentes_etiquetas = etiquetasDeUtentes
+
   const { error } = await a.from('org_members')
-    .update({ role: papel, capabilities: sobreposicao })
+    .update(mudanca)
     .eq('org_id', orgId).eq('user_id', alvoId)
   if (error) {
     console.error('[phlox:permissoes-update]', error)

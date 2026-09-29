@@ -10,6 +10,7 @@
 //  • visual adaptado ao tom (centro de dia/lar = quente; clínica/CSP = sóbrio)
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { corDe, filtrarPorEtiquetas, contarPorEtiqueta, type Etiqueta } from '@/lib/etiquetas'
 import { useAuth } from '@/components/AuthContext'
 import Icon from '@/components/Icon'
 import Link from 'next/link'
@@ -22,6 +23,8 @@ import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
 import { reportError } from '@/lib/clientError'
+import FichaDeInscricao from '@/components/institution/FichaDeInscricao'
+import { fichaVazia, paraColunas } from '@/lib/inscricao'
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 function parseCSV(text: string): string[][] {
@@ -42,6 +45,9 @@ function detectMapping(headers: string[]): Record<string, number> {
   headers.forEach((h, i) => {
     const l = h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     if (m.name === undefined && /^(nome|name|doente|residente|utente|paciente)/.test(l)) m.name = i
+    // A data de nascimento ANTES da idade, de propósito. Uma folha que traga
+    // as duas colunas deve ficar com a data — que é a que não envelhece.
+    else if (m.birth === undefined && /nascimento|nasc\.?$|^dn$|birth|dob/.test(l)) m.birth = i
     else if (m.age === undefined && /idade|age|anos$/.test(l)) m.age = i
     else if (m.sex === undefined && /^(sexo|sex|genero|gender)/.test(l)) m.sex = i
     else if (m.room === undefined && /quarto|room|cama|bed|unidade/.test(l)) m.room = i
@@ -50,8 +56,39 @@ function detectMapping(headers: string[]): Record<string, number> {
     else if (m.allergies === undefined && /alergi|allerg/.test(l)) m.allergies = i
     else if (m.weight === undefined && /^(peso|weight)/.test(l)) m.weight = i
     else if (m.contact === undefined && /contacto|contact|emergencia|familiar/.test(l)) m.contact = i
+    else if (m.nif === undefined && /^(nif|contribuinte)/.test(l)) m.nif = i
+    else if (m.sns === undefined && /sns|utente de saude|n\.? ?utente/.test(l)) m.sns = i
+    else if (m.address === undefined && /morada|address|residencia/.test(l)) m.address = i
+    else if (m.phone === undefined && /telefone|telemovel|phone|contact?o tel/.test(l)) m.phone = i
   })
   return m
+}
+
+/**
+ * Uma data de uma folha portuguesa.
+ *
+ * Isto existe porque as folhas de cálculo em Portugal trazem 15/03/1938 e a
+ * coluna do lado de lá é do tipo `date`. O Postgres, com o DateStyle que o
+ * Supabase usa, lê 15/03 como mês 15 e recusa a linha inteira — e como o
+ * importador não lia o erro, a linha desaparecia sem deixar rasto e o
+ * contador dizia que tinha entrado.
+ *
+ * Aceita dd/mm/aaaa, dd-mm-aaaa e aaaa-mm-dd. Qualquer outra coisa devolve
+ * null, que é melhor do que uma data inventada.
+ */
+function dataDaFolha(cru: string): string | null {
+  const t = (cru || '').trim()
+  if (!t) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t
+  const m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/)
+  if (!m) return null
+  const dia = +m[1], mes = +m[2]
+  let ano = +m[3]
+  if (dia > 31 || mes > 12 || dia < 1 || mes < 1) return null
+  // Uma folha com «38» quer dizer 1938 e não 2038: ninguém nascido no futuro
+  // se inscreve num lar. O corte nos 25 anos deixa passar quem tem menos.
+  if (ano < 100) ano += ano > 25 ? 1900 : 2000
+  return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
 }
 
 interface Patient {
@@ -86,12 +123,29 @@ export default function PatientsPage() {
   const [loggedToday, setLoggedToday] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  // ── Etiquetas (sprint163) ─────────────────────────────────────────────────
+  // «Quem e que tem risco de queda?» e uma pergunta que se faz antes de montar
+  // a escala da noite, e ate agora a resposta estava no meio das notas.
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([])
+  const [ligacoes, setLigacoes] = useState<{ patient_id: string; etiqueta_id: string }[]>([])
+  const [etiquetasEscolhidas, setEtiquetasEscolhidas] = useState<string[]>([])
   const [filter, setFilter] = useState<FilterKey>('all')
 
   const [showAdd, setShowAdd] = useState(false)
   const [adding, setAdding] = useState(false)
-  const blankP = { name: '', age: '', sex: '', weight: '', height: '', creatinine: '', conditions: '', allergies: '', notes: '', room_number: '', admission_date: '', emergency_contact: '' }
-  const [newP, setNewP] = useState(blankP)
+  // A ficha vem de `lib/inscricao.ts`, que e a MESMA que a inscricao em
+  // /inscricoes usa. Antes isto era um objeto de 12 campos escrito a mao aqui
+  // — e a tabela `patients` tem 50 colunas. A morada, o NIF, o numero de
+  // utente, o medico de familia, a dieta e a mobilidade existiam ha sprints e
+  // nunca ninguem os conseguiu preencher.
+  //
+  // E pedia a IDADE. Um numero escrito a mao, que a partir do dia seguinte
+  // esta errado. Agora pede-se a data de nascimento e a idade sai dela
+  // sozinha (gatilho `patients_idade`, sprint165).
+  const [newP, setNewP] = useState<Record<string, string>>(() => fichaVazia('utente'))
+  const mudarFicha = useCallback((id: string, valor: string) => {
+    setNewP(f => ({ ...f, [id]: valor }))
+  }, [])
 
   const [archived, setArchived] = useState<{ id: string; name: string }[]>([])
   const [showArchived, setShowArchived] = useState(false)
@@ -152,23 +206,21 @@ export default function PatientsPage() {
 
   // ── ações ──
   async function addPatient() {
-    if (!newP.name.trim() || !user) return
+    if (!newP.nome?.trim() || !user) return
     if (!podeEditar) { toast.error('Só leitura', 'A sua conta não pode adicionar pessoas.'); return }
     setAdding(true)
     try {
+      // `paraColunas` sabe que coluna e que cada campo alimenta, e manda vazio
+      // como null e nao como ''. Nao escreve `age`: quem a escreve e o gatilho,
+      // a partir da data de nascimento.
       const { data, error } = await supabase.from('patients').insert(scope.stamp({
-        user_id: user.id, name: newP.name.trim(), active: true,
-        age: newP.age ? parseInt(newP.age) : null, sex: newP.sex || null,
-        weight: newP.weight ? parseFloat(newP.weight) : null, height: newP.height ? parseInt(newP.height) : null,
-        creatinine: newP.creatinine ? parseFloat(newP.creatinine) : null,
-        conditions: newP.conditions.trim() || null, allergies: newP.allergies.trim() || null,
-        notes: newP.notes.trim() || null, room_number: newP.room_number.trim() || null,
-        admission_date: newP.admission_date || null, emergency_contact: newP.emergency_contact.trim() || null,
+        user_id: user.id, active: true,
+        ...paraColunas(newP, 'utente', { omitirVazios: true }),
       })).select().single()
       // Em falha: NÃO limpar o formulário (a pessoa não perde o que escreveu) e
       // avisar de forma calma. Só limpa + navega quando gravou mesmo.
       if (error) { toast.error('Não foi possível adicionar', reportError('patients-add', error, 'Tenta de novo.')); return }
-      setNewP(blankP)
+      setNewP(fichaVazia('utente'))
       if (data) router.push(`/patients/${data.id}`)
     } catch (e) {
       toast.error('Não foi possível adicionar', reportError('patients-add', e, 'Verifica a ligação e tenta de novo.'))
@@ -239,20 +291,41 @@ export default function PatientsPage() {
     const { rows, mapping } = importPreview
     const get = (row: string[], k: string) => (mapping[k] !== undefined ? (row[mapping[k]] || '') : '').trim()
     let done = 0
+    const falhadas: string[] = []
     for (const row of rows) {
       const name = get(row, 'name'); if (!name) continue
-      await supabase.from('patients').insert(scope.stamp({
+      const nascimento = dataDaFolha(get(row, 'birth'))
+      const { error } = await supabase.from('patients').insert(scope.stamp({
         user_id: user.id, name, active: true,
-        age: parseInt(get(row, 'age')) || null,
+        date_of_birth: nascimento,
+        // A idade da folha só serve para quem não trouxe data. Quem trouxe
+        // data fica com a idade que o gatilho calcular, que está sempre certa.
+        age: nascimento ? null : (parseInt(get(row, 'age')) || null),
         sex: get(row, 'sex').toUpperCase().startsWith('M') ? 'M' : get(row, 'sex').toUpperCase().startsWith('F') ? 'F' : null,
         weight: parseFloat(get(row, 'weight')) || null,
         conditions: get(row, 'conditions') || null, allergies: get(row, 'allergies') || null,
-        room_number: get(row, 'room') || null, admission_date: get(row, 'admission') || null,
+        room_number: get(row, 'room') || null,
+        admission_date: dataDaFolha(get(row, 'admission')),
         emergency_contact: get(row, 'contact') || null,
+        nif: get(row, 'nif') || null, sns_number: get(row, 'sns') || null,
+        address: get(row, 'address') || null, telefone: get(row, 'phone') || null,
       }))
+      // Antes daqui não se lia o erro. Uma linha recusada pela base de dados
+      // desaparecia sem deixar rasto, e o contador dizia na mesma que tinha
+      // entrado — a pessoa fechava o importador convencida de que estava tudo
+      // lá dentro.
+      if (error) { falhadas.push(name); continue }
       done++; setImportDone(done)
     }
     setImportLoading(false); setShowImport(false); setImportPreview(null); load()
+    if (falhadas.length) {
+      toast.error(
+        `${falhadas.length} de ${falhadas.length + done} não entraram`,
+        `${falhadas.slice(0, 3).join(', ')}${falhadas.length > 3 ? ` e mais ${falhadas.length - 3}` : ''}. As outras ficaram guardadas.`,
+      )
+    } else if (done) {
+      toast.success(`${done} ${done === 1 ? noun : nounPlural}`, 'Importados.')
+    }
   }
 
   // ── derivados ──
@@ -272,6 +345,41 @@ export default function PatientsPage() {
     no_log: patients.filter(p => !loggedToday.has(p.id)).length,
   }), [patients, alertCount, medsCount, loggedToday])
 
+  // Carregadas a parte e nao com os utentes: sao duas tabelas pequenas, a
+  // resposta e a mesma para toda a casa, e assim a lista aparece sem esperar
+  // por elas.
+  useEffect(() => {
+    if (!user) return
+    let vivo = true
+    ;(async () => {
+      let qe = supabase.from('etiquetas').select('*').eq('ativa', true).order('nome')
+      qe = scope.filter(qe)
+      const [e, l] = await Promise.all([
+        qe,
+        supabase.from('etiquetas_do_utente').select('patient_id, etiqueta_id'),
+      ])
+      if (!vivo) return
+      // Sem a tabela (migracao por correr) ou sem permissao, o filtro
+      // simplesmente nao aparece. A lista continua a funcionar tal e qual.
+      if (!e.error) setEtiquetas(e.data || [])
+      if (!l.error) setLigacoes(l.data || [])
+    })()
+    return () => { vivo = false }
+  }, [user, supabase, scope])
+
+  const contagemEtiquetas = useMemo(() => contarPorEtiqueta(ligacoes), [ligacoes])
+  const etiquetasPorPessoa = useMemo(() => {
+    const m = new Map<string, Etiqueta[]>()
+    const porId = new Map(etiquetas.map(e => [e.id, e]))
+    for (const l of ligacoes) {
+      const et = porId.get(l.etiqueta_id)
+      if (!et) continue
+      const lista = m.get(l.patient_id)
+      if (lista) lista.push(et); else m.set(l.patient_id, [et])
+    }
+    return m
+  }, [etiquetas, ligacoes])
+
   const visible = useMemo(() => patients
     .filter(p => {
       if (search && !(p.name.toLowerCase().includes(search.toLowerCase()) || (p.conditions || '').toLowerCase().includes(search.toLowerCase()))) return false
@@ -280,12 +388,19 @@ export default function PatientsPage() {
       if (filter === 'no_log') return !loggedToday.has(p.id)
       return true
     })
+    .filter(p => {
+      // «Todas» e nao «alguma»: escolher duas etiquetas quer dizer «quem e as
+      // duas coisas». Com «alguma», acrescentar um filtro ALARGAVA a lista.
+      if (!etiquetasEscolhidas.length) return true
+      const suas = new Set((etiquetasPorPessoa.get(p.id) || []).map(e => e.id))
+      return etiquetasEscolhidas.every(e => suas.has(e))
+    })
     .sort((a, b) => {
       const ar = calcRiskScore({ ...a, alerts: alertCount[a.id], meds_count: medsCount[a.id] } as any)
       const br = calcRiskScore({ ...b, alerts: alertCount[b.id], meds_count: medsCount[b.id] } as any)
       if (br !== ar) return br - ar
       return (alertCount[b.id] || 0) - (alertCount[a.id] || 0)
-    }), [patients, search, filter, alertCount, medsCount, loggedToday])
+    }), [patients, search, filter, alertCount, medsCount, loggedToday, etiquetasEscolhidas, etiquetasPorPessoa])
 
   if (!user) return null
 
@@ -340,6 +455,45 @@ export default function PatientsPage() {
               </button>
             ))}
           </div>
+
+          {/* ── Filtrar por etiqueta ────────────────────────────────────────
+              So aparece quando a casa tem etiquetas. Uma barra de filtros
+              vazia a perguntar porque e que ninguem a usa nao ajuda ninguem. */}
+          {etiquetas.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+              {etiquetas.map(et => {
+                const on = etiquetasEscolhidas.includes(et.id)
+                const c = corDe(et.cor)
+                const n = contagemEtiquetas.get(et.id) || 0
+                if (!n && !on) return null
+                return (
+                  <button key={et.id} title={et.descricao || undefined}
+                    onClick={() => setEtiquetasEscolhidas(p => on ? p.filter(x => x !== et.id) : [...p, et.id])}
+                    style={{
+                      padding: '6px 11px', minHeight: 32, borderRadius: 999, cursor: 'pointer',
+                      border: `1.5px solid ${on ? c.solido : c.borda}`,
+                      background: on ? c.fundo : 'transparent',
+                      color: on ? c.texto : '#64748b',
+                      fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 500,
+                      whiteSpace: 'nowrap',
+                    }}>
+                    <span aria-hidden style={{
+                      display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+                      background: c.solido, marginRight: 6, verticalAlign: 'middle',
+                    }} />
+                    {et.nome}{n > 0 ? ` · ${n}` : ''}
+                  </button>
+                )
+              })}
+              {etiquetasEscolhidas.length > 0 && (
+                <button onClick={() => setEtiquetasEscolhidas([])} style={{
+                  padding: '6px 11px', minHeight: 32, borderRadius: 999, cursor: 'pointer',
+                  border: 'none', background: 'transparent', color: '#64748b',
+                  fontFamily: 'inherit', fontSize: 12, fontWeight: 600, textDecoration: 'underline',
+                }}>limpar</button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Lista */}
@@ -435,30 +589,16 @@ export default function PatientsPage() {
 
       {/* Modal: novo */}
       {showAdd && (
-        <Modal onClose={() => setShowAdd(false)} title={`Novo ${noun}`} accent={accent}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input value={newP.name} onChange={e => setNewP(p => ({ ...p, name: e.target.value }))} placeholder="Nome completo *" autoFocus style={inp} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input value={newP.age} onChange={e => setNewP(p => ({ ...p, age: e.target.value }))} placeholder="Idade" type="number" min="0" max="120" style={inp} />
-              <select value={newP.sex} onChange={e => setNewP(p => ({ ...p, sex: e.target.value }))} style={{ ...inp, background: 'white', color: newP.sex ? '#0b1120' : '#94a3b8' }}>
-                <option value="">Sexo</option><option value="M">Masculino</option><option value="F">Feminino</option>
-              </select>
-            </div>
-            <div className="pt-3col">
-              <input value={newP.weight} onChange={e => setNewP(p => ({ ...p, weight: e.target.value }))} placeholder="Peso (kg)" type="number" step="0.1" style={inp} />
-              <input value={newP.height} onChange={e => setNewP(p => ({ ...p, height: e.target.value }))} placeholder="Altura (cm)" type="number" style={inp} />
-              <input value={newP.creatinine} onChange={e => setNewP(p => ({ ...p, creatinine: e.target.value }))} placeholder="Creat. (mg/dL)" type="number" step="0.01" style={inp} />
-            </div>
-            <input value={newP.conditions} onChange={e => setNewP(p => ({ ...p, conditions: e.target.value }))} placeholder="Diagnósticos (ex: HTA, DM2, FA)" style={inp} />
-            <input value={newP.allergies} onChange={e => setNewP(p => ({ ...p, allergies: e.target.value }))} placeholder="Alergias medicamentosas" style={inp} />
-            <div className="pt-3col" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <input value={newP.room_number} onChange={e => setNewP(p => ({ ...p, room_number: e.target.value }))} placeholder={cfg.roomLabel || 'Sala / lugar'} style={inp} />
-              <input value={newP.admission_date} onChange={e => setNewP(p => ({ ...p, admission_date: e.target.value }))} placeholder="Admissão" type="date" style={inp} />
-            </div>
-            <input value={newP.emergency_contact} onChange={e => setNewP(p => ({ ...p, emergency_contact: e.target.value }))} placeholder="Contacto de emergência (nome e telefone)" style={inp} />
-          </div>
+        <Modal onClose={() => setShowAdd(false)} title={`Novo ${noun}`} accent={accent} wide>
+          <FichaDeInscricao
+            ficha={newP} onChange={mudarFicha} onde="utente" accent={accent}
+            // Num lar é «Quarto», num centro de dia é «Sala». Escrever
+            // qualquer um dos dois dentro do componente estaria errado em
+            // metade das instalações.
+            rotulos={{ sala: cfg.roomLabel || 'Sala ou lugar' }}
+          />
           <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-            <button onClick={addPatient} disabled={!newP.name.trim() || adding} style={{ flex: 1, background: accent, color: 'white', border: 'none', borderRadius: 9, padding: '12px', fontSize: 14, fontWeight: 700, cursor: newP.name.trim() ? 'pointer' : 'not-allowed', opacity: newP.name.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>{adding ? 'A criar…' : 'Criar ficha →'}</button>
+            <button onClick={addPatient} disabled={!newP.nome?.trim() || adding} style={{ flex: 1, background: accent, color: 'white', border: 'none', borderRadius: 9, padding: '12px', fontSize: 14, fontWeight: 700, cursor: newP.nome?.trim() ? 'pointer' : 'not-allowed', opacity: newP.nome?.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>{adding ? 'A criar…' : 'Criar ficha →'}</button>
             <button onClick={() => setShowAdd(false)} style={{ padding: '12px 16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 14, cursor: 'pointer', color: '#475569', fontFamily: 'inherit' }}>Cancelar</button>
           </div>
         </Modal>
@@ -529,4 +669,3 @@ function Modal({ children, onClose, title, accent, wide }: { children: React.Rea
   )
 }
 
-const inp: React.CSSProperties = { border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '11px 13px', fontSize: 14, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }

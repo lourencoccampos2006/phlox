@@ -43,7 +43,10 @@ try {
   for (const [rota, vazio] of PAGINAS) {
     erros.length = 0
     await p.goto(BASE + rota, { waitUntil: 'domcontentloaded' })
-    await p.waitForTimeout(3500)
+    // Seis segundos e nao tres. O /o-dia junta seis fontes e o /mar monta a
+    // grelha toda; a tres segundos apanhava-os a meio e dava «lista vazia» —
+    // um falso alarme, que e o defeito que faz um teste deixar de ser lido.
+    await p.waitForTimeout(6000)
 
     const texto = await p.evaluate(() => document.querySelector('main')?.innerText || document.body.innerText)
     const pareceVazia = vazio ? vazio.test(texto) : false
