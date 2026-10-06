@@ -63,6 +63,20 @@ export const TIPOS_NOTIFICACAO: TipoNotificacao[] = [
     descricao: 'Adesão a cair, silêncio prolongado, queixas a aumentar, peso a descer.' },
 
   // ── A casa ───────────────────────────────────────────────────────────────
+  // Este é o único da casa que é sobre a PRÓPRIA pessoa, e por isso vem
+  // primeiro: é o que ela mais quer ver quando abre esta lista.
+  { id: 'meu_turno', ambito: 'instituicao', omissao: true,
+    label: 'O que ficou consigo',
+    descricao: 'Uma vez por turno, se houver coisas atribuídas a si. Uma notificação com o total — nunca uma por tarefa.' },
+  { id: 'passagem', ambito: 'instituicao', omissao: true,
+    label: 'Passagem de turno por ler',
+    descricao: 'Quando o turno anterior deixou uma passagem e ninguém marcou que a leu.' },
+  { id: 'ronda', ambito: 'instituicao', omissao: true,
+    label: 'Ronda deixada a meio',
+    descricao: 'No fim do turno, se uma ronda foi começada e ficaram pessoas por atender. Nunca avisa de uma ronda que ninguém começou.' },
+  { id: 'formacao', ambito: 'instituicao', omissao: true,
+    label: 'Formação da equipa a caducar',
+    descricao: 'Quando alguém tem um certificado caducado ou a caducar nos próximos 60 dias. Uma vez por mês, com o total — nunca uma por pessoa.' },
   { id: 'doses', ambito: 'instituicao', omissao: true,
     label: 'Doses do turno por registar',
     descricao: 'Perto do fim de cada turno, se houver medicação sem registo.' },

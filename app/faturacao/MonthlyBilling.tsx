@@ -8,6 +8,8 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import FinanceLedger from './FinanceLedger'
+import ContaCorrente from './ContaCorrente'
+import { useOrgName } from '@/lib/useOrgName'
 
 interface Patient { id: string; name: string; room_number?: string | null; active?: boolean }
 interface Entry {
@@ -25,10 +27,13 @@ const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, 
 export default function MonthlyBilling() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  // O nome da casa, e nao o tipo dela. Os recibos e o mapa saiam assinados
+  // «Lar» — que e o que a casa E, nao como se chama.
+  const nomeCasa = useOrgName()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const personPlural = cfg.personNounPlural.toLowerCase()
-  const [tab, setTab] = useState<'mensalidades' | 'movimentos'>('mensalidades')
+  const [tab, setTab] = useState<'mensalidades' | 'conta' | 'movimentos'>('mensalidades')
   const [patients, setPatients] = useState<Patient[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,7 +109,7 @@ export default function MonthlyBilling() {
     printDoc({
       docTitle: 'Mapa de Faturação',
       docSubtitle: new Date(month + '-01T12:00:00').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }),
-      institution: cfg.unitNoun,
+      institution: nomeCasa || cfg.unitNoun,
       meta: [
         { label: 'faturado', value: euro(totalFee) },
         { label: 'recebido', value: euro(received) },
@@ -133,7 +138,7 @@ export default function MonthlyBilling() {
     printDoc({
       docTitle: e.paid ? 'Recibo de Mensalidade' : 'Aviso de Pagamento',
       docSubtitle: nameOf(e.patient_id),
-      institution: cfg.unitNoun,
+      institution: nomeCasa || cfg.unitNoun,
       meta: [
         { label: 'estado', value: e.paid ? 'PAGO' : 'PENDENTE' },
         ...(e.paid && e.paid_date ? [{ label: 'pago em', value: e.paid_date }] : []),
@@ -164,13 +169,26 @@ export default function MonthlyBilling() {
 
         {/* Tabs: mensalidades vs movimentos (despesas + outras receitas) */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1.5px solid var(--border)' }}>
-          {([['mensalidades', '💶 Mensalidades'], ['movimentos', '📊 Despesas e receitas']] as const).map(([t, l]) => (
+          {/* A conta de cada um fica no MEIO, e de propósito: as mensalidades
+              são o acordo, a conta é o que cada pessoa deve de facto, e as
+              despesas da casa são outra conversa. A ordem vai do mais próximo
+              da pessoa para o mais longe. */}
+          {([['mensalidades', '💶 Mensalidades'], ['conta', '🧾 Conta de cada um'], ['movimentos', '📊 Despesas e receitas']] as const).map(([t, l]) => (
             <button key={t} onClick={() => setTab(t)} style={{ padding: '9px 14px', border: 'none', borderBottom: `2px solid ${tab === t ? '#0d6e42' : 'transparent'}`, background: 'none', color: tab === t ? '#0d6e42' : 'var(--ink-4)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', marginBottom: -1.5, fontFamily: 'var(--font-sans)' }}>{l}</button>
           ))}
         </div>
 
         {tab === 'movimentos' ? (
           <FinanceLedger month={month} monthlyReceived={received} />
+        ) : tab === 'conta' ? (
+          // Recebe as mensalidades que esta página já carregou. Uma segunda
+          // leitura das mesmas linhas acabaria por discordar da primeira — e
+          // num ecrã de dinheiro, duas respostas é não ter nenhuma.
+          <ContaCorrente
+            month={month}
+            patients={patients}
+            mensalidades={entries as any}
+          />
         ) : tableMissing ? (
           <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação ainda por ativar</div>

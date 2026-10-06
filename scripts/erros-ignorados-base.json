@@ -82,7 +82,7 @@
   "app/api/study/notes/route.ts": 1,
   "app/api/study/notes-ai/route.ts": 1,
   "app/api/study-doc/list/route.ts": 1,
-  "app/api/team-messages/route.ts": 3,
+  "app/api/team-messages/route.ts": 2,
   "app/api/v/[id]/route.ts": 1,
   "app/api/vigilancia/cron/route.ts": 18,
   "app/api/vigilancia/route.ts": 5,

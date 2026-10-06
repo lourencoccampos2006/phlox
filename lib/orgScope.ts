@@ -48,6 +48,14 @@ export interface OrgScope {
   /** Pode fazer isto? A pergunta que as páginas devem fazer, em vez de olhar
    *  para o papel. Fora de uma instituição devolve sempre true. */
   pode: (area: string, nivel: Nivel) => boolean
+  /**
+   * As permissões já chegaram da base de dados?
+   *
+   * `false` quer dizer «ainda não sei», e não «não pode». Quem GUARDA o
+   * resultado de `ve()` ou `pode()` em estado tem de esperar por isto —
+   * senão grava um «não» que era só uma resposta que ainda não chegou.
+   */
+  pronto: boolean
   /** Deve esta área aparecer no menu? */
   ve: (area: string) => boolean
   /**
@@ -70,7 +78,7 @@ export interface OrgScope {
 
 export function useOrgScope(): OrgScope {
   const { user } = useAuth() as any
-  const { active } = useMemberships()
+  const { active, loading: aCarregarMembros } = useMemberships()
   const orgId: string | null = user?.active_org_id || user?.org_id || null
   const userId: string | null = user?.id || null
 
@@ -83,6 +91,40 @@ export function useOrgScope(): OrgScope {
     || (papelCopia ? (PAPEL_ANTIGO_PARA_NOVO[papelCopia] || papelCopia) : null)
 
   const permissoes: string[] = orgId ? (active?.capabilities || []) : []
+
+  /**
+   * As permissões já chegaram?
+   *
+   * Enquanto não chegaram, `permissoes` está vazio e por isso `ve()` e
+   * `pode()` devolvem FALSO para tudo. Isso está certo — é falhar fechado —
+   * mas é «ainda não sei», e não «não pode». A diferença importa a quem
+   * GUARDE o resultado.
+   *
+   * Foi o que aconteceu no /o-dia: a página montava o dia três vezes, e nas
+   * duas primeiras as permissões ainda não tinham chegado. As dez tarefas
+   * eram filtradas até zero e gravadas em estado. A resposta que ganhava era
+   * a última a RESOLVER, não a última a partir — e o ecrã ficava a dizer
+   * «Nada marcado para tarde» com catorze doses por dar.
+   *
+   * Quem apenas desenha a partir de `ve()` não precisa disto: quando as
+   * permissões chegam, o React volta a desenhar. Quem guarda, precisa.
+   */
+  /*
+   * ── PORQUE É QUE `!aCarregarMembros` VEM PRIMEIRO ──────────────────────
+   * A primeira versão disto era `!orgId || (!aCarregarMembros && !!active)`,
+   * e tinha um buraco: `orgId` sai do perfil do utilizador, que também chega
+   * atrasado. No primeiro render `orgId` é nulo — e `!orgId` dava `pronto:
+   * true` a quem TEM casa, só porque ainda não se sabia qual.
+   *
+   * O /o-dia fazia então `setCarregando(false)` com a lista vazia e o ecrã
+   * mostrava «Nada marcado para tarde» durante um instante, antes de as dez
+   * tarefas aparecerem. Medido: aconteceu em duas de três passagens do
+   * scripts/qa-o-dia-horas.mjs.
+   *
+   * Assim, «pronto» quer dizer as duas coisas de que quem guarda precisa: já
+   * sei se há casa, e — havendo — já sei o que se pode lá ver.
+   */
+  const pronto = !aCarregarMembros && (!orgId || !!active)
 
   // Quem gere a casa: vê o painel administrativo, a auditoria, a equipa.
   // Passou a ser uma PERMISSÃO e não uma lista de papéis — era
@@ -157,7 +199,7 @@ export function useOrgScope(): OrgScope {
 
     return {
       orgId, userId, role: papel, isManager, canEdit,
-      permissoes, pode, ve, veDetalhe,
+      permissoes, pronto, pode, ve, veDetalhe,
       filter, stamp,
       liveFilterColumn: (orgId ? 'org_id' : 'user_id') as 'org_id' | 'user_id',
       liveFilterValue: orgId || userId,
@@ -165,5 +207,5 @@ export function useOrgScope(): OrgScope {
     // `permissoes` fica de fora de propósito: quem manda é a `chavePermissoes`,
     // que compara o conteúdo. O array em si muda de identidade a cada render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId, userId, papel, isManager, canEdit, chavePermissoes])
+  }, [orgId, userId, papel, isManager, canEdit, chavePermissoes, pronto])
 }

@@ -14,6 +14,7 @@
 // isso um filtro nesta rota protegeria de quem usa a aplicação e de mais
 // ninguém.
 import { NextRequest, NextResponse } from 'next/server'
+import { nomesDe } from '@/lib/perfisVisiveis'
 import { createClient } from '@supabase/supabase-js'
 import { notifyOrgMembers } from '@/lib/notifyTeam'
 import { sb } from '@/lib/orgAuth'
@@ -42,11 +43,53 @@ export async function GET(req: NextRequest) {
     console.error('[phlox:team-messages-get]', error.message)
     return NextResponse.json({ messages: [], error: missing ? 'Esta parte ainda não está disponível nesta conta.' : 'Não foi possível carregar agora.' })
   }
-  // conta não-lidas (mais recentes que a última leitura do membro)
-  const { data: read } = await db.from('team_reads').select('last_read').eq('org_id', ctx.orgId).eq('user_id', ctx.user.id).maybeSingle()
+  // ── Quem já viu o mural depois de cada recado ──────────────────────────
+  // Da pesquisa aos programas ingleses: «read receipts» é a peça que faz um
+  // recado valer alguma coisa. Sem ela, quem escreve «a Dona Maria não pode
+  // levantar-se sozinha» não tem como saber se alguém leu — e no dia em que
+  // correr mal, a pergunta «mas isso estava no mural?» não tem resposta.
+  //
+  // ── O QUE ISTO SABE, E O QUE NÃO SABE ──────────────────────────────────
+  // `team_reads` guarda UMA marca por pessoa: a hora a que abriu o mural pela
+  // última vez. Não há um registo por mensagem.
+  //
+  // Daí dá-se para saber que alguém abriu o mural DEPOIS de um recado ter sido
+  // escrito. Não dá para saber que o leu. São coisas diferentes, e a interface
+  // tem de dizer a segunda — chamar-lhe «leu» seria dar à casa uma certeza que
+  // o Phlox não tem, e é exactamente o tipo de certeza falsa que alguém
+  // invoca numa reunião difícil.
+  //
+  // Para quando é preciso mesmo saber que foi lido existe a passagem de turno,
+  // onde há um botão e uma linha por pessoa (`passagem_leituras`).
+  const todasLeituras = await db.from('team_reads')
+    .select('user_id, last_read').eq('org_id', ctx.orgId)
+  const leituras = todasLeituras.error ? [] : (todasLeituras.data || [])
+
+  const read = leituras.find((r: any) => r.user_id === ctx.user.id)
   const lastRead = read?.last_read || '1970-01-01'
   const unread = (data || []).filter((m: any) => m.created_at > lastRead && m.author_id !== ctx.user.id).length
-  return NextResponse.json({ messages: data || [], unread })
+
+  // Os nomes vêm da vista `perfis_visiveis` e não da tabela `profiles`: para
+  // escrever «Ana» ao lado de um recado não é preciso o email nem o NIF de
+  // ninguém (sprint168).
+  const nomes = leituras.length
+    ? await nomesDe(db, leituras.map((r: any) => r.user_id))
+    : new Map<string, string>()
+
+  const vistoPor = (m: any) => leituras
+    .filter((r: any) => r.user_id !== m.author_id && r.last_read > m.created_at)
+    .map((r: any) => ({ id: r.user_id, nome: nomes.get(r.user_id) || 'Colega' }))
+
+  // Quantos é que PODIAM ter visto: a casa menos quem escreveu. É o
+  // denominador do «2 de 5» — sem ele, dois vistos tanto podem ser toda a
+  // gente como quase ninguém.
+  const equipa = leituras.length
+
+  return NextResponse.json({
+    messages: (data || []).map((m: any) => ({ ...m, visto_por: vistoPor(m) })),
+    unread,
+    equipa,
+  })
 }
 
 export async function POST(req: NextRequest) {

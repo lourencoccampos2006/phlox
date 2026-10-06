@@ -38,6 +38,7 @@ const TABELA_DE: Record<CodigoSetup, string | 'env'> = {
   'PHX-S3': 'activity_log',
   'PHX-T3': 'support_transport_routes',
   'PHX-T5': 'patients',                      // coluna lat — verificada à parte
+  'PHX-Y2': 'inqueritos',
   'PHX-V7': 'shift_checkins',
   'PHX-W4': 'candidaturas',
   'PHX-X6': 'modelos_documentos',

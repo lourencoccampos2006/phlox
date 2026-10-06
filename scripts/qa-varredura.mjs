@@ -27,13 +27,14 @@ const RAPIDO = process.argv.includes('--rapido')
 
 // As páginas institucionais, pela ordem por que a equipa lhes chega.
 const PAGINAS = [
-  '/painel', '/o-dia', '/patients', '/mar', '/care-log', '/incidents',
+  '/painel', '/o-dia', '/passagem', '/casa', '/patients', '/mar', '/care-log', '/incidents',
   '/family', '/radar', '/equipa', '/painel-dono', '/estatisticas',
   '/inscricoes', '/calendario-do-ano', '/documentos', '/ronda-guiada',
   '/activities', '/assessments', '/feridas', '/agenda', '/stock',
   '/refeicoes', '/apoio-servicos', '/tendencias', '/guardiao', '/carga',
   '/autonomia', '/preparacao-medicacao', '/apoio-psicossocial', '/historico',
   '/faturacao', '/interactions', '/calculos', '/vigia', '/migrar',
+  '/inqueritos',
 ]
 
 // Ruído que NÃO é defeito: tabelas de migrações que o Fernando ainda não

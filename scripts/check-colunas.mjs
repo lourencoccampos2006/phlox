@@ -77,7 +77,59 @@ for (const f of fs.readdirSync('supabase').filter(x => x.endsWith('.sql'))) {
     }
   }
 }
-const prometida = (t, c) => POR_CORRER.get(t)?.has(c.toLowerCase()) ?? false
+// ── Os ciclos EM MASSA, que não nomeiam tabela nenhuma ─────────────────────
+// Duas migrações por correr acrescentam a mesma coluna a MUITAS tabelas de uma
+// vez, por `execute format('alter table public.%I add column …')` sobre uma
+// consulta ao `information_schema`. Nenhuma expressão regular vê isso, e por
+// isso a guarda acusava doze colunas que estão certas e só esperam o SQL.
+//
+// Doze acusações falsas é o número a partir do qual se deixa de ler a lista —
+// e foi quase o que aconteceu.
+//
+//   sprint169 → `recorded_by_id` em TODAS as tabelas que tenham `org_id`
+//   sprint170 → `responsavel_id` + `responsavel` numa lista de nomes que ESTÁ
+//               escrita no ficheiro, e que por isso se consegue ler
+const TODO_O_SQL = fs.readdirSync('supabase').filter(x => x.endsWith('.sql'))
+  .map(f => fs.readFileSync(path.join('supabase', f), 'utf8')).join('\n')
+
+/** `recorded_by_id` chega a tudo o que tem `org_id`. */
+const RECORDED_EM_MASSA = /add column if not exists recorded_by_id/.test(TODO_O_SQL)
+  && /execute format/.test(TODO_O_SQL)
+  && /column_name = 'org_id'/.test(TODO_O_SQL)
+
+// Um ciclo sobre uma LISTA DE NOMES escrita no ficheiro:
+//
+//     foreach t in array array['a', 'b', 'c']
+//     loop
+//       execute format('alter table public.%I add column if not exists x …', t);
+//     end loop;
+//
+// Aqui os nomes estão lá e leem-se. Cada tabela da lista fica a dever cada
+// coluna que o corpo do ciclo acrescenta.
+for (const f of fs.readdirSync('supabase').filter(x => x.endsWith('.sql'))) {
+  const sql = fs.readFileSync(path.join('supabase', f), 'utf8')
+  for (const ciclo of sql.matchAll(
+    /foreach\s+\w+\s+in\s+array\s+array\s*\[([\s\S]*?)\]([\s\S]*?)end\s+loop/gi)) {
+    const nomes = [...ciclo[1].matchAll(/'([a-z_][a-z0-9_]*)'/g)].map(m => m[1])
+    const colunas = [...ciclo[2].matchAll(/add\s+column\s+if\s+not\s+exists\s+([a-z_][a-z0-9_]*)/gi)]
+      .map(m => m[1].toLowerCase())
+    if (!nomes.length || !colunas.length) continue
+    for (const t of nomes) {
+      if (!POR_CORRER.has(t)) POR_CORRER.set(t, new Set())
+      for (const c of colunas) POR_CORRER.get(t).add(c)
+    }
+  }
+}
+
+const temOrgIdReal = (t) => COLUNAS.get(t)?.has('org_id') ?? false
+
+const prometida = (t, c) => {
+  const col = c.toLowerCase()
+  if (POR_CORRER.get(t)?.has(col)) return true
+  // O único ciclo que não nomeia ninguém: o do sprint169.
+  if (col === 'recorded_by_id' && RECORDED_EM_MASSA && temOrgIdReal(t)) return true
+  return false
+}
 
 /* ── Os ficheiros ─────────────────────────────────────────────────────────── */
 const ficheiros = []
@@ -194,7 +246,21 @@ for (const f of ficheiros) {
     escritas++
     const doEsquema = COLUNAS.get(tabela)
     const linha = src.slice(0, m.index).split('\n').length
-    for (const c of chavesDe(corpo)) {
+
+    // `scope.stamp()` não é só o objeto que lá está escrito: acrescenta
+    // `user_id`, `org_id` e `recorded_by_id` por baixo do pano.
+    //
+    // Essa última não existia em ONZE tabelas novas, e o PostgREST recusa a
+    // escrita INTEIRA por causa dela. É assim que «as etiquetas não
+    // funcionam» — e a inscrição, e o calendário, e os modelos.
+    //
+    // Esta guarda deixou passar isso porque só olhava para as chaves escritas
+    // à letra. Uma guarda que não conhece o que o código acrescenta sozinho
+    // não está a olhar para o que vai mesmo na escrita.
+    const doStamp = /scope\.stamp\(/.test(inteiro)
+      ? ['user_id', 'org_id', 'recorded_by_id'] : []
+
+    for (const c of new Set([...chavesDe(corpo), ...doStamp])) {
       conferidos++
       if (!doEsquema.has(c)) {
         const parecidas = [...doEsquema].filter(x =>

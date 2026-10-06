@@ -52,6 +52,26 @@ export interface Ocorrencia {
 // ter tipos nenhuns: não se consegue contar nada, e é por tipo que se percebe
 // onde a casa tem um problema a repetir-se.
 
+/**
+ * De quem é esta ocorrência?
+ *
+ * ── PORQUE É QUE ISTO NÃO É UM INTERRUPTOR NO FORMULÁRIO ───────────────────
+ * Seria mais simples ter uma caixa «isto é sobre alguém?». Mas então uma queda
+ * podia ser gravada sem dizer de quem — e uma queda sem pessoa não é uma
+ * ocorrência, é uma nota inútil.
+ *
+ * É o TIPO que manda. Quem escolhe «Queda» deixa de ter uma decisão para
+ * tomar, e quem escolhe «Água» não tem de explicar que um cano não é de
+ * ninguém.
+ */
+export type QuemEnvolve =
+  /** Sem pessoa não faz sentido: uma queda é sempre de alguém. */
+  | 'exige'
+  /** Pode ser das duas: uma reclamação, um equipamento que magoou alguém. */
+  | 'opcional'
+  /** É da casa: um corte de água não é de ninguém em particular. */
+  | 'nao'
+
 export interface TipoOcorrencia {
   id: string
   label: string
@@ -60,6 +80,9 @@ export interface TipoOcorrencia {
   ajuda: string
   /** Avisar a família por omissão? Uma queda sim; uma falta de pessoal não. */
   avisarFamilia: boolean
+  /** Exige, aceita ou recusa um utente. Por omissão `exige` — os tipos que já
+   *  existiam eram todos de uma pessoa, e o silêncio tem de os manter assim. */
+  pessoa?: QuemEnvolve
 }
 
 export const TIPOS: TipoOcorrencia[] = [
@@ -73,7 +96,7 @@ export const TIPOS: TipoOcorrencia[] = [
     ajuda: 'Dieta trocada, textura errada, ou algo a que é alérgica.' },
   { id: 'fuga', label: 'Saiu sem ninguém ver', icone: '🚪', avisarFamilia: true,
     ajuda: 'Saiu da casa sem que a equipa desse por isso.' },
-  { id: 'agressao', label: 'Agressão ou conflito', icone: '💢', avisarFamilia: true,
+  { id: 'agressao', label: 'Agressão ou conflito', icone: '💢', avisarFamilia: true, pessoa: 'opcional',
     ajuda: 'Entre utentes, ou com alguém da equipa.' },
   { id: 'behavioral', label: 'Alteração de comportamento', icone: '🧠', avisarFamilia: false,
     ajuda: 'Agitação, confusão, recusa persistente.' },
@@ -81,21 +104,89 @@ export const TIPOS: TipoOcorrencia[] = [
     ajuda: 'Ferida por pressão, nova ou agravada.' },
   { id: 'infection', label: 'Infeção', icone: '🦠', avisarFamilia: true,
     ajuda: 'Suspeita ou confirmação, incluindo surtos.' },
-  { id: 'transporte', label: 'Transporte', icone: '🚐', avisarFamilia: true,
+  { id: 'transporte', label: 'Transporte', icone: '🚐', avisarFamilia: true, pessoa: 'opcional',
     ajuda: 'A carrinha, a chegada, a saída — atraso, engano, acidente.' },
-  { id: 'material', label: 'Equipamento', icone: '🔧', avisarFamilia: false,
+  { id: 'material', label: 'Equipamento', icone: '🔧', avisarFamilia: false, pessoa: 'opcional',
     ajuda: 'Cadeira, cama, elevador ou outro material que falhou ou magoou.' },
-  { id: 'reclamacao', label: 'Reclamação', icone: '📣', avisarFamilia: false,
+  { id: 'reclamacao', label: 'Reclamação', icone: '📣', avisarFamilia: false, pessoa: 'opcional',
     ajuda: 'De uma família ou de um utente. Fica escrita, sempre.' },
-  { id: 'ausencia_equipa', label: 'Falta de pessoal', icone: '👥', avisarFamilia: false,
+  { id: 'ausencia_equipa', label: 'Falta de pessoal', icone: '👥', avisarFamilia: false, pessoa: 'nao',
     ajuda: 'Faltou quem devia estar, e isso afetou o cuidado.' },
-  { id: 'other', label: 'Outro', icone: '⚠️', avisarFamilia: false,
+  // ── A CASA ────────────────────────────────────────────────────────────────
+  // Nada disto existia, e o formulário exigia um utente — por isso um cano
+  // rebentado, uma falha de energia ou uma visita da ASAE não tinham onde ser
+  // registados.
+  //
+  // São estas que explicam, três meses depois, porque é que naquele dia a
+  // rotina foi outra: o banho que não houve, o almoço que atrasou, a medicação
+  // que ficou para a tarde.
+  { id: 'agua', label: 'Água', icone: '🚰', avisarFamilia: false, pessoa: 'nao',
+    ajuda: 'Corte, rotura, inundação, ou falta de água quente.' },
+  { id: 'energia', label: 'Energia', icone: '⚡', avisarFamilia: false, pessoa: 'nao',
+    ajuda: 'Falha de eletricidade ou de gás. Diga quanto tempo durou.' },
+  { id: 'incendio', label: 'Incêndio ou alarme', icone: '🔥', avisarFamilia: true, pessoa: 'nao',
+    ajuda: 'Fogo, fumo, ou o alarme a disparar — mesmo que seja falso.' },
+  { id: 'seguranca', label: 'Segurança', icone: '🔒', avisarFamilia: false, pessoa: 'nao',
+    ajuda: 'Intrusão, furto, ou uma porta que ficou aberta.' },
+  { id: 'pragas', label: 'Pragas', icone: '🐜', avisarFamilia: false, pessoa: 'nao',
+    ajuda: 'Insetos ou roedores. A ASAE pergunta pelo controlo de pragas.' },
+  { id: 'inspecao', label: 'Visita de fiscalização', icone: '📋', avisarFamilia: false, pessoa: 'nao',
+    ajuda: 'Segurança Social, ASAE, bombeiros. Escreva o que foi visto e o que foi pedido.' },
+  { id: 'obras', label: 'Obras ou avaria', icone: '🔨', avisarFamilia: false, pessoa: 'nao',
+    ajuda: 'Avaria ou obra que mudou a rotina da casa.' },
+
+  { id: 'other', label: 'Outro', icone: '⚠️', avisarFamilia: false, pessoa: 'opcional',
     ajuda: 'O que não cabe em mais nenhum. Escreva bem o que aconteceu.' },
 ]
 
 export const POR_TIPO = new Map(TIPOS.map(t => [t.id, t]))
 export const rotuloTipo = (id: string) => POR_TIPO.get(id)?.label || id
 export const iconeTipo = (id: string) => POR_TIPO.get(id)?.icone || '⚠️'
+
+/** Por omissão, um tipo é de uma pessoa: os que já existiam eram todos. */
+const deQuem = (id: string | null | undefined): QuemEnvolve =>
+  POR_TIPO.get(String(id))?.pessoa || 'exige'
+
+/** Esta ocorrência não faz sentido sem dizer de quem é? */
+export const exigePessoa = (tipo: string | null | undefined): boolean => deQuem(tipo) === 'exige'
+
+/** Esta ocorrência aceita um utente? */
+export const aceitaPessoa = (tipo: string | null | undefined): boolean => deQuem(tipo) !== 'nao'
+
+/** É do edifício e do serviço, e não de alguém? */
+export const eDaCasa = (tipo: string | null | undefined): boolean => deQuem(tipo) === 'nao'
+
+/** Os tipos arrumados em dois grupos, para o formulário. */
+export const POR_GRUPO: { id: 'pessoa' | 'casa'; label: string; tipos: TipoOcorrencia[] }[] = [
+  { id: 'pessoa', label: 'Com uma pessoa', tipos: TIPOS.filter(t => deQuem(t.id) !== 'nao') },
+  { id: 'casa', label: 'Na casa', tipos: TIPOS.filter(t => deQuem(t.id) === 'nao') },
+]
+
+/**
+ * O que impede esta ocorrência de ser gravada. `null` = pode ir.
+ *
+ * Vive aqui e não no formulário: a mesma regra faz falta em qualquer sítio que
+ * venha a registar ocorrências, e uma segunda cópia acabaria por discordar.
+ */
+export function problemaNaOcorrencia(
+  tipo: string, patientId: string | null | undefined, comoSeChama = 'um utente',
+): string | null {
+  const t = POR_TIPO.get(tipo)
+  if (!t) return 'Escolha o tipo de ocorrência.'
+  if (deQuem(tipo) === 'exige' && !patientId) {
+    return `Uma ocorrência do tipo «${t.label}» é sempre de alguém — escolha ${comoSeChama}.`
+  }
+  return null
+}
+
+/**
+ * Sobre quem é, numa lista.
+ *
+ * Uma ocorrência da casa dizia «—», que se lê como «falta aqui o nome». «A
+ * casa» diz o que é.
+ */
+export const sobreQuem = (tipo: string, nome: string | null | undefined): string =>
+  nome || (eDaCasa(tipo) ? 'A casa' : '—')
 
 // ─────────────────────────────────────────────────────────────────────────────
 // O SEGUIMENTO

@@ -157,7 +157,10 @@ function CampoDaFicha({ campo, valor, onChange, accent, hoje, rotulo, autoFocus 
         <select value={valor} onChange={e => onChange(e.target.value)}
           style={{ ...base, color: valor ? '#0b1120' : '#94a3b8' }}>
           <option value="">—</option>
-          {campo.opcoes!.map(o => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+          {/* `|| []` e nao `!`: um campo de escolha sem opcoes escritas e um
+              erro de configuracao, e com a assercao levava a ficha de
+              inscricao inteira abaixo em vez de mostrar uma lista vazia. */}
+          {(campo.opcoes || []).map(o => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
         </select>
       ) : campo.tipo === 'longo' ? (
         <textarea value={valor} onChange={e => onChange(e.target.value)} rows={3}

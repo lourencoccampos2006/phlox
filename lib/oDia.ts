@@ -58,8 +58,21 @@ export interface Tarefa {
   detalhe?: string | null
   /** `manha` | `tarde` | `noite`, ou null para qualquer altura. */
   turno: string | null
+  /**
+   * `HH:MM`, ou null para «a qualquer hora do turno».
+   *
+   * Null é uma resposta legítima e não um dado em falta: a esmagadora maioria
+   * do que se faz numa casa faz-se durante a manhã, e não às 09:40. Inventar
+   * uma hora para tudo ficar ordenado seria inventar informação clínica — e
+   * num centro de dia, onde metade das coisas acontecem quando calha, era
+   * mentira a dobrar. Quem não tem hora aparece depois de quem tem.
+   */
+  hora: string | null
   /** Área de permissões: quem não a vê não recebe esta tarefa. */
   area: string
+  /** Quem ficou com isto. Null = é de quem estiver de turno. */
+  responsavelId?: string | null
+  responsavel?: string | null
   feito: boolean
   /** Já foi assinalado como não prestado hoje, e porquê. */
   naoPrestado?: { motivo: string; nota: string | null } | null
@@ -74,6 +87,32 @@ export const ROTULO_DA_FONTE: Record<Fonte, string> = {
   atividade: 'Atividades',
   apoio: 'Apoio',
   reforco: 'Reforço alimentar',
+}
+
+/**
+ * A cor de cada origem.
+ *
+ * ── PORQUE É QUE ISTO EXISTE ───────────────────────────────────────────────
+ * Um turno tem trinta a setenta linhas, e antes disto eram todas iguais: para
+ * saber se uma linha era uma toma ou um banho havia que LER a segunda linha,
+ * em cinza, a onze e meio. Trinta vezes.
+ *
+ * Com uma barra de cor à esquerda, a estrutura do turno vê-se sem ler nada —
+ * onde estão as doses, onde está o cuidado, onde está o que veio do plano.
+ *
+ * ── SÃO CORES SURDAS, E DE PROPÓSITO ───────────────────────────────────────
+ * Nenhuma delas é vermelha nem berrante. Estas cores dizem «isto é de que
+ * tipo», não «isto é grave» — e se gritassem, a primeira coisa urgente a
+ * aparecer no ecrã não se distinguia do resto. O vermelho fica livre para
+ * quando for mesmo preciso.
+ */
+export const COR_DA_FONTE: Record<Fonte, string> = {
+  medicacao: '#5a6d7c',   // azul-ardósia — a que não espera
+  servico:   '#5f7161',   // verde-sálvia — o corpo do dia
+  plano:     '#6b6a80',   // lilás-gasto — o que vem do plano individual
+  atividade: '#7c6f5a',   // areia — a vida da casa
+  apoio:     '#7a5f70',   // ameixa — o que foi pedido
+  reforco:   '#80625f',   // terracota — a alimentação
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,6 +153,9 @@ export function tarefasDosServicos(
       oQue: s.servico.nome,
       detalhe: [s.atribuicao.quem, s.atribuicao.notas].filter(Boolean).join(' · ') || null,
       turno: s.atribuicao.turno,
+      hora: horaValida((s.atribuicao as any).hora),
+      responsavelId: (s.atribuicao as any).responsavel_id ?? null,
+      responsavel: (s.atribuicao as any).responsavel ?? null,
       // A área vem do SERVIÇO e não da pessoa: um tratamento de feridas é de
       // quem trata feridas, mesmo que o banho da mesma pessoa seja de todos.
       area: s.servico.area,
@@ -149,6 +191,9 @@ export function tarefasDoPlano(
       oQue: a.o_que,
       detalhe: a.quem || null,
       turno: a.turno,
+      hora: horaValida((a as any).hora),
+      responsavelId: (a as any).responsavel_id ?? null,
+      responsavel: (a as any).responsavel ?? null,
       area: o.area,
       feito: feitas.has(`${a.id}|${a.turno ?? '-'}`),
       ref: { acao_id: a.id, turno: a.turno },
@@ -159,7 +204,12 @@ export function tarefasDoPlano(
 /** As tomas devidas neste turno. */
 export function tarefasDaMedicacao(
   pessoas: Pessoa[],
-  meds: { id: string; patient_id: string; name: string; dose: string | null; shifts: string[] | null; take_location?: string | null; sos?: boolean | null }[],
+  meds: {
+    id: string; patient_id: string; name: string; dose: string | null
+    shifts: string[] | null; take_location?: string | null; sos?: boolean | null
+    /** `{"manha":"08:00","noite":"22:00"}` — ver a nota em baixo. */
+    horas?: Record<string, string> | null
+  }[],
   registos: { med_id: string; patient_id: string; status: string }[],
   turno: string,
 ): Tarefa[] {
@@ -190,6 +240,13 @@ export function tarefasDaMedicacao(
       oQue: m.name,
       detalhe: m.dose || null,
       turno,
+      // A hora é POR TURNO e não uma lista paralela a `shifts`: o brifen é de
+      // manhã e à noite, e são horas diferentes. Duas listas à mesma ordem
+      // partem-se assim que alguém tira um turno do meio — todas as horas a
+      // seguir passam a estar na linha errada e ninguém repara, porque
+      // continua a haver uma hora em cada sítio. Com a chave, não há ordem
+      // para se perder.
+      hora: horaValida(m.horas?.[turno]),
       area: 'medicacao',
       feito: estado === 'administered',
       naoPrestado: estado === 'refused' ? { motivo: 'recusou', nota: null }
@@ -219,7 +276,10 @@ export function tarefasDaMedicacao(
  */
 export function tarefasDasAtividades(
   pessoas: Pessoa[],
-  atividades: { id: string; title: string; start_time: string | null; status: string }[],
+  atividades: {
+    id: string; title: string; start_time: string | null; status: string
+    responsavel_id?: string | null; responsavel?: string | null; responsible?: string | null
+  }[],
   participacoes: { activity_id: string; patient_id: string; attended: boolean; motivo: string | null }[],
 ): Tarefa[] {
   // Só as que ainda não foram dadas por terminadas ou canceladas: uma atividade
@@ -239,8 +299,13 @@ export function tarefasDasAtividades(
       patientId: pessoa.id,
       nome: pessoa.name,
       oQue: a.title,
-      detalhe: a.start_time || null,
+      // A hora saiu do detalhe: agora é o que ordena a linha, e repeti-la ao
+      // lado do nome era dizer duas vezes a mesma coisa.
+      detalhe: a.responsible || null,
       turno: horaParaTurno(a.start_time),
+      hora: horaValida(a.start_time),
+      responsavelId: a.responsavel_id ?? null,
+      responsavel: a.responsavel ?? a.responsible ?? null,
       area: 'atividades',
       feito: part.attended === true,
       naoPrestado: part.attended === false && part.motivo
@@ -254,7 +319,10 @@ export function tarefasDasAtividades(
 /** Os serviços de apoio pedidos ou a decorrer. */
 export function tarefasDoApoio(
   pessoas: Pessoa[],
-  servicos: { id: string; patient_id: string | null; kind: string; status: string; notes: string | null }[],
+  servicos: {
+    id: string; patient_id: string | null; kind: string; status: string; notes: string | null
+    responsavel_id?: string | null; responsavel?: string | null
+  }[],
 ): Tarefa[] {
   return servicos.flatMap(s => {
     if (!s.patient_id) return []
@@ -269,6 +337,10 @@ export function tarefasDoApoio(
       oQue: s.kind,
       detalhe: s.notes || null,
       turno: null,
+      // Um pedido de apoio não tem hora: é um pedido, trata-se quando dá.
+      hora: null,
+      responsavelId: s.responsavel_id ?? null,
+      responsavel: s.responsavel ?? null,
       area: 'registos',
       feito: false,
       ref: { servico_id: s.id },
@@ -279,7 +351,7 @@ export function tarefasDoApoio(
 /** Os reforços alimentares deste turno. */
 export function tarefasDosReforcos(
   pessoas: Pessoa[],
-  reforcos: { id: string; patient_id: string; shift: string; given: boolean; notes: string | null }[],
+  reforcos: { id: string; patient_id: string; shift: string; given: boolean; notes: string | null; hora?: string | null }[],
   turno: string,
 ): Tarefa[] {
   return reforcos.flatMap(r => {
@@ -294,11 +366,36 @@ export function tarefasDosReforcos(
       oQue: 'Reforço alimentar',
       detalhe: r.notes || null,
       turno,
+      hora: horaValida(r.hora),
       area: 'registos',
       feito: r.given,
       ref: { reforco_id: r.id },
     }]
   })
+}
+
+/**
+ * Uma hora a sério, ou null.
+ *
+ * Aceita o que as várias tabelas guardam de facto — `'9:00'`, `'09:00'`,
+ * `'09:00:00'` — e devolve sempre `HH:MM`. Tudo o resto é null, e não uma
+ * tentativa de adivinhar: uma hora mal lida ordena a lista pela ordem errada
+ * e fá-lo em silêncio, que é a pior maneira de estar errado.
+ */
+export function horaValida(v: string | null | undefined): string | null {
+  if (!v) return null
+  const m = /^\s*(\d{1,2}):(\d{2})/.exec(String(v))
+  if (!m) return null
+  const h = Number(m[1]), min = Number(m[2])
+  if (h > 23 || min > 59) return null
+  return `${String(h).padStart(2, '0')}:${m[2]}`
+}
+
+/** `HH:MM` → minutos desde a meia-noite. Para ordenar, e mais nada. */
+export function minutosDe(hora: string | null | undefined): number | null {
+  const h = horaValida(hora)
+  if (!h) return null
+  return Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5))
 }
 
 /** «10:30» → o turno em que isso cai. */
@@ -323,6 +420,68 @@ export interface Grupo {
   subtitulo?: string
   tarefas: Tarefa[]
   porFazer: number
+  /** Só na vista por hora: `HH:MM`, ou null para o grupo «a qualquer hora». */
+  hora?: string | null
+}
+
+/**
+ * Agrupado pelo RELÓGIO — a forma de perceber o que é para agora.
+ *
+ * ── PORQUE É QUE ESTA É A VISTA PRINCIPAL ──────────────────────────────────
+ * «No /o-dia as coisas aparecem de forma estranha, não há horas, não há ordem,
+ * apenas tarefas.»
+ *
+ * As outras duas vistas respondem a «o que falta à Dona Maria» e «a quem falta
+ * o banho». Nenhuma responde à pergunta que se faz mais vezes num turno: o que
+ * é para fazer A SEGUIR. Sem o relógio, a lista é um monte — e um monte
+ * ordena-se pela ordem por que se lê, que é a ordem errada.
+ *
+ * ── O QUE NÃO TEM HORA NÃO É EMPURRADO PARA UMA HORA FALSA ─────────────────
+ * A tentação é dar a cada coisa sem hora a hora de início do turno, para tudo
+ * ficar na linha. Isso ordena, mas mente: passavam a estar todas às 07:00 e a
+ * página dizia que às sete há vinte coisas para fazer.
+ *
+ * Ficam num grupo próprio no fim, que é a verdade: fazem-se durante o turno.
+ *
+ * ── E A ORDEM NÃO MUDA COM O TRABALHO ──────────────────────────────────────
+ * Ao contrário das outras duas vistas, os grupos já tratados NÃO descem para o
+ * fim. Uma linha do tempo em que as horas mudam de sítio à medida que se
+ * trabalha deixa de ser uma linha do tempo — e quem estava a meio da lista
+ * perde o sítio onde ia.
+ */
+export function porHora(tarefas: Tarefa[]): Grupo[] {
+  const mapa = new Map<string, Tarefa[]>()
+  for (const t of tarefas) {
+    const chave = t.hora || '—'
+    const lista = mapa.get(chave)
+    if (lista) lista.push(t); else mapa.set(chave, [t])
+  }
+
+  return [...mapa.entries()]
+    .map(([hora, lista]) => {
+      const porFazer = lista.filter(t => !t.feito && !t.naoPrestado).length
+      const semHora = hora === '—'
+      return {
+        chave: `hora:${hora}`,
+        titulo: semHora ? 'A qualquer hora' : hora,
+        subtitulo: porFazer === 0
+          ? 'tudo tratado'
+          : `${porFazer} por fazer`,
+        // Dentro da mesma hora não há mais relógio que decida: ordena-se por
+        // pessoa, para quem estiver a percorrer o corredor não andar de um
+        // lado para o outro.
+        tarefas: [...lista].sort((a, b) =>
+          a.nome.localeCompare(b.nome, 'pt') || a.oQue.localeCompare(b.oQue, 'pt')),
+        porFazer,
+        hora: semHora ? null : hora,
+      }
+    })
+    .sort((a, b) => {
+      // O grupo sem hora vai para o fim, sempre.
+      if (!a.hora) return 1
+      if (!b.hora) return -1
+      return (minutosDe(a.hora) ?? 0) - (minutosDe(b.hora) ?? 0)
+    })
 }
 
 /**
@@ -386,13 +545,31 @@ export function porTarefa(tarefas: Tarefa[]): Grupo[] {
     .sort((a, b) => (b.porFazer - a.porFazer) || a.titulo.localeCompare(b.titulo, 'pt'))
 }
 
-/** Dentro de uma pessoa: primeiro o que falta, e a medicação à frente. */
+/**
+ * Dentro de uma pessoa: primeiro o que falta, depois pelo relógio.
+ *
+ * A hora passou à frente do tipo de tarefa. Antes disto a medicação vinha
+ * sempre primeiro, o que estava certo enquanto não havia horas — era o único
+ * critério que significava alguma coisa. Agora que há, uma toma das 22:00
+ * aparecer acima de um banho das 10:00 é pôr a lista ao contrário do dia.
+ *
+ * O peso do tipo continua a decidir os empates, e aí a medicação continua à
+ * frente: entre duas coisas à mesma hora, a dose é a que não espera.
+ */
 function ordenar(lista: Tarefa[]): Tarefa[] {
   const peso: Record<Fonte, number> = { medicacao: 0, servico: 1, plano: 2, reforco: 3, atividade: 4, apoio: 5 }
   return [...lista].sort((a, b) => {
     const aFeita = a.feito || !!a.naoPrestado
     const bFeita = b.feito || !!b.naoPrestado
     if (aFeita !== bFeita) return aFeita ? 1 : -1
+    // Quem não tem hora vai para depois de quem tem — não para o princípio,
+    // que é onde `null` cairia se isto fosse uma subtração simples.
+    const ha = minutosDe(a.hora), hb = minutosDe(b.hora)
+    if (ha !== hb) {
+      if (ha === null) return 1
+      if (hb === null) return -1
+      return ha - hb
+    }
     return peso[a.fonte] - peso[b.fonte] || a.oQue.localeCompare(b.oQue, 'pt')
   })
 }

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { TIPOS, seguimento, repeticoes, ordenarPorAtencao, type Ocorrencia } from '@/lib/ocorrencias'
+import { TIPOS, POR_TIPO, seguimento, repeticoes, ordenarPorAtencao, type Ocorrencia,
+  exigePessoa, aceitaPessoa, eDaCasa, problemaNaOcorrencia, sobreQuem, POR_GRUPO,
+} from '@/lib/ocorrencias'
 import { useAuth } from '@/components/AuthContext'
 import Icon from '@/components/Icon'
 import { useLiveData } from '@/lib/useLiveData'
@@ -127,7 +129,10 @@ export default function IncidentsPage() {
     setPatients(pat || [])
     const patMap: Record<string, string> = {}
     ;(pat || []).forEach((p: Patient) => { patMap[p.id] = p.name })
-    setIncidents((inc || []).map((i: any) => ({ ...i, patient_name: patMap[i.patient_id] || '—' })))
+    // «—» lia-se como «falta aqui o nome». «A casa» diz o que é.
+    setIncidents((inc || []).map((i: any) => ({
+      ...i, patient_name: sobreQuem(i.type, patMap[i.patient_id]),
+    })))
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId])
@@ -183,12 +188,22 @@ export default function IncidentsPage() {
     setSaving(true)
     setSaveError('')
     try {
-      if (!form.patient_id) throw new Error(`Seleciona ${cfg.personNounIndef}`)
+      // Quem decide se é preciso um utente é o TIPO, e não esta linha.
+      //
+      // Antes era `if (!form.patient_id) throw` para tudo — e por isso um cano
+      // rebentado, uma falha de energia ou uma visita da ASAE não tinham onde
+      // ser registados. São essas que explicam, três meses depois, porque é
+      // que naquele dia a rotina foi outra.
+      const problema = problemaNaOcorrencia(form.type, form.patient_id, cfg.personNounIndef)
+      if (problema) throw new Error(problema)
       if (!form.description.trim()) throw new Error('A descrição é obrigatória')
 
       const payload = {
         user_id: user.id,
-        patient_id: form.patient_id,
+        // Um tipo da casa nunca leva utente, mesmo que tenha ficado um
+        // escolhido de uma tentativa anterior. Sem isto, mudar de «Queda» para
+        // «Água» gravava a falta de água na ficha de alguém.
+        patient_id: aceitaPessoa(form.type) ? (form.patient_id || null) : null,
         date: form.date,
         time: form.time || null,
         type: form.type,
@@ -221,7 +236,9 @@ export default function IncidentsPage() {
         if (dbErr) throw new Error(dbErr.message)
         // Ocorrência grave/crítica → abre o modal para comunicar à família (o
         // profissional revê e envia). Guardamos os dados antes de limpar o form.
-        if (form.severity === 'major' || form.severity === 'critical') {
+        // Só há família para avisar quando há uma pessoa. Uma falha de energia
+        // é grave e não tem família nenhuma do outro lado.
+        if (payload.patient_id && (form.severity === 'major' || form.severity === 'critical')) {
           openNotifyFamily(payload.patient_id, form.type, form.severity)
         }
       }
@@ -646,20 +663,46 @@ export default function IncidentsPage() {
               )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {/* O TIPO vem primeiro, e não a pessoa. É ele que decide se
+                    há pessoa — perguntar «quem?» antes de saber «o quê?»
+                    obrigava a escolher alguém para registar um corte de água. */}
                 <div style={{ gridColumn: '1/-1' }}>
-                  <Label>{person} *</Label>
-                  <select value={form.patient_id} onChange={e => f('patient_id', e.target.value)} style={selectStyle}>
-                    <option value="">{`Selecionar ${personLower}...`}</option>
-                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{cfg.hasBeds && p.room_number ? ` — ${cfg.roomLabel[0]}${p.room_number}` : ''}</option>)}
-                  </select>
-                </div>
-
-                <div>
                   <Label>Tipo de ocorrência *</Label>
                   <select value={form.type} onChange={e => f('type', e.target.value)} style={selectStyle}>
-                    {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    {POR_GRUPO.map(g => (
+                      <optgroup key={g.id} label={g.label}>
+                        {g.tipos.map(t => <option key={t.id} value={t.id}>{t.icone} {t.label}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
+                  {POR_TIPO.get(form.type)?.ajuda && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 4, lineHeight: 1.45 }}>
+                      {POR_TIPO.get(form.type)!.ajuda}
+                    </div>
+                  )}
                 </div>
+
+                {/* A pessoa só aparece quando o tipo a aceita. Um seletor
+                    desativado continuava a dizer que falta ali qualquer coisa. */}
+                {aceitaPessoa(form.type) && (
+                  <div style={{ gridColumn: '1/-1' }}>
+                    <Label>{person}{exigePessoa(form.type) ? ' *' : ''}</Label>
+                    <select value={form.patient_id} onChange={e => f('patient_id', e.target.value)} style={selectStyle}>
+                      <option value="">
+                        {exigePessoa(form.type)
+                          ? `Selecionar ${personLower}...`
+                          : `Ninguém em particular — é da casa`}
+                      </option>
+                      {patients.map(p => <option key={p.id} value={p.id}>{p.name}{cfg.hasBeds && p.room_number ? ` — ${cfg.roomLabel[0]}${p.room_number}` : ''}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {eDaCasa(form.type) && (
+                  <div style={{ gridColumn: '1/-1', fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5 }}>
+                    Esta ocorrência é da casa — não é preciso escolher ninguém.
+                  </div>
+                )}
 
                 <div>
                   <Label>Gravidade *</Label>

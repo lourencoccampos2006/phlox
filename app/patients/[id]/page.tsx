@@ -100,6 +100,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [showAddMed, setShowAddMed] = useState(false)
   const [newMed, setNewMed] = useState({
     name: '', dose: '', frequency: '', indication: '', shifts: [] as string[], take_location: 'centro',
+    horas: {} as Record<string, string>,
     // Medicacao SOS (sprint159). Nao havia onde a marcar — o modelo existia e
     // a interface do SOS na ficha nunca chegava a aparecer, porque nenhum
     // medicamento podia ser marcado como tal.
@@ -244,6 +245,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       // Um SOS nao tem turnos: da-se quando e preciso. Gravar turnos num SOS
       // fa-lo-ia aparecer como dose por dar em cada turno de cada dia.
       shifts: newMed.sos ? null : (newMed.shifts.length ? newMed.shifts : null),
+      // A hora de cada toma, por turno: {"manha":"08:00"}. So dos turnos que
+      // estao mesmo ligados — quem tire um turno depois de lhe ter posto hora
+      // deixava para tras uma hora orfa, que reaparecia se voltasse a ligar o
+      // turno e ja nao era a que ele queria.
+      horas: newMed.sos ? {} : Object.fromEntries(
+        newMed.shifts.filter(t => newMed.horas[t]).map(t => [t, newMed.horas[t]])),
       sos: newMed.sos,
       sos_para: newMed.sos ? (newMed.sos_para.trim() || null) : null,
       sos_max_dia: newMed.sos && newMed.sos_max_dia ? Number(newMed.sos_max_dia) : null,
@@ -260,7 +267,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       return
     }
     setMeds(p => [data, ...p])
-    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], take_location: 'centro', sos: false, sos_para: '', sos_max_dia: '', sos_intervalo_horas: '' }); setSug([])
+    setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], horas: {}, take_location: 'centro', sos: false, sos_para: '', sos_max_dia: '', sos_intervalo_horas: '' }); setSug([])
     setShowAddMed(false); setAddingMed(false)
   }
 
@@ -674,6 +681,36 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
                   {SHIFTS.filter(s => !isDayCare || s.v !== 'noite').map(s => { const on = newMed.shifts.includes(s.v); return <button key={s.v} onClick={() => setNewMed(p => ({ ...p, shifts: on ? p.shifts.filter(x => x !== s.v) : [...p.shifts, s.v] }))} style={chip(on, accent)}>{on ? '✓ ' : ''}{s.l}</button> })}
                 </div>
+
+                {/* A HORA DE CADA TOMA.
+                    «Não há horas para as coisas, medicação incluída.» Um turno
+                    são sete horas, e a insulina antes do pequeno-almoço e o
+                    comprimido das onze não são a mesma coisa.
+
+                    É opcional, e em branco quer dizer «durante o turno» — que é
+                    como a maior parte das casas trabalha. O campo só aparece
+                    para os turnos que estão ligados: perguntar a hora de um
+                    turno que a pessoa não escolheu é pedir informação que não
+                    vai ser usada. */}
+                {newMed.shifts.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 11.5, color: '#64748b', marginBottom: 6, lineHeight: 1.5 }}>
+                      A que horas, se houver hora certa. Em branco = durante o turno.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {SHIFTS.filter(x => newMed.shifts.includes(x.v)).map(x => (
+                        <label key={x.v} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#475569', fontWeight: 600 }}>
+                          <span style={{ minWidth: 42 }}>{x.l}</span>
+                          <input
+                            type="time" value={newMed.horas[x.v] || ''}
+                            onChange={e => setNewMed(p => ({ ...p, horas: { ...p.horas, [x.v]: e.target.value } }))}
+                            aria-label={'Hora da toma de ' + x.l.toLowerCase()}
+                            style={{ ...inp, width: 118, marginTop: 0 }} />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ marginTop: 10 }}>

@@ -25,12 +25,22 @@ import {
   type Tarefa,
 } from './oDia'
 import { ptDate } from './ptTime'
+import { foraNoDia, type AusenciaDoUtente } from './ausenciasDoUtente'
 
 export interface DiaMontado {
   tarefas: Tarefa[]
   /** As fontes que não responderam. Uma lista mais curta por causa de uma
    *  falha não pode passar por um dia mais leve. */
   falharam: string[]
+  /**
+   * Quem está fora hoje — internado, com a família, de férias.
+   *
+   * Vem SEPARADO das tarefas de propósito. As tarefas dessas pessoas já não
+   * estão na lista (pedir a medicação de quem está no hospital ensina a
+   * ignorar a lista toda), mas quem conhece a casa conta as pessoas e dá
+   * menos uma. Esconder sem dizer é pior do que não esconder.
+   */
+  fora: AusenciaDoUtente[]
 }
 
 /**
@@ -56,26 +66,41 @@ export async function carregarODia(
   // parecer que não abriu.
   const [
     pes, meds, mar, ativs, apoios, reforcos,
-    atribuicoes, catalogo, feitos, planos, naoPrestados,
+    atribuicoes, catalogo, feitos, planos, naoPrestados, ausencias,
   ] = await Promise.all([
     q('patients', 'id,name').eq('active', true).order('name'),
     q('patient_meds').eq('active', true),
     q('mar_records', 'med_id,patient_id,status').eq('date', hoje).eq('shift', turno),
-    q('activities', 'id,title,start_time,status').eq('date', hoje),
-    q('support_services', 'id,patient_id,kind,status,notes').eq('date', hoje),
-    q('dietary_reinforcements', 'id,patient_id,shift,given,notes').eq('date', hoje),
+    // Estas três levam `*` de propósito, e não a lista de colunas que tinham.
+    //
+    // O PostgREST recusa o SELECT INTEIRO quando lhe pedem uma coluna que não
+    // existe — devolve erro, não a linha sem aquele campo. Enquanto o
+    // sprint170 não estiver aplicado, pedir `responsavel_id` aqui apagava as
+    // atividades, o apoio e os reforços do dia todo de uma vez.
+    //
+    // No plano gratuito do Supabase o que conta é o NÚMERO de chamadas, não os
+    // bytes (ver scripts/qa-volume-supabase.mjs), e são linhas de um dia só.
+    // Pedir tudo não custa praticamente nada e não há aqui nada por que
+    // esperar.
+    q('activities').eq('date', hoje),
+    q('support_services').eq('date', hoje),
+    q('dietary_reinforcements').eq('date', hoje),
     q('servicos_do_utente').eq('ativo', true),
     q('catalogo_servicos').eq('ativo', true),
     q('servicos_execucoes', 'servico_utente_id,turno').eq('data', hoje),
     q('planos', 'id,patient_id').eq('estado', 'ativo'),
     q('cuidados_nao_prestados', 'patient_id,o_que,motivo,nota').eq('data', hoje),
+    // Quem está fora. Só as que podem estar a decorrer hoje: as que já
+    // acabaram antes de hoje não interessam, e ao fim de um ano são a
+    // esmagadora maioria da tabela.
+    q('ausencias_do_utente').lte('inicio', hoje).or(`fim.is.null,fim.gte.${hoje}`),
   ])
 
   // Sem a lista de pessoas não há dia nenhum para montar. É a única falha que
   // não se contorna — as outras só tiram uma fonte da lista.
-  if (pes.error) return { tarefas: [], falharam: ['utentes'] }
+  if (pes.error) return { tarefas: [], falharam: ['utentes'], fora: [] }
   const pessoas = pes.data || []
-  if (!pessoas.length) return { tarefas: [], falharam: [] }
+  if (!pessoas.length) return { tarefas: [], falharam: [], fora: [] }
 
   // ── O QUE DEPENDE DO QUE VEIO ACIMA ─────────────────────────────────────
   // Só duas coisas: as ações do plano (que pendem dos objetivos, que pendem
@@ -140,7 +165,20 @@ export async function carregarODia(
     }
   }
 
-  return { tarefas, falharam }
+  // ── Quem está fora não gera trabalho ────────────────────────────────────
+  // A tabela pode ainda não existir (sprint176 por correr). Nesse caso não há
+  // ausências nenhumas e o dia fica exactamente como estava — a funcionalidade
+  // nova não pode partir a que já funciona.
+  const fora: AusenciaDoUtente[] = ausencias.error ? [] : (ausencias.data || [])
+  const idsFora = foraNoDia(fora, hoje)
+
+  return {
+    // Filtra-se no FIM, e não em cada fonte: assim é uma regra só, num sítio
+    // só, e nenhuma fonte nova se pode esquecer dela.
+    tarefas: idsFora.size ? tarefas.filter(t => !idsFora.has(t.patientId)) : tarefas,
+    falharam,
+    fora: fora.filter(a => idsFora.has(a.patient_id)),
+  }
 }
 
 /**

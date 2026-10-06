@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import FichaDoFuncionario from '@/components/team/FichaDoFuncionario'
 import { useOrgScope } from '@/lib/orgScope'
 import { TarefasTool } from '@/app/tarefas-equipa/page'
 
@@ -207,6 +208,15 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
 
   const load = useCallback(async () => {
     if (!user) return
+    // Nao vale a pena perguntar antes de se saber qual e a casa: sem `orgId`,
+    // o `scope.filter` cai no `user_id` e devolve zero. Nao era um defeito —
+    // o `user` esta nas dependencias e a consulta repetia-se com o filtro
+    // certo — mas era uma ida a base de dados deitada fora em cada abertura.
+    //
+    // (Cheguei a escrever aqui que a equipa ficava vazia para sempre. Nao
+    // ficava: medi o codigo original e ele mostra as quatro pessoas. O que
+    // estava errado era o meu teste, que lia antes de a lista chegar.)
+    if (!scope.pronto) return
     setLoading(true)
     const [{ data: tm }, { data: sh }] = await Promise.all([
       scope.filter(supabase.from('team_members').select('*')).order('name'),
@@ -221,7 +231,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
       return { ...sa, member_name: mMap[sa.team_member_id]?.name || '—', member_role: mMap[sa.team_member_id]?.role }
     }))
     setLoading(false)
-  }, [user, supabase, weekStart, weekEnd])
+  }, [user, supabase, weekStart, weekEnd, scope])
 
   useEffect(() => { load() }, [load])
 
@@ -519,7 +529,20 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                       const st = STATUS_CFG[m.status] || STATUS_CFG.off
                       const isSel = selectedId === m.id
                       return (
-                        <div key={m.id} onClick={() => setSelectedId(isSel ? null : m.id)}
+                        <div key={m.id}
+                          // Era um `<div>` com `onClick` e mais nada: o rato
+                          // abria a pessoa, o teclado não. Quem navega por
+                          // tabulação não conseguia chegar ao painel dela — nem
+                          // aos acessos, nem à ficha de formação.
+                          role="button" tabIndex={0} aria-pressed={isSel}
+                          aria-label={`${m.name} — abrir`}
+                          onClick={() => setSelectedId(isSel ? null : m.id)}
+                          onKeyDown={e => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return
+                            // O espaço faz a página saltar se não se travar.
+                            e.preventDefault()
+                            setSelectedId(isSel ? null : m.id)
+                          }}
                           style={{ background: isSel ? '#f0f9ff' : 'white', border: `1.5px solid ${isSel ? '#93c5fd' : 'var(--border)'}`, borderRadius: 10, padding: '11px 15px', cursor: 'pointer' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                             <div style={{ width: 38, height: 38, borderRadius: '50%', background: rc + '18', color: rc, fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
@@ -592,6 +615,16 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                       )
                     })}
                   </div>
+
+                  {/* A formacao e as ausencias desta pessoa. Ficam DENTRO do
+                      painel dela e nao num separador a parte: quem abre uma
+                      pessoa quer tudo sobre ela, e um separador «Formacoes»
+                      com a lista da casa toda obriga a procurar outra vez. */}
+                  <FichaDoFuncionario
+                    membroId={selectedMember.id}
+                    nome={selectedMember.name}
+                    cor="var(--ink)"
+                  />
                 </div>
               )}
             </div>

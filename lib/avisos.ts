@@ -34,12 +34,24 @@
 //    o que já empurrou e não repetir.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ptDate, ptHHMM } from './ptTime'
+import { rotuloTipo, sobreQuem } from './ocorrencias'
+import { formacoesEmRisco, type Formacao } from './equipaRh'
 
 export type TipoAviso =
   | 'incidente' | 'familia' | 'medicacao' | 'mural'
   | 'doses' | 'stock' | 'presenca' | 'preparacao'
   | 'validades' | 'avaliacoes'
   | 'toma' | 'caixa' | 'resumo_dia' | 'consulta'
+  /** «Ficou consigo»: uma coisa concreta atribuída a esta pessoa. */
+  | 'atribuicao'
+  /** O turno anterior deixou uma passagem, e ninguém a leu. */
+  | 'passagem'
+  /** Uma ronda foi começada e ficou a meio. */
+  | 'ronda'
+  /** Alguém da equipa tem formação caducada ou prestes a caducar. */
+  | 'formacao'
+  /** «Tem seis coisas suas esta manhã»: o resumo, e o único que interrompe. */
+  | 'meu_turno'
 
 export interface Aviso {
   /** estável — o mesmo aviso dá sempre o mesmo id */
@@ -100,11 +112,17 @@ const dentroDe = (agora: string, [a, b]: [string, string]) => {
   return n >= hhmmParaMin(a) && n <= hhmmParaMin(b)
 }
 
-const TIPOS_OCORRENCIA: Record<string, string> = {
-  fall: 'Queda', medication_error: 'Erro de medicação', pressure_ulcer: 'Úlcera de pressão',
-  behavioral: 'Incidente comportamental', choking: 'Engasgamento', infection: 'Infeção',
-  other: 'Ocorrência',
+const ROTULO_DE_TURNO: Record<string, string> = {
+  manha: 'manhã', tarde: 'tarde', noite: 'noite',
 }
+
+/** O dia anterior, em texto. Sem fusos: é só aritmética de calendário. */
+const ontemDe = (dia: string): string => {
+  const d = new Date(dia + 'T12:00:00')
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A CASA
@@ -113,14 +131,24 @@ const TIPOS_OCORRENCIA: Record<string, string> = {
 export async function avisosDaInstituicao(
   sb: any,
   orgId: string,
-  opts: { agora?: string; hoje?: string; excluirAutor?: string | null; tipoInstituicao?: string | null } = {},
+  opts: {
+    agora?: string; hoje?: string
+    /** Não me mostres os recados que fui eu que escrevi. */
+    excluirAutor?: string | null
+    /** Quem está a perguntar. Sem isto não há avisos de atribuição — eles são
+     *  de uma pessoa, não da casa. */
+    euId?: string | null
+    tipoInstituicao?: string | null
+  } = {},
 ): Promise<Aviso[]> {
   const agora = opts.agora ?? ptHHMM()
   const hoje = opts.hoje ?? ptDate()
   const desde48h = new Date(Date.now() - 48 * 3600000).toISOString()
   const turno = turnoAgora(agora)
 
-  const [utentes, ocorrencias, mensagensFamilia, tomas, mural, stock, presencas, meds, preparacoes, avaliacoes] = await Promise.all([
+  const [utentes, ocorrencias, mensagensFamilia, tomas, mural, stock, presencas, meds,
+         preparacoes, avaliacoes, passagens, leiturasPassagem, rondas, atribuicoesRonda,
+         formacoes, membrosDaEquipa] = await Promise.all([
     tol(() => sb.from('patients').select('id, name').eq('org_id', orgId).eq('active', true)),
     tol(() => sb.from('incidents').select('id, date, type, patient_id')
       .eq('org_id', orgId).eq('follow_up_required', true)
@@ -141,6 +169,21 @@ export async function avisosDaInstituicao(
     tol(() => sb.from('patient_meds').select('id, patient_id, name, shifts').eq('org_id', orgId).eq('active', true)),
     tol(() => sb.from('medication_prep_logs').select('patient_id, week_start, weekday, packed').eq('org_id', orgId)),
     tol(() => sb.from('assessments').select('patient_id, date').eq('org_id', orgId)),
+    // A passagem do turno ANTERIOR (a deste ainda se está a escrever) e quem
+    // já a leu. As duas juntas respondem a «alguém leu isto?».
+    tol(() => sb.from('handovers').select('id, date, shift, autor_nome, completed')
+      .eq('org_id', orgId).eq('completed', true)
+      .gte('date', ontemDe(hoje)).order('date', { ascending: false }).limit(4)),
+    tol(() => sb.from('passagem_leituras').select('passagem_id, user_id').eq('org_id', orgId)),
+    // As rondas de hoje, e o que ficou por atender em cada uma.
+    tol(() => sb.from('rounds').select('id, shift, status').eq('org_id', orgId).eq('date', hoje)),
+    tol(() => sb.from('round_assignments').select('round_id, status, patient_id').eq('org_id', orgId)),
+    // Só as que TÊM validade: as outras não podem caducar, e trazê-las era
+    // pedir a tabela inteira para a filtrar em memória.
+    tol(() => sb.from('formacoes_da_equipa')
+      .select('id, team_member_id, tema, data, valida_ate')
+      .eq('org_id', orgId).not('valida_ate', 'is', null)),
+    tol(() => sb.from('team_members').select('id, name').eq('org_id', orgId)),
   ])
 
   const nome = new Map<string, string>(utentes.map((p: any) => [p.id, p.name]))
@@ -150,7 +193,9 @@ export async function avisosDaInstituicao(
   // ── 1. Ocorrências com seguimento por fazer ───────────────────────────────
   ocorrencias.forEach((i: any) => avisos.push({
     id: `inc-${i.id}`, tipo: 'incidente',
-    titulo: `${TIPOS_OCORRENCIA[i.type] || 'Ocorrência'} · ${quem(i.patient_id)}`,
+    // Sem utente é da casa. «Ocorrência · Utente» num aviso mandava alguém
+    // procurar uma pessoa que não existe.
+    titulo: `${rotuloTipo(i.type)} · ${sobreQuem(i.type, i.patient_id ? quem(i.patient_id) : null)}`,
     corpo: 'Seguimento por fazer.',
     href: '/incidents', quando: i.date, urgencia: 'alta', empurrar: true,
   }))
@@ -350,12 +395,264 @@ export async function avisosDaInstituicao(
     }
   }
 
+  // ── 11. Uma passagem de turno por ler ─────────────────────────────────────
+  // «Carers access handovers at the start of their shift, marking them as
+  // read» — é o recibo de leitura que faz a passagem valer alguma coisa. Uma
+  // passagem que ninguém confirma ter lido é um papel em cima da mesa.
+  //
+  // Só a MAIS RECENTE, e só se ninguém a leu. Uma por dia era ruído; uma por
+  // cada pessoa que ainda não leu era pior, porque o sino é da casa e não de
+  // uma pessoa.
+  const passagemPorLer = passagens.find((p: any) =>
+    !leiturasPassagem.some((l: any) => l.passagem_id === p.id))
+  if (passagemPorLer) {
+    avisos.push({
+      id: `passagem-${passagemPorLer.id}`, tipo: 'passagem',
+      titulo: `Passagem da ${ROTULO_DE_TURNO[passagemPorLer.shift] || 'turno'} por ler`,
+      corpo: passagemPorLer.autor_nome
+        ? `Deixada por ${passagemPorLer.autor_nome}. Ninguém marcou que a leu.`
+        : 'Ninguém marcou que a leu.',
+      href: '/passagem', quando: `${passagemPorLer.date}T12:00:00`,
+      urgencia: 'alta', empurrar: true,
+    })
+  }
+
+  // ── 12. Uma ronda deixada a meio ──────────────────────────────────────────
+  // «If a round is missed, you'll see an alert within the Care Office.»
+  //
+  // ── E SÓ AVISA DE UMA RONDA QUE ALGUÉM COMEÇOU ──────────────────────────
+  // Não há aqui nenhum aviso de «hoje não fez ronda». Uma casa que não use
+  // rondas — e um centro de dia normalmente não usa — não pode ser chamada à
+  // atenção por não fazer uma coisa que nunca prometeu fazer. É a mesma regra
+  // das presenças: só se fala quando a casa JÁ começou e ficou a meio.
+  for (const r of rondas.filter((x: any) => x.status === 'active')) {
+    const porAtender = atribuicoesRonda.filter(
+      (a: any) => a.round_id === r.id && a.status === 'pending').length
+    if (!porAtender) continue
+    // Só depois de o turno ter acabado. A meio do turno uma ronda aberta com
+    // pessoas por atender é exactamente o que se espera de uma ronda a
+    // decorrer — avisar aí seria avisar do normal.
+    const janela = FIM_DE_TURNO[r.shift]
+    if (!janela || !dentroDe(agora, janela)) continue
+    avisos.push({
+      id: `ronda-${r.id}-${hoje}`, tipo: 'ronda',
+      titulo: `Ronda da ${ROTULO_DE_TURNO[r.shift] || 'turno'} ficou a meio`,
+      corpo: `${porAtender} ${porAtender === 1 ? 'pessoa por atender' : 'pessoas por atender'}.`,
+      href: '/ronda-guiada', quando: `${hoje}T12:00:00`,
+      urgencia: 'alta', empurrar: true,
+    })
+  }
+
+  // ── 13. Formação da equipa a caducar ──────────────────────────────────────
+  // «A ASAE verifica a formação dos colaboradores» — e é a primeira coisa que
+  // pede, antes sequer de olhar para o plano HACCP.
+  //
+  // ── UM AVISO POR CASA, E NÃO UM POR PESSOA ────────────────────────────────
+  // Cinco auxiliares com o suporte básico de vida a caducar no mesmo mês dão
+  // cinco avisos iguais, e o sino fica com cinco linhas que dizem a mesma
+  // coisa. Uma linha com o total manda a pessoa ao sítio certo, que é onde
+  // estão os nomes.
+  //
+  // E a conta é a de `lib/equipaRh`, a mesma que a ficha de cada funcionário
+  // usa: quem renovou NÃO aparece, mesmo tendo a antiga caducada. Uma segunda
+  // implementação disto acabaria por acusar gente que está em dia — e uma
+  // lista com falsos alarmes deixa de ser lida.
+  {
+    const emRisco = formacoesEmRisco(formacoes as unknown as Formacao[], hoje)
+    if (emRisco.length) {
+      const nomes = new Map<string, string>(membrosDaEquipa.map((m: any) => [m.id, m.name]))
+      const caducadas = emRisco.filter(r => r.estado === 'caducada')
+      const quem = emRisco.slice(0, 3)
+        .map(r => `${nomes.get(r.formacao.team_member_id) || 'Colega'} (${r.formacao.tema})`)
+        .join(', ')
+
+      avisos.push({
+        id: `formacao-${orgId}-${hoje.slice(0, 7)}`, tipo: 'formacao',
+        titulo: caducadas.length
+          ? `${caducadas.length} ${caducadas.length === 1 ? 'formação caducada' : 'formações caducadas'} na equipa`
+          : `${emRisco.length} ${emRisco.length === 1 ? 'formação a caducar' : 'formações a caducar'}`,
+        corpo: `${quem}${emRisco.length > 3 ? ` e mais ${emRisco.length - 3}` : ''}.`,
+        href: '/equipa?tab=escalas',
+        quando: new Date().toISOString(),
+        // Caducada é diferente de a caducar: a primeira já é uma falha numa
+        // inspeção, a segunda ainda dá para marcar.
+        urgencia: caducadas.length ? 'alta' : 'normal',
+        empurrar: true,
+      })
+    }
+  }
+
+  // ── 14. O que ficou consigo ───────────────────────────────────────────────
+  // Só para quem está a perguntar. Um aviso de atribuição não é da casa: é de
+  // uma pessoa, e mostrá-lo a toda a gente transformava-o em ruído para nove
+  // e informação para um.
+  if (opts.euId) {
+    const minhas = await atribuicoesDaCasa(sb, orgId, {
+      hoje, agora, euId: opts.euId, nomes: nome, tipoInstituicao: opts.tipoInstituicao,
+    })
+    avisos.push(...(minhas.get(opts.euId) || []))
+  }
+
   avisos.sort((a, b) =>
     a.urgencia === b.urgencia
       ? String(b.quando).localeCompare(String(a.quando))
       : a.urgencia === 'alta' ? -1 : 1)
 
   return avisos
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O QUE FICOU CONSIGO
+// ─────────────────────────────────────────────────────────────────────────────
+// ── O QUE O FERNANDO PEDIU ──────────────────────────────────────────────────
+// «Ao atribuir podia haver um canal de avisos pessoais, automáticos, enviados
+// pelo Phlox automaticamente, a dizer a tarefa e com um "link" para a ver
+// completa.»
+//
+// ── PORQUE É QUE O AVISO NÃO SE GRAVA AO ATRIBUIR ───────────────────────────
+// O caminho óbvio era: alguém atribui, e o código escreve uma linha numa
+// tabela de avisos. É o que quase toda a gente faz, e cria quatro problemas
+// que depois se arrastam para sempre.
+//
+// Um: quem tira o responsável fica com o aviso lá. A tarefa já não é sua e o
+// sino continua a dizer que é — e ninguém volta a acreditar no sino.
+// Dois: a tarefa é feita e o aviso fica. Era preciso lembrar-se de o apagar em
+// cada um dos sítios que marcam coisas como feitas.
+// Três: a escrita pode falhar. A atribuição fica gravada e o aviso não, e a
+// pessoa nunca soube — em silêncio, que é a pior maneira de não saber.
+// Quatro: uma tabela de avisos cresce para sempre e é preciso limpá-la.
+//
+// Calculado, nada disto existe. O aviso É a atribuição, vista de outro ângulo:
+// tira-se o responsável e o aviso desaparece no mesmo instante; marca-se a
+// coisa como feita e desaparece também; não há nada que possa falhar à parte,
+// nem nada para limpar.
+//
+// ── UMA CHAMADA POR CASA, NÃO UMA POR PESSOA ────────────────────────────────
+// Devolve um mapa de `userId` → avisos, e não a lista de uma pessoa. O sino
+// pede o de uma pessoa (e aí as consultas já vão filtradas), mas o cron das
+// notificações percorre a casa inteira — e pedir pessoa a pessoa seriam quatro
+// consultas vezes quinze membros, de quinze em quinze minutos, para sempre.
+// No plano gratuito do Supabase o tecto é o NÚMERO de chamadas.
+
+/** Como se chama, no aviso, o sítio de onde a coisa vem. */
+const ROTULO_ATRIBUICAO: Record<string, string> = {
+  servico: 'Cuidado', plano: 'Plano', apoio: 'Apoio', atividade: 'Atividade',
+}
+
+const rotuloTurno = (t: string | null): string =>
+  t === 'manha' ? 'de manhã' : t === 'tarde' ? 'à tarde' : t === 'noite' ? 'à noite' : 'hoje'
+
+export async function atribuicoesDaCasa(
+  sb: any,
+  orgId: string,
+  opts: {
+    hoje?: string; agora?: string
+    /** Só as desta pessoa — e aí as consultas vão filtradas à partida. */
+    euId?: string | null
+    /** Os nomes dos utentes, se quem chama já os tiver. Poupa uma consulta. */
+    nomes?: Map<string, string>
+    tipoInstituicao?: string | null
+  } = {},
+): Promise<Map<string, Aviso[]>> {
+  const hoje = opts.hoje ?? ptDate()
+  const agora = opts.agora ?? ptHHMM()
+  const turno = turnoAgora(agora)
+
+  /** Da casa, e — quando é para uma pessoa só — só as dela. */
+  const meu = (q: any) => {
+    const comOrg = q.eq('org_id', orgId)
+    return opts.euId ? comOrg.eq('responsavel_id', opts.euId) : comOrg.not('responsavel_id', 'is', null)
+  }
+
+  const [servicos, acoes, apoios, atividades, nomesCarregados] = await Promise.all([
+    tol(() => meu(sb.from('servicos_do_utente')
+      .select('id, patient_id, servico_id, turno, hora, responsavel_id')).eq('ativo', true)),
+    tol(() => meu(sb.from('plano_acoes')
+      .select('id, o_que, turno, hora, responsavel_id')).eq('ativa', true)),
+    tol(() => meu(sb.from('support_services')
+      .select('id, patient_id, kind, status, responsavel_id')).eq('date', hoje).neq('status', 'concluido')),
+    tol(() => meu(sb.from('activities')
+      .select('id, title, start_time, status, responsavel_id')).eq('date', hoje).in('status', ['planned', 'ongoing'])),
+    opts.nomes
+      ? Promise.resolve([] as any[])
+      : tol(() => sb.from('patients').select('id, name').eq('org_id', orgId).eq('active', true)),
+  ])
+
+  const nomes = opts.nomes
+    ?? new Map<string, string>(nomesCarregados.map((p: any) => [p.id, p.name]))
+  const quemE = (id: string | null) => (id && nomes.get(id)) || 'Utente'
+
+  // O nome do serviço vem do catálogo. Sem isto o aviso dizia «Cuidado ·
+  // Dona Maria» — que não diz QUAL, e por isso não chega para decidir se vale
+  // a pena ir lá agora.
+  const idsServico = [...new Set(servicos.map((s: any) => s.servico_id).filter(Boolean))]
+  const catalogo = idsServico.length
+    ? await tol(() => sb.from('catalogo_servicos').select('id, nome').in('id', idsServico))
+    : []
+  const nomeServico = new Map<string, string>(catalogo.map((c: any) => [c.id, c.nome]))
+
+  const porPessoa = new Map<string, Aviso[]>()
+  const juntar = (userId: string | null, a: Aviso) => {
+    if (!userId) return
+    const l = porPessoa.get(userId)
+    if (l) l.push(a); else porPessoa.set(userId, [a])
+  }
+
+  /** Um aviso por coisa. Nenhum deles interrompe — ver o resumo, lá em baixo. */
+  const linha = (id: string, fonte: string, titulo: string, corpo: string, href: string): Aviso => ({
+    id, tipo: 'atribuicao',
+    titulo, corpo: `${ROTULO_ATRIBUICAO[fonte] || 'Tarefa'} · ${corpo}`,
+    href, quando: `${hoje}T${agora}:00`, urgencia: 'normal', empurrar: false,
+  })
+
+  servicos.forEach((s: any) => juntar(s.responsavel_id, linha(
+    `atr-servico-${s.id}-${hoje}`, 'servico',
+    `${nomeServico.get(s.servico_id) || 'Cuidado'} · ${quemE(s.patient_id)}`,
+    s.hora ? `às ${s.hora}` : rotuloTurno(s.turno),
+    // O link «para a ver completa» é a ficha da pessoa: é lá que está como se
+    // faz com ELA — «prefere de manhã», «precisa de ajuda de dois» — que é
+    // exactamente o que falta a quem vai fazer aquilo pela primeira vez.
+    `/patients/${s.patient_id}`,
+  )))
+
+  acoes.forEach((a: any) => juntar(a.responsavel_id, linha(
+    `atr-plano-${a.id}-${hoje}`, 'plano',
+    a.o_que || 'Ação do plano',
+    a.hora ? `às ${a.hora}` : rotuloTurno(a.turno),
+    '/o-dia',
+  )))
+
+  apoios.forEach((s: any) => juntar(s.responsavel_id, linha(
+    `atr-apoio-${s.id}-${hoje}`, 'apoio',
+    `${s.kind || 'Apoio'} · ${quemE(s.patient_id)}`,
+    'pedido por tratar', '/apoio-servicos',
+  )))
+
+  atividades.forEach((a: any) => juntar(a.responsavel_id, linha(
+    `atr-ativ-${a.id}-${hoje}`, 'atividade',
+    a.title || 'Atividade',
+    a.start_time ? `às ${String(a.start_time).slice(0, 5)}` : 'hoje',
+    '/activities',
+  )))
+
+  // ── O resumo, e é este o único que toca ───────────────────────────────────
+  // Quem tem quinze coisas suas não pode receber quinze notificações: são
+  // quinze razões para desligar o Phlox. Recebe uma, que diz quantas são.
+  //
+  // O id leva o TURNO, e não a hora: o cron guarda o que já empurrou por id, e
+  // assim isto sai uma vez de manhã e uma vez à tarde — e não de quinze em
+  // quinze minutos, que é de quanto em quanto tempo o cron corre.
+  for (const [userId, lista] of porPessoa) {
+    lista.push({
+      id: `meu-${orgId}-${userId}-${hoje}-${turno}`, tipo: 'meu_turno',
+      titulo: lista.length === 1 ? 'Tem uma coisa sua' : `Tem ${lista.length} coisas suas`,
+      corpo: lista.slice(0, 3).map(a => a.titulo).join(' · '),
+      href: '/o-dia', quando: `${hoje}T${agora}:00`,
+      urgencia: 'normal', empurrar: true,
+    })
+  }
+
+  return porPessoa
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

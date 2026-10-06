@@ -15,7 +15,7 @@ import AvisoDeSetup from '@/components/AvisoDeSetup'
 
 const ACCENT = '#0d9488'
 type Channel = 'geral' | 'doentes' | 'pedidos' | 'stock' | 'avisos'
-interface Msg { id: string; author_id: string; author_name: string; channel: Channel; body: string; priority: 'normal' | 'importante' | 'urgente'; resolved: boolean; patient_id?: string | null; created_at: string; para_ids?: string[] | null }
+interface Msg { id: string; author_id: string; author_name: string; channel: Channel; body: string; priority: 'normal' | 'importante' | 'urgente'; resolved: boolean; patient_id?: string | null; created_at: string; para_ids?: string[] | null; visto_por?: { id: string; nome: string }[] }
 /** Um colega, para o seletor de destinatarios. */
 interface Colega { user_id: string; nome: string }
 
@@ -27,17 +27,17 @@ const CHANNELS: { id: Channel; label: string; icon: string; hint: string }[] = [
   { id: 'avisos',  label: 'Avisos',   icon: '📣', hint: 'Informações e recados importantes' },
 ]
 const PRIO = { normal: { l: 'Normal', c: '#64748b' }, importante: { l: 'Importante', c: '#d97706' }, urgente: { l: 'Urgente', c: '#dc2626' } }
-const SHIFT_LABELS = { manha: { label: 'Manhã', icon: '☀️' }, tarde: { label: 'Tarde', icon: '🌤' }, noite: { label: 'Noite', icon: '🌙' } }
 
 export default function MuralEquipa() {
   const { user, supabase } = useAuth() as any
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const scope = useOrgScope()
-  const [medFlags, setMedFlags] = useState<{ patientId: string; patientName: string; medName: string; status: string; notes: string }[]>([])
-  const [channel, setChannel] = useState<Channel>(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handover') === '1' ? 'avisos' : 'geral')
+  const [channel, setChannel] = useState<Channel>('geral')
   const [msgs, setMsgs] = useState<Msg[]>([])
+  // Quantas pessoas da casa ja abriram o mural alguma vez. E o denominador:
+  // «2 viram» sem ele tanto pode ser toda a gente como quase ninguem.
+  const [equipa, setEquipa] = useState(0)
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [priority, setPriority] = useState<'normal' | 'importante' | 'urgente'>('normal')
@@ -52,15 +52,6 @@ export default function MuralEquipa() {
   const [aEscolherPara, setAEscolherPara] = useState(false)
   const [err, setErr] = useState('')
   const [needsSetup, setNeedsSetup] = useState(false)
-  // Chegou de /mar ("Passagem →", ?handover=1) — abre já o formulário de
-  // passagem de turno em vez de aterrar na conversa Geral.
-  const [showHandover, setShowHandover] = useState(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handover') === '1')
-  const [handoverShift, setHandoverShift] = useState<'manha' | 'tarde' | 'noite'>('manha')
-  const [handoverNotes, setHandoverNotes] = useState('')
-  const [aiSummary, setAiSummary] = useState<{ general_notes?: string; sem_dados?: boolean; patients_summary?: { patient_id: string; patient_name: string; registado: string; action_needed?: string }[] } | null>(null)
-  const [generatingAI, setGeneratingAI] = useState(false)
-  const [aiError, setAiError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
   const auth = useCallback(async () => {
@@ -75,7 +66,7 @@ export default function MuralEquipa() {
       const r = await fetch('/api/team-messages', { headers: await auth() }).then(r => r.json())
       if (r.error?.includes('sprint105')) { setNeedsSetup(true); setMsgs([]) }
       else if (r.error) setErr(r.error)
-      else { setMsgs(r.messages || []); setNeedsSetup(false) }
+      else { setMsgs(r.messages || []); setEquipa(r.equipa || 0); setNeedsSetup(false) }
       fetch('/api/team-messages', { method: 'PATCH', headers: await auth(), body: JSON.stringify({ markRead: true }) }).catch(() => {})
     } catch { setErr('Não foi possível carregar.') }
     setLoading(false)
@@ -124,119 +115,7 @@ export default function MuralEquipa() {
     await fetch('/api/team-messages', { method: 'PATCH', headers: await auth(), body: JSON.stringify({ id: m.id, resolved: !m.resolved }) })
   }
 
-  // Doses suspensas/recusadas HOJE (com nota) — para a passagem de turno não
-  // depender de reescrever à mão o que o MAR já sabe (o próprio exemplo do
-  // Fernando: "o utente 1 não tomou X porque..., deve tomar à noite" já está
-  // registado no MAR quando alguém marca "Suspenso"/"Recusado" com uma nota).
-  const loadMedFlags = useCallback(async () => {
-    if (!user) return
-    const today = new Date().toISOString().slice(0, 10)
-    const { data: recs } = await scope.filter(supabase.from('mar_records').select('patient_id,med_id,status,notes')).eq('date', today).in('status', ['held', 'refused'])
-    if (!recs || !recs.length) { setMedFlags([]); return }
-    const patientIds = [...new Set(recs.map((r: any) => r.patient_id))]
-    const medIds = [...new Set(recs.map((r: any) => r.med_id))]
-    const [{ data: pats }, { data: meds }] = await Promise.all([
-      supabase.from('patients').select('id,name').in('id', patientIds),
-      supabase.from('patient_meds').select('id,name').in('id', medIds),
-    ])
-    const pName: Record<string, string> = {}; (pats || []).forEach((p: any) => { pName[p.id] = p.name })
-    const mName: Record<string, string> = {}; (meds || []).forEach((m: any) => { mName[m.id] = m.name })
-    setMedFlags(recs.map((r: any) => ({ patientId: r.patient_id, patientName: pName[r.patient_id] || 'Utente', medName: mName[r.med_id] || 'Medicamento', status: r.status, notes: r.notes || '' })))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, supabase, scope.orgId, scope.userId])
-  useEffect(() => { loadMedFlags() }, [loadMedFlags])
 
-  // Gera uma síntese por IA (reativa app/api/ward/handover, órfão desde que o
-  // Phlox Ward foi absorvido pelo /equipa — já fazia exatamente isto, só sem
-  // UI nenhuma a chamá-lo). Nunca inventa doente/medicamento: os únicos dados
-  // por utente que entram são as doses suspensas/recusadas que o MAR já tem
-  // (medFlags); avisos/stock/notas entram como contexto geral em texto. A IA
-  // só reescreve isto como "o que mudou e o que é urgente" — nunca é
-  // publicado sem se ver a pré-visualização primeiro.
-  type Sintese = NonNullable<typeof aiSummary>
-
-  async function generateAISummary(): Promise<Sintese | null> {
-    setGeneratingAI(true); setAiError(''); setAiSummary(null)
-    try {
-      const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
-      const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
-      const byPatient = new Map<string, { patient_id: string; patient_name: string; decisions: string[] }>()
-      medFlags.forEach(f => {
-        if (!byPatient.has(f.patientId)) byPatient.set(f.patientId, { patient_id: f.patientId, patient_name: f.patientName, decisions: [] })
-        byPatient.get(f.patientId)!.decisions.push(`${f.medName} — ${f.status === 'held' ? 'suspensa' : 'recusada'}${f.notes ? `: ${f.notes}` : ''}`)
-      })
-      const generalNotes = [
-        openAvisos.length ? `Avisos em aberto: ${openAvisos.map(m => m.body).join(' · ')}` : '',
-        openStock.length ? `Stock por resolver: ${openStock.map(m => m.body).join(' · ')}` : '',
-        handoverNotes.trim(),
-      ].filter(Boolean).join('\n')
-      const r = await fetch('/api/ward/handover', {
-        method: 'POST', headers: await auth(),
-        body: JSON.stringify({
-          shift: handoverShift, from_name: (user as any)?.name || user?.email || 'Equipa', from_role: 'profissional de saúde',
-          general_notes: generalNotes,
-          patients: [...byPatient.values()].map(p => ({ patient_id: p.patient_id, patient_name: p.patient_name, decisions: p.decisions, open_tasks: 0 })),
-        }),
-      }).then(r => r.json())
-      if (r.error) { setAiError(r.error); return null }
-      setAiSummary(r)
-      return r as Sintese
-    } catch {
-      setAiError('A síntese por IA não saiu. Vai o resumo dos registos, que é o mesmo conteúdo sem reescrita.')
-      return null
-    } finally { setGeneratingAI(false) }
-  }
-
-  // Passagem de turno — o relatório da IA é escrito e publicado no mural pela
-  // própria passagem, sem passo manual: quem sai do turno carrega uma vez.
-  //
-  // Se a IA falhar (sem chave, sem rede, limite atingido) a passagem publica na
-  // mesma o resumo dos registos — a passagem de turno nunca fica por fazer por
-  // causa da IA, e o aviso do erro fica à vista para se saber qual dos dois é.
-  //
-  // A IA não inventa gente nem medicamentos: só recebe o que o MAR já registou
-  // (doses suspensas e recusadas de hoje) mais o texto dos avisos em aberto.
-  async function publishHandover() {
-    setSending(true)
-    const sintese = aiSummary ?? await generateAISummary()
-    const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
-    const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
-    const lines = sintese ? [
-      `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label} · relatório por IA`,
-      ...(sintese.patients_summary || []).map(p => `\n${p.patient_name}: ${p.registado}${p.action_needed ? `\n  → ${p.action_needed}` : ''}`),
-      sintese.general_notes ? `\nNotas gerais:\n${sintese.general_notes}` : '',
-    ].filter(Boolean).join('\n') : [
-      `🔄 PASSAGEM DE TURNO — ${SHIFT_LABELS[handoverShift].label}`,
-      medFlags.length ? `\nMedicação suspensa/recusada hoje (${medFlags.length}):\n` + medFlags.map(f => `• ${f.patientName} — ${f.medName} (${f.status === 'held' ? 'suspensa' : 'recusada'})${f.notes ? ': ' + f.notes : ''}`).join('\n') : '',
-      openAvisos.length ? `\nAvisos em aberto (${openAvisos.length}):\n` + openAvisos.map(m => `• ${m.body}`).join('\n') : '',
-      openStock.length ? `\nStock por resolver (${openStock.length}):\n` + openStock.map(m => `• ${m.body}`).join('\n') : '',
-      handoverNotes.trim() ? `\nNotas de quem sai:\n${handoverNotes.trim()}` : '',
-    ].filter(Boolean).join('\n')
-    const r = await fetch('/api/team-messages', { method: 'POST', headers: await auth(), body: JSON.stringify({ body: lines, channel: 'avisos', priority: 'importante' }) }).then(r => r.json()).catch(() => ({ error: 'falhou' }))
-    setSending(false)
-    if (r.error) { setErr(r.error); return }
-    setHandoverNotes(''); setShowHandover(false); setChannel('avisos'); setAiSummary(null); load()
-  }
-
-  function printHandover() {
-    const esc = (s: string) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
-    const openAvisos = msgs.filter(m => m.channel === 'avisos' && !m.resolved)
-    const openStock = msgs.filter(m => m.channel === 'stock' && !m.resolved)
-    const w = window.open('', '_blank'); if (!w) return
-    w.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Passagem de Turno</title>
-      <style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px;line-height:1.6;color:#111}h1{font-size:18px;font-family:Georgia,serif;font-weight:400}h2{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#888;font-family:monospace;margin:14px 0 6px}.item{background:#f5f5f5;padding:8px 12px;border-radius:4px;margin-bottom:6px}</style></head><body>
-      <p style="font-size:10px;color:#888;font-family:monospace">PASSAGEM DE TURNO · ${esc(SHIFT_LABELS[handoverShift].label)} · Phlox Clinical</p>
-      <h1>Passagem de Turno</h1>
-      <h2>Medicação suspensa/recusada hoje (${medFlags.length})</h2>
-      ${medFlags.map(f => `<div class="item">${esc(f.patientName)} — ${esc(f.medName)} (${f.status === 'held' ? 'suspensa' : 'recusada'})${f.notes ? ': ' + esc(f.notes) : ''}</div>`).join('') || '<p>Nenhuma.</p>'}
-      <h2>Avisos em aberto (${openAvisos.length})</h2>
-      ${openAvisos.map(m => `<div class="item">${esc(m.body)}</div>`).join('') || '<p>Nenhum.</p>'}
-      <h2>Stock por resolver (${openStock.length})</h2>
-      ${openStock.map(m => `<div class="item">${esc(m.body)}</div>`).join('') || '<p>Nenhum.</p>'}
-      ${handoverNotes.trim() ? `<h2>Notas</h2><p>${esc(handoverNotes.trim())}</p>` : ''}
-      </body></html>`)
-    w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
-  }
 
   const curCh = CHANNELS.find(c => c.id === channel)!
   const openCount = (c: Channel) => msgs.filter(m => m.channel === c && (c === 'stock' || c === 'avisos') && !m.resolved).length
@@ -259,67 +138,8 @@ export default function MuralEquipa() {
             )
           })}
         </div>
-        <button onClick={() => setShowHandover(s => !s)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, border: '1.5px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          🔄 Passagem de turno
-        </button>
       </div>
       <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>{curCh.hint}</div>
-
-      {showHandover && (
-        <div style={{ background: 'white', border: '1.5px solid #bfdbfe', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#1d4ed8', marginBottom: 2 }}>Passagem de turno</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>Ao publicar, a IA escreve o relatório do turno a partir dos registos de hoje e envia-o para o mural.</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-            {(['manha', 'tarde', 'noite'] as const).map(s => (
-              <button key={s} onClick={() => setHandoverShift(s)}
-                style={{ flex: 1, padding: 8, border: `1.5px solid ${handoverShift === s ? '#1d4ed8' : 'var(--border)'}`, borderRadius: 7, background: handoverShift === s ? '#eff6ff' : 'white', cursor: 'pointer', fontSize: 12, fontWeight: handoverShift === s ? 700 : 400, color: handoverShift === s ? '#1d4ed8' : '#475569' }}>
-                {SHIFT_LABELS[s].icon} {SHIFT_LABELS[s].label}
-              </button>
-            ))}
-          </div>
-          {medFlags.length > 0 && (
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 12px', marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Medicação suspensa/recusada hoje — entra automaticamente</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {medFlags.map((f, i) => (
-                  <div key={i} style={{ fontSize: 12.5, color: '#78350f' }}>
-                    <strong>{f.patientName}</strong> — {f.medName} ({f.status === 'held' ? 'suspensa' : 'recusada'}){f.notes ? `: ${f.notes}` : ''}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <textarea value={handoverNotes} onChange={e => { setHandoverNotes(e.target.value); setAiSummary(null) }} rows={2} placeholder="Notas de quem sai (opcional)…"
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', marginBottom: 10 }} />
-
-          {/* A IA já corre sozinha ao publicar. Este botão é só para quem quer
-              ler o relatório antes de ele ir para o mural. */}
-          <button onClick={() => { generateAISummary() }} disabled={generatingAI || sending} style={{ width: '100%', padding: '9px 14px', background: aiSummary ? '#f5f3ff' : 'white', border: '1.5px solid #c4b5fd', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: generatingAI ? 'wait' : 'pointer', color: '#6d28d9', marginBottom: 10 }}>
-            {generatingAI ? 'A escrever o relatório…' : aiSummary ? '✨ Escrever de novo' : '👁 Ver o relatório antes de publicar'}
-          </button>
-          {aiError && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{aiError}</div>}
-          {aiSummary && (
-            <div style={{ background: '#faf5ff', border: '1.5px solid #ddd6fe', borderRadius: 9, padding: '10px 12px', marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Relatório por IA — é este que vai para o mural</div>
-              {(aiSummary.patients_summary || []).map(p => (
-                <div key={p.patient_id} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>{p.patient_name}</div>
-                  <div style={{ fontSize: 12.5, color: '#475569' }}>{p.registado}</div>
-                  {p.action_needed && <div style={{ fontSize: 12, color: '#6d28d9', fontWeight: 600, marginTop: 2 }}>→ {p.action_needed}</div>}
-                </div>
-              ))}
-              {aiSummary.general_notes && <div style={{ fontSize: 12.5, color: '#475569', borderTop: (aiSummary.patients_summary || []).length ? '1px solid #ede9fe' : 'none', paddingTop: (aiSummary.patients_summary || []).length ? 8 : 0 }}>{aiSummary.general_notes}</div>}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={publishHandover} disabled={sending || generatingAI} style={{ flex: 1, padding: '9px 14px', background: sending || generatingAI ? '#93a8e8' : '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: sending || generatingAI ? 'wait' : 'pointer' }}>
-              {sending ? (aiSummary ? 'A publicar…' : 'A escrever o relatório e a publicar…') : '✨ Publicar no mural'}
-            </button>
-            <button onClick={printHandover} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: '#374151' }}>🖨 Imprimir</button>
-          </div>
-        </div>
-      )}
 
       {channel === 'pedidos' ? (
         <MuralPedidos />
@@ -356,6 +176,26 @@ export default function MuralEquipa() {
                           )}
                         </div>
                         <div style={{ fontSize: 13.5, color: '#1e293b', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.body}</div>
+                        {/* Quem ja abriu o mural depois disto.
+                            Diz «viram» e nunca «leram»: o que ha na base de
+                            dados e UMA marca por pessoa — a hora a que abriu o
+                            mural pela ultima vez — e nao um registo por
+                            mensagem. Daqui sabe-se que a pessoa esteve ca
+                            depois; nao se sabe que leu. Chamar-lhe «leu» seria
+                            dar a casa uma certeza que o Phlox nao tem.
+                            Para quando e preciso mesmo saber, ha a passagem de
+                            turno, com botao e uma linha por pessoa. */}
+                        {mine && m.visto_por && m.visto_por.length > 0 && (
+                          <div style={{ marginTop: 6, fontSize: 10.5, color: '#94a3b8', lineHeight: 1.45 }}>
+                            Viram: {m.visto_por.map(v => v.nome.split(' ')[0]).join(', ')}
+                            {equipa > 1 && ` (${m.visto_por.length} de ${equipa - 1})`}
+                          </div>
+                        )}
+                        {mine && m.visto_por && m.visto_por.length === 0 && (
+                          <div style={{ marginTop: 6, fontSize: 10.5, color: '#94a3b8' }}>
+                            Ainda ninguem abriu o mural depois disto.
+                          </div>
+                        )}
                         {canResolve && <button onClick={() => toggleResolved(m)} style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: m.resolved ? '#94a3b8' : ACCENT, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>{m.resolved ? 'reabrir' : 'marcar resolvido'}</button>}
                       </div>
                     </div>

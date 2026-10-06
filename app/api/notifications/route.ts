@@ -34,6 +34,10 @@ export async function GET(req: NextRequest) {
   const avisos: Aviso[] = orgId
     ? await avisosDaInstituicao(supabase, orgId, {
         excluirAutor: userId,
+        // Quem está a perguntar. É isto que traz «o que ficou consigo» — as
+        // coisas atribuídas a esta pessoa, que não são da casa e por isso não
+        // podem aparecer no sino de mais ninguém.
+        euId: userId,
         tipoInstituicao: (prof as any)?.institution_type || null,
       })
     : await avisosPessoais(supabase, userId)

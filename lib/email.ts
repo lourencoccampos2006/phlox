@@ -130,6 +130,28 @@ export function emailLayout(opts: {
 </body></html>`
 }
 
+/**
+ * Texto seguro para o ASSUNTO de um email.
+ *
+ * ── PORQUE É QUE NÃO É O `escapeHtml` ──────────────────────────────────────
+ * Um assunto não é HTML. Passá-lo por `escapeHtml` faz um lar chamado «São
+ * José & Filhos» chegar à caixa de entrada como «São José &amp; Filhos», e um
+ * apelido como D'Almeida como «D&#39;Almeida». Parece avariado, e para quem
+ * recebe é o Phlox que parece avariado.
+ *
+ * ── E O ESCAPE NÃO PROTEGIA DO QUE IMPORTA ─────────────────────────────────
+ * O risco de um assunto é a injeção de cabeçalhos: uma mudança de linha no
+ * meio pode fazer o servidor ler o resto como um cabeçalho novo — um `Bcc:`,
+ * por exemplo. O `escapeHtml` não toca em `\n`, e esta função é precisamente
+ * isso que tira.
+ */
+function paraAssunto(s: string): string {
+  return String(s ?? '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 }
@@ -210,7 +232,7 @@ export function paymentFailedEmail(): { subject: string; html: string } {
 export function institutionCreatedEmail(nomeCasa: string, tipo: string): { subject: string; html: string } {
   const tipoLabel = tipo === 'day_care' ? 'centro de dia' : 'lar'
   return {
-    subject: `O Phlox do ${escapeHtml(nomeCasa)} está pronto`,
+    subject: `O Phlox do ${paraAssunto(nomeCasa)} está pronto`,
     html: emailLayout({
       heading: `Bem-vindo ao Phlox, ${escapeHtml(nomeCasa)}`,
       body: `
@@ -234,7 +256,7 @@ export function institutionCreatedEmail(nomeCasa: string, tipo: string): { subje
 /** Alguém foi convidado para a equipa de uma casa. */
 export function teamInviteEmail(nomeCasa: string, quemConvidou: string): { subject: string; html: string } {
   return {
-    subject: `${escapeHtml(quemConvidou)} convidou-o para a equipa do ${escapeHtml(nomeCasa)}`,
+    subject: `${paraAssunto(quemConvidou)} convidou-o para a equipa do ${paraAssunto(nomeCasa)}`,
     html: emailLayout({
       heading: `Faz parte da equipa do ${escapeHtml(nomeCasa)}`,
       body: `
@@ -252,12 +274,109 @@ export function teamInviteEmail(nomeCasa: string, quemConvidou: string): { subje
 /** Resumo do dia para a família (centro de dia). Sem dados clínicos no assunto. */
 export function familyDailyEmail(primeiroNome: string, linhas: string[]): { subject: string; html: string } {
   return {
-    subject: `Como correu o dia — ${escapeHtml(primeiroNome)}`,
+    subject: `Como correu o dia — ${paraAssunto(primeiroNome)}`,
     html: emailLayout({
       heading: `O dia de ${escapeHtml(primeiroNome)}`,
       body: `<p>${linhas.map(escapeHtml).join('</p><p>')}</p>
         <p style="color:#6b7280;font-size:13px">Escrito a partir do que a equipa registou hoje.</p>`,
       cta: { label: 'Ver o diário completo', url: '/familia' },
+    }),
+  }
+}
+
+/**
+ * O extrato de conta do mês, para a família.
+ *
+ * ── PORQUE É QUE ISTO É UMA TABELA E NÃO UM PARÁGRAFO ──────────────────────
+ * Porque quem o recebe quer CONFERIR. Um parágrafo a dizer «este mês ficaram
+ * 540 €» obriga a telefonar para saber de quê — e era exactamente isso que o
+ * Phlox fazia antes, com um número de extras sem itemização nenhuma.
+ *
+ * ── E É UMA TABELA DE EMAIL, NÃO UMA DE PÁGINA ─────────────────────────────
+ * `role="presentation"`, larguras em atributos, estilos em linha e nada de
+ * flexbox: o Outlook ignora quase tudo o resto, e um extrato que chegue
+ * desalinhado a metade das famílias é pior do que não chegar.
+ *
+ * ── TUDO O QUE VEM DA BASE DE DADOS PASSA POR `escapeHtml` ─────────────────
+ * As descrições são escritas à mão por quem lança («Farmácia — Ben-u-ron»).
+ * Sem escape, um apóstrofo parte o HTML e um `<` parte o email todo.
+ */
+export function extratoEmail(opts: {
+  nomeUtente: string
+  mesPorExtenso: string
+  nomeCasa?: string | null
+  saldoAnterior: string | null
+  linhas: { data: string | null; descricao: string; debito: string | null; credito: string | null }[]
+  totalDebitos: string
+  totalCreditos: string
+  saldoFinal: string
+  saldoEmPalavras: string
+}): { subject: string; html: string } {
+  const {
+    nomeUtente, mesPorExtenso: mes, nomeCasa, saldoAnterior,
+    linhas, totalDebitos, totalCreditos, saldoFinal, saldoEmPalavras: frase,
+  } = opts
+
+  const celula = 'padding:8px 10px;border-bottom:1px solid #e4e4e7;font-size:14px;color:#3f3f46'
+  const numero = `${celula};text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums`
+
+  const corpoDaTabela = linhas.map(l => `
+    <tr>
+      <td style="${celula};white-space:nowrap;color:#71717a;font-size:12px">${escapeHtml(l.data || '')}</td>
+      <td style="${celula}">${escapeHtml(l.descricao)}</td>
+      <td style="${numero}">${l.debito ? escapeHtml(l.debito) : ''}</td>
+      <td style="${numero};color:#15803d">${l.credito ? escapeHtml(l.credito) : ''}</td>
+    </tr>`).join('')
+
+  const linhaAnterior = saldoAnterior ? `
+    <tr>
+      <td style="${celula}"></td>
+      <td style="${celula};color:#71717a">Saldo anterior</td>
+      <td style="${numero};color:#71717a">${escapeHtml(saldoAnterior)}</td>
+      <td style="${numero}"></td>
+    </tr>` : ''
+
+  const body = `
+    <p style="margin:0 0 14px">Segue o extrato da conta de <strong>${escapeHtml(nomeUtente)}</strong> em ${escapeHtml(mes)}.</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 16px">
+      <tr>
+        <th align="left" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Data</th>
+        <th align="left" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Descrição</th>
+        <th align="right" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Débito</th>
+        <th align="right" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Crédito</th>
+      </tr>
+      ${linhaAnterior}
+      ${corpoDaTabela}
+      <tr>
+        <td style="${celula};border-bottom:none"></td>
+        <td style="${celula};border-bottom:none;font-weight:700;color:#18181b">Totais</td>
+        <td style="${numero};border-bottom:none;font-weight:700;color:#18181b">${escapeHtml(totalDebitos)}</td>
+        <td style="${numero};border-bottom:none;font-weight:700;color:#15803d">${escapeHtml(totalCreditos)}</td>
+      </tr>
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fafafa;border:1px solid #e4e4e7;border-radius:6px">
+      <tr>
+        <td style="padding:12px 14px;font-size:15px;font-weight:700;color:#18181b">${escapeHtml(frase)}</td>
+        <td align="right" style="padding:12px 14px;font-size:17px;font-weight:700;color:#18181b;white-space:nowrap">${escapeHtml(saldoFinal)}</td>
+      </tr>
+    </table>
+
+    <p style="margin:16px 0 0;color:#6b7280;font-size:13px">
+      Se alguma linha não lhe parecer certa, responda a este email${nomeCasa ? ` ou fale com ${escapeHtml(nomeCasa)}` : ''}.
+    </p>`
+
+  return {
+    // O assunto não leva valores. Aparece no ecrã de bloqueio do telemóvel, e
+    // quanto uma família deve não é para ser lido por quem estiver ao lado.
+    subject: `Extrato de ${paraAssunto(mes)} — ${paraAssunto(nomeUtente)}`,
+    html: emailLayout({
+      preheader: `A conta de ${nomeUtente} em ${mes}.`,
+      heading: `Extrato de ${mes}`,
+      body,
+      cta: { label: 'Ver no Phlox', url: '/familia' },
+      footnote: nomeCasa ? `Enviado por ${nomeCasa}.` : undefined,
     }),
   }
 }
@@ -279,7 +398,7 @@ export function familyWaitingEmail(quantas: number): { subject: string; html: st
 /** O que merece atenção hoje, para quem gere a casa. */
 export function attentionDigestEmail(nomeCasa: string, itens: { quem: string; porque: string }[]): { subject: string; html: string } {
   return {
-    subject: `${itens.length} ${itens.length === 1 ? 'pessoa merece' : 'pessoas merecem'} atenção hoje — ${escapeHtml(nomeCasa)}`,
+    subject: `${itens.length} ${itens.length === 1 ? 'pessoa merece' : 'pessoas merecem'} atenção hoje — ${paraAssunto(nomeCasa)}`,
     html: emailLayout({
       heading: 'O que merece atenção hoje',
       body: `<ul>${itens.slice(0, 10).map(i =>

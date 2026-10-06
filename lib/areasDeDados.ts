@@ -79,6 +79,30 @@ export const AREA_DA_TABELA: Record<string, string> = {
   catalogo_servicos: 'registos',
   servicos_do_utente: 'registos',
   servicos_execucoes: 'registos',
+  // Os serviços gerais da casa (sprint172). Ficam em `registos` e não em
+  // `qualidade`: quem limpa o quarto é quem marca que limpou, e quem limpa tem
+  // acesso aos registos do dia, não ao painel de qualidade. Pô-los lá era
+  // trancar o trabalho a quem o faz.
+  tarefas_da_casa: 'registos',
+  tarefas_da_casa_execucoes: 'registos',
+  equipamentos: 'registos',
+  leituras_temperatura: 'registos',
+  // Os bens vão para `utentes` e não para `registos`: é informação da PESSOA
+  // (o que é dela e onde está), e quem vê a ficha tem de a ver. As vacinas vão
+  // para `avaliacoes`, que é a área da saúde registada — quem dá vacinas é
+  // quem já tem acesso às escalas e às medições.
+  bens_do_utente: 'utentes',
+  vacinas_do_utente: 'avaliacoes',
+  // A conta de cada pessoa é financeiro, como as mensalidades. Quem cuida não
+  // tem de ver quanto é que a família deve.
+  conta_do_utente: 'financeiro',
+  // A ficha de formação e as ausências são da área da equipa, como a escala.
+  // Quem faz a escala precisa de saber quem está fora e até quando.
+  formacoes_da_equipa: 'equipa',
+  ausencias_da_equipa: 'equipa',
+  // A ausência de um UTENTE é da área dos utentes, não da equipa: quem cuida
+  // precisa de saber que a pessoa está no hospital.
+  ausencias_do_utente: 'utentes',
   // O que NÃO foi feito, e porquê (sprint154). Vive na mesma área do que foi
   // feito, de propósito: quem escreve o registo do dia é quem escreve isto.
   cuidados_nao_prestados: 'registos',
@@ -95,6 +119,7 @@ export const AREA_DA_TABELA: Record<string, string> = {
   health_checkins: 'registos',
   adl_reviews: 'registos',
   handovers: 'registos',
+  passagem_leituras: 'registos',
   // Serviços de apoio: roupa, transporte, acompanhamento. Fazem parte do dia.
   support_services: 'registos',
   support_recurring_services: 'registos',
@@ -157,6 +182,22 @@ export const AREA_DA_TABELA: Record<string, string> = {
   // ── Qualidade ────────────────────────────────────────────────────────────
   kpi_snapshots: 'qualidade',
   compliance_items: 'qualidade',
+  // Os inquéritos de satisfação (sprint178).
+  //
+  // ── PORQUE É QUE AS RESPOSTAS FICAM NA MESMA ÁREA QUE O RESTO ────────────
+  // A área `qualidade` é larga: a enfermagem vê, o administrativo vê, e um
+  // convidado — um médico externo, uma auditoria — também. Fica assim de
+  // propósito. Um auditor da Segurança Social vem precisamente conferir estes
+  // resultados, e esconder-lhos obrigava a imprimi-los à mão.
+  //
+  // O que protege quem respondeu não é o acesso: é a tabela não guardar quem
+  // foi. Uma auxiliar que leia «a auxiliar da noite trata-me mal» não
+  // descobre quem o escreveu, nem o dono descobre, nem eu — a informação não
+  // existe em lado nenhum (ver o cabeçalho do sprint178).
+  //
+  // Uma casa que queira apertar isto muda a área em `/permissoes`, por papel.
+  inqueritos: 'qualidade',
+  inqueritos_respostas: 'qualidade',
 
   // ── Financeiro ───────────────────────────────────────────────────────────
   // A área mais sensível de todas numa casa: é aqui que está quanto cada
@@ -233,6 +274,8 @@ export const AREA_DA_ROTA: Record<string, string> = {
   '/vigia-ruturas': 'stock',
   '/care-log': 'registos',
   '/o-dia': 'registos',
+  '/passagem': 'registos',
+  '/casa': 'registos',
   '/refeicoes': 'registos',
   '/ronda-guiada': 'registos',
   '/apoio-servicos': 'registos',
@@ -252,6 +295,7 @@ export const AREA_DA_ROTA: Record<string, string> = {
   '/documentos': 'documentos',
   '/radar': 'qualidade',
   '/conformidade': 'qualidade',
+  '/inqueritos': 'qualidade',
   '/faturacao': 'financeiro',
   '/painel-dono': 'financeiro',
   '/historico': 'registo_atividade',

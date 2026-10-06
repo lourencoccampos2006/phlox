@@ -74,7 +74,15 @@ const ficheiros = fs.readdirSync('supabase')
  * `numero >= 162` e deixava a 153 de fora sem dizer nada. A migração que corre
  * no fim era a única que ninguém verificava.
  */
-const ORDEM = (process.env.ORDEM||'162,163,164,165,166,167,168,153').split(',').map(Number)
+// ── MANTER ISTO A PAR DO QUE ESTÁ POR CORRER ──────────────────────────────
+// Esta lista é o que a guarda confere. Uma migração nova que não entre aqui
+// não é verificada por ninguém — e foi exatamente isso que aconteceu entre o
+// 171 e o 177, que ficaram sete sessões fora da lista enquanto a guarda dizia
+// «✓ todas as migrações por correr» e só olhava para duas.
+//
+// Quando o Fernando correr as migrações, tirar daqui as que já correram.
+const ORDEM = (process.env.ORDEM
+  || '169,170,171,172,173,174,175,176,177,178,153').split(',').map(Number)
 const pendentes = ORDEM
   .map(n => ficheiros.find(f => numero(f) === n))
   .filter(Boolean)
@@ -118,12 +126,16 @@ const linhaDe = (sql, i) => sql.slice(0, i).split('\n').length
  */
 function criacoes(sql) {
   const fora = []
-  for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?\s*\(([\s\S]*?)\n\s*\)\s*;/gi)) {
+  // O `(?:public\.)?` não é enfeite: `create table public.inqueritos` é SQL
+  // normal, e sem ele a guarda não via a tabela a ser criada — depois acusava
+  // o índice da linha seguinte de indexar uma tabela que não existe. Perdi uma
+  // volta a olhar para SQL que estava certo.
+  for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s*\(([\s\S]*?)\n\s*\)\s*;/gi)) {
     const cols = new Set()
     for (const c of m[2].matchAll(/^\s{2,}"?([a-z_][a-z0-9_]*)"?\s+[a-z]/gim)) cols.add(c[1].toLowerCase())
     fora.push({ i: m.index, tabela: m[1].toLowerCase(), cols, substitui: true })
   }
-  for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+  for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) {
     fora.push({ i: m.index, tabela: m[1].toLowerCase(), cols: new Set([m[2].toLowerCase()]), substitui: false })
   }
   for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?view\s+"?([a-z_][a-z0-9_]*)"?\s+as\s+select\s([\s\S]*?)\sfrom\s/gi)) {
@@ -154,7 +166,9 @@ function referencias(sql) {
     fora.push({ tabela: tabela.toLowerCase(), colunas, i, o })
 
   // select a, b from tabela   (sem join, sem subconsulta na lista)
-  for (const m of sql.matchAll(/\bselect\s+((?!\*)[a-z_][a-z0-9_,\s]*?)\s+from\s+"?([a-z_][a-z0-9_]*)"?(?!\s*\()/gi)) {
+  // Sem o `(?:public\.)?`, um `from public.team_members` dava a tabela
+  // «public» — um falso positivo que acusava uma consulta correta.
+  for (const m of sql.matchAll(/\bselect\s+((?!\*)[a-z_][a-z0-9_,\s]*?)\s+from\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?(?!\s*\()/gi)) {
     const lista = m[1].trim()
     if (/\b(select|case|distinct|count|sum|max|min)\b/i.test(lista)) continue
     // `revoke select on X from anon` e `grant select on X to y` não são
@@ -163,11 +177,11 @@ function referencias(sql) {
     add(m[2], lista.split(',').map(x => x.trim()).filter(Boolean), m.index, 'select')
   }
   // insert into tabela (a, b, c)
-  for (const m of sql.matchAll(/insert\s+into\s+"?([a-z_][a-z0-9_]*)"?\s*\(([^)]*)\)/gi)) {
+  for (const m of sql.matchAll(/insert\s+into\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s*\(([^)]*)\)/gi)) {
     add(m[1], m[2].split(',').map(x => x.trim().replace(/"/g, '')).filter(Boolean), m.index, 'insert')
   }
   // update tabela set col = ...
-  for (const m of sql.matchAll(/update\s+"?([a-z_][a-z0-9_]*)"?\s+set\s+([a-z_][a-z0-9_]*)\s*=/gi)) {
+  for (const m of sql.matchAll(/update\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?\s+set\s+([a-z_][a-z0-9_]*)\s*=/gi)) {
     add(m[1], [m[2]], m.index, 'update')
   }
   // create index ... on tabela (cols)
@@ -232,8 +246,16 @@ function sintaxe(bruto) {
 /* ── A verificação ────────────────────────────────────────────────────────── */
 const esquema = new Map([...ESQUEMA].map(([t, c]) => [t, new Set(c)]))
 // `auth.users` e as tabelas do sistema não estão no OpenAPI mas existem.
-const FORA_DO_ESQUEMA = new Set(['users', 'objects', 'buckets', 'pg_policies',
-  'information_schema', 'pg_catalog', 'organizations_backup'])
+//
+// Os catálogos do Postgres (`pg_*`) entram todos: uma migração que largue uma
+// restrição pelo nome tem de os consultar, e acusá-los de não existir é acusar
+// o Postgres. Faltava o `pg_constraint`, e a guarda travou o sprint177 por
+// causa disso — um falso positivo trava trabalho bom, que é o mesmo que uma
+// guarda avariada.
+const FORA_DO_ESQUEMA = new Set(['users', 'objects', 'buckets',
+  'information_schema', 'pg_catalog', 'organizations_backup',
+  'pg_policies', 'pg_constraint', 'pg_class', 'pg_namespace', 'pg_attribute',
+  'pg_indexes', 'pg_tables', 'pg_proc', 'pg_trigger', 'pg_type'])
 
 const achados = []
 let conferidas = 0

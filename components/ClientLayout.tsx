@@ -43,7 +43,10 @@ const CLINICAL_PREFIXES = [
   '/refeicoes', '/apoio-servicos', '/tendencias',
   '/preparacao-medicacao', '/apoio-psicossocial',
   '/o-dia',
+  '/passagem',
+  '/casa',
   '/inscricoes', '/calendario-do-ano', '/estatisticas',
+  '/inqueritos',
 ]
 
 function ScrollToTop() {

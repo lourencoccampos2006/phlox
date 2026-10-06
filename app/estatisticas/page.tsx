@@ -36,6 +36,7 @@ import { blueprintFor } from '@/lib/institutionBlueprint'
 import { useOrgName } from '@/lib/useOrgName'
 import ClinicalGate from '@/components/ClinicalGate'
 import { printDoc } from '@/lib/print'
+import { cartaSocial, anosDisponiveis, totalEmFalta } from '@/lib/cartaSocial'
 import { leituraPartilhada } from '@/lib/leituraPartilhada'
 import {
   SECOES, ultimosMeses, indicadores, comparar, variacaoEmPalavras, factosParaIA,
@@ -62,6 +63,12 @@ export default function EstatisticasPage() {
   const [erro, setErro] = useState('')
   const [ia, setIa] = useState<Organizado | null>(null)
   const [aOrganizar, setAOrganizar] = useState(false)
+
+  // O ano a reportar. Arranca no ano PASSADO: o reporte anual faz-se sobre um
+  // ano fechado, e quem abre isto em março quer o de 2026, não os dois meses e
+  // meio que já correram de 2027.
+  const [anoCarta, setAnoCarta] = useState(() => new Date().getFullYear() - 1)
+  const [cartaAberta, setCartaAberta] = useState(false)
 
   const meses = useMemo(() => ultimosMeses(12), [])
   const desde = meses[0].iso + '-01'
@@ -99,7 +106,10 @@ export default function EstatisticasPage() {
       lista('registos', () => scope.filter(supabase.from('care_records').select('date, patient_id, recorded_by_id')).gte('date', desde)),
       lista('ocorrencias', () => scope.filter(supabase.from('incidents').select('id, type, status, date')).gte('date', desde)),
       lista('atividades', () => scope.filter(supabase.from('activities').select('id, date, status')).gte('date', desde)),
-      lista('avaliacoes', () => scope.filter(supabase.from('assessments').select('id, scale, date')).gte('date', desde)),
+      // `score` e `patient_id` sao para a folha da Carta Social: sem eles nao
+      // ha como dizer o grau de dependencia de cada pessoa. Acrescentar
+      // colunas a um select e seguro; sao colunas que existem ha muito.
+      lista('avaliacoes', () => scope.filter(supabase.from('assessments').select('id, scale, date, score, patient_id')).gte('date', desde)),
       lista('mensalidades', () => scope.filter(supabase.from('billing_entries').select('*')).gte('month', desde)),
       lista('financas', () => scope.filter(supabase.from('finance_entries').select('kind, amount, date')).gte('date', desde)),
       lista('visitas', () => scope.filter(supabase.from('visit_requests').select('id, requested_date, status')).gte('requested_date', desde)),
@@ -142,6 +152,49 @@ export default function EstatisticasPage() {
     } catch {
       setIa({ destaques: [], leitura: '', erro: 'Não foi possível organizar agora. Os números em baixo estão todos certos.' })
     } finally { setAOrganizar(false) }
+  }
+
+  // ── A folha da Carta Social ───────────────────────────────────────────────
+  // Nenhuma consulta nova: sai do que esta pagina ja carregou. Uma segunda
+  // leitura dos mesmos numeros acabaria por discordar da primeira.
+  const quadros = useMemo(
+    () => (dados ? cartaSocial({
+      utentes: dados.utentes, arquivados: dados.arquivados,
+      avaliacoes: dados.avaliacoes, capacidade: dados.capacidade,
+    }, anoCarta) : []),
+    [dados, anoCarta])
+  const anos = useMemo(
+    () => (dados ? anosDisponiveis({ utentes: dados.utentes, arquivados: dados.arquivados, avaliacoes: [] }) : []),
+    [dados])
+  const faltam = useMemo(() => totalEmFalta(quadros), [quadros])
+
+  // O ano escolhido TEM de estar na lista oferecida. Se nao estiver, o
+  // `<select>` desenha a primeira opcao e o quadro por baixo mostra outra — e
+  // quem imprime a folha leva um ano na caixa e outro no papel.
+  useEffect(() => {
+    if (anos.length && !anos.includes(anoCarta)) setAnoCarta(anos[0])
+  }, [anos, anoCarta])
+
+  function imprimirCarta() {
+    printDoc({
+      docTitle: 'Carta Social',
+      docSubtitle: `Reporte anual · ${anoCarta}`,
+      institution: nomeCasa || undefined,
+      sections: quadros.map(q => ({
+        heading: q.titulo,
+        note: `${q.porque} — ${q.base}.`,
+        records: q.linhas.map(l => ({
+          title: `${l.rotulo}: ${l.valor}${l.pct !== null && l.pct !== undefined ? ` (${l.pct}%)` : ''}`,
+          meta: '',
+        })),
+      })),
+      // Isto vai impresso, e tem de ir: um relatorio entregue a Seguranca
+      // Social que nao diga sobre quantas pessoas foi calculado nao se
+      // consegue defender se alguem perguntar.
+      footerNote: faltam
+        ? `Atenção: ${faltam} campo(s) por preencher nas fichas. Os quadros dizem sobre quantas pessoas foi feita cada conta.`
+        : 'Calculado a partir das fichas e avaliações da instituição.',
+    })
   }
 
   function imprimir() {
@@ -216,6 +269,124 @@ export default function EstatisticasPage() {
 
         {/* ── A leitura da IA, por cima e nunca em vez dos números ────────── */}
         {ia && <Leitura ia={ia} cor={bp.accent} />}
+
+        {/* ── A folha da Carta Social ──────────────────────────────────────
+            Vem ANTES dos indicadores, e fechada. É uma vez por ano e não todos
+            os dias — aberta, roubava o ecrã a quem veio ver como corre o mês.
+            Fechada mas à vista, está lá em dezembro quando for precisa. */}
+        {dados && (
+          <section style={{
+            marginBottom: 22, borderRadius: 'var(--r-lg)',
+            border: `1px solid ${cartaAberta ? bp.accent : 'var(--border)'}`,
+            overflow: 'hidden',
+          }}>
+            <button
+              onClick={() => setCartaAberta(a => !a)}
+              aria-expanded={cartaAberta}
+              style={{
+                display: 'flex', width: '100%', alignItems: 'center', gap: 12,
+                padding: '14px 16px', border: 'none', background: 'transparent',
+                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+              }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)' }}>
+                  Carta Social — reporte anual
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 3, lineHeight: 1.45 }}>
+                  Os quadros que a Segurança Social pede uma vez por ano, somados a partir das fichas.
+                </div>
+              </div>
+              {faltam > 0 && !cartaAberta && (
+                <span style={{
+                  flexShrink: 0, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
+                  background: 'var(--badge-amber-bg)', color: 'var(--badge-amber-fg)',
+                  border: '1px solid var(--badge-amber-border)',
+                }}>{faltam} por preencher</span>
+              )}
+              <span aria-hidden style={{ flexShrink: 0, color: 'var(--ink-4)', fontSize: 15 }}>
+                {cartaAberta ? '▲' : '▼'}
+              </span>
+            </button>
+
+            {cartaAberta && (
+              <div style={{ padding: '0 16px 16px' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)' }}>
+                    Ano{' '}
+                    <select value={anoCarta} onChange={e => setAnoCarta(Number(e.target.value))}
+                      style={{
+                        marginLeft: 6, padding: '8px 10px', minHeight: 38, borderRadius: 'var(--r-md)',
+                        border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13.5,
+                        background: 'var(--bg)', color: 'var(--ink)',
+                      }}>
+                      {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                  </label>
+                  <button onClick={imprimirCarta} style={{
+                    minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
+                    border: '1px solid var(--border-2)', background: 'transparent',
+                    fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                    color: 'var(--ink-3)', cursor: 'pointer',
+                  }}>Imprimir a folha</button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {quadros.map(q => (
+                    <div key={q.id}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+                        <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>
+                          {q.titulo}
+                        </h3>
+                        <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{q.porque}</span>
+                      </div>
+
+                      <div style={{
+                        marginTop: 7, borderRadius: 'var(--r-md)',
+                        border: '1px solid var(--border)', overflow: 'hidden',
+                      }}>
+                        {q.linhas.map((l, i) => (
+                          <div key={l.rotulo} style={{
+                            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                            gap: 12, padding: '9px 12px',
+                            borderTop: i === 0 ? 'none' : '1px solid var(--bg-3)',
+                          }}>
+                            <span style={{ fontSize: 13, color: 'var(--ink-2)', minWidth: 0 }}>{l.rotulo}</span>
+                            <span style={{
+                              flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 13,
+                              fontWeight: 700, color: 'var(--ink)',
+                            }}>
+                              {l.valor}
+                              {l.pct !== null && l.pct !== undefined && (
+                                <span style={{ color: 'var(--ink-5)', fontWeight: 500 }}>  {l.pct}%</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* A BASE da conta, sempre. Um relatório que não diga
+                          sobre quantas pessoas foi feito não se consegue
+                          defender se alguém perguntar — e alguém pergunta. */}
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
+                        {q.base}.
+                        {q.emFalta > 0 && q.ondeResolver && (
+                          <span style={{ color: 'var(--badge-amber-fg)', fontWeight: 600 }}>
+                            {' '}Faltam {q.emFalta} — {q.ondeResolver}.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 14, lineHeight: 1.55 }}>
+                  Os números saem das fichas e das avaliações desta casa, e nenhum é estimado.
+                  Confira-os antes de submeter: o reporte é da instituição, não do Phlox.
+                </p>
+              </div>
+            )}
+          </section>
+        )}
 
         {!dados ? (
           <p style={{ fontSize: 13.5, color: 'var(--ink-4)' }}>A somar os doze meses…</p>

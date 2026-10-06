@@ -471,7 +471,7 @@ export default function MARPage() {
               style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
               Folha de MAR
             </button>
-            <Link href="/equipa?tab=mural&handover=1" className="mar-passagem"
+            <Link href="/passagem" className="mar-passagem"
               title="Escrever notas de passagem para o turno seguinte"
               style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               Passagem →

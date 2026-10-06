@@ -31,6 +31,11 @@ import StockDoUtente from '@/components/institution/StockDoUtente'
 import CuidadosDeRotina from '@/components/institution/CuidadosDeRotina'
 import EtiquetasDoUtente from '@/components/institution/EtiquetasDoUtente'
 import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
+import ProcessoIndividual from '@/components/institution/ProcessoIndividual'
+import Cardex from '@/components/institution/Cardex'
+import BensDoUtente from '@/components/institution/BensDoUtente'
+import VacinasDoUtente from '@/components/institution/VacinasDoUtente'
+import AusenciasDoUtente from '@/components/institution/AusenciasDoUtente'
 import { nomeDoPlano } from '@/lib/plano'
 import { registoEmPalavras } from '@/lib/registoEmPalavras'
 
@@ -105,7 +110,7 @@ type Props = {
   aoMudar?: (recarregar: () => void) => void
 }
 
-type Aba = 'hoje' | 'plano' | 'historico' | 'registos' | 'documentos'
+type Aba = 'hoje' | 'cardex' | 'plano' | 'historico' | 'registos' | 'documentos'
 
 export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos, pedidos, revisaoMedicacao, children, aoMudar }: Props) {
   const { user, supabase } = useAuth() as any
@@ -135,7 +140,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     // `evolucao` continua a ser aceite: e o nome que os enderecos ja partilhados
     // tem, e um link que deixa de funcionar e pior do que um nome antigo.
     if (q === 'evolucao') { setAba('historico'); return }
-    if (q && ['hoje', 'plano', 'historico', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
+    if (q && ['hoje', 'cardex', 'plano', 'historico', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
   }, [])
   const irPara = (a: Aba) => {
     setAba(a)
@@ -161,7 +166,13 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     const tol = async (q: any) => { try { const r = await q; return r.error ? { data: [] } : r } catch { return { data: [] } } }
     const [p, md, mar, cr, att, ct, inc] = await Promise.all([
       tol(supabase.from('patients').select('*').eq('id', pid).maybeSingle()),
-      tol(supabase.from('patient_meds').select('id,name,dose,frequency,indication,shifts,take_location,active').eq('patient_id', pid)),
+      // `select('*')` e nao a lista dos campos. O Cardex precisa da via, do
+      // SOS (com o maximo por dia e o intervalo) e das HORAS por turno — e
+      // `patient_meds.horas` so existe depois do sprint170. Nomear uma coluna
+      // que a base ainda nao tem faz o PostgREST recusar a consulta INTEIRA e
+      // devolver `data: null`, que e indistinguivel de «nao ha medicacao»: a
+      // ficha ficava sem medicamento nenhum e sem erro visivel.
+      tol(supabase.from('patient_meds').select('*').eq('patient_id', pid)),
       tol(supabase.from('mar_records').select('id,med_id,status,shift,recorded_at,notes').eq('patient_id', pid).eq('date', d)),
       tol(supabase.from('care_records').select('id,created_at,nutrition,mood,continence,skin,vitals,notes').eq('patient_id', pid).eq('date', d)),
       tol(supabase.from('attendance').select('status,arrived_at,left_at').eq('patient_id', pid).eq('date', d).maybeSingle()),
@@ -353,6 +364,9 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
             (sprint164 — `nao:utentes.plano`, `nao:utentes.documentos`.) */}
         {(([
           ['hoje', 'Hoje'],
+          // O Cardex vem logo depois do «Hoje», e antes do plano: é a folha de
+          // quem está a chegar ao turno, e essa pessoa não vai procurar.
+          ['cardex', 'Cardex'],
           ['plano', nomeDoPlano(institution).curto],
           ['historico', 'Histórico'],
           ['registos', 'Registos'],
@@ -374,6 +388,12 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         })}
       </nav>
 
+      {/* O Cardex só se monta quando alguém o abre. Ver a nota sobre a bolinha
+          no separador, em components/institution/Cardex.tsx. */}
+      {aba === 'cardex' && (
+        <Cardex utente={utente} meds={meds} contactos={contactos} cor={cor} />
+      )}
+
       {aba === 'plano' && scope.veDetalhe('utentes.plano') && (
         <PlanoIndividual pid={pid} nome={utente.name} cor={cor} />
       )}
@@ -391,7 +411,19 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       )}
 
       {aba === 'documentos' && scope.veDetalhe('utentes.documentos') && (
-        <DocumentosDaPessoa pid={pid} nome={utente.name} cor={cor} />
+        <>
+          {/* O balanco do processo vem ANTES dos documentos, e nao depois.
+              Quem abre este separador esta quase sempre a preparar alguma
+              coisa — uma admissao, uma inspecao — e a pergunta que traz e «o
+              que e que falta?». A lista do que ja la esta responde-lhe por
+              exclusao, e obriga-o a saber de cor o que a portaria pede. */}
+          <ProcessoIndividual pid={pid} nome={utente.name} cor={cor} />
+          <DocumentosDaPessoa pid={pid} nome={utente.name} cor={cor} />
+          {/* Os bens ficam com os documentos e nao no «Hoje»: e informacao de
+              arquivo — consulta-se quando alguem pergunta, nao durante um
+              turno. */}
+          <BensDoUtente pid={pid} nome={utente.name} cor={cor} />
+        </>
       )}
 
       {/* ── HOJE ─────────────────────────────────────────────────────────── */}
@@ -602,6 +634,16 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       {/* O que esta pessoa tem ca. Fica a seguir a medicacao porque e a mesma
           conversa: o que ha para dar, e se ainda ha. */}
       <StockDoUtente pid={pid} nome={utente.name} cor={cor} />
+
+      {/* O boletim de vacinas. Fica no «Hoje» e nao nos documentos: a pergunta
+          que ele responde — «quem falta vacinar» — e de quem esta a trabalhar,
+          nao de quem esta a preparar uma inspecao. */}
+      <VacinasDoUtente pid={pid} nome={utente.name} cor={cor} />
+
+      {/* As ausencias. Ficam no «Hoje» porque mudam o dia de trabalho de toda
+          a gente: enquanto a pessoa estiver fora, as tarefas dela saem do
+          «O Dia». Nao e um apontamento de arquivo. */}
+      <AusenciasDoUtente pid={pid} nome={utente.name} cor={cor} />
 
       {revisaoMedicacao && <Seccao titulo="Revisão da medicação">{revisaoMedicacao}</Seccao>}
 

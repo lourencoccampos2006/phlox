@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarPush } from '@/lib/webPush'
-import { avisosDaInstituicao, avisosPessoais } from '@/lib/avisos'
+import { avisosDaInstituicao, avisosPessoais, atribuicoesDaCasa, type Aviso } from '@/lib/avisos'
 import { querReceber } from '@/lib/notificacoes'
 import { ptHHMM, ptDate, instanteEmPortugal } from '@/lib/ptTime'
 import { clienteDeServico, confirmarLigacao } from '@/lib/servico'
@@ -411,17 +411,38 @@ export async function GET(req: NextRequest) {
       })
     } catch { continue }   // uma casa com problemas não pode calar as outras
 
+    // ── O que ficou com cada um ───────────────────────────────────────────
+    // Estes não são da casa: são de uma pessoa. Por isso vêm num mapa e não
+    // na lista de cima — e por isso se calculam UMA vez por casa e não uma
+    // vez por membro, que seriam quatro consultas vezes quinze pessoas de
+    // quinze em quinze minutos, para sempre.
+    let meusPorPessoa = new Map<string, Aviso[]>()
+    try {
+      const todas = await atribuicoesDaCasa(supabase, casa.id, { agora: nowHHMM, hoje: today })
+      for (const [uid, lista] of todas) {
+        const aTocar = lista.filter(a => a.empurrar)
+        if (aTocar.length) meusPorPessoa.set(uid, aTocar)
+      }
+    } catch { meusPorPessoa = new Map() }   // sem isto, a casa toda ficava sem avisos
+
     const aEmpurrar = avisos.filter(a => a.empurrar)
-    avisosTotal += aEmpurrar.length
-    if (!aEmpurrar.length) continue
+    // Tudo o que pode tocar nesta casa, para saber de uma vez o que já tocou.
+    const tudo = [...aEmpurrar, ...[...meusPorPessoa.values()].flat()]
+    avisosTotal += tudo.length
+    if (!tudo.length) continue
 
     // O que já foi empurrado não se repete. A etiqueta leva o id da casa: sem
     // isso, a primeira organização do dia consumia a etiqueta de todas.
-    const etiquetas = aEmpurrar.map(a => `${casa.id}:${a.id}`)
+    const etiquetas = tudo.map(a => `${casa.id}:${a.id}`)
     const { data: jaEnviados } = await supabase
       .from('push_notifications_sent').select('tag').in('tag', etiquetas)
     const enviados = new Set((jaEnviados || []).map((x: any) => x.tag))
-    const novos = aEmpurrar.filter(a => !enviados.has(`${casa.id}:${a.id}`))
+    const novos = tudo.filter(a => !enviados.has(`${casa.id}:${a.id}`))
+    // O id do aviso pessoal já leva o utilizador e o turno dentro
+    // (`meu-<casa>-<pessoa>-<dia>-<turno>`), por isso esta mesma etiqueta
+    // impede que ele saia duas vezes à mesma pessoa no mesmo turno — e não
+    // impede que saia a outra.
+    const porEnviar = new Set(novos.map(a => a.id))
     avisosNovos += novos.length
     if (!novos.length) continue
 
@@ -439,7 +460,13 @@ export async function GET(req: NextRequest) {
 
     for (const membro of membros) {
       const gere = ['owner', 'admin', 'dono', 'direcao'].includes(membro.role)
-      const seus = (gere ? novos : novos.filter(a => DO_TURNO.has(a.tipo)))
+      // Da casa: quem gere recebe tudo, quem está no turno recebe o trabalho
+      // do turno. O que ficou CONSIGO chega a toda a gente, independentemente
+      // do papel — é sobre ela própria, e ninguém tem de gerir a casa para
+      // saber o que lhe compete.
+      const daCasa = gere ? aEmpurrar : aEmpurrar.filter(a => DO_TURNO.has(a.tipo))
+      const seus = [...daCasa, ...(meusPorPessoa.get(membro.user_id) || [])]
+        .filter(a => porEnviar.has(a.id))
         // Cada pessoa recebe o que escolheu receber. Ver lib/notificacoes.
         .filter(a => quer(membro.user_id, a.tipo))
       if (!seus.length) continue

@@ -31,6 +31,7 @@ export const SETUP_CODES = {
   'PHX-V7': 'sprint141_daily_case_and_shift.sql — caso do dia + turnos em curso (shift_checkins)',
   'PHX-W4': 'sprint165_inscricao_e_prioridade.sql — lista de espera (candidaturas), critérios de entrada e a idade a sair da data de nascimento',
   'PHX-X6': 'sprint167_modelos_documentos.sql — modelos de documentos que se preenchem com os dados da pessoa, e o registo do que foi emitido',
+  'PHX-Y2': 'sprint178_inqueritos.sql — inquéritos de satisfação a utentes, famílias e equipa (as respostas são anónimas por construção)',
   'PHX-R6': 'chave de serviço em falta no ambiente (SUPABASE_SERVICE_ROLE_KEY)',
 } as const
 

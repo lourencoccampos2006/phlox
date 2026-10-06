@@ -19,6 +19,25 @@ export default function FaturacaoPage() {
 
   // Financeiro é só do dono/admin — a base de dados já bloqueia (RLS), mas sem
   // isto o resto da equipa via um ecrã vazio/confuso em vez de saber porquê.
+  //
+  // ── MAS SÓ DEPOIS DE SE SABER QUEM É ──────────────────────────────────────
+  // `isManager` arranca FALSO: sai das permissões, que chegam da base de dados
+  // uns milissegundos depois do primeiro render. Sem a guarda `pronto`, quem
+  // gere a casa abria a faturação e via «Só o dono ou administrador» durante um
+  // quarto de segundo — medido: aparecia aos 250 ms e desaparecia aos 500.
+  //
+  // Dizer a alguém que não tem acesso quando tem é a pior maneira de errar:
+  // quem lê aquilo fecha a página e não volta.
+  if (!scope.pronto) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <div className="page-container page-body" style={{ maxWidth: 560 }}>
+          <div style={{ fontSize: 14, color: 'var(--ink-4)' }}>A carregar…</div>
+        </div>
+      </div>
+    )
+  }
+
   if (scope.orgId && !scope.isManager) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>

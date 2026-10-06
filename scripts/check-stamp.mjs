@@ -46,15 +46,46 @@ for (const f of ['app', 'components', 'lib'].flatMap(d => ficheiros(d))) {
 const sql = readdirSync('supabase').filter(f => f.endsWith('.sql'))
   .map(f => readFileSync(join('supabase', f), 'utf8')).join('\n')
 
-const criada = t => new RegExp(`create table (?:if not exists )?${esc(t)}\\s*\\(`).test(sql)
+// O `(?:public\.)?` importa: `create table public.inqueritos` é SQL normal, e
+// sem ele a guarda não via a tabela a ser criada — e acusava uma escrita certa
+// de escrever numa tabela que não existe.
+const criada = t => new RegExp(`create table (?:if not exists )?(?:public\\.)?${esc(t)}\\s*\\(`).test(sql)
 
 const temColuna = t => {
-  const cria = sql.match(new RegExp(`create table (?:if not exists )?${esc(t)}\\s*\\(([\\s\\S]*?)\\n\\);`))
+  const cria = sql.match(new RegExp(`create table (?:if not exists )?(?:public\\.)?${esc(t)}\\s*\\(([\\s\\S]*?)\\n\\);`))
   if (cria && cria[1].includes('recorded_by_id')) return true
-  if (new RegExp(`alter table (?:if exists )?${esc(t)} add column if not exists recorded_by_id`).test(sql)) return true
+  if (new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)} add column if not exists recorded_by_id`).test(sql)) return true
   // uma constraint sobre a coluna prova que ela existe
   if (new RegExp(`alter table ${esc(t)} add constraint ${esc(t)}_recorded_by_id_fkey`).test(sql)) return true
+  // ── O CICLO EM MASSA DO sprint169 ────────────────────────────────────────
+  // O sprint169 não nomeia tabela nenhuma: percorre TODAS as tabelas que têm
+  // `org_id` e que ainda não têm `recorded_by_id`, e acrescenta-a por
+  // `execute format(...)`. Nenhuma expressão regular vê isso, e por isso a
+  // guarda acusava oito escritas que estão certas e só esperam o SQL.
+  //
+  // Uma guarda que grita em falso durante sete sessões deixa de ser lida — e
+  // foi quase o que aconteceu: o `inqueritos` apareceu no meio de oito falsos
+  // positivos e podia ter passado despercebido.
+  //
+  // O mesmo padrão já estava reconhecido em baixo, para o `org_id` do
+  // sprint91. É a mesma ideia: a prova é a REGRA, e não o nome.
+  if (recordedEmMassa && temOrgId(t)) return true
   return false
+}
+
+/** Há uma migração que dá `recorded_by_id` a todas as tabelas com `org_id`? */
+const recordedEmMassa = /add column if not exists recorded_by_id/.test(sql)
+  && /execute format/.test(sql)
+  && /column_name = 'org_id'/.test(sql)
+
+/** Esta tabela tem `org_id` — por criação, por ALTER, ou pelo ciclo do sprint91. */
+function temOrgId(t) {
+  const cria = sql.match(new RegExp(`create table (?:if not exists )?(?:public\\.)?${esc(t)}\\s*\\(([\\s\\S]*?)\\n\\);`))
+  if (cria && cria[1].includes('org_id')) return true
+  if (new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)} add column if not exists org_id`).test(sql)) return true
+  return new RegExp(`'${esc(t)}'`).test(sql)
+    && /add column if not exists org_id/.test(sql)
+    && /execute format/.test(sql)
 }
 
 const maus = []

@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import Responsavel from '@/components/institution/Responsavel'
 import { useOrgScope } from '@/lib/orgScope'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import { CADENCIAS, POR_CADENCIA, DIAS_DA_SEMANA, cadenciaEmPalavras, type Cadencia } from '@/lib/plano'
@@ -203,7 +204,8 @@ export default function CuidadosDeRotina({ pid, nome, cor }: { pid: string; nome
                 )}
               </div>
 
-              {aberto && <Afinador a={a} cor={cor} aoMudar={patch => afinar(a, patch)} />}
+              {aberto && <Afinador a={a} cor={cor} aoMudar={patch => afinar(a, patch)}
+                  supabase={supabase} orgId={scope.orgId} euId={user?.id} />}
             </div>
           )
         })}
@@ -263,8 +265,9 @@ export default function CuidadosDeRotina({ pid, nome, cor }: { pid: string; nome
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Afinador({ a, cor, aoMudar }: {
+function Afinador({ a, cor, aoMudar, supabase, orgId, euId }: {
   a: ServicoDoUtente; cor: string; aoMudar: (patch: Partial<ServicoDoUtente>) => void
+  supabase: any; orgId: string | null; euId?: string | null
 }) {
   const [notas, setNotas] = useState(a.notas || '')
   const [quem, setQuem] = useState(a.quem || '')
@@ -317,11 +320,27 @@ function Afinador({ a, cor, aoMudar }: {
       )}
 
       {opcao?.noDia && (
-        <div style={{ marginTop: 11 }}>
-          <span style={{ ...MONO, display: 'block', marginBottom: 6 }}>Altura do dia</span>
-          <select value={a.turno ?? ''} onChange={e => aoMudar({ turno: e.target.value || null })} style={campo}>
-            {TURNOS.map(t => <option key={t.id ?? 'x'} value={t.id ?? ''}>{t.label}</option>)}
-          </select>
+        <div style={{ marginTop: 11, display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+            <span style={{ ...MONO, display: 'block', marginBottom: 6 }}>Altura do dia</span>
+            <select value={a.turno ?? ''} onChange={e => aoMudar({ turno: e.target.value || null })} style={campo}>
+              {TURNOS.map(t => <option key={t.id ?? 'x'} value={t.id ?? ''}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* A hora é OPCIONAL, e deixá-la em branco não é um campo por
+              preencher: quer dizer «durante o turno», que é a verdade da
+              maior parte do cuidado de rotina. Quem a puser ganha o lugar
+              certo na linha do tempo do /o-dia; quem não a puser continua a
+              aparecer no turno, como sempre apareceu. */}
+          <div style={{ flex: '0 1 130px', minWidth: 110 }}>
+            <span style={{ ...MONO, display: 'block', marginBottom: 6 }}>A que horas</span>
+            <input
+              type="time" value={a.hora || ''}
+              onChange={e => aoMudar({ hora: e.target.value || null })}
+              aria-label="A que horas, se houver hora certa"
+              style={campo} />
+          </div>
         </div>
       )}
 
@@ -329,6 +348,21 @@ function Afinador({ a, cor, aoMudar }: {
         <span style={{ ...MONO, display: 'block', marginBottom: 6 }}>Quem costuma fazer</span>
         <input value={quem} onChange={e => setQuem(e.target.value)} onBlur={() => aoMudar({ quem: quem.trim() || null })}
           placeholder="A função, não o nome (opcional)" style={campo} />
+      </div>
+
+      {/* Duas coisas diferentes, e é por isso que são dois campos. «Quem
+          costuma fazer» é a função — «auxiliar da manhã» — e faz parte da
+          descrição do cuidado. O responsável é uma PESSOA da casa, muda de
+          semana para semana, e é ele que recebe o aviso e vê isto em «só o
+          que é meu». Juntá-los obrigava a escolher entre descrever o cuidado
+          e atribuí-lo. */}
+      <div style={{ marginTop: 11 }}>
+        <span style={{ ...MONO, display: 'block', marginBottom: 6 }}>Responsável</span>
+        <Responsavel
+          supabase={supabase} orgId={orgId} euId={euId}
+          valorId={a.responsavel_id} valorNome={a.responsavel}
+          aoEscolher={(id, nome) => aoMudar({ responsavel_id: id, responsavel: nome })}
+        />
       </div>
 
       <div style={{ marginTop: 11 }}>

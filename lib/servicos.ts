@@ -44,8 +44,14 @@ export interface ServicoDoUtente {
   cadencia: Cadencia
   dias: number[] | null
   turno: string | null
+  /** `HH:MM`, ou null para «a qualquer hora do turno» (sprint170). */
+  hora?: string | null
   desde: string
+  /** A FUNÇÃO de quem costuma fazer — «auxiliar da manhã». Texto livre. */
   quem: string | null
+  /** A PESSOA que ficou com isto. É outra coisa: ver a nota no sprint170. */
+  responsavel_id?: string | null
+  responsavel?: string | null
   notas: string | null
   ativo: boolean
 }
